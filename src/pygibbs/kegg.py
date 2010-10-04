@@ -167,7 +167,7 @@ def unparse_reaction_formula(sparse, direction='=>'):
 
 class Elements:
     def __init__(self):
-        csv_file = csv.reader(open('../data/elements.csv', 'r'))
+        csv_file = csv.reader(open('../data/thermodynamics/elements.csv', 'r'))
         csv_file.next()
         self.symbol_to_an = {}
         self.an_to_symbol = {}
@@ -221,6 +221,7 @@ class Compound:
         self.inchi = None
         self.from_kegg = True
         self.pubchem_id = None
+        self.cas = ""
     
     def get_atom_bag(self):
         if (self.formula == None or self.formula.find("(") != -1 or self.formula.find(")") != -1):
@@ -456,6 +457,8 @@ class Kegg:
             if ("DBLINKS" in field_map):
                 for sid in re.findall("PubChem: (\d+)", field_map["DBLINKS"]):
                     comp.pubchem_id = int(sid)
+                for cas in re.findall("CAS: ([\d\-]+)", field_map["DBLINKS"]):
+                    comp.cas = cas
             
             self.cid2compound_map[cid] = comp
                 
@@ -546,7 +549,7 @@ class Kegg:
         sys.stderr.write("Parsing the COFACTOR file ... ")
         self.cofactors2names = {}
         self.cid2bounds = {}
-        cofactor_csv = csv.reader(open('../data/cofactors.csv', 'r'))
+        cofactor_csv = csv.reader(open('../data/thermodynamics/cofactors.csv', 'r'))
         cofactor_csv.next()
         for row in cofactor_csv:
             cid = int(row[0])
@@ -889,7 +892,7 @@ class Kegg:
     
     def insert_data_to_db(self, cursor):
         cursor.execute("DROP TABLE IF EXISTS kegg_compound")
-        cursor.execute("CREATE TABLE kegg_compound (cid INT, pubchem_id INT, mass REAL, formula TEXT, inchi TEXT, from_kegg BOOL)")
+        cursor.execute("CREATE TABLE kegg_compound (cid INT, pubchem_id INT, mass REAL, formula TEXT, inchi TEXT, from_kegg BOOL, cas TEXT)")
         cursor.execute("DROP INDEX IF EXISTS kegg_compound_idx")
         cursor.execute("CREATE UNIQUE INDEX kegg_compound_idx ON kegg_compound (cid)")
 
@@ -899,8 +902,8 @@ class Kegg:
         cursor.execute("CREATE INDEX kegg_compound_names_idx ON kegg_compound_names (name)")
         
         for (cid, compound) in self.cid2compound_map.iteritems():
-            cursor.execute("INSERT INTO kegg_compound VALUES(?,?,?,?,?,?)", \
-                           (cid, compound.pubchem_id, compound.mass, compound.formula, compound.inchi, compound.from_kegg))
+            cursor.execute("INSERT INTO kegg_compound VALUES(?,?,?,?,?,?,?)", \
+                           (cid, compound.pubchem_id, compound.mass, compound.formula, compound.inchi, compound.from_kegg, compound.cas))
             for name in compound.all_names:
                 cursor.execute("INSERT INTO kegg_compound_names VALUES(?,?)", (cid, unicode(name)))
     

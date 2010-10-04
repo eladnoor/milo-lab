@@ -1,15 +1,15 @@
 import sys, pylab, cplex, common
-from stoichiometric_lp import Stoichiometric_LP
-from kegg import KeggPathologic
-from groups import GroupContribution
-from feasibility import find_pCr, LinProgNoSolutionException
-from html_writer import HtmlWriter
+from pygibbs.stoichiometric_lp import Stoichiometric_LP
+from pygibbs.kegg import KeggPathologic
+from pygibbs.groups import GroupContribution
+from pygibbs.feasibility import find_pCr, LinProgNoSolutionException
+from pygibbs.html_writer import HtmlWriter
 
 ################################################################################
 #                               CONSTANTS & DEFAULTS                           #
 ################################################################################
 class Pathologic:
-    def __init__(self, update_file='../data/database_updates.txt'):
+    def __init__(self, update_file='../data/thermodynamics/database_updates.txt'):
         cplex.Cplex() # causes CPLEX to print its initialization message
 
         common._mkdir('../res')

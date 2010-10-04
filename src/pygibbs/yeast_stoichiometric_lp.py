@@ -30,10 +30,10 @@ class YeastStoichiometricLP():
             *** this program assumes all reactions are irreversible. If you want a reversible one, add the opposite reaction as well.
         """
         # reaction fluxes are the continuous variables
-        for (rid, sparse) in self.reactions:
+        for (rid, sparse) in reactions:
             self.add_flux_constraint(rid, sparse, 0, self.flux_upper_bound)
 
-    def add_flux_constraint(self, rid, sparse, lb=1, ub=1, add_indicator_variable=False):
+    def add_flux_constraint(self, rid, sparse, lb=1, ub=1):
         """
             adds a variable with a specified rid that has the value of the flux through a reaction
             and adds the effect that it has on the mass-balance formula for each of the participating
@@ -74,7 +74,6 @@ class YeastStoichiometricLP():
         if (self.milp == False):
             raise Exception("Cannot add thermodynamic constraints without the MILP variables")
         
-        self.T = T
         for cid in self.compounds:
             self.cpl.variables.add(names=[cid + "_concentration"], lb=[-1e6], ub=[1e6])
 
@@ -85,7 +84,7 @@ class YeastStoichiometricLP():
                 self.cpl.linear_constraints.set_coefficients(rid + "_thermo", cid + "_concentration", coeff)
                 dG0_r += coeff * cid2dG0_f.get(cid, 0)
             self.cpl.linear_constraints.set_coefficients(rid + "_thermo", rid + "_gamma", 1e6)
-            self.cpl.linear_constraints.set_rhs(rid + "_thermo", 1e6 - dG0_r/(common.R*T))
+            self.cpl.linear_constraints.set_rhs(rid + "_thermo", 1e6 - dG0_r/(common.R*self.T))
 
         # if the dG0_f is unknown, the concentration must remain unbound
         # therefore we leave only the known compounds in the encountered_cids set
