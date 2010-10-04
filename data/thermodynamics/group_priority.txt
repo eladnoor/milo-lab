@@ -1,0 +1,92 @@
+Legend:
+-   single bond
+=   double bond
+#   triple bond
+>   more than one single bond
+[N] the ionic charge
+
+Molecular substructures involving halogens:
+-Cl (attached to a primary   carbon with 2 other chlorine atoms attached)
+-Cl (attached to a primary   carbon with 1 other chlorine atom  attached)
+-Cl (attached to a secondary carbon with 1 other chlorine atom  attached)
+-Cl (attached to a primary   carbon with 0 other chlorine atoms attached)
+-Cl (attached to a secondary carbon with 0 other chlorine atoms attached)
+-Cl (attached to a tertiary  carbon with 0 other chlorine atoms attached)
+-Br (attached to an aromatic ring)
+-I  (attached to an aromatic ring)
+-F  (attached to an aromatic ring)
+
+Molecular substructures involving sulfur:
+-S-OH
+-S- (participating in a ring)
+-S< [1+]
+-SO3 [1-]
+-SH
+-S [1-]
+-S-S-
+-S-
+
+Molecular substructures involving phosphorous:
+-CO-OPO3- [2-]
+-O-PO2-   [1-] (participating in a ring)
+-O-PO3    [2-]
+-O-PO2    [2-]
+-O-PO2-O- [1-]
+-O-PO2-   [1-]
+
+Molecular substructures involving nitrogen:
+=N<  [1+]
+>N-       (participating in two fused rings)
+=N<  [1+] (double bond and one single bond participating in a ring)
+>NH2 [1+]
+>NH
+>NH       (participating in a ring)
+>N-       (participating in a ring)
+=NH- [1+] (participating in a ring)
+=N-       (participating in a ring)
+=NH2 [1+]
+=NH
+-NH3 [1+]
+-NH2
+#N
+>N-
+=N-
+>N<  [1+]
+
+Molecular substructures involving oxygen:
+-O-CO-     (participating in a ring)
+-O-CO-
+>C=O       (participating in a ring)
+-COO  [1-]
+-CH=O
+>C=O
+-O-        (participating in a ring)
+-OH
+-O    [1-]
+-O-
+
+Molecular substructures involving unsaturated carbons:
+#C-
+>C=  (participating in two fused aromatic rings)
+>C=  (participating in two fused nonaromatic rings)
+>C=  (participating in two fused rings: one aromatic and one nonaromatic)
+=CH- (participating in one aromatic ring)
+>C=  (one single bond and one double bond participating in an aromatic ring)
+>C=  (double bond and one single bond participating in a ring)
+=CH- (participating in a nonaromatic ring)
+>C=  (two single bonds participating in one nonaromatic ring)
+#CH
+=CH-
+=CH2
+>C=
+
+Molecular substructures involving saturated carbons:
+>CH- (participating in two fused rings)
+>C<  (participating in two fused rings)
+>CH2 (participating in one ring)
+>CH- (participating in one ring)
+>C<  (participating in one ring)
+-CH3
+>CH2
+>CH-
+>C<
