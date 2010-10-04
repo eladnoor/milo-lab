@@ -1,0 +1,82 @@
+%DELR R00134 % Formate:NADP+ oxidoreductase
+%DELR R00519 % Formate:NAD+ oxidoreductase
+%DELR R09094 % Formate <=> CO2
+%DELR R00753 % Lactate Aldolase
+%DELR R01221 % Glycine decarboxylase
+%DELR R00212 % Pyruvate formate lyase
+%DELC C00058 % no Formate
+%DELC C00037 % no glycine
+%DELC C00084 % no acetaldehyde
+% ----------------------------- Add reactions ----------------------------------
+%SETR R90001: C00232 + C00006 + C00010 <=> C00091 + C00005                            % Succinate semialdehyde + NADP+ + CoA <=> Succinayl-CoA + NADPH
+%SETR R90002: C01380 <=> C00084 + C00001                                              % Ethylene glycol => Acetaldehyde + Water
+%SETR R90003: C00099 <=> C00041                                                       % beta-Alanine <=> L-Alanine
+%SETR R90004: C00827 + C01013 <=> C05668 + C00256                                     % Lactoyl-CoA + 3-Hydroxypropanoate <=> (R)-Lactate + 3-Hydroxypropionyl-CoA
+%SETR R90005: C01013 + C00827 <=> C00186 + C05668                                     % Lactoyl-CoA + 3-Hydroxypropanoate <=> (S)-Lactate + 3-Hydroxypropionyl-CoA
+%SETR R90006: C00002 + C00058 <=> C00008 + C02405                                     % ATP + formate <=> ADP + formyl phosphate
+%SETR R90007: C00005 + C00440 + C00010 + C00011 <=> C00024 + C00006 + C00001 + C00101 % methyl-THF + CoA + CO2 + NADPH <=> acetyl-CoA + THF + NADP+ + H2O
+%SETR R90008: C00002 + 2 C00004 + C00058 + C00011 + C00014 <=> C00001 + 2 C00003 + C00037 + C00008 + C00009 %  ATP + 2 NADH + formate + CO2 + NH3 <=> H2O + 2 NAD+ + glycine + ADP + Pi
+SETR R02289: C00440 + C06021 <=> C06020 + C00101                                     % 5-methyl-THF + corrinoid <=> methylcorrinoid + THF
+SETR R08433: C00024 + C06021 <=> C00237 + C06020 + C00010                            % acetyl-CoA + corrinoid <=> CO + methylcorrinoid + CoA
+
+% Needed for the 3-HP/4-HB cycle
+SETR R90100: C00222 + C00005 <=> C01013 + C00006 % malonate semialdehyde <=> 3-hydroxypropionate, same as R01608 but with NADP(H)
+SETR R90101: C00091 + C00005 <=> C00010 + C00006 + C00232 % succinyl-CoA <=> succinic semialdehyde
+SETR R90102: C00232 + C00005 <=> C00989 + C00006 % succinic semialdehyde <=> 4-hydroxybutyrate, same as R01644 but with NADP(H)
+SETR R90103: C00989 + C00002 + C00010 <=> C11062 + C00020 + C00013 % 4-hydroxybutyrate <=> 4-hydroxybutyryl-CoA
+SETR R90104: C11062 <=> C00877 + C00001 % 4-hydroxybutyryl-CoA <=> crotonyl-CoA
+% Needed for the rTCA cycle
+SETR R90105: C00042 + C00003 <=> C00122 + C00004 % succinate + NAD+ <=> fumarate + NADH
+% ------------------------------ Ubiquitous compounds --------------------------
+COFR C00001 <=> null % free H2O
+COFR C00007 <=> null % free O2
+COFR C00009 <=> null % free Pi
+COFR C00010 <=> null % free CoA
+COFR C00013 <=> null % free PPi
+COFR C00014 <=> null % free NH3
+COFR C00011 <=> null % free CO2
+COFR C00288 <=> null % free HCO3-
+COFR C00027 <=> null % free H2O2
+% ------------------------------ Phosphate Donor-Acceptor Pairs ----------------
+COFR C00002 <=> C00008 % ATP <=> ADP
+COFR C00002 <=> C00020 % ATP <=> AMP
+COFR C00008 <=> C00020 % ADP <=> AMP
+COFR C00035 <=> C00044 % GDP <=> GTP
+COFR C00144 <=> C00044 % GMP <=> GTP
+COFR C00144 <=> C00035 % GMP <=> GDP
+COFR C00112 <=> C00063 % CDP <=> CTP
+COFR C00055 <=> C00063 % CMP <=> CTP
+COFR C00055 <=> C00112 % CMP <=> CTP
+COFR C00015 <=> C00075 % UDP <=> UTP
+COFR C00105 <=> C00075 % UMP <=> UTP
+COFR C00105 <=> C00015 % UMP <=> UDP
+COFR C00104 <=> C00081 % IDP <=> ITP
+COFR C00130 <=> C00081 % IMP <=> ITP
+COFR C00130 <=> C00104 % IMP <=> IDP
+COFR C00131 <=> C00206 % dATP <=> dADP
+COFR C00131 <=> C00360 % dATP <=> dAMP
+COFR C00206 <=> C00360 % dADP <=> dAMP
+COFR C00286 <=> C00361 % dGTP <=> dGDP
+COFR C00286 <=> C00362 % dGTP <=> dGMP
+COFR C00361 <=> C00362 % dGDP <=> dGMP
+COFR C00460 <=> C01346 % dUTP <=> dUDP
+COFR C00460 <=> C00365 % dUTP <=> dUMP
+COFR C01346 <=> C00365 % dUDP <=> dUMP
+COFR C00459 <=> C00363 % dTTP <=> dTDP
+COFR C00459 <=> C00364 % dTTP <=> dTMP
+COFR C00363 <=> C00364 % dTDP <=> dTMP
+COFR C01345 <=> C01344 % dITP <=> dIDP
+COFR C01345 <=> C06196 % dITP <=> dIMP
+COFR C01344 <=> C06196 % dIDP <=> dIMP
+% --------------------------------- Electron Donor-Acceptor Pairs --------------
+COFR C00003 <=> C00004 % NAD+ <=> NADH
+COFR C00006 <=> C00005 % NADP+ <=> NADPH
+COFR C00016 <=> C01352 % FAD <=> FADH2
+COFR C00138 <=> C00139 % reduced ferredoxin <=> oxidized ferredoxin
+COFR C00030 <=> C00028 % donor (reduced acceptor) <=> acceptor
+COFR C00125 <=> C00126 % Ferricytochrome c <=> Ferrocytochrome c
+COFR C00996 <=> C00999 % Ferricytochrome b5 <=> Ferrocytochrome b5
+COFR C01070 <=> C01071 % Ferricytochrome c-553 <=> Ferrocytochrome c-553
+COFR C05906 <=> C01617 % Leucocyanidin <=> Taxifolin
+COFR C00343 <=> C00342 % Thioredoxin disulfide <=> Thioredoxin
+COFR C03648 <=> C00974 % cis-3,4-Leucopelargonidin <=> Dihydrokaempferol

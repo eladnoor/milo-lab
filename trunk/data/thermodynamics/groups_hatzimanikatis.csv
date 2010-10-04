@@ -1,0 +1,88 @@
+"NAME","SMARTS","FOCAL_ATOMS","REMARK"
+"CoA-S-C(=O)","C(=O)SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O",,"CoA"
+"Adenine [0]","c1nc2c(N)[nH0]cnc2n1",,"adenine side group (like in ATP)"
+"Adenine [+1]","c1nc2c(N)[nH+]cnc2n1",,"adenine side group (like in ATP)"
+"primary -Cl3","Cl[CH0](Cl)Cl",0,"chlorine (attached to a primary carbon with 2 other chlorine atoms attached)"
+"primary -Cl2","Cl[CH1]Cl",0,"chlorine (attached to a primary carbon with 1 other chlorine atom attached)"
+"secondary -Cl2","Cl[CH0]Cl",0,"chlorine (attached to a secondary carbon with 1 other chlorine atom attached)"
+"primary -Cl","Cl[CH2]",0,"chlorine (attached to a primary carbon with 0 other chlorine atoms attached)"
+"secondary -Cl","Cl[CH1]",0,"chlorine (attached to a secondary carbon with 0 other chlorine atoms attached)"
+"tertiary -Cl","Cl[CH0]",0,"chlorine (attached to a tertiary carbon with 0 other chlorine atoms attached)"
+"ring -Cl","Cl[c,n]",0,"chlorine (attached to an aromatic ring)"
+"ring -Br","Br[c,n]",0,"bromine (attached to an aromatic ring)"
+"ring -I","I[c,n]",0,"iodine (attached to an aromatic ring)"
+"ring -F","F[c,n]",0,"fluorine (attached to an aromatic ring)"
+"-S-OH","[SH0X2][OH]",,"sulfur hydroxyl"
+"-S-O [-1]","[SH0X2][O-1]",,"sulfur hydroxyl"
+"aromatic ring -S-","[sH0X2R]",,"thioether (participating in an aromatic ring)"
+"ring -S-","[SH0X2R]",,"thioether (participating in a nonaromatic ring)"
+"-S<","[SH0X3]",,"sulfonium"
+"-SO3","S(=O)(=O)[O-1,OH]",,"sulfite"
+"-SO2-","S(=O)(=O)[C,N]","0|1|2","sulfite"
+"-SH","[SH1X2]",,"thiol"
+"-S [-1]","[S-1]",,"thiol"
+"-S","[SH0X1]",,"thiolate"
+"-S-S-","[SH0X2][SH0X2]",,"dithionine"
+"-S-","[SH0X2]",,"thioester"
+"CO-OPO3 [-2]","C(=O)OP(=O)([O-])[O-]",,"phospho-carboxylic acid"
+"CO-OPO3 [-1]","C(=O)OP(=O)([O-])O",,"phospho-carboxylic acid"
+"ring -OPO2- [-1]","[PR](=O)([O-])O",,"middle link in a phosphate chain (participating in a ring)"
+"ring -OPO2-","[PR](=O)(O)O",,"middle link in a phosphate chain (participating in a ring)"
+"P*","P","0","phosphate chains"
+"-PO3 [-2]","[C,N]P(=O)([O-])[O-]","1|2|3|4","terminal phosphate group not attached by oxygen"
+"-PO3 [-1]","[C,N]P(=O)([O-])O","1|2|3|4","terminal phosphate group not attached by oxygen"
+"amide","C(=O)[NH2]",,
+"two fused aromatic rings =N<","[nR2]",,"participating in two fused aromatic rings"
+"two fused rings -N<","[NR2]",,"participating in two fused rings"
+"aromatic ring =N< [+1]","[nH0X3]",,"double bond and one single bond participating in a ring"
+"ring =N<","[NH0X3R1]=[C,N]","0","double bond and one single bond participating in a ring"
+"-NH2- [+1]","[NH2X4R0]",,
+"-NH-","[NH1X3R0]",,
+"aromatic ring -NH-","[nH1]",,"participating in a ring"
+"ring -NH-","[NH1X3R1]",,"participating in a ring"
+"ring -N<","[NH0X3R1]",,"participating in a ring"
+"ring =NH- [+1]","[NH1X3R1]=[C,N]","0","participating in a ring"
+"aromatic ring =N-","[nH0X2]",,"participating in a ring"
+"ring =N-","[NH0X2R1]=[C,N]","0","participating in a ring"
+"=NH2","[NH2X3R0]=[C,N]","0",
+"=NH","[NH1X2R0]=[C,N]","0",
+"-NH3 [+1]","[NH3X4R0]","0",
+"-NH2","[NH2X3R0]","0",
+"#N","[NH0X1R0]#[C,N]","0",
+"-NH< [+1]","[NH1X4R0]",,
+"-N<","[NH0X3R0]",,
+"=N-","[NH0X2R0]=[C,N]","0",
+">N< [+1]","[NH0X4R0]",,
+"aromatic ring -O-CO-","O=[cH0X3R][oH0X2R]","0|1|2","ester (participating in an aromatic ring)"
+"ring -O-CO-","O=[CH0X3R][OH0X2R]","0|1|2","ester (participating in a nonaromatic ring)"
+"-O-CO-","[CH0X3](=O)[OH0X2]","0|1|2","ester"
+"aromatic ring >C=O","c=O","0|1","ketone (participating in an aromatic ring)"
+"ring >C=O","[CR]=O","0|1","ketone (participating in a ring)"
+"-COO [-1]","[C,N]C(=O)[O-1]","1|2|3","carboxylic acid (ion)"
+"-COOH","[C,N]C(=O)[OH]","1|2|3","carboxylic acid"
+">C=O","[C,N]C(=O)[C,N]","1|2","ketone"
+"-CH=O","[C,N][CH1]=O","1|2","aldehyde"
+"aromatic ring -O-","[c,n][oH0X2R][c,n]",1,"participating in an aromatic ring"
+"ring -O-","[C,N][OH0X2R][C,N]",1,"participating in a nonaromatic ring"
+"-OH","[C,N][OH1X2]",1,"hydroxyl"
+"-O-","[C,N][OH0X2][C,N]",1,"ether"
+"#C-","[C,N]#[CH0X2][C,N]",1,
+"two fused aromatic rings =C<","[cR2]",,"participating in two fused aromatic rings"
+"two fused rings =C<","[CR2]",,"participating in two fused nonaromatic rings"
+"aromatic ring =CH-","[cH1R1]",,"participating in one aromatic ring"
+"aromatic ring >C=","[cH0R1]",,"one single bond and one double bond participating in an aromatic ring"
+"ring >C=","[CH0R1X3]",,"one single bond and one double bond participating in a nonaromatic ring"
+"ring =CH-","[CH1R1X3]",,"participating in a nonaromatic ring"
+"#CH","[CH1X2]#[C,N]",,
+"=CH-","[CH1X3]",,
+"=CH2","[CH2X3]",,
+"=C<","[CH0X3]",,
+"two fused rings -CH<","[CHR2X4]",,"tertiary carbon (participating in two fused rings)"
+"two fused rings >C<","[CR2X4]",,"quaternary carbon (participating in two fused rings)"
+"ring -CH2-","[CH2R1X4]",,"secondary carbon (participating in one ring)"
+"ring -CH<","[CH1R1X4]",,"tertiary carbon (participating in one ring)"
+"ring >C<","[CH0R1X4]",,"quaternary carbon (participating in one ring)"
+"-CH3","[CH3X4]",,"methyl"
+"-CH2-","[CH2X4]",,"secondary carbon"
+"-CH<","[CH1X4]",,"tertiary carbon"
+">C<","[CH0X4]",,"quaternary carbon"

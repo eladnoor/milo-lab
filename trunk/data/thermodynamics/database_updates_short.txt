@@ -1,0 +1,147 @@
+% ------------------------------------------ unwanted carboxylators ---------------------------------------------------------
+DELR R00273 % Oxalate + Oxygen <=> H2O2 + 2 CO2
+DELR R00374 % Glycine + 2 Acceptor <=> Cyanide + CO2 + 2 Reduced acceptor + H+
+DELR R00319 % (S)-Lactate + Oxygen <=> Acetate + CO2 + H2O
+DELR R00608 % Methanol + Oxygen <=> Formaldehyde + H2O2
+DELR R00602 % Methanol + H2O2 <=> Formaldehyde + 2 H2O
+% ------------------------------------------ irriversible reactions ---------------------------------------------------------
+SETR R00264: C00433 + C00006 + C00001 => C00026 + C00005 + C00080   % 1.2.1.26 2,5-Dioxopentanoate + NADP+ + H2O => 2-Oxoglutarate + NADPH + H+
+SETR R00203: C00546 + C00003 + C00001 => C00022 + C00004 + C00080   % 1.2.1.22/23 Methylglyoxal + NAD+ + H2O => Pyruvate + NADH + H+
+SETR R05842: C06548 + C00001 => C01380                              % 3.3.2.10 Ethylene oxide + H2O => Ethylene glycol
+SETR R05444: C06547 + C00007 + C00004 + C00080 => C06548 + C00003 + C00001 % 1.14.13.69 Ethylene + Oxygen + NADH + H+ => Ethylene oxide + NAD+ + H2O
+SETR R03383: C01213 + C00001 => C02170 + C00010                     % (R)-Methylmalonyl-CoA + H2O => Methylmalonate + CoA
+SETR R03869: C06002 + C00003 + C00001 => C02170 + C00004 + C00080   % 1.2.1.3 (S)-Methylmalonate semialdehyde + NAD+ + H2O => Methylmalonate + NADH + H
+SETR R00713: C00232 + C00003 + C00001 => C00042 + C00004 + C00080   % 1.2.1.16/24 Succinate semialdehyde + NAD+ + H2O => Succinate + NADH + H+
+SETR R00714: C00232 + C00006 + C00001 => C00042 + C00005 + C00080   % 1.2.1.16 Succinate semialdehyde + NADP+ + H2O => Succinate + NADPH + H+
+SETR R01016: C00111 => C00546 + C00009                              % 4.2.3.3 Glycerone phosphate => Methylglyoxal + Orthophosphate
+SETR R03198: C01053 + C00003 + C00001 => C01088 + C00004 + C00080   % 1.2.1.33 (R)-4-Dehydropantoate + NAD+ + H2O => (R)-3,3-Dimethylmalate + NADH + H+
+SETR R00347: C03961 => C00036 + C00014                              % 4.3.1.20 erythro-3-Hydroxy-L-aspartate => Oxaloacetate + NH3
+SETR R00996: C00188 => C00109 + C00014                              % 4.3.1.19 L-Threonine => 2-Oxobutanoate + NH3
+SETR R00749: C00189 => C00084 + C00014                              % 4.3.1.7 Ethanolamine => Acetaldehyde + NH3
+SETR R00748: C00346 + C00001 => C00084 + C00014 + C00009            % 4.2.3.2 Ethanolamine phosphate + H2O => Acetaldehyde + NH3 + Orthophosphate
+SETR R01469: C00189 + C00001 + C00007 => C00266 + C00014 + C00027   % 1.4.3.8 Ethanolamine + H2O + Oxygen => Glycolaldehyde + NH3 + H2O2
+SETR R00221: C00740 => C00022 + C00014                              % 4.3.1.18 D-Serine => Pyruvate + NH3
+SETR R00220: C00065 => C00022 + C00014                              % 4.3.1.17/19 L-Serine => Pyruvate + NH3
+SETR R00707: C03912 + C00003 + 2 C00001 => C00025 + C00004 + C00080 % 1.5.1.12 (S)-1-Pyrroline-5-carboxylate + NAD+ + 2 H2O => L-Glutamate + NADH + H+
+SETR R00245: C01165 + C00003 + C00001 => C00025 + C00004 + C00080   % 1.5.1.12 L-Glutamate 5-semialdehyde + NAD+ + H2O => L-Glutamate + NADH + H+
+SETR R00399: C00041 + C00024 => C03341 + C00010                     % 2.3.1.- L-Alanine + Acetyl-CoA => 2-Amino-4-oxopentanoic acid + CoA
+SETR R00466: C00048 + C00007 + C00001 => C00209 + C00027            % 1.2.3.5 - Glyoxylate:oxygen oxidoreductase
+% ---------- Irreversible reactions, for 2.3.3 and 4.2.1 enzymes -----------------
+SETR R00472: C00149 + C00010 <= C00024 + C00001 + C00048 %  2.3.3.9 -  L-Malate glyoxylate-lyase (CoA-acetylating)
+SETR R00931: C02225 + C00010 <= C00100 + C00036 + C00001 %  2.3.3.5 -  2-Methylcitrate oxaloacetate-lyase
+SETR R00932: C02630 + C00010 <= C00100 + C00001 + C00048 %  2.3.3.11 -  2-Hydroxyglutarate glyoxylate-lyase (CoA-propanoylating)
+SETR R00998: C02488 + C00010 <= C00024 + C00001 + C00109 %  2.3.3.6 -  (R)-2-Ethylmalate 2-oxobutanoyl-lyase (CoA-acylating)
+SETR R01180: C01989 + C00010 <= C00136 + C00001 + C00048 %  2.3.3.7 -  3-Ethylmalate glyoxylate-lyase (CoA-butanoylating)
+SETR R01213: C02504 + C00010 <= C00024 + C00141 + C00001 %  2.3.3.13 -  3-Carboxy-3-hydroxy-4-methylpentanoate 3-methyl-2-oxobutanoate-lyase (CoA-acetylating)
+SETR R01978: C00356 + C00010 <= C00024 + C00001 + C00332 %  2.3.3.10 - (S)-3-Hydroxy-3-methylglutaryl-CoA acetoacetyl-CoA-lyase (CoA-acetylating)
+SETR R03040: C02123 + C00010 <= C00888 + C00001 + C00048 %  2.3.3.12 - 3-Propylmalate glyoxylate-lyase (CoA-pentanoylating)
+SETR R03735: C04655 + C00010 <= C01832 + C00001 + C00036 %  2.3.3.2 - (2S,3S)-2-Hydroxytridecane-1,2,3-tricarboxylate oxaloacetate-lyase (CoA-acylating)
+SETR R03859: C04529 + C00010 <= C01832 + C00001 + C00026 %  2.3.3.4 - 3-Hydroxytetradecane-1,3,4-tricarboxylate 2-oxoglutarate-lyase (CoA-acylating)
+SETR R00271: C00024 + C00001 + C00026 => C01251 + C00010 %  2.3.3.14 - acetyl-CoA:2-oxoglutarate C-acetyltransferase (thioester-hydrolysing, carboxymethyl forming)
+SETR R00351: C00158 + C00010 <= C00024 + C00001 + C00036 %  2.3.3.1 or 2.3.3.3 - Citrate oxaloacetate-lyase ((pro-3S)-CH2COO- -> acetyl-CoA)
+SETR R02279: C00679 => C00433 + C00001 + C00011          %  4.2.1.41 - 5-Dehydro-4-deoxy-D-glucarate hydro-lyase (decarboxylating)
+SETR R01408: C00488 <= C01326 + C00001                   %  4.2.1.66 -  Formamide hydro-lyase
+SETR R02278: C00684 => C00433 + C00001                   %  4.2.1.43 2-Dehydro-3-deoxy-L-arabinonate => 2,5-Dioxopentanoate + H2O
+SETR R00293: C00029 => C04089 + C00001 %  4.2.1.76 -  UDPglucose 4,6-hydro-lyase
+SETR R00339: C00898 => C00036 + C00001 %  4.2.1.32 -  (R,R)-Tartrate hydro-lyase
+SETR R00340: C02107 => C00036 + C00001 %  4.2.1.81 -  (S,S)-Tartrate hydro-lyase
+SETR R00888: C00096 => C01222 + C00001 %  4.2.1.47 -  GDPmannose 4,6-hydro-lyase
+SETR R01047: C00116 => C00969 + C00001 %  4.2.1.30 -  Glycerol hydro-lyase
+SETR R01048: C00116 => C05999 + C00001 %  4.2.1.30 -  Glycerol hydro-lyase
+SETR R01209: C04039 => C00141 + C00001 %  4.2.1.9 -  2,3-Dihydroxy-3-methylbutanoate hydro-lyase
+SETR R01373: C00254 => C00166 + C00001 + C00011 %  4.2.1.51 or 4.2.1.91 -  Prephenate hydro-lyase (decarboxylating)
+SETR R01538: C00257 => C00204 + C00001 %  4.2.1.39 -  D-gluconate hydro-lyase
+SETR R01540: C00817 => C00204 + C00001 %  4.2.1.7 -  D-Altronate hydro-lyase
+SETR R02036: C00345 => C04442 + C00001 %  4.2.1.12 -  6-Phospho-D-gluconate hydro-lyase
+SETR R02376: C00583 => C00479 + C00001 %  4.2.1.28 -  Propane-1,2-diol hydro-lyase
+SETR R02426: C00501 => C01219 + C00001 %  4.2.1.45 -  CDPglucose 4,6-hydro-lyase
+SETR R02429: C00502 => C03826 + C00001 %  4.2.1.82 -  D-Xylonate hydro-lyase
+SETR R02522: C00545 => C00684 + C00001 %  4.2.1.25 -  L-Arabinonate hydro-lyase
+SETR R02752: C00818 => C00679 + C00001 %  4.2.1.40 -  D-Glucarate hydro-lyase
+SETR R02771: C00842 => C00687 + C00001 %  4.2.1.46 -  dTDPglucose 4,6-hydro-lyase
+SETR R03032: C00878 => C03826 + C00001 %  4.2.1.5 -  D-Arabinonate hydro-lyase
+SETR R03033: C00880 => C01216 + C00001 %  4.2.1.6 -  D-Galactonate hydro-lyase
+SETR R03671: C01680 => C06159 + C00001 %  4.2.1.67 -  D-Fuconate hydro-lyase
+SETR R03688: C01720 => C03827 + C00001 %  4.2.1.68 -  L-Fuconate hydro-lyase
+SETR R03774: C01934 => C03979 + C00001 %  4.2.1.90 -  L-Rhamnonate hydro-lyase
+SETR R04031: C02730 + C00001 <= C05817 %  4.2.1.113 - NONAME
+SETR R04084: C04043 + C03758 => C02916 + C00001 %  4.2.1.78 -  3,4-Dihydroxyphenylacetaldehyde hydro-lyase (adding dopamine)
+SETR R04305: C03765 + C03758 => C06160 + C00001 %  4.2.1.78 -  4-Hydroxyphenylacetaldehyde hydro-lyase (adding dopamine)
+SETR R04441: C04272 => C00141 + C00001 %  4.2.1.9 -  (R)-2,3-Dihydroxy-3-methylbutanoate hydro-lyase
+SETR R05070: C06007 => C00671 + C00001 %  4.2.1.9 -  (R)-2,3-Dihydroxy-3-methylpentanoate hydro-lyase
+SETR R05606: C00514 => C00204 + C00001 %  4.2.1.8 -  D-mannonate hydro-lyase
+SETR R05608: C00879 => C00679 + C00001 %  4.2.1.42 -  D-galactarate hydro-lyase
+SETR R06513: C00842 => C11907 + C00001 %  4.2.1.46 - NONAME
+SETR R08056: C00818 => C03921 + C00001 %  4.2.1.40 -  D-glucarate hydro-lyase
+SETR R03140: C01182 + C00007 => C00197 + C00988          % 4.1.1.39 - D-Ribulose-1,5P oxygenase
+SETR R01621: C00231 + C00009 => C00227 + C00118 + C00001 % 4.1.2.9 - D-Xylulose-5P D-glyceraldehyde-3-phosphate-lyase
+SETR R00761: C00085 + C00009 => C00227 + C00279 + C00001 % 4.1.2.22 - D-Fructose-5P phosphoketolase
+SETR R00710: C00084 + C00003 + C00001 => C00033 + C00004 + C00080 %  1.2.1.3         1.2.1.5 -  Acetaldehyde:NAD+ oxidoreductase
+SETR R00711: C00084 + C00006 + C00001 => C00033 + C00005 + C00080 %  1.2.1.4 / 1.2.1.5 - Acetaldehyde:NADP+ oxidoreductase
+% ---------- New reactions (that do not exist in KEGG) -----------------
+SETR R90001: C00232 + C00006 + C00001 <=> C00091 + C00005 + C00080  % Succinate semialdehyde + NADP+ + H2O <=> Succinayl-CoA + NADPH + H+
+SETR R90002: C06548 => C00084 + C00001                              % Ethylene glycol => Acetaldehyde + Water
+SETR R90003: C00099 <=> C00041                                      % beta-Alanine <=> L-Alanine
+% ----------------------------- Remove reactions ---------------------------------
+DELR R01231 % Co-Factor-Inbalance: ATP + Xanthosine 5'-phosphate + L-Glutamine + H2O <=> AMP + Pyrophosphate + GMP + L-Glutamate
+DELR R00915 % (beta-Alanine <=> Pyridine-2,3-dicarboxylate)
+DELR R00896 % (2-Oxoglutarate + L-Cysteine <=> L-Glutamate + Mercaptopyruvate)
+DELR R00276 % (CO2 + H2O2 <=> CO + H2O + O2) 1.2.2.4 - Carbon-monoxide:oxygen oxidoreductase
+DELR R00296 % (CO2 <=> CO + H2O) 1.2.99.2 - Carbon-monoxide:(acceptor) oxidoreductase
+DELR R07157 % (CO2 <=> CO + H2O) 1.2.2.4 - carbon monoxide, water:cytochrome b-561 oxidoreductase
+DELR R00131 % (CO2 + 2 NH3 <=> Urea) 3.5.1.5 - Urea amidohydrolase
+DELR R02996 % (Aryl sulfate + Phenol <=> Phenol + Aryl sulfate) - Doesn't do anything!
+DELR R00352 % exactly the same as R00351
+DELR R00371 % the same as R00370, except the product is L-2-Amino-3-oxobutanoic acid instead of 2-Amino-3-oxobutanoate
+SETR R00371: C03214 <=> C03508 % (chirality change) 2-Amino-3-oxobutanoate <=> L-2-Amino-3-oxobutanoic acid
+DELR R00471 % the same as R00470, except the product is D-4-Hydroxy-2-oxoglutarate instead of 4-Hydroxy-2-oxoglutarate
+SETR R00471: C01127 <=> C05946 % (chirality change) D-4-Hydroxy-2-oxoglutarate <=> 4-Hydroxy-2-oxoglutarate
+DELR R01290 % the same as R01289, except the product is L-Cystathionine instead of Cystathionine
+SETR R01290: C00542 <=> C02291 % (chirality change) L-Cystathionine <=> Cystathionine
+DELR R00744 % involving 3-Oxopropionyl-CoA (which does not exist) 
+DELR R04919 % involving 3-Oxopropionyl-CoA (which does not exist)
+% ---------------------- Ubiquitous compounds --------------------------
+SKIP C00001 % H2O
+% ---------------------- Phosphate Donor-Acceptor Pairs --------------------------
+COFR C00002 <=> C00008 % ATP <=> ADP
+COFR C00002 <=> C00020 % ATP <=> AMP
+COFR C00008 <=> C00020 % ADP <=> AMP
+COFR C00035 <=> C00044 % GDP <=> GTP
+COFR C00144 <=> C00044 % GMP <=> GTP
+COFR C00144 <=> C00035 % GMP <=> GDP
+COFR C00112 <=> C00063 % CDP <=> CTP
+COFR C00055 <=> C00063 % CMP <=> CTP
+COFR C00055 <=> C00112 % CMP <=> CTP
+COFR C00015 <=> C00075 % UDP <=> UTP
+COFR C00105 <=> C00075 % UMP <=> UTP
+COFR C00105 <=> C00015 % UMP <=> UDP
+COFR C00104 <=> C00081 % IDP <=> ITP
+COFR C00130 <=> C00081 % IMP <=> ITP
+COFR C00130 <=> C00104 % IMP <=> IDP
+COFR C00131 <=> C00206 % dATP <=> dADP
+COFR C00131 <=> C00360 % dATP <=> dAMP
+COFR C00206 <=> C00360 % dADP <=> dAMP
+COFR C00286 <=> C00361 % dGTP <=> dGDP
+COFR C00286 <=> C00362 % dGTP <=> dGMP
+COFR C00361 <=> C00362 % dGDP <=> dGMP
+COFR C00460 <=> C01346 % dUTP <=> dUDP
+COFR C00460 <=> C00365 % dUTP <=> dUMP
+COFR C01346 <=> C00365 % dUDP <=> dUMP
+COFR C00459 <=> C00363 % dTTP <=> dTDP
+COFR C00459 <=> C00364 % dTTP <=> dTMP
+COFR C00363 <=> C00364 % dTDP <=> dTMP
+COFR C01345 <=> C01344 % dITP <=> dIDP
+COFR C01345 <=> C06196 % dITP <=> dIMP
+COFR C01344 <=> C06196 % dIDP <=> dIMP
+% ----------------------------- Electron Donor-Acceptor Pairs ---------------------------------
+COFR C00003 <=> C00004 % NAD+ <=> NADH
+COFR C00006 <=> C00005 % NADP+ <=> NADPH
+COFR C00016 <=> C01352 % FAD <=> FADH2
+COFR C00138 <=> C00139 % reduced ferredoxin <=> oxidized ferredoxin
+COFR C00030 <=> C00028 % donor (reduced acceptor) <=> acceptor
+COFR C00125 <=> C00126 % Ferricytochrome c <=> Ferrocytochrome c
+COFR C00996 <=> C00999 % Ferricytochrome b5 <=> Ferrocytochrome b5
+COFR C01070 <=> C01071 % Ferricytochrome c-553 <=> Ferrocytochrome c-553
+COFR C05906 <=> C01617 % Leucocyanidin <=> Taxifolin
+COFR C00343 <=> C00342 % Thioredoxin disulfide <=> Thioredoxin
+COFR C03648 <=> C00974 % cis-3,4-Leucopelargonidin <=> Dihydrokaempferol
