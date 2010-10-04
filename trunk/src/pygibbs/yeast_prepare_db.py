@@ -1,8 +1,8 @@
-import gzip, sqlite3, os, sys, csv, re
+import gzip, sqlite3, os, sys, csv, re, urllib, zipfile
 import libsbml # obtained from http://sbml.org/Software/libSBML (version 4.1.0)
-from groups import GroupContribution
+from pygibbs.groups import GroupContribution
 
-def connect_db(fname='../res/compartments.sqlite'):
+def connect_db(fname='../res/gibbs.sqlite'):
     try:
         os.mkdir('../res')
     except OSError:
@@ -13,18 +13,25 @@ def connect_db(fname='../res/compartments.sqlite'):
 
 def parse_ChEBI(cursor):
     sys.stderr.write("Parsing the chebiId_inchi file ... ")
+    cursor.execute("DROP TABLE IF EXISTS chebiId_inchi")
     cursor.execute("CREATE TABLE chebiId_inchi (chebi_id INT, inchi TEXT)")
+    cursor.execute("DROP INDEX IF EXISTS chebiId_inchi_idx")
     cursor.execute("CREATE UNIQUE INDEX chebiId_inchi_idx ON chebiId_inchi (chebi_id);")
-    fname = '../yeast/chebiId_inchi.tsv.gz'
+    
+    fname = '../chebi/chebiId_inchi.tsv.zip'
+    url = 'ftp://ftp.ebi.ac.uk/pub/databases/chebi/Flat_file_tab_delimited/chebiId_inchi.tsv.zip'
     if (not os.path.exists(fname)):
-        sys.stderr.write("Please download the list of InChIs from CheBI (chebiId_inchi.tsv.gz) and place in at: %s\n" % fname)
-        sys.exit(-1)
-    csv_reader = csv.reader(gzip.open(fname, 'r'), delimiter='\t')
+        sys.stderr.write("Downloading chebiId_inchi from the ChEBI FTP site ... ")
+        urllib.urlretrieve(url, fname)
+        
+    chebi_file = zipfile.ZipFile(fname, 'r')
+    csv_reader = csv.reader(chebi_file.open('chebiId_inchi.tsv'), delimiter='\t')
     csv_reader.next() # skip title row
     for row in csv_reader:
         (chebi_id, inchi) = row
         cursor.execute("INSERT INTO chebiId_inchi VALUES(?,?)", (int(chebi_id), inchi))
     sys.stderr.write("[DONE]\n")
+    chebi_file.close()
 
 def parse_MIRIAM_annotation(xml):
     if (xml == None):
@@ -33,18 +40,26 @@ def parse_MIRIAM_annotation(xml):
 
 def parse_SBML(cursor):
     sys.stderr.write("Parsing the SBML model file ... ")
-    fname = '../yeast/yeast_4.02.xml'
+    fname = '../data/thermodynamics/yeast_4.02.xml'
     if (not os.path.exists(fname)):
         sys.stderr.write("Please download the yeast SBML from http://www.comp-sys-bio.org/yeastnet/ and place in at: %s\n" % fname)
         sys.exit(-1)
     yeast_SBML = libsbml.readSBML(fname)
     yeast_model = yeast_SBML.getModel()
     
+    cursor.execute("DROP TABLE IF EXISTS yeast_reaction")
     cursor.execute("CREATE TABLE yeast_reaction (reaction_id TEXT, name TEXT)")
+    
+    cursor.execute("DROP INDEX IF EXISTS yeast_reaction_idx")
     cursor.execute("CREATE UNIQUE INDEX yeast_reaction_idx ON yeast_reaction (reaction_id);")
 
+    cursor.execute("DROP TABLE IF EXISTS yeast_reaction2species")
     cursor.execute("CREATE TABLE yeast_reaction2species (reaction_id TEXT, species_id TEXT, stoichiometry REAL)")
+
+    cursor.execute("DROP INDEX IF EXISTS yeast_reaction2species_idx1")
     cursor.execute("CREATE INDEX yeast_reaction2species_idx1 ON yeast_reaction2species (reaction_id);")
+    
+    cursor.execute("DROP INDEX IF EXISTS yeast_reaction2species_idx2")
     cursor.execute("CREATE INDEX yeast_reaction2species_idx2 ON yeast_reaction2species (species_id);")
     for reaction in yeast_model.getListOfReactions():
         cursor.execute("INSERT INTO yeast_reaction VALUES(?,?)", [reaction.getId(), reaction.getName()])
@@ -54,18 +69,25 @@ def parse_SBML(cursor):
         for sp_ref in reaction.getListOfProducts():
             cursor.execute("INSERT INTO yeast_reaction2species VALUES(?,?,?)", \
                            [reaction.getId(), sp_ref.getSpecies(), sp_ref.getStoichiometry()])
-        
+    
+    cursor.execute("DROP TABLE IF EXISTS yeast_species")
     cursor.execute("CREATE TABLE yeast_species (species_id TEXT, name TEXT, compartment_id TEXT, species_type_id TEXT)")
+    cursor.execute("DROP INDEX IF EXISTS yeast_species_idx")
     cursor.execute("CREATE UNIQUE INDEX yeast_species_idx ON yeast_species (species_id);")
     for species in yeast_model.getListOfSpecies():
         cursor.execute("INSERT INTO yeast_species VALUES(?,?,?,?)", \
                        [species.getId(), species.getName(), species.getCompartment(), species.getSpeciesType()])
 
+    cursor.execute("DROP TABLE IF EXISTS yeast_species_type")
     cursor.execute("CREATE TABLE yeast_species_type (species_type_id TEXT, name TEXT, ann_name TEXT, ann_value TEXT)")
+    cursor.execute("DROP INDEX IF EXISTS yeast_species_type_idx")
     cursor.execute("CREATE INDEX yeast_species_type_idx ON yeast_species_type (species_type_id);")
 
+    cursor.execute("DROP TABLE IF EXISTS yeast_species_type2chebi")
     cursor.execute("CREATE TABLE yeast_species_type2chebi (species_type_id TEXT, chebi_id INT)")
+    cursor.execute("DROP INDEX IF EXISTS yeast_species_type2chebi_idx1")
     cursor.execute("CREATE UNIQUE INDEX yeast_species_type2chebi_idx1 ON yeast_species_type2chebi (species_type_id);")
+    cursor.execute("DROP INDEX IF EXISTS yeast_species_type2chebi_idx2")
     cursor.execute("CREATE INDEX yeast_species_type2chebi_idx2 ON yeast_species_type2chebi (chebi_id);")
     for type in yeast_model.getListOfSpeciesTypes():
         for (name, value) in parse_MIRIAM_annotation(type.getAnnotation()):
@@ -76,7 +98,9 @@ def parse_SBML(cursor):
                     cursor.execute("INSERT INTO yeast_species_type2chebi VALUES(?,?)", \
                                    [type.getId(), chebi_id])
     
+    cursor.execute("DROP TABLE IF EXISTS yeast_compartment")
     cursor.execute("CREATE TABLE yeast_compartment (compartment_id TEXT, name TEXT)")
+    cursor.execute("DROP INDEX IF EXISTS yeast_compartment_idx")
     cursor.execute("CREATE UNIQUE INDEX yeast_compartment_idx ON yeast_compartment (compartment_id);")
     for compartment in yeast_model.getListOfCompartments():
         cursor.execute("INSERT INTO yeast_compartment VALUES(?,?)", \
@@ -91,7 +115,10 @@ def create_species2inchi(cursor):
         Since the Chebi database is much larger than the yeast model, it would take a very long time to calculate
         the formation energies for all its compounds, and we really need only the ones that are in the yeast DB.
     """
+    
+    cursor.execute("DROP TABLE IF EXISTS yeast_species2inchi")
     cursor.execute("CREATE TABLE yeast_species2inchi (species_id TEXT, inchi TEXT)")
+    cursor.execute("DROP INDEX IF EXISTS yeast_species2inchi_idx")
     cursor.execute("CREATE INDEX yeast_species2inchi_idx ON yeast_species2inchi (species_id);")
     cursor.execute("INSERT INTO yeast_species2inchi SELECT S.species_id, C.inchi " \
                    "FROM yeast_species S, yeast_species_type2chebi T, chebiId_inchi C " \
@@ -104,7 +131,9 @@ def add_thermodynamics(cursor):
     gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathologic")
     gc.init()
     
+    cursor.execute("DROP TABLE IF EXISTS yeast_inchi2thermo")
     cursor.execute("CREATE TABLE yeast_inchi2thermo (inchi TEXT, charge INT, nH INT, dG0_f REAL)")
+    cursor.execute("DROP INDEX IF EXISTS yeast_inchi2thermo_idx")
     cursor.execute("CREATE INDEX yeast_inchi2thermo_idx ON yeast_inchi2thermo (inchi);")
     
     inchi_list = []
@@ -143,6 +172,7 @@ def get_model(cursor, pH=7.0, I=0.2, T=300):
                               "ON S.species_id = I.species_id " \
                               "ORDER BY S.species_id"):
         (species_id, compartment_id, inchi) = row
+        species_id = str(species_id)
         if (inchi != None and inchi in inchi2pmap):
             dG0 = GroupContribution.pmap_to_dG0(inchi2pmap[inchi], pH=pH, I=I, T=T)
         else:
@@ -153,6 +183,9 @@ def get_model(cursor, pH=7.0, I=0.2, T=300):
     reaction2sparse = {}
     for row in cursor.execute("SELECT reaction_id, species_id, stoichiometry FROM yeast_reaction2species"):
         (reaction_id, species_id, coeff) = row
+        reaction_id = str(reaction_id)
+        species_id = str(species_id)
+        
         if (reaction_id not in reaction2sparse):
             reaction2sparse[reaction_id] = {}
         reaction2sparse[reaction_id][species_id] = coeff
@@ -161,22 +194,17 @@ def get_model(cursor, pH=7.0, I=0.2, T=300):
 
     return (species, reactions)
     
-def get_rid2name():
-    reaction2name = {}
+def get_name2rid(cursor):
+    name2rid = {}
     for row in cursor.execute("SELECT reaction_id, name FROM yeast_reaction"):
-        (reaction_id, name) = row
-        reaction2name[reaction_id] = name
-    return reaction2name
+        (rid, name) = row
+        name2rid[name] = rid
+    return name2rid
         
 if (__name__ == "__main__"):
-    if os.path.exists('../res/compartments.sqlite'):
-        os.remove('../res/compartments.sqlite')
     comm = connect_db()
     cursor = comm.cursor()
     parse_ChEBI(cursor); comm.commit()
     parse_SBML(cursor); comm.commit()
     create_species2inchi(cursor); comm.commit()
     add_thermodynamics(cursor); comm.commit()
-    
-    (S, reactions, species) = get_model(cursor)
-    print S.shape

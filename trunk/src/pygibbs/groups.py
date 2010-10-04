@@ -1,11 +1,11 @@
 import sys, pybel, openbabel, csv, os, pylab, sqlite3, re
-from matplotlib.font_manager import FontProperties
-from html_writer import HtmlWriter
-from common import matrixrank, multi_distribute, R
-from log_matrix import log_sum_exp
-from feasibility import find_unfeasible_concentrations, find_feasible_concentrations, LinProgNoSolutionException, find_pCr
-import kegg
 from copy import deepcopy
+from matplotlib.font_manager import FontProperties
+from pygibbs.html_writer import HtmlWriter
+from pygibbs.common import matrixrank, multi_distribute, R
+from pygibbs.log_matrix import log_sum_exp
+from pygibbs.feasibility import find_unfeasible_concentrations, find_feasible_concentrations, LinProgNoSolutionException, find_pCr
+from pygibbs import kegg
 
 default_T = 300.0 # K
 default_I = 0.1 # mM

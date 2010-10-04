@@ -1,8 +1,8 @@
 import sys
-from groups import GroupContribution, GroupMissingTrainDataError, GroupDecompositionError
+from pygibbs.groups import GroupContribution, GroupMissingTrainDataError, GroupDecompositionError
         
 G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
-G.read_compound_abundance("../data/compound_abundance.csv")
+G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
 G.write_gc_tables()
 G.init()
 
@@ -23,4 +23,4 @@ if False:
             sys.stderr.write(str(e) + "\n")
         m.draw()
 
-G.analyze_pathway("../data/pathways.txt", "../res/pathways.html")
+G.analyze_pathway("../data/thermodynamics/pathways.txt", "../res/pathways.html")
