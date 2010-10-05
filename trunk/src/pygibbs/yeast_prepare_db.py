@@ -1,6 +1,7 @@
 import gzip, sqlite3, os, sys, csv, re, urllib, zipfile
 import libsbml # obtained from http://sbml.org/Software/libSBML (version 4.1.0)
 from pygibbs.groups import GroupContribution
+from toolbox.sql import write_csv_table
 
 def connect_db(fname='../res/gibbs.sqlite'):
     try:
@@ -200,6 +201,19 @@ def get_name2rid(cursor):
         (rid, name) = row
         name2rid[name] = rid
     return name2rid
+
+def export_tables(cursor):
+    if (not os.path.exists('../res')):
+        os.mkdir('../res')
+    if (not os.path.exists('../res/yeast')):
+        os.mkdir('../res/yeast')
+        
+    write_csv_table(cursor, '../res/yeast/chebiId_inchi.csv', 'chebiId_inchi')
+
+    tables_to_write = ['inchi2thermo', 'reaction', 'reaction2species', 'species', 'species2inchi', \
+                       'compartment', 'species_type', 'species_type2chebi', 'reaction2species']
+    for tablename in tables_to_write:
+        write_csv_table(cursor, '../res/yeast/%s.csv' % tablename, 'yeast_%s' % tablename)
         
 if (__name__ == "__main__"):
     comm = connect_db()
@@ -208,3 +222,4 @@ if (__name__ == "__main__"):
     parse_SBML(cursor); comm.commit()
     create_species2inchi(cursor); comm.commit()
     add_thermodynamics(cursor); comm.commit()
+    export_tables(cursor)
