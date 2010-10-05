@@ -4,7 +4,7 @@ from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
 from pygibbs.common import matrixrank, multi_distribute, R
 from pygibbs.log_matrix import log_sum_exp
-from pygibbs.feasibility import find_unfeasible_concentrations, find_feasible_concentrations, LinProgNoSolutionException, find_pCr
+from pygibbs.feasibility import find_feasible_concentrations, LinProgNoSolutionException, find_pCr
 from pygibbs import kegg
 
 default_T = 300.0 # K
