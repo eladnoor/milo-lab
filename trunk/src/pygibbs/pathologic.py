@@ -3,7 +3,7 @@ from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
 from pygibbs.groups import GroupContribution
 from pygibbs.feasibility import find_pCr, LinProgNoSolutionException
-from pygibbs.html_writer import HtmlWriter
+from toolbox.html_writer import HtmlWriter
 
 ################################################################################
 #                               CONSTANTS & DEFAULTS                           #
@@ -169,7 +169,8 @@ class Pathologic:
         exp_html.flush()
 
     def show_Gdot(self, Gdot):
-        import xdot, gtk
+        import gtk
+        from toolbox import xdot
     
         win = xdot.DotWindow()
         win.connect('destroy', gtk.main_quit)
