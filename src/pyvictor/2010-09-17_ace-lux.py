@@ -45,6 +45,7 @@ fit_start_threshold = 0.01
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
 t_max = 60
+OD_min = 0.05
 
 vlegend_k12 = [ ('K12-lux (glu)', 'g', [(0, 0), (0, 2), (0, 4)]), \
             ('K12-lux (succ)', 'b', [(1, 1), (1, 3), (1, 5)]), \
@@ -56,38 +57,40 @@ vlegend_ace = [ ('Dace-lux (glu)', 'g', [(0, 6), (0, 8), (0, 10)]), \
             ('Dace-lux (succ+ace)', 'm', [(2, 6), (2, 8), (2, 10)]), \
             ('Dace-lux (ace)', 'r', [(3, 7), (3, 9), (3, 11)]) ]
 
-plots.append(('K12', 0, (0, t_max), (3e-2, 1), 'OD', vlegend_k12))
-plots.append(('K12', 1, (0, t_max), (1e1, 1e7), 'Lumin', vlegend_k12))
-plots.append(('K12', "divide", (0, t_max), (1e2, 1e7), 'Limun/OD', vlegend_k12))
+plots.append(('K12', (0, t_max), (1e-3, 1), 'OD', vlegend_k12))
+plots.append(('K12', (0, t_max), (1e1, 1e6), 'Lumin', vlegend_k12))
+plots.append(('K12', (0, t_max), (1e2, 1e6), 'Limun/OD', vlegend_k12))
 
-plots.append(('delta-ace', 0, (0, t_max), (3e-2, 1), 'OD', vlegend_ace))
-plots.append(('delta-ace', 1, (0, t_max), (1e1, 1e7), 'Lumin', vlegend_ace))
-plots.append(('delta-ace', "divide", (0, t_max), (1e2, 1e7), 'Limun/OD', vlegend_ace))
+plots.append(('delta-ace', (0, t_max), (1e-3, 1), 'OD', vlegend_ace))
+plots.append(('delta-ace', (0, t_max), (1e1, 1e6), 'Lumin', vlegend_ace))
+plots.append(('delta-ace', (0, t_max), (1e2, 1e6), 'Limun/OD', vlegend_ace))
 
-for (plot_title, victor_index, t_range, y_range, y_label, data_series) in plots:
-    sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, str(victor_index)))
+for (plot_title, t_range, y_range, y_label, data_series) in plots:
+    sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
     fig = figure()
     title(plot_title)
     xlabel('Time (hr)')
     ylabel(y_label)
     
-    legend_text = []
+    label2line = {}
     for (label, color, cells) in data_series:
         for (row, col) in cells:
-            if (victor_index == "divide"):
+            if (y_label == 'Limun/OD'):
                 (time0, values0) = get_data(0, row, col, vp_vec)
                 (time1, values1) = get_data(1, row, col, vp_vec)
                 time = time0
-                values = values1/values0                    
+                values = values1/(values0 - OD_min)                    
+            elif (y_label == 'OD'):
+                (time, values) = get_data(0, row, col, vp_vec)
+                values -= OD_min
+            elif (y_label == 'Lumin'):
+                (time, values) = get_data(1, row, col, vp_vec)
             else:
-                (time, values) = get_data(victor_index, row, col, vp_vec)
-            plot(time, values, color)
-            #growth_rate = VictorParser.fit_growth(time, values, fit_window_size, fit_start_threshold)
-            #legend_text.append("%s (%.0f min)" % (label, log(2)*60/growth_rate))
-            legend_text.append("%s" % label)
+                raise Exception("unrecognised Y label: " + y_label)
+            label2line[label] = plot(time, values, color)
 
     rcParams['legend.fontsize'] = 6
-    legend(legend_text, loc='upper left')
+    legend(label2line.values(), label2line.keys(), loc='upper left')
     yscale('log')
     axis([t_range[0], t_range[1], y_range[0], y_range[1]])
     pp.savefig(fig)
