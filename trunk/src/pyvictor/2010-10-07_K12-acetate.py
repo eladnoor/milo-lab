@@ -49,6 +49,7 @@ fit_start_threshold = 0.01
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
 t_max = 30
+OD_min = 0.046
 
 rows = ['glucose', 'ribose', 'glycolate', 'glycine', 'succinate', 'glycerol', 'mannose', 'pyruvate']
 colors = ['g', 'b', 'm', 'r', 'c', 'k', 'b:', 'g:']
@@ -56,45 +57,46 @@ colors = ['g', 'b', 'm', 'r', 'c', 'k', 'b:', 'g:']
 vlegend = []
 for r in xrange(8):
     vlegend += [(rows[r], colors[r], [(r, 0), (r, 1)])]
-plots.append(('0.05% sugar', 0, (0, t_max), (1e-3, 1), 0.046, 'OD', vlegend))
+plots.append(('0.05% sugar', (0, t_max), (1e-3, 1), 'OD', vlegend))
 
 vlegend = []
 for r in xrange(8):
     vlegend += [(rows[r], colors[r], [(r, 2), (r, 3)])]
-plots.append(('0.025% sugar', 0, (0, t_max), (1e-3, 1), 0.046, 'OD', vlegend))
+plots.append(('0.025% sugar', (0, t_max), (1e-3, 1), 'OD', vlegend))
 
 vlegend = []
 for r in xrange(8):
     vlegend += [(rows[r], colors[r], [(r, 4), (r, 5)])]
 vlegend += [('nothing', 'y', [(1, 7), (1, 8), (2, 7), (2, 8)])]
-plots.append(('0.025% sugar + 0.025% acetate', 0, (0, t_max), (1e-3, 1), 0.046, 'OD', vlegend))
+plots.append(('0.025% sugar + 0.025% acetate', (0, t_max), (1e-3, 1), 'OD', vlegend))
 
 
-for (plot_title, victor_index, t_range, y_range, y_norm, y_label, data_series) in plots:
-    sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, str(victor_index)))
+for (plot_title, t_range, y_range, y_label, data_series) in plots:
+    sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
     fig = figure()
     title(plot_title)
     xlabel('Time (hr)')
     ylabel(y_label)
     
-    lines = []
+    label2line = {}
     for (label, color, cells) in data_series:
         for (row, col) in cells:
-            if (victor_index == "divide"):
+            if (y_label == 'Limun/OD'):
                 (time0, values0) = get_data(0, row, col, vp_vec)
                 (time1, values1) = get_data(1, row, col, vp_vec)
                 time = time0
-                values = values1/values0                    
+                values = values1/(values0 - OD_min)                    
+            elif (y_label == 'OD'):
+                (time, values) = get_data(0, row, col, vp_vec)
+                values -= OD_min
+            elif (y_label == 'Lumin'):
+                (time, values) = get_data(1, row, col, vp_vec)
             else:
-                (time, values) = get_data(victor_index, row, col, vp_vec)
-            line = plot(time, values - y_norm, color)
-            #growth_rate = VictorParser.fit_growth(time, values, fit_window_size, fit_start_threshold)
-            #legend_text.append("%s (%.0f min)" % (label, log(2)*60/growth_rate))
-            #legend_text.append("%s" % label)
-        lines.append(line)
+                raise Exception("unrecognised Y label: " + y_label)
+            label2line[label] = plot(time, values, color)
 
     rcParams['legend.fontsize'] = 6
-    legend(lines, [label for (label, color, cells) in data_series], loc='upper left')
+    legend(label2line.values(), label2line.keys(), loc='upper left')
     yscale('log')
     axis([t_range[0], t_range[1], y_range[0], y_range[1]])
     pp.savefig(fig)
