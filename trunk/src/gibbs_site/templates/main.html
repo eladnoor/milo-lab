@@ -1,0 +1,77 @@
+<html>
+	<head>
+		<title>Compound and Reaction Search</title>
+		<link href="/media/style.css" rel="stylesheet" type="text/css">
+		<link href="/media/jquery-ui-1.8.5.custom.css" rel="stylesheet" type="text/css">
+		<script type="text/javascript" src="/media/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="/media/jquery-ui-1.8.5.custom.min.js"></script>
+		<script type="text/javascript" src="/media/jquery.autocomplete.js"></script>
+		<script type="text/javascript" src="/media/main.js"></script>
+	</head>
+	<body>
+	<div id="title">rxn</div>
+	<div id="searchForm">
+		<form name="searchForm" action="/search" method="get">
+			<div>
+				<input type="text" name="query" id="queryField" />
+				<input type="submit" id="submitButton" value="Search" />
+			</div>
+			<div id="searchOptions">
+				<a href="#" id="advancedSettingsLink">Advanced Settings</a>
+			</div>
+			<div id="advancedSettings" style="">
+				<table width="100%">
+					<tr>
+						<td width="120px">
+							Temperature (K):
+						</td>
+						<td width="50px">
+							<input type="text" name="temp" id="tempField" value="300.0" size="5"/>
+						</td>
+						<td><div id="tempSlider"></div></td>
+					</tr>
+					<tr>
+						<td width="120px">
+							pH:
+						</td>
+						<td width="50px">
+							<input type="text" name="ph" id="phField" value="7.0" size="5"/>
+						</td>
+						<td><div id="phSlider"></div></td>
+					</tr>
+					<tr>
+						<td width="120px">
+							Ionic strength (M):
+						</td>
+						<td width="50px">
+							<input type="text" name="ionic_strength" id="ionStrengthField" value="0.1" size="5"/>
+						</td>
+						<td><div id="ionStrengthSlider"></div></td>
+					</tr>
+				</table>
+			</div>
+		</form>
+	</div>
+	<div id="examples">
+		<table>
+			<tr><th colspan="2">Examples</th></tr>
+			<tr>
+				<td>Compounds</td>
+				<td>Reactions</td>
+			</tr>
+			<tr>
+				<td><a href="/search?query=Glucosamine">Glucosamine</a></td>
+				<td><a href="/search?query=2+H2O+%3C%3D%3E+2+H2+%2B+O2&temp=199&ph=7.0&ionic_strength=0.15">2 H2O <=> 2 H2 + O2</a></td>
+			</tr>
+			<tr>
+				<td><a href="/search?query=alpha-Ketoglutaric+acid">alpha-Ketoglutaric acid</a></td>
+				<td><a href="/search?query=4+xylulose-5-phosphate+%3D>+4+ribulose+5-phosphate">4 xylulose-5-phosphate => 4 ribulose 5-phosphate</a></td>
+			</tr>
+			<tr>
+				<td><a href="/search?query=Succinyl-CoA">Succinyl-CoA</a></td>
+				<td><a href="/search?query=glucose+%3D+2+ethanol+%2B+2+co2">glucose = 2 ethanol + 2 co2</a></td>
+			</tr>
+		</table>
+	</div>
+	</body>
+</html>
