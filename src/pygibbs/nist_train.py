@@ -25,44 +25,6 @@ class GradientAscent (Thermodynamics):
         self.anchors = set()     # the CIDs of the anchor compounds (i.e. their pmap must be fixed)
         self.cache_error = {}    # for each rowid - holds the last calculated squared error (the difference between calc and measured)
         self.cache_cid = {}      # for each (rowid,cid) pair - holds the last calculated dG_f (multiplied by the stoichiometric coeff)
-    
-    def load_dG0_data(self, train_csv_fname, format='long', use_as_anchors=False):
-        """
-            Read the training data from a CSV file
-        """
-        csv_reader = csv.reader(open(train_csv_fname))
-        csv_reader.next()
-        for row in csv_reader:
-            if (format == 'long'):
-                #(smiles, cid, compoud_name, dG0, dH0, z, nH, Mg, use_for, ref, remark) = row
-                if (row[8] in ['skip']):
-                    continue
-                cid = int(row[1])
-                nH = int(row[6])
-                z = int(row[5])
-                dG0 = float(row[3])
-            elif (format == 'short'):
-                #(cid, compoud_name, dG0, z, nH) = row
-                cid = int(row[0])
-                nH = int(row[4])
-                z = int(row[3])
-                dG0 = float(row[2])
-            elif (format == 'hatzi'):
-                # (cid, dG0, uncertainty, charge, reason_for_failure) = row
-                if (row[1] == "Not calculated"):
-                    continue
-                cid = int(row[0][1:])
-                z = int(row[3])
-                nH = z # we assume that nH = 0 when the charge is 0
-                dG0 = float(row[1]) * 4.19 # from kcal to kJ
-            
-            try:
-                if (cid > 0):
-                    self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
-                if (use_as_anchors):
-                    self.anchors.add(cid)
-            except ValueError:
-                continue
 
     def cid2pmap(self, cid):
         if (cid in self.cid2pmap_dict):
@@ -73,13 +35,51 @@ class GradientAscent (Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
 
+    def load_dG0_data(self, train_csv_fname):
+        """
+            Read the training data from a CSV file, into the cid2pmap_dict.
+            Returns a set containing the imported CIDs.
+        """
+        csv_reader = csv.reader(open(train_csv_fname))
+        titles = csv_reader.next() # "cid","compound name","dG0","charge","hydrogens"
+        try:
+            i_cid = titles.index("cid")
+            i_dG0 = titles.index("dG0")
+            i_z = titles.index("charge")
+            i_nH = titles.index("hydrogens")
+        except ValueError:
+            raise Exception("this CSV file %s does not have the correct titles" % train_csv_fname)
+        
+        try:
+            i_use = titles.index("use_for")
+        except ValueError:
+            i_use = None
+        
+        cids = set()
+        for row in csv_reader:
+            if (format == 'long'):
+                if (i_use != None and row[i_use] in ['skip']):
+                    continue
+                cid = int(row[i_cid])
+                dG0 = float(row[i_dG0])
+                z = int(row[i_z])
+                nH = int(row[i_nH])
+            
+            if (cid > 0):
+                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
+                cids.add(cid)
+        return cids
+
     def load_nist_data(self, nist, override_I=None, skip_missing_reactions=False, T_range=None):
         """
             skip_missing_reactions - if True, the method will not add reactions which have a compound
             with a no data (on dG0_f). In this case, the GradientAscent object is meant only to improve
             the dG0_f of the training data, but not to discover formation energies of new compounds.
         """
+        self.data = []
+        self.cid2rowids = {}
         
+        known_cids = set(self.get_all_cids())
         for row in nist.data:
             sparse_reaction = row[6]
             [Keq, T, I, pH] = row[8:12]
@@ -94,19 +94,21 @@ class GradientAscent (Thermodynamics):
                 evaluation = 'B - D'
             #evaluation = row[2]
             reaction_cids = set(sparse_reaction.keys())
-            known_cids = set(self.get_all_cids())
             unknown_cids = reaction_cids.difference(known_cids)
-
-            if (skip_missing_reactions and len(unknown_cids) != 0):
-                continue # this reaction contains compounds that are not in the training set
-            for cid in unknown_cids: # @@@ there is a problem for CIDs that have no InChI, I currently put nH=0, z=0 for them
-                for (nH, z) in self.gc.cid2pseudoisomers(cid):
-                    self.cid2pmap.setdefault(cid, {})[nH, z] = 0.0 
             
-            short_row = (sparse_reaction, pH, I, T, evaluation, dG0_r)
-            self.data.append(short_row)
+            if len(unknown_cids) > 0:
+                if skip_missing_reactions:
+                    continue # this reaction contains compounds that are not in the training set
+                else:
+                    for cid in unknown_cids: # @@@ there is a problem for CIDs that have no InChI, I currently put nH=0, z=0 for them
+                        for (nH, z) in self.gc.cid2pseudoisomers(cid):
+                            self.cid2pmap_dict.setdefault(cid, {})[nH, z] = 0.0
+                        known_cids.add(cid)
+            
+            self.data.append((sparse_reaction, pH, I, T, evaluation, dG0_r))
+            rowid = len(self.data) - 1
             for cid in reaction_cids:
-                self.cid2rowids.setdefault(cid, []).append(len(self.data) - 1)
+                self.cid2rowids.setdefault(cid, []).append(rowid)
 
         self.train_rowids = range(len(self.data))
         self.test_rowids = range(len(self.data)) # by default assume all the training data is also the testing data
@@ -123,7 +125,7 @@ class GradientAscent (Thermodynamics):
             The problem thus becomes a linear problem and is solved with linear regression.
         """
         
-        cid_list = sorted(self.cid2pmap.keys())
+        cid_list = sorted(self.cid2pmap_dict.keys())
         cid2species = {}
         for cid in cid_list:
             comp = self.kegg.cid2compound(cid)
@@ -191,7 +193,7 @@ class GradientAscent (Thermodynamics):
         self.anchors = set()
         for row in self.gc.comm.execute("SELECT * FROM cid2prm"):
             (cid, dG0, nH, z, anchor) = row
-            if (cid not in self.cid2pmap):
+            if (cid not in self.cid2pmap_dict):
                 self.cid2pmap_dict[cid] = {}
             self.cid2pmap_dict[cid][nH, z] = dG0
             if (anchor):
@@ -298,7 +300,7 @@ class GradientAscent (Thermodynamics):
         axis([-60, 60, -60, 60])
         
         fig2 = figure()
-        hist([(row[1] - row[2]) for row in total_list], bins=arange(-20, 20, 0.5))
+        hist([(row[1] - row[2]) for row in total_list], bins=arange(-50, 50, 0.5))
         rmse = util.calc_rmse(dG0_obs_vec, dG0_est_vec)
         title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
         xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
@@ -502,10 +504,9 @@ def main():
     alberty = Alberty()
     hatzi = Hatzi()
     
-    if True:
+    if False:
         sys.stderr.write("Calculate the correlation between Alberty's predictions and the NIST database\n")
         grad = GradientAscent(gc)
-        ###grad.grad.load_dG0_data_data_dG0("../data/thermodynamics/dG0.csv", format='long', use_as_anchors=False)
         grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(298, 314))
         grad.verify_results("alberty", ignore_I=False)
@@ -513,58 +514,66 @@ def main():
         grad.write_pseudoisomers("../res/nist/nist_dG0_f.csv")
 
         sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the NIST database\n")
-        grad.cid2pmap_dict = {}
-        grad.load_dG0_data("../data/thermodynamics/hatzimanikatis_cid.csv", format='hatzi', use_as_anchors=False)
+        grad.cid2pmap_dict =  hatzi.cid2pmap_dict
         grad.verify_results("hatzi")
 
-    elif False:
+    elif True:
         sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the NIST database\n")
         grad = GradientAscent(gc)
         grad.cid2pmap_dict = hatzi.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(298, 314))
         grad.verify_results("hatzi-full")
+        
+        sys.stderr.write("Calculate the correlation between PAGC predictions and the NIST database\n")
+        grad.cid2pmap_dict = gc.cid2pmap_dict
+        grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(298, 314))
+        grad.verify_results("pagc")
+        
     elif False:
         # Run the gradient ascent algorithm, where the starting point is the same file used for training the GC algorithm
         grad = GradientAscent(gc)
-        grad.load_dG0_data("../data/thermodynamics/dG0.csv", format='long', use_as_anchors=False)
-        grad.load_dG0_data("../data/thermodynamics/nist_anchors.csv", format='short', use_as_anchors=True)
+        grad.load_dG0_data("../data/thermodynamics/dG0.csv")
+        # load the data for the anchors (i.e. compounds whose dG0 should not be changed - usually their value will be 0). 
+        grad.anchors = grad.load_dG0_data("../data/thermodynamics/nist_anchors.csv")
         grad.load_nist_data(nist, skip_missing_reactions=True)
-        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap.keys()), len(grad.data))
+        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.hill_climb(max_i=20000)
         grad.save_energies()
         grad.verify_results("gradient1")
+        
     elif False:
         # Run the gradient ascent algorithm, where the starting point is Alberty's table from (Mathematica 2006)
         grad = GradientAscent(gc)
-        #grad.load_dG0_data("../data/thermodynamics/nist_anchors.csv", format='short', use_as_anchors=True)
-        grad.cid2pmap = alberty.cid2pmap
+        grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True)
-        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap.keys()), len(grad.data))
+        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.hill_climb(max_i=20000)
         grad.save_energies()
         grad.verify_results("gradient2")
+    
     elif False:
         # Run the gradient ascent algorithm, where the starting point is Alberty's table from (Mathematica 2006)
         # Use DETERMINISTIC gradient ascent
         grad = GradientAscent(gc)
-        grad.cid2pmap = alberty.cid2pmap
+        grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(24 + 273.15, 40 + 273.15))
-        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap.keys()), len(grad.data))
+        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.deterministic_hill_climb(max_i=200)
         grad.save_energies()
         grad.verify_results("gradient_deterministic")
+        
     elif False:
         # Run the gradient ascent algorithm, where the starting point arbitrary (predict all of the NIST compounds)
         grad = GradientAscent(gc)
         grad.load_nist_data(nist, skip_missing_reactions=False)
-        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap.keys()), len(grad.data))
+        print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.hill_climb(max_i=20000)
         grad.save_energies()
         grad.verify_results("gradient3")
     
     elif False: # Use Alberty's table from (Mathematica 2006) to calculate the dG0 of all possible reactions in KEGG
         grad = GradientAscent(gc)
-        grad.cid2pmap = alberty.cid2pmap
+        grad.cid2pmap_dict = alberty.cid2pmap_dict
         (pH, I, T) = (7, 0, 300)
         counter = 0
         for rid in grad.kegg.get_all_rids():
@@ -601,8 +610,8 @@ def main():
             except KeggParseException as e:
                 html_writer.write("WARNING: cannot draw C%05d - %s" % (cid, str(e)))
             html_writer.write("</td><td>")
-            if (cid in alberty.cid2pmap):
-                for (nH, z) in alberty.cid2pmap[cid].keys():
+            if (cid in alberty.cid2pmap_dict):
+                for (nH, z) in alberty.cid2pmap_dict[cid].keys():
                     html_writer.write("(nH=%d, z=%d)<br>" % (nH, z))
                     csv_writer.writerow((cid, nH, z))
             else:

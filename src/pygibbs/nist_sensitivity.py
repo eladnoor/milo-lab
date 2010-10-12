@@ -14,7 +14,7 @@ def sensitivity_analysis_for_gradient_ascent(gc, nist, cid2pmap, max_i=250, n_be
     # evaluating the MSE only on that fraction (i.e. it will be the test set)
     
     grad = GradientAscent(gc)
-    grad.cid2pmap = deepcopy(cid2pmap)
+    grad.cid2pmap_dict = deepcopy(cid2pmap)
     grad.load_nist_data(nist, skip_missing_reactions=True)
     
     res_file = open('../res/leave1out_report.csv', 'w')
@@ -31,7 +31,7 @@ def sensitivity_analysis_for_gradient_ascent(gc, nist, cid2pmap, max_i=250, n_be
         dG0_est_before = grad.reaction_to_dG0(sparse_reaction, pH, I, T)
         sys.stderr.write("E-before = %.2f, " % abs(dG0_obs - dG0_est_before))
 
-        grad.cid2pmap = deepcopy(cid2pmap)
+        grad.cid2pmap_dict = deepcopy(cid2pmap)
         grad.train_rowids = range(n) + range(n+1, N)
         grad.update_cache()
         grad.deterministic_hill_climb(max_i=max_i, verbose=False)
@@ -59,7 +59,7 @@ def evaluate(gc, nist, cid2pmap):
     # evaluating the MSE only on that fraction (i.e. it will be the test set)
     
     grad = GradientAscent(gc)
-    grad.cid2pmap = deepcopy(cid2pmap)
+    grad.cid2pmap_dict = deepcopy(cid2pmap)
     grad.load_nist_data(nist, skip_missing_reactions=True)
 
     res_file = open('../res/evaluation_report.csv', 'w')
@@ -86,5 +86,5 @@ gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
 gc.init()
 nist = Nist(gc.kegg())
 alberty = Alberty()
-sensitivity_analysis_for_gradient_ascent(gc, nist, alberty.cid2pmap, max_i=250, n_begin=n_begin)
-#evaluate(gc, nist, alberty.cid2pmap)
+sensitivity_analysis_for_gradient_ascent(gc, nist, alberty.cid2pmap_dict, max_i=250, n_begin=n_begin)
+#evaluate(gc, nist, alberty.cid2pmap_dict)

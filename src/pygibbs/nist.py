@@ -174,7 +174,7 @@ class Nist:
         pylab.ylabel("No. of measurements")
 
         alberty = Alberty()
-        alberty_cids = set(alberty.cid2pmap.keys())
+        alberty_cids = set(alberty.cid2pmap_dict.keys())
         
         N = 60 # cutoff for the number of counts in the histogram
         hist_a = pylab.zeros(N)

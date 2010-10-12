@@ -2,7 +2,7 @@ import sys, pybel, openbabel, csv, os, pylab, sqlite3, re
 from copy import deepcopy
 from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
-from toolbox.util import matrixrank, multi_distribute, log_sum_exp
+from toolbox.util import matrixrank, multi_distribute, log_sum_exp, _mkdir
 from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics
 from pygibbs.feasibility import find_feasible_concentrations, LinProgNoSolutionException, find_pCr
 from pygibbs import kegg
@@ -91,15 +91,11 @@ class GroupContribution:
     def __init__(self, sqlite_name, html_name, log_file=sys.stderr):
         self._kegg = None
         self.LOG_FILE = log_file
-        if (not os.path.exists("../res")):
-            os.mkdir("../res")
+        self.FIG_DIR = '../res/' + html_name
+        _mkdir(self.FIG_DIR)
         
         self.EXP_NAME = html_name
         self.HTML = HtmlWriter("../res/" + html_name + ".html")
-        self.FIG_DIR = '../res/' + self.EXP_NAME
-        if (not os.path.exists(self.FIG_DIR)):
-            os.mkdir(self.FIG_DIR)
-        
         self.comm = sqlite3.connect("../res/" + sqlite_name)
         self.use_measured_train_values = True
     
@@ -126,19 +122,19 @@ class GroupContribution:
         self.load_cid2pmap()
 
     def load_cid2pmap(self):
-        self.cid2pmap = {}
+        self.cid2pmap_dict = {}
         if (self.does_table_exist('gc_cid2prm')):
             for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm;"):
                 (cid, nH, z, dG0) = row
-                if (cid not in self.cid2pmap):
-                    self.cid2pmap[cid] = {}
-                self.cid2pmap[cid][nH, z] = dG0
+                if (cid not in self.cid2pmap_dict):
+                    self.cid2pmap_dict[cid] = {}
+                self.cid2pmap_dict[cid][nH, z] = dG0
         else:
             self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL);")
             for cid in self.kegg().get_all_cids_with_inchi():
                 try:
                     pmap = self.estimate_pmap_keggcid(cid)
-                    self.cid2pmap[cid] = pmap
+                    self.cid2pmap_dict[cid] = pmap
                     for ((nH, z), dG0) in pmap.iteritems():
                         self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?)", (cid, nH, z, dG0))
                 except (GroupDecompositionError, GroupMissingTrainDataError, KeyError, kegg.KeggParseException) as e:
@@ -147,8 +143,8 @@ class GroupContribution:
             
     def get_cid2dG0(self, pH=default_pH, I=default_I, T=default_T, most_abundant=False):
         cid2dG0 = {}
-        for cid in self.cid2pmap.keys():
-            pmap = self.cid2pmap[cid]
+        for cid in self.cid2pmap_dict.keys():
+            pmap = self.cid2pmap_dict[cid]
             if (len(pmap) == 0):
                 raise ValueError("C%05d has an empty pmap" % cid)
             cid2dG0[cid] = self.pmap_to_dG0(pmap, pH, I, T, most_abundant)
@@ -938,13 +934,13 @@ class GroupContribution:
         self.comm.execute("CREATE UNIQUE INDEX dG0_f_idx ON dG0_f (cid, pH, I, T);")
 
         self.HTML.write('<h2><a name=kegg_compounds>&#x394;G<sub>f</sub> of KEGG compounds:</a></h2>')
-        for cid in self.cid2pmap.keys():
+        for cid in self.cid2pmap_dict.keys():
             self.HTML.write('<p>\n')
             self.HTML.write('<h3>C%05d <a href="%s">[KEGG]</a></h3>\n' % (cid, self.kegg().cid2link(cid)))
             self.HTML.write('Name: %s<br>\n' % self.kegg().cid2name(cid))
             self.HTML.write('Formula: %s<br>\n' % self.kegg().cid2formula(cid))
             
-            pmap = self.cid2pmap[cid]
+            pmap = self.cid2pmap_dict[cid]
             for i in range(len(pH)):
                 for j in range(len(I)):
                     dG0 = self.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant)
