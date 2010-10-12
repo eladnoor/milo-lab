@@ -1,0 +1,26 @@
+<html>
+	<head>
+		<title>Compound Results</title>
+		<link href="/media/style.css" rel="stylesheet" type="text/css">
+		<link href="/media/jquery-ui-1.8.5.custom.css" rel="stylesheet" type="text/css">
+		<script type="text/javascript" src="/media/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="/media/jquery-ui-1.8.5.custom.min.js"></script>
+		<script type="text/javascript" src="/media/jquery.autocomplete.js"></script>
+		<script type="text/javascript" src="/media/main.js"></script>
+	</head>
+	<body>
+	<form name="compoundForm" action="/compound" method="get">
+		<div>
+			<select class="compoundSelector" name="compoundId">
+			{% for match in results|slice:":5" %}
+			  <option value="{{ match.value.kegg_id }}" {% if forloop.first %} selected {% endif %}>{{ match.key }}</option>
+			{% endfor %}
+			</select>
+		</div>
+		
+		{% include "result_table.html" %}
+	
+		<input type="submit" value="Update" />
+	</form>
+	</body>
+</html>

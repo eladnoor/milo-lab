@@ -1,0 +1,33 @@
+<table class="results">
+	<tr>
+		<td width="120px">Temperature (K) </td>
+		<td width="50px"><input type="text" name="temp" id="tempField" value="{{ temp }}" size="5"/></td>
+		<td><div id="tempSlider"></div></td>
+	</tr>
+	<tr>
+		<td width="120px">pH </td>
+		<td width="50px"><input type="text" name="ph" id="phField" value="{{ ph }}" size="5"/></td>
+		<td><div id="phSlider"></div></td>
+	</tr>
+	<tr>
+		<td width="120px">Ionic strength (M)</td>
+		<td width="50px"><input type="text" name="ionic_strength" id="ionStrengthField" value="{{ ionic_strength }}" size="5"/></td>
+		<td><div id="ionStrengthSlider"></div></td>
+	</tr>
+	<tr>
+		<td width="120px">Estimated &Delta;G </td>
+		<td colspan="2">
+		{% if delta_g_estimate %}
+			{{ delta_g_estimate|floatformat:1 }} kJ / mol
+		{% else %}
+			Not available
+		{% endif %}
+		</td>
+	</tr>
+	<tr>
+		{% if kegg_link %}
+		<td width="120px">KEGG Link</td>
+		<td colspan="2"><a href="{{kegg_link}}">{{kegg_link}}</a>
+		{% endif %}
+	</tr>
+</table>
