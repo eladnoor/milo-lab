@@ -70,7 +70,7 @@ class VictorParser():
 
     def get_growth_rate(self, m_name, row, col, window_size=1.5, start_threshold=0.01, plot_figure=False):
         (time, cell_count) = self.get_data(m_name, row, col)
-        return fit_growth(time, cell_count, window_size, start_threshold, plot_figure)
+        return VictorParser.fit_growth(time, cell_count, window_size, start_threshold, plot_figure)
 
     @staticmethod
     def fit_growth(time, cell_count, window_size, start_threshold=0.01, plot_figure=False):
