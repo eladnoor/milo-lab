@@ -1,6 +1,10 @@
 import csv
+from toolbox import util
 from nist import Nist
 import kegg
+import pydot
+import gtk
+from toolbox import xdot
 
 KEGG = kegg.Kegg()
 
@@ -26,14 +30,12 @@ def load_cid_set(train_csv_fname):
 #############################################################################################################
 
 nist = Nist(KEGG)
-known_cids = load_cid_set('../data/dG0_seed.csv')
-
-pairs = set()
-dot_file = open('../res/nist.dot', 'w')
-dot_file.write('graph G {\n')
+known_cids = load_cid_set('../data/thermodynamics/dG0_seed.csv')
 
 one_step_cids = set()
 coupled_cids = set()
+
+Gdot = pydot.Dot()
 
 for row in nist.data:
     sparse_reaction = row[6]
@@ -44,9 +46,18 @@ for row in nist.data:
         coupled_cids.add((min(unknown_cids), max(unknown_cids)))
 
 for cid in one_step_cids:
-    dot_file.write("%s [fillcolor = red]\n" % cid2name(cid, KEGG))
+    #Gdot.add_node(pydot.Node(cid2name(cid, KEGG), None))
+    Gdot.add_node(pydot.Node("C%05d" % cid, None))
 
 for (cid1, cid2) in coupled_cids:
-    dot_file.write("%s -- %s\n" % (cid2name(cid1, KEGG), cid2name(cid2, KEGG)))
+    Gdot.add_edge(pydot.Edge("C%05d" % cid1, "C%05d" % cid2, None))
 
-dot_file.write('}\n')
+
+win = xdot.DotWindow()
+win.connect('destroy', gtk.main_quit)
+win.set_filter('dot')
+util._mkdir('../res/nist')
+dot_fname = '../res/nist/connectivity.dot'
+Gdot.write(dot_fname, format='dot')
+win.open_file(dot_fname)
+gtk.main()
