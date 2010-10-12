@@ -2,15 +2,10 @@ import sys, pybel, openbabel, csv, os, pylab, sqlite3, re
 from copy import deepcopy
 from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
-from pygibbs.common import matrixrank, multi_distribute, R
-from pygibbs.log_matrix import log_sum_exp
+from toolbox.util import matrixrank, multi_distribute, log_sum_exp
+from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics
 from pygibbs.feasibility import find_feasible_concentrations, LinProgNoSolutionException, find_pCr
 from pygibbs import kegg
-
-default_T = 300.0 # K
-default_I = 0.1 # mM
-default_pH = 7.0
-default_c0 = 1 # M
 
 def find_smarts(smarts_str, mol):
     """
@@ -737,10 +732,6 @@ class GroupContribution:
             self._kegg = kegg.Kegg(log_file=self.LOG_FILE)
         return self._kegg        
 
-    @staticmethod
-    def transform(dG0, nH, z, pH=default_pH, I=default_I, T=default_T):
-        return dG0 + nH * R * T * pylab.log(10) * pH - 2.91482 * (z ** 2 - nH) * pylab.sqrt(I) / (1 + 1.6 * pylab.sqrt(I))
-
     def estimate_pmap(self, mol):
         try:
             all_groupvecs = self.get_protonated_groupvec(mol)
@@ -792,7 +783,7 @@ class GroupContribution:
     def pmap_to_dG0(pmap, pH=default_pH, I=default_I, T=default_T, most_abundant=False):
         if (len(pmap) == 0):
             raise ValueError("Empty pmap given to 'pmap_to_dG0'")
-        dG0_trans = pylab.array([GroupContribution.transform(dG0, nH, z, pH, I, T) for ((nH, z), dG0) in pmap.iteritems()])
+        dG0_trans = pylab.array([Thermodynamics.transform(dG0, nH, z, pH, I, T) for ((nH, z), dG0) in pmap.iteritems()])
         if (most_abundant):
             return min(dG0_trans)
         else:
@@ -1646,7 +1637,7 @@ class GroupContribution:
         data = pylab.zeros((len(pmap), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
-            dG0_array = pylab.matrix([-GroupContribution.transform(dG0, nH, z, pH, I, T) / (R * T) for ((nH, z), dG0) in pmap.iteritems()])
+            dG0_array = pylab.matrix([-Thermodynamics.transform(dG0, nH, z, pH, I, T) / (R * T) for ((nH, z), dG0) in pmap.iteritems()])
             dG0_array = dG0_array - max(dG0_array)
             p_array = pylab.exp(dG0_array)
             p_array = p_array / sum(p_array)
@@ -1813,7 +1804,7 @@ class GroupContribution:
         dG0 = self.hatzi_cid2dG[cid]
         z = self.hatzi_cid2charge[cid]
         nH = z
-        return GroupContribution.transform(dG0, nH, z, pH, I, T)
+        return Thermodynamics.transform(dG0, nH, z, pH, I, T)
 
     def hatzi_dG0_reaction(self, stoichiometry_vector, cid_vector, pH=default_pH, I=default_I, T=default_T):
         try:

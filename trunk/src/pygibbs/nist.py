@@ -1,11 +1,11 @@
 import csv, pylab, re, sys
 from kegg import KeggParseException, Kegg
-from common import default_T
+from thermodynamics import default_T
 from matplotlib.backends.backend_pdf import PdfPages
 from alberty import Alberty
 
 class Nist:
-    def __init__(self, kegg=None, fname='../data/nist.csv'):
+    def __init__(self, kegg=None, fname='../data/thermodynamics/nist.csv'):
         if (kegg == None):
             self.kegg = Kegg()
         else:

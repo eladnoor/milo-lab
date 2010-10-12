@@ -1,5 +1,5 @@
 import csv, sqlite3, pybel, openbabel, sys, os, urllib, difflib, re, pydot, pylab
-import common
+from toolbox import util
 from copy import deepcopy
 
 #########################################################################################
@@ -408,7 +408,7 @@ class Reaction:
 class Kegg:
     def __init__(self, log_file=sys.stderr):
         self.LOG_FILE = log_file
-        common._mkdir('../kegg')
+        util._mkdir('../kegg')
         
         # default colors for pydot (used to plot modules)
         self.edge_color = "cadetblue"

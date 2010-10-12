@@ -1,9 +1,12 @@
-from pylab import *
-from numpy.linalg.linalg import LinAlgError
-from log_matrix import *
-import sys, random, csv, re
-
-R = 8.31e-3 # kJ/(mol*K)
+import csv, re, random
+from pygibbs.thermodynamics import Thermodynamics, R
+from scipy.stats.stats import mean
+from numpy.linalg.linalg import inv, LinAlgError, array
+from matplotlib.pyplot import hold, figure, subplot, plot, xlabel, ylabel, title,\
+    legend, show
+from numpy.core.numeric import arange, zeros, exp
+from toolbox.log_matrix import log_dot, log_mat
+from toolbox.util import log_subt_exp
 
 class ReverseTransformError(Exception):
     def __init__(self, value):
@@ -11,19 +14,6 @@ class ReverseTransformError(Exception):
     def __str__(self):
         return repr(self.value)
 
-def debye_huckel(I):
-    return (2.91482 * sqrt(I)) / (1 + 1.6 * sqrt(I))
-
-def correction_function(nH, z, pH, I, T=300.0):
-    return -(log(10)*pH + debye_huckel(I)/(R*T)) * nH + debye_huckel(I) * (z**2)/(R*T)
-
-def transform(dG0, nH, z, pH, I, T=300.0):
-    """
-        dG0, nH and z - are the species parameters (can be vectors)
-        pH and I - are the conditions, must be scalars
-        returns the transformed gibbs energy: dG0'
-    """
-    return -(R*T) * log_sum_exp(dG0 / (-R*T) + correction_function(nH, z, pH, I, T))
 
 def solve(measurements, nH, z):
     """
@@ -52,7 +42,7 @@ def solve(measurements, nH, z):
     log_X = zeros((Nm, Ns))
     for i in range(Nm):
         (dG0_tag, pH, I, T) = measurements[i]
-        log_X[i,:] = correction_function(nH, z, pH, I, T) + dG0_tag / (R*T)
+        log_X[i,:] = Thermodynamics.correction_function(nH, z, pH, I, T) + dG0_tag / (R*T)
 
     log_C = log_dot(log_X.T, log_X) # C = (X'*X)
     
@@ -74,7 +64,7 @@ def solve(measurements, nH, z):
     diff = zeros((Nm, 1))
     for i in range(Nm):
         (dG0_tag, pH, I, T) = measurements[i]
-        dG_tag_pred = transform(dG0_solution, nH, z, pH, I, T)
+        dG_tag_pred = Thermodynamics.array_transform(dG0_solution, nH, z, pH, I, T)
         diff[i,0] = dG0_tag - dG_tag_pred
     
     return dG0_solution + mean(diff)
@@ -105,7 +95,7 @@ def test1():
         noisy_measurements = []
         for (pH, I, T) in conditions:
             noise = random.normalvariate(0, noise_level)
-            dG0_tag = transform(dG0, nH, z, pH, I, T)
+            dG0_tag = Thermodynamics.array_transform(dG0, nH, z, pH, I, T)
             dG0_tag_noisy = dG0_tag+noise
             measurements.append((dG0_tag, pH, I, T))
             noisy_measurements.append((dG0_tag_noisy, pH, I, T))
@@ -133,8 +123,8 @@ def test1():
         T = 300.0
         I = 0.0
         for pH in pH_list:
-            dG_tag_orig = transform(dG0, nH, z, pH, I, T)
-            dG_tag_pred = transform(dG0_r, nH, z, pH, I, T)
+            dG_tag_orig = Thermodynamics.array_transform(dG0, nH, z, pH, I, T)
+            dG_tag_pred = Thermodynamics.array_transform(dG0_r, nH, z, pH, I, T)
             #print "%4.1f | %4.1f | %11.2f | %11.2f" % (pH, I, dG_tag_orig, dG_tag_pred)
             dG_tag_orig_list.append(dG_tag_orig)
             dG_tag_pred_list.append(dG_tag_pred)
@@ -162,8 +152,8 @@ def test2():
         try:
             [(compound_name, species_list)] = re.findall("([a-zA-Z0-9]+)sp=(.*)\n*", line)
         except ValueError as e:
-             print str(e)
-             raise e
+            print str(e)
+            raise e
         compound2species[compound_name] = eval(species_list)
     
     print "Reverse transform, according to changing pH\n" + "="*100
