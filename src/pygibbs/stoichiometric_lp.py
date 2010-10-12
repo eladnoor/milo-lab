@@ -47,10 +47,10 @@ class Stoichiometric_LP():
                 self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name, self.S[c,r])
 
         if (source != None):
-            self.add_flux("SOURCE", source)
+            self.add_flux("SOURCE", source, lb=1, ub=1)
         
         if (target != None):
-            self.add_flux("TARGET", target)
+            self.add_flux("TARGET", target, lb=-1, ub=-1)
 
     def add_flux(self, name, sparse, lb=1, ub=1):
         """

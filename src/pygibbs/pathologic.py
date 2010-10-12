@@ -340,15 +340,18 @@ class Pathologic:
 
 def main():
     pl = Pathologic()
-    #pl.find_path('glyoxlyate (CRR, Max_R = 15)', source={}, target={48:1}, thermo_method="margin", max_reactions=15) # => glyoxylate
     
     pl.c_range = (1e-9, 1e-2)
+    pl.find_path('glyoxlyate (Global)', source={}, target={48:1}, thermo_method="none")
     #pl.find_path('glyoxlyate (Global)', source={}, target={48:1}, thermo_method="global")
-    pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
+    #pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
     #pl.find_path('3PG 1uM-10mM (no added reactions)', source={}, target={197:1}, thermo_method='global')
     #pl.find_path('3PG (no FDH, no Alanine, no Lactate)', source={}, target={197:1}, thermo_method="global")
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")
 
+    # TODO: write a clustering algorithm to understand the solutions
+
+    # TODO: Add the "Maximal Chemical Motive Force" optimization option as well.
     
     # TODO: When using "margin" optimization, there is no constraint on the total flux, and that can cause unwanted results (such as futile cycles).
     # one solution for this is to find all futile cycles and remove them in post-processing.
