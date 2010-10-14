@@ -7,7 +7,7 @@ class Hatzi (Thermodynamics):
         Thermodynamics.__init__(self)
         csv_reader = csv.reader(open("../data/thermodynamics/hatzimanikatis_cid.csv", "r"))
         csv_reader.next()
-        self.cid2pmap_dict = {}
+        self.cid2pmap_dict = {80 : {(0, 0) : 0} } # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
         for row in csv_reader:
             cid = int(row[0][1:])
             if (row[1] == "Not calculated"):
