@@ -6,6 +6,7 @@ from toolbox.util import matrixrank, multi_distribute, log_sum_exp, _mkdir
 from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics
 from pygibbs.feasibility import find_feasible_concentrations, LinProgNoSolutionException, find_pCr
 from pygibbs import kegg
+import types
 
 def find_smarts(smarts_str, mol):
     """
@@ -130,15 +131,22 @@ class GroupContribution:
                     self.cid2pmap_dict[cid] = {}
                 self.cid2pmap_dict[cid][nH, z] = dG0
         else:
-            self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL);")
+            self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL, estimated BOOL);")
             for cid in self.kegg().get_all_cids_with_inchi():
-                try:
-                    pmap = self.estimate_pmap_keggcid(cid)
-                    self.cid2pmap_dict[cid] = pmap
-                    for ((nH, z), dG0) in pmap.iteritems():
-                        self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?)", (cid, nH, z, dG0))
-                except (GroupDecompositionError, GroupMissingTrainDataError, KeyError, kegg.KeggParseException) as e:
-                    sys.stderr.write("Warning, C%05d has an error: %s\n" % (cid, str(e)))
+                if (cid in self.cid2pmap_obs and (self.use_measured_train_values or cid in self.cid_test_set)):
+                    pmap = self.cid2pmap_obs[cid]
+                    estimated = False
+                else:
+                    try:
+                        pmap = self.estimate_pmap_keggcid(cid)
+                        estimated = True
+                    except (GroupDecompositionError, GroupMissingTrainDataError, KeyError, kegg.KeggParseException) as e:
+                        sys.stderr.write("Warning, C%05d has an error: %s\n" % (cid, str(e)))
+                        continue
+
+                self.cid2pmap_dict[cid] = pmap
+                for ((nH, z), dG0) in pmap.iteritems():
+                    self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, estimated))
             self.comm.commit()
             
     def get_cid2dG0(self, pH=default_pH, I=default_I, T=default_T, most_abundant=False):
@@ -190,7 +198,10 @@ class GroupContribution:
             self.comm.execute("CREATE TABLE groups (gid INT, name TEXT, protons INT, charge INT, smarts TEXT, focal_atoms TEXT, remark TEXT)")
             gid = 0
             for row in group_csv_file:
-                (group_name, protons, charge, smarts, focal_atom_set, remark) = row
+                try:
+                    (group_name, protons, charge, smarts, focal_atom_set, remark) = row
+                except ValueError:
+                    raise Exception("Wrong number of columns (%d) in one of the rows in %s: %s" % (len(row), group_fname, str(row)))
                 try: # this is just to make sure the Smarts definition are proper
                     pybel.Smarts(smarts)
                 except IOError:
@@ -214,6 +225,7 @@ class GroupContribution:
         sys.stderr.write("[DONE]\n")
 
         mol = pybel.readstring('smi', 'C') # the specific compound is meaningless since we only want the group names
+        mol.removeh()
         (groups, unassigned_nodes) = self.decompose(mol)
         self.all_groups = [(group_name, protons, charge) for (group_name, protons, charge, node_sets) in groups] + [('origin', 0, 0)] # add the 'origin' group (i.e. for the 0-bias of the linear regression)
         self.all_group_names = ["%s [H%d %d]" % (group_name, protons, charge) for (group_name, protons, charge) in self.all_groups]
@@ -465,6 +477,7 @@ class GroupContribution:
             try:
                 self.HTML.write('SMILES = %s<br>\n' % smiles)
                 mol = pybel.readstring('smiles', smiles)
+                mol.removeh()
             except TypeError:
                 raise Exception("Invalid smiles: " + smiles)
 
@@ -484,7 +497,10 @@ class GroupContribution:
     
             (groups, unassigned_nodes) = self.decompose(mol)
             if (len(unassigned_nodes) > 0):
-                raise Exception("Compound '%s' could not be decomposed, I recommend moving it to the 'test only' set (SMILES = %s)" % (compound_name, smiles))
+                sys.stderr.write("Compound '%s' could not be decomposed, I recommend moving it to the 'test only' set (SMILES = %s)\n" % (compound_name, smiles))
+                sys.stderr.write(self.analyze_decomposition(mol) + "\n")
+                mol.draw()
+                sys.exit(-1)
                 
             groupvec = self.groups_to_vector(groups)
             self.mol_names.append(name)
@@ -812,12 +828,12 @@ class GroupContribution:
             (according to Alberty).            
         """
         pmap = self.estimate_pmap(mol)
-        if (pH.__class__ == float and I.__class__ == float):
+        if (type(pH) != types.ListType and type(I) != types.ListType):
             return self.pmap_to_dG0(pmap, pH, I, T)      
         else:
-            if (pH.__class__ == float):
+            if (type(pH) != types.ListType):
                 pH = [pH]
-            if (I.__class__ == float):
+            if (type(I) != types.ListType):
                 I = [I]
     
             dG0_matrix = pylab.zeros((len(pH), len(I)))
@@ -1841,11 +1857,11 @@ class GroupContribution:
                 s += "%30s | %2d | %2d | %s\n" % (group_name, protons, charge, ','.join([str(i) for i in n_set]))
         if (len(unassigned_nodes) > 0):
             s += "\nUnassigned nodes: \n"
-            s += "%2s | %2s | %2s\n" % ('#', 'AN', 'z')
-            s += "-" * 20 + "\n"
+            s += "%10s | %10s | %10s | %10s\n" % ('index', 'atomicnum', 'valence', 'charge')
+            s += "-" * 50 + "\n"
             for i in unassigned_nodes:
                 a = mol.atoms[i]
-                s += "%2d | %2d | %2d\n" % (i, a.atomicnum, a.formalcharge)
+                s += "%10d | %10d | %10d | %10d\n" % (i, a.atomicnum, a.heavyvalence, a.formalcharge)
         return s
 
 #################################################################################################################

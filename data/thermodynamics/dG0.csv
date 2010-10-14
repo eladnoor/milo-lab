@@ -174,8 +174,8 @@
 "C([C@H](C(=O)[O-])O)OP(=O)([O-])[O-]",197,"3-Phospho-D-glycerate",-1502.54,,-3,4,0,"train","Alberty (2003)",
 "C([C@H](C(=O)[O-])O)OP(=O)([O-])O",197,"3-Phospho-D-glycerate",-1545.52,,-2,5,0,"train","Alberty (2003)",
 "C(C1C(C(C(C(=O)O1)O)O)O)O",198,"D-Glucono-1,5-lactone",-903.5,,0,10,0,"train","Alberty (2003) beta",
-"C(C(C(C(=O)CO)O)O)OP(=O)([O-])O",199,"D-Ribulose-5P",-1595.32,,-2,9,0,"train","Alberty (2003) beta",
-"C(C(C(C(=O)CO)O)O)OP(=O)([O-])[O-]",199,"D-Ribulose-5P",-1633.5,,-1,10,0,"train","Alberty (2003) beta",
+"C(C(C(C(=O)CO)O)O)OP(=O)([O-])[O-]",199,"D-Ribulose-5P",-1595.32,,-2,9,0,"train","Alberty (2003) beta",
+"C(C(C(C(=O)CO)O)O)OP(=O)([O-])O",199,"D-Ribulose-5P",-1633.5,,-1,10,0,"train","Alberty (2003) beta",
 "CC(=O)C",207,"Acetone",-159.7,-221.71,0,6,0,"train","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@H]2[C@H](O[C@H]([C@@H]([C@H]2O)O)O)CO)O)O)O)O",208,"Maltose",-1574.69,-2238.06,0,22,0,"train","Alberty (2003)",
 "C(=O)(C(=O)[O-])[O-]",209,"Oxalate",-673.9,-825.1,-2,0,0,"train","Alberty (2003)",
@@ -205,7 +205,7 @@
 "CCCCCCCCCCCCCCCC(=O)[O-]",249,"Palmitate",-259.4,,-1,31,0,"train","Alberty (2003)",
 "C(C1C(C(C(C(O1)OCC2C(C(C(C(O2)O)O)O)O)O)O)O)O",252,"Isomaltose",-1587.71,-2244.48,0,22,0,"train","Alberty (2003) beta",
 "C([C@H](C(=O)[O-])O)O",258,"D-Glycerate",-661.01,,-1,5,0,"train","Alberty (2003) beta",
-"c1nc2c([nH]1)ncnc2O",262,"Hypoxanthine",89.5,,0,4,0,"train","Alberty (2003)",
+"c1nc2c([nH]1)nc[nH]c2=O",262,"Hypoxanthine",89.5,,0,4,0,"train","Alberty (2003)",
 ,262,"Hypoxanthine",98.75,,0,4,0,"skip","Alberty (2003) beta","duplicate entry"
 "C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])[O-]",275,"D-Mannose-6P",-1759.87,-2273.71,-2,11,0,"train","Alberty (2003) beta",
 "C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])O",275,"D-Mannose-6P",-1796.63,-2271.9,-1,12,0,"train","Alberty (2003) beta",
@@ -236,9 +236,10 @@
 "C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])[O-])(O)O1)O)O)OP(=O)([O-])[O-]",354,"D-Fructose-1,6-bisphosphate",-2601.4,-3343.25,-4,10,0,"train","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])[O-])(O)O1)O)O)OP(=O)([O-])O",354,"D-Fructose-1,6-bisphosphate",-2639.36,-3341.45,-3,11,0,"train","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])O)(O)O1)O)O)OP(=O)([O-])O",354,"D-Fructose-1,6-bisphosphate",-2673.89,-3339.65,-2,12,0,"train","Alberty (2003)",
-"c12c([n-]c(n2)O)nc(nc1O)O",366,"Urate",-325.9,,-1,3,0,"train","Alberty (2003)",
-"c12c([nH]c(n2)O)nc(nc1O)O",366,"Urate",-356.9,,0,4,0,"train","Alberty (2003)",
-"C1=C(C(CCC1)(C)C)C=CC(=CC=CC(=CC=O)C)C",376,"retinal",0,,0,28,0,"train","Alberty (2003)",
+"C12=C(NC(=O)N1)N=C([O-])NC2=O",366,"Urate",-325.9,,-1,3,0,"train","Alberty (2003)",
+"C12=C(NC(=O)N1)NC(=O)NC2=O",366,"Urate",-356.9,,0,4,0,"train","Alberty (2003)",
+"C1=C(C(CCC1)(C)C)C=CC(=CC=CC(=CC=O)C)C",376,"retinal",0,,0,28,0,"test","Alberty (2003)",
+"C/C(=CC=CC(=CCO)\C)C=CC1=C(C)CCCC1(C)C",473,"retinol",-27.91,,0,30,0,"test","Alberty (2003)",
 "C(C(C(C(CO)O)O)O)O",379,"Xylitol",-784.09,,0,12,0,"train","Alberty (2003) beta",
 ,380,"Cytosine",507.9,,0,5,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,380,"Cytosine",481.64,,1,6,0,"test","Alberty (2003) beta","Cytidine0=0"
@@ -256,7 +257,6 @@
 ,455,"Nicotinamide-ribonucleotide",803.32,,-1,15,0,"test","Alberty (2003) beta","protonation levels don't make sense"
 "c1ccc2c(c1)cc[nH]2",463,"Indole",223.8,97.5,0,7,0,"train","Alberty (2003)",
 "CCO",469,"Ethanol",-181.64,-288.3,0,6,0,"train","Alberty (2003)",
-"C/C(=CC=CC(=CCO)\C)C=CC1=C(C)CCCC1(C)C",473,"retinol",-27.91,,0,30,0,"train","Alberty (2003)",
 "C(C(C(C(CO)O)O)O)O",474,"Ribitol",-774.8,,0,12,0,"test","Alberty (2003) beta",
 ,475,"Cytidine",0,,0,13,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,475,"Cytidine",-22.09,,1,14,0,"test","Alberty (2003) beta","Cytidine0=0"
@@ -288,7 +288,7 @@
 ,700,"XTP",-2739.37,,-5,10,0,"test","Alberty (2003) beta","Guanosine0=0"
 ,700,"XTP",-2788.4,,-4,11,0,"test","Alberty (2003) beta","Guanosine0=0"
 ,700,"XTP",-2831.78,,-3,12,0,"test","Alberty (2003) beta","Guanosine0=0"
-"CN1CC(=NC1=N)O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)",
+"CN1CC(NC1=N)=O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)",
 "C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-948.31,,0,14,0,"train","Alberty (2003) beta",
 "C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-946.36,,0,14,0,"skip","Alberty (2003) beta","duplicate entry"
 "CCOC(=O)C",849,"Ethyl-acetate",-337.65,-482,0,8,0,"train","Alberty (2003)",
