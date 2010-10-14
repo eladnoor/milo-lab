@@ -1,0 +1,24 @@
+<table class="compoundInfo">
+	<tr>
+		<td width="150px">Formula</td>
+		<td>{{ compound.html_formula|safe }}</td>
+	</tr>
+	<tr>
+		<td width="150px">Common names</td>
+		<td>
+			{% for name in compound.all_common_names %}
+				<div class="commonName">{{ name }}</div>
+			{% endfor %}
+		</td>
+	</tr>
+	<tr>
+		<td>Mass (Da)</td>
+		<td>{{ compound.mass }}</td>
+	</tr>
+	<tr>
+		{% if compound.kegg_link %}
+		<td width="150px">KEGG Link</td>
+		<td><a href="{{kegg_link}}">{{compound.kegg_link}}</a></td>
+		{% endif %}
+	</tr>
+</table>

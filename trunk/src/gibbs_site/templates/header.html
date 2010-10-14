@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>Compound and Reaction Search</title>
+		<title>{{ title }}</title>
 		<link href="/media/style.css" rel="stylesheet" type="text/css">
 		<link href="/media/jquery-ui-1.8.5.custom.css" rel="stylesheet" type="text/css">
 		<script type="text/javascript" src="/media/jquery-1.4.2.min.js"></script>
@@ -9,10 +9,9 @@
 		<script type="text/javascript" src="/media/main.js"></script>
 	</head>
 	<body>
-	<div id="title">rxn</div>
-
-	{% include "search_form.html" %}
-
-	{% include "examples.html" %}
-	</body>
-</html>
+	{% if error_msg %}
+		<div class="errorMsg">{{ error_msg }}</div>
+	{% endif %}
+	{% if warning %}
+		<div class="warning">{{ warning }}</div>
+	{% endif %}

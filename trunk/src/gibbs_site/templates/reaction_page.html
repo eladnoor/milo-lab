@@ -1,21 +1,15 @@
-<html>
-	<head>
-		<title>Reaction Results</title>
-		<link href="/media/style.css" rel="stylesheet" type="text/css">
-		<link href="/media/jquery-ui-1.8.5.custom.css" rel="stylesheet" type="text/css">
-		<script type="text/javascript" src="/media/jquery-1.4.2.min.js"></script>
-		<script type="text/javascript" src="/media/jquery-ui-1.8.5.custom.min.js"></script>
-		<script type="text/javascript" src="/media/jquery.autocomplete.js"></script>
-		<script type="text/javascript" src="/media/main.js"></script>
-	</head>
-	<body>
+{% with "Reaction" as title %}
+	{% include "header.html" %}
+{% endwith %}
+
 	<form name="reactionForm" action="/reaction" method="get">
 		<div class="parsedRxn">
 			{% for reactant in reaction.reactants %}
 				<input type="hidden" name="reactantsCoeff" value="{{ reactant.coeff }}" />
 				<input type="hidden" name="reactantsId" value="{{ reactant.compound.kegg_id }}" />
 				
-				{% if reactant.coeff > 1 %} {{ reactant.coeff }} {% endif %} {{ reactant.compound }}
+				{% if reactant.coeff > 1 %} {{ reactant.coeff }} {% endif %}
+				<a href="{{ reactant.compound_link }}" title="{{ reactant.compound.formula }}">{{ reactant.compound }}</a>
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %}
@@ -23,15 +17,19 @@
 			{% for product in reaction.products %}
 				<input type="hidden" name="productsCoeff" value="{{ product.coeff }}" />
 				<input type="hidden" name="productsId" value="{{ product.compound.kegg_id }}" />
-				{{ product.coeff }} {{ product.compound }}
+				
+				{% if product.coeff > 1 %} {{ product.coeff }} {% endif %}
+				<a href="{{ product.compound_link }}" title="{{ product.compound.formula }}">{{ product.compound }}</a>
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %}
 		</div>
 		
-		{% include "result_table.html" %}
-		
+		{% with "&Delta;G<sub>r</sub>" as delta_g_label %} 
+			{% include "result_table.html" %}
+		{% endwith %}
+				
 		<input type="submit" value="Update" />
 	</form>
-	</body>
-</html>
+
+{% include "footer.html" %}

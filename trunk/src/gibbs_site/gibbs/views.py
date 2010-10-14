@@ -50,8 +50,8 @@ def CompoundPage(request):
     # Compute the delta G estimate.
     kegg_id = form.cleaned_compoundId
     compound = models.Compound.objects.get(kegg_id=kegg_id)
-    delta_g_estimate = COMPOUND_ESTIMATES.GetCompoundEstimate(
-        kegg_id, pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength, 
+    delta_g_estimate = compound.GetFormationEnergy(
+        pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength, 
         temp=form.cleaned_temp)
     
     template_data = {'compound': compound, 
@@ -78,19 +78,29 @@ def ReactionPage(request):
     zipped_products = zip(form.cleaned_productCoeffs, clean_products)
 
     # Compute the delta G estimate.
-    delta_g_estimate = COMPOUND_ESTIMATES.GetReactionEstimate(
-                zipped_reactants, zipped_products, pH=form.cleaned_ph,
-                ionic_strength=form.cleaned_ionic_strength, temp=form.cleaned_temp)
+    temp = form.cleaned_temp
+    i_s = form.cleaned_ionic_strength
+    ph = form.cleaned_ph
+    delta_g_estimate = models.Compound.GetReactionEnergy(
+                zipped_reactants, zipped_products, pH=ph,
+                ionic_strength=i_s, temp=temp)
 
     # Make sure that we can parse the reaction.
     # TODO(flamholz): Use the compound name the user selected, rather than the first one.
     reactants = models.Compound.GetCompoundsByKeggId(clean_reactants)
     products = models.Compound.GetCompoundsByKeggId(clean_products)
     rdicts, pdicts = [], []
+    
+    params = 'temp=%f&ph=%f&ionic_strength=%f' % (temp, ph, i_s)
+    get_compound_link = lambda c: '/compound?compoundId=%s&%s' % (c.kegg_id, params)
     for coeff, id in zip(form.cleaned_reactantCoeffs, clean_reactants):
-        rdicts.append({'coeff': coeff, 'compound': reactants[id]})
+        compound = reactants[id]
+        rdicts.append({'coeff': coeff, 'compound': compound,
+                       'compound_link': get_compound_link(compound)})
     for coeff, id in zip(form.cleaned_productCoeffs, clean_products):
-        pdicts.append({'coeff': coeff, 'compound': products[id]})
+        compound = products[id]
+        pdicts.append({'coeff': coeff, 'compound': compound,
+                       'compound_link': get_compound_link(compound)})
     
     rxn = {'products': pdicts,
            'reactants': rdicts}
@@ -129,9 +139,12 @@ def ResultsPage(request):
         best_reaction = parsed_reaction.GetBestMatch()
         if best_reaction:
             reactants, products = best_reaction
-            delta_g_estimate = COMPOUND_ESTIMATES.GetReactionEstimate(
-                reactants, products, pH=ph,
-                ionic_strength=ionic_strength, temp=temp)
+            if models.Compound.ReactionIsBalanced(reactants, products):
+                delta_g_estimate = models.Compound.GetReactionEnergy(
+                    reactants, products, pH=ph,
+                    ionic_strength=ionic_strength, temp=temp)
+            else:
+                template_data['warning'] = 'Reaction is not balanced!'
             
         template_data['delta_g_estimate'] = delta_g_estimate
         template_data['parsed_reaction'] = parsed_reaction
@@ -142,10 +155,10 @@ def ResultsPage(request):
         # Otherwise we try to parse it as a single compound.
         results = matcher.Match(query)
         delta_g_estimate = None
-        kegg_id = results[0].value.kegg_id
+        compound = results[0].value
         if results:
-            delta_g_estimate = COMPOUND_ESTIMATES.GetCompoundEstimate(
-                kegg_id, pH=ph, ionic_strength=ionic_strength, temp=temp)
+            delta_g_estimate = compound.GetFormationEnergy(
+                pH=ph, ionic_strength=ionic_strength, temp=temp)
         
         template_data['kegg_link'] = results[0].value.GetKeggLink()
         template_data['results'] = results

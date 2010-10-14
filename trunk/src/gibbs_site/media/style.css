@@ -9,6 +9,23 @@ a {
 	text-decoration: none;
 }
 
+.errorMsg {
+	background-color: #C00;
+}
+
+.warning {
+	background-color: #FFF1A8;
+}
+
+.errorMsg, .warning {
+	font-family: arial;
+	border-radius: 5px;
+	font-weight: bold;
+	margin: 10px auto;
+	padding: 3px;
+	width: 250px;
+}
+
 #title {
 	font-family: helevetica;
 	font-size: 40px;
@@ -75,10 +92,15 @@ a {
 	margin: 15px auto;
 }
 
-table.results {
+table.results, table.compoundInfo {
 	margin: 10px auto;
 	width: 650px;
 	border: solid 1px black;
+	padding: 2px;
+}
+
+td {
+	vertical-align: top;
 }
 
 .autocomplete-w1 { background:url(/media/images/shadow.png) no-repeat bottom right; position:absolute; top:0px; left:0px; margin:6px 0 0 6px; /* IE6 fix: */ _background:none; _margin:1px 0 0 0; }

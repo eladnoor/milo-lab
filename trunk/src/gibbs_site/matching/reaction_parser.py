@@ -64,10 +64,10 @@ class ParsedReaction(object):
 class ReactionParser(object):
     """Parses reaction queries from users."""
     
-    REACTION_PATTERN = r'.*\s+(=>|<=>|=)\s+.*'
+    REACTION_PATTERN = r'.*\s+(=>|<=>|=|->|<->)\s+.*'
     REACTION_MATCHER = re.compile(REACTION_PATTERN)
     
-    REACTION_SPLITTER = re.compile(r'\s*(?:=>|<=>|=)\s*')
+    REACTION_SPLITTER = re.compile(r'\s*(?:=>|<=>|=|->|<->)\s*')
     REACTION_SIDE_SPLITTER = re.compile(r'(?:\s+\+\s+)')
     
     COMPOUND_COEFF_MATCHER = re.compile(r'^(\d+\s+)?\s*(.*)$')
