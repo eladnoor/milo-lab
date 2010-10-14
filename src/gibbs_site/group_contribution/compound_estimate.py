@@ -96,7 +96,7 @@ class CompoundEstimates(object):
             return None
         
         # Scale transforms down by R*T.
-        scaled_transforms = [(ce.transform() / (constants.R * temp))
+        scaled_transforms = [(- ce.transform(pH, ionic_strength, temp) / (constants.R * temp))
                              for ce in self._estimates[kegg_id]]
         
         # Numerical issues: taking a sum of exp(v) for |v| quite large.
@@ -105,7 +105,7 @@ class CompoundEstimates(object):
         offset = min(scaled_transforms)
         scaled_offset_transforms = [(st - offset) for st in scaled_transforms]
         sum_exp = sum(pylab.exp(scaled_offset_transforms))
-        return constants.R * temp * (offset + pylab.log(sum_exp))
+        return - constants.R * temp * (offset + pylab.log(sum_exp))
     
     def _GetCollectionEstimate(self, collection,
                                pH=constants.DEFAULT_PH,
@@ -163,6 +163,7 @@ class CompoundEstimates(object):
         
         f.close()
         return ces
+
 
 if __name__ == '__main__':
     ces = CompoundEstimates.FromCsvFile('kegg_thermo_data.csv')
