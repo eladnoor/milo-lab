@@ -40,8 +40,8 @@ class RegexApproxMatcher(matcher.Matcher):
     
         # Escape regex special characters in the input (search for them
         # literally). Also, we allow '-', ',', '+' and digits in addition to spaces.
-        query = re.escape(query)
-        query = re.sub('\\\?\s+', '[-+\s\d,]+', query)
+        query = re.escape(query.strip().lower())
+        query = re.sub('(\\\?\s)+', '[-+\s\d,]+', query)
         # We allow leading and trailing junk.
         return '.*%s.*' % query
     

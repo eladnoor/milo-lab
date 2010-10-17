@@ -1,5 +1,17 @@
 <table class="results">
 	<tr>
+		<td width="150px"><strong>Estimated {{ delta_g_label }}</strong></td>
+		<td colspan="2">
+		<strong>
+		{% if delta_g_estimate %}
+			{{ delta_g_estimate|floatformat:1 }} kJ / mol
+		{% else %}
+			Not available
+		{% endif %}
+		</strong>
+		</td>
+	</tr>
+	<tr>
 		<td width="150px">Temperature (K) </td>
 		<td width="50px"><input type="text" name="temp" id="tempField" value="{{ temp }}" size="5"/></td>
 		<td><div id="tempSlider"></div></td>
@@ -13,15 +25,5 @@
 		<td width="150px">Ionic strength (M)</td>
 		<td width="50px"><input type="text" name="ionic_strength" id="ionStrengthField" value="{{ ionic_strength }}" size="5"/></td>
 		<td><div id="ionStrengthSlider"></div></td>
-	</tr>
-	<tr>
-		<td width="150px">Estimated {{ delta_g_label }}</td>
-		<td colspan="2">
-		{% if delta_g_estimate %}
-			{{ delta_g_estimate|floatformat:1 }} kJ / mol
-		{% else %}
-			Not available
-		{% endif %}
-		</td>
 	</tr>
 </table>

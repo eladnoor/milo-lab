@@ -8,10 +8,10 @@ import unittest
 class TestReactionParser(unittest.TestCase):
     """Tests for matcher.Match"""
     
-    library = ('CO2', 'H2O', 'H+', 'H2', 'O2', 'Q', 'Pi',
-               'NAD+', 'NADH', 'QH2', 'GDP', 'GTP',  
-               'Sodium', 'hydrogen chloride', 'Sodium Chloride',
-               'Acetyl-CoA', 'CoA-SH')
+    library = {'CO2': True, 'H2O': True, 'H+': True, 'H2': True, 'O2': True,
+               'Q': True, 'Pi': True, 'NAD+': True, 'NADH': True, 'QH2': True,
+               'GDP': True, 'GTP': True, 'Sodium': True, 'hydrogen chloride': True,
+               'Sodium Chloride': True, 'Acetyl-CoA': True, 'CoA-SH': True}
     
     parsable_reactions = (
         'H2O => 2 H2 + O2',

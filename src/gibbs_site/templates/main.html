@@ -11,8 +11,10 @@
 	<body>
 	<div id="title">rxn</div>
 
-	{% include "search_form.html" %}
-
+	{% with "True" as show_advanced %}
+		{% include "search_form.html" %}
+	{% endwith %}
+	
 	{% include "examples.html" %}
 	</body>
 </html>

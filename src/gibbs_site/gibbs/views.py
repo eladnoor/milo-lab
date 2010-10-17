@@ -65,7 +65,6 @@ def CompoundPage(request):
 
 def ReactionPage(request):
     """Renders a page for a particular reaction."""
-    logging.info(request.GET)
     form = reaction_form.ReactionForm(request.GET)
     if not form.is_valid():
         logging.error(form.errors)
@@ -81,9 +80,13 @@ def ReactionPage(request):
     temp = form.cleaned_temp
     i_s = form.cleaned_ionic_strength
     ph = form.cleaned_ph
+    delta_g_estimate = None
+    warning = None
     delta_g_estimate = models.Compound.GetReactionEnergy(
-                zipped_reactants, zipped_products, pH=ph,
-                ionic_strength=i_s, temp=temp)
+        zipped_reactants, zipped_products, pH=ph,
+        ionic_strength=i_s, temp=temp)
+    if not models.Compound.ReactionIsBalanced(zipped_reactants, zipped_products):
+        warning = 'Reaction is not balanced!'
 
     # Make sure that we can parse the reaction.
     # TODO(flamholz): Use the compound name the user selected, rather than the first one.
@@ -104,13 +107,13 @@ def ReactionPage(request):
     
     rxn = {'products': pdicts,
            'reactants': rdicts}
-    logging.error(rxn)
     
     template_data = {'reaction': rxn, 
                      'temp': form.cleaned_temp,
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
-                     'delta_g_estimate': delta_g_estimate}
+                     'delta_g_estimate': delta_g_estimate,
+                     'warning': warning}
     return render_to_response('reaction_page.html', template_data)
 
     
@@ -139,12 +142,14 @@ def ResultsPage(request):
         best_reaction = parsed_reaction.GetBestMatch()
         if best_reaction:
             reactants, products = best_reaction
-            if models.Compound.ReactionIsBalanced(reactants, products):
-                delta_g_estimate = models.Compound.GetReactionEnergy(
-                    reactants, products, pH=ph,
-                    ionic_strength=ionic_strength, temp=temp)
-            else:
-                template_data['warning'] = 'Reaction is not balanced!'
+            delta_g_estimate = models.Compound.GetReactionEnergy(
+                reactants, products, pH=ph,
+                ionic_strength=ionic_strength, temp=temp)
+            if not models.Compound.ReactionIsBalanced(reactants, products):
+                if models.Compound.CanBalanceReactionWithWater(reactants, products):
+                    template_data['warning'] = 'Reaction is not balanced! Balance with water?'
+                else:
+                    template_data['warning'] = 'Reaction is not balanced!'
             
         template_data['delta_g_estimate'] = delta_g_estimate
         template_data['parsed_reaction'] = parsed_reaction
