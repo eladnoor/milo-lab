@@ -8,8 +8,9 @@ class TestMatch(unittest.TestCase):
     """Tests for matcher.Match"""
     
     def testConstruction(self):
-        m = matcher.Match('a', 0.1)
-        self.assertEqual('a', m.value)
+        m = matcher.Match('a', True, 0.1)
+        self.assertEqual('a', m.key)
+        self.assertEqual(True, m.value)
         self.assertEqual(0.1, m.score)
 
 
@@ -32,14 +33,14 @@ class FirstLastCharacterMatcher(matcher.Matcher):
 class TestMatcher(unittest.TestCase):
     """Tests for matcher.Matcher."""
     
-    library = ('avi',
-               'ron',
-               'eran',
-               'elad',
-               'niv',
-               'shira',
-               'lior',
-               'libat')
+    library = {'avi': True,
+               'ron': True,
+               'eran': True,
+               'elad': True,
+               'niv': True,
+               'shira': True,
+               'lior': True,
+               'libat': True}
     
     def _CheckIsSortedByScore(self, results):
         prev_score = 10.0 # Scores are all <= 1.0
@@ -53,7 +54,7 @@ class TestMatcher(unittest.TestCase):
         for name in self.library:
             results = m.Match(name)
             self.assertEqual(1, len(results))
-            self.assertEqual(matcher.Match(name, 1.0), results[0])
+            self.assertEqual(matcher.Match(name, True, 1.0), results[0])
     
     def testSortingMatcher(self):
         m = FirstLastCharacterMatcher(self.library, 10)

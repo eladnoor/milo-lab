@@ -163,8 +163,8 @@ class Compound(models.Model):
         return unicode(self.formula)
     
     @staticmethod
-    def IsBalanced(collection):
-        """Checks if the collection is atom-wise balanced.
+    def _GetAtomDiff(collection):
+        """Get the net atom counts from the collection.
         
         Args:
             collection: an iterable of 2 tuples (coeff, kegg_id).
@@ -177,20 +177,77 @@ class Compound(models.Model):
         for coeff, id in collection:
             if id not in compounds:
                 logging.error('Unknown compound id %s', id)
-                return False
+                return None
             
             c = compounds[id]
             atom_bag = c.GetAtomBag()
             if not atom_bag:
                 logging.error('Failed to fetch atom bag for %s', c.formula)
-                return False
+                return None
             
             for atomic_number, atom_count in atom_bag.iteritems():
                 new_diff = atom_diff.get(atomic_number, 0) + coeff * atom_count
                 atom_diff[atomic_number] = new_diff
         
+        return atom_diff
+        
+    @staticmethod
+    def _IsBalanced(atom_diff):
+        """Checks if the per-atom diffs represent a balanced collection.
+        
+        Args:
+            atom_diff: a dictionary mapping atomic numbers to counts.
+            
+        Returns:
+            True if balanced.
+        """
+        if not atom_diff:
+            return False
+        
         return max([abs(x) for x in atom_diff.values()]) < 0.01
     
+    @staticmethod
+    def IsBalanced(collection):
+        """Checks if the collection is atom-wise balanced.
+        
+        Args:
+            collection: an iterable of 2 tuples (coeff, kegg_id).
+                Coefficients can be negative.
+        
+        Returns:
+            True if the collection is atom-wise balanced.
+        """
+        return Compound._IsBalanced(Compound._GetAtomDiff(collection))        
+    
+    @staticmethod
+    def TryBalanceWithWater(collection):
+        """Tries to balance the reaction with water only.
+        
+        Args:
+            Args: an iterable of 2 tuples (coeff, kegg_id).
+                Coefficients can be negative.
+        
+        Returns:
+            The number of waters to add/subtract to the reaction or None if impossible.
+        """
+        atom_diff = Compound._GetAtomDiff(collection)
+        if not atom_diff:
+            return None
+        
+        # Ignore hydrogen.
+        atom_diff.pop('H')
+        
+        # Omit oxygen for checking balancedness.
+        oxy_count = atom_diff.pop('O', 0)
+        
+        # If it's still not balanced, then there's trouble.
+        if not Compound._IsBalanced(atom_diff):
+            return None
+        
+        # If it's balanced without considering oxygen/hydrogen,
+        # then we need to add/subtract whatever the oxygen excess is.
+        return (- oxy_count)
+        
     @staticmethod
     def ReactionIsBalanced(reactants, products):
         """Returns True if the reaction is balanced.
@@ -202,6 +259,49 @@ class Compound(models.Model):
         collection = reactants + [(-coeff, id) for coeff, id in products]
         return Compound.IsBalanced(collection)
     
+    @staticmethod
+    def _AddWaterTo(reaction_side, water_amt):
+        """Adds an amount of water to a single side of a reaction.
+        
+        Args:
+            reaction_side: An iterable of 2 tuples (coeff, kegg_id).
+            water_amt: the amount of water to add.
+        
+        Returns:
+            A list of 2 tuples with water_amt added.
+        """
+        water_id = 'C00001'
+        side = list(reaction_side)
+        found_water = False
+        for i, tpl in enumerate(side):
+            coeff, id = tpl
+            if id == water_id:
+                found_water = True
+                coeff += water_amt
+                side[i] = (coeff, id)
+                
+        if not found_water:
+            side.append((water_id, water_amt))
+            
+        return side                
+    
+    @staticmethod
+    def CanBalanceReactionWithWater(reactants, products):
+        """Attempts to balance the reaction with water.
+        
+        Args:
+            reactants: an iterable of 2 tuples (coeff, kegg_id) for reactants.
+            products: an iterable of 2 tuples (coeff, kegg_id) for products.
+            
+        Returns:
+            True if the reaction can be balanced with water.
+        """
+        collection = reactants + [(-coeff, id) for coeff, id in products]
+        water_excess = Compound.TryBalanceWithWater(collection)
+        if water_excess == None:
+            return False
+        return True
+        
     @staticmethod
     def GetTotalFormationEnergy(collection,
                                 pH=constants.DEFAULT_PH,
@@ -222,11 +322,13 @@ class Compound(models.Model):
         sum = 0
         for coeff, id in collection:
             if id not in compounds:
+                logging.info('Could not find compound %s', id)
                 return None
             
             c = compounds[id]
             est = c.GetFormationEnergy(pH, ionic_strength, temp)
             if not est:
+                logging.info('No estimate for compound %s', id)
                 return None
             
             sum += coeff * est
@@ -251,7 +353,11 @@ class Compound(models.Model):
             reactants, pH, ionic_strength, temp)
         products_sum = Compound.GetTotalFormationEnergy(
             products, pH, ionic_strength, temp)
-        if not products_sum or not reactants_sum:
+        if not products_sum:
+            logging.warning('Failed to get products formation energy.')
+            return None
+        if not reactants_sum:
+            logging.warning('Failed to get reactants formation energy.')
             return None
         
         return products_sum - reactants_sum

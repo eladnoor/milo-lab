@@ -659,7 +659,7 @@ reactions: <
   >
   products: <
     parsed_name: "phosphate"
-    match_names: "Phosphate"
+    match_names: "phosphate"
   >
 >
 reactions: <

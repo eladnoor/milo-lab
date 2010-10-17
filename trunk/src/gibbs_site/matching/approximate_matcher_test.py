@@ -6,14 +6,14 @@ import unittest
 class TestMatcher(unittest.TestCase):
     """Tests for matcher.Matcher."""
     
-    library = ('avi',
-               'ari',
-               'ariel',
-               'glucose',
-               'glucosamine',
-               'alanine',
-               'phenylalanine',
-               'l-glucosamine')
+    library = {'avi': True,
+               'ari': True,
+               'ariel': True,
+               'glucose': True,
+               'glucosamine': True,
+               'alanine': True,
+               'phenylalanine': True,
+               'l-glucosamine': True}
     
     def _CheckIsSortedByScore(self, results):
         prev_score = 10.0 # Scores are all <= 1.0
@@ -38,12 +38,12 @@ class TestMatcher(unittest.TestCase):
         self.assertEqual(0, len(results))
 
     def testPrepareExpression(self):
-        examples = (('  teSt    tEsT ', '.*test[-+\s]test.*'),
+        m = approximate_matcher.RegexApproxMatcher({})
+        examples = (('  teSt    tEsT ', '.*test[-+\\s\\d,]+test.*'),
                     ('gluco', '.*gluco.*'),
-                    ('D Fructo', '.*d[-+\s]fructo.*'))
+                    ('D Fructo', '.*d[-+\\s\\d,]+fructo.*'))
         for query, expression in examples:
-            self.assertEqual(expression,
-                             approximate_matcher.RegexApproxMatcher._PrepareExpression(query))
+            self.assertEqual(expression, m._PrepareExpression(query))
 
     def testRegexApproxMatcher(self):
         m = approximate_matcher.RegexApproxMatcher(self.library,

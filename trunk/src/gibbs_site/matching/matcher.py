@@ -23,7 +23,9 @@ class Match(object):
     
     def __eq__(self, other):
         """Equality checking between matches, used for testing."""
-        return self.value == other.value and self.score == other.score
+        return (self.key == other.key and
+                self.value == other.value and
+                self.score == other.score)
     
     def __str__(self):
         """Get as a string for debugging/printability."""

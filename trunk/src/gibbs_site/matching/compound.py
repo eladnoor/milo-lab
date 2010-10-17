@@ -20,24 +20,27 @@ def ReadCompoundsFromCsvLine(line):
     
     Arguments:
         line: the line of CSV to read from.
+        
+    Returns:
+        A dictionary mapping compound names to compounds.
     """
     fields = line.strip().split(', ')
     kegg_id = fields[0]
     formula = fields[1]
     
-    compounds = []
+    compounds = {}
     for name in fields[2:]:
         c = Compound(name, kegg_id, formula)
         if c.IsComplete():
-            compounds.append(c)
+            compounds[name] = c
     return compounds
 
 
 def ReadCompoundsFromCsvFile(filename):
-    compounds = []
+    compounds = {}
     f = open(filename, 'r')
     for line in f:
-        compounds.extend(ReadCompoundsFromCsvLine(line))
+        compounds.update(ReadCompoundsFromCsvLine(line))
     
     f.close()
     return compounds
