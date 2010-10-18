@@ -3,10 +3,11 @@ import pylab
 import re
 
 from django.db import models
-from group_contribution import constants
+from gibbs import constants
 
 
 class CommonName(models.Model):
+    """A common name of a compound."""
     name = models.CharField(max_length=500)
     enabled = models.BooleanField()
     
@@ -24,6 +25,9 @@ class Specie(models.Model):
     
     # The net charge (eV).
     net_charge = models.IntegerField()
+    
+    def __unicode__(self):
+        return self.kegg_id
 
 
 class ValueSource(models.Model):
@@ -33,6 +37,9 @@ class ValueSource(models.Model):
     
     # A link explaining the source.
     link = models.URLField(null=True)
+    
+    def __unicode__(self):
+        return self.name
     
     
 class SpeciesFormationEnergy(models.Model):
@@ -62,8 +69,12 @@ class SpeciesFormationEnergy(models.Model):
                            (1 + 1.6 * pylab.sqrt(_i_s)))
         return self.value + chem_potential - ionic_potential
 
+    def __unicode__(self):
+        return self.value
+
 
 class Compound(models.Model):
+    """A single compound."""
     # The ID of the compound in KEGG.
     kegg_id = models.CharField(max_length=10)
     
@@ -204,6 +215,9 @@ class Compound(models.Model):
         if not atom_diff:
             return False
         
+        # Always ignore hydrogens.
+        atom_diff.pop('H', 0)
+                
         return max([abs(x) for x in atom_diff.values()]) < 0.01
     
     @staticmethod
