@@ -63,10 +63,6 @@ a {
 	text-align: center;
 }
 
-#examples td {
-	width: 50%;
-}
-
 #examples a {
 	color: #006633;
 }
@@ -94,7 +90,7 @@ a {
 
 table.results, table.compoundInfo {
 	margin: 10px auto;
-	width: 650px;
+	width: 750px;
 	border: solid 1px black;
 	padding: 2px;
 }

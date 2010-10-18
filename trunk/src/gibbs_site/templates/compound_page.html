@@ -7,18 +7,16 @@
 			<input type="hidden" name="compoundId" value="{{ compound.kegg_id }}" />
 			{{ compound }}
 		</div>
-		
-		{% include "compound_info_table.html" %}
-		
+				
 		{% with "&Delta;G<sub>f</sub>" as delta_g_label %} 
 			{% include "result_table.html" %}
 		{% endwith %}
 		
+		{% include "compound_info_table.html" %}
+		
 		<input type="submit" value="Update" />
 		</form>
 		
-		<a href="admin/gibbs/compound/{{ compound.pk }}/" >Admin for compound </a>
-
 	{% include "search_form.html" %}
 
 {% include "footer.html" %}

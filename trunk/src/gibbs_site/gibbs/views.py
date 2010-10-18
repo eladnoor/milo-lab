@@ -4,21 +4,17 @@ import logging
 from django.shortcuts import render_to_response
 from django.http import HttpResponse
 from django.http import Http404
+from gibbs import constants
 from gibbs import compound_form
 from gibbs import form_utils
 from gibbs import models
 from gibbs import reaction_form
 from gibbs import search_form
 from gibbs import service_config
-from group_contribution import compound_estimate
-from group_contribution import constants
 from matching import approximate_matcher
 from matching import compound
 from matching import reaction_parser
 
-THERMO_FILE_PATH = path.abspath("group_contribution/kegg_thermo_data.csv")
-COMPOUND_ESTIMATES = compound_estimate.CompoundEstimates.FromCsvFile(THERMO_FILE_PATH)
-    
 
 def MainPage(request):
     """Renders the landing page."""
@@ -146,10 +142,7 @@ def ResultsPage(request):
                 reactants, products, pH=ph,
                 ionic_strength=ionic_strength, temp=temp)
             if not models.Compound.ReactionIsBalanced(reactants, products):
-                if models.Compound.CanBalanceReactionWithWater(reactants, products):
-                    template_data['warning'] = 'Reaction is not balanced! Balance with water?'
-                else:
-                    template_data['warning'] = 'Reaction is not balanced!'
+                template_data['warning'] = 'Reaction is not balanced!'
             
         template_data['delta_g_estimate'] = delta_g_estimate
         template_data['parsed_reaction'] = parsed_reaction

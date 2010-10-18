@@ -11,6 +11,10 @@
 			</select>
 		</div>
 		
+		{% with "&Delta;G<sub>f</sub>" as delta_g_label %} 
+			{% include "result_table.html" %}
+		{% endwith %}
+		
 		{% if results %}
 			{% with results|first as match %}
 				{% with match.value as compound %}
@@ -18,10 +22,6 @@
 				{% endwith %}
 			{% endwith %}
 		{% endif %}
-		
-		{% with "&Delta;G<sub>f</sub>" as delta_g_label %} 
-			{% include "result_table.html" %}
-		{% endwith %}
 	
 		<input type="submit" value="Update" />		
 	</form>
