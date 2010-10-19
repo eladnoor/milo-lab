@@ -126,6 +126,7 @@ class GroupContribution:
         self.load_training_data()
         self.load_hatzimanikatis_rid_data()
         self.load_hatzimanikatis_cid_data()
+        self.load_cid2pmap(recalculate=False)
 
     def load_cid2pmap(self, recalculate=False):
         self.kegg() # invoke the constructor to create the KEGG singleton
