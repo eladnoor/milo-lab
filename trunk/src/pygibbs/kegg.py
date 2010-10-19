@@ -266,7 +266,7 @@ class Compound:
         obConversion.ReadString(obmol, self.get_inchi())
         return obConversion.WriteString(obmol).split()[0]
 
-    def get_mol(self):
+    def get_mol(self, remove_hydrogens=True):
         """
             I don't remember why it was necessary to first convert the string to SMILES and then
             create the Molecule object, but there must have been some kind of reason for it.
@@ -274,6 +274,8 @@ class Compound:
         smiles = self.get_smiles()
         try:
             mol = pybel.readstring('smiles', self.get_smiles())
+            if (remove_hydrogens):
+                mol.removeh()
         except IOError:
             raise KeggParseException("Cannot interpret the SMILES string for compound C%05d: %s" % (self.cid, smiles))
         mol.title = self.name
@@ -804,7 +806,10 @@ class Kegg:
         return self.rid2reaction(rid).ec_list
     
     def rid2name(self, rid):
-        return self.rid2reaction(rid).name
+        try:
+            return self.rid2reaction(rid).name
+        except KeyError:
+            return "unknown reaction"
 
     def cid2obmol(self, cid, correctForPH=True, pH=7.4):
         comp = self.cid2compound(cid)
