@@ -3,13 +3,15 @@ from pygibbs.groups import GroupContribution, GroupMissingTrainDataError, GroupD
 from hatzimanikatis import Hatzi
 from pygibbs.thermodynamics import Thermodynamics
 import pybel
+from pygibbs.kegg import KeggParseException
         
 G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
 G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
 G.write_gc_tables()
 G.init()
+G.load_cid2pmap(recalculate=False)
 
-if True:
+if False:
     H = Hatzi()
     (pH, I, T) = (0,0.0,303.15)
     
@@ -17,15 +19,24 @@ if True:
     smiles = []
 
     
-    cids = [445]
+    cids = [683]
     #smiles = ["c1ccc2c(c1)c(C[C@@H](C(=O)[O-])[NH3+])c[nH]2"]
     
     mols = []
-    mols += [G.kegg().cid2mol(cid) for cid in cids]   
-    mols += [pybel.readstring('smiles', s) for s in smiles]
+    for cid in cids:
+        try:
+            mols += [G.kegg().cid2mol(cid)]
+        except KeggParseException:
+            continue
+        except KeyError:
+            continue
 
-    mols[0].removeh()
-    print pybel.Smarts("*=[N,n;H0;D3;R1;+]").findall(mols[0])
+    for s in smiles:
+        mol = pybel.readstring('smiles', s)
+        mol.removeh()
+        mols += [mol]
+
+    #print pybel.Smarts("*=[N,n;H0;D3;R1;+]").findall(mols[0])
     #mols[0].draw()
     #print pybel.Smarts("[C;H1;R1]").findall(mols[0])
     #sys.exit(0)

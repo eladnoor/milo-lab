@@ -79,14 +79,20 @@ class GroupDecompositionError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        if (type(self.value) == types.StringType):
+            return self.value
+        else:
+            return repr(self.value)
     
 class GroupMissingTrainDataError(Exception):
     def __init__(self, value, missing_groups=[]):
         self.value = value
         self.missing_groups = missing_groups
     def __str__(self):
-        return repr(self.value)
+        if (type(self.value) == types.StringType):
+            return self.value
+        else:
+            return repr(self.value)
 
 class GroupContribution:    
     def __init__(self, sqlite_name, html_name, log_file=sys.stderr):
@@ -120,34 +126,46 @@ class GroupContribution:
         self.load_training_data()
         self.load_hatzimanikatis_rid_data()
         self.load_hatzimanikatis_cid_data()
-        self.load_cid2pmap()
 
-    def load_cid2pmap(self):
+    def load_cid2pmap(self, recalculate=False):
+        self.kegg() # invoke the constructor to create the KEGG singleton
+        
         self.cid2pmap_dict = {}
-        if (self.does_table_exist('gc_cid2prm')):
+        if (not self.does_table_exist('gc_cid2prm')):
+            recalculate = True
+        
+        if (not recalculate):
             for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm;"):
                 (cid, nH, z, dG0) = row
                 if (cid not in self.cid2pmap_dict):
                     self.cid2pmap_dict[cid] = {}
                 self.cid2pmap_dict[cid][nH, z] = dG0
         else:
+            sys.stderr.write("Recalculating the table of chemical formation energies for all KEGG compounds:\n")
+            self.comm.execute("DROP TABLE IF EXISTS gc_cid2prm")
+            self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
             self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL, estimated BOOL);")
+            self.comm.execute("CREATE UNIQUE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH);")
             for cid in self.kegg().get_all_cids_with_inchi():
+                sys.stderr.write("C%05d) " % cid)
                 if (cid in self.cid2pmap_obs and (self.use_measured_train_values or cid in self.cid_test_set)):
+                    sys.stderr.write("using measured data\n")
                     pmap = self.cid2pmap_obs[cid]
                     estimated = False
                 else:
                     try:
                         pmap = self.estimate_pmap_keggcid(cid)
+                        sys.stderr.write("using estimated data\n")
                         estimated = True
                     except (GroupDecompositionError, GroupMissingTrainDataError, KeyError, kegg.KeggParseException) as e:
-                        sys.stderr.write("Warning, C%05d has an error: %s\n" % (cid, str(e)))
+                        sys.stderr.write("ERROR: %s\n" % str(e))
                         continue
 
                 self.cid2pmap_dict[cid] = pmap
                 for ((nH, z), dG0) in pmap.iteritems():
                     self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, estimated))
             self.comm.commit()
+            sys.stderr.write("[DONE]\n")
             
     def get_cid2dG0(self, pH=default_pH, I=default_I, T=default_T, most_abundant=False):
         cid2dG0 = {}
@@ -184,7 +202,8 @@ class GroupContribution:
                 use_for = 'train'
             for ((nH, z), dG0) in self.cid2pmap_obs[cid].iteritems():
                 self.comm.execute("INSERT INTO observation VALUES(?,?,?,?,?,?)", (cid, self.kegg().cid2name(cid), nH, z, dG0, use_for))
-                
+        
+        self.load_cid2pmap()
         self.comm.commit()
             
     def load_groups(self, group_fname=None):
@@ -265,7 +284,7 @@ class GroupContribution:
                 c_list.append((media, self.cid2conc[(cid, media)]))
         return c_list
     
-    def decompose(self, mol, ignore_protonations=False):
+    def decompose(self, mol, ignore_protonations=False, assert_result=False):
         """
             The flag 'ignore_protonations' should be used when decomposing a compound with lacing protonation
             representation (for example, the KEGG database doesn't posses this information).
@@ -310,6 +329,9 @@ class GroupContribution:
         for nodes in find_smarts("[H]", mol): # ignore the hydrogen atoms when checking which atom is unassigned
             unassigned_nodes = unassigned_nodes - set(nodes)
         
+        if (assert_result and len(unassigned_nodes) > 0):
+            s = self.get_group_analysis_table(mol, groups, unassigned_nodes)
+            raise GroupDecompositionError("Unable to decompose %s into groups.\n%s" % (mol.title, s))        
         return (groups, unassigned_nodes)
         
     def groups_to_string(self, groups):    
@@ -320,21 +342,15 @@ class GroupContribution:
         return " | ".join(group_strs)
     
     def get_decomposition_str(self, mol):
-        (groups, unassigned_nodes) = self.decompose(mol)
-        if (len(unassigned_nodes) > 0):
-            raise GroupDecompositionError("Unable to decompose %s into groups" % mol.title)
-        else:
-            self.groups_to_string(groups)
+        (groups, unassigned_nodes) = self.decompose(mol, assert_result=True)
+        self.groups_to_string(groups)
     
     def groups_to_vector(self, groups):
         return [len(node_sets) for (group_name, protons, charge, node_sets) in groups] + [1] # add 1 for the 'origin' group
     
     def get_groupvec(self, mol):
-        (groups, unassigned_nodes) = self.decompose(mol)
-        if (len(unassigned_nodes) > 0):
-            raise GroupDecompositionError("Unable to decompose %s into groups" % mol.title)
-        else:
-            return self.groups_to_vector(groups)
+        (groups, unassigned_nodes) = self.decompose(mol, assert_result=True)
+        return self.groups_to_vector(groups)
         
     def groupvec2str(self, groupvec):
         group_strs = []
@@ -350,41 +366,39 @@ class GroupContribution:
         return int(pylab.dot(groupvec, self.all_group_protons))            
 
     def get_protonated_groupvec(self, mol):
-        (groups, unassigned_nodes) = self.decompose(mol, ignore_protonations=True)
-        if (len(unassigned_nodes) > 0):
-            raise GroupDecompositionError("Unable to decompose %s into groups" % mol.title)
-        else:
-            # 'group_name_to_index' is a map from each group name to its indices in the groupvec
-            # note that some groups appear more than once (since they can have multiple protonation
-            # levels).
-            group_name_to_index = {}
+        (groups, unassigned_nodes) = self.decompose(mol, ignore_protonations=True, assert_result=True)
+        
+        # 'group_name_to_index' is a map from each group name to its indices in the groupvec
+        # note that some groups appear more than once (since they can have multiple protonation
+        # levels).
+        group_name_to_index = {}
 
-            # 'group_name_to_count' is a map from each group name to its number of appearences in 'mol'
-            group_name_to_count = {}
-            for i in range(len(groups)):
-                (group_name, protons, charge, node_sets) = groups[i]
-                group_name_to_index[group_name] = group_name_to_index.get(group_name, []) + [i]
-                group_name_to_count[group_name] = group_name_to_count.get(group_name, 0) + len(node_sets)
-            
-            index_vector = [] # maps the new indices to the original ones that are used in groupvec
+        # 'group_name_to_count' is a map from each group name to its number of appearences in 'mol'
+        group_name_to_count = {}
+        for i in range(len(groups)):
+            (group_name, protons, charge, node_sets) = groups[i]
+            group_name_to_index[group_name] = group_name_to_index.get(group_name, []) + [i]
+            group_name_to_count[group_name] = group_name_to_count.get(group_name, 0) + len(node_sets)
+        
+        index_vector = [] # maps the new indices to the original ones that are used in groupvec
 
-            # a list of pairs, each containing the 'count' of each group and the number of possible protonations.
-            total_slots_pairs = [] 
+        # a list of pairs, each containing the 'count' of each group and the number of possible protonations.
+        total_slots_pairs = [] 
 
-            for group_name in group_name_to_index.keys():
-                groupvec_indices = group_name_to_index[group_name]
-                index_vector += groupvec_indices
-                total_slots_pairs.append((group_name_to_count[group_name], len(groupvec_indices)))
+        for group_name in group_name_to_index.keys():
+            groupvec_indices = group_name_to_index[group_name]
+            index_vector += groupvec_indices
+            total_slots_pairs.append((group_name_to_count[group_name], len(groupvec_indices)))
 
-            # generate all possible assignments of protonations. Each group can appear several times, and we
-            # can assign a different protonation level to each of the instances.
-            groupvec_list = []
-            for assignment in multi_distribute(total_slots_pairs):
-                v = [0] * len(index_vector)
-                for i in range(len(v)):
-                    v[index_vector[i]] = assignment[i]
-                groupvec_list.append(v + [1]) # add 1 for the 'origin' group
-            return groupvec_list
+        # generate all possible assignments of protonations. Each group can appear several times, and we
+        # can assign a different protonation level to each of the instances.
+        groupvec_list = []
+        for assignment in multi_distribute(total_slots_pairs):
+            v = [0] * len(index_vector)
+            for i in range(len(v)):
+                v[index_vector[i]] = assignment[i]
+            groupvec_list.append(v + [1]) # add 1 for the 'origin' group
+        return groupvec_list
             
     def get_pseudoisomers(self, mol):
         pseudoisomers = set()
@@ -495,13 +509,7 @@ class GroupContribution:
             except AssertionError:
                 raise Exception("PyBel failed when trying to draw the compound %s" % compound_name)
     
-            (groups, unassigned_nodes) = self.decompose(mol)
-            if (len(unassigned_nodes) > 0):
-                sys.stderr.write("Compound '%s' could not be decomposed, I recommend moving it to the 'test only' set (SMILES = %s)\n" % (compound_name, smiles))
-                sys.stderr.write(self.analyze_decomposition(mol) + "\n")
-                mol.draw()
-                sys.exit(-1)
-                
+            (groups, unassigned_nodes) = self.decompose(mol, assert_result=True)
             groupvec = self.groups_to_vector(groups)
             self.mol_names.append(name)
             X.append(groupvec)
@@ -748,7 +756,7 @@ class GroupContribution:
         try:
             all_groupvecs = self.get_protonated_groupvec(mol)
         except GroupDecompositionError as e:
-            raise GroupDecompositionError(str(e) + " (%s)" % mol.title)
+            raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
 
         all_missing_groups = []
         pmap = {}
@@ -1501,7 +1509,7 @@ class GroupContribution:
         dG0_f = pylab.zeros((Nc, 1))
         ind_nan = []
         html_writer.write('<table border="1">\n')
-        html_writer.write('  <td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z"))
+        html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z") + '\n')
         for c in range(Nc):
             cid = cids[c]
             name = self.kegg().cid2name(cid)
@@ -1517,13 +1525,13 @@ class GroupContribution:
                 
                 dG0_f[c] = self.pmap_to_dG0(pmap, pH, I, T)
                 for ((nH, z), dG0) in pmap.iteritems():
-                    html_writer.write('<tr><td>%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td>\n' % (cid, name, dG0, nH, z))
+                    html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (cid, name, dG0, nH, z))
             
             except (kegg.KeggParseException, GroupMissingTrainDataError):
                 # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
                 dG0_f[c] = pylab.nan
                 ind_nan.append(c)
-                html_writer.write('<tr><td>%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td>\n' % (cid, name))
+                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % (cid, name))
         html_writer.write('</table>\n')
         bounds = [concentration_bounds.get(cid, (None, None)) for cid in cids]
         res = {}
@@ -1609,6 +1617,25 @@ class GroupContribution:
             svg_fname_concentrations = '%s/%s_conc_%s.svg' % (self.FIG_DIR, key, optimization)
             conc_fig.savefig(svg_fname_concentrations, format='svg')
             html_writer.embed_svg(svg_fname_concentrations, name=key, width=800, height=600)
+
+            html_writer.write('<p>Biochemical Compound Formation Energies (%s)<br>\n' % optimization)
+            html_writer.write('<table border="1">\n')
+            html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "Concentration [M]", "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]") + '\n')
+            for c in range(Nc):
+                cid = cids[c]
+                name = self.kegg().cid2name(cid)
+                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2g</td><td>%.2f</td><td>%.2f</td></tr>\n' % \
+                                  (cid, name, conc[c, 0], dG0_f[c], dG0_f[c] + R*T*pylab.log(conc[c, 0])))
+            html_writer.write('</table></p>\n')
+
+            html_writer.write('<p>Biochemical Reaction Energies (%s)<br>\n' % optimization)
+            html_writer.write('<table border="1">\n')
+            html_writer.write('  ' + '<td>%s</td>'*3 % ("KEGG RID", "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]") + '\n')
+            for r in range(Nr):
+                rid = rids[r]
+                html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%.2f</td><td>%.2f</td></tr>\n' % \
+                                  (self.kegg().rid2link(rid), self.kegg().rid2name(rid), rid, dG0_r[r, 0], dG_r[r, 0]))
+            html_writer.write('</table></p>\n')
 
     def analyze_contour(self, key, field_map, html_writer):
         svg_fname = '%s/%s_contour.svg' % (self.FIG_DIR, key)
@@ -1741,6 +1768,8 @@ class GroupContribution:
         s_left = []
         s_right = []
         for (cid, count) in sparse_reaction.iteritems():
+            if (abs(count) < 0.01):
+                continue
             url = self.kegg().cid2link(cid)
             name = self.kegg().cid2name(cid)
             if (show_cids):
@@ -1849,6 +1878,9 @@ class GroupContribution:
 
     def analyze_decomposition(self, mol):
         (groups, unassigned_nodes) = self.decompose(mol)
+        return self.get_group_analysis_table(mol, groups, unassigned_nodes)
+        
+    def get_group_analysis_table(self, mol, groups, unassigned_nodes):
         s = ""
         s += "%30s | %2s | %2s | %s\n" % ("group name", "nH", "z", "nodes")
         s += "-" * 50 + "\n"
