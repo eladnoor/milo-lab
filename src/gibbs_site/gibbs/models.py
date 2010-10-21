@@ -96,7 +96,6 @@ class Compound(models.Model):
         """Get a deltaG estimate for the given compound.
         
         Args:
-            kegg_id: the KEGG id of the compound.
             pH: the PH to estimate at.
             ionic_strength: the ionic strength to estimate at.
             temp: the temperature to estimate at.
@@ -152,6 +151,13 @@ class Compound(models.Model):
             return None
         
         return 'http://kegg.jp/dbget-bin/www_bget?cpd:%s' % self.kegg_id
+    
+    def GetSmallImageUrl(self):
+        """Returns the URL of a small image of the compound structure."""
+        if not self.kegg_id:
+            return None
+        
+        return 'http://kegg.jp/Fig/compound_small/%s.gif' % self.kegg_id
 
     def GetHtmlFormattedFormula(self):
         """Returns the chemical formula with HTML formatted subscripts."""
@@ -162,6 +168,7 @@ class Compound(models.Model):
     
     html_formula = property(lambda self: self.GetHtmlFormattedFormula())
     kegg_link = property(lambda self: self.GetKeggLink())
+    small_image_url = property(lambda self: self.GetSmallImageUrl())
     all_common_names = property(lambda self: self.common_names.all())
     all_formation_energies = property(
         lambda self: self.species_formation_energies.all())
@@ -350,15 +357,54 @@ class Compound(models.Model):
         return sum
     
     @staticmethod
+    def _CorrectForConcentrations(energy,
+                                  reactants,
+                                  products,
+                                  temp,
+                                  concentrations):
+        """Correct the Delta G approximation for the given concentrations.
+        
+        Args:
+            energy: the Delta G approximation.
+            reactants: an iterable of 2 tuples (coeff, kegg_id) for reactants.
+            products: an iterable of 2 tuples (coeff, kegg_id) for products.
+            temp: the temperature, in Kelvin.
+            concentrations: a dictionary mapping kegg IDs to concentrations.
+        
+        Returns:
+            The corrected Delta G or None on error.
+        """
+        reactant_term, product_term = 0, 0
+        
+        try:
+            reactant_terms = [c * pylab.log(concentrations[id])
+                              for c, id in concentrations]
+            reactant_term = sum(reactant_terms)
+            product_terms = [c * pylab.log(concentrations[id])
+                             for c, id in concentrations]
+            product_term = sum(product_terms)
+        except KeyError, e:
+            logging.error(e)
+            return None
+        
+        _r = constants.R
+        return energy + _r * temp * (product_term / reactant_term)
+                
+    @staticmethod
     def GetReactionEnergy(reactants, products,
                           pH=constants.DEFAULT_PH,
                           ionic_strength=constants.DEFAULT_IONIC_STRENGTH,
-                          temp=constants.DEFAULT_TEMP):
+                          temp=constants.DEFAULT_TEMP,
+                          concentrations=None):
         """Compute the DeltaG for a reaction.
         
         Args:
             reactants: an iterable of 2 tuples (coeff, kegg_id) for reactants.
             products: an iterable of 2 tuples (coeff, kegg_id) for products.
+            pH: the PH to estimate at.
+            ionic_strength: the ionic strength to estimate at.
+            temp: the temperature to estimate at.
+            concentrations: a dictionary mapping kegg IDs to concentrations.
         
         Returns:
             The DeltaG for the reaction, or None if data was missing.
@@ -374,7 +420,11 @@ class Compound(models.Model):
             logging.warning('Failed to get reactants formation energy.')
             return None
         
-        return products_sum - reactants_sum
+        dg_zero = products_sum - reactants_sum
+        if concentrations:
+            return Compound._CorrectForConcentrations(
+                dg_zero, reactants, products, temp, concentrations)
+        return dg_zero
     
     @staticmethod
     def AsLibrary():
