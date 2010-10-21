@@ -61,8 +61,8 @@ def gcd(a,b=None):
             g = gcd(g, a[i])
         return g
     else:
-        while b:      
-          a, b = b, a % b
+        while b:
+            a, b = b, a % b
         return a
 
 # choose function (number of way to choose k elements from a list of n)
@@ -93,33 +93,49 @@ def median(v):
     else:
         return (sv[len(v)/2 - 1] + sv[len(v)/2]) * 0.5
 
-def subsets(items, minsize=0, maxsize=-1):
-    def subsets_recursive(items, size, begin_index=0):
-        """
-            returns a list of all subsets of "items" of size == "size"
-            e.g. subsets([1,2,3], 2) = [[1,2],[1,3],[2,3]]
-        """
-        if (items == []):
-            return []
-        elif (size == 0):
-            return [[]]
-        elif (size == 1):
-            return [[x] for x in items[begin_index:]]
-        else:
-            s = []
-            for i in range(begin_index, len(items)-1):
-                x = items[i]
-                for y in subsets_recursive(items, size-1, begin_index=i+1):
-                    s.append([x] + y)
-            return s
+def _subsets_recursive(items, size, begin_index=0):
+    """Recursize subset enumeration.
     
-    if (maxsize == -1): # by default, return subsets of all sizes
-        maxsize = len(items)
-    s = []
-    for size in range(minsize, maxsize+1):
-        s += subsets_recursive(items, size)
-    return s
+    Args:
+      items: the list of items. Must be indexable.
+      size: the current subset size.
+      begin_index: the index to begin at.
     
+    Yields:
+        all subsets of "items" of size == "size" starting from
+        index "begin_index." e.g. subsets([1,2,3], 2) = [[1,2],[1,3],[2,3]]
+    """
+    if size == 0:
+        yield []
+    elif size == 1:
+        for x in items[begin_index:]:
+            yield [x]
+    else:
+        sets = []
+        for i in xrange(begin_index, len(items)-1):
+            x = items[i]
+            for y in _subsets_recursive(items, size-1, begin_index=i+1):
+                y.append(x)
+                sets.append(y)
+        for s in sets:
+            yield s
+
+def subsets(items, minsize=0, maxsize=None):
+    """Yields all subsets of items from size minsize to maxsize.
+    
+    Args:
+        items: the list of items. Must be indexable.
+        minsize: the minimum subset size.
+        maxsize: the maximum subset size. None means len(items).
+    
+    Yields:
+        Each subset of the appropriate size, smaller ones first.
+    """
+    maxsize = maxsize or len(items)
+    for size in xrange(minsize, maxsize+1):
+        for s in _subsets_recursive(items, size):
+            yield s
+            
 def list2pairs(l):
     """
         Turns any list with N items into a list of (N-1) pairs of consecutive items.
