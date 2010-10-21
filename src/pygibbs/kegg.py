@@ -1091,6 +1091,8 @@ class Kegg:
         s_left = []
         s_right = []
         for (cid, count) in sparse.iteritems():
+            if (abs(count) < 0.01):
+                continue
             comp = self.cid2compound(cid)
             url = comp.get_link()
             name = comp.name
@@ -1112,7 +1114,28 @@ class Kegg:
                 else:
                     s_left.append('%d <a href="%s" title="%s">%s</a>' % (-count, url, title, show_string))
         return ' + '.join(s_left) + ' => ' + ' + '.join(s_right)
-
+    
+    def write_reactions_to_html(self, html_writer, S, rids, fluxes, cids, show_cids=True):
+        
+        def vector_to_hypertext(v, cids, show_cids=True):
+            sparse_reaction = {}
+            for c in range(len(v)):
+                sparse_reaction[cids[c]] = v[c]
+            return self.sparse_to_hypertext(sparse_reaction, show_cids=show_cids)
+        
+        html_writer.write("<li>Reactions:</br><ul>\n")
+        
+        for r in range(S.shape[0]):
+            html_writer.write('<li><a href=' + self.rid2link(rids[r]) + '>R%05d' % rids[r] + '</a>')
+            html_writer.write(' : ' + vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
+            if (fluxes[r] != 1):
+                html_writer.write(' (x%g)' % fluxes[r])
+            html_writer.write('</li>\n')
+        
+        v_total = pylab.dot(pylab.matrix(fluxes), S).flat
+        html_writer.write('<li><b>Total:</b>  ' + vector_to_hypertext(v_total, cids, show_cids=show_cids) + '</li>\n')
+        html_writer.write("</ul></li>\n")
+        
 class KeggPathologic:
     def __init__(self, log_file=sys.stderr, kegg=None): # CO2, HCO3-
         self.LOG_FILE = log_file

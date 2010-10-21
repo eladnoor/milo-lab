@@ -1,9 +1,10 @@
-import sys, pylab, cplex, common
+import sys, pylab, cplex
 from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
 from pygibbs.groups import GroupContribution
-from pygibbs.feasibility import find_pCr, LinProgNoSolutionException
+from pygibbs.feasibility import thermodynamic_pathway_analysis
 from toolbox.html_writer import HtmlWriter
+from toolbox.util import _mkdir
 
 ################################################################################
 #                               CONSTANTS & DEFAULTS                           #
@@ -12,8 +13,8 @@ class Pathologic:
     def __init__(self, update_file='../data/thermodynamics/database_updates.txt'):
         cplex.Cplex() # causes CPLEX to print its initialization message
 
-        common._mkdir('../res')
-        common._mkdir('../res/pathologic')
+        _mkdir('../res')
+        _mkdir('../res/pathologic')
         self.LOG_FILE = open('../res/pathologic/pathologic.log', 'w')
         self.UPDATE_FILE = update_file
         self.gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathologic", log_file=self.LOG_FILE)
@@ -26,9 +27,10 @@ class Pathologic:
         self.thermodynamic_method = "margin" # options are: "none", "margin", "global"
         self.max_reactions = None
         self.flux_relaxtion_factor = None
-        self.cid2bounds = self.gc.kegg().cid2bounds
+        self.kegg = self.gc.kegg()
+        self.cid2bounds = self.kegg.cid2bounds
         self.cid2dG0_f = self.gc.get_cid2dG0(self.pH, self.I, self.T)
-        self.kegg = KeggPathologic(self.LOG_FILE, self.gc.kegg())
+        self.kegg_patholotic = KeggPathologic(self.LOG_FILE, self.kegg)
 
     def __del__(self):
         self.LOG_FILE.close()
@@ -39,7 +41,7 @@ class Pathologic:
         if (max_reactions != None):
             self.max_reactions = max_reactions
         
-        common._mkdir('../res/pathologic/' + experiment_name)
+        _mkdir('../res/pathologic/' + experiment_name)
         self.gc.HTML.write('<a href="pathologic/' + experiment_name + '.html">' + experiment_name + '</a><br>\n')
         exp_html = HtmlWriter('../res/pathologic/' + experiment_name + '.html')
         exp_html.write("<p><h1>%s</h1>\n" % experiment_name)
@@ -63,14 +65,14 @@ class Pathologic:
         
         if (source != None):
             exp_html.write('<h2>Source Reaction:</h2>\n')
-            exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg.cid2compound[cid].name, cid) for (cid, coeff) in source.iteritems()])
+            exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg_patholotic.cid2compound[cid].name, cid) for (cid, coeff) in source.iteritems()])
         if (target != None):
             exp_html.write('<h2>Target (biomass) Reaction:</h2>\n')
-            exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg.cid2compound[cid].name, cid) for (cid, coeff) in target.iteritems()])
+            exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg_patholotic.cid2compound[cid].name, cid) for (cid, coeff) in target.iteritems()])
         exp_html.flush()
 
-        self.kegg.update_database(self.UPDATE_FILE, exp_html)
-        (f, S, compounds, reactions) = self.kegg.get_unique_cids_and_reactions()
+        self.kegg_patholotic.update_database(self.UPDATE_FILE, exp_html)
+        (f, S, compounds, reactions) = self.kegg_patholotic.get_unique_cids_and_reactions()
         exp_html.write('<h2>%d reactions with %d unique compounds</h2>\n' % (len(reactions), len(compounds)))
         
         exp_html.write('</div><br>\n')
@@ -145,28 +147,9 @@ class Pathologic:
         exp_html.write('%d reactions, flux = %g, \n' % (len(solution), lp.get_total_flux()))
 
         solution_id = 'solution_%03d' % lp.solution_index
-        exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (solution_id))
-        exp_html.write('<div id="%s" style="display:none">' % solution_id)
-
-        sol_fluxes = [flux for (r, flux) in solution]
-        sol_reactions = [lp.reactions[r] for (r, flux) in solution]
-        Gdot = self.kegg.draw_pathway(sol_fluxes, sol_reactions)
-        Gdot.write('../res/pathologic/%s/%s_Gdot.svg' % (experiment_name, solution_id), prog='dot', format='svg')
-        self.write_kegg_pathway(exp_html, solution, lp.reactions)
-
-        pCr = self.margin_analysis(exp_html, sol_reactions, sol_fluxes, self.cid2dG0_f, experiment_name, solution_id)
-            
-        exp_html.write('</div>\n')
-        exp_html.write(' <a href="%s/%s_Gdot.svg" target="_blank">network</a>' % (experiment_name, solution_id))
-        
-        if (self.thermodynamic_method == "none"):
-            exp_html.write('<br>\n')
-        elif (pCr != None):
-            exp_html.write(', pCr = %.1f<br>\n' % pCr)
-        else:
-            exp_html.write(', infeasible<br>\n')
-
-        exp_html.flush()
+        sol_fluxes = [s[1] for s in solution]
+        sol_reactions = [lp.reactions[s[0]] for s in solution]
+        self.margin_analysis(exp_html, sol_reactions, sol_fluxes, self.cid2dG0_f, experiment_name, solution_id)
 
     def show_Gdot(self, Gdot):
         import gtk
@@ -205,134 +188,42 @@ class Pathologic:
         exp_html.flush()
 
     def margin_analysis(self, exp_html, reactions, fluxes, cid2dG0_f, experiment_name, solution_id):
+        exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (solution_id))
+        exp_html.write('<div id="%s" style="display:none">' % solution_id)
         
-        ###########################
-        def dG_to_str(dG):
-            if (pylab.isnan(dG)):
-                return "N/A"
-            else:
-                return "%.1f" % dG
-        ###########################
         
         cids = [] # I am not using a set() since I want to keep the order of compounds the same as they appear in the reaction
-        relevant_reactions = []
         for r in reactions:
-            relevant_reactions.append(r)
             for cid in r.sparse.keys():
                 if (cid not in cids):
                     cids.append(cid)
                 
-        # convert the list of reactions to a stoichiometric matrix
-        Nr = len(relevant_reactions)
+        # convert the list of reactions to a stoichiometric matrix - S
+        Nr = len(reactions)
         Nc = len(cids)
-
-        dG0_f = pylab.zeros((Nc, 1))
-        ind_nan = []
-
-        # write a table of the compounds and their dG0_f
-        exp_html.write('<table border="1">\n')
-        exp_html.write('  <td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f' [kJ/mol]"))
-        for c in range(Nc):
-            compound = self.kegg.cid2compound[cids[c]]
-            cid_str = '<a href="%s">C%05d</a>' % (compound.get_link(), compound.cid)
-            
-            if cids[c] in cid2dG0_f:
-                dG0_f[c, 0] = cid2dG0_f[cids[c]]
-            else:
-                ind_nan.append(c)
-                dG0_f[c, 0] = pylab.nan
-            exp_html.write('<tr><td>%s</td><td>%s</td><td>%s</td>\n' % (cid_str, compound.name, dG_to_str(dG0_f[c, 0])))
-        exp_html.write('</table><br>\n')
-
-        # write a table of the reactions and their dG0_r
-        exp_html.write('<table border="1">\n')
-        exp_html.write('  <td>%s</td><td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG RID", "Reaction", "flux", "dG0_r' [kJ/mol]"))
         S = pylab.zeros((Nr, Nc))
-        dG0_r = pylab.zeros((Nr, 1))
+        rids = []
         for r in range(Nr):
-            reaction = relevant_reactions[r] 
-            rid_str = '<a href="%s">R%05d</a>' % (reaction.get_link(), reaction.rid)
-            reaction_str = self.kegg.sparse_to_hypertext(reaction.sparse)
-            flux = fluxes[r]
-
-            for (cid, coeff) in reaction.sparse.iteritems():
+            rids.append(reactions[r].rid)
+            for (cid, coeff) in reactions[r].sparse.iteritems():
                 c = cids.index(cid)
                 S[r, c] = coeff
-                dG0_r[r, 0] += coeff*dG0_f[c, 0]
-            
-            exp_html.write('<tr><td>%s</td><td>%s</td><td>%g</td><td>%s</td>\n' % (rid_str, reaction_str, flux, dG_to_str(dG0_r[r, 0])))
-        exp_html.write('</table><br>\n')
-          
-        bounds = [self.cid2bounds.get(cid, (None, None)) for cid in cids]
-        try:
-            (dG_f, concentrations, pCr) = find_pCr(S, dG0_f, c_mid=self.c_mid, bounds=bounds)
-            dG_r = pylab.dot(S, dG_f)
-        except LinProgNoSolutionException:
-            exp_html.write('<b>No feasible solution found, cannot calculate the Margin</b>')
-            exp_html.write('</p>\n')
-            return None
 
-        # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 8
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 5
-        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
-        pylab.rcParams['figure.dpi'] = 100
+        thermodynamics = self.gc
+        thermodynamics.bounds = self.cid2bounds
+        thermodynamics.c_range = self.c_range
+        thermodynamics.c_mid = self.c_mid
+        svg_prefix = '%s/%s' % (experiment_name, solution_id)
+        res = thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg, exp_html, svg_prefix, svg_path='../res/pathologic/')
+        exp_html.write('</div>\n')
+        exp_html.write(' <a href="%s_graph.svg" target="_blank">network</a>' % svg_prefix)
         
-        pylab.figure()
-        pylab.plot(concentrations, range(Nc, 0, -1), '*b')
-        pylab.xscale('log')
-        pylab.title('Concentrations (pCr = %.1f)' % pCr)
-        pylab.ylabel('Compound no.')
-        pylab.xlabel('Concentration [M]')
+        for optimization in res.keys():
+            score = res[optimization][2]
+            exp_html.write(", %s = %g" % (optimization, score))
+        exp_html.write('<br>\n')
 
-        dG0_f[ind_nan] = dG_f[ind_nan] # since we don't know the dG0_f of some compounds, we will use the solution dG_f instead
-        x_min = concentrations.min()/10
-        x_max = concentrations.max()*10
-        y_min = 0
-        y_max = Nc+1
-        
-        for i in range(Nc):
-            pylab.text(concentrations[i, 0]*1.1, Nc-i, self.kegg.cid2compound[cids[i]].name, fontsize=8, rotation=0)
-            (b_low, b_up) = bounds[i]
-            if (b_low == None):
-                b_low = x_min
-            if (b_up == None):
-                b_up = x_max
-            pylab.plot([b_low, b_up], [Nc-i, Nc-i], '-k', linewidth=0.4)
-        range_factor = 10**(pCr/2)
-        pylab.axvspan(self.c_mid / range_factor, self.c_mid * range_factor, facecolor='g', alpha=0.3)
-        pylab.axis([x_min, x_max, y_min, y_max])
-        pylab.savefig('../res/pathologic/%s/%s_conc.svg' % (experiment_name, solution_id), format='svg')
-        exp_html.embed_svg('%s/%s_conc.svg' % (experiment_name, solution_id), width=800, height=600)
-
-        pylab.figure()
-        dG_profile_matrix = pylab.zeros((Nr+1, 3))
-
-        dG_f_mid = dG0_f + common.R * self.T * pylab.log(self.c_mid)
-        dG_r_standard = pylab.dot(S, dG0_f)
-        dG_r_mid = pylab.dot(S, dG_f_mid)
-
-        dG_profile_matrix[1:,0] = pylab.cumsum(dG_r_standard)
-        dG_profile_matrix[1:,1] = pylab.cumsum(dG_r_mid)
-        dG_profile_matrix[1:,2] = pylab.cumsum(dG_r)
-        
-        pylab.plot(range(Nr+1), dG_profile_matrix)
-        
-        for i in range(Nr):
-            pylab.text(i+0.5, pylab.mean(dG_profile_matrix[i:(i+2),0]), "R%05d" % reactions[i].rid,\
-                       fontsize=10, rotation=45, horizontalalignment='center', backgroundcolor='white')
-        pylab.title('Cumulative Reactions Delta G')
-        pylab.ylabel('cumulative dG [kJ/mol]')
-        pylab.xlabel('Reaction no.')
-        pylab.legend(['Standard [1 M]', 'Physiological [10^(%g) M]' % pylab.log10(self.c_mid), 'Optimized'], fancybox=True, shadow=True, loc="lower left")
-        pylab.savefig('../res/pathologic/%s/%s_profile.svg' % (experiment_name, solution_id), format='svg')
-        exp_html.embed_svg('%s/%s_profile.svg' % (experiment_name, solution_id), width=800, height=600)
-        exp_html.write('</p>\n')
-        return pCr
+        exp_html.flush()
 
 ################################################################################
 #                               MAIN                                           #
@@ -341,11 +232,11 @@ class Pathologic:
 def main():
     pl = Pathologic()
     
-    pl.c_range = (1e-9, 1e-2)
-    pl.find_path('glyoxlyate (Global)', source={}, target={48:1}, thermo_method="none")
-    #pl.find_path('glyoxlyate (Global)', source={}, target={48:1}, thermo_method="global")
-    #pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
-    #pl.find_path('3PG 1uM-10mM (no added reactions)', source={}, target={197:1}, thermo_method='global')
+    pl.c_range = (1e-6, 1e-2)
+    #pl.find_path('glyoxlyate (no thermodynamics)', source={}, target={48:1}, thermo_method="none")
+    pl.find_path('glyoxlyate (global thermodynamics)', source={}, target={48:1}, thermo_method="global")
+    #pl.c_range = (1e-9, 1e-2); pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
+    #pl.find_path('3PG (no added reactions)', source={}, target={197:1}, thermo_method='global')
     #pl.find_path('3PG (no FDH, no Alanine, no Lactate)', source={}, target={197:1}, thermo_method="global")
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")
 
