@@ -1,6 +1,6 @@
 from django import forms
 from gibbs import form_utils
-from group_contribution import constants
+from gibbs import constants
 
 
 class ReactionForm(forms.Form):
@@ -12,6 +12,7 @@ class ReactionForm(forms.Form):
     temp = forms.FloatField(required=False)
     ph = forms.FloatField(required=False)
     ionic_strength = forms.FloatField(required=False)
+    concentrationProfile = forms.ChoiceField(required=False, choices=["1M", "1mM"])
     
     # Convenience accessors for clean data with defaults.
     cleaned_reactantIds = property(lambda self: self.cleaned_data['reactantsId'])

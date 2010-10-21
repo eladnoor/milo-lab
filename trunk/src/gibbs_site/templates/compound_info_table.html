@@ -16,6 +16,12 @@
 		<td>{{ compound.mass }}</td>
 	</tr>
 	<tr>
+		{% if compound.small_image_url %}
+		<td width="150px">Structure</td>
+		<td><img src="{{ compound.small_image_url }}" /></td>
+		{% endif %}
+	</tr>
+	<tr>
 		{% if compound.kegg_link %}
 		<td width="150px">KEGG Link</td>
 		<td><a href="{{kegg_link}}">{{compound.kegg_link}}</a></td>

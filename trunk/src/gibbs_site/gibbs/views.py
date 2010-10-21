@@ -1,10 +1,7 @@
-from os import path
-import json
 import logging
 from django.shortcuts import render_to_response
 from django.http import HttpResponse
 from django.http import Http404
-from gibbs import constants
 from gibbs import compound_form
 from gibbs import form_utils
 from gibbs import models
@@ -14,26 +11,6 @@ from gibbs import service_config
 from matching import approximate_matcher
 from matching import compound
 from matching import reaction_parser
-
-
-def MainPage(request):
-    """Renders the landing page."""
-    return render_to_response('main.html', {})
-
-
-def SuggestJson(request):
-    """Renders the suggest JSON."""
-    form = search_form.SearchForm(request.GET)
-    if not form.is_valid():
-        logging.error(form.errors)
-        raise Http404
-    
-    matcher = service_config.Get().compound_matcher
-    query = str(form.cleaned_query)
-    results = [unicode(m.key) for m in matcher.Match(query)]
-    json_data = json.dumps({'query': query, 'suggestions': results})
-    
-    return HttpResponse(json_data, mimetype='application/json')
 
 
 def CompoundPage(request):
@@ -65,7 +42,6 @@ def ReactionPage(request):
     if not form.is_valid():
         logging.error(form.errors)
         raise Http404
-    
     
     clean_reactants = form.cleaned_reactantIds
     clean_products = form.cleaned_productIds

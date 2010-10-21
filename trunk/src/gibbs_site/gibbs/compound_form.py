@@ -1,5 +1,5 @@
 from django import forms
-from group_contribution import constants
+from gibbs import constants
 
 
 class CompoundForm(forms.Form):
