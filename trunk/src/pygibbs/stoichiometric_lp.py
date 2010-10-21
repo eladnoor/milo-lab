@@ -1,4 +1,5 @@
-import pylab, cplex, sys, common
+import pylab, cplex, sys
+from thermodynamics import R
 
 class Stoichiometric_LP():
     
@@ -115,7 +116,7 @@ class Stoichiometric_LP():
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "C%05d_conc" % cid, coeff)
                 dG0_r += coeff * cid2dG0_f.get(cid, 0)
             self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1e6)
-            self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - dG0_r/(common.R*T))
+            self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - dG0_r/(R*T))
 
         # if the dG0_f is unknown, the concentration must remain unbound
         # therefore we leave only the known compounds in the encountered_cids set
@@ -188,9 +189,9 @@ class Stoichiometric_LP():
                     curr_c_max = c_range[1]
 
                 if (coeff < 0):
-                    dG0_r += coeff * common.R*T*pylab.log(curr_c_max)
+                    dG0_r += coeff * R*T*pylab.log(curr_c_max)
                 else:
-                    dG0_r += coeff * common.R*T*pylab.log(curr_c_min)
+                    dG0_r += coeff * R*T*pylab.log(curr_c_min)
             
             if (dG0_r != None and dG0_r > 0):
                 # this reaction is a localized bottleneck, add a constraint that its flux = 0

@@ -1,7 +1,9 @@
 import pylab
-import cvxopt
 import cvxopt.solvers
-import csv, sys, os
+import csv, sys
+from pygibbs.thermodynamics import MissingCompoundFormationEnergy
+from matplotlib.font_manager import FontProperties
+
 try:
     import cplex
     IsCplexInstalled = True
@@ -94,11 +96,12 @@ def linprog(f, A, b, lb=[], ub=[], log_stream=None):
         else:
             return pylab.matrix(cpl.solution.get_values()).T
 
-def find_feasible_concentrations(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, log_stream=None):
-    """ 
+def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, log_stream=None):
+    """
         Find a distribution of concentration that will satisfy the 'relaxed' thermodynamic constraints.
         The 'relaxation' means that there is a slack variable 'B' where all dG_r are constrained to be < B.
         Note that B can also be negative, which will happen when the pathway is feasible.
+        MCMF (Maximal Chemical Motive Force) is defined as the minimal B, note that it is a function of the concentration bounds.
     """
     (Nr, Nc) = S.shape
     (c_min, c_max) = c_range
@@ -135,12 +138,15 @@ def find_feasible_concentrations(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, lo
 
     concentrations = pylab.exp(x[:Nc, 0])
     concentrations[nan_indices] = pylab.sqrt(c_max * c_min) # use the geometric average for unknown concentrations
-    B = x[Nc, 0] * R * T # convert to units of kJ/mol
+    MCMF = x[Nc, 0] * R * T # convert to units of kJ/mol
 
-    return (dG_f, concentrations, B)
+    return (dG_f, concentrations, MCMF)
+
+def pC_to_range(pC, c_mid=1e-3, ratio=3.0):
+    return (c_mid * 10 ** (-ratio/(ratio+1.0) * pC), c_mid * 10 ** (1.0/(ratio+1.0) * pC))
 
 def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, bounds=None, log_stream=None):
-    """ 
+    """
         Compute the feasibility of a given set of reactions
     
         input: s1 = stoichiometric matrix (reactions x compounds)
@@ -301,6 +307,143 @@ def generate_constraints_pCr(dG0_f, c_mid, ratio, bounds=None):
         
     return (pylab.matrix(A), pylab.matrix(b).T)
 
+def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, html_writer, svg_prefix, svg_path=""):
+    kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
+
+    # draw a graph representation of the pathway        
+    (Nr, Nc) = S.shape
+    Gdot = kegg.draw_pathway(S, rids, cids)
+    Gdot.write(svg_path + svg_prefix + "_graph.svg", prog='dot', format='svg')
+    html_writer.write('<li><a href="%s_graph">Graph visualization</a></li>\n' % svg_prefix)
+    
+    # calculate the dG_f of each compound, and then use S to calculate dG_r
+    dG0_f = pylab.zeros((Nc, 1))
+    ind_nan = []
+    html_writer.write('<table border="1">\n')
+    html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z") + '\n')
+    for c in range(Nc):
+        cid = cids[c]
+        name = kegg.cid2name(cid)
+        try:
+            pmap = thermodynamics.cid2pmap(cid)
+            for ((nH, z), dG0) in pmap.iteritems():
+                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (cid, name, dG0, nH, z))
+            dG0_f[c] = thermodynamics.pmap_to_dG0(pmap)
+        
+        except MissingCompoundFormationEnergy:
+            # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
+            dG0_f[c] = pylab.nan
+            ind_nan.append(c)
+            html_writer.write('<tr><td>C%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % (cid, name))
+    html_writer.write('</table>\n')
+    
+    bounds = [thermodynamics.bounds.get(cid, (None, None)) for cid in cids]
+    res = {}
+    try:
+        res['pCr'] = find_pCr(S, dG0_f, c_mid=thermodynamics.c_mid, ratio=3, bounds=bounds)
+        #res['PCR2'] = find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=c_mid, bounds=bounds)
+        res['MCMF'] = find_mcmf(S, dG0_f, c_range=thermodynamics.c_range, bounds=bounds)
+    except LinProgNoSolutionException:
+        html_writer.write('<b>No feasible solution found, cannot calculate the Margin</b>')
+    
+    # plot the profile graph
+    pylab.rcParams['text.usetex'] = False
+    pylab.rcParams['legend.fontsize'] = 10
+    pylab.rcParams['font.family'] = 'sans-serif'
+    pylab.rcParams['font.size'] = 12
+    pylab.rcParams['lines.linewidth'] = 2
+    pylab.rcParams['lines.markersize'] = 5
+    pylab.rcParams['figure.figsize'] = [8.0, 6.0]
+    pylab.rcParams['figure.dpi'] = 100
+    
+    profile_fig = pylab.figure()
+    profile_fig.hold(True)
+
+    pylab.title('Thermodynamic profile', figure=profile_fig)
+    pylab.ylabel('cumulative dG [kJ/mol]', figure=profile_fig)
+    pylab.xlabel('Reaction KEGG ID', figure=profile_fig)
+    pylab.xticks(pylab.arange(1, Nr + 1), ['R%05d' % rids[i] for i in xrange(Nr)], fontproperties=FontProperties(size=8), rotation=30)
+    if (len(ind_nan) == 0): # TODO: if this is not the case, find a way to draw the dG0_r anyway
+        dG0_r = pylab.dot(S, dG0_f)
+        cum_dG0_r = pylab.cumsum([0] + [dG0_r[i, 0] * fluxes[i] for i in range(Nr)])
+        pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG0_r, figure=profile_fig, label='Standard [1M]')
+    pylab.grid(True, figure=profile_fig)
+
+    for optimization in res.keys():
+        (dG_f, conc, score) = res[optimization]
+        if (score == None):
+            continue
+
+        dG_r = pylab.dot(S, dG_f)
+        cum_dG_r = pylab.cumsum([0] + [dG_r[i, 0] * fluxes[i] for i in range(Nr)])
+        pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG_r, figure=profile_fig, label='%s = %.1f' % (optimization, score))
+
+    pylab.legend()
+    profile_fig.savefig(svg_path + svg_prefix + "_profile.svg", format='svg')
+    html_writer.embed_svg(svg_prefix + "_profile.svg", name='profile', width=800, height=600)
+
+    for optimization in res.keys():
+        (dG_f, conc, score) = res[optimization]
+        if (score == None):
+            continue
+
+        dG_r = pylab.dot(S, dG_f)
+        conc[ind_nan] = thermodynamics.c_mid # give all compounds with unknown dG0_f the middle concentration value
+
+        conc_fig = pylab.figure()
+        conc_fig.suptitle('Concentrations (%s = %.1f)' % (optimization, score))
+        pylab.xscale('log', figure=conc_fig)
+        pylab.ylabel('Compound KEGG ID', figure=conc_fig)
+        pylab.xlabel('Concentration [M]', figure=conc_fig)
+        pylab.yticks(range(Nc, 0, -1), ["C%05d" % cid for cid in cids], fontproperties=FontProperties(size=8))
+        pylab.plot(conc, range(Nc, 0, -1), '*b', figure=conc_fig)
+
+        # TODO: instead of compound numbers, write the compound KEGG IDs
+
+        x_min = conc.min() / 10
+        x_max = conc.max() * 10
+        y_min = 0
+        y_max = Nc + 1
+        
+        for c in range(Nc):
+            pylab.text(conc[c, 0] * 1.1, Nc - c, kegg.cid2name(cids[c]), \
+                       figure=conc_fig, fontsize=6, rotation=0)
+            (b_low, b_up) = bounds[c]
+            if (b_low == None):
+                b_low = x_min
+            if (b_up == None):
+                b_up = x_max
+            pylab.plot([b_low, b_up], [Nc - c, Nc - c], '-k', linewidth=0.4)
+
+        if (optimization == 'pCr'):
+            c_range_opt = pC_to_range(score, c_mid=thermodynamics.c_mid, ratio=3.0)
+            pylab.axvspan(c_range_opt[0], c_range_opt[1], facecolor='g', alpha=0.3, figure=conc_fig)
+        else:
+            pylab.axvspan(thermodynamics.c_range[0], thermodynamics.c_range[1], facecolor='g', alpha=0.3, figure=conc_fig)
+        pylab.axis([x_min, x_max, y_min, y_max], figure=conc_fig)
+        conc_fig.savefig(svg_path + svg_prefix + '_conc_%s.svg' % optimization, format='svg')
+        html_writer.embed_svg(svg_prefix + '_conc_%s.svg' % optimization, name='concentrations', width=800, height=600)
+
+        html_writer.write('<p>Biochemical Compound Formation Energies (%s)<br>\n' % optimization)
+        html_writer.write('<table border="1">\n')
+        html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "Concentration [M]", "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]") + '\n')
+        for c in range(Nc):
+            cid = cids[c]
+            name = kegg.cid2name(cid)
+            html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2g</td><td>%.2f</td><td>%.2f</td></tr>\n' % \
+                              (cid, name, conc[c, 0], dG0_f[c], dG0_f[c] + R*T*pylab.log(conc[c, 0])))
+        html_writer.write('</table></p>\n')
+
+        html_writer.write('<p>Biochemical Reaction Energies (%s)<br>\n' % optimization)
+        html_writer.write('<table border="1">\n')
+        html_writer.write('  ' + '<td>%s</td>'*3 % ("KEGG RID", "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]") + '\n')
+        for r in range(Nr):
+            rid = rids[r]
+            html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%.2f</td><td>%.2f</td></tr>\n' % \
+                              (kegg.rid2link(rid), kegg.rid2name(rid), rid, dG0_r[r, 0], dG_r[r, 0]))
+        html_writer.write('</table></p>\n')
+    return res
+
 if (__name__ == "__main__"):
     from groups import GroupContribution, GroupMissingTrainDataError, GroupDecompositionError
     from kegg import KeggParseException, KeggMissingModuleException
@@ -331,7 +474,7 @@ if (__name__ == "__main__"):
                     for c in range(Nc):
                         cid = map_cid.get(cids[c], cids[c])
                         try:
-                            pmap = gc.estimate_pmap_keggcid(cid)
+                            pmap = gc.cid2pmap(cid)
                             dG0_f[c] = gc.pmap_to_dG0(pmap, pH, I, T)
                         except KeggParseException:
                             sys.stderr.write("M%05d: Unknown compound in module (C%05d), using NaN\n" % (mid, cid))
@@ -355,7 +498,7 @@ if (__name__ == "__main__"):
                         sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
 
                     try:
-                        (dG_f, concentrations, B) = find_feasible_concentrations(S, dG0_f, c_min=c_min, c_max=c_max, bounds=bounds)
+                        (dG_f, concentrations, B) = find_mcmf(S, dG0_f, c_min=c_min, c_max=c_max, bounds=bounds)
                         dG_r = pylab.dot(S, dG_f)
                         
                         sys.stderr.write("M%05d: pH = %g, I = %g, B = %.2f\n" % (mid, pH, I, B))

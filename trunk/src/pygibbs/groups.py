@@ -3,10 +3,11 @@ from copy import deepcopy
 from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import matrixrank, multi_distribute, log_sum_exp, _mkdir
-from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics
-from pygibbs.feasibility import find_feasible_concentrations, LinProgNoSolutionException, find_pCr
+from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics, MissingCompoundFormationEnergy
+from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
 from pygibbs import kegg
 import types
+from pygibbs.hatzimanikatis import Hatzi
 
 def find_smarts(smarts_str, mol):
     """
@@ -94,8 +95,9 @@ class GroupMissingTrainDataError(Exception):
         else:
             return repr(self.value)
 
-class GroupContribution:    
+class GroupContribution(Thermodynamics):    
     def __init__(self, sqlite_name, html_name, log_file=sys.stderr):
+        Thermodynamics.__init__(self)
         self._kegg = None
         self.LOG_FILE = log_file
         self.FIG_DIR = '../res/' + html_name
@@ -105,6 +107,8 @@ class GroupContribution:
         self.HTML = HtmlWriter("../res/" + html_name + ".html")
         self.comm = sqlite3.connect("../res/" + sqlite_name)
         self.use_measured_train_values = True
+        
+        self.hatzi = Hatzi()
     
     def __del__(self):
         self.comm.close()
@@ -124,8 +128,6 @@ class GroupContribution:
         self.load_contributions()
         self.load_concentrations()
         self.load_training_data()
-        self.load_hatzimanikatis_rid_data()
-        self.load_hatzimanikatis_cid_data()
         self.load_cid2pmap(recalculate=False)
 
     def load_cid2pmap(self, recalculate=False):
@@ -147,7 +149,7 @@ class GroupContribution:
             self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
             self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL, estimated BOOL);")
             self.comm.execute("CREATE UNIQUE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH);")
-            for cid in self.kegg().get_all_cids_with_inchi():
+            for cid in self.get_all_cids():
                 sys.stderr.write("C%05d) " % cid)
                 if (cid in self.cid2pmap_obs and (self.use_measured_train_values or cid in self.cid_test_set)):
                     sys.stderr.write("using measured data\n")
@@ -155,7 +157,7 @@ class GroupContribution:
                     estimated = False
                 else:
                     try:
-                        pmap = self.estimate_pmap_keggcid(cid)
+                        pmap = self.cid2pmap(cid)
                         sys.stderr.write("using estimated data\n")
                         estimated = True
                     except (GroupDecompositionError, GroupMissingTrainDataError, KeyError, kegg.KeggParseException) as e:
@@ -753,6 +755,9 @@ class GroupContribution:
             self._kegg = kegg.Kegg(log_file=self.LOG_FILE)
         return self._kegg        
 
+    def get_all_cids(self):
+        return sorted(self.kegg().get_all_cids_with_inchi())
+
     def estimate_pmap(self, mol):
         try:
             all_groupvecs = self.get_protonated_groupvec(mol)
@@ -776,7 +781,7 @@ class GroupContribution:
 
         return pmap
 
-    def estimate_pmap_keggcid(self, cid):
+    def cid2pmap(self, cid):
         """
             returns a list of 3-tuples of dG0 (untransformed), nH and z.
             Each tuple represents one of the pseudoisomers.
@@ -796,7 +801,7 @@ class GroupContribution:
                 if (cid in self.cid2pmap_obs):
                     return self.cid2pmap_obs[cid]
                 else:
-                    raise e
+                    raise MissingCompoundFormationEnergy(str(e))
 
             return pmap
     
@@ -818,7 +823,7 @@ class GroupContribution:
         """
         dG0_p0 = None
         dG0_p1 = None
-        for (dG0, nH, z) in self.estimate_pmap_keggcid(cid):
+        for (dG0, nH, z) in self.cid2pmap(cid):
             if (z == charge):
                 dG0_p0 = dG0
             elif (z == charge + 1):
@@ -857,7 +862,7 @@ class GroupContribution:
             Calculates the standard transformed Gibbs energy of formation of the pseudoisomer group
             (according to Alberty).            
         """
-        pmap = self.estimate_pmap_keggcid(cid)
+        pmap = self.cid2pmap(cid)
         if (pH.__class__ == float and I.__class__ == float):
             return self.pmap_to_dG0(pmap, pH, I, T, most_abundant)      
         else:
@@ -886,7 +891,7 @@ class GroupContribution:
             [C_i] - concentration of compound C_i
         """
         
-        pmaps = [self.estimate_pmap_keggcid(cid) for cid in sparse_reaction.keys()]
+        pmaps = [self.cid2pmap(cid) for cid in sparse_reaction.keys()]
         stoichiometry_vector = sparse_reaction.values()
 
         if (pH.__class__ == float and I.__class__ == float):
@@ -1006,7 +1011,7 @@ class GroupContribution:
     def write_cid_group_matrix(self, fname):
         csv_file = csv.writer(open(fname, 'w'))
         csv_file.writerow(["CID"] + self.all_group_names)
-        for cid in self.kegg().get_all_cids_with_inchi():
+        for cid in self.get_all_cids():
             try:
                 groupvec = self.cid2groupvec(cid)
                 csv_file.writerow([cid] + groupvec)
@@ -1157,7 +1162,7 @@ class GroupContribution:
             else:
                 mid = int(mid_str)
             (S, rids, fluxes, cids) = self.kegg().get_module(mid)
-            html_writer.write('<li>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></li>\n' % (mid, mid))       
+            html_writer.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
         else:
             (S, rids, fluxes, cids) = self.kegg().parse_explicit_module(field_map)
 
@@ -1172,27 +1177,6 @@ class GroupContribution:
         
         return (S, rids, fluxes, cids)
 
-    def write_reactions_to_html(self, html_writer, S, rids, fluxes, cids, show_cids=True):
-        
-        def vector_to_hypertext(v, cids, show_cids=True):
-            sparse_reaction = {}
-            for c in range(len(v)):
-                sparse_reaction[cids[c]] = v[c]
-            return self.sparse_reaction_to_hypertext(sparse_reaction, show_cids=show_cids)
-        
-        html_writer.write("<li>Reactions:</br><ul>\n")
-        
-        for r in range(S.shape[0]):
-            html_writer.write('<li><a href=' + self.kegg().rid2link(rids[r]) + '>R%05d' % rids[r] + '</a>')
-            html_writer.write(' : ' + vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
-            if (fluxes[r] != 1):
-                html_writer.write(' (x%g)' % fluxes[r])
-            html_writer.write('</li>\n')
-        
-        v_total = pylab.dot(pylab.matrix(fluxes), S).flat
-        html_writer.write('<li><b>Total:</b>  ' + vector_to_hypertext(v_total, cids, show_cids=show_cids) + '</li>\n')
-        html_writer.write("</ul></li>\n")
-    
     def analyze_profile(self, key, field_map, html_writer):
         html_writer.write('<p>\n')
 
@@ -1241,7 +1225,7 @@ class GroupContribution:
         html_writer.write('<li><a href=%s>Graph visualization</a></li>' % svg_fname_graph)
         
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
-        self.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
+        self.kegg().write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
         html_writer.write('</ul>')
 
         (Nr, Nc) = S.shape
@@ -1264,7 +1248,7 @@ class GroupContribution:
                 elif (method == "ABUNDANT"):
                     dG0_f[plot_key][c] = self.estimate_dG0_keggcid(cids[c], pH=pH, I=I, T=T, most_abundant=True)
                 elif (method == "HATZI"):
-                    dG0_f[plot_key][c] = self.hatzi_dG0_keggcid(cids[c], pH=pH, I=I, T=T)
+                    dG0_f[plot_key][c] = self.hatzi.cid_to_dG0(cids[c], pH=pH, I=I, T=T)
                 else:
                     raise Exception("Unknown dG evaluation method: " + method)
                 # add the effect of the concentration on the dG_f (from dG0_f to dG_f)
@@ -1297,24 +1281,6 @@ class GroupContribution:
         pylab.ylabel("dG [kJ/mol]")
         pylab.savefig(svg_fname_profile, format='svg')
         html_writer.write('</p>')
-
-    @staticmethod
-    def dG_to_str(dG):
-        if (pylab.isnan(dG)):
-            return "N/A"
-        else:
-            return "%.1f" % dG
-    
-    @staticmethod    
-    def pC_to_range(pC, c_mid=1e-3, ratio=3.0):
-        return (c_mid * 10 ** (-ratio/(ratio+1.0) * pC), c_mid * 10 ** (1.0/(ratio+1.0) * pC))
-
-    @staticmethod
-    def conc_to_str(conc):
-        if (pylab.isnan(conc)):
-            return "N/A"
-        else:
-            return "%.2g" % conc
     
     def analyze_slack(self, key, field_map, html_writer):
         html_writer.write('<p>\n')
@@ -1348,7 +1314,7 @@ class GroupContribution:
         html_writer.write('<li><a href=%s>Graph visualization</a></li>\n' % svg_fname_graph)
 
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
-        self.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
+        self.kegg().write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
         html_writer.write('</ul>\n')
         
         physiological_pC = kegg.parse_float_field(field_map, "PHYSIO", 4)
@@ -1367,7 +1333,7 @@ class GroupContribution:
             cid = cids[c]
             name = self.kegg().cid2name(cid)
             try:
-                pmap = self.estimate_pmap_keggcid(cid)
+                pmap = self.cid2pmap(cid)
                 dG0_f[c] = self.pmap_to_dG0(pmap, pH, I, T)
                 for ((nH, z), dG0) in pmap.iteritems():
                     html_writer.write('<tr><td>%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td>\n' % (cid, name, dG0, nH, z))
@@ -1384,8 +1350,8 @@ class GroupContribution:
         #label_vec = [""] * len(pC)
         #limiting_reactions = set()
         for i in xrange(len(pC)):
-            c_range = GroupContribution.pC_to_range(pC[i], c_mid=c_mid)
-            (dG_f, concentrations, B) = find_feasible_concentrations(S, dG0_f, c_range, bounds=bounds)
+            c_range = pC_to_range(pC[i], c_mid=c_mid)
+            (dG_f, concentrations, B) = find_mcmf(S, dG0_f, c_range, bounds=bounds)
             dG_r = pylab.dot(S, dG_f)
             
             B_vec[i] = B
@@ -1399,8 +1365,8 @@ class GroupContribution:
             pCr = None
             
         try:
-            c_range = GroupContribution.pC_to_range(physiological_pC, c_mid=c_mid)
-            (dG_f, concentrations, B_physiological) = find_feasible_concentrations(S, dG0_f, c_range, bounds) 
+            c_range = pC_to_range(physiological_pC, c_mid=c_mid)
+            (dG_f, concentrations, B_physiological) = find_mcmf(S, dG0_f, c_range, bounds) 
         except LinProgNoSolutionException:
             B_physiological = None
 
@@ -1446,7 +1412,7 @@ class GroupContribution:
         for c in range(Nc):
             compound = self.kegg().cid2compound(cids[c])
             cid_str = '<a href="%s">C%05d</a>' % (compound.get_link(), compound.cid)
-            html_writer.write('<tr><td>%s</td><td>%s</td><td>%s</td>\n' % (cid_str, compound.name, GroupContribution.dG_to_str(dG0_f[c, 0])))
+            html_writer.write('<tr><td>%s</td><td>%s</td><td>%.1f</td>\n' % (cid_str, compound.name, dG0_f[c, 0]))
         html_writer.write('</table><br>\n')
         
         # write a table of the reactions and their dG0_r
@@ -1465,178 +1431,36 @@ class GroupContribution:
 
     def analyze_margin(self, key, field_map, html_writer):
         html_writer.write('<p>\n')
-      
-        # embed the graph first (though the SVG file itself will be created only later in the code
-        svg_fname_graph = '%s/%s_graph.svg' % (self.FIG_DIR, key)
-        svg_fname_profile = '%s/%s_profile.svg' % (self.FIG_DIR, key)
-        html_writer.embed_svg(svg_fname_profile, name=key, width=800, height=600)
-
-        html_writer.write('</br>\n')
-        html_writer.write('<ul>\n')
+        (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
         html_writer.write('<li>Conditions:</br><ol>\n')
-        # c_mid the middle value of the margin: min(conc) < c_mid < max(conc) 
-        c_mid = kegg.parse_float_field(field_map, 'C_MID', 1e-3)
-        (pH, I, T) = (default_pH, default_I, default_T)
-        concentration_bounds = deepcopy(self.kegg().cid2bounds)
-        if ("CONDITIONS" in field_map):
-            pH = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "pH", default_pH)
-            I = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "I", default_I)
-            T = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "T", default_T)
-            html_writer.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (pH, I, T))
-            for tokens in re.findall("C([0-9]+)=([0-9\.e\+\-]+)", field_map["CONDITIONS"]):
-                cid = float(tokens[0])
-                conc = float(tokens[1])
-                concentration_bounds[cid] = (conc, conc)
-                html_writer.write(', [C%05d] = %g\n' % (cid, conc))
-            html_writer.write('</li>\n')
-        html_writer.write('</ol></li>')
                     
         # The method for how we are going to calculate the dG0
         method = kegg.parse_string_field(field_map, "METHOD", "MILO")
-        c_range = kegg.parse_vfloat_field(field_map, "C_RANGE", [1e-6, 1e-2])
+
+        if (method == "MILO"):
+            thermodynamics = self
+        elif (method == "HATZI"):
+            thermodynamics = self.hatzi
+        else:
+            raise Exception("Unknown dG evaluation method: " + method)
+        thermodynamics.bounds = deepcopy(self.kegg().cid2bounds)
         
-        html_writer.write('<li><a href=%s>Graph visualization</a></li>\n' % svg_fname_graph)
-
-        (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
-        self.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
-        html_writer.write('</ul>\n')
-
-        # draw a graph representation of the pathway        
-        (Nr, Nc) = S.shape
-        Gdot = self.kegg().draw_pathway(S, rids, cids)
-        Gdot.write(svg_fname_graph, prog='dot', format='svg')
-
-        # calculate the dG_f of each compound, and then use S to calculate dG_r
-        dG0_f = pylab.zeros((Nc, 1))
-        ind_nan = []
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z") + '\n')
-        for c in range(Nc):
-            cid = cids[c]
-            name = self.kegg().cid2name(cid)
-            try:
-                if (method == "MILO"):
-                    pmap = self.estimate_pmap_keggcid(cid)
-                elif (method == "HATZI"):
-                    dG0 = self.hatzi_cid2dG[cid]
-                    z = self.hatzi_cid2charge[cid]
-                    pmap = {(z, z): dG0}
-                else:
-                    raise Exception("Unknown dG evaluation method: " + method)
-                
-                dG0_f[c] = self.pmap_to_dG0(pmap, pH, I, T)
-                for ((nH, z), dG0) in pmap.iteritems():
-                    html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (cid, name, dG0, nH, z))
-            
-            except (kegg.KeggParseException, GroupMissingTrainDataError):
-                # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
-                dG0_f[c] = pylab.nan
-                ind_nan.append(c)
-                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % (cid, name))
-        html_writer.write('</table>\n')
-        bounds = [concentration_bounds.get(cid, (None, None)) for cid in cids]
-        res = {}
-        try:
-            res['pCr'] = find_pCr(S, dG0_f, c_mid=c_mid, ratio=3, bounds=bounds)
-            #res['PCR2'] = find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=c_mid, bounds=bounds)
-            res['SLACK'] = find_feasible_concentrations(S, dG0_f, c_range, bounds=bounds)
-        except LinProgNoSolutionException:
-            html_writer.write('<b>No feasible solution found, cannot calculate the Margin</b>')
+        if ("CONDITIONS" in field_map):
+            thermodynamics.pH = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "pH", default_pH)
+            thermodynamics.I = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "I", default_I)
+            thermodynamics.T = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "T", default_T)
+            html_writer.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (thermodynamics.pH, thermodynamics.I, thermodynamics.T))
+            for tokens in re.findall("C([0-9]+)=([0-9\.e\+\-]+)", field_map["CONDITIONS"]):
+                cid = float(tokens[0])
+                conc = float(tokens[1])
+                thermodynamics.bounds[cid] = (conc, conc)
+                html_writer.write(', [C%05d] = %g\n' % (cid, conc))
+            html_writer.write('</li>\n')
+        html_writer.write('</ol></li>')
+        thermodynamics.c_range = kegg.parse_vfloat_field(field_map, "C_RANGE", [1e-6, 1e-2])
+        thermodynamics.c_mid = kegg.parse_float_field(field_map, 'C_MID', 1e-3)
         
-        # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 10
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 5
-        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
-        pylab.rcParams['figure.dpi'] = 100
-        
-        profile_fig = pylab.figure()
-        profile_fig.hold(True)
-
-        pylab.title('Thermodynamic profile', figure=profile_fig)
-        pylab.ylabel('cumulative dG [kJ/mol]', figure=profile_fig)
-        pylab.xlabel('Reaction KEGG ID', figure=profile_fig)
-        pylab.xticks(pylab.arange(1, Nr + 1), ['R%05d' % rids[i] for i in xrange(Nr)], fontproperties=FontProperties(size=8), rotation=30)
-        if (len(ind_nan) == 0): # TODO: if this is not the case, find a way to draw the dG0_r anyway
-            dG0_r = pylab.dot(S, dG0_f)
-            cum_dG0_r = pylab.cumsum([0] + [dG0_r[i, 0] * fluxes[i] for i in range(Nr)])
-            pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG0_r, figure=profile_fig, label='Standard [1M]')
-        pylab.grid(True, figure=profile_fig)
-
-        for optimization in res.keys():
-            (dG_f, conc, score) = res[optimization]
-            if (score == None):
-                continue
-
-            dG_r = pylab.dot(S, dG_f)
-            cum_dG_r = pylab.cumsum([0] + [dG_r[i, 0] * fluxes[i] for i in range(Nr)])
-            pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG_r, figure=profile_fig, label='%s = %.1f' % (optimization, score))
-
-        pylab.legend()
-        profile_fig.savefig(svg_fname_profile, format='svg')
-
-        for optimization in res.keys():
-            (dG_f, conc, score) = res[optimization]
-            if (score == None):
-                continue
-            conc[ind_nan] = c_mid # give all compounds with unknown dG0_f the middle concentration value
-
-            conc_fig = pylab.figure()
-            conc_fig.suptitle('Concentrations (%s = %.1f)' % (optimization, score))
-            pylab.xscale('log', figure=conc_fig)
-            pylab.ylabel('Compound KEGG ID', figure=conc_fig)
-            pylab.xlabel('Concentration [M]', figure=conc_fig)
-            pylab.yticks(range(Nc, 0, -1), ["C%05d" % cid for cid in cids], fontproperties=FontProperties(size=8))
-            pylab.plot(conc, range(Nc, 0, -1), '*b', figure=conc_fig)
-
-            # TODO: instead of compound numbers, write the compound KEGG IDs
-
-            x_min = conc.min() / 10
-            x_max = conc.max() * 10
-            y_min = 0
-            y_max = Nc + 1
-            
-            for c in range(Nc):
-                pylab.text(conc[c, 0] * 1.1, Nc - c, self.kegg().cid2name(cids[c]), \
-                           figure=conc_fig, fontsize=6, rotation=0)
-                (b_low, b_up) = bounds[c]
-                if (b_low == None):
-                    b_low = x_min
-                if (b_up == None):
-                    b_up = x_max
-                pylab.plot([b_low, b_up], [Nc - c, Nc - c], '-k', linewidth=0.4)
-
-            if (optimization == 'pCr'):
-                c_range_opt = GroupContribution.pC_to_range(score, c_mid=c_mid, ratio=3.0)
-                pylab.axvspan(c_range_opt[0], c_range_opt[1], facecolor='g', alpha=0.3, figure=conc_fig)
-            else:
-                pylab.axvspan(c_range[0], c_range[1], facecolor='g', alpha=0.3, figure=conc_fig)
-            pylab.axis([x_min, x_max, y_min, y_max], figure=conc_fig)
-            svg_fname_concentrations = '%s/%s_conc_%s.svg' % (self.FIG_DIR, key, optimization)
-            conc_fig.savefig(svg_fname_concentrations, format='svg')
-            html_writer.embed_svg(svg_fname_concentrations, name=key, width=800, height=600)
-
-            html_writer.write('<p>Biochemical Compound Formation Energies (%s)<br>\n' % optimization)
-            html_writer.write('<table border="1">\n')
-            html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "Concentration [M]", "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]") + '\n')
-            for c in range(Nc):
-                cid = cids[c]
-                name = self.kegg().cid2name(cid)
-                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2g</td><td>%.2f</td><td>%.2f</td></tr>\n' % \
-                                  (cid, name, conc[c, 0], dG0_f[c], dG0_f[c] + R*T*pylab.log(conc[c, 0])))
-            html_writer.write('</table></p>\n')
-
-            html_writer.write('<p>Biochemical Reaction Energies (%s)<br>\n' % optimization)
-            html_writer.write('<table border="1">\n')
-            html_writer.write('  ' + '<td>%s</td>'*3 % ("KEGG RID", "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]") + '\n')
-            for r in range(Nr):
-                rid = rids[r]
-                html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%.2f</td><td>%.2f</td></tr>\n' % \
-                                  (self.kegg().rid2link(rid), self.kegg().rid2name(rid), rid, dG0_r[r, 0], dG_r[r, 0]))
-            html_writer.write('</table></p>\n')
+        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg(), html_writer, svg_prefix='%s_' % key, svg_path=self.FIG_DIR)
 
     def analyze_contour(self, key, field_map, html_writer):
         svg_fname = '%s/%s_contour.svg' % (self.FIG_DIR, key)
@@ -1662,7 +1486,7 @@ class GroupContribution:
         pylab.xlabel("pH")
         pylab.ylabel("Ionic Strength")
         pylab.savefig(svg_fname, format='svg')
-        html_writer.write('<br>\n' + self.sparse_reaction_to_hypertext(sparse_reaction) + '<br>\n')
+        html_writer.write('<br>\n' + self.kegg().sparse_to_hypertext(sparse_reaction) + '<br>\n')
         html_writer.write('</p>')
 
     def analyze_protonation(self, key, field_map, html_writer):
@@ -1673,7 +1497,7 @@ class GroupContribution:
         T = kegg.parse_float_field(field_map, "T", default_T)
         cid = kegg.parse_string_field(field_map, "COMPOUND")
         cid = int(cid[1:])
-        pmap = self.estimate_pmap_keggcid(cid)
+        pmap = self.cid2pmap(cid)
         data = pylab.zeros((len(pmap), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
@@ -1764,115 +1588,6 @@ class GroupContribution:
         stoichiometric_vector = stoichiometric_vector[nonzero_values]
         
         return (stoichiometric_vector, cid_vector)
-
-    def sparse_reaction_to_hypertext(self, sparse_reaction, show_cids=True):
-        s_left = []
-        s_right = []
-        for (cid, count) in sparse_reaction.iteritems():
-            if (abs(count) < 0.01):
-                continue
-            url = self.kegg().cid2link(cid)
-            name = self.kegg().cid2name(cid)
-            if (show_cids):
-                show_string = "C%05d" % cid
-                title = name + ': ' + ", ".join(["%s-%.2e[M]" % (m, c) for (m, c) in self.get_concentration_list(cid)])
-            else:
-                show_string = name
-                title = "C%05d: " % cid + ", ".join(["%s-%.2e[M]" % (m, c) for (m, c) in self.get_concentration_list(cid)])
-            
-            if (count > 0):
-                if (count == 1):
-                    s_right.append('<a href="%s" title="%s">%s</a>' % (url, title, show_string))
-                else:
-                    s_right.append('%g <a href="%s" title="%s">%s</a>' % (count, url, title, show_string))
-            elif (count < 0):
-                if (count == -1):
-                    s_left.append('<a href="%s" title="%s">%s</a>' % (url, title, show_string))
-                else:
-                    s_left.append('%g <a href="%s" title="%s">%s</a>' % (-count, url, title, show_string))
-        return ' + '.join(s_left) + ' -> ' + ' + '.join(s_right)
-    
-    def load_hatzimanikatis_rid_data(self, csv_fname=None):
-        if (csv_fname != None):
-            csv_reader = csv.reader(open(csv_fname, 'r'))
-            csv_reader.next()
-            self.comm.execute("DROP TABLE IF EXISTS hatzi_rid_to_dG")
-            self.comm.execute("CREATE TABLE hatzi_rid_to_dG (rid INT, dG REAL, uncertainty REAL)")
-            for row in csv_reader:
-                (rid, dG, uncertanty, reason) = row
-                rid = int(rid[1:])
-                try:
-                    dG = float(dG) * 4.18400 # turn calories to Joules
-                    uncertainty = float(uncertanty)
-                except ValueError:
-                    continue
-                self.comm.execute("INSERT INTO hatzi_rid_to_dG VALUES(?,?,?)", (rid, dG, uncertainty))
-            self.comm.commit()
-            
-        self.hatzi_rid2dG = {}
-        if (self.does_table_exist('hatzi_rid_to_dG')):
-            for row in self.comm.execute("SELECT rid, dG FROM hatzi_rid_to_dG"):
-                (rid, dG) = row
-                self.hatzi_rid2dG[rid] = dG
-
-    def load_hatzimanikatis_cid_data(self, csv_fname=None):
-        if (csv_fname != None):
-            csv_reader = csv.reader(open(csv_fname, 'r'))
-            csv_reader.next()
-            self.comm.execute("DROP TABLE IF EXISTS hatzi_cid_to_dG")
-            self.comm.execute("CREATE TABLE hatzi_cid_to_dG (cid INT, dG REAL, uncertainty REAL, charge INT)")
-            self.comm.execute("INSERT INTO hatzi_cid_to_dG VALUES(?,?,?,?)", (80, 0.0, 0.0, 0)) # this causes the program to ignore H+ in reactions
-            for row in csv_reader:
-                (cid, dG, uncertanty, charge, reason) = row
-                cid = int(cid[1:])
-                try:
-                    dG = float(dG) * 4.18400 # turn calories to Joules
-                    uncertainty = float(uncertanty)
-                    charge = int(charge)
-                except ValueError:
-                    continue
-                self.comm.execute("INSERT INTO hatzi_cid_to_dG VALUES(?,?,?,?)", (cid, dG, uncertainty, charge))
-            self.comm.commit()
-            
-        self.hatzi_cid2dG = {}
-        self.hatzi_cid2charge = {}
-        if (self.does_table_exist('hatzi_cid_to_dG')):
-            for row in self.comm.execute("SELECT cid, dG, charge FROM hatzi_cid_to_dG"):
-                (cid, dG, charge) = row
-                self.hatzi_cid2dG[cid] = dG
-                self.hatzi_cid2charge[cid] = charge
-
-    def hatzi_dG0_keggcid(self, cid, pH=default_pH, I=default_I, T=default_T):
-        dG0 = self.hatzi_cid2dG[cid]
-        z = self.hatzi_cid2charge[cid]
-        nH = z
-        return Thermodynamics.transform(dG0, nH, z, pH, I, T)
-
-    def hatzi_dG0_reaction(self, stoichiometry_vector, cid_vector, pH=default_pH, I=default_I, T=default_T):
-        try:
-            dG0_vector = pylab.array([self.hatzi_dG0_keggcid(cid, pH, I, T) for cid in cid_vector])
-            dG0_r = pylab.dot(stoichiometry_vector, dG0_vector)
-            return dG0_r
-        except KeyError:
-            return self.estimate_dG0_reaction(stoichiometry_vector, cid_vector, pH=pH, I=I, T=T)
-
-    def hatzi_dG_reaction(self, sparse_reaction, pH=default_pH, I=default_I, T=default_T, c0=default_c0, media=None):
-        try:
-            dG0_vector = pylab.array([self.hatzi_dG0_keggcid(cid, pH, I, T) for cid in sparse_reaction.keys()])
-            concentration_vector = [pylab.log(self.get_concentration(cid, c0, media)) for cid in sparse_reaction.keys()]
-            stoichiometry_vector = sparse_reaction.values()
-            dG0_r = pylab.dot(stoichiometry_vector, dG0_vector)
-            return dG0_r + R * T * pylab.dot(stoichiometry_vector, concentration_vector)
-        except KeyError:
-            return self.estimate_dG_reaction(sparse_reaction, pH=pH, I=I, T=T)            
-
-    def hatzi_dG0_formula(self, formula, pH=default_pH, I=default_I, T=default_T):
-        sparse_reaction = self.kegg().formula_to_sparse(formula)
-        return self.hatzi_dG0_reaction(sparse_reaction, pH, I, T)
-
-    def hatzi_dG_formula(self, formula, pH=default_pH, I=default_I, T=default_T):
-        sparse_reaction = self.kegg().formula_to_sparse(formula)
-        return self.hatzi_dG_reaction(sparse_reaction, pH, I, T)
     
     def analyze_decomposition_cid(self, cid):
         return self.analyze_decomposition(self.kegg().cid2mol(cid))
