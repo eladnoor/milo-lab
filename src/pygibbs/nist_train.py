@@ -504,7 +504,7 @@ def main():
     alberty = Alberty()
     hatzi = Hatzi()
     
-    if False:
+    if True:
         sys.stderr.write("Calculate the correlation between Alberty's predictions and the NIST database\n")
         grad = GradientAscent(gc)
         grad.cid2pmap_dict = alberty.cid2pmap_dict
@@ -513,16 +513,17 @@ def main():
         #grad.verify_results("alberty_noI", ignore_I=True)
         grad.write_pseudoisomers("../res/nist/nist_dG0_f.csv")
 
-        sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the NIST database\n")
+        sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the reduced NIST database\n")
         grad.cid2pmap_dict =  hatzi.cid2pmap_dict
-        grad.verify_results("hatzi")
+        grad.verify_results("hatzi-small")
 
-    elif True:
-        sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the NIST database\n")
+        sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the full NIST database\n")
         grad = GradientAscent(gc)
         grad.cid2pmap_dict = hatzi.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(298, 314))
         grad.verify_results("hatzi-full")
+
+    elif True:
         
         sys.stderr.write("Calculate the correlation between PAGC predictions and the NIST database\n")
         grad.cid2pmap_dict = gc.cid2pmap_dict
