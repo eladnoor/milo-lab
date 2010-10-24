@@ -8,6 +8,7 @@ from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr,
 from pygibbs import kegg
 import types
 from pygibbs.hatzimanikatis import Hatzi
+from pygibbs.kegg import KeggParseException
 
 def find_smarts(smarts_str, mol):
     """
@@ -801,7 +802,11 @@ class GroupContribution(Thermodynamics):
         if (cid in self.cid2pmap_obs and (self.use_measured_train_values or cid in self.cid_test_set)):
             return self.cid2pmap_obs[cid]
         else:
-            mol = self.kegg().cid2mol(cid)
+            try:
+                mol = self.kegg().cid2mol(cid)
+            except KeggParseException as e:
+                raise MissingCompoundFormationEnergy("Cannot determine molecular structure: " + str(e), cid)
+            
             mol.title = "C%05d" % cid
             try:
                 pmap = self.estimate_pmap(mol)
