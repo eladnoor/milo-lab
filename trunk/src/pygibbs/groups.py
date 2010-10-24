@@ -76,7 +76,17 @@ def find_pchains(mol, lengths=[1, 2, 3], ignore_protonations=False):
                 
     return sorted(list(group_map.iteritems()))
 
-class GroupDecompositionError(Exception):
+class GroupContributionError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        if (type(self.value) == types.StringType):
+            return self.value
+        else:
+            return repr(self.value)
+
+
+class GroupDecompositionError(GroupContributionError):
     def __init__(self, value):
         self.value = value
     def __str__(self):
@@ -85,7 +95,7 @@ class GroupDecompositionError(Exception):
         else:
             return repr(self.value)
     
-class GroupMissingTrainDataError(Exception):
+class GroupMissingTrainDataError(GroupContributionError):
     def __init__(self, value, missing_groups=[]):
         self.value = value
         self.missing_groups = missing_groups
@@ -160,7 +170,7 @@ class GroupContribution(Thermodynamics):
                         pmap = self.cid2pmap(cid)
                         sys.stderr.write("using estimated data\n")
                         estimated = True
-                    except (GroupDecompositionError, GroupMissingTrainDataError, KeyError, kegg.KeggParseException) as e:
+                    except (MissingCompoundFormationEnergy) as e:
                         sys.stderr.write("ERROR: %s\n" % str(e))
                         continue
 
@@ -723,19 +733,18 @@ class GroupContribution(Thermodynamics):
         sys.stderr.write('[DONE]\n')
         
         sys.stderr.write("Plotting graphs for observed vs. estimated ... ")
-        pylab.figure()
+        obs_vs_est_fig = pylab.figure()
         pylab.plot(val_obs, val_est, '.')
         pylab.xlabel('Observed (obs)')
         pylab.ylabel('Estimated (est)')
         pylab.hold(True)
         for (abs_err, mol_name, obs, est, err) in deviations:
             pylab.text(obs, est, mol_name, fontsize=4)
-        pylab.savefig('%s/obs_vs_est.svg' % self.FIG_DIR, format='svg')
         pylab.savefig('%s/obs_vs_est.pdf' % self.FIG_DIR, format='pdf')
         self.HTML.write('<h3><a name="obs_vs_est">Observed vs. Estimated</a></h3>\n')
-        self.HTML.embed_svg('%s/obs_vs_est.svg' % self.EXP_NAME, name='obs_vs_est', width=1000, height=800)
+        self.HTML.embed_matplotlib_figure(obs_vs_est_fig, width=1000, height=800)
         
-        pylab.figure()
+        obs_vs_err_fig = pylab.figure()
         pylab.plot(val_obs, val_err, '+')
         pylab.xlabel('Observed (obs)')
         pylab.ylabel('Estimation error (est - obs)')
@@ -743,10 +752,9 @@ class GroupContribution(Thermodynamics):
         for (abs_err, mol_name, obs, est, err) in deviations:
             pylab.text(obs, err, mol_name, fontsize=4)
     
-        pylab.savefig('%s/obs_vs_err.svg' % self.FIG_DIR, format='svg', orientation='landscape')
         pylab.savefig('%s/obs_vs_err.pdf' % self.FIG_DIR, format='pdf', orientation='landscape')
         self.HTML.write('<h3><a name="obs_vs_err">Observed vs. Error</a></h3>\n')
-        self.HTML.embed_svg('%s/obs_vs_err.svg' % self.EXP_NAME, name='obs_vs_err', width=1000, height=800)
+        self.HTML.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
         sys.stderr.write('[DONE]\n')
         self.HTML.flush()
 
@@ -797,11 +805,11 @@ class GroupContribution(Thermodynamics):
             mol.title = "C%05d" % cid
             try:
                 pmap = self.estimate_pmap(mol)
-            except GroupMissingTrainDataError as e:
+            except GroupContributionError as e:
                 if (cid in self.cid2pmap_obs):
                     return self.cid2pmap_obs[cid]
                 else:
-                    raise MissingCompoundFormationEnergy(str(e))
+                    raise MissingCompoundFormationEnergy(str(e), cid)
 
             return pmap
     
@@ -1177,14 +1185,16 @@ class GroupContribution(Thermodynamics):
         
         return (S, rids, fluxes, cids)
 
+    def write_metabolic_graph(self, html_writer, S, rids, cids, svg_fname_graph):
+        """
+            draw a graph representation of the pathway
+        """        
+        html_writer.write('<a href=%s>Graph visualization</a></br>\n' % svg_fname_graph)
+        Gdot = self.kegg().draw_pathway(S, rids, cids)
+        Gdot.write(svg_fname_graph, prog='dot', format='svg')
+
     def analyze_profile(self, key, field_map, html_writer):
         html_writer.write('<p>\n')
-
-        # embed the graph first (though the SVG file itself will be created only later in the code
-        svg_fname_graph = '%s/%s_graph.svg' % (self.FIG_DIR, key)
-        svg_fname_profile = '%s/%s_profile.svg' % (self.FIG_DIR, key)
-        html_writer.embed_svg(svg_fname_profile, name=key, width=800, height=600)
-        html_writer.write('</br>\n')
         html_writer.write('<ul>\n')
         html_writer.write('<li>Conditions:</br><ol>\n')
         # read the list of conditions from the command file
@@ -1222,17 +1232,12 @@ class GroupContribution(Thermodynamics):
                 dG_profiles[plot_key] = []
                 params_list.append((method, media, pH, I, T, c0, plot_key))
 
-        html_writer.write('<li><a href=%s>Graph visualization</a></li>' % svg_fname_graph)
-        
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
         self.kegg().write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
         html_writer.write('</ul>')
-
+        self.write_metabolic_graph(html_writer, S, rids, cids, '%s/%s_graph.svg' % (self.FIG_DIR, key))
+        
         (Nr, Nc) = S.shape
-
-        # draw a graph representation of the pathway        
-        Gdot = self.kegg().draw_pathway(S, rids, cids)
-        Gdot.write(svg_fname_graph, prog='dot', format='svg')
 
         # calculate the dG_f of each compound, and then use S to calculate dG_r
         dG0_f = {}
@@ -1265,7 +1270,7 @@ class GroupContribution(Thermodynamics):
         pylab.rcParams['lines.markersize'] = 2
         pylab.rcParams['figure.figsize'] = [8.0, 6.0]
         pylab.rcParams['figure.dpi'] = 100
-        pylab.figure()
+        profile_fig = pylab.figure()
         pylab.hold(True)
         data = pylab.zeros((Nr + 1, len(legend)))
         for i in range(len(legend)):
@@ -1279,18 +1284,11 @@ class GroupContribution(Thermodynamics):
         
         pylab.xlabel("Reaction no.")
         pylab.ylabel("dG [kJ/mol]")
-        pylab.savefig(svg_fname_profile, format='svg')
+        html_writer.embed_matplotlib_figure(profile_fig, width=800, heigh=600)
         html_writer.write('</p>')
     
     def analyze_slack(self, key, field_map, html_writer):
         html_writer.write('<p>\n')
-      
-        # embed the graph first (though the SVG file itself will be created only later in the code
-        svg_fname_graph = '%s/%s_graph.svg' % (self.FIG_DIR, key)
-        svg_fname_slack = '%s/%s_slack.svg' % (self.FIG_DIR, key)
-        html_writer.embed_svg(svg_fname_slack, name=key, width=800, height=600)
-
-        html_writer.write('</br>\n')
         html_writer.write('<ul>\n')
         html_writer.write('<li>Conditions:</br><ol>\n')
         # c_mid the middle value of the margin: min(conc) < c_mid < max(conc) 
@@ -1311,18 +1309,13 @@ class GroupContribution(Thermodynamics):
         html_writer.write('</ol></li>')
                     
         # The method for how we are going to calculate the dG0
-        html_writer.write('<li><a href=%s>Graph visualization</a></li>\n' % svg_fname_graph)
-
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
         self.kegg().write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
         html_writer.write('</ul>\n')
+        self.write_metabolic_graph(html_writer, S, rids, cids, '%s/%s_graph.svg' % (self.FIG_DIR, key))
         
         physiological_pC = kegg.parse_float_field(field_map, "PHYSIO", 4)
-
-        # draw a graph representation of the pathway        
         (Nr, Nc) = S.shape
-        Gdot = self.kegg().draw_pathway(S, rids, cids)
-        Gdot.write(svg_fname_graph, prog='dot', format='svg')
 
         # calculate the dG_f of each compound, and then use S to calculate dG_r
         dG0_f = pylab.zeros((Nc, 1))
@@ -1352,8 +1345,6 @@ class GroupContribution(Thermodynamics):
         for i in xrange(len(pC)):
             c_range = pC_to_range(pC[i], c_mid=c_mid)
             (dG_f, concentrations, B) = find_mcmf(S, dG0_f, c_range, bounds=bounds)
-            dG_r = pylab.dot(S, dG_f)
-            
             B_vec[i] = B
             #curr_limiting_reactions = set(pylab.find(abs(dG_r - B) < 1e-9)).difference(limiting_reactions)
             #label_vec[i] = ", ".join(["%d" % rids[r] for r in curr_limiting_reactions]) # all RIDs of reactions that have dG_r = B
@@ -1380,7 +1371,7 @@ class GroupContribution(Thermodynamics):
         pylab.rcParams['figure.figsize'] = [8.0, 6.0]
         pylab.rcParams['figure.dpi'] = 100
         
-        pylab.figure()
+        slack_fig = pylab.figure()
         pylab.plot(pC, B_vec, 'b')
         #for i in xrange(len(pC)):
         #    pylab.text(pC[i], B_vec[i], label_vec[i], fontsize=6, horizontalalignment='left', backgroundcolor='white')
@@ -1404,7 +1395,7 @@ class GroupContribution(Thermodynamics):
         
         pylab.title(title)
         pylab.ylim(ymin=ymin)
-        pylab.savefig(svg_fname_slack, format='svg')
+        html_writer.embed_matplotlib_figure(slack_fig, width=800, height=600)
 
         # write a table of the compounds and their dG0_f
         html_writer.write('<table border="1">\n')
@@ -1460,12 +1451,9 @@ class GroupContribution(Thermodynamics):
         thermodynamics.c_range = kegg.parse_vfloat_field(field_map, "C_RANGE", [1e-6, 1e-2])
         thermodynamics.c_mid = kegg.parse_float_field(field_map, 'C_MID', 1e-3)
         
-        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg(), html_writer, svg_prefix='%s_' % key, svg_path=self.FIG_DIR)
+        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg(), html_writer)
 
     def analyze_contour(self, key, field_map, html_writer):
-        svg_fname = '%s/%s_contour.svg' % (self.FIG_DIR, key)
-        html_writer.embed_svg(svg_fname, name=key, width=800, height=600)
-
         pH_list = kegg.parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
         I_list = kegg.parse_vfloat_field(field_map, "I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
         T = kegg.parse_float_field(field_map, "T", default_T)
@@ -1478,20 +1466,18 @@ class GroupContribution(Thermodynamics):
             
         sparse_reaction = self.kegg().formula_to_sparse(formula)
         dG_r = self.estimate_dG_reaction(sparse_reaction, pH_list, I_list, T, c0, media, most_abundant)
-        pylab.figure()
+        contour_fig = pylab.figure()
         
         pH_meshlist, I_meshlist = pylab.meshgrid(pH_list, I_list)
         CS = pylab.contour(pH_meshlist.T, I_meshlist.T, dG_r)       
         pylab.clabel(CS, inline=1, fontsize=10)
         pylab.xlabel("pH")
         pylab.ylabel("Ionic Strength")
-        pylab.savefig(svg_fname, format='svg')
+        html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
         html_writer.write('<br>\n' + self.kegg().sparse_to_hypertext(sparse_reaction) + '<br>\n')
         html_writer.write('</p>')
 
     def analyze_protonation(self, key, field_map, html_writer):
-        svg_fname = '%s/%s_protonation.svg' % (self.FIG_DIR, key)
-        html_writer.embed_svg(svg_fname, name=key, width=800, height=600)
         pH_list = kegg.parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
         I = kegg.parse_float_field(field_map, "I", default_I)
         T = kegg.parse_float_field(field_map, "T", default_T)
@@ -1507,15 +1493,14 @@ class GroupContribution(Thermodynamics):
             p_array = p_array / sum(p_array)
             data[:, j] = p_array    
         
-        pylab.figure()
+        protonation_fig = pylab.figure()
         pylab.plot(pH_list, data.T)
         prop = pylab.matplotlib.font_manager.FontProperties(size=10)
         name = self.kegg().cid2name(cid)
         pylab.legend(['%s [%d]' % (name, z) for ((nH, z), dG0) in pmap.iteritems()], prop=prop)
         pylab.xlabel("pH")
         pylab.ylabel("Pseudoisomer proportion")
-        pylab.savefig(svg_fname, format='svg')
-        pylab.savefig('%s/%s_protonation.pdf' % (self.FIG_DIR, key), format='pdf')
+        html_writer.embed_matplotlib_figure(protonation_fig, width=800, height=600)
         html_writer.write('<table border="1">\n')
         html_writer.write('  <tr><td>%s</td><td>%s</td><td>%s</td></tr>\n' % ('dG0_f', '# hydrogen', 'charge'))
         for ((nH, z), dG0) in pmap.iteritems():
@@ -1617,6 +1602,13 @@ class GroupContribution(Thermodynamics):
 #################################################################################################################
     
 if (__name__ == '__main__'):
+
+    G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+    G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
+    G.write_gc_tables()
+    G.init()
+    G.load_cid2pmap(recalculate=False)
+    G.cid2pmap(3167)
 
     if (False): # Affinity of substrate group contribution
         G = GroupContribution("Km", "../data/groups_martin.csv")

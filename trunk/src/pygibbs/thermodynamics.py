@@ -10,7 +10,7 @@ default_pH = 7.0
 default_c0 = 1 # M
 
 class MissingCompoundFormationEnergy(Exception):
-    def __init__(self, value, cid):
+    def __init__(self, value, cid=0):
         self.value = value
         self.cid = cid
     def __str__(self):

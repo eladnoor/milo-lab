@@ -90,8 +90,8 @@ class Pathologic:
         slip = Stoichiometric_LP("Pathologic", self.LOG_FILE)
         slip.add_stoichiometric_constraints(f, S, compounds, reactions, source, target)
         slip.set_objective()
-        slip.export("../res/pathologic/%s/lp_minflux.txt" % experiment_name)
-        exp_html.write(' (<a href="%s/lp_minflux.txt">LP file</a>): ' % experiment_name)
+        slip.export("../res/pathologic/%s/%03d_lp.txt" % (experiment_name, 0))
+        exp_html.write(' (<a href="%s/%03d_lp.txt">LP file</a>): ' % (experiment_name, 0))
         sys.stderr.write("[DONE]\n")
         sys.stderr.write("Solving ... ")
         if (not slip.solve() ):
@@ -130,8 +130,8 @@ class Pathologic:
             index = milp.solution_index + 1
             sys.stderr.write("Round %03d, solving using MILP ... " % (index))
             milp.set_objective()
-            milp.export("../res/pathologic/%s/lp_%03d.txt" % (experiment_name, index))
-            exp_html.write('<b>Solution #%d</b> (<a href="%s/lp_%03d.txt">LP file</a>): '  % (index, experiment_name, index))
+            milp.export("../res/pathologic/%s/%03d_lp.txt" % (experiment_name, index))
+            exp_html.write('<b>Solution #%d</b> (<a href="%s/%03d_lp.txt">LP file</a>): '  % (index, experiment_name, index))
             if (not milp.solve()):
                 exp_html.write("<b>No solution found</b>")
                 sys.stderr.write("No more solutions. Quitting!")
@@ -146,7 +146,7 @@ class Pathologic:
         solution = lp.get_fluxes()
         exp_html.write('%d reactions, flux = %g, \n' % (len(solution), lp.get_total_flux()))
 
-        solution_id = 'solution_%03d' % lp.solution_index
+        solution_id = '%03d' % lp.solution_index
         sol_fluxes = [s[1] for s in solution]
         sol_reactions = [lp.reactions[s[0]] for s in solution]
         self.margin_analysis(exp_html, sol_reactions, sol_fluxes, self.cid2dG0_f, experiment_name, solution_id)
@@ -213,10 +213,13 @@ class Pathologic:
         thermodynamics.bounds = self.cid2bounds
         thermodynamics.c_range = self.c_range
         thermodynamics.c_mid = self.c_mid
-        svg_prefix = '%s/%s' % (experiment_name, solution_id)
-        res = thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg, exp_html, svg_prefix, svg_path='../res/pathologic/')
+        res = thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg, exp_html)
         exp_html.write('</div>\n')
-        exp_html.write(' <a href="%s_graph.svg" target="_blank">network</a>' % svg_prefix)
+        
+        Gdot = self.kegg.draw_pathway(S, rids, cids)
+        Gdot.write('../res/pathologic/%s/%s_graph.svg' % (experiment_name, solution_id), prog='dot', format='svg')
+        #exp_html.embed_dot(Gdot)
+        exp_html.write(' <a href="%s/%s_graph.svg" target="_blank">network</a>' % (experiment_name, solution_id))
         
         for optimization in res.keys():
             score = res[optimization][2]
