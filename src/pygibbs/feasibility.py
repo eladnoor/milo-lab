@@ -307,14 +307,11 @@ def generate_constraints_pCr(dG0_f, c_mid, ratio, bounds=None):
         
     return (pylab.matrix(A), pylab.matrix(b).T)
 
-def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, html_writer, svg_prefix, svg_path=""):
+def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, html_writer):
     kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
 
     # draw a graph representation of the pathway        
     (Nr, Nc) = S.shape
-    Gdot = kegg.draw_pathway(S, rids, cids)
-    Gdot.write(svg_path + svg_prefix + "_graph.svg", prog='dot', format='svg')
-    html_writer.write('<li><a href="%s_graph">Graph visualization</a></li>\n' % svg_prefix)
     
     # calculate the dG_f of each compound, and then use S to calculate dG_r
     dG0_f = pylab.zeros((Nc, 1))
@@ -379,8 +376,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG_r, figure=profile_fig, label='%s = %.1f' % (optimization, score))
 
     pylab.legend()
-    profile_fig.savefig(svg_path + svg_prefix + "_profile.svg", format='svg')
-    html_writer.embed_svg(svg_prefix + "_profile.svg", name='profile', width=800, height=600)
+    html_writer.embed_matplotlib_figure(profile_fig, width=800, height=600)
 
     for optimization in res.keys():
         (dG_f, conc, score) = res[optimization]
@@ -421,8 +417,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         else:
             pylab.axvspan(thermodynamics.c_range[0], thermodynamics.c_range[1], facecolor='g', alpha=0.3, figure=conc_fig)
         pylab.axis([x_min, x_max, y_min, y_max], figure=conc_fig)
-        conc_fig.savefig(svg_path + svg_prefix + '_conc_%s.svg' % optimization, format='svg')
-        html_writer.embed_svg(svg_prefix + '_conc_%s.svg' % optimization, name='concentrations', width=800, height=600)
+        html_writer.embed_matplotlib_figure(conc_fig, width=800, height=600)
 
         html_writer.write('<p>Biochemical Compound Formation Energies (%s)<br>\n' % optimization)
         html_writer.write('<table border="1">\n')

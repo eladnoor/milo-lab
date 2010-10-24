@@ -6,7 +6,7 @@ html_writer.py - Construct HTML pages
 """
 
 import os
-import sys
+import xml.dom.minidom
 
 class HtmlWriter:
     def __init__(self, filename, force_path_creation=True, flush_always=True):
@@ -73,6 +73,31 @@ class HtmlWriter:
     def embed_svg(self, fig_fname, alternative_string="", width=320, height=240, name=''):
         self.write('<object data="%s" type="image/svg+xml" width="%d" height="%d" name="%s"/></object>' % (fig_fname, width, height, name))
     
+    def embed_matplotlib_figure(self, fig, width=320, height=240):
+        """
+            Converts the figure to an SVG DOM and uses the inline SVG option to 
+            add it directly into the HTML (without creating a separate SVG file).
+        """
+        fig.savefig('.svg', format='svg')
+        self.extract_svg_from_file('.svg', width, height)
+        os.remove('.svg')
+
+    def embed_dot(self, Gdot, width=320, height=240):
+        """
+            Converts the DOT graph to an SVG DOM and uses the inline SVG option to 
+            add it directly into the HTML (without creating a separate SVG file).
+        """
+        Gdot.write('.svg', prog='dot', format='svg')
+        self.extract_svg_from_file('.svg', width, height)
+        os.remove('.svg')
+        
+    def extract_svg_from_file(self, fname, width=320, height=240):
+        x = xml.dom.minidom.parse(fname)
+        svg = x.getElementsByTagName("svg")[0]
+        svg.setAttribute('width', '%dpt' % width)
+        svg.setAttribute('height', '%dpt' % height)
+        self.write(svg.toprettyxml(indent='  ', newl=''))
+    
     def branch(self, relative_path, link_text=None):
         """
             Branches the HTML file by creating a new HTML and adding a link to it with the desired text
@@ -91,6 +116,10 @@ class HtmlWriter:
 
 def test():
     html_write = HtmlWriter("../res/test.html")
-    html_write.write("hello world")
+    html_write.write("<h1>hello world</h1>\n")
+    import pylab
+    fig = pylab.figure()
+    pylab.plot([1, 2, 3, 4], [4, 3, 2, 1], 'g--')
+    html_write.embed_matplotlib_figure(fig, 1000, 1000)
 
 if __name__ == '__main__': test()

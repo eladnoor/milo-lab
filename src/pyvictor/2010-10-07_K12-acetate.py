@@ -44,8 +44,8 @@ rcParams['legend.fontsize'] = 12
 #rcParams['figure.subplot.hspace'] = 0.3
 #figure()
 
-fit_window_size = 1.5 # hours
-fit_start_threshold = 0.01
+fit_window_size = 5 # hours
+fit_start_threshold = 0.002
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
 t_max = 30
@@ -68,6 +68,7 @@ vlegend = []
 for r in xrange(8):
     vlegend += [(rows[r], colors[r], [(r, 4), (r, 5)])]
 vlegend += [('nothing', 'y', [(1, 7), (1, 8), (2, 7), (2, 8)])]
+vlegend += [('acetate', 'm:', [(5, 7), (5, 8), (6, 7), (6, 8)])]
 plots.append(('0.025% sugar + 0.025% acetate', (0, t_max), (1e-3, 1), 'OD', vlegend))
 
 
@@ -93,6 +94,8 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
                 (time, values) = get_data(1, row, col, vp_vec)
             else:
                 raise Exception("unrecognised Y label: " + y_label)
+            #growth_rate = vp.fit_growth(time, values, fit_window_size, fit_start_threshold)
+            #label += " (%.2f 1/h)" % growth_rate
             label2line[label] = plot(time, values, color)
 
     rcParams['legend.fontsize'] = 6
