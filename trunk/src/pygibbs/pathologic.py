@@ -163,7 +163,7 @@ class Pathologic:
         win.open_file(fname)
         gtk.main()
     
-    def write_kegg_pathway(self, exp_html, solution, reactions):
+    def write_kegg_pathway(self, exp_html, reactions, fluxes):
 
         def write_reaction(prefix, reaction, flux=1):
             if (flux == 1):
@@ -178,12 +178,11 @@ class Pathologic:
         exp_html.write('TYPE' + '&nbsp;'*8 + 'MARGIN<br>\n')
         exp_html.write('CONDITIONS' + '&nbsp;'*2 + 'pH=%g,I=%g,T=%g<br>\n' % (self.pH, self.I, self.T))
         exp_html.write('C_MID' + '&nbsp;'*7 + '0.0001<br>\n')
-        for i in range(len(solution)):
-            (r, flux) = solution[i]
-            if (i == 0):
-                write_reaction('REACTION' + '&nbsp;'*4, reactions[r], flux)
+        for r in range(len(reactions)):
+            if (r == 0):
+                write_reaction('REACTION' + '&nbsp;'*4, reactions[r], fluxes[r])
             else:
-                write_reaction('&nbsp;'*12, reactions[r], flux)
+                write_reaction('&nbsp;'*12, reactions[r], fluxes[r])
         exp_html.write('///<br></p>\n')
         exp_html.flush()
 
@@ -214,6 +213,9 @@ class Pathologic:
         thermodynamics.c_range = self.c_range
         thermodynamics.c_mid = self.c_mid
         res = thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg, exp_html)
+        
+        self.write_kegg_pathway(exp_html, reactions, fluxes)
+        
         exp_html.write('</div>\n')
         
         Gdot = self.kegg.draw_pathway(S, rids, cids)

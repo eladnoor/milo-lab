@@ -360,10 +360,22 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     pylab.ylabel('cumulative dG [kJ/mol]', figure=profile_fig)
     pylab.xlabel('Reaction KEGG ID', figure=profile_fig)
     pylab.xticks(pylab.arange(1, Nr + 1), ['R%05d' % rids[i] for i in xrange(Nr)], fontproperties=FontProperties(size=8), rotation=30)
-    if (len(ind_nan) == 0): # TODO: if this is not the case, find a way to draw the dG0_r anyway
-        dG0_r = pylab.dot(S, dG0_f)
-        cum_dG0_r = pylab.cumsum([0] + [dG0_r[i, 0] * fluxes[i] for i in range(Nr)])
-        pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG0_r, figure=profile_fig, label='Standard [1M]')
+
+    dG0_r = pylab.zeros((Nr, 1))
+    for r in range(Nr):
+        reactants = pylab.find(S[r,:])
+        dG0_r[r, 0] = pylab.dot(S[r, reactants], dG0_f[reactants])
+
+    nan_indices = pylab.find(pylab.isnan(dG0_r))
+    finite_indices = pylab.find(pylab.isfinite(dG0_r))
+    if (len(nan_indices) > 0):
+        dG0_r_finite = pylab.zeros((Nr, 1))
+        dG0_r_finite[finite_indices] = dG0_r[finite_indices]
+        cum_dG0_r = pylab.cumsum([0] + [dG0_r_finite[r, 0] * fluxes[r] for r in range(Nr)])
+    else:
+        cum_dG0_r = pylab.cumsum([0] + [dG0_r[r, 0] * fluxes[r] for r in range(Nr)])
+    pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG0_r, figure=profile_fig, label='Standard [1M]')
+        
     pylab.grid(True, figure=profile_fig)
 
     for optimization in res.keys():

@@ -40,3 +40,5 @@ if (__name__ == "__main__"):
     for pH in arange(5, 9.01, 0.25):
         H.pH = pH
         sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f\n" % (H.pH, H.I, H.T, H.reaction_to_dG0(sparse_reaction)))
+
+    sparse_reaction = {13:-1, 1:-1, 9:2}
