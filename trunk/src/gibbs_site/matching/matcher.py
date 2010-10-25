@@ -1,3 +1,5 @@
+from matching import topk
+
 class Error(Exception):
     pass
 
@@ -121,13 +123,13 @@ class Matcher(object):
         
         processed_query = self._PreprocessQuery(query)
         
-        matches = []
+        k = 2 * self._max_results
+        matches = topk.TopK(max=k)
         for candidate in self._library.iterkeys():
             score = self._MatchSingle(processed_query,
                                       self._PrepocessCandidate(candidate))
             if score > self._min_score:
-                matches.append(Match(candidate, self._library[candidate], score))
+                matches.MaybeAdd(Match(candidate, self._library[candidate], score))
         
-        # Sort descending by score and return the top k.
-        matches.sort(key=lambda x: x.score, reverse=True)
-        return matches[:self._max_results]
+        # Return the top k in sorted order by score.
+        return matches.GetSorted(key=lambda x:x.score)[:self._max_results]
