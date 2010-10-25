@@ -70,7 +70,7 @@ class SpeciesFormationEnergy(models.Model):
         return self.value + chem_potential - ionic_potential
 
     def __unicode__(self):
-        return self.value
+        return str(self.value)
 
 
 class Compound(models.Model):
@@ -90,6 +90,10 @@ class Compound(models.Model):
     # Estimates of Delta G for this compound.
     species_formation_energies = models.ManyToManyField(SpeciesFormationEnergy)
 
+    def __init__(self, *args, **kwargs):
+        super(Compound, self).__init__(*args, **kwargs)
+        self._all_sfes = None
+        
     def GetFormationEnergy(self, pH=constants.DEFAULT_PH,
                            ionic_strength=constants.DEFAULT_IONIC_STRENGTH,
                            temp=constants.DEFAULT_TEMP):
@@ -103,7 +107,7 @@ class Compound(models.Model):
         Returns:
             The estimated delta G in the given conditions or None.
         """
-        all_sfes = self.species_formation_energies.all()
+        all_sfes = self.GetSpeciesFormationEnergies()
         if not all_sfes:
             # No data...
             return None
@@ -166,16 +170,26 @@ class Compound(models.Model):
         
         return re.sub(r'(\d+)', r'<sub>\1</sub>', self.formula)
     
-    html_formula = property(lambda self: self.GetHtmlFormattedFormula())
-    kegg_link = property(lambda self: self.GetKeggLink())
-    small_image_url = property(lambda self: self.GetSmallImageUrl())
-    all_common_names = property(lambda self: self.common_names.all())
-    all_formation_energies = property(
-        lambda self: self.species_formation_energies.all())
+    def GetSpeciesFormationEnergies(self):
+        """Gets the list of SpeciesFormationEnergies, potentially caching."""
+        if not self._all_sfes:
+            self._all_sfes = self.species_formation_energies.all()
+        return self._all_sfes
     
+    html_formula = property(GetHtmlFormattedFormula)
+    kegg_link = property(GetKeggLink)
+    small_image_url = property(GetSmallImageUrl)
+    all_common_names = property(lambda self: self.common_names.all())
+    all_formation_energies = property(GetSpeciesFormationEnergies)
+    
+    def StashTransformedSpeciesEnergies(self, ph, ionic_strength):
+        """Stash the transformed species formation energy in each one."""
+        for sfe in self.all_formation_energies:
+            sfe.transformed = sfe.transform(ph, ionic_strength)
     
     def __unicode__(self):
-        names = self.common_names.all()
+        """Return a single string identifier of this Compound."""
+        names = self.all_common_names
         if names:
             return unicode(names[0])
         return unicode(self.formula)

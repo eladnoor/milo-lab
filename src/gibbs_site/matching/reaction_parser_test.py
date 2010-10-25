@@ -29,7 +29,7 @@ class TestReactionParser(unittest.TestCase):
         for reaction_str in self.parsable_reactions:
             self.assertTrue(self._parser.ShouldParseAsReaction(reaction_str))
             parsed = self._parser.ParseReactionQuery(reaction_str)
-            self.assertNotEqual(None, parsed)
+            self.assertNotEqual(None, parsed, msg=reaction_str)
             
             for compound in parsed.reactants + parsed.products:
                 self.assertNotEqual(None, compound.parsed_name)

@@ -7,7 +7,7 @@
 		<td width="150px">Common names</td>
 		<td>
 			{% for name in compound.all_common_names %}
-				<div class="commonName">{{ name }}</div>
+			<div class="commonName">{{ name }}</div>
 			{% endfor %}
 		</td>
 	</tr>
@@ -28,3 +28,29 @@
 		{% endif %}
 	</tr>
 </table>
+{% if compound.all_formation_energies %}
+<table class="speciesInfo">
+	<tr>
+		<th colspan="4">Species Formation Energies</td>		
+	</tr>
+	<tr>
+		<td>Net Charge</td>
+		<td>&Delta;<sub>f</sub>G&deg;</td>
+		<td>&Delta;<sub>f</sub>G'&deg;</td>
+		<td>Source</td>
+	</tr>
+	{% for sfe in compound.all_formation_energies %}
+	<tr>
+		<td>{{ sfe.specie.net_charge }}</td>
+		<td>{{ sfe.value|floatformat:1 }}</td>
+		<td>{% if sfe.transformed %}
+				{{ sfe.transformed|floatformat:1 }}
+				{% else %}
+					N/A
+			{% endif %}
+		</td>
+		<td>{{ sfe.source.name }}</td>
+	</tr>
+	{% endfor %}
+</table>
+{% endif %}
