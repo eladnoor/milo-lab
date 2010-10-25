@@ -3,6 +3,7 @@ from pylab import *
 from matplotlib import font_manager
 from matplotlib.backends.backend_pdf import PdfPages
 from pyvictor.victor_parser import VictorParser
+from toolbox import util
 
 def get_data(index, row, col, vp_vec):
     """
@@ -21,17 +22,13 @@ def get_data(index, row, col, vp_vec):
 
     return (time_array, value_array)
 
-if (not os.path.exists('../res')):
-    os.mkdir('../res')
-if (not os.path.exists('../res/victor')):
-    os.mkdir('../res/victor')
-
 name = "2010-10-07_K12-acetate"
 vp_vec = []
 vp = VictorParser()
 vp.parse_excel("../data/victor/%s.xls" % (name))
 vp_vec.append(vp)
 
+util._mkdir('../res/victor')
 pp = PdfPages('../res/victor/%s.pdf' % name)
 
 #rcParams['text.usetex'] = True
