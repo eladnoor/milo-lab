@@ -1,6 +1,46 @@
 import re
 import logging
-import matcher
+import pyparsing
+
+
+def _parsedCompound(c_list):
+    """Always put a stoichiometric coefficient with a compound."""
+    if len(c_list) == 2:
+        return c_list[0], c_list[1]
+    return 1, c_list[0]
+
+
+def _makeparser():
+    """Builds a pyparsing-based recursive descent parser for chemical reactions."""
+    coeff = pyparsing.Word(pyparsing.nums).setParseAction(lambda t:int(t[0]))
+    optional_coeff = pyparsing.Optional(coeff)
+    compound_separator = pyparsing.Literal('+').suppress()
+    
+    compound_name_component = pyparsing.Word(pyparsing.alphanums, pyparsing.alphanums + "-+,()'")
+    compound_name = pyparsing.Forward()
+    compound_name << (compound_name_component + pyparsing.ZeroOrMore(compound_name_component))
+    compound_name.setParseAction(lambda s: ' '.join(s))
+    
+    compound_with_coeff = pyparsing.Forward()
+    compound_with_coeff << ((optional_coeff + compound_name) | compound_name)
+    compound_with_coeff.setParseAction(_parsedCompound)
+    compound_with_coeff.setResultsName("compound")
+    
+    compound_with_separator = pyparsing.Forward()
+    compound_with_separator << (compound_with_coeff + compound_separator)
+    
+    reaction_side = pyparsing.Forward()
+    reaction_side << (pyparsing.ZeroOrMore(compound_with_separator) +
+                      compound_with_coeff)
+    reaction_side.setParseAction(lambda l: [l])
+    reaction_side.setResultsName("reaction_side")
+    
+    side_separators = [pyparsing.Literal(s) for s in ("=", "->", "=>", "<=>")]
+    side_separator = pyparsing.Or(side_separators).suppress()
+    
+    reaction = pyparsing.Forward()
+    reaction << (reaction_side + side_separator + reaction_side)
+    return reaction
 
 
 class ReactionCompoundMatch(object):
@@ -67,11 +107,6 @@ class ReactionParser(object):
     REACTION_PATTERN = r'.*\s+(=>|<=>|=|->|<->)\s+.*'
     REACTION_MATCHER = re.compile(REACTION_PATTERN)
     
-    REACTION_SPLITTER = re.compile(r'\s*(?:=>|<=>|=|->|<->)\s*')
-    REACTION_SIDE_SPLITTER = re.compile(r'(?:\s+\+\s+)')
-    
-    COMPOUND_COEFF_MATCHER = re.compile(r'^(\d+\s+)?\s*(.*)$')
-    
     def __init__(self, compound_matcher):
         """Initialize the reaction parser.
         
@@ -80,6 +115,7 @@ class ReactionParser(object):
                               individual compounds.
         """
         self._matcher = compound_matcher
+        self._parser = _makeparser()
     
     def ShouldParseAsReaction(self, query):
         """Returns True if this query is likely to be a reaction query.
@@ -90,46 +126,16 @@ class ReactionParser(object):
         m = self.REACTION_MATCHER.match(query.strip())
         return m is not None
     
-    def _ParseCompoundAndCoefficient(self, compound_str):
-        """Parses the string containing a compound and coefficient.
-        
-        Args:
-            compound_str: the string containing a compound and its
-                          stoichiometric coefficient.
-        
-        Returns:
-            A ReactionCompoundMatch or None if parsing failed.
-        """
-        m = self.COMPOUND_COEFF_MATCHER.match(compound_str)
-        if not m:
-            return None
-        
-        coeff, name = m.groups()
-        coeff = coeff or '1'
-        coeff = int(coeff.strip())
-            
+    def _MakeReactionCompoundMatch(self, coeff, name):
         compound_matches = self._matcher.Match(name)
         return ReactionCompoundMatch(name, coeff, compound_matches)
     
-    def _ParseReactionSide(self, side_list):
-        """Parses a side of a reaction.
-        
-        Args:
-            side_list: the list of strings of compounds with stoichiometric
-                       coefficients.
-        
-        Returns:
-            A list of ReactionCompoundMatches or None if any one failed to parse.
-        """
-        side_compounds = []
-        for compound_str in side_list:
-            parsed_compound = self._ParseCompoundAndCoefficient(compound_str)
-            if not parsed_compound:
-                return None
-            side_compounds.append(parsed_compound)
-        
-        return side_compounds
-        
+    def _MakeReactionSide(self, parsed_side):
+        side = []
+        for coeff, name in parsed_side:
+            side.append(self._MakeReactionCompoundMatch(coeff, name))
+        return side
+    
     def ParseReactionQuery(self, query):
         """Parse the query as a reaction.
         
@@ -139,20 +145,17 @@ class ReactionParser(object):
         Returns:
             An initialized ParsedReaction object, or None if parsing failed.
         """
-        split_query = self.REACTION_SPLITTER.split(query)
-        if len(split_query) != 2:
-            logging.warn('Failed to parse reaction query: "%s"', query)
+        results = None
+        try:
+            results = self._parser.parseString(query)
+        except Exception, e:
+            logging.error(e)
             return None
         
-        reactants_str, products_str = split_query
-        reactants_str = reactants_str.strip()
-        products_str = products_str.strip()
+        reactants, products = results
         
-        reactants_with_coeffs = self.REACTION_SIDE_SPLITTER.split(reactants_str)
-        products_with_coeffs = self.REACTION_SIDE_SPLITTER.split(products_str)
-        
-        reactants = self._ParseReactionSide(reactants_with_coeffs)
-        products = self._ParseReactionSide(products_with_coeffs)
+        reactants = self._MakeReactionSide(reactants)
+        products = self._MakeReactionSide(products)
         
         if not reactants:
             logging.warn('Failed to parse reactants.')

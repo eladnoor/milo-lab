@@ -1,6 +1,17 @@
 from django import forms
 import logging
 
+
+class BaseForm(forms.Form):
+    """Base form class with nice helpers."""
+    
+    def _GetWithDefault(self, key, default):
+        if (key not in self.cleaned_data or
+            self.cleaned_data[key] == None):
+            return default
+        return self.cleaned_data[key]
+    
+
 class ListFormField(forms.MultipleChoiceField):
     """A form field for a list of values that are unchecked.
     

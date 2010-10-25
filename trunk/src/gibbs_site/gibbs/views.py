@@ -23,12 +23,12 @@ def CompoundPage(request):
     # Compute the delta G estimate.
     kegg_id = form.cleaned_compoundId
     compound = models.Compound.objects.get(kegg_id=kegg_id)
+    compound.StashTransformedSpeciesEnergies(form.cleaned_ph,
+                                             form.cleaned_ionic_strength)
     delta_g_estimate = compound.GetFormationEnergy(
-        pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength, 
-        temp=form.cleaned_temp)
+        pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength)
     
     template_data = {'compound': compound, 
-                     'temp': form.cleaned_temp,
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
@@ -49,14 +49,12 @@ def ReactionPage(request):
     zipped_products = zip(form.cleaned_productCoeffs, clean_products)
 
     # Compute the delta G estimate.
-    temp = form.cleaned_temp
     i_s = form.cleaned_ionic_strength
     ph = form.cleaned_ph
     delta_g_estimate = None
     warning = None
     delta_g_estimate = models.Compound.GetReactionEnergy(
-        zipped_reactants, zipped_products, pH=ph,
-        ionic_strength=i_s, temp=temp)
+        zipped_reactants, zipped_products, pH=ph, ionic_strength=i_s)
     if not models.Compound.ReactionIsBalanced(zipped_reactants, zipped_products):
         warning = 'Reaction is not balanced!'
 
@@ -66,7 +64,7 @@ def ReactionPage(request):
     products = models.Compound.GetCompoundsByKeggId(clean_products)
     rdicts, pdicts = [], []
     
-    params = 'temp=%f&ph=%f&ionic_strength=%f' % (temp, ph, i_s)
+    params = '&ph=%f&ionic_strength=%f' % (ph, i_s)
     get_compound_link = lambda c: '/compound?compoundId=%s&%s' % (c.kegg_id, params)
     for coeff, id in zip(form.cleaned_reactantCoeffs, clean_reactants):
         compound = reactants[id]
@@ -81,7 +79,6 @@ def ReactionPage(request):
            'reactants': rdicts}
     
     template_data = {'reaction': rxn, 
-                     'temp': form.cleaned_temp,
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
@@ -99,11 +96,9 @@ def ResultsPage(request):
     matcher = service_config.Get().compound_matcher
     
     query = str(form.cleaned_query)
-    temp = form.cleaned_temp
     ph = form.cleaned_ph
     ionic_strength = form.cleaned_ionic_strength
     template_data = {'query': query,
-                     'temp': temp,
                      'ph': ph,
                      'ionic_strength': ionic_strength}
     
@@ -116,7 +111,7 @@ def ResultsPage(request):
             reactants, products = best_reaction
             delta_g_estimate = models.Compound.GetReactionEnergy(
                 reactants, products, pH=ph,
-                ionic_strength=ionic_strength, temp=temp)
+                ionic_strength=ionic_strength)
             if not models.Compound.ReactionIsBalanced(reactants, products):
                 template_data['warning'] = 'Reaction is not balanced!'
             
@@ -130,9 +125,10 @@ def ResultsPage(request):
         results = matcher.Match(query)
         delta_g_estimate = None
         compound = results[0].value
+        compound.StashTransformedSpeciesEnergies(ph, ionic_strength)
         if results:
             delta_g_estimate = compound.GetFormationEnergy(
-                pH=ph, ionic_strength=ionic_strength, temp=temp)
+                pH=ph, ionic_strength=ionic_strength)
         
         template_data['kegg_link'] = results[0].value.GetKeggLink()
         template_data['results'] = results

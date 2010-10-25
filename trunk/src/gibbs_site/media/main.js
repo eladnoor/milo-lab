@@ -1,8 +1,5 @@
 
 /* Various callbacks */
-var updateTempField = function(event, ui) {
-	$("#tempField").val(ui.value);
-};
 var updatePHField = function(event, ui) {
 	$("#phField").val(ui.value);
 };
@@ -26,19 +23,9 @@ $(document).ready(function(){
 	}
 	
 	// Advanced settings sliders.
-	var tempSlider = $("#tempSlider");
 	var phSlider = $("#phSlider");
 	var ionStrengthSlider = $("#ionStrengthSlider");
 	
-	if (tempSlider) {
-		tempSlider.slider({
-			min: 0.0,
-		    max: 500.0,
-		    step: 0.5,
-		    value: $("#tempField").val(),
-		    slide: updateTempField,
-		    change: updateTempField});
-	}	
 	if (phSlider) {
 		phSlider.slider({
 			min: 0.0,

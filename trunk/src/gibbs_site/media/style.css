@@ -33,6 +33,11 @@ a {
 	margin: 15px auto;
 }
 
+#subtitle {
+	font-family: helevetica;
+	font-size: 24px;
+}
+
 .subscript {
   	font-size: 75%;
   	vertical-align: bottom;
@@ -88,7 +93,7 @@ a {
 	margin: 15px auto;
 }
 
-table.results, table.compoundInfo {
+table.results, table.compoundInfo, table.speciesInfo {
 	margin: 10px auto;
 	width: 750px;
 	border: solid 1px black;
