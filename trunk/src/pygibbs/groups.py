@@ -1,12 +1,11 @@
-import sys, pybel, openbabel, csv, os, pylab, sqlite3, re
+import sys, pybel, openbabel, csv, pylab, sqlite3, re, types
 from copy import deepcopy
-from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import matrixrank, multi_distribute, log_sum_exp, _mkdir
+from toolbox.sql import write_table_to_html, write_query_to_html
 from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
 from pygibbs import kegg
-import types
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException
 
@@ -127,13 +126,15 @@ class GroupContribution(Thermodynamics):
         self.HTML.close()
     
     def write_gc_tables(self):
-        table_names = ["groups", "contribution", "observation"]
+        tablenames = ["groups", "contribution", "observation"]
         self.HTML.write('<ul>\n')
-        for table_name in table_names:
-            self.HTML.write('  <li><a href="#%s">Table %s from the database</a></li>\n' % (table_name, table_name))
+        for tablename in tablenames:
+            self.HTML.write('  <li><a href="#%s">Table %s from the database</a></li>\n' % (tablename, tablename))
         self.HTML.write('</ul>\n')
-        for table_name in table_names:
-            self.write_table_to_html(self.HTML, table_name)        
+        for tablename in tablenames:
+            self.HTML.write('<p><h2><a name="%s">Table %s:</a></h2>\n' % (tablename, tablename))
+            write_table_to_html(self.comm.cursor(), self.HTML, tablename)        
+            self.HTML.write('</p>\n')
     
     def init(self):
         self.load_groups()
@@ -159,24 +160,38 @@ class GroupContribution(Thermodynamics):
         else:
             sys.stderr.write("Recalculating the table of chemical formation energies for all KEGG compounds:\n")
             self.comm.execute("DROP TABLE IF EXISTS gc_cid2prm")
+            self.comm.execute("DROP TABLE IF EXISTS gc_cid2error")
             self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
             self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL, estimated BOOL);")
+            self.comm.execute("CREATE TABLE gc_cid2error (cid INT, error TEXT);")
             self.comm.execute("CREATE UNIQUE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH);")
-            for cid in self.get_all_cids():
-                sys.stderr.write("C%05d) " % cid)
+
+            for cid in self.kegg().get_all_cids():
+                sys.stderr.write('C%05d\n' % cid)
                 if (cid in self.cid2pmap_obs and (self.use_measured_train_values or cid in self.cid_test_set)):
-                    sys.stderr.write("using measured data\n")
                     pmap = self.cid2pmap_obs[cid]
                     estimated = False
                 else:
-                    try:
-                        pmap = self.cid2pmap(cid)
-                        sys.stderr.write("using estimated data\n")
-                        estimated = True
-                    except (MissingCompoundFormationEnergy) as e:
-                        sys.stderr.write("ERROR: %s\n" % str(e))
+                    comp = self.kegg().cid2compound(cid)
+                    if (comp.inchi == None):
+                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "no InChI exists"))
                         continue
+                    try:
+                        mol = comp.get_mol() 
+                    except KeggParseException:
+                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot determine molecular structure"))
+                        continue
+                    try:
+                        pmap = self.estimate_pmap(mol)
+                    except GroupDecompositionError:
+                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot decompose into groups"))
+                        continue
+                    except GroupMissingTrainDataError:
+                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "contains groups lacking training data"))
+                        continue
+                    estimated = True
 
+                self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "OK"))
                 self.cid2pmap_dict[cid] = pmap
                 for ((nH, z), dG0) in pmap.iteritems():
                     self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, estimated))
@@ -686,7 +701,7 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('</table>\n')
 
     def analyze_training_set(self):
-        self.write_regression_report(self.HTML)
+        self.write_regression_report()
         
         n_obs = len(self.obs)
         val_obs = []
@@ -785,17 +800,18 @@ class GroupContribution(Thermodynamics):
 
         return pmap
 
-    def cid2pmap(self, cid):
+    def cid2pmap(self, cid, use_cache=True):
         """
             returns a list of 3-tuples of dG0 (untransformed), nH and z.
             Each tuple represents one of the pseudoisomers.
         """
 
         # if the entire KEGG compound database has been computed in advance, use the cached data
-        if (self.cid2pmap_dict != None and cid in self.cid2pmap_dict):
-            return self.cid2pmap_dict[cid]
-        else:
-            raise MissingCompoundFormationEnergy("Formation energy cannot be determined using group contribution", cid)
+        if (use_cache and self.cid2pmap_dict != None):
+            if (cid in self.cid2pmap_dict):
+                return self.cid2pmap_dict[cid]
+            else:
+                raise MissingCompoundFormationEnergy("Formation energy cannot be determined using group contribution", cid)
 
 
         if (cid == 80): # H+
@@ -1129,32 +1145,6 @@ class GroupContribution(Thermodynamics):
                 pass
         self.comm.commit()
         self.load_concentrations()
-    
-    def write_table_to_html(self, table_name):
-        column_names = []
-        for row in self.comm.execute("PRAGMA table_info(%s)" % table_name):
-            (index, name, type, can_be_null, default_value, stam) = row
-            column_names.append(name)
-        
-        self.HTML.write('<p><h2><a name="%s">Table %s:</a></h2>\n' % (table_name, table_name))
-        self.HTML.write('<table border="1">\n')
-        self.HTML.write('  <tr>' + "".join([('<td><b>' + str(s) + '</b></td>') for s in column_names]) + '</tr>\n')
-        for row in self.comm.execute("SELECT * FROM %s" % table_name):
-            self.HTML.write('  <tr>' + "".join([('<td>' + str(s) + '</td>') for s in row]) + '</tr>\n')
-        self.HTML.write('</table>\n')
-        self.HTML.write('</p>\n')
-
-    def write_query_to_html(self, query, title=None, column_names=None):
-        if (title == None):
-            title = query
-        self.HTML.write('<p><h2>%s</h2>\n' % (title))
-        self.HTML.write('<table border="1">\n')
-        if (column_names != None):
-            self.HTML.write('  <tr>' + "".join([('<td><b>' + str(s) + '</b></td>') for s in column_names]) + '</tr>\n')
-        for row in self.comm.execute(query):
-            self.HTML.write('  <tr>' + "".join([('<td>' + str(s) + '</td>') for s in row]) + '</tr>\n')
-        self.HTML.write('</table>\n')
-        self.HTML.write('</p>\n')
 
     @staticmethod
     def get_float_parameter(s, name, default_value):
@@ -1548,8 +1538,11 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('<h4>Measured concentration table:</h4>\n')
         self.HTML.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % ('__concentrations__'))
         self.HTML.write('<div id="%s" style="display:none">' % '__concentrations__')
-        self.write_query_to_html("select cid, media, 1000*concentration from compound_abundance ORDER BY cid, media", \
-            title="Abundance", column_names=["CID", "Media", "concentration [mM]"])
+        self.HTML.write('<p><h2>Abundance</h2>\n')
+        write_query_to_html(self.comm.cursor(), self.HTML, \
+                            "select cid, media, 1000*concentration from compound_abundance ORDER BY cid, media", \
+                            column_names=["CID", "Media", "concentration [mM]"])
+        self.HTML.write('</p>\n')
         self.HTML.write('</div><br>\n')
 
     def add_vectors(self, stoichiometric_vector1, cid_vector1, stoichiometric_vector2, cid_vector2):
