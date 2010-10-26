@@ -125,7 +125,7 @@ class YeastStoichiometricLP():
     def add_margin_dGf_constraints(self, c_mid=1e-4):
         """
             Sets the thermodynamic constraints on each of the reactions.
-            Note that when using margin optimization, there is no incentive to minimize the number of reactions or the flux,
+            Note that when using pCr optimization, there is no incentive to minimize the number of reactions or the flux,
             and this can cause the emergence of futile cycles in the solutions.
 
             should always follow add_dGr_constraints() 
@@ -133,7 +133,7 @@ class YeastStoichiometricLP():
         if (self.unbounded_compounds_with_dG0_f == None):
             raise Exception("Cannot add concentration constraints before calling add_dGr_constraints()")
         
-        self.margin = True        
+        self.pCr = True        
         self.cpl.variables.add(names=["pCr"], lb=[0], ub=[1e6])
 
         for cid in sorted(self.unbounded_compounds_with_dG0_f):
@@ -214,7 +214,7 @@ class YeastStoichiometricLP():
         self.cpl.objective.set_sense(self.cpl.objective.sense.maximize)
 
     def set_pCr_objective(self):
-        obj = [("pCr", 1)] # minimize the margin
+        obj = [("pCr", 1)] # minimize the pCr
         self.cpl.objective.set_linear(obj)
         self.cpl.objective.set_sense(self.cpl.objective.sense.minimize)
 

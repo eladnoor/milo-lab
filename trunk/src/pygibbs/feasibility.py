@@ -352,6 +352,8 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     pylab.rcParams['lines.markersize'] = 5
     pylab.rcParams['figure.figsize'] = [8.0, 6.0]
     pylab.rcParams['figure.dpi'] = 100
+
+    # plot the thermodynamic profile in standard conditions
     
     profile_fig = pylab.figure()
     profile_fig.hold(True)
@@ -375,9 +377,10 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     else:
         cum_dG0_r = pylab.cumsum([0] + [dG0_r[r, 0] * fluxes[r] for r in range(Nr)])
     pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG0_r, figure=profile_fig, label='Standard [1M]')
-        
+    
+    # plot the thermodynamic profile for the different optimization schemes
+    
     pylab.grid(True, figure=profile_fig)
-
     for optimization in res.keys():
         (dG_f, conc, score) = res[optimization]
         if (score == None):
@@ -388,7 +391,9 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         pylab.plot(pylab.arange(0.5, Nr + 1), cum_dG_r, figure=profile_fig, label='%s = %.1f' % (optimization, score))
 
     pylab.legend()
-    html_writer.embed_matplotlib_figure(profile_fig, width=800, height=600)
+    html_writer.embed_matplotlib_figure(profile_fig, width=480, height=360)
+
+    # plot the optimal metabolite concentrations for the different optimization schemes
 
     for optimization in res.keys():
         (dG_f, conc, score) = res[optimization]
@@ -405,8 +410,6 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         pylab.xlabel('Concentration [M]', figure=conc_fig)
         pylab.yticks(range(Nc, 0, -1), ["C%05d" % cid for cid in cids], fontproperties=FontProperties(size=8))
         pylab.plot(conc, range(Nc, 0, -1), '*b', figure=conc_fig)
-
-        # TODO: instead of compound numbers, write the compound KEGG IDs
 
         x_min = conc.min() / 10
         x_max = conc.max() * 10
@@ -427,10 +430,13 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
             c_range_opt = pC_to_range(score, c_mid=thermodynamics.c_mid, ratio=3.0)
             pylab.axvspan(c_range_opt[0], c_range_opt[1], facecolor='g', alpha=0.3, figure=conc_fig)
         else:
-            pylab.axvspan(thermodynamics.c_range[0], thermodynamics.c_range[1], facecolor='g', alpha=0.3, figure=conc_fig)
+            pylab.axvspan(thermodynamics.c_range[0], thermodynamics.c_range[1], facecolor='r', alpha=0.3, figure=conc_fig)
         pylab.axis([x_min, x_max, y_min, y_max], figure=conc_fig)
-        html_writer.embed_matplotlib_figure(conc_fig, width=800, height=600)
+        html_writer.embed_matplotlib_figure(conc_fig, width=420, height=360)
 
+    # write all the results in tables as well
+
+    for optimization in res.keys():
         html_writer.write('<p>Biochemical Compound Formation Energies (%s)<br>\n' % optimization)
         html_writer.write('<table border="1">\n')
         html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "Concentration [M]", "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]") + '\n')
@@ -449,6 +455,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
             html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%.2f</td><td>%.2f</td></tr>\n' % \
                               (kegg.rid2link(rid), kegg.rid2name(rid), rid, dG0_r[r, 0], dG_r[r, 0]))
         html_writer.write('</table></p>\n')
+        
     return res
 
 if (__name__ == "__main__"):

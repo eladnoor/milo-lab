@@ -84,6 +84,14 @@ class Thermodynamics:
             calculate the predicted dG0_r
         """
         return sum([coeff * self.cid_to_dG0(cid, pH, I, T) for (cid, coeff) in sparse_reaction.iteritems()])
+    
+    def cid_to_bounds(self, cid, use_default=True):
+        (curr_c_min, curr_c_max) = self.bounds.get(cid, (None, None))
+        if (curr_c_min == None and use_default):
+            curr_c_min = self.c_range[0]
+        if (curr_c_max == None and use_default):
+            curr_c_max = self.c_range[1]
+        return (curr_c_min, curr_c_max)
             
     def display_pmap(self, cid):
         for ((nH, z), dG0) in self.cid2pmap(cid).iteritems():

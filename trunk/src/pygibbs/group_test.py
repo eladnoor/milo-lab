@@ -5,9 +5,8 @@ from pygibbs.thermodynamics import Thermodynamics
 import pybel
 from pygibbs.kegg import KeggParseException
         
-G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathways")
 G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
-G.write_gc_tables()
 G.init()
 G.load_cid2pmap(recalculate=False)
 
@@ -61,4 +60,4 @@ if False:
             sys.stderr.write(str(e) + "\n")
         m.draw()
 else:
-    G.analyze_pathway("../data/thermodynamics/pathways.txt", "../res/pathways.html")
+    G.analyze_pathway("../data/thermodynamics/pathways.txt")
