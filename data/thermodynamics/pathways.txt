@@ -475,8 +475,6 @@ SKIP        TRUE
 NAME        Alternative Glucose Respiration Pathway
 TYPE        PROFILE
 STANDARD    TRUE
-ABUNDANT    FALSE
-HATZI       FALSE
 REACTION    R00307  C00031 -> C00095
             R99990  C00095 -> C00577 + C00184
             R01034  C00184 + C00004 + C00080 -> C00116 + C00003
@@ -494,9 +492,6 @@ ENTRY       L-ED
 SKIP        TRUE
 NAME        Entner-Doudoroff
 TYPE        PROFILE
-ABUNDANT    FALSE
-HATZI       FALSE
-USE_TRAIN   TRUE
 CONDITIONS  media=None,pH=7.0,I=0.1,T=300
             media=glucose,pH=7.0,I=0.1,T=300
 MODULE      M00008
@@ -505,9 +500,6 @@ ENTRY       L-GLYCOLYSIS
 SKIP        TRUE
 NAME        Glycolysis (from glucose to pyruvate with NAD)
 TYPE        PROFILE
-ABUNDANT    FALSE
-HATZI       FALSE
-USE_TRAIN   TRUE
 CONDITIONS  media=None,pH=7.0,I=0.1,T=300
             media=glucose,pH=7.0,I=0.1,T=300
             media=acetate,pH=7.0,I=0.1,T=300
@@ -527,9 +519,6 @@ ENTRY       L-TCA_UBIQ
 SKIP        TRUE
 NAME        TCA cycle (Ubiquinone)
 TYPE        PROFILE
-ABUNDANT    FALSE
-HATZI       FALSE
-USE_TRAIN   TRUE
 CONDITIONS  media=None,pH=7.0,I=0.1,T=300,c0=0.0001
             media=glucose,pH=7.0,I=0.1,T=300,c0=0.0001
 REACTION    R00351  C00024 + C00001 + C00036 -> C00158 + C00010
@@ -546,9 +535,6 @@ ENTRY       L-CALVIN_NAD
 SKIP        TRUE
 NAME        rPP cycle (NAD)
 TYPE        PROFILE
-ABUNDANT    FALSE
-HATZI       FALSE
-USE_TRAIN   TRUE
 CONDITIONS  media=None,pH=7.0,I=0.1,T=300,c0=0.0001
             media=glucose,pH=7.0,I=0.1,T=300,c0=0.0001
 REACTION    R00024  C01182 + C00011 + C00001 -> 2 C00197
@@ -569,9 +555,6 @@ ENTRY       L-CALVIN_ECOLI
 SKIP        TRUE
 NAME        rPP cycle (E. coli)
 TYPE        PROFILE
-ABUNDANT    FALSE
-HATZI       FALSE
-USE_TRAIN   TRUE
 CONDITIONS  media=None,pH=7.0,I=0.1,T=300,c0=0.0001
             media=glucose,pH=7.0,I=0.1,T=300,c0=0.0001
 REACTION    R00024  C01182 + C00011 + C00001 -> 2 C00197
@@ -591,9 +574,6 @@ ENTRY       L-CALVIN_NADP
 SKIP        TRUE
 NAME        rPP cycle (NADP)
 TYPE        PROFILE
-ABUNDANT    FALSE
-HATZI       FALSE
-USE_TRAIN   TRUE
 CONDITIONS  media=None,pH=7.0,I=0.1,T=300
 REACTION    R00024  3 C01182 + 3 C00011 + 3 C00001 -> 6 C00197
             R01512  6 C00002 + 6 C00197 -> 6 C00008 + 6 C00236
@@ -614,8 +594,6 @@ SKIP        TRUE
 NAME        C4-Glyoxylate Cycle / Lactate (phosphate phosphotransferase)
 TYPE        PROFILE
 STANDARD    TRUE
-ABUNDANT    FALSE
-HATZI       FALSE
 REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013
             R00345  C00001 + C00074 + C00011 -> C00009 + C00036
             R00342  C00036 + C00004 + C00080 -> C00149 + C00003
@@ -634,8 +612,6 @@ SKIP        TRUE
 NAME        C4-Glyoxylate Cycle / Lactate (water phosphotransferase)
 TYPE        PROFILE
 STANDARD    TRUE
-ABUNDANT    FALSE
-HATZI       FALSE
 REACTION    R00199  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009
             R00345  C00001 + C00074 + C00011 -> C00009 + C00036
             R00342  C00036 + C00004 + C00080 -> C00149 + C00003
@@ -654,8 +630,6 @@ SKIP        TRUE
 NAME        C4-Glyoxylate Cycle / Alanine (phosphate phosphotransferase)
 TYPE        PROFILE
 STANDARD    TRUE
-ABUNDANT    FALSE
-HATZI       FALSE
 REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013
             R00345  C00001 + C00074 + C00011 -> C00009 + C00036
             R00342  C00036 + C00004 + C00080 -> C00149 + C00003
@@ -671,8 +645,6 @@ SKIP        TRUE
 NAME        C4-Glyoxylate Cycle / Alanine (water phosphotransferase)
 TYPE        PROFILE
 STANDARD    TRUE
-ABUNDANT    FALSE
-HATZI       FALSE
 REACTION    R00199  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009
             R00345  C00001 + C00074 + C00011 -> C00009 + C00036
             R00342  C00036 + C00004 + C00080 -> C00149 + C00003
@@ -719,8 +691,6 @@ SKIP        TRUE
 NAME        ARREN'S PATHWAY
 TYPE        PROFILE
 STANDARD    TRUE
-ABUNDANT    FALSE
-HATZI       FALSE
 CONDITIONS  media=glucose,pH=7.0,I=0.1,T=300,c0=0.05
             media=None,pH=7.0,I=0.1,T=300,c0=0.05
 REACTION    R99999  C00988 + C00001 -> C00160 + C00009

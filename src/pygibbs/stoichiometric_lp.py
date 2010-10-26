@@ -1,5 +1,6 @@
 import pylab, cplex, sys
 from thermodynamics import R
+from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 
 class Stoichiometric_LP():
     
@@ -13,12 +14,12 @@ class Stoichiometric_LP():
         self.S = None
         self.weights = None
         self.compounds = None
-        self.encountered_cids = set()
+        self.cids_with_concentration = set()
         self.reactions = None
         self.solution_index = 0
         self.flux_upper_bound = 100
         self.milp = False
-        self.margin = False
+        self.pCr = False
         self.use_dG_f = False
         self.target_reaction = None
 
@@ -94,19 +95,62 @@ class Stoichiometric_LP():
         for r in range(len(self.reactions)):
             self.cpl.linear_constraints.set_coefficients('num_reactions', self.reactions[r].name + "_gamma", 1)
     
-    def add_dGr_constraints(self, cid2dG0_f, T=300):
+    def add_dGr_constraints(self, thermodynamics, pCr=False):
+        """
+            Create concentration variables for each CID in the database (at least in one reaction).
+            If this compound doesn't have a dG0_f, its concentration will not be constrained.
+            If it has a dG0_f, then either it has a specific concentration range (most co-factors do),
+            or not - which is the common case. In this case, we either apply global constraints (e.g. 1uM - 10mM),
+            or we use the pCr method to minimize the range needed for allowing the pathway thermodynamically.
+        """
+        
         if (self.milp == False):
             raise Exception("Cannot add thermodynamic constraints without the MILP variables")
         
         self.use_dG_f = True
 
-        self.T = T
-        for r in range(len(self.reactions)):
-            for (cid, coeff) in self.reactions[r].sparse.iteritems():
-                self.encountered_cids.add(cid)
+        if (pCr):
+            self.pCr = True        
+            self.cpl.variables.add(names=["pCr"], lb=[0], ub=[1e6])
         
-        for cid in sorted(self.encountered_cids):
+        all_cids_in_reactions = set()
+        for r in range(len(self.reactions)):
+            all_cids_in_reactions = all_cids_in_reactions.union(self.reactions[r].sparse.keys())
+        
+        cid2dG0 = {}
+        
+        # if the dG0_f is unknown, the concentration must remain unbound
+        # therefore we leave only the known compounds in the encountered_cids set
+        for cid in all_cids_in_reactions:
             self.cpl.variables.add(names=["C%05d_conc" % cid], lb=[-1e6], ub=[1e6])
+            try:
+                cid2dG0[cid] = thermodynamics.cid_to_dG0(cid)
+            except MissingCompoundFormationEnergy:
+                # If the formation energy of this compound cannot be determined,
+                # it's concentration cannot be constrained. The value of C%05d_conc 
+                # will actually represent the dG_f (both dG0_f and the concentration)
+                # and can be used in the thermodynamic constraint of reactions
+                continue
+                
+            (c_min, c_max) = thermodynamics.cid_to_bounds(cid, use_default=False)
+                
+            if (c_min != None): # override any existing constraint with the specific one for this co-factor
+                self.cpl.variables.set_lower_bounds("C%05d_conc" % cid, pylab.log(c_min))
+            elif pCr: # use the pCr variable to define the constraint
+                self.cpl.linear_constraints.add(names=["C%05d_conc_minimum" % cid], senses='G', rhs=[pylab.log(thermodynamics.c_mid)])
+                self.cpl.linear_constraints.set_coefficients("C%05d_conc_minimum" % cid, "C%05d_conc" % cid, 1)
+                self.cpl.linear_constraints.set_coefficients("C%05d_conc_minimum" % cid, "pCr", 1)
+            else: # otherwise, use the global concentration bounds
+                self.cpl.variables.set_lower_bounds("C%05d_conc" % cid, pylab.log(thermodynamics.c_range[0]))
+            
+            if (c_max != None): # override any existing constraint with the specific one for this co-factor
+                self.cpl.variables.set_upper_bounds("C%05d_conc" % cid, pylab.log(c_max))
+            elif pCr: # use the pCr variable to define the constraint
+                self.cpl.linear_constraints.add(names=["C%05d_conc_maximum" % cid], senses='L', rhs=[pylab.log(thermodynamics.c_mid)])
+                self.cpl.linear_constraints.set_coefficients("C%05d_conc_maximum" % cid, "C%05d_conc" % cid, 1)
+                self.cpl.linear_constraints.set_coefficients("C%05d_conc_maximum" % cid, "pCr", -1)                
+            else: # otherwise, use the global concentration bounds
+                self.cpl.variables.set_upper_bounds("C%05d_conc" % cid, pylab.log(thermodynamics.c_range[1]))
 
         for r in range(len(self.reactions)):
             constraint_name = "%s_thermo" % self.reactions[r].name
@@ -114,84 +158,31 @@ class Stoichiometric_LP():
             self.cpl.linear_constraints.add(names=[constraint_name], senses='L')
             for (cid, coeff) in self.reactions[r].sparse.iteritems():
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "C%05d_conc" % cid, coeff)
-                dG0_r += coeff * cid2dG0_f.get(cid, 0)
+                
+                # if this CID is not in cid2dG0, it means its formation energy is 
+                # part of its concentration variable, and therefore it doesn't contribute to dG0_r
+                if (cid in cid2dG0):
+                    dG0_r += coeff * cid2dG0[cid]
+                
             self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1e6)
-            self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - dG0_r/(R*T))
+            self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - dG0_r/(R*thermodynamics.T))
 
-        # if the dG0_f is unknown, the concentration must remain unbound
-        # therefore we leave only the known compounds in the encountered_cids set
-        self.encountered_cids = self.encountered_cids.intersection(cid2dG0_f.keys())
-        
-    def add_specific_dGf_constraints(self, cid2bounds):
-        """
-            add constraints on dG_f for compounds that have a dG0_f and have a specific bound on the concentrations
-        """
-        bounded_cids = set()
-        for cid in sorted(self.encountered_cids):
-            (curr_c_min, curr_c_max) = cid2bounds.get(cid, (None, None))
-            if (curr_c_min != None):
-                self.cpl.variables.set_lower_bounds("C%05d_conc" % cid, pylab.log(curr_c_min))
-                bounded_cids.add(cid)
-            if (curr_c_max != None):
-                self.cpl.variables.set_upper_bounds("C%05d_conc" % cid, pylab.log(curr_c_max))
-                bounded_cids.add(cid)
-        
-        # remove the bounded CIDs from the encountered CID set, to prevent adding global or margin constraints on these compounds
-        self.encountered_cids = self.encountered_cids.difference(bounded_cids)
-
-    def add_global_dGf_constraints(self, global_c_range=(1e-6, 1e-2)):
-        """
-            add global constraints on dG_f for compounds that have a dG0_f (and don't have a specific bound already)
-        """
-        
-        # add constraints on dG_f for compounds that have a dG0_f
-        for cid in sorted(self.encountered_cids):
-            self.cpl.variables.set_lower_bounds("C%05d_conc" % cid, pylab.log(global_c_range[0]))
-            self.cpl.variables.set_upper_bounds("C%05d_conc" % cid, pylab.log(global_c_range[1]))
-    
-    def add_margin_dGf_constraints(self, c_mid=1e-4):
-        """
-            Sets the thermodynamic constraints on each of the reactions.
-            Note that when using margin optimization, there is no incentive to minimize the number of reactions or the flux,
-            and this can cause the emergence of futile cycles in the solutions.
-            To avoid this, we add
-        """
-        if (self.milp == False):
-            raise Exception("Cannot add thermodynamic constraints without the MILP variables")
-        
-        self.margin = True        
-        self.cpl.variables.add(names=["pCr"], lb=[0], ub=[1e6])
-
-        for cid in sorted(self.encountered_cids):
-            self.cpl.linear_constraints.add(names=["C%05d_conc_minimum" % cid], senses='G', rhs=[pylab.log(c_mid)])
-            self.cpl.linear_constraints.set_coefficients("C%05d_conc_minimum" % cid, "C%05d_conc" % cid, 1)
-            self.cpl.linear_constraints.set_coefficients("C%05d_conc_minimum" % cid, "pCr", 1)
-
-            self.cpl.linear_constraints.add(names=["C%05d_conc_maximum" % cid], senses='L', rhs=[pylab.log(c_mid)])
-            self.cpl.linear_constraints.set_coefficients("C%05d_conc_maximum" % cid, "C%05d_conc" % cid, 1)
-            self.cpl.linear_constraints.set_coefficients("C%05d_conc_maximum" % cid, "pCr", -1)
-
-    def add_localized_dGf_constraints(self, cid2dG0_f, cid2bounds, c_range, T=300):
-        self.T = T
+    def add_localized_dGf_constraints(self, thermodynamics):
         for r in range(len(self.reactions)):
             dG0_r = 0
             for (cid, coeff) in self.reactions[r].sparse.iteritems():
-                if (cid in cid2dG0_f):
-                    dG0_r += coeff * cid2dG0_f[cid]
-                else:
+                try:
+                    dG0_r += coeff * thermodynamics.cid_to_dG0(cid)
+                except MissingCompoundFormationEnergy:
                     dG0_r = None
                     break
                 
-                (curr_c_min, curr_c_max) = cid2bounds.get(cid, (None, None))
-                if (curr_c_min == None):
-                    curr_c_min = c_range[0]
-                if (curr_c_max == None):
-                    curr_c_max = c_range[1]
+                (curr_c_min, curr_c_max) = thermodynamics.cid_to_bounds(cid)
 
                 if (coeff < 0):
-                    dG0_r += coeff * R*T*pylab.log(curr_c_max)
+                    dG0_r += coeff * R * thermodynamics.T * pylab.log(curr_c_max)
                 else:
-                    dG0_r += coeff * R*T*pylab.log(curr_c_min)
+                    dG0_r += coeff * R * thermodynamics.T * pylab.log(curr_c_min)
             
             if (dG0_r != None and dG0_r > 0):
                 # this reaction is a localized bottleneck, add a constraint that its flux = 0
@@ -236,7 +227,7 @@ class Stoichiometric_LP():
     def set_objective(self):
         if (self.milp == False): # minimize the total flux of reactions (weighted)
             obj = [(self.reactions[r].name, weight) for (r, weight) in self.weights]
-        elif (self.margin): # minimize the margin
+        elif (self.pCr): # minimize the pCr
             obj = [("pCr", 1)]
         else: # minimize the number of reactions (weighted)
             obj = [(self.reactions[r].name + "_gamma", weight) for (r, weight) in self.weights]
@@ -285,7 +276,7 @@ class Stoichiometric_LP():
         return cid2conc
 
     def get_margin(self):
-        if (not self.margin):
+        if (not self.pCr):
             return None
         else:
             # the objective is (log_c_max - log_c_min)

@@ -19,18 +19,11 @@ class Pathologic:
         self.UPDATE_FILE = update_file
         self.gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathologic", log_file=self.LOG_FILE)
         self.gc.init()
-        self.pH = 7
-        self.I = 0.1
-        self.T = 300
-        self.c_range = (1e-6, 1e-2)
-        self.c_mid = 1e-4
         self.thermodynamic_method = "margin" # options are: "none", "margin", "global"
         self.max_reactions = None
+        self.max_solutions = 100
         self.flux_relaxtion_factor = None
-        self.kegg = self.gc.kegg()
-        self.cid2bounds = self.kegg.cid2bounds
-        self.cid2dG0_f = self.gc.get_cid2dG0(self.pH, self.I, self.T)
-        self.kegg_patholotic = KeggPathologic(self.LOG_FILE, self.kegg)
+        self.kegg_patholotic = KeggPathologic(self.LOG_FILE, self.gc.kegg())
 
     def __del__(self):
         self.LOG_FILE.close()
@@ -49,16 +42,16 @@ class Pathologic:
         exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'__parameters__\')" value="Show Parameters">\n')
         exp_html.write('<div id="__parameters__" style="display:none">')
 
-        exp_html.write('<h2>Conditions:</h2> pH = %g, I = %g, T = %g<br>\n' % (self.pH, self.I, self.T))
+        exp_html.write('<h2>Conditions:</h2> pH = %g, I = %g, T = %g<br>\n' % (self.gc.pH, self.gc.I, self.gc.T))
         exp_html.write('<h2>Thermodynamic constraints:</h2> ')
         if (self.thermodynamic_method == "none"):
             exp_html.write("ignore thermodynamics")
         elif (self.thermodynamic_method == "margin"):
-            exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.c_mid)
+            exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.gc.c_mid)
         elif (self.thermodynamic_method == "global"):
-            exp_html.write("Global constraints, %g M < C < %g M" % self.c_range)
+            exp_html.write("Global constraints, %g M < C < %g M" % self.gc.c_range)
         elif (self.thermodynamic_method == "localized"):
-            exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.c_range)
+            exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.gc.c_range)
         else:
             raise Exception("thermodynamic_method must be: 'none', 'margin', 'global' or 'localized'")
         exp_html.write('<br>\n')
@@ -113,19 +106,15 @@ class Pathologic:
             milp.add_reaction_num_constraint(self.max_reactions)
         
         if (self.thermodynamic_method == "margin"):
-            milp.add_dGr_constraints(self.cid2dG0_f)
-            milp.add_specific_dGf_constraints(self.cid2bounds)
-            milp.add_margin_dGf_constraints(self.c_mid)
+            milp.add_dGr_constraints(self.gc, pCr=True)
         elif (self.thermodynamic_method == "global"):
-            milp.add_dGr_constraints(self.cid2dG0_f)
-            milp.add_specific_dGf_constraints(self.cid2bounds)
-            milp.add_global_dGf_constraints(self.c_range)
+            milp.add_dGr_constraints(self.gc, pCr=False)
         elif (self.thermodynamic_method == "localized"):
-            milp.add_localized_dGf_constraints(self.cid2dG0_f, self.cid2bounds, self.c_range)
+            milp.add_localized_dGf_constraints(self.gc)
         
         sys.stderr.write("[DONE]\n")
 
-        while True:
+        for index in range(1, self.max_solutions):
             # create the MILP problem to constrain the previous solutions not to reappear again.
             index = milp.solution_index + 1
             sys.stderr.write("Round %03d, solving using MILP ... " % (index))
@@ -149,7 +138,7 @@ class Pathologic:
         solution_id = '%03d' % lp.solution_index
         sol_fluxes = [s[1] for s in solution]
         sol_reactions = [lp.reactions[s[0]] for s in solution]
-        self.margin_analysis(exp_html, sol_reactions, sol_fluxes, self.cid2dG0_f, experiment_name, solution_id)
+        self.margin_analysis(exp_html, sol_reactions, sol_fluxes, experiment_name, solution_id)
 
     def show_Gdot(self, Gdot):
         import gtk
@@ -176,7 +165,7 @@ class Pathologic:
         exp_html.write('SKIP' + '&nbsp;'*8 + 'FALSE<br>\n')
         exp_html.write('NAME' + '&nbsp;'*8 + 'M-PATHOLOGIC<br>\n')
         exp_html.write('TYPE' + '&nbsp;'*8 + 'MARGIN<br>\n')
-        exp_html.write('CONDITIONS' + '&nbsp;'*2 + 'pH=%g,I=%g,T=%g<br>\n' % (self.pH, self.I, self.T))
+        exp_html.write('CONDITIONS' + '&nbsp;'*2 + 'pH=%g,I=%g,T=%g<br>\n' % (self.gc.pH, self.gc.I, self.gc.T))
         exp_html.write('C_MID' + '&nbsp;'*7 + '0.0001<br>\n')
         for r in range(len(reactions)):
             if (r == 0):
@@ -186,7 +175,7 @@ class Pathologic:
         exp_html.write('///<br></p>\n')
         exp_html.flush()
 
-    def margin_analysis(self, exp_html, reactions, fluxes, cid2dG0_f, experiment_name, solution_id):
+    def margin_analysis(self, exp_html, reactions, fluxes, experiment_name, solution_id):
         exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (solution_id))
         exp_html.write('<div id="%s" style="display:none">' % solution_id)
         
@@ -208,17 +197,13 @@ class Pathologic:
                 c = cids.index(cid)
                 S[r, c] = coeff
 
-        thermodynamics = self.gc
-        thermodynamics.bounds = self.cid2bounds
-        thermodynamics.c_range = self.c_range
-        thermodynamics.c_mid = self.c_mid
-        res = thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg, exp_html)
+        res = thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.gc, self.gc.kegg(), exp_html)
         
         self.write_kegg_pathway(exp_html, reactions, fluxes)
         
         exp_html.write('</div>\n')
         
-        Gdot = self.kegg.draw_pathway(S, rids, cids)
+        Gdot = self.kegg_patholotic.draw_pathway(fluxes, reactions)
         Gdot.write('../res/pathologic/%s/%s_graph.svg' % (experiment_name, solution_id), prog='dot', format='svg')
         #exp_html.embed_dot(Gdot)
         exp_html.write(' <a href="%s/%s_graph.svg" target="_blank">network</a>' % (experiment_name, solution_id))
@@ -237,9 +222,10 @@ class Pathologic:
 def main():
     pl = Pathologic()
     
-    pl.c_range = (1e-6, 1e-2)
-    #pl.find_path('glyoxlyate (no thermodynamics)', source={}, target={48:1}, thermo_method="none")
-    pl.find_path('glyoxlyate (global thermodynamics)', source={}, target={48:1}, thermo_method="global")
+    pl.gc.c_range = (1e-6, 1e-2)
+    pl.max_solutions = 4
+    pl.find_path('glyoxlyate(no_thermodynamics)', source={}, target={48:1}, thermo_method="none")
+    pl.find_path('glyoxlyate(1uM-10mM)', source={}, target={48:1}, thermo_method="global")
     #pl.c_range = (1e-9, 1e-2); pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
     #pl.find_path('3PG (no added reactions)', source={}, target={197:1}, thermo_method='global')
     #pl.find_path('3PG (no FDH, no Alanine, no Lactate)', source={}, target={197:1}, thermo_method="global")

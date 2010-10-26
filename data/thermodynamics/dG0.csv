@@ -323,12 +323,12 @@
 "CC(C)O",1845,"2-propanol",-185.23,-330.83,0,8,0,"train","Alberty (2003)",
 "CC(C)O",1845,"isopropanol",-185.23,-330.83,0,8,0,"train","Alberty (2003) beta",
 ,1847,"FMNH2(red)",-38.88,,-2,21,0,"test","Alberty (2003)",
-"C(C(=O)NCC(=O)[O-])[NH3+]",2037,"Glycylglycine",-520.2,-734.25,0,8,0,"train","Alberty (2003)",
-"CC(=CC(=O)[O-])C(=O)[O-]",2226,"Methylmaleate",-600.7,,-2,4,0,"train","Alberty (2003) beta",
+"C(C(=O)NCC(=O)[O-])[NH3+]",2037,"glycylglycine",-520.2,-734.25,0,8,0,"train","Alberty (2003)",
+"CC(=CC(=O)[O-])C(=O)[O-]",2226,"methylmaleate",-600.7,,-2,4,0,"train","Alberty (2003) beta",
 ,2226,"Methylmaleate",-636.49,,-1,5,0,"test","Alberty (2003) beta","unknown protonation"
-"C1CC(=O)NC1C(=O)[O-]",2237,"D-Pyroglutamic acid",-469.15,,-1,6,0,"train","Alberty (2003) beta",
-"CC(C(=O)[O-])C(=O)SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O",2557,"Methylmalonyl-CoA",-502.48,,-1,39,0,"train","Alberty (2003) beta","CoA-1=0"
-"CC(C(=O)O)C(=O)SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O",2557,"Methylmalonyl-CoA",-526.51,,0,40,0,"train","Alberty (2003) beta","CoA-1=0"
+"C1CC(=O)NC1C(=O)[O-]",1879,"5-oxoproline",-469.15,,-1,6,0,"test","Alberty (2003) beta",
+"CC(C(=O)[O-])C(=O)SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O",2557,"methylmalonyl-CoA",-502.48,,-1,39,0,"train","Alberty (2003) beta","CoA-1=0"
+"CC(C(=O)O)C(=O)SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O",2557,"methylmalonyl-CoA",-526.51,,0,40,0,"train","Alberty (2003) beta","CoA-1=0"
 "CC(CC(=O)[O-])(C(=O)[O-])O",2612,"(R)-2-Methylmalate",-843.9,,-2,6,0,"train","Alberty (2003) beta",
 "C(CC(=O)[O-])C(C(=O)[O-])O",3196,"(S)-2-Hydroxyglutarate",-840.18,,-2,6,0,"train","Alberty (2003) beta",
 "C(C(=O)C(=O)[O-])OP(=O)([O-])[O-]",3232,"Phosphohydroxypyruvate",-1448.67,,-3,2,0,"train","Alberty (2003) beta",

@@ -120,6 +120,7 @@ class GroupContribution(Thermodynamics):
         self.use_measured_train_values = True
         
         self.hatzi = Hatzi()
+        self.cid2pmap_dict = None
     
     def __del__(self):
         self.comm.close()
@@ -140,6 +141,7 @@ class GroupContribution(Thermodynamics):
         self.load_concentrations()
         self.load_training_data()
         self.load_cid2pmap(recalculate=False)
+        self.kegg()
 
     def load_cid2pmap(self, recalculate=False):
         self.kegg() # invoke the constructor to create the KEGG singleton
@@ -181,15 +183,6 @@ class GroupContribution(Thermodynamics):
             self.comm.commit()
             sys.stderr.write("[DONE]\n")
             
-    def get_cid2dG0(self, pH=default_pH, I=default_I, T=default_T, most_abundant=False):
-        cid2dG0 = {}
-        for cid in self.cid2pmap_dict.keys():
-            pmap = self.cid2pmap_dict[cid]
-            if (len(pmap) == 0):
-                raise ValueError("C%05d has an empty pmap" % cid)
-            cid2dG0[cid] = self.pmap_to_dG0(pmap, pH, I, T, most_abundant)
-        return cid2dG0           
-        
     def train(self, obs_fname, use_dG0_format=False):
         if (use_dG0_format):
             self.read_training_data_dG0(obs_fname)
@@ -668,29 +661,29 @@ class GroupContribution(Thermodynamics):
         
         return self.groupvec2val(groupvec)
 
-    def write_regression_report(self, html_writer):
+    def write_regression_report(self):
         group_matrix_reduced = self.group_matrix[:, self.nonzero_groups]
-        html_writer.write('<h2><a name="regression">Regression</a></h2>\n')
-        html_writer.write('<ul><li>%d compounds</li><li>%d groups</li><li>%d rank</li></ul>\n' % \
+        self.HTML.write('<h2><a name="regression">Regression</a></h2>\n')
+        self.HTML.write('<ul><li>%d compounds</li><li>%d groups</li><li>%d rank</li></ul>\n' % \
                         (group_matrix_reduced.shape[0], group_matrix_reduced.shape[1], matrixrank(group_matrix_reduced)))
-        html_writer.write('<table border="1">\n<tr><td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td><td>Group Vector</td></tr>')
+        self.HTML.write('<table border="1">\n<tr><td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td><td>Group Vector</td></tr>')
         for i in range(group_matrix_reduced.shape[0]):
-            html_writer.write('<tr><td>%.2f</td><td>%s</td></tr>' % (self.obs[i], ' '.join([str(x) for x in group_matrix_reduced[i, :]])))
-        html_writer.write('</table>')
+            self.HTML.write('<tr><td>%.2f</td><td>%s</td></tr>' % (self.obs[i], ' '.join([str(x) for x in group_matrix_reduced[i, :]])))
+        self.HTML.write('</table>')
         
-        html_writer.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
-        html_writer.write('<table border="1">')
-        html_writer.write('  <tr><td>Group Name</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
+        self.HTML.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
+        self.HTML.write('<table border="1">')
+        self.HTML.write('  <tr><td>Group Name</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
         j = 0
         for i in range(len(self.all_group_names)):
             if (i in self.nonzero_groups):
                 contribution = self.group_contributions[j]
                 compound_list_str = ' | '.join([self.mol_names[k] for k in pylab.find(group_matrix_reduced[:, j] > 0)])
-                html_writer.write('  <tr><td>%s</td><td>%8.2f</td><td>%s</td></tr>\n' % (self.all_group_names[i], contribution, compound_list_str))
+                self.HTML.write('  <tr><td>%s</td><td>%8.2f</td><td>%s</td></tr>\n' % (self.all_group_names[i], contribution, compound_list_str))
                 j += 1
             else:
-                html_writer.write('  <tr><td>%s</td><td>?</td><td></td></tr>\n' % (self.all_group_names[i]))
-        html_writer.write('</table>\n')
+                self.HTML.write('  <tr><td>%s</td><td>?</td><td></td></tr>\n' % (self.all_group_names[i]))
+        self.HTML.write('</table>\n')
 
     def analyze_training_set(self):
         self.write_regression_report(self.HTML)
@@ -762,6 +755,8 @@ class GroupContribution(Thermodynamics):
     def kegg(self):
         if (self._kegg == None):
             self._kegg = kegg.Kegg(log_file=self.LOG_FILE)
+        self.bounds = deepcopy(self._kegg.cid2bounds)
+        self.hatzi.bounds = self.bounds
         return self._kegg        
 
     def get_all_cids(self):
@@ -795,6 +790,13 @@ class GroupContribution(Thermodynamics):
             returns a list of 3-tuples of dG0 (untransformed), nH and z.
             Each tuple represents one of the pseudoisomers.
         """
+
+        # if the entire KEGG compound database has been computed in advance, use the cached data
+        if (self.cid2pmap_dict != None and cid in self.cid2pmap_dict):
+            return self.cid2pmap_dict[cid]
+        else:
+            raise MissingCompoundFormationEnergy("Formation energy cannot be determined using group contribution", cid)
+
 
         if (cid == 80): # H+
             return {(0, 0):0}
@@ -1128,31 +1130,31 @@ class GroupContribution(Thermodynamics):
         self.comm.commit()
         self.load_concentrations()
     
-    def write_table_to_html(self, html_writer, table_name):
+    def write_table_to_html(self, table_name):
         column_names = []
         for row in self.comm.execute("PRAGMA table_info(%s)" % table_name):
             (index, name, type, can_be_null, default_value, stam) = row
             column_names.append(name)
         
-        html_writer.write('<p><h2><a name="%s">Table %s:</a></h2>\n' % (table_name, table_name))
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  <tr>' + "".join([('<td><b>' + str(s) + '</b></td>') for s in column_names]) + '</tr>\n')
+        self.HTML.write('<p><h2><a name="%s">Table %s:</a></h2>\n' % (table_name, table_name))
+        self.HTML.write('<table border="1">\n')
+        self.HTML.write('  <tr>' + "".join([('<td><b>' + str(s) + '</b></td>') for s in column_names]) + '</tr>\n')
         for row in self.comm.execute("SELECT * FROM %s" % table_name):
-            html_writer.write('  <tr>' + "".join([('<td>' + str(s) + '</td>') for s in row]) + '</tr>\n')
-        html_writer.write('</table>\n')
-        html_writer.write('</p>\n')
+            self.HTML.write('  <tr>' + "".join([('<td>' + str(s) + '</td>') for s in row]) + '</tr>\n')
+        self.HTML.write('</table>\n')
+        self.HTML.write('</p>\n')
 
-    def write_query_to_html(self, html_writer, query, title=None, column_names=None):
+    def write_query_to_html(self, query, title=None, column_names=None):
         if (title == None):
             title = query
-        html_writer.write('<p><h2>%s</h2>\n' % (title))
-        html_writer.write('<table border="1">\n')
+        self.HTML.write('<p><h2>%s</h2>\n' % (title))
+        self.HTML.write('<table border="1">\n')
         if (column_names != None):
-            html_writer.write('  <tr>' + "".join([('<td><b>' + str(s) + '</b></td>') for s in column_names]) + '</tr>\n')
+            self.HTML.write('  <tr>' + "".join([('<td><b>' + str(s) + '</b></td>') for s in column_names]) + '</tr>\n')
         for row in self.comm.execute(query):
-            html_writer.write('  <tr>' + "".join([('<td>' + str(s) + '</td>') for s in row]) + '</tr>\n')
-        html_writer.write('</table>\n')
-        html_writer.write('</p>\n')
+            self.HTML.write('  <tr>' + "".join([('<td>' + str(s) + '</td>') for s in row]) + '</tr>\n')
+        self.HTML.write('</table>\n')
+        self.HTML.write('</p>\n')
 
     @staticmethod
     def get_float_parameter(s, name, default_value):
@@ -1163,7 +1165,7 @@ class GroupContribution(Thermodynamics):
             raise Exception("The parameter %s appears more than once in %s" % (name, s))
         return float(tokens[0])
 
-    def get_reactions(self, module_name, field_map, html_writer):
+    def get_reactions(self, module_name, field_map):
         """
             read the list of reactions from the command file
         """
@@ -1175,7 +1177,7 @@ class GroupContribution(Thermodynamics):
             else:
                 mid = int(mid_str)
             (S, rids, fluxes, cids) = self.kegg().get_module(mid)
-            html_writer.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
+            self.HTML.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
         else:
             (S, rids, fluxes, cids) = self.kegg().parse_explicit_module(field_map)
 
@@ -1190,18 +1192,18 @@ class GroupContribution(Thermodynamics):
         
         return (S, rids, fluxes, cids)
 
-    def write_metabolic_graph(self, html_writer, S, rids, cids, svg_fname_graph):
+    def write_metabolic_graph(self, S, rids, cids, svg_fname_graph):
         """
             draw a graph representation of the pathway
         """        
-        html_writer.write('<a href=%s>Graph visualization</a></br>\n' % svg_fname_graph)
+        self.HTML.write('<a href=%s>Graph visualization</a></br>\n' % svg_fname_graph)
         Gdot = self.kegg().draw_pathway(S, rids, cids)
         Gdot.write(svg_fname_graph, prog='dot', format='svg')
 
-    def analyze_profile(self, key, field_map, html_writer):
-        html_writer.write('<p>\n')
-        html_writer.write('<ul>\n')
-        html_writer.write('<li>Conditions:</br><ol>\n')
+    def analyze_profile(self, key, field_map):
+        self.HTML.write('<p>\n')
+        self.HTML.write('<ul>\n')
+        self.HTML.write('<li>Conditions:</br><ol>\n')
         # read the list of conditions from the command file
         conditions = []
         for condition in field_map["CONDITIONS"].split('\t'):
@@ -1214,15 +1216,13 @@ class GroupContribution(Thermodynamics):
             T = GroupContribution.get_float_parameter(condition, "T", default_T)
             c0 = GroupContribution.get_float_parameter(condition, "c0", default_c0)
             conditions.append((media, pH, I, T, c0))
-            html_writer.write('<li>Conditions: media = %s, pH = %g, I = %g M, T = %g K, c0 = %g</li>\n' % (media, pH, I, T, c0))
-        html_writer.write('</ol></li>\n')
+            self.HTML.write('<li>Conditions: media = %s, pH = %g, I = %g M, T = %g K, c0 = %g</li>\n' % (media, pH, I, T, c0))
+        self.HTML.write('</ol></li>\n')
         
         # read the list of methods for calculating the dG
         methods = []
         if (kegg.parse_bool_field(field_map, 'MILO', True)):
             methods.append('MILO')
-        if (kegg.parse_bool_field(field_map, 'ABUNDANT', False)):
-            methods.append('ABUNDANT')
         if (kegg.parse_bool_field(field_map, 'HATZI', False)):
             methods.append('HATZI')
         
@@ -1237,10 +1237,10 @@ class GroupContribution(Thermodynamics):
                 dG_profiles[plot_key] = []
                 params_list.append((method, media, pH, I, T, c0, plot_key))
 
-        (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
-        self.kegg().write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
-        html_writer.write('</ul>')
-        self.write_metabolic_graph(html_writer, S, rids, cids, '%s/%s_graph.svg' % (self.FIG_DIR, key))
+        (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
+        self.kegg().write_reactions_to_html(self.HTML, S, rids, fluxes, cids, show_cids=False)
+        self.HTML.write('</ul>')
+        self.write_metabolic_graph(self.HTML, S, rids, cids, '%s/%s_graph.svg' % (self.FIG_DIR, key))
         
         (Nr, Nc) = S.shape
 
@@ -1254,9 +1254,7 @@ class GroupContribution(Thermodynamics):
             dG_f[plot_key] = pylab.zeros((Nc, 1))
             for c in range(Nc):
                 if (method == "MILO"):
-                    dG0_f[plot_key][c] = self.estimate_dG0_keggcid(cids[c], pH=pH, I=I, T=T)
-                elif (method == "ABUNDANT"):
-                    dG0_f[plot_key][c] = self.estimate_dG0_keggcid(cids[c], pH=pH, I=I, T=T, most_abundant=True)
+                    dG0_f[plot_key][c] = self.cid_to_dG0(cids[c], pH=pH, I=I, T=T)
                 elif (method == "HATZI"):
                     dG0_f[plot_key][c] = self.hatzi.cid_to_dG0(cids[c], pH=pH, I=I, T=T)
                 else:
@@ -1289,13 +1287,13 @@ class GroupContribution(Thermodynamics):
         
         pylab.xlabel("Reaction no.")
         pylab.ylabel("dG [kJ/mol]")
-        html_writer.embed_matplotlib_figure(profile_fig, width=800, heigh=600)
-        html_writer.write('</p>')
+        self.HTML.embed_matplotlib_figure(profile_fig, width=800, heigh=600)
+        self.HTML.write('</p>')
     
-    def analyze_slack(self, key, field_map, html_writer):
-        html_writer.write('<p>\n')
-        html_writer.write('<ul>\n')
-        html_writer.write('<li>Conditions:</br><ol>\n')
+    def analyze_slack(self, key, field_map):
+        self.HTML.write('<p>\n')
+        self.HTML.write('<ul>\n')
+        self.HTML.write('<li>Conditions:</br><ol>\n')
         # c_mid the middle value of the margin: min(conc) < c_mid < max(conc) 
         c_mid = kegg.parse_float_field(field_map, 'C_MID', 1e-3)
         (pH, I, T) = (default_pH, default_I, default_T)
@@ -1304,20 +1302,20 @@ class GroupContribution(Thermodynamics):
             pH = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "pH", default_pH)
             I = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "I", default_I)
             T = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "T", default_T)
-            html_writer.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (pH, I, T))
+            self.HTML.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (pH, I, T))
             for tokens in re.findall("C([0-9]+)=([0-9\.e\+\-]+)", field_map["CONDITIONS"]):
                 cid = float(tokens[0])
                 conc = float(tokens[1])
                 concentration_bounds[cid] = (conc, conc)
-                html_writer.write(', [C%05d] = %g\n' % (cid, conc))
-            html_writer.write('</li>\n')
-        html_writer.write('</ol></li>')
+                self.HTML.write(', [C%05d] = %g\n' % (cid, conc))
+            self.HTML.write('</li>\n')
+        self.HTML.write('</ol></li>')
                     
         # The method for how we are going to calculate the dG0
-        (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
-        self.kegg().write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
-        html_writer.write('</ul>\n')
-        self.write_metabolic_graph(html_writer, S, rids, cids, '%s/%s_graph.svg' % (self.FIG_DIR, key))
+        (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
+        self.kegg().write_reactions_to_html(self.HTML, S, rids, fluxes, cids, show_cids=False)
+        self.HTML.write('</ul>\n')
+        self.write_metabolic_graph(S, rids, cids, '%s/%s_graph.svg' % (self.FIG_DIR, key))
         
         physiological_pC = kegg.parse_float_field(field_map, "PHYSIO", 4)
         (Nr, Nc) = S.shape
@@ -1325,8 +1323,8 @@ class GroupContribution(Thermodynamics):
         # calculate the dG_f of each compound, and then use S to calculate dG_r
         dG0_f = pylab.zeros((Nc, 1))
         ind_nan = []
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  <td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z"))
+        self.HTML.write('<table border="1">\n')
+        self.HTML.write('  <td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z"))
         for c in range(Nc):
             cid = cids[c]
             name = self.kegg().cid2name(cid)
@@ -1334,14 +1332,14 @@ class GroupContribution(Thermodynamics):
                 pmap = self.cid2pmap(cid)
                 dG0_f[c] = self.pmap_to_dG0(pmap, pH, I, T)
                 for ((nH, z), dG0) in pmap.iteritems():
-                    html_writer.write('<tr><td>%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td>\n' % (cid, name, dG0, nH, z))
+                    self.HTML.write('<tr><td>%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td>\n' % (cid, name, dG0, nH, z))
             
             except (kegg.KeggParseException, GroupMissingTrainDataError):
                 # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
                 dG0_f[c] = pylab.nan
                 ind_nan.append(c)
-                html_writer.write('<tr><td>%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td>\n' % (cid, name))
-        html_writer.write('</table>\n')
+                self.HTML.write('<tr><td>%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td>\n' % (cid, name))
+        self.HTML.write('</table>\n')
         bounds = [concentration_bounds.get(cid, (None, None)) for cid in cids]
         pC = pylab.arange(0, 20, 0.1)
         B_vec = pylab.zeros(len(pC))
@@ -1400,35 +1398,35 @@ class GroupContribution(Thermodynamics):
         
         pylab.title(title)
         pylab.ylim(ymin=ymin)
-        html_writer.embed_matplotlib_figure(slack_fig, width=800, height=600)
+        self.HTML.embed_matplotlib_figure(slack_fig, width=800, height=600)
 
         # write a table of the compounds and their dG0_f
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  <td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f' [kJ/mol]"))
+        self.HTML.write('<table border="1">\n')
+        self.HTML.write('  <td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f' [kJ/mol]"))
         for c in range(Nc):
             compound = self.kegg().cid2compound(cids[c])
             cid_str = '<a href="%s">C%05d</a>' % (compound.get_link(), compound.cid)
-            html_writer.write('<tr><td>%s</td><td>%s</td><td>%.1f</td>\n' % (cid_str, compound.name, dG0_f[c, 0]))
-        html_writer.write('</table><br>\n')
+            self.HTML.write('<tr><td>%s</td><td>%s</td><td>%.1f</td>\n' % (cid_str, compound.name, dG0_f[c, 0]))
+        self.HTML.write('</table><br>\n')
         
         # write a table of the reactions and their dG0_r
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  <td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG RID", "Reaction", "flux"))
+        self.HTML.write('<table border="1">\n')
+        self.HTML.write('  <td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG RID", "Reaction", "flux"))
         for r in range(Nr):
             rid_str = '<a href="http://www.genome.jp/dbget-bin/www_bget?rn:R%05d">R%05d</a>' % (rids[r], rids[r])
             spr = {}
             for c in pylab.find(S[r, :]):
                 spr[cids[c]] = S[r, c]
             reaction_str = self.kegg().sparse_to_hypertext(spr)
-            html_writer.write('<tr><td>%s</td><td>%s</td><td>%g</td>\n' % (rid_str, reaction_str, fluxes[r]))
-        html_writer.write('</table><br>\n')
+            self.HTML.write('<tr><td>%s</td><td>%s</td><td>%g</td>\n' % (rid_str, reaction_str, fluxes[r]))
+        self.HTML.write('</table><br>\n')
         
-        html_writer.write('</p>\n')
+        self.HTML.write('</p>\n')
 
-    def analyze_margin(self, key, field_map, html_writer):
-        html_writer.write('<p>\n')
-        (S, rids, fluxes, cids) = self.get_reactions(key, field_map, html_writer)
-        html_writer.write('<li>Conditions:</br><ol>\n')
+    def analyze_margin(self, key, field_map):
+        self.HTML.write('<p>\n')
+        (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
+        self.HTML.write('<li>Conditions:</br><ol>\n')
                     
         # The method for how we are going to calculate the dG0
         method = kegg.parse_string_field(field_map, "METHOD", "MILO")
@@ -1439,26 +1437,25 @@ class GroupContribution(Thermodynamics):
             thermodynamics = self.hatzi
         else:
             raise Exception("Unknown dG evaluation method: " + method)
-        thermodynamics.bounds = deepcopy(self.kegg().cid2bounds)
         
         if ("CONDITIONS" in field_map):
             thermodynamics.pH = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "pH", default_pH)
             thermodynamics.I = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "I", default_I)
             thermodynamics.T = GroupContribution.get_float_parameter(field_map["CONDITIONS"], "T", default_T)
-            html_writer.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (thermodynamics.pH, thermodynamics.I, thermodynamics.T))
+            self.HTML.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (thermodynamics.pH, thermodynamics.I, thermodynamics.T))
             for tokens in re.findall("C([0-9]+)=([0-9\.e\+\-]+)", field_map["CONDITIONS"]):
                 cid = float(tokens[0])
                 conc = float(tokens[1])
                 thermodynamics.bounds[cid] = (conc, conc)
-                html_writer.write(', [C%05d] = %g\n' % (cid, conc))
-            html_writer.write('</li>\n')
-        html_writer.write('</ol></li>')
+                self.HTML.write(', [C%05d] = %g\n' % (cid, conc))
+            self.HTML.write('</li>\n')
+        self.HTML.write('</ol></li>')
         thermodynamics.c_range = kegg.parse_vfloat_field(field_map, "C_RANGE", [1e-6, 1e-2])
         thermodynamics.c_mid = kegg.parse_float_field(field_map, 'C_MID', 1e-3)
         
-        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg(), html_writer)
+        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg(), self.HTML)
 
-    def analyze_contour(self, key, field_map, html_writer):
+    def analyze_contour(self, key, field_map):
         pH_list = kegg.parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
         I_list = kegg.parse_vfloat_field(field_map, "I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
         T = kegg.parse_float_field(field_map, "T", default_T)
@@ -1478,11 +1475,11 @@ class GroupContribution(Thermodynamics):
         pylab.clabel(CS, inline=1, fontsize=10)
         pylab.xlabel("pH")
         pylab.ylabel("Ionic Strength")
-        html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
-        html_writer.write('<br>\n' + self.kegg().sparse_to_hypertext(sparse_reaction) + '<br>\n')
-        html_writer.write('</p>')
+        self.HTML.embed_matplotlib_figure(contour_fig, width=800, height=600)
+        self.HTML.write('<br>\n' + self.kegg().sparse_to_hypertext(sparse_reaction) + '<br>\n')
+        self.HTML.write('</p>')
 
-    def analyze_protonation(self, key, field_map, html_writer):
+    def analyze_protonation(self, key, field_map):
         pH_list = kegg.parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
         I = kegg.parse_float_field(field_map, "I", default_I)
         T = kegg.parse_float_field(field_map, "T", default_T)
@@ -1505,17 +1502,16 @@ class GroupContribution(Thermodynamics):
         pylab.legend(['%s [%d]' % (name, z) for ((nH, z), dG0) in pmap.iteritems()], prop=prop)
         pylab.xlabel("pH")
         pylab.ylabel("Pseudoisomer proportion")
-        html_writer.embed_matplotlib_figure(protonation_fig, width=800, height=600)
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  <tr><td>%s</td><td>%s</td><td>%s</td></tr>\n' % ('dG0_f', '# hydrogen', 'charge'))
+        self.HTML.embed_matplotlib_figure(protonation_fig, width=800, height=600)
+        self.HTML.write('<table border="1">\n')
+        self.HTML.write('  <tr><td>%s</td><td>%s</td><td>%s</td></tr>\n' % ('dG0_f', '# hydrogen', 'charge'))
         for ((nH, z), dG0) in pmap.iteritems():
-            html_writer.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
-        html_writer.write('</table>')
-        html_writer.write('</p>')
+            self.HTML.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
+        self.HTML.write('</table>')
+        self.HTML.write('</p>')
 
-    def analyze_pathway(self, filename, html_fname):
-        html_writer = HtmlWriter(html_fname)
-        html_writer.write("<h1>Pathway analysis using Group Contribution Method</h1>\n")
+    def analyze_pathway(self, filename):
+        self.HTML.write("<h1>Pathway analysis using Group Contribution Method</h1>\n")
         self.kegg()
         entry2fields_map = kegg.parse_kegg_file(filename)
         
@@ -1527,36 +1523,34 @@ class GroupContribution(Thermodynamics):
                 sys.stderr.write("skipping\n")
                 continue
             try:
-                html_writer.write("<b>%s - %s</b>" % (field_map["NAME"], field_map["TYPE"]))
-                html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (key))
-                html_writer.write('<div id="%s" style="display:none">' % key)
-                html_writer.write('<h2>%s - %s</h2>\n' % (field_map["NAME"], field_map["TYPE"]))
+                self.HTML.write("<b>%s - %s</b>" % (field_map["NAME"], field_map["TYPE"]))
+                self.HTML.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (key))
+                self.HTML.write('<div id="%s" style="display:none">' % key)
+                self.HTML.write('<h2>%s - %s</h2>\n' % (field_map["NAME"], field_map["TYPE"]))
             except KeyError:
                 raise Exception("Both the 'NAME' and 'TYPE' fields must be defined for each pathway")
 
             if (field_map["TYPE"] == "PROFILE"):     
-                self.analyze_profile(key, field_map, html_writer)
+                self.analyze_profile(key, field_map)
             elif (field_map["TYPE"] == "SLACK"):     
-                self.analyze_slack(key, field_map, html_writer)
+                self.analyze_slack(key, field_map)
             elif (field_map["TYPE"] == "MARGIN"):     
-                self.analyze_margin(key, field_map, html_writer)               
+                self.analyze_margin(key, field_map)               
             elif (field_map["TYPE"] == "CONTOUR"):
-                self.analyze_contour(key, field_map, html_writer)
+                self.analyze_contour(key, field_map)
             elif (field_map["TYPE"] == "PROTONATION"):
-                self.analyze_protonation(key, field_map, html_writer)
+                self.analyze_protonation(key, field_map)
             else:
                 raise Exception("Unknown analysis type: " + field_map["TYPE"])
-            html_writer.write('</div><br>\n')
+            self.HTML.write('</div><br>\n')
             sys.stderr.write("[DONE]\n")
             
-        html_writer.write('<h4>Measured concentration table:</h4>\n')
-        html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % ('__concentrations__'))
-        html_writer.write('<div id="%s" style="display:none">' % '__concentrations__')
-        self.write_query_to_html(html_writer, \
-            "select cid, media, 1000*concentration from compound_abundance ORDER BY cid, media", \
+        self.HTML.write('<h4>Measured concentration table:</h4>\n')
+        self.HTML.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % ('__concentrations__'))
+        self.HTML.write('<div id="%s" style="display:none">' % '__concentrations__')
+        self.write_query_to_html("select cid, media, 1000*concentration from compound_abundance ORDER BY cid, media", \
             title="Abundance", column_names=["CID", "Media", "concentration [mM]"])
-        html_writer.write('</div><br>\n')
-        html_writer.close()
+        self.HTML.write('</div><br>\n')
 
     def add_vectors(self, stoichiometric_vector1, cid_vector1, stoichiometric_vector2, cid_vector2):
         cid_vector = list(set(cid_vector1 + cid_vector2))
