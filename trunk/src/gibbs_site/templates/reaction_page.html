@@ -3,23 +3,20 @@
 {% endwith %}
 
 	<form name="reactionForm" action="/reaction" method="get">
+		<input type="hidden" name="query" value="{{ query }}" />
 		<div class="parsedRxn">
-			{% for reactant in reaction.reactants %}
-				<input type="hidden" name="reactantsCoeff" value="{{ reactant.coeff }}" />
-				<input type="hidden" name="reactantsId" value="{{ reactant.compound.kegg_id }}" />
-				
-				{% if reactant.coeff > 1 %} {{ reactant.coeff }} {% endif %}
-				<a href="{{ reactant.compound_link }}" title="{{ reactant.compound.formula }}">{{ reactant.compound }}</a>
+			{% for compound in reaction.reactants %}
+				{% with "reactants" as reaction_side %}
+					{% include "compound_in_reaction.html" %}
+				{% endwith %}
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %}
 			&rarr;
-			{% for product in reaction.products %}
-				<input type="hidden" name="productsCoeff" value="{{ product.coeff }}" />
-				<input type="hidden" name="productsId" value="{{ product.compound.kegg_id }}" />
-				
-				{% if product.coeff > 1 %} {{ product.coeff }} {% endif %}
-				<a href="{{ product.compound_link }}" title="{{ product.compound.formula }}">{{ product.compound }}</a>
+			{% for compound in reaction.products %}
+				{% with "products" as reaction_side %}
+					{% include "compound_in_reaction.html" %}
+				{% endwith %}
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %}
@@ -28,10 +25,9 @@
 		{% with "&Delta;<sub>r</sub>G'&deg;" as delta_g_label %} 
 			{% include "result_table.html" %}
 		{% endwith %}
-				
+	
 		<input type="submit" value="Update" />
 	</form>
-	
 	
 	{% include "search_form.html" %}
 

@@ -1,12 +1,14 @@
-{# Expects a variable "compound" to be set on include #}
-
-<input type="hidden" name="{{ reaction_side }}Coeff" value="{{ compound.parsed_coeff }}" />
-{% if compound.parsed_coeff > 1 %}
-{{ compound.parsed_coeff }}
-{% endif %}
-
-<select class="compoundSelector" name="{{ reaction_side }}Id">
-{% for match in compound.matches|slice:":5" %}
-  <option value="{{ match.value.kegg_id }}" {% if forloop.first %} selected {% endif %}>{{ match.key }}</option>
-{% endfor %}
-</select>
+{% with compound.coeff|default:1 as coeff %}
+  <input type="hidden" name="{{ reaction_side }}Coeff" value="{{ coeff }}" />
+{% endwith %}
+  
+{% with compound.compound as c %}
+  <input type="hidden" name="{{ reaction_side }}Id" value="{{ c.kegg_id }}" />
+  <input type="hidden" name="{{ reaction_side }}Name" value="{{ compound.name }}" />
+  
+  {% if compound.coeff > 1 %}
+  	{{ compound.coeff }}
+  {% endif %}
+  
+  <a href="{{ c.link }}" title="{{ c.formula }}">{{ compound.name }}</a>
+{% endwith %}

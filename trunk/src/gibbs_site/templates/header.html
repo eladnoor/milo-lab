@@ -10,8 +10,8 @@
 	</head>
 	<body>
 	{% if error_msg %}
-		<div class="errorMsg">{{ error_msg }}</div>
+		<div class="errorMsg">{{ error_msg|safe }}</div>
 	{% endif %}
 	{% if warning %}
-		<div class="warning">{{ warning }}</div>
+		<div class="warning">{{ warning|safe }}</div>
 	{% endif %}

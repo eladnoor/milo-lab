@@ -21,13 +21,20 @@
 		<td width="50px"><input type="text" name="ionic_strength" id="ionStrengthField" value="{{ ionic_strength }}" size="5"/></td>
 		<td><div id="ionStrengthSlider"></div></td>
 	</tr>
-	{% comment %}
 	<tr>
 		<td width="150px">Concentrations </td>
 		<td colspan="2">
-			<input type="radio" name="concentrationProfile" value="1M">1 M
-			<input type="radio" name="concentrationProfile" value="1mM">1 mM
+			{% if not concentration_profile or concentration_profile == "1M" %}
+			<input type="radio" name="concentration_profile" value="1M" checked>1 M
+			  {% else %}
+			  <input type="radio" name="concentration_profile" value="1M" checked>1 M
+			{% endif %}
+			
+			{% ifequal concentration_profile "1mM" %}
+			<input type="radio" name="concentration_profile" value="1mM" checked>1 mM
+			  {% else %}
+			  <input type="radio" name="concentration_profile" value="1mM">1 mM
+			{% endifequal %}
 		</td>
 	</tr>
-	{% endcomment %}
 </table>
