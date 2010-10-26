@@ -28,7 +28,7 @@
 		{% endif %}
 	</tr>
 </table>
-{% if compound.all_formation_energies %}
+{% if compound.all_species %}
 <table class="speciesInfo">
 	<tr>
 		<th colspan="4">Species Formation Energies</td>		
@@ -39,17 +39,17 @@
 		<td>&Delta;<sub>f</sub>G'&deg;</td>
 		<td>Source</td>
 	</tr>
-	{% for sfe in compound.all_formation_energies %}
+	{% for specie in compound.all_species %}
 	<tr>
-		<td>{{ sfe.specie.net_charge }}</td>
-		<td>{{ sfe.value|floatformat:1 }}</td>
-		<td>{% if sfe.transformed %}
-				{{ sfe.transformed|floatformat:1 }}
+		<td>{{ specie.net_charge }}</td>
+		<td>{{ specie.formation_energy.value|floatformat:1 }}</td>
+		<td>{% if specie.transformed_energy %}
+				{{ specie.transformed_energy|floatformat:1 }}
 				{% else %}
 					N/A
 			{% endif %}
 		</td>
-		<td>{{ sfe.source.name }}</td>
+		<td>{{ specie.formation_energy.source }}</td>
 	</tr>
 	{% endfor %}
 </table>

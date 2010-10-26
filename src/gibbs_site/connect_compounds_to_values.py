@@ -19,18 +19,18 @@ setup_environ(settings)
 from gibbs import models
 
 print 'Connecting'
-for e_formation in models.SpeciesFormationEnergy.objects.all():
-	kegg_id = e_formation.specie.kegg_id
+for specie in models.Specie.objects.all():
+	kegg_id = specie.kegg_id
 	try:
 		compound = models.Compound.objects.get(kegg_id=kegg_id)
 	except:
 		print 'Missing kegg_id:', kegg_id
 		continue
 
-	pks = set(ef.pk for ef in compound.species_formation_energies.all())
+	pks = set(s.pk for s in compound.species.all())
 
-	if e_formation.pk not in pks:
-		compound.species_formation_energies.add(e_formation)
+	if specie.pk not in pks:
+		compound.species.add(specie)
 		compound.save()
 
 print 'Done.'

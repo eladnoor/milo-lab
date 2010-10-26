@@ -1,22 +1,11 @@
 from gibbs import models
 from matching import approximate_matcher
-from matching import reaction_parser
+from matching import query_parser
+from matching import reaction_matcher
+from util import singleton
 
 
-def Singleton(cls):
-    """Decorator that makes a class a singleton.
-    
-    TODO(flamholz): move somewhere more central.
-    """
-    instance_container = []
-    def getinstance():
-        if not len(instance_container):
-            instance_container.append(cls())
-        return instance_container[0]
-    return getinstance
-
-
-@Singleton
+@singleton.Singleton
 class ServiceConfig(object):
     """A singleton class that contains global service configuration and state.
     
@@ -25,12 +14,14 @@ class ServiceConfig(object):
     
     def __init__(self):
         self._compound_library = models.Compound.AsLibrary()
+        self._query_parser = query_parser.QueryParser()
         self._compound_matcher = approximate_matcher.BackfillingRegexApproxMatcher(
             self._compound_library, max_results=10, min_score=0.1)
-        self._reaction_parser = reaction_parser.ReactionParser(self._compound_matcher)
+        self._reaction_matcher = reaction_matcher.ReactionMatcher(self._compound_matcher)
     
+    query_parser = property(lambda self: self._query_parser)
     compound_matcher = property(lambda self: self._compound_matcher)
-    reaction_parser = property(lambda self: self._reaction_parser)
+    reaction_matcher = property(lambda self: self._reaction_matcher)
 
 
 def Get():

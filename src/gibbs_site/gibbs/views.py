@@ -1,16 +1,26 @@
 import logging
 from django.shortcuts import render_to_response
-from django.http import HttpResponse
 from django.http import Http404
 from gibbs import compound_form
-from gibbs import form_utils
+from gibbs import concentration_profile
 from gibbs import models
 from gibbs import reaction_form
 from gibbs import search_form
 from gibbs import service_config
-from matching import approximate_matcher
-from matching import compound
-from matching import reaction_parser
+
+def GetBalancednessWarning(reaction, ph=None, ionic_strength=None,
+                           concentration_profile=None):
+    if reaction.IsBalanced():
+        return None
+    
+    warning = 'Reaction is not balanced!'
+    if not reaction.CanBalanceWithWater():
+        return warning
+    
+    url = reaction.GetBalanceWithWaterLink(ph, ionic_strength,
+                                           concentration_profile)
+    warning += ' <a href="%s">Balance with water?</url>' % url
+    return warning
 
 
 def CompoundPage(request):
@@ -25,7 +35,7 @@ def CompoundPage(request):
     compound = models.Compound.objects.get(kegg_id=kegg_id)
     compound.StashTransformedSpeciesEnergies(form.cleaned_ph,
                                              form.cleaned_ionic_strength)
-    delta_g_estimate = compound.GetFormationEnergy(
+    delta_g_estimate = compound.DeltaG(
         pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength)
     
     template_data = {'compound': compound, 
@@ -42,46 +52,38 @@ def ReactionPage(request):
     if not form.is_valid():
         logging.error(form.errors)
         raise Http404
+
+    i_s = form.cleaned_ionic_strength
+    ph = form.cleaned_ph
     
     clean_reactants = form.cleaned_reactantIds
     clean_products = form.cleaned_productIds
-    zipped_reactants = zip(form.cleaned_reactantCoeffs, clean_reactants)
-    zipped_products = zip(form.cleaned_productCoeffs, clean_products)
-
+    
+    cprofile_name = form.cleaned_concentration_profile
+    cprofile = concentration_profile.GetProfile(cprofile_name)
+    
+    reactant_names = form.cleaned_reactantNames
+    product_names = form.cleaned_productNames
+    
+    zipped_reactants = zip(form.cleaned_reactantCoeffs, clean_reactants, reactant_names)
+    zipped_products = zip(form.cleaned_productCoeffs, clean_products, product_names)
+    
+    reaction = models.Reaction.FromIds(zipped_reactants, zipped_products)
+    if form.cleaned_balance_w_water:
+        reaction.TryBalanceWithWater()
+    
     # Compute the delta G estimate.
-    i_s = form.cleaned_ionic_strength
-    ph = form.cleaned_ph
-    delta_g_estimate = None
-    warning = None
-    delta_g_estimate = models.Compound.GetReactionEnergy(
-        zipped_reactants, zipped_products, pH=ph, ionic_strength=i_s)
-    if not models.Compound.ReactionIsBalanced(zipped_reactants, zipped_products):
-        warning = 'Reaction is not balanced!'
-
-    # Make sure that we can parse the reaction.
-    # TODO(flamholz): Use the compound name the user selected, rather than the first one.
-    reactants = models.Compound.GetCompoundsByKeggId(clean_reactants)
-    products = models.Compound.GetCompoundsByKeggId(clean_products)
-    rdicts, pdicts = [], []
+    delta_g_estimate = reaction.DeltaG(pH=ph,
+                                       ionic_strength=i_s,
+                                       concentration_profile=cprofile)
     
-    params = '&ph=%f&ionic_strength=%f' % (ph, i_s)
-    get_compound_link = lambda c: '/compound?compoundId=%s&%s' % (c.kegg_id, params)
-    for coeff, id in zip(form.cleaned_reactantCoeffs, clean_reactants):
-        compound = reactants[id]
-        rdicts.append({'coeff': coeff, 'compound': compound,
-                       'compound_link': get_compound_link(compound)})
-    for coeff, id in zip(form.cleaned_productCoeffs, clean_products):
-        compound = products[id]
-        pdicts.append({'coeff': coeff, 'compound': compound,
-                       'compound_link': get_compound_link(compound)})
-    
-    rxn = {'products': pdicts,
-           'reactants': rdicts}
-    
-    template_data = {'reaction': rxn, 
+    warning = GetBalancednessWarning(reaction, ph, i_s, cprofile_name)
+    template_data = {'reaction': reaction,
+                     'query': form.cleaned_query,
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
+                     'concentration_profile': cprofile_name,
                      'warning': warning}
     return render_to_response('reaction_page.html', template_data)
 
@@ -92,7 +94,8 @@ def ResultsPage(request):
     if not form.is_valid():
         raise Http404
     
-    reaction_parser = service_config.Get().reaction_parser
+    query_parser = service_config.Get().query_parser
+    reaction_matcher = service_config.Get().reaction_matcher
     matcher = service_config.Get().compound_matcher
     
     query = str(form.cleaned_query)
@@ -103,22 +106,29 @@ def ResultsPage(request):
                      'ionic_strength': ionic_strength}
     
     # Check if we should parse and process the input as a reaction.
-    if reaction_parser.ShouldParseAsReaction(query):
-        parsed_reaction = reaction_parser.ParseReactionQuery(query)
-        delta_g_estimate = None
-        best_reaction = parsed_reaction.GetBestMatch()
-        if best_reaction:
-            reactants, products = best_reaction
-            delta_g_estimate = models.Compound.GetReactionEnergy(
-                reactants, products, pH=ph,
-                ionic_strength=ionic_strength)
-            if not models.Compound.ReactionIsBalanced(reactants, products):
-                template_data['warning'] = 'Reaction is not balanced!'
-            
-        template_data['delta_g_estimate'] = delta_g_estimate
-        template_data['parsed_reaction'] = parsed_reaction
-        return render_to_response('reaction_result.html',
-                                  template_data)
+    if query_parser.IsReactionQuery(query):        
+        parsed_reaction = query_parser.ParseReactionQuery(query)
+        if not parsed_reaction:
+            logging.error('Failed to parse reaction query.')
+            raise Http404
+        
+        reaction_matches = reaction_matcher.MatchReaction(parsed_reaction)
+        best_reaction = reaction_matches.GetBestMatch()
+        
+        if not best_reaction:
+            logging.error('Failed to match reaction query.')
+            raise Http404
+        
+        reactants, products = best_reaction
+        
+        reaction = models.Reaction.FromIds(reactants, products)
+        delta_g_estimate = reaction.DeltaG(
+            pH=ph, ionic_strength=ionic_strength)
+
+        template_data['warning'] = GetBalancednessWarning(reaction)  
+        template_data.update({'delta_g_estimate': delta_g_estimate,
+                              'reaction': reaction})
+        return render_to_response('reaction_page.html', template_data)
 
     else:
         # Otherwise we try to parse it as a single compound.
@@ -127,13 +137,13 @@ def ResultsPage(request):
         compound = results[0].value
         compound.StashTransformedSpeciesEnergies(ph, ionic_strength)
         if results:
-            delta_g_estimate = compound.GetFormationEnergy(
+            delta_g_estimate = compound.DeltaG(
                 pH=ph, ionic_strength=ionic_strength)
         
         template_data['kegg_link'] = results[0].value.GetKeggLink()
         template_data['results'] = results
         template_data['delta_g_estimate'] = delta_g_estimate
-        return render_to_response('compound_result.html',
+        return render_to_response('search_results.html',
                                   template_data)
 
     raise Http404

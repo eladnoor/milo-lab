@@ -1,4 +1,4 @@
-from matching import topk
+from util import topk
 
 class Error(Exception):
     pass
