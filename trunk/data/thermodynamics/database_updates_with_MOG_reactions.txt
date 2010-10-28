@@ -10,9 +10,9 @@
 % ----------------------------- Add reactions ----------------------------------
 
 % Needed for MOG cycle:
-%SETR R90100: C00099 <=> C00041                    % beta-Alanine <=> L-Alanine
-%SETR R90101: C00827 + C01013 <=> C05668 + C00256  % Lactoyl-CoA + 3-Hydroxypropanoate <=> (R)-Lactate + 3-Hydroxypropionyl-CoA
-%SETR R90102: C01013 + C00827 <=> C00186 + C05668   % Lactoyl-CoA + 3-Hydroxypropanoate <=> (S)-Lactate + 3-Hydroxypropionyl-CoA
+SETR R90100: C00099 <=> C00041                    % beta-Alanine <=> L-Alanine
+SETR R90101: C00827 + C01013 <=> C05668 + C00256  % Lactoyl-CoA + 3-Hydroxypropanoate <=> (R)-Lactate + 3-Hydroxypropionyl-CoA
+SETR R90102: C01013 + C00827 <=> C00186 + C05668   % Lactoyl-CoA + 3-Hydroxypropanoate <=> (S)-Lactate + 3-Hydroxypropionyl-CoA
 
 % Other reactions:
 %SETR R90200: C00232 + C00006 + C00010 <=> C00091 + C00005                            % Succinate semialdehyde + NADP+ + CoA <=> Succinayl-CoA + NADPH

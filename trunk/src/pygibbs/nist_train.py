@@ -228,6 +228,7 @@ class GradientAscent (Thermodynamics):
             report_pdf = None
             report_csv = None
         else:
+            util._mkdir("../res/nist")
             report_pdf = "../res/nist/" + report_name + ".pdf"
             report_csv = "../res/nist/" + report_name + ".csv"
         known_cid_set = self.get_all_cids()
@@ -498,15 +499,15 @@ class GradientAscent (Thermodynamics):
 
 def main():
 
-    gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+    gc = GroupContribution(sqlite_name="gibbs.sqlite")
     gc.init()
+    grad = GradientAscent(gc)
     nist = Nist(gc.kegg())
     alberty = Alberty()
     hatzi = Hatzi()
     
-    if True:
+    if False:
         sys.stderr.write("Calculate the correlation between Alberty's predictions and the NIST database\n")
-        grad = GradientAscent(gc)
         grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(298, 314))
         grad.verify_results("alberty", ignore_I=False)
@@ -514,17 +515,15 @@ def main():
         grad.write_pseudoisomers("../res/nist/nist_dG0_f.csv")
 
         sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the reduced NIST database\n")
-        grad.cid2pmap_dict =  hatzi.cid2pmap_dict
+        grad.cid2pmap_dict = hatzi.cid2pmap_dict
         grad.verify_results("hatzi-small")
 
         sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the full NIST database\n")
-        grad = GradientAscent(gc)
         grad.cid2pmap_dict = hatzi.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(298, 314))
         grad.verify_results("hatzi-full")
 
     elif True:
-        
         sys.stderr.write("Calculate the correlation between PAGC predictions and the NIST database\n")
         grad.cid2pmap_dict = gc.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(298, 314))
@@ -532,7 +531,6 @@ def main():
         
     elif False:
         # Run the gradient ascent algorithm, where the starting point is the same file used for training the GC algorithm
-        grad = GradientAscent(gc)
         grad.load_dG0_data("../data/thermodynamics/dG0.csv")
         # load the data for the anchors (i.e. compounds whose dG0 should not be changed - usually their value will be 0). 
         grad.anchors = grad.load_dG0_data("../data/thermodynamics/nist_anchors.csv")
@@ -544,7 +542,6 @@ def main():
         
     elif False:
         # Run the gradient ascent algorithm, where the starting point is Alberty's table from (Mathematica 2006)
-        grad = GradientAscent(gc)
         grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True)
         print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
@@ -555,7 +552,6 @@ def main():
     elif False:
         # Run the gradient ascent algorithm, where the starting point is Alberty's table from (Mathematica 2006)
         # Use DETERMINISTIC gradient ascent
-        grad = GradientAscent(gc)
         grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.load_nist_data(nist, skip_missing_reactions=True, T_range=(24 + 273.15, 40 + 273.15))
         print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))

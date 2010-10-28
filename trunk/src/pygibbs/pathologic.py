@@ -10,16 +10,13 @@ from toolbox.util import _mkdir
 #                               CONSTANTS & DEFAULTS                           #
 ################################################################################
 class Pathologic:
-    def __init__(self, update_file='../data/thermodynamics/database_updates.txt'):
+    def __init__(self):
         cplex.Cplex() # causes CPLEX to print its initialization message
-
-        _mkdir('../res')
         _mkdir('../res/pathologic')
         self.LOG_FILE = open('../res/pathologic/pathologic.log', 'w')
-        self.UPDATE_FILE = update_file
         self.gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathologic", log_file=self.LOG_FILE)
         self.gc.init()
-        self.thermodynamic_method = "margin" # options are: "none", "margin", "global"
+        self.thermodynamic_method = "global" # options are: "none", "margin", "global"
         self.max_reactions = None
         self.max_solutions = 100
         self.flux_relaxtion_factor = None
@@ -28,7 +25,9 @@ class Pathologic:
     def __del__(self):
         self.LOG_FILE.close()
         
-    def find_path(self, experiment_name, source=None, target=None, thermo_method=None, max_reactions=None):
+    def find_path(self, experiment_name, source=None, target=None, \
+                  thermo_method=None, max_reactions=None, \
+                  update_file='../data/thermodynamics/database_updates.txt'):
         if (thermo_method != None):
             self.thermodynamic_method = thermo_method
         if (max_reactions != None):
@@ -62,9 +61,8 @@ class Pathologic:
         if (target != None):
             exp_html.write('<h2>Target (biomass) Reaction:</h2>\n')
             exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg_patholotic.cid2compound[cid].name, cid) for (cid, coeff) in target.iteritems()])
-        exp_html.flush()
 
-        self.kegg_patholotic.update_database(self.UPDATE_FILE, exp_html)
+        self.kegg_patholotic.update_database(update_file, exp_html)
         (f, S, compounds, reactions) = self.kegg_patholotic.get_unique_cids_and_reactions()
         exp_html.write('<h2>%d reactions with %d unique compounds</h2>\n' % (len(reactions), len(compounds)))
         
@@ -173,7 +171,6 @@ class Pathologic:
             else:
                 write_reaction('&nbsp;'*12, reactions[r], fluxes[r])
         exp_html.write('///<br></p>\n')
-        exp_html.flush()
 
     def margin_analysis(self, exp_html, reactions, fluxes, experiment_name, solution_id):
         exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (solution_id))
@@ -213,7 +210,6 @@ class Pathologic:
             exp_html.write(", %s = %g" % (optimization, score))
         exp_html.write('<br>\n')
 
-        exp_html.flush()
 
 ################################################################################
 #                               MAIN                                           #
@@ -224,11 +220,13 @@ def main():
     
     pl.gc.c_range = (1e-6, 1e-2)
     pl.max_solutions = 4
-    pl.find_path('glyoxlyate(no_thermodynamics)', source={}, target={48:1}, thermo_method="none")
-    pl.find_path('glyoxlyate(1uM-10mM)', source={}, target={48:1}, thermo_method="global")
+    #pl.find_path('glyoxlyate(no_thermodynamics)', source={}, target={48:1}, thermo_method="none")
+    #pl.find_path('glyoxlyate(1uM-10mM)', source={}, target={48:1}, thermo_method="global")
     #pl.c_range = (1e-9, 1e-2); pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
-    #pl.find_path('3PG (no added reactions)', source={}, target={197:1}, thermo_method='global')
-    #pl.find_path('3PG (no FDH, no Alanine, no Lactate)', source={}, target={197:1}, thermo_method="global")
+    pl.find_path('3PG', source={}, target={197:1}, thermo_method='none')
+    pl.find_path('3PG(global_thermodynamics)', source={}, target={197:1}, thermo_method='global')
+    pl.find_path('3PG(global_thermodynamics_with_MOG_reactions)', source={}, target={197:1}, thermo_method="global",\
+                 update_file='../data/thermodynamics/database_updates_with_MOG_reactions.txt')
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")
 
     # TODO: write a clustering algorithm to understand the solutions
