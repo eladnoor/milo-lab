@@ -1,6 +1,6 @@
 import sys, pybel, openbabel, csv, pylab, sqlite3, re, types
 from copy import deepcopy
-from toolbox.html_writer import HtmlWriter
+from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.util import matrixrank, multi_distribute, log_sum_exp, _mkdir
 from toolbox.sql import write_table_to_html, write_query_to_html
 from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics, MissingCompoundFormationEnergy
@@ -106,17 +106,21 @@ class GroupMissingTrainDataError(GroupContributionError):
             return repr(self.value)
 
 class GroupContribution(Thermodynamics):    
-    def __init__(self, sqlite_name, html_name, log_file=sys.stderr):
+    def __init__(self, sqlite_name, html_name=None, log_file=sys.stderr):
         Thermodynamics.__init__(self)
         self._kegg = None
         self.LOG_FILE = log_file
-        self.FIG_DIR = '../res/' + html_name
-        _mkdir(self.FIG_DIR)
-        
-        self.EXP_NAME = html_name
-        self.HTML = HtmlWriter("../res/" + html_name + ".html")
+        if (html_name != None):
+            self.FIG_DIR = '../res/' + html_name
+            _mkdir(self.FIG_DIR)
+            self.HTML = HtmlWriter("../res/" + html_name + ".html")
+        else:
+            self.FIG_DIR = '../res'
+            _mkdir(self.FIG_DIR)
+            self.HTML = NullHtmlWriter()
+            
         self.comm = sqlite3.connect("../res/" + sqlite_name)
-        self.use_measured_train_values = True
+        self.override_gc_with_measurements = True
         
         self.hatzi = Hatzi()
         self.cid2pmap_dict = None
@@ -145,58 +149,64 @@ class GroupContribution(Thermodynamics):
         self.kegg()
 
     def load_cid2pmap(self, recalculate=False):
-        self.kegg() # invoke the constructor to create the KEGG singleton
-        
-        self.cid2pmap_dict = {}
-        if (not self.does_table_exist('gc_cid2prm')):
-            recalculate = True
-        
-        if (not recalculate):
-            for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm;"):
-                (cid, nH, z, dG0) = row
-                if (cid not in self.cid2pmap_dict):
-                    self.cid2pmap_dict[cid] = {}
-                self.cid2pmap_dict[cid][nH, z] = dG0
-        else:
+        if (not self.does_table_exist('gc_cid2prm') or recalculate):
             sys.stderr.write("Recalculating the table of chemical formation energies for all KEGG compounds:\n")
             self.comm.execute("DROP TABLE IF EXISTS gc_cid2prm")
             self.comm.execute("DROP TABLE IF EXISTS gc_cid2error")
             self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
             self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL, estimated BOOL);")
             self.comm.execute("CREATE TABLE gc_cid2error (cid INT, error TEXT);")
-            self.comm.execute("CREATE UNIQUE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH);")
+            self.comm.execute("CREATE UNIQUE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH, estimated);")
 
             for cid in self.kegg().get_all_cids():
                 sys.stderr.write('C%05d\n' % cid)
-                if (cid in self.cid2pmap_obs and (self.use_measured_train_values or cid in self.cid_test_set)):
+                
+                # If the compound is measured:
+                if (cid in self.cid2pmap_obs):
                     pmap = self.cid2pmap_obs[cid]
-                    estimated = False
-                else:
-                    comp = self.kegg().cid2compound(cid)
-                    if (comp.inchi == None):
-                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "no InChI exists"))
-                        continue
-                    try:
-                        mol = comp.get_mol() 
-                    except KeggParseException:
-                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot determine molecular structure"))
-                        continue
-                    try:
-                        pmap = self.estimate_pmap(mol)
-                    except GroupDecompositionError:
-                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot decompose into groups"))
-                        continue
-                    except GroupMissingTrainDataError:
-                        self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "contains groups lacking training data"))
-                        continue
-                    estimated = True
+                    for ((nH, z), dG0) in pmap.iteritems():
+                        self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, False))
 
+                # Try to also estimate the dG0_f using Group Contribution:
+                comp = self.kegg().cid2compound(cid)
+                if (comp.inchi == None):
+                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "no InChI exists"))
+                    continue
+                try:
+                    mol = comp.get_mol() 
+                except KeggParseException:
+                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot determine molecular structure"))
+                    continue
+                try:
+                    pmap = self.estimate_pmap(mol)
+                except GroupDecompositionError:
+                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot decompose into groups"))
+                    continue
+                except GroupMissingTrainDataError:
+                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "contains groups lacking training data"))
+                    continue
                 self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "OK"))
                 self.cid2pmap_dict[cid] = pmap
                 for ((nH, z), dG0) in pmap.iteritems():
-                    self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, estimated))
+                    self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, True))
+            
             self.comm.commit()
-            sys.stderr.write("[DONE]\n")
+
+        self.cid2pmap_dict = {}
+
+        # Now load the data into the cid2pmap_dict:
+        for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 1;"):
+            (cid, nH, z, dG0) = row
+            self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
+
+        for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 0;"):
+            (cid, nH, z, dG0) = row
+            if (self.override_gc_with_measurements):
+                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
+            elif (cid not in self.cid2pmap_dict or (nH, z) not in self.cid2pmap_dict[cid]):
+                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
+        
+        sys.stderr.write("[DONE]\n")
             
     def train(self, obs_fname, use_dG0_format=False):
         if (use_dG0_format):
@@ -775,7 +785,7 @@ class GroupContribution(Thermodynamics):
         return self._kegg        
 
     def get_all_cids(self):
-        return sorted(self.kegg().get_all_cids_with_inchi())
+        return sorted(self.cid2pmap_dict.keys())
 
     def estimate_pmap(self, mol):
         try:
@@ -817,7 +827,7 @@ class GroupContribution(Thermodynamics):
         if (cid == 80): # H+
             return {(0, 0):0}
 
-        if (cid in self.cid2pmap_obs and (self.use_measured_train_values or cid in self.cid_test_set)):
+        if (cid in self.cid2pmap_obs and (self.override_gc_with_measurements or cid in self.cid_test_set)):
             return self.cid2pmap_obs[cid]
         else:
             try:
@@ -1042,7 +1052,7 @@ class GroupContribution(Thermodynamics):
     def write_cid_group_matrix(self, fname):
         csv_file = csv.writer(open(fname, 'w'))
         csv_file.writerow(["CID"] + self.all_group_names)
-        for cid in self.get_all_cids():
+        for cid in self.kegg().get_all_cids_with_inchi():
             try:
                 groupvec = self.cid2groupvec(cid)
                 csv_file.writerow([cid] + groupvec)
