@@ -6,6 +6,17 @@ REACTION    C00002 + 2 C00004 + C00058 + C00011 + C00014 => C00001 + 2 C00003 + 
 PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
 I           0.0 0.02 0.04 0.06 0.08 0.10 0.12 0.14 0.16 0.18 0.20 0.22 0.24 0.26
 ///
+ENTRY       M-GLYCOLYSIS
+SKIP        FALSE
+NAME        Glycolysis
+TYPE        MARGIN
+CONDITIONS  pH=7.0,I=0.1,T=300
+C_MID       1e-3
+C_RANGE     1e-6 1e-2
+MODULE      M00001
+MAP_CID     C00201 C00002
+            C00454 C00008
+///
 ENTRY       M-MOG_ALA
 SKIP        FALSE
 NAME        MOG-Alanine
@@ -341,26 +352,6 @@ CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 MODULE      M00025
 ///
-ENTRY       M-GLYCOLYSIS_I0.1
-SKIP        TRUE
-NAME        Glycolysis (M00001), I = 0.1
-TYPE        MARGIN
-CONDITIONS  pH=7.0,I=0.1,T=300
-C_MID       1e-3
-MODULE      M00001
-MAP_CID     C00201 C00002
-            C00454 C00008
-///
-ENTRY       M-GLYCOLYSIS_I0.0
-SKIP        TRUE
-NAME        Glycolysis (M00001), I = 0.0
-TYPE        MARGIN
-CONDITIONS  pH=7.0,I=0.1,T=300
-C_MID       1e-3
-MODULE      M00001
-MAP_CID	    C00201 C00002
-            C00454 C00008
-///
 ENTRY       M-ACETOGENIC
 SKIP        TRUE
 NAME        Acetyl-CoA Wood-Ljungdahl Pathway
@@ -387,35 +378,39 @@ MAP_CID     C00201 C00002
             C00454 C00008
 ///
 ENTRY       M-OPP
-SKIP        TRUE
+SKIP        FALSE
 NAME        Oxidative pentose phosphate (M00006)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
+C_RANGE     1e-6 1e-2
 MODULE      M00006
 ///
 ENTRY       M-NOPP
-SKIP        TRUE
+SKIP        FALSE
 NAME        Non-oxidative pentose phosphate (M00007)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
+C_RANGE     1e-6 1e-2
 MODULE      M00007
 ///
 ENTRY       M-ED
-SKIP        TRUE
+SKIP        FALSE
 NAME        Entner-Doudoroff (M00008)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
+C_RANGE     1e-6 1e-2
 MODULE      M00008
 ///
 ENTRY       M-TCA
-SKIP        TRUE
+SKIP        FALSE
 NAME        TCA cycle (M00009)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
+C_RANGE     1e-6 1e-2
 MODULE      M00009
 ///
 ENTRY       M-TCA_SHORT
@@ -495,25 +490,6 @@ TYPE        PROFILE
 CONDITIONS  media=None,pH=7.0,I=0.1,T=300
             media=glucose,pH=7.0,I=0.1,T=300
 MODULE      M00008
-///
-ENTRY       L-GLYCOLYSIS
-SKIP        TRUE
-NAME        Glycolysis (from glucose to pyruvate with NAD)
-TYPE        PROFILE
-CONDITIONS  media=None,pH=7.0,I=0.1,T=300
-            media=glucose,pH=7.0,I=0.1,T=300
-            media=acetate,pH=7.0,I=0.1,T=300
-            media=glycerol,pH=7.0,I=0.1,T=300
-REACTION    R01786  C00002 + C00031 -> C00008 + C00092
-            R02740  C00092 -> C05345
-            R04779  C00002 + C05345 -> C00008 + C00354
-            R01070  C00354 -> C00111 + C00118
-            R01015  C00111 -> C00118
-            R01061  2 C00118 + 2 C00009 + 2 C00003 -> 2 C00236 + 2 C00004 + 2 C00080
-            R01512  2 C00008 + 2 C00236 -> 2 C00002 + 2 C00197
-            R01518  2 C00197 -> 2 C00631
-            R00658  2 C00631 -> 2 C00074 + 2 C00001
-            R02320  2 C00008 + 2 C00074 -> 2 C00002 + 2 C00022
 ///
 ENTRY       L-TCA_UBIQ
 SKIP        TRUE
