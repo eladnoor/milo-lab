@@ -8,6 +8,8 @@ admin.autodiscover()
 urlpatterns = patterns('',
     (r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT }),
     (r'^$', 'gibbs_site.gibbs.main_page.MainPage'),
+    (r'^about', 'gibbs_site.gibbs.info_pages.AboutPage'),
+    (r'^faq', 'gibbs_site.gibbs.info_pages.FAQPage'),
     (r'^compound', 'gibbs_site.gibbs.views.CompoundPage'),
     (r'^reaction', 'gibbs_site.gibbs.views.ReactionPage'),
     (r'^search', 'gibbs_site.gibbs.views.ResultsPage'),

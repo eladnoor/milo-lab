@@ -9,32 +9,5 @@
 
 			<input type="submit" id="submitButton" value="Search" />
 		</div>
-		{% if show_advanced %}
-		<div id="searchOptions">
-			<a href="#" id="advancedSettingsLink">Advanced Settings</a>
-		</div>
-		<div id="advancedSettings" style="">
-			<table width="100%">
-				<tr>
-					<td width="120px">
-						pH:
-					</td>
-					<td width="50px">
-						<input type="text" name="ph" id="phField" value="7.0" size="5"/>
-					</td>
-					<td><div id="phSlider"></div></td>
-				</tr>
-				<tr>
-					<td width="120px">
-						Ionic strength (M):
-					</td>
-					<td width="50px">
-						<input type="text" name="ionic_strength" id="ionStrengthField" value="0.1" size="5"/>
-					</td>
-					<td><div id="ionStrengthSlider"></div></td>
-				</tr>
-			</table>
-		</div>
-		{% endif %}
 	</form>
 </div>

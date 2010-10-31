@@ -9,6 +9,9 @@
 		<script type="text/javascript" src="/media/main.js"></script>
 	</head>
 	<body>
+	
+	{% include "search_form.html" %}
+	
 	{% if error_msg %}
 		<div class="errorMsg">{{ error_msg|safe }}</div>
 	{% endif %}

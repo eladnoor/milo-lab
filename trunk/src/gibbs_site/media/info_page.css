@@ -1,0 +1,28 @@
+body {
+  margin: 10px auto;
+  text-align: left;
+  font-family: helevetica;
+}
+
+.container {
+  width: 650px;
+  margin-left: 30px;
+}
+
+.about {
+  margin: 10px;
+}
+
+.faqEntry {
+  margin: 10px;
+}
+
+.faqQuestion {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.faqAnswer {
+  padding-left: 10px;
+  border-left: dashed 1px black;
+}
