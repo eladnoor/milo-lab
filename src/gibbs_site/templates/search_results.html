@@ -3,7 +3,7 @@
 {% endwith %}
 
 	<div id="searchResults">
-	{% for result in results %}
+	{% for result in results|slice:":5" %}
 		<a href="{{ result.value.link }}" class="searchResult">
 			<span class="image"><img src="{{ result.value.small_image_url }}" /></span>
 			<span class="name">{{ result.key }}</span>
@@ -20,7 +20,5 @@
 		</a>
 	{% endfor %}
 	</div>
-
-	{% include "search_form.html" %}
 
 {% include "footer.html" %}

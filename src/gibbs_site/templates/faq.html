@@ -1,0 +1,52 @@
+<html>
+	<head>
+		<link href="/media/info_page.css" rel="stylesheet" type="text/css">
+		<title>eQuilibrator FAQ</title>
+	</head>
+	<body>
+		<div class="container">
+		<div class="faqEntry">
+			<div class="faqQuestion" id="compoundSearch">How do I search for a compound?</div>
+			
+			<div class="faqAnswer">You can search for a compound by entering a common name of the compound.
+			As you type, you should see a list of potential matches, which should give you a sense of what eQuilibrator
+			thinks you are looking for. You can select a compound from the list or type the name in full.
+			Either way, hit 'Search' when you are done typing the compound name.
+			
+			You should see up to 5 compounds on the search results page. These are the top matches for your query.
+			If the compound you're interested in is present, click on it to see more details and to change the 
+			conditions of &Delta;<sub>f</sub>G estimation.
+			</div>
+		</div>
+		
+		<div class="faqEntry">
+			<div class="faqQuestion" id="rxnSearch">How do I search for a reaction?</div>
+			
+			<div class="faqAnswer">You can search for a reaction by entering an (almost) free-text string of the reaction.
+			For example, you can type "glucose = 2 ethanol + 2 co2". Spaces before and after stoichiometric coefficients, "+",
+			and reaction side delimiters ("=", "<=>", "=>", and "->") are required.
+			</div>
+		</div>
+		
+		<div class="faqEntry">
+			<div class="faqQuestion" id="notAvailable">Why is &Delta;G "not available?"</div>
+			
+			<div class="faqAnswer">&Delta;<sub>f</sub>G is very difficult to measure experimentally. We use the group contribution
+			method to estimate &Delta;<sub>f</sub>G for compounds that have not been characterized experimentally. In some cases,
+			a compound will contain a group that was not observed in any of the compounds that have experimental measurements.
+			We cannot produce estimates for these compounds. Likewise, we can't produce &Delta;<sub>r</sub>G estimates for any
+			reactions containing these compounds.
+			</div>
+		</div>
+
+		<div class="faqEntry">
+			<div class="faqQuestion" id="stdConditions">What are "standard conditions?"</div>
+			
+			<div class="faqAnswer">"Standard conditions" implies that all substrates and products of a reaction are at 1 M concentration.
+			If there are a different number of substrates and products then their concentrations can effect the &Delta;<sub>r</sub>G. 
+			</div>
+		</div>
+		</div>
+		
+	</body>
+</html>
