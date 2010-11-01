@@ -2,6 +2,11 @@ import logging
 import pyparsing
 import re
 
+
+class ParseError(Exception):
+    pass
+
+
 def _parsedCompound(c_list):
     """Always put a stoichiometric coefficient with a compound."""
     if len(c_list) == 2:
@@ -11,8 +16,18 @@ def _parsedCompound(c_list):
 
 def _MakeReactionParser():
     """Builds a pyparsing-based recursive descent parser for chemical reactions."""
-    coeff = pyparsing.Word(pyparsing.nums).setParseAction(lambda t:int(t[0]))
+    
+    # Coefficients are usually integral, but they can be floats or fractions too.
+    int_coeff = pyparsing.Word(pyparsing.nums)
+    float_coeff = pyparsing.Word(pyparsing.nums + '.' + pyparsing.nums)
+    frac_coeff = int_coeff + '/' + int_coeff
+    int_coeff.setParseAction(lambda i:int(i[0]))
+    float_coeff.setParseAction(lambda t:float(t[0]))
+    frac_coeff.setParseAction(lambda f:float(f[0])/float(f[2]))
+    
+    coeff = pyparsing.Or([int_coeff, float_coeff, frac_coeff])
     optional_coeff = pyparsing.Optional(coeff)
+    
     compound_separator = pyparsing.Literal('+').suppress()
     
     compound_name_component = pyparsing.Word(pyparsing.alphanums, pyparsing.alphanums + "-+,()'")
@@ -87,8 +102,7 @@ class QueryParser(object):
             results = self._rparser.parseString(query)
             reactants, products = results
             return ParsedReactionQuery(reactants, products)
-        except Exception, e:
-            logging.error(e)
-        
-        return None
+        except pyparsing.ParseException,msg:
+            logging.error('Failed to parse query %s', query)
+            raise ParseError(msg)
         

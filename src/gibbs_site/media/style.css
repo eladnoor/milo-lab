@@ -23,7 +23,7 @@ a {
 	font-weight: bold;
 	margin: 10px auto;
 	padding: 3px;
-	width: 250px;
+	max-width: 450px;
 }
 
 #title {
@@ -148,6 +148,10 @@ table.results, table.compoundInfo, table.speciesInfo {
 
 td {
 	vertical-align: top;
+}
+
+#footer {
+	margin-top: 20px;
 }
 
 .autocomplete-w1 { background:url(/media/images/shadow.png) no-repeat bottom right; position:absolute; top:0px; left:0px; margin:6px 0 0 6px; /* IE6 fix: */ _background:none; _margin:1px 0 0 0; }

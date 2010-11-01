@@ -89,6 +89,9 @@ class Compound(models.Model):
     
     # Estimates of Delta G for this compound.
     species = models.ManyToManyField(Specie)
+    
+    # An explanation for when no DeltaG estimate is available.
+    no_dg_explanation = models.CharField(max_length=2048, null=True)
 
     def __init__(self, *args, **kwargs):
         super(Compound, self).__init__(*args, **kwargs)
