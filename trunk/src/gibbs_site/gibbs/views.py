@@ -42,6 +42,7 @@ def CompoundPage(request):
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
+                     'no_dg_explanation': compound.no_dg_explanation,
                      'kegg_link': compound.GetKeggLink()}
     return render_to_response('compound_page.html', template_data)
 
@@ -106,12 +107,13 @@ def ResultsPage(request):
                      'ionic_strength': ionic_strength}
     
     # Check if we should parse and process the input as a reaction.
-    if query_parser.IsReactionQuery(query):        
-        parsed_reaction = query_parser.ParseReactionQuery(query)
-        if not parsed_reaction:
-            logging.error('Failed to parse reaction query.')
-            raise Http404
-        
+    if query_parser.IsReactionQuery(query):
+        try:
+            parsed_reaction = query_parser.ParseReactionQuery(query)
+        except Exception:
+            template_data['warning'] = 'Failed to parse your search query!'
+            return render_to_response('error_page.html', template_data)
+
         reaction_matches = reaction_matcher.MatchReaction(parsed_reaction)
         best_reaction = reaction_matches.GetBestMatch()
         

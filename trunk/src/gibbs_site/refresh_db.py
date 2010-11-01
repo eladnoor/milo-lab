@@ -24,12 +24,12 @@ from django.contrib.auth import models as auth_app
 from django.db.models import signals
 from django.dispatch import dispatcher
 
-print "Dumping Data... ",
-sys.stdout = open('dumped_data.json', 'w')
-call_command('dumpdata', format='json', indent=4)
-sys.stdout.close()
-sys.stdout = sys.__stdout__
-print "Done"
+#print "Dumping Data... ",
+#sys.stdout = open('dumped_data.json', 'w')
+#call_command('dumpdata', format='json', indent=4)
+#sys.stdout.close()
+#sys.stdout = sys.__stdout__
+#print "Done"
 
 print "Deleting Tables... ",
 app_labels = [app.__name__.split('.')[-2] for app in get_apps()]
@@ -44,14 +44,14 @@ for query in queries:
 	cursor.execute(query.strip())
 print "Done"
 
-#print "Synching Database... "
+print "Sync-ing Database... "
 #disable the "create a super user" question
 #dispatcher.disconnect(create_superuser, sender=auth_app, signal=signals.post_syncdb)
 
 call_command('syncdb')
 print "Done"
 
-print "Loading Back Data... "
+#print "Loading Back Data... "
 call_command('loaddata', 'dumped_data.json')
-os.remove('dumped_data.json')
-print "Done"
+#os.remove('dumped_data.json')
+#print "Done"
