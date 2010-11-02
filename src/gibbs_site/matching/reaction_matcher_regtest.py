@@ -1,17 +1,20 @@
 #!/usr/bin/python
 
-import compound
 import approximate_matcher
-import reaction_parser
-import unittest
+import os
+import compound
+import query_parser
+import reaction_matcher
 import reaction_test_pb2
+import unittest
 from google.protobuf import text_format
 
 
 class TestReactionParser(unittest.TestCase):
     """Tests for matcher.Match"""
     
-    input_filename = 'compounds.csv'
+    # TODO(flamholz): stop depending on compound.py. Delete it.
+    input_filename = os.path.abspath('matching/compounds.csv')
     library = compound.ReadCompoundsFromCsvFile(input_filename)
     
     @staticmethod
@@ -24,7 +27,8 @@ class TestReactionParser(unittest.TestCase):
     def setUp(self):
         self._matcher = approximate_matcher.BackfillingRegexApproxMatcher(
             self.library, max_results=1, min_score=0.0)
-        self._parser = reaction_parser.ReactionParser(self._matcher)
+        self._matcher = reaction_matcher.ReactionMatcher(self._matcher)
+        self._parser = query_parser.QueryParser()
     
     def _CheckReactionSide(self, expected_compounds, actual_compounds):
         """Verifies that a single side of a reaction matches expectations."""
@@ -56,7 +60,8 @@ class TestReactionParser(unittest.TestCase):
                                    
          
     def testAllReactions(self):
-        rxns = self._ReadTestReactions('test_reactions.ascii')
+        rxns = self._ReadTestReactions(
+            os.path.abspath('matching/test_reactions.ascii'))
         num_reactions = len(rxns.reactions)
         num_reactions_with_errors = 0
         
@@ -65,24 +70,30 @@ class TestReactionParser(unittest.TestCase):
             print 'Running test reaction', i
             print 'query: ', rxn.query
             
+            if not self._parser.IsReactionQuery(rxn.query):
+                print 'Did not recognize query as reaction query.'
+                num_reactions_with_errors += 1
+                continue
+            
             parsed = self._parser.ParseReactionQuery(rxn.query)
-            if not parsed:
+            matches = self._matcher.MatchReaction(parsed)
+            if not matches:
                 print 'Failed to parse query.'
                 num_reactions_with_errors += 1
                 continue
                         
-            if len(rxn.reactants) != len(parsed.reactants):
+            if len(rxn.reactants) != len(matches.reactants):
                 print 'Reactant list lengths are mismatched.'
                 num_reactions_with_errors += 1
                 continue
             
-            if len(rxn.products) != len(parsed.products):
+            if len(rxn.products) != len(matches.products):
                 print 'Product list lengths are mismatched.'
                 num_reactions_with_errors += 1
                 continue
             
-            num_reactant_errors = self._CheckReactionSide(rxn.reactants, parsed.reactants)
-            num_product_errors = self._CheckReactionSide(rxn.products, parsed.products)
+            num_reactant_errors = self._CheckReactionSide(rxn.reactants, matches.reactants)
+            num_product_errors = self._CheckReactionSide(rxn.products, matches.products)
             if num_reactant_errors:
                 print 'Found', num_reactant_errors, 'errors in the reactants list.'
                 num_reactions_with_errors += 1

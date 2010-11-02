@@ -6,6 +6,10 @@
 		<div class="compound">
 			<input type="hidden" name="compoundId" value="{{ compound.kegg_id }}" />
 			{{ compound }}
+			
+			{% if is_superuser %}
+				<a class="adminLink" href="/admin/gibbs/compound/{{ compound.pk }}">Edit in admin</a>
+			{% endif %}
 		</div>
 				
 		{% with "&Delta;<sub>f</sub>G'&deg;" as delta_g_label %} 
