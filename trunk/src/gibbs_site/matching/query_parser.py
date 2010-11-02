@@ -64,14 +64,35 @@ class ParsedReactionQuery(object):
         """Initialize the ParsedReaction object.
         
         Args:
-            reactants: a list of ReactionCompoundMatches for the reactants.
-            products: a list of ReactionCompoundMatches for the products.
+            reactants: a list of tuples for the reactants.
+            products: a list of tuples for the products.
         """
         self.reactants = reactants or []
         self.products = products or []
     
+    def __eq__(self, other):
+        """Equality test."""
+        r = frozenset(self.reactants)
+        p = frozenset(self.products)
+        o_r = frozenset(other.reactants)
+        o_p = frozenset(other.products)
+        
+        reactants_diff = r.symmetric_difference(o_r)
+        products_diff = p.symmetric_difference(o_p)
+        
+        if not reactants_diff and not products_diff:
+            return True
+        
+        return False
+    
+    def __str__(self):
+        joined_rs = ['%s %s' % (c,r) for c,r in self.reactants]
+        joined_ps = ['%s %s' % (c,p) for c,p in self.products]
+        return '%s => %s' % (' + '.join(joined_rs), ' + '.join(joined_ps))
+    
 
 class QueryParser(object):
+    """Parses search queries."""
     
     REACTION_PATTERN = r'.*(=>|<=>|=|->|<->).*'
     REACTION_MATCHER = re.compile(REACTION_PATTERN)

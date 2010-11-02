@@ -1,12 +1,14 @@
 import logging
-from django.shortcuts import render_to_response
+from django.contrib import auth
 from django.http import Http404
+from django.shortcuts import render_to_response
 from gibbs import compound_form
 from gibbs import concentration_profile
 from gibbs import models
 from gibbs import reaction_form
 from gibbs import search_form
 from gibbs import service_config
+
 
 def GetBalancednessWarning(reaction, ph=None, ionic_strength=None,
                            concentration_profile=None):
@@ -21,6 +23,10 @@ def GetBalancednessWarning(reaction, ph=None, ionic_strength=None,
                                            concentration_profile)
     warning += ' <a href="%s">Balance with water?</url>' % url
     return warning
+
+
+def IsSuperUser(request):
+    return request.user and request.user.is_superuser
 
 
 def CompoundPage(request):
@@ -38,7 +44,8 @@ def CompoundPage(request):
     delta_g_estimate = compound.DeltaG(
         pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength)
     
-    template_data = {'compound': compound, 
+    template_data = {'is_superuser': IsSuperUser(request),
+                     'compound': compound,
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
@@ -84,6 +91,7 @@ def ReactionPage(request):
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
+                     'no_dg_explanation': reaction.NoDeltaGExplanation(),
                      'concentration_profile': cprofile_name,
                      'warning': warning}
     return render_to_response('reaction_page.html', template_data)
@@ -129,6 +137,7 @@ def ResultsPage(request):
 
         template_data['warning'] = GetBalancednessWarning(reaction)  
         template_data.update({'delta_g_estimate': delta_g_estimate,
+                              'no_dg_explanation': reaction.NoDeltaGExplanation(),
                               'reaction': reaction})
         return render_to_response('reaction_page.html', template_data)
 

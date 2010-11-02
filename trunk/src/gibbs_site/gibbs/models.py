@@ -91,7 +91,9 @@ class Compound(models.Model):
     species = models.ManyToManyField(Specie)
     
     # An explanation for when no DeltaG estimate is available.
-    no_dg_explanation = models.CharField(max_length=2048, null=True)
+    no_dg_explanation = models.CharField(max_length=2048,
+                                         blank=True,
+                                         null=True)
 
     def __init__(self, *args, **kwargs):
         super(Compound, self).__init__(*args, **kwargs)
@@ -228,6 +230,9 @@ class Compound(models.Model):
         """
         compounds = Compound.objects.filter(kegg_id__in=kegg_ids)
         return dict((c.kegg_id, c) for c in compounds if c != None)
+
+
+# TODO(flamholz): The two classes below don't belong in this file...
 
 
 class CompoundWithCoeff(object):
@@ -498,6 +503,19 @@ class Reaction(models.Model):
         if not concentration_profile:
             return dg_zero        
         return dg_zero + self._GetConcentrationCorrection(concentration_profile)
+    
+    def NoDeltaGExplanation(self):
+        """Get an explanation for why there's no delta G value.
+        
+        Return:
+            The explanation or None.
+        """
+        for compound in self.reactants + self.products:
+            if compound.compound.no_dg_explanation:
+                name = compound.compound.common_names.all()[0].name
+                return '%s %s' % (name,
+                                  compound.compound.no_dg_explanation.lower())
+        return None
         
         
     
