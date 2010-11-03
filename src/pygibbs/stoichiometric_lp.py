@@ -20,6 +20,7 @@ class Stoichiometric_LP():
         self.flux_upper_bound = 100
         self.milp = False
         self.pCr = False
+        self.mcmf = False
         self.use_dG_f = False
         self.target_reaction = None
 
@@ -95,7 +96,7 @@ class Stoichiometric_LP():
         for r in range(len(self.reactions)):
             self.cpl.linear_constraints.set_coefficients('num_reactions', self.reactions[r].name + "_gamma", 1)
     
-    def add_dGr_constraints(self, thermodynamics, pCr=False):
+    def add_dGr_constraints(self, thermodynamics, pCr=False, MCMF=False):
         """
             Create concentration variables for each CID in the database (at least in one reaction).
             If this compound doesn't have a dG0_f, its concentration will not be constrained.
@@ -107,11 +108,18 @@ class Stoichiometric_LP():
         if (self.milp == False):
             raise Exception("Cannot add thermodynamic constraints without the MILP variables")
         
+        if (pCr and MCMF):
+            raise Exception("Cannot optimize both the pCr and the MCMF")
+        
         self.use_dG_f = True
 
         if (pCr):
             self.pCr = True        
             self.cpl.variables.add(names=["pCr"], lb=[0], ub=[1e6])
+        
+        if (MCMF):
+            self.mcmf = True
+            self.cpl.variables.add(names=["mcmf"], lb=[-1e6], ub=[1e6])
         
         all_cids_in_reactions = set()
         for r in range(len(self.reactions)):
@@ -165,6 +173,8 @@ class Stoichiometric_LP():
                     dG0_r += coeff * cid2dG0[cid]
                 
             self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1e6)
+            if (self.mcmf):
+                self.cpl.linear_constraints.set_coefficients(constraint_name, "mcmf", -1)
             self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - dG0_r/(R*thermodynamics.T))
 
     def add_localized_dGf_constraints(self, thermodynamics):
@@ -229,6 +239,8 @@ class Stoichiometric_LP():
             obj = [(self.reactions[r].name, weight) for (r, weight) in self.weights]
         elif (self.pCr): # minimize the pCr
             obj = [("pCr", 1)]
+        elif (self.mcmf):
+            obj = [("mcmf", 1)]
         else: # minimize the number of reactions (weighted)
             obj = [(self.reactions[r].name + "_gamma", weight) for (r, weight) in self.weights]
 
