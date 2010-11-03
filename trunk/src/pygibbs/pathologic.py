@@ -106,11 +106,11 @@ class Pathologic:
             milp.add_reaction_num_constraint(self.max_reactions)
         
         if (self.thermodynamic_method == "pCr"):
-            milp.add_dGr_constraints(self.gc, pCr=True, mcmf=False)
+            milp.add_dGr_constraints(self.gc, pCr=True, MCMF=False)
         elif (self.thermodynamic_method == "MCMF"):
-            milp.add_dGr_constraints(self.gc, pCr=False, mcmf=True)
+            milp.add_dGr_constraints(self.gc, pCr=False, MCMF=True)
         elif (self.thermodynamic_method == "global"):
-            milp.add_dGr_constraints(self.gc, pCr=False, mcmf=False)
+            milp.add_dGr_constraints(self.gc, pCr=False, MCMF=False)
         elif (self.thermodynamic_method == "localized"):
             milp.add_localized_dGf_constraints(self.gc)
         
