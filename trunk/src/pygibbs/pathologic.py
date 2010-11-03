@@ -16,7 +16,7 @@ class Pathologic:
         self.LOG_FILE = open('../res/pathologic/pathologic.log', 'w')
         self.gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathologic", log_file=self.LOG_FILE)
         self.gc.init()
-        self.thermodynamic_method = "global" # options are: "none", "margin", "global"
+        self.thermodynamic_method = "global" # options are: "none", "pCr", "MCMF", "global" or "localized"
         self.max_reactions = None
         self.max_solutions = 100
         self.flux_relaxtion_factor = None
@@ -45,14 +45,16 @@ class Pathologic:
         exp_html.write('<h2>Thermodynamic constraints:</h2> ')
         if (self.thermodynamic_method == "none"):
             exp_html.write("ignore thermodynamics")
-        elif (self.thermodynamic_method == "margin"):
+        elif (self.thermodynamic_method == "pCr"):
             exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.gc.c_mid)
+        elif (self.thermodynamic_method == "MCMF"):
+            exp_html.write("Maximal Chemical Motive Force Analysis, %g M < C < %g M" % self.gc.c_range)
         elif (self.thermodynamic_method == "global"):
             exp_html.write("Global constraints, %g M < C < %g M" % self.gc.c_range)
         elif (self.thermodynamic_method == "localized"):
             exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.gc.c_range)
         else:
-            raise Exception("thermodynamic_method must be: 'none', 'margin', 'global' or 'localized'")
+            raise Exception("thermodynamic_method must be: 'none', 'pCr', 'MCMF', 'global' or 'localized'")
         exp_html.write('<br>\n')
         
         if (source != None):
@@ -103,16 +105,18 @@ class Pathologic:
         if (self.max_reactions != None):
             milp.add_reaction_num_constraint(self.max_reactions)
         
-        if (self.thermodynamic_method == "margin"):
-            milp.add_dGr_constraints(self.gc, pCr=True)
+        if (self.thermodynamic_method == "pCr"):
+            milp.add_dGr_constraints(self.gc, pCr=True, mcmf=False)
+        elif (self.thermodynamic_method == "MCMF"):
+            milp.add_dGr_constraints(self.gc, pCr=False, mcmf=True)
         elif (self.thermodynamic_method == "global"):
-            milp.add_dGr_constraints(self.gc, pCr=False)
+            milp.add_dGr_constraints(self.gc, pCr=False, mcmf=False)
         elif (self.thermodynamic_method == "localized"):
             milp.add_localized_dGf_constraints(self.gc)
         
         sys.stderr.write("[DONE]\n")
 
-        for index in range(1, self.max_solutions):
+        for index in range(1, self.max_solutions+1):
             # create the MILP problem to constrain the previous solutions not to reappear again.
             index = milp.solution_index + 1
             sys.stderr.write("Round %03d, solving using MILP ... " % (index))
@@ -219,14 +223,14 @@ def main():
     pl = Pathologic()
     
     pl.gc.c_range = (1e-6, 1e-2)
-    pl.max_solutions = 4
+    pl.max_solutions = 3
     #pl.find_path('glyoxlyate(no_thermodynamics)', source={}, target={48:1}, thermo_method="none")
     #pl.find_path('glyoxlyate(1uM-10mM)', source={}, target={48:1}, thermo_method="global")
     #pl.c_range = (1e-9, 1e-2); pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
-    pl.find_path('3PG', source={}, target={197:1}, thermo_method='none')
-    pl.find_path('3PG(global_thermodynamics)', source={}, target={197:1}, thermo_method='global')
-    pl.find_path('3PG(global_thermodynamics_with_MOG_reactions)', source={}, target={197:1}, thermo_method="global",\
-                 update_file='../data/thermodynamics/database_updates_with_MOG_reactions.txt')
+    #pl.find_path('3PG', source={}, target={197:1}, thermo_method='none')
+    pl.find_path('3PG (MCMF, 1e-6 - 1e-2)', source={}, target={197:1}, thermo_method='MCMF')
+    #pl.find_path('3PG(global_thermodynamics_with_MOG_reactions)', source={}, target={197:1}, thermo_method="global",\
+    #             update_file='../data/thermodynamics/database_updates_with_MOG_reactions.txt')
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")
 
     # TODO: write a clustering algorithm to understand the solutions

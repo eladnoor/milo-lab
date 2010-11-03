@@ -1,5 +1,5 @@
 import csv, re, sys
-from pylab import arange
+from pylab import arange, NaN, isnan
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 
 class Alberty (Thermodynamics):
@@ -12,23 +12,31 @@ class Alberty (Thermodynamics):
         """
         file = open(fname, 'r')
         alberty_name_to_pmap = {}
+        alberty_name_to_H_pmap = {}
         for line in file.readlines():
             line.rstrip()
             if (line.find('=') == -1):
                 continue
             (alberty_name, values) = line.split('sp=', 1)
             pmap = {}
+            H_pmap = {}
             for token in re.findall("{([0-9\-\.\,_\s]+)}", values):
                 val_list = token.split(',', 3)
                 dG0 = float(val_list[0])
+                if (val_list[1] == '_'):
+                    dH0 = NaN
+                else:
+                    dH0 = float(val_list[1])
                 z = int(val_list[2])
                 nH = int(val_list[3])
                 if (alberty_name.find("coA") != -1):
                     nH += 35
-                pmap[(nH, z)] = dG0
-            alberty_name_to_pmap[alberty_name] = pmap
+                alberty_name_to_pmap.setdefault(alberty_name, {})[nH, z] = dG0
+                if (not isnan(dH0)):
+                    H_pmap[(nH, z)] = dH0
+                
+            
         return alberty_name_to_pmap
-        
         
     def read_alberty_kegg_mapping(self, fname):
         alberty_name_to_cid = {}
