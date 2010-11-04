@@ -1,10 +1,10 @@
 import logging
-import pylab
+import numpy
 import re
 
 from django.db import models
 from gibbs import constants
-
+        
 
 class CommonName(models.Model):
     """A common name of a compound."""
@@ -46,9 +46,9 @@ class SpeciesFormationEnergy(models.Model):
         _n_h = self.specie.number_of_hydrogens
         _n_c = self.specie.net_charge
         
-        chem_potential = _n_h * _r * temp * pylab.log(10) * pH
-        ionic_potential = (2.91482 * (_n_c ** 2 - _n_h) * pylab.sqrt(_i_s) /
-                           (1 + 1.6 * pylab.sqrt(_i_s)))
+        chem_potential = _n_h * _r * temp * numpy.log(10) * pH
+        ionic_potential = (2.91482 * (_n_c ** 2 - _n_h) * numpy.sqrt(_i_s) /
+                           (1 + 1.6 * numpy.sqrt(_i_s)))
         return self.value + chem_potential - ionic_potential
 
     def __unicode__(self):
@@ -130,8 +130,8 @@ class Compound(models.Model):
         # constant (the minimum value).
         offset = min(scaled_transforms)
         scaled_offset_transforms = [(st - offset) for st in scaled_transforms]
-        sum_exp = sum(pylab.exp(scaled_offset_transforms))
-        return - _r * _t * (offset + pylab.log(sum_exp))
+        sum_exp = sum(numpy.exp(scaled_offset_transforms))
+        return - _r * _t * (offset + numpy.log(sum_exp))
 
     def GetAtomBag(self):
         """Returns a dictionary of atoms and their counts for this compound."""
@@ -248,7 +248,7 @@ class CompoundWithCoeff(object):
         return CompoundWithCoeff(-self.coeff, self.compound, self.name)
     
 
-class Reaction(models.Model):
+class Reaction(object):
     """A reaction."""
     
     def __init__(self, reactants=None, products=None):
@@ -460,7 +460,7 @@ class Reaction(models.Model):
         cp = concentration_profile
         
         try:
-            mult_log = lambda c: c.coeff * pylab.log(cp.Concentration(c.compound.kegg_id))
+            mult_log = lambda c: c.coeff * numpy.log(cp.Concentration(c.compound.kegg_id))
             reactant_terms = [mult_log(c) for c in self.reactants]
             product_terms = [mult_log(c) for c in self.products]
             reactant_term = sum(reactant_terms)
