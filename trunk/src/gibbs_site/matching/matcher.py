@@ -1,4 +1,7 @@
+import logging
+from gibbs import models
 from util import topk
+
 
 class Error(Exception):
     pass
@@ -33,28 +36,28 @@ class Match(object):
         """Get as a string for debugging/printability."""
         return '<matcher.Match> value=%s, score=%f' % (self.value,
                                                        self.score)
-
+    
 
 class Matcher(object):
-    """A class that matches a string against a library of strings.
+    """A class that matches a string against the database.
     
     The base implementation does exact matching.
     """
     
-    def __init__(self, library, max_results=10, min_score=0.0):
+    def __init__(self, max_results=10, min_score=0.0):
         """Initializes the Matcher.
         
         Args:
-            library: a dictionary mapping names (to match against) to objects (to return).
+            scorer: a MatchScorer object for scoring.
             max_results: the maximum number of matches to return.
             min_score: the minimum match score to return.
         """
-        self._library = library
         self._max_results = max_results
         self._min_score = min_score
     
     def _AcceptQuery(self, query):
-        """Accept or reject the query.
+        """Accept or rejec expression = self._PrepareExpression(query)
+        results = models.CommonName.objects.filter(name__iregex=expression)t the query.
         
         Returns:
             True if the query is accepted.
@@ -90,24 +93,53 @@ class Matcher(object):
         """
         return str(candidate).strip().lower()
     
-    def _MatchSingle(self, query, candidate):
-        """Checks a single query, candidate pair for a match.
+    def _FindNameMatches(self, query):
+        """Find all the matches for this query.
         
-        For linear-scanning matchers, it suffices to override this method.
-        Base implementation is exact matching.
+        Args:
+            query: the query to match.
+            
+        Returns:
+            A list of CommonName objects matching the query.
+        """
+        try:
+            name = models.CommonName.objects.get(name__iexact=query)
+            return [name]
+        except Exception, msg:
+            return []
+    
+    def _GetScore(self, query, match):
+        """Get the score for a query-match pair.
         
         Args:
             query: the query string.
-            candidate: the candidate match string.
+            match: the Match object.
         
         Returns:
-            A score between 0.0 and 1.0 for the match between query and
-            candidate. Higher is better.
+            A score between 0.0 and 1.0.
         """
-        if query.strip() == candidate.strip():
-            return 1.0
-        return 0.0
+        query_len = float(len(query))
+        candidate_len = float(len(str(match.key)))
+        return query_len / candidate_len
     
+    def _ScoreMatches(self, query, matches):
+        """Set the match scores for all matches.
+        
+        Args:
+            query: the query string.
+            matches: a list of match objects with uninitialized scores.
+        """
+        for m in matches:
+            m.score = self._GetScore(query, m)
+    
+    def _FilterMatches(self, matches):
+        """Filter the match list for min score.
+        
+        Args:
+            matches: an unfiltered list of match objects.
+        """ 
+        return [m for m in matches if m.score >= self._min_score]
+        
     def Match(self, query):
         """Find matches for the query in the library.
         
@@ -122,14 +154,16 @@ class Matcher(object):
             raise IllegalQueryError('%s is not a valid query' % query)
         
         processed_query = self._PreprocessQuery(query)
+        name_matches = self._FindNameMatches(processed_query)
         
-        k = 2 * self._max_results
-        matches = topk.TopK(max=k)
-        for candidate in self._library.iterkeys():
-            score = self._MatchSingle(processed_query,
-                                      self._PrepocessCandidate(candidate))
-            if score > self._min_score:
-                matches.MaybeAdd(Match(candidate, self._library[candidate], score))
+        matches = [Match(nm, None, 0.0) for nm in name_matches]
+        for m in matches:
+            compounds = m.key.compound_set.all()
+            if compounds:
+                m.value = compounds[0]
+        self._ScoreMatches(processed_query, matches)
+        self._FilterMatches(matches)
         
-        # Return the top k in sorted order by score.
-        return matches.GetSorted(key=lambda x:x.score)[:self._max_results]
+        matches.sort(key=lambda m: m.score, reverse=True)
+        return matches
+        

@@ -143,17 +143,8 @@ def ResultsPage(request):
 
     else:
         # Otherwise we try to parse it as a single compound.
-        results = matcher.Match(query)
-        delta_g_estimate = None
-        compound = results[0].value
-        compound.StashTransformedSpeciesEnergies(ph, ionic_strength)
-        if results:
-            delta_g_estimate = compound.DeltaG(
-                pH=ph, ionic_strength=ionic_strength)
-        
-        template_data['kegg_link'] = results[0].value.GetKeggLink()
+        results = matcher.Match(query)        
         template_data['results'] = results
-        template_data['delta_g_estimate'] = delta_g_estimate
         return render_to_response('search_results.html',
                                   template_data)
 
