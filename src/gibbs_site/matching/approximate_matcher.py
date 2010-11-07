@@ -38,6 +38,7 @@ class RegexApproxMatcher(matcher.Matcher):
         matches = models.CommonName.objects.filter(name__iregex=expression)
         return matches[:10*self._max_results]
 
+
 class EditDistanceMatcher(RegexApproxMatcher):
     """Does near-exact matching and then uses edit distance to score."""
     
@@ -73,10 +74,6 @@ class CascadingMatcher(matcher.Matcher):
         self._exact_matcher = matcher.Matcher(max_results, min_score)
         self._re_matcher = RegexApproxMatcher(max_results, min_score)
         self._ed_matcher = EditDistanceMatcher(max_results, min_score)
-    
-    def _SortAndClip(self, matches):
-        matches.sort(key=lambda m: m.score, reverse=True)
-        return matches[:self._max_results]
     
     def Match(self, query):
         """Override base matching implementation."""  

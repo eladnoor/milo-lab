@@ -1,21 +1,22 @@
 #!/usr/bin/python
 
-import approximate_matcher
 import os
-import compound
 import query_parser
-import reaction_matcher
 import reaction_test_pb2
 import unittest
 from google.protobuf import text_format
+from util import django_utils
+
+# NOTE(flamholz): This is crappy. We're using the real database for
+# a unit test. I wish I knew of a better way.
+django_utils.SetupDjango()
+
+import approximate_matcher
+import reaction_matcher
 
 
 class TestReactionParser(unittest.TestCase):
     """Tests for matcher.Match"""
-    
-    # TODO(flamholz): stop depending on compound.py. Delete it.
-    input_filename = os.path.abspath('matching/compounds.csv')
-    library = compound.ReadCompoundsFromCsvFile(input_filename)
     
     @staticmethod
     def _ReadTestReactions(filename):
@@ -25,8 +26,8 @@ class TestReactionParser(unittest.TestCase):
         return rxns
     
     def setUp(self):
-        self._matcher = approximate_matcher.BackfillingRegexApproxMatcher(
-            self.library, max_results=1, min_score=0.0)
+        self._matcher = approximate_matcher.CascadingMatcher(
+                max_results=10, min_score=0.1)
         self._matcher = reaction_matcher.ReactionMatcher(self._matcher)
         self._parser = query_parser.QueryParser()
     
@@ -49,7 +50,7 @@ class TestReactionParser(unittest.TestCase):
                 continue
                                                 
             for j, match_name in enumerate(expected_compound.match_names):
-                actual_name = str(actual_compound.matches[j].value)
+                actual_name = str(actual_compound.matches[j].key)
                 if match_name != actual_name:
                     print 'Expected name %s does not match actual name %s' % (match_name,
                                                                               actual_name)

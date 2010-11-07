@@ -1,7 +1,14 @@
 #!/usr/bin/python
 
-import matcher
 import unittest
+from util import django_utils
+
+# NOTE(flamholz): This is crappy. We're using the real database for
+# a unit test. I wish I knew of a better way.
+django_utils.SetupDjango()
+
+from gibbs import models
+from matching import matcher
 
 
 class TestMatch(unittest.TestCase):
@@ -21,26 +28,25 @@ class FirstLastCharacterMatcher(matcher.Matcher):
     at the last character slightly worse.
     """
     
-    def _MatchSingle(self, query, candidate):
+    def _GetScore(self, query, match):
         """Override the single-candidate matching implementation."""
+        candidate = str(match.key)
         if query[0] == candidate[0]:
             return 1.0
         if query[-1] == candidate[-1]:
             return 0.75
         return 0.0
+    
+    def _FindNameMatches(self, query):
+        """Override matching."""
+        matches = models.CommonName.objects.filter(name__icontains=query)
+        return matches[:self._max_results]
 
 
 class TestMatcher(unittest.TestCase):
     """Tests for matcher.Matcher."""
     
-    library = {'avi': True,
-               'ron': True,
-               'eran': True,
-               'elad': True,
-               'niv': True,
-               'shira': True,
-               'lior': True,
-               'libat': True}
+    test_names = ('h2o', 'co2', 'adp', 'nadp', 'abe', 'sol')
     
     def _CheckIsSortedByScore(self, results):
         prev_score = 10.0 # Scores are all <= 1.0
@@ -49,39 +55,40 @@ class TestMatcher(unittest.TestCase):
             prev_score = match.score
     
     def testBaseMatcher(self):
-        m = matcher.Matcher(self.library, 10)
+        m = matcher.Matcher(10)
         
-        for name in self.library:
+        for name in self.test_names:
             results = m.Match(name)
-            self.assertEqual(1, len(results))
-            self.assertEqual(matcher.Match(name, True, 1.0), results[0])
+            self.assertTrue(len(results) <= 1)
     
     def testSortingMatcher(self):
-        m = FirstLastCharacterMatcher(self.library, 10)
+        m = FirstLastCharacterMatcher(10)
         
         results = m.Match('ron')
-        self.assertEqual(2, len(results))
         self._CheckIsSortedByScore(results)
         
         results = m.Match('ligand')
-        self.assertEqual(3, len(results))
         self._CheckIsSortedByScore(results)
         
     def testMaxResults(self):
-        m = FirstLastCharacterMatcher(self.library, 2)
+        m = FirstLastCharacterMatcher(2)
         
-        results = m.Match('ligand')
-        self.assertEqual(2, len(results))
-        self._CheckIsSortedByScore(results)
+        for name in self.test_names:
+            results = m.Match(name)
+            self.assertTrue(len(results) <= 2)
+            self._CheckIsSortedByScore(results)
     
     def testMinScore(self):
-        m = FirstLastCharacterMatcher(self.library,
-                                      max_results=10,
+        m = FirstLastCharacterMatcher(max_results=10,
                                       min_score=0.8)
         
-        results = m.Match('ligand')
-        self.assertEqual(2, len(results))
-        self._CheckIsSortedByScore(results)
+        for name in self.test_names:
+            results = m.Match(name)
+            self.assertTrue(len(results) <= 10)
+            self._CheckIsSortedByScore(results)
+            
+            for result in results:
+                self.assertTrue(result.score >= 0.8, msg=result.score)
     
     
 if __name__ == '__main__':

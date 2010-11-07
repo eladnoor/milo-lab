@@ -107,7 +107,7 @@ class Matcher(object):
             return [name]
         except Exception, msg:
             return []
-    
+        
     def _GetScore(self, query, match):
         """Get the score for a query-match pair.
         
@@ -139,7 +139,11 @@ class Matcher(object):
             matches: an unfiltered list of match objects.
         """ 
         return [m for m in matches if m.score >= self._min_score]
-        
+    
+    def _SortAndClip(self, matches):
+        matches.sort(key=lambda m: m.score, reverse=True)
+        return matches[:self._max_results]
+    
     def Match(self, query):
         """Find matches for the query in the library.
         
@@ -162,8 +166,7 @@ class Matcher(object):
             if compounds:
                 m.value = compounds[0]
         self._ScoreMatches(processed_query, matches)
-        self._FilterMatches(matches)
+        matches = self._FilterMatches(matches)
         
-        matches.sort(key=lambda m: m.score, reverse=True)
-        return matches
+        return self._SortAndClip(matches)
         
