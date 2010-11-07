@@ -2,6 +2,7 @@ import csv, os, sys
 from pylab import *
 from scipy.optimize import leastsq
 from toolbox.html_writer import HtmlWriter
+from toolbox import util
 
 """
     Read the data from the CSV files containing measurements of the activity of a gene
@@ -48,11 +49,11 @@ def fit_err2(param, data):
 def fit_params(csv_fname, html, R_calc, threshold=None):
     (rbs, promoters, data) = read_data('../data/pro_rbs/' + csv_fname + ".csv")
     [Nr, Np] = data.shape
-    if (threshold == None):
+    if (threshold == None): # fit this function: C + 10^(R_i + P_j) -- in logscale
         x0 = zeros(Nr+Np+1)
         (param, ier) = leastsq( (lambda x:fit_err2(x, data)), x0)
         C = param[Nr+Np:]
-    else:
+    else: # fit this function: 10^(R_i + P_j) -- in logscale, ignore examples which are below the threshold
         x0 = zeros(Nr+Np)
         (param, ier) = leastsq( (lambda x:fit_err(x, data, threshold)), x0)
         C = [0]
@@ -72,7 +73,7 @@ def fit_params(csv_fname, html, R_calc, threshold=None):
     est = array(est)
     mes = array(mes)
     
-    figure()
+    fig1 = figure()
     hold(True)
     if (threshold == None):
         plot([mes.min(), mes.max()], [mes.min(), mes.max()], 'k--')
@@ -112,19 +113,24 @@ def fit_params(csv_fname, html, R_calc, threshold=None):
                 html.write('<td>%.1f (%.1f)</td>' % (mes, est))
         html.write('</tr>\n')
     html.write('</table>\n')
+    html.write('Measured (Estimated) - in logarithmic scale (base 10)</br>\n')
+    html.write('red marks estimations that are off by more than 0.3</br>\n')
+    if (threshold != None):
+        html.write('blue marks estimations that are below the threshold (%.1f)</br>\n' % log10(threshold)  )
     
-    savefig('../res/pro_rbs/%s_correlation.svg' % csv_fname, format='svg')
-    html.embed_svg('%s_correlation.svg' % csv_fname, width=800, height=600)
+    savefig('../res/pro_rbs/%s_correlation.pdf' % csv_fname, format='pdf')
+    html.embed_matplotlib_figure(fig1, width=800, height=600)
 
-    figure()
-    plot(R_calc, 10**R, '.')
-    xscale('log')
-    yscale('log')
-    xlabel('RBS strength (Voigt)')
-    ylabel('RBS strength (current model)')
-    
-    savefig('../res/pro_rbs/%s_rbs_compare.svg' % 'data_flu-OD_multi', format='svg')
-    html.embed_svg('%s_rbs_compare.svg' % 'data_flu-OD_multi', width=800, height=600)
+    if (R_calc != None):
+        figure()
+        plot(R_calc, 10**R, '.')
+        xscale('log')
+        yscale('log')
+        xlabel('RBS strength (Voigt)')
+        ylabel('RBS strength (current model)')
+        
+        savefig('../res/pro_rbs/%s_rbs_compare.svg' % 'data_flu-OD_multi', format='svg')
+        html.embed_svg('%s_rbs_compare.svg' % 'data_flu-OD_multi', width=800, height=600)
 
     return (b, R, P)
 
@@ -146,16 +152,15 @@ def read_rbs_calc_results(fname):
 #(rbs, promoters, data_single) = read_data('data_flu-OD_single.csv')
 #(rbs, promoters, data_multi) = read_data('data_flu-OD_multi.csv')
 
-if (not os.path.exists('../res')):
-    os.mkdir('../res')
-if (not os.path.exists('../res/pro_rbs')):
-    os.mkdir('../res/pro_rbs')
+util._mkdir('../res/pro_rbs')
 
 rbs_score_fname = '../res/pro_rbs/rbs_2010-08-18_17-50-19_133.csv'
-if (not os.path.exists(rbs_score_fname)):
-    raise Exception("The RBS calculator score file could not be found, you must " + \
+if (os.path.exists(rbs_score_fname)):
+    R_calc = read_rbs_calc_results(rbs_score_fname)
+else:
+    sys.stderr.write("The RBS calculator score file could not be found, you must " + \
                     "generate it using the 'rbs-calc' website and put it here: %s" % rbs_score_fname)
-
-R_calc = read_rbs_calc_results(rbs_score_fname)
+    R_calc = None
+    
 html = HtmlWriter('../res/pro_rbs/fit.html')
 (b, R, P) = fit_params('data_flu-OD_multi', html, R_calc)
