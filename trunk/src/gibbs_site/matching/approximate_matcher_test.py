@@ -1,19 +1,25 @@
 #!/usr/bin/python
 
-import approximate_matcher
 import unittest
+from util import django_utils
+
+# NOTE(flamholz): This is crappy. We're using the real database for
+# a unit test. I wish I knew of a better way.
+django_utils.SetupDjango()
+
+import approximate_matcher
 
 class TestMatcher(unittest.TestCase):
     """Tests for matcher.Matcher."""
     
-    library = {'avi': True,
-               'ari': True,
-               'ariel': True,
-               'glucose': True,
-               'glucosamine': True,
-               'alanine': True,
-               'phenylalanine': True,
-               'l-glucosamine': True}
+    test_names = ('avi',
+                  'ari',
+                  'ariel',
+                  'glucose',
+                  'glucosamine',
+                  'alanine',
+                  'phenylalanine',
+                  'l-glucosamine')
     
     def _CheckIsSortedByScore(self, results):
         prev_score = 10.0 # Scores are all <= 1.0
@@ -21,21 +27,27 @@ class TestMatcher(unittest.TestCase):
             self.assertTrue(match.score <= prev_score)
             prev_score = match.score
     
-    def testEditDistanceMatcher(self):
-        m = approximate_matcher.EditDistanceMatcher(self.library,
-                                                    max_results=10,
-                                                    min_score=0.3)
-    
-        results = m.Match('avi')
-        self.assertEqual(3, len(results))
-        self._CheckIsSortedByScore(results)
+    def _CheckAllNamesOnMatcher(self, names, matcher, max_results, min_score,
+                                check_sorted=True):
+        for name in names:            
+            results = matcher.Match(name)
+            self.assertTrue(len(results) <= max_results,
+                            msg='%d results but max_results=%d' % (len(results),
+                                                                   max_results))
+            if check_sorted:
+                self._CheckIsSortedByScore(results)
+            
+            for result in results:
+                self.assertTrue(result.score >= min_score)
         
-        results = m.Match('d-glucose')
-        self.assertEqual(3, len(results))
-        self._CheckIsSortedByScore(results)
+    def testEditDistanceMatcher(self):    
+        for max_results in (1, 5, 10):
+            for min_score in (0.0, 0.3, 0.7):
+                m = approximate_matcher.EditDistanceMatcher(
+                    max_results=max_results, min_score=min_score)
+                self._CheckAllNamesOnMatcher(
+                    self.test_names, m, max_results, min_score)
         
-        results = m.Match('acetyl-coa')
-        self.assertEqual(0, len(results))
 
     def testPrepareExpression(self):
         m = approximate_matcher.RegexApproxMatcher({})
@@ -46,32 +58,26 @@ class TestMatcher(unittest.TestCase):
             self.assertEqual(expression, m._PrepareExpression(query))
 
     def testRegexApproxMatcher(self):
-        m = approximate_matcher.RegexApproxMatcher(self.library,
-                                                   max_results=10,
-                                                   min_score=0.3)
-        
-        # Has an exact match.
-        results = m.Match('avi')
-        self.assertEqual(1, len(results))
-        self._CheckIsSortedByScore(results)
-        
-        # Has no matches because the 'd=' doesn't appear in the library. 
-        results = m.Match('d-glucose')
-        self.assertEqual(0, len(results))
-        
-        # Nothing similar in the library.
-        results = m.Match('acetyl-coa')
-        self.assertEqual(0, len(results))
-        
-        # Has several substring matches.
-        results = m.Match('gluco')
-        self.assertEqual(3, len(results))
-        self._CheckIsSortedByScore(results)
+        for max_results in (1, 5, 10):
+            for min_score in (0.0, 0.3, 0.7):
+                m = approximate_matcher.RegexApproxMatcher(
+                    max_results=max_results, min_score=min_score)
+                self._CheckAllNamesOnMatcher(
+                    self.test_names, m, max_results, min_score)
+    
+    def testCascadingMatcher(self):
+        for max_results in (1, 5, 10):
+            for min_score in (0.0, 0.3, 0.7):
+                m = approximate_matcher.CascadingMatcher(
+                    max_results=max_results, min_score=min_score)
+                
+                # We don't check if things are sorted on the cascading 
+                # matcher because it doesn't sort across the results
+                # of it's sub-matchers.
+                self._CheckAllNamesOnMatcher(
+                    self.test_names, m, max_results, min_score,
+                    check_sorted=False)
 
-        # Has several substring matches.
-        results = m.Match('alan')
-        self.assertEqual(2, len(results))
-        self._CheckIsSortedByScore(results)  
 
 if __name__ == '__main__':
     unittest.main()
