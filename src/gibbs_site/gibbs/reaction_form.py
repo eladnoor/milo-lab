@@ -10,8 +10,8 @@ class ReactionForm(form_utils.BaseForm):
     productsCoeff = form_utils.ListFormField()
     reactantsName = form_utils.ListFormField()
     productsName = form_utils.ListFormField()
-    reactantsConcentration = form_utils.ListFormField()
-    productsConcentration = form_utils.ListFormField()
+    reactantsConcentration = form_utils.ListFormField(required=False)
+    productsConcentration = form_utils.ListFormField(required=False)
 
     ph = forms.FloatField(required=False)
     ionic_strength = forms.FloatField(required=False)

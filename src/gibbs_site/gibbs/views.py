@@ -93,7 +93,8 @@ def ReactionPage(request):
     delta_g_estimate = reaction.DeltaG(pH=ph,
                                        ionic_strength=i_s)
     
-    warning = GetBalancednessWarning(reaction, ph, i_s, cprofile_name)
+    balance_with_water_link = reaction.GetBalanceWithWaterLink(
+            ph, i_s, cprofile_name, form.cleaned_query)
     template_data = {'reaction': reaction,
                      'query': form.cleaned_query,
                      'ph': form.cleaned_ph,
@@ -101,7 +102,7 @@ def ReactionPage(request):
                      'delta_g_estimate': delta_g_estimate,
                      'no_dg_explanation': reaction.NoDeltaGExplanation(),
                      'concentration_profile': cprofile_name,
-                     'warning': warning}
+                     'balance_with_water_link': balance_with_water_link}
     return render_to_response('reaction_page.html', template_data)
 
     
@@ -144,10 +145,12 @@ def ResultsPage(request):
         delta_g_estimate = reaction.DeltaG(
             pH=ph, ionic_strength=ionic_strength)
 
-        template_data['warning'] = GetBalancednessWarning(reaction)  
+        balance_with_water_link = reaction.GetBalanceWithWaterLink(
+            ph, ionic_strength, cprofile.name, query)
         template_data.update({'delta_g_estimate': delta_g_estimate,
                               'no_dg_explanation': reaction.NoDeltaGExplanation(),
-                              'reaction': reaction})
+                              'reaction': reaction,
+                              'balance_with_water_link': balance_with_water_link})
         return render_to_response('reaction_page.html', template_data)
 
     else:

@@ -1,6 +1,7 @@
 import logging
 import numpy
 import re
+import urllib
 
 from django.db import models
 from gibbs import constants
@@ -267,13 +268,24 @@ class Reaction(object):
         self.reactants = reactants or []
         self.products = products or []
     
+    def ApplyConcentrationProfile(self, concentration_profile):
+        """Apply this concentration profile to this reaction.
+        
+        Args:
+            concentration_profile: a ConcentrationProfile object.
+        """
+        cp = concentration_profile
+        for c in self.reactants + self.products:
+            c.concentration = cp.Concentration(c.compound.kegg_id)
+        
     @staticmethod
-    def FromIds(reactants, products, concentration_profile):
+    def FromIds(reactants, products, concentration_profile=None):
         """Build a reaction object from lists of IDs.
         
         Args:
             reactants: an iterable of (coeff, kegg_id, name) of reactants.
             products: an iterable of (coeff, kegg_id, name) of products.
+            concentration_profile: a ConcentrationProfile object.
             
         Returns:
             A properly set-up Reaction object or None if there's an error.
@@ -281,7 +293,6 @@ class Reaction(object):
         r_ids = [id for unused_coeff, id, unused_name in reactants]
         p_ids = [id for unused_coeff, id, unused_name in products]
         compounds = Compound.GetCompoundsByKeggId(r_ids + p_ids)
-        cp = concentration_profile
         
         # Build the reaction object.
         rxn = Reaction()        
@@ -290,18 +301,17 @@ class Reaction(object):
                 logging.error('Unknown reactant %s', id)
                 return None
             
-            rxn.reactants.append(
-                CompoundWithCoeff(coeff, compounds[id], name,
-                                  cp.Concentration(id)))
+            rxn.reactants.append(CompoundWithCoeff(coeff, compounds[id], name))
         
         for coeff, id, name in products:
             if id not in compounds:
                 logging.error('Unknown product %s', id)
                 return None
                 
-            rxn.products.append(
-                CompoundWithCoeff(coeff, compounds[id], name,
-                                  cp.Concentration(id)))
+            rxn.products.append(CompoundWithCoeff(coeff, compounds[id], name))
+        
+        if concentration_profile:
+            rxn.ApplyConcentrationProfile(concentration_profile)
         
         return rxn
     
@@ -352,7 +362,8 @@ class Reaction(object):
         return max([abs(x) for x in atom_diff.values()]) < 0.01
     
     def GetBalanceWithWaterLink(self, ph=None, ionic_strength=None,
-                                concentration_profile=None):
+                                concentration_profile=None,
+                                query=None):
         """Returns a link to balance this reaction with water."""
         params = []
         for compound in self.reactants:
@@ -373,6 +384,8 @@ class Reaction(object):
             params.append('ionic_strength=%f' % ionic_strength)
         if concentration_profile:
             params.append('concentration_profile=%s' % concentration_profile)
+        if query:
+            params.append('query=%s' % urllib.quote(query))
         params.append('balance_w_water=1')
     
         return '/reaction?%s' % '&'.join(params)
@@ -400,6 +413,63 @@ class Reaction(object):
             return None
         
         return oxy_count
+
+    @staticmethod
+    def _FindWater(side):
+        """Returns the index of water into the list.
+        
+        Args:
+            side: a list of CompoundWithCoeff objects.
+        
+        Returns:
+            The index of water or None if not present.
+        """
+        for i, c in enumerate(side):
+            if c.compound.kegg_id == 'C00001':
+                return i
+        return None
+
+    @staticmethod
+    def AddWater(side, how_many):
+        """Adds "how_many" waters to a reaction side.
+        
+        Args:
+            side: a list of CompoundWithCoeff objects.
+            how_many: how many waters to add.
+        """
+        i = Reaction._FindWater(side)        
+        if i:
+            side[i].coeff += how_many
+        else:
+            water = Compound.objects.get(kegg_id='C00001')
+            w_w_coeff = CompoundWithCoeff(compound=water, coeff=how_many,
+                                          name='Water')
+            side.append(w_w_coeff)
+    
+    @staticmethod
+    def SubtractWater(side, how_many):
+        """Removes at most "how_many" waters from a reaction side.
+        
+        Args:
+            side: a list of CompoundWithCoeff objects.
+            how_many: how many waters to subtract.
+        
+        Returns:
+            How many waters are left after we subtracted as many as we could.
+        """
+        i = Reaction._FindWater(side)
+        
+        if i:
+            net_water = side[i].coeff - how_many
+            if net_water > 0:
+                side[i].coeff = net_water
+                return 0
+            
+            side.pop(i)
+            return net_water
+        
+        # Didn't find water in this side at all.
+        return how_many
     
     def CanBalanceWithWater(self):
         """Returns True if balanced with or without water."""
@@ -421,14 +491,14 @@ class Reaction(object):
         
         if extra_waters == 0:
             return True
-                
-        water = Compound.objects.get(kegg_id='C00001')
-        w_w_coeff = CompoundWithCoeff(compound=water, coeff=abs(extra_waters),
-                                      name='Water')
+        
+        abs_waters = abs(extra_waters)        
         if extra_waters > 0:
-            self.products.append(w_w_coeff)
+            waters_left = self.SubtractWater(self.reactants, abs_waters)
+            self.AddWater(self.products, waters_left)
         else:
-            self.reactants.append(w_w_coeff)
+            waters_left = self.SubtractWater(self.products, abs_waters)
+            self.AddWater(self.reactants, waters_left)
         
         return True
 
@@ -530,6 +600,31 @@ class Reaction(object):
                 return '%s %s' % (name,
                                   compound.compound.no_dg_explanation.lower())
         return None
+
+    def ExtraAtoms(self):
+        diff = self._GetAtomDiff()
+        diff.pop('H')
+        extras = filter(lambda t: t[1] > 0, diff.iteritems())
+        if not extras:
+            return None
         
+        extras.sort(key=lambda t: t[1], reverse=True)
+        return extras
+
+    def MissingAtoms(self):
+        diff = self._GetAtomDiff()
+        diff.pop('H')
+        short = filter(lambda t: t[1] < 0, diff.iteritems())
+        if not short:
+            return None
         
+        short = [(atom, -count) for atom, count in short]
+        short.sort(key=lambda t: t[1], reverse=True)        
+        return short
+
+    is_balanced = property(IsBalanced)
+    balanced_with_water = property(CanBalanceWithWater)
+    extra_atoms = property(ExtraAtoms)
+    missing_atoms = property(MissingAtoms)
+    
     

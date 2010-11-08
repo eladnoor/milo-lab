@@ -2,17 +2,23 @@ import logging
 
 class _BaseConcentrationProfile(object):
     
+    name = 'base'
+    
     def Concentration(self, kegg_id):
         raise NotImplementedError
 
 
 class MolarProfile(_BaseConcentrationProfile):
     
+    name = '1M'
+    
     def Concentration(self, kegg_id):
         return 1.0
 
 
 class MilliMolarProfile(_BaseConcentrationProfile):
+    
+    name = '1mM'
     
     def Concentration(self, kegg_id):
         if kegg_id == 'C00001':
@@ -22,10 +28,15 @@ class MilliMolarProfile(_BaseConcentrationProfile):
 
 class CustomMicroMolarProfile(_BaseConcentrationProfile):
     
+    name = 'custom'
+    
     def __init__(self, concentrations):
         self._concentrations = concentrations
         
     def Concentration(self, kegg_id):
+        if kegg_id == 'C00001':
+            return 1.0
+        
         if kegg_id not in self._concentrations:
             logging.error('Concentration requested for unknown id: %s',
                           kegg_id)
@@ -34,7 +45,7 @@ class CustomMicroMolarProfile(_BaseConcentrationProfile):
 
 
 _GENERIC_PROFILES = {'1M': MolarProfile(),
-                    '1mM': MilliMolarProfile()}
+                     '1mM': MilliMolarProfile()}
 
 
 def GetProfile(name='1M',
