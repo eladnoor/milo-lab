@@ -22,13 +22,14 @@
 		<td width="50px"><input type="text" name="ionic_strength" id="ionStrengthField" value="{{ ionic_strength }}" size="5"/></td>
 		<td><div id="ionStrengthSlider"></div></td>
 	</tr>
+	{% if reaction %}
 	<tr>
 		<td width="150px">Concentrations </td>
 		<td colspan="2">
 			{% if not concentration_profile or concentration_profile == "1M" %}
-			<input type="radio" name="concentration_profile" value="1M" checked>1 M
+			<input type="radio" name="concentration_profile" value="1M" checked><a href="/faq#stdConditions">Standard conditions</a> (1 M)
 			  {% else %}
-			  <input type="radio" name="concentration_profile" value="1M" checked>1 M
+			  <input type="radio" name="concentration_profile" value="1M" checked><a href="/faq#stdConditions">Standard conditions</a> (1 M)
 			{% endif %}
 			
 			{% ifequal concentration_profile "1mM" %}
@@ -36,6 +37,36 @@
 			  {% else %}
 			  <input type="radio" name="concentration_profile" value="1mM">1 mM
 			{% endifequal %}
+			
+			{% ifequal concentration_profile "custom" %}
+			<input type="radio" name="concentration_profile" id="customConcRadio" value="custom" checked>Custom
+			  {% else %}
+			  <input type="radio" name="concentration_profile" id="customConcRadio" value="custom">Custom
+			{% endifequal %}
 		</td>
 	</tr>
+	<tr class="customConcentrations"><th colspan="3">Reactant Concentrations</th></tr>
+	{% for reactant in reaction.reactants %}
+		<tr class="customConcentrations">
+			<td width="150px">
+			  {{ reacant.coeff }} {{ reactant.name }}:
+			</td>
+			<td colspan="2">
+			  <input type="text" size="10" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" /> &mu;M
+			</td>
+		</tr>
+	{% endfor %}
+	<tr class="customConcentrations"><th colspan="3">Product Concentrations</th></tr>
+	{% for product in reaction.products %}
+		<tr class="customConcentrations">
+			<td width="150px">
+			  {{ product.coeff }} {{ product.name }}:
+			</td>
+			<td colspan="2">
+			  <input type="text" size="10" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" /> &mu;M
+			</td>
+		</tr>
+	{% endfor %}
+	
+	{% endif %}
 </table>

@@ -66,9 +66,17 @@ def ReactionPage(request):
     
     clean_reactants = form.cleaned_reactantIds
     clean_products = form.cleaned_productIds
+    all_ids = clean_reactants + clean_products
     
+    # Fetch custom concentrations if any.
+    reactant_concentrations = form.cleaned_reactantConcentrations
+    product_concentrations = form.cleaned_productConcentrations
+    all_concentrations = reactant_concentrations + product_concentrations
+    
+    # Build the appropriate concentration profile.
     cprofile_name = form.cleaned_concentration_profile
-    cprofile = concentration_profile.GetProfile(cprofile_name)
+    cprofile = concentration_profile.GetProfile(
+        cprofile_name, all_ids, all_concentrations)
     
     reactant_names = form.cleaned_reactantNames
     product_names = form.cleaned_productNames
@@ -76,14 +84,14 @@ def ReactionPage(request):
     zipped_reactants = zip(form.cleaned_reactantCoeffs, clean_reactants, reactant_names)
     zipped_products = zip(form.cleaned_productCoeffs, clean_products, product_names)
     
-    reaction = models.Reaction.FromIds(zipped_reactants, zipped_products)
+    reaction = models.Reaction.FromIds(zipped_reactants, zipped_products,
+                                       cprofile)
     if form.cleaned_balance_w_water:
         reaction.TryBalanceWithWater()
     
     # Compute the delta G estimate.
     delta_g_estimate = reaction.DeltaG(pH=ph,
-                                       ionic_strength=i_s,
-                                       concentration_profile=cprofile)
+                                       ionic_strength=i_s)
     
     warning = GetBalancednessWarning(reaction, ph, i_s, cprofile_name)
     template_data = {'reaction': reaction,
@@ -131,7 +139,8 @@ def ResultsPage(request):
         
         reactants, products = best_reaction
         
-        reaction = models.Reaction.FromIds(reactants, products)
+        cprofile = concentration_profile.GetProfile()
+        reaction = models.Reaction.FromIds(reactants, products, cprofile)
         delta_g_estimate = reaction.DeltaG(
             pH=ph, ionic_strength=ionic_strength)
 
