@@ -10,11 +10,15 @@ class ReactionForm(form_utils.BaseForm):
     productsCoeff = form_utils.ListFormField()
     reactantsName = form_utils.ListFormField()
     productsName = form_utils.ListFormField()
-    
+    reactantsConcentration = form_utils.ListFormField()
+    productsConcentration = form_utils.ListFormField()
+
     ph = forms.FloatField(required=False)
     ionic_strength = forms.FloatField(required=False)
     concentration_profile = forms.ChoiceField(required=False,
-                                              choices=[("1M", "1M"), ("1mM", "1mM")])
+                                              choices=[('1M', '1M'),
+                                                       ('1mM', '1mM'),
+                                                       ('custom', 'custom')])
     
     query = forms.CharField(max_length=2048, required=False)
     balance_w_water = forms.BooleanField(required=False)
@@ -26,6 +30,8 @@ class ReactionForm(form_utils.BaseForm):
     cleaned_productCoeffs = property(lambda self: [int(c) for c in self.cleaned_data['productsCoeff']])
     cleaned_reactantNames = property(lambda self: self.cleaned_data['reactantsName'])
     cleaned_productNames = property(lambda self: self.cleaned_data['productsName'])
+    cleaned_reactantConcentrations = property(lambda self: [float(c) for c in self.cleaned_data['reactantsConcentration']])
+    cleaned_productConcentrations = property(lambda self: [float(c) for c in self.cleaned_data['productsConcentration']])
     cleaned_ph = property(lambda self: self._GetWithDefault('ph', constants.DEFAULT_PH))
     cleaned_ionic_strength = property(lambda self: self._GetWithDefault('ionic_strength',
                                                                         constants.DEFAULT_IONIC_STRENGTH))

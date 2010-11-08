@@ -208,17 +208,6 @@ class Compound(models.Model):
         return unicode(self.formula)
     
     @staticmethod
-    def AsLibrary():
-        """Get's a map of common names to Compound objects from the DB."""
-        all_compounds = Compound.objects.all()
-        names_to_compounds = {}
-        for compound in all_compounds:
-            for name in compound.common_names.all():
-                names_to_compounds[name] = compound
-        
-        return names_to_compounds
-    
-    @staticmethod
     def GetCompoundsByKeggId(kegg_ids):
         """Fetch compounds from a list of KEGG IDs.
         
@@ -238,14 +227,31 @@ class Compound(models.Model):
 class CompoundWithCoeff(object):
     """A compound with a stoichiometric coefficient."""
     
-    def __init__(self, coeff, compound, name=None):
+    def __init__(self, coeff, compound, name=None, concentration=1.0):
         self.compound = compound
         self.coeff = coeff
         self.name = name
+        self.concentration = concentration
         
     def Minus(self):
         """Returns a new CompoundWithCoeff with coeff = -self.coeff."""
         return CompoundWithCoeff(-self.coeff, self.compound, self.name)
+    
+    def __str__(self):
+        return '%d %s' % (self.coeff, self.name)
+    
+    
+    def _MicromolarConcentration(self):
+        return self.concentration * 1e6
+    
+    def _MicromolarConcentrationString(self):
+        conc = self.concentration * 1e6
+        if conc > 1000:
+            return '%.2e' % conc
+        return '%.2f' % conc
+    
+    micromolar_concentration = property(_MicromolarConcentration)
+    micromolar_concentration_string = property(_MicromolarConcentrationString)
     
 
 class Reaction(object):
@@ -262,7 +268,7 @@ class Reaction(object):
         self.products = products or []
     
     @staticmethod
-    def FromIds(reactants, products):
+    def FromIds(reactants, products, concentration_profile):
         """Build a reaction object from lists of IDs.
         
         Args:
@@ -275,6 +281,7 @@ class Reaction(object):
         r_ids = [id for unused_coeff, id, unused_name in reactants]
         p_ids = [id for unused_coeff, id, unused_name in products]
         compounds = Compound.GetCompoundsByKeggId(r_ids + p_ids)
+        cp = concentration_profile
         
         # Build the reaction object.
         rxn = Reaction()        
@@ -283,14 +290,18 @@ class Reaction(object):
                 logging.error('Unknown reactant %s', id)
                 return None
             
-            rxn.reactants.append(CompoundWithCoeff(coeff, compounds[id], name))
+            rxn.reactants.append(
+                CompoundWithCoeff(coeff, compounds[id], name,
+                                  cp.Concentration(id)))
         
         for coeff, id, name in products:
             if id not in compounds:
                 logging.error('Unknown product %s', id)
                 return None
                 
-            rxn.products.append(CompoundWithCoeff(coeff, compounds[id], name))
+            rxn.products.append(
+                CompoundWithCoeff(coeff, compounds[id], name,
+                                  cp.Concentration(id)))
         
         return rxn
     
@@ -422,6 +433,11 @@ class Reaction(object):
         return True
 
     @staticmethod
+    def _FilterHydrogen(compounds_with_coeffs):
+        """Removes Hydrogens from the list of compounds."""
+        return filter(lambda c: c.compound.kegg_id != 'C00080', compounds_with_coeffs)
+
+    @staticmethod
     def GetTotalFormationEnergy(collection,
                                 pH=constants.DEFAULT_PH,
                                 ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
@@ -434,7 +450,7 @@ class Reaction(object):
             collection: an iterable of CompoundWithCoeff objects.
         """        
         sum = 0
-        for compound_w_coeff in collection:
+        for compound_w_coeff in Reaction._FilterHydrogen(collection):
             c = compound_w_coeff.compound
             coeff = compound_w_coeff.coeff
             
@@ -447,7 +463,7 @@ class Reaction(object):
         
         return sum
     
-    def _GetConcentrationCorrection(self, concentration_profile):
+    def _GetConcentrationCorrection(self):
         """Get the concentration term in DeltaG' for these concentrations.
         
         Args:
@@ -455,19 +471,19 @@ class Reaction(object):
         
         Returns:
             The correction or None on error.
-        """
-        reactant_term, product_term = 0, 0
-        cp = concentration_profile
+        """        
+        # Ignore hydrogen for computing concentration corrections ala Alberty.
+        rs = self._FilterHydrogen(self.reactants)
+        ps = self._FilterHydrogen(self.products)
         
-        try:
-            mult_log = lambda c: c.coeff * numpy.log(cp.Concentration(c.compound.kegg_id))
-            reactant_terms = [mult_log(c) for c in self.reactants]
-            product_terms = [mult_log(c) for c in self.products]
-            reactant_term = sum(reactant_terms)
-            product_term = sum(product_terms)
-        except KeyError, e:
-            logging.error(e)
-            return None
+        # Shorthand for coeff * log(concentration)
+        mult_log = lambda c: c.coeff * numpy.log(c.concentration)
+
+        # Compute product and reactant terms.
+        reactant_terms = [mult_log(c) for c in rs]
+        product_terms = [mult_log(c) for c in ps]
+        reactant_term = sum(reactant_terms)
+        product_term = sum(product_terms)
         
         _r = constants.R
         _t = constants.DEFAULT_TEMP
@@ -475,8 +491,7 @@ class Reaction(object):
     
     def DeltaG(self,
                pH=constants.DEFAULT_PH,
-               ionic_strength=constants.DEFAULT_IONIC_STRENGTH,
-               concentration_profile=None):
+               ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Compute the DeltaG for a reaction.
         
         Args:
@@ -500,9 +515,8 @@ class Reaction(object):
             return None
         
         dg_zero = products_sum - reactants_sum
-        if not concentration_profile:
-            return dg_zero        
-        return dg_zero + self._GetConcentrationCorrection(concentration_profile)
+        correction = self._GetConcentrationCorrection()
+        return dg_zero + correction
     
     def NoDeltaGExplanation(self):
         """Get an explanation for why there's no delta G value.

@@ -2,7 +2,7 @@
 	{% include "header.html" %}
 {% endwith %}
 
-	<form name="reactionForm" action="/reaction" method="get">
+	<form id="rxnForm" name="reactionForm" action="/reaction" method="get">
 		<input type="hidden" name="query" value="{{ query }}" />
 		<div class="parsedRxn">
 			{% for compound in reaction.reactants %}

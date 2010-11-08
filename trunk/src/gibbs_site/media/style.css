@@ -80,6 +80,10 @@ a {
 	margin: 5px;
 }
 
+.customConcentrations {
+  display: none;
+}
+
 #advancedSettings {
 	margin: 10px auto;
 	width: 650px;

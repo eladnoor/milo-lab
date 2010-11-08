@@ -6,9 +6,10 @@ var updatePHField = function(event, ui) {
 var updateISField = function(event, ui) {
 	$("#ionStrengthField").val(ui.value);
 };
-var toggleAdvancedSettings = function() {
-	$("#searchOptions").toggle();
-	$("#advancedSettings").toggle();
+var toggleCustomConcentrations = function() {
+	var concentrationProfile = $("form input=radion[name=concentration_profile]:checked");
+	var showConcentrations = concentrationProfile.val() == "custom";
+	$(".customConcentrations").toggle(showConcentrations);
 }
 	
 $(document).ready(function(){
@@ -44,10 +45,14 @@ $(document).ready(function(){
 	       	slide: updateISField,
 	       	change: updateISField});	
 	}
-
-
-	var advancedSettingsLink = $("#advancedSettingsLink");
-	if (advancedSettingsLink) {
-		advancedSettingsLink.click(toggleAdvancedSettings);
+	
+	var customConcRadio = $("#customConcRadio");
+	if (customConcRadio) {
+		toggleCustomConcentrations();
+	}
+	
+	var rxnForm =  $("#rxnForm");
+	if (rxnForm) {
+		rxnForm.change(toggleCustomConcentrations);		
 	}
 });
