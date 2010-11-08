@@ -49,7 +49,7 @@
 	{% for reactant in reaction.reactants %}
 		<tr class="customConcentrations">
 			<td width="150px">
-			  {{ reacant.coeff }} {{ reactant.name }}:
+			  {{ reactant.name }}:
 			</td>
 			<td colspan="2">
 			  <input type="text" size="10" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" /> &mu;M
@@ -60,7 +60,7 @@
 	{% for product in reaction.products %}
 		<tr class="customConcentrations">
 			<td width="150px">
-			  {{ product.coeff }} {{ product.name }}:
+			  {{ product.name }}:
 			</td>
 			<td colspan="2">
 			  <input type="text" size="10" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" /> &mu;M

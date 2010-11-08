@@ -30,6 +30,10 @@ a {
 	max-width: 450px;
 }
 
+.warning .atom {
+	color: #006633;
+}
+
 #title {
 	font-family: helevetica;
 	font-size: 40px;
