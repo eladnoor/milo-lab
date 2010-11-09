@@ -228,7 +228,8 @@ def main():
     #pl.find_path('glyoxlyate(1uM-10mM)', source={}, target={48:1}, thermo_method="global")
     #pl.c_range = (1e-9, 1e-2); pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
     #pl.find_path('3PG', source={}, target={197:1}, thermo_method='none')
-    pl.find_path('3PG (MCMF, 1e-6 - 1e-2)', source={}, target={197:1}, thermo_method='MCMF')
+    pl.find_path('glyoxylate (MCMF, 1e-6 - 1e-2)', source={}, target={48:1}, thermo_method='MCMF')
+    #pl.find_path('3PG (MCMF, 1e-6 - 1e-2)', source={}, target={197:1}, thermo_method='MCMF')
     #pl.find_path('3PG(global_thermodynamics_with_MOG_reactions)', source={}, target={197:1}, thermo_method="global",\
     #             update_file='../data/thermodynamics/database_updates_with_MOG_reactions.txt')
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")

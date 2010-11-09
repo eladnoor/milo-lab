@@ -23,10 +23,10 @@ class Alberty (Thermodynamics):
             for token in re.findall("{([0-9\-\.\,_\s]+)}", values):
                 val_list = token.split(',', 3)
                 dG0 = float(val_list[0])
-                if (val_list[1] == '_'):
-                    dH0 = NaN
-                else:
+                try:
                     dH0 = float(val_list[1])
+                except ValueError:
+                    dH0 = NaN
                 z = int(val_list[2])
                 nH = int(val_list[3])
                 if (alberty_name.find("coA") != -1):
