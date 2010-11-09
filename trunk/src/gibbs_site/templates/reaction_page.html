@@ -6,21 +6,6 @@
 		<div class="warning">Reaction is not balanced!
 		{% if reaction.balanced_with_water and balance_with_water_link %}
 		<a href="{{ balance_with_water_link }}">Balance with water?</a>
-		{% else %}
-			{% if reaction.extra_atoms %}
-			<div>Extra reactant atoms:
-			{% for atom, count in reaction.extra_atoms %}
-			<span>{{ count }}</span> <span class="atom">{{ atom }}</span> {% if not forloop.last %}, {% endif %}
-			{% endfor %}
-			</div>
-			{% endif %}
-			{% if reaction.missing_atoms %}
-			<div>Extra product atoms:
-			{% for atom, count in reaction.missing_atoms %}
-			<span>{{ count }}</span> <span class="atom">{{ atom }}</span>{% if not forloop.last %}, {% endif %}
-			{% endfor %}
-			</div>
-			{% endif %}
 		{% endif %}
 		</div>
 	{% endif %}
@@ -35,6 +20,14 @@
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %}
+			
+			{% if reaction.missing_atoms %}
+				+
+				{% for atom, count in reaction.missing_atoms %}
+				<span class="missingCount">{{ count }}</span><span class="missingAtom">{{ atom }}</span>
+				{% endfor %}
+			{% endif %}
+			
 			&rarr;
 			{% for compound in reaction.products %}
 				{% with "products" as reaction_side %}
@@ -43,6 +36,13 @@
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %}
+			
+			{% if reaction.extra_atoms %}
+				+
+				{% for atom, count in reaction.extra_atoms %}
+				<span class="missingCount">{{ count }}</span><span class="missingAtom">{{ atom }}</span>
+				{% endfor %}
+			{% endif %}
 		</div>
 		
 		{% with "&Delta;<sub>r</sub>G'&deg;" as delta_g_label %} 

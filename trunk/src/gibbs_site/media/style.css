@@ -30,8 +30,8 @@ a {
 	max-width: 450px;
 }
 
-.warning .atom {
-	color: #006633;
+.missingCount {
+	color: red;
 }
 
 #title {
