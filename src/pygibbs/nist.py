@@ -3,6 +3,7 @@ from kegg import KeggParseException, Kegg
 from thermodynamics import default_T
 from matplotlib.backends.backend_pdf import PdfPages
 from alberty import Alberty
+from toolbox import util
 
 class Nist:
     def __init__(self, kegg=None, fname='../data/thermodynamics/nist.csv'):
@@ -139,7 +140,7 @@ class Nist:
         
         return True
     
-    def analyze_stats(self, pdf_fname="../res/nist_statistics.pdf"):
+    def analyze_stats(self, pdf_fname):
         """
             Produces a set of plots that show some statistics about the NIST database
         """
@@ -205,5 +206,6 @@ class Nist:
         pp.close()
         
 if (__name__ == "__main__"):
+    util._mkdir("../res/nist")
     nist = Nist()
-    nist.analyze_stats()
+    nist.analyze_stats("../res/nist/nist_statistics.pdf")

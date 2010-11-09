@@ -897,7 +897,7 @@ class Kegg:
     
     def insert_data_to_db(self, cursor):
         cursor.execute("DROP TABLE IF EXISTS kegg_compound")
-        cursor.execute("CREATE TABLE kegg_compound (cid INT, pubchem_id INT, mass REAL, formula TEXT, inchi TEXT, from_kegg BOOL, cas TEXT)")
+        cursor.execute("CREATE TABLE kegg_compound (cid INT, pubchem_id INT, mass REAL, formula TEXT, inchi TEXT, from_kegg BOOL, cas TEXT, names TEXT)")
         cursor.execute("DROP INDEX IF EXISTS kegg_compound_idx")
         cursor.execute("CREATE UNIQUE INDEX kegg_compound_idx ON kegg_compound (cid)")
 
@@ -907,8 +907,9 @@ class Kegg:
         cursor.execute("CREATE INDEX kegg_compound_names_idx ON kegg_compound_names (name)")
         
         for (cid, compound) in self.cid2compound_map.iteritems():
-            cursor.execute("INSERT INTO kegg_compound VALUES(?,?,?,?,?,?,?)", \
-                           (cid, compound.pubchem_id, compound.mass, compound.formula, compound.inchi, compound.from_kegg, compound.cas))
+            cursor.execute("INSERT INTO kegg_compound VALUES(?,?,?,?,?,?,?,?)", \
+                           (cid, compound.pubchem_id, compound.mass, compound.formula, \
+                            compound.inchi, compound.from_kegg, compound.cas, ";".join(compound.all_names)))
             for name in compound.all_names:
                 cursor.execute("INSERT INTO kegg_compound_names VALUES(?,?)", (cid, unicode(name)))
     
@@ -1555,6 +1556,8 @@ class KeggPathologic:
         return Gdot
     
 if (__name__ == '__main__'):
+    import json
+    
     sqlite_name = "gibbs.sqlite"
     comm = sqlite3.connect("../res/" + sqlite_name)
     cursor = comm.cursor()
@@ -1562,3 +1565,12 @@ if (__name__ == '__main__'):
     kegg = Kegg()
     kegg.insert_data_to_db(cursor)
     comm.commit()
+
+    compound_list = []
+    for row in cursor.execute("SELECT * FROM kegg_compound"):
+        (cid, pubchem_id, mass, formula, inchi, from_kegg, cas, names) = row
+        compound_list.append((cid, inchi, mass, formula, names.split(';')))
+        
+    json_file = open("../res/kegg_compounds.json", 'w')
+    json_file.write(json.dumps(compound_list))
+    json_file.close()

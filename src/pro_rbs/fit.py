@@ -116,7 +116,7 @@ def fit_params(csv_fname, html, R_calc, threshold=None):
     html.write('Measured (Estimated) - in logarithmic scale (base 10)</br>\n')
     html.write('red marks estimations that are off by more than 0.3</br>\n')
     if (threshold != None):
-        html.write('blue marks estimations that are below the threshold (%.1f)</br>\n' % log10(threshold)  )
+        html.write('blue marks estimations that are below the threshold (%.1f)</br>\n' % log10(threshold))
     
     savefig('../res/pro_rbs/%s_correlation.pdf' % csv_fname, format='pdf')
     html.embed_matplotlib_figure(fig1, width=800, height=600)
