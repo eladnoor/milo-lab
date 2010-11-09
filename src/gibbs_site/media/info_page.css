@@ -9,8 +9,13 @@ body {
   margin-left: 30px;
 }
 
-.about {
+.section {
   margin: 10px;
+}
+
+.title {
+  font-weight: bold;
+  font-size: 22px;
 }
 
 .faqEntry {
