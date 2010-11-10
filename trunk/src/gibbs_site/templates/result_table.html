@@ -52,7 +52,18 @@
 			  {{ reactant.name }}:
 			</td>
 			<td colspan="2">
-			  <input type="text" size="10" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" /> &mu;M
+			  {% with reactant.compound.kegg_id as kegg_id %}
+				  {% if kegg_id == 'C00001' or kegg_id == 'C00080' %}
+				  <input type="hidden" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" />
+				  	{% if kegg_id == 'C00001' %}
+				  		{{ reactant.micromolar_concentration_string }} &mu;M
+				  	{% else %}
+				  		N/A
+				  	{% endif %}
+				  {% else %}
+				  	<input type="text" size="10" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" /> &mu;M
+				  {% endif %}
+			  {% endwith %}
 			</td>
 		</tr>
 	{% endfor %}
@@ -63,7 +74,18 @@
 			  {{ product.name }}:
 			</td>
 			<td colspan="2">
-			  <input type="text" size="10" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" /> &mu;M
+			  {% with product.compound.kegg_id as kegg_id %}
+				  {% if kegg_id == 'C00001' or kegg_id == 'C00080' %}
+				  <input type="hidden" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" />
+				  	{% if kegg_id == 'C00001' %}
+				  		<a href="<a href="/faq#waterConcentration">{{ product.micromolar_concentration_string }} &mu;M</a>
+				  	{% else %}
+				  		N/A (<a href="/faq#hConcentration">Why?</a>)
+				  	{% endif %}
+				  {% else %}
+				  	<input type="text" size="10" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" /> &mu;M
+				  {% endif %}
+			  {% endwith %}
 			</td>
 		</tr>
 	{% endfor %}
