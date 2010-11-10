@@ -65,6 +65,28 @@
 				If their concentrations are different, it will affect the &Delta;<sub>r</sub>G.</p>
 				</div>
 			</div>
+
+			<div class="faqEntry" id="hConcentration">
+				<div class="faqQuestion">Why can't I change the concentration of Hydrogen ions?</div>
+				
+				<div class="faqAnswer">
+				<p>eQuilibrator uses the "Alberty method" for biochemical thermodynamics.
+				In the Alberty method, H+ is defined to have 0 free energy [1-2].
+				Instead of correcting for H+ concentration, a pH correction accounts for the abundance of H+.
+				You can use the pH "slider" to see the effect of H+ concentration on your reaction. 
+				</p>
+				</div>
+			</div>
+			
+			<div class="faqEntry" id="waterConcentration">
+				<div class="faqQuestion">Why can't I change the concentration of water?</div>
+				
+				<div class="faqAnswer">
+				<p>In the "Alberty method" for biochemical thermodynamics it is assumed that we are operating in an 
+				aqueous environment [1-2]. Therefore, the concentration of water is fixed.
+				</p>
+				</div>
+			</div>
 			
 			{% include "references.html" %}
 		</div>
