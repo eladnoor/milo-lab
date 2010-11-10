@@ -22,6 +22,8 @@ class ReactionForm(form_utils.BaseForm):
     
     query = forms.CharField(max_length=2048, required=False)
     balance_w_water = forms.BooleanField(required=False)
+    submit = forms.ChoiceField(choices=[('Update', 'update'),
+                                        ('Save', 'save')])
     
     # Convenience accessors for clean data with defaults.
     cleaned_reactantIds = property(lambda self: self.cleaned_data['reactantsId'])
@@ -38,3 +40,4 @@ class ReactionForm(form_utils.BaseForm):
     cleaned_concentration_profile = property(lambda self: self.cleaned_data['concentration_profile'])
     cleaned_query = property(lambda self: self.cleaned_data['query'])
     cleaned_balance_w_water = property(lambda self: self._GetWithDefault('balance_w_water', False))
+    cleaned_submit = property(lambda self: self._GetWithDefault('submit', 'Update'))

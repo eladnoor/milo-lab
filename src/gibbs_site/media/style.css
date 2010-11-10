@@ -4,6 +4,11 @@ body {
  	text-align: center;
 }
 
+.printable {
+	margin: 10%;
+	font-size: 18px;
+}
+
 .adminLink {
 	font-size: 10px;
 }
