@@ -48,8 +48,28 @@
 		{% with "&Delta;<sub>r</sub>G'&deg;" as delta_g_label %} 
 			{% include "result_table.html" %}
 		{% endwith %}
+		
+		{% if reaction.all_compounds %}
+		<table class="compoundInfo">
+			<tr>
+				<th colspan="3">Compound Formation Energies</td>		
+			</tr>
+			<tr>
+				<td>Compound</td>
+				<td>&Delta;<sub>f</sub>G</td>
+				<td>Source</td>
+			</tr>
+			{% for compound in reaction.all_compounds %}
+			<tr>
+				<td><a href="{{ compound.compound.link }}">{{ compound.name }}</a></td>
+				<td>{{ compound.transformed_energy }}</td>
+				<td>{{ compound.compound.dg_source }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+		{% endif %}
 	
-		<input type="submit" value="Update" />
+		<input type="submit" name="submit" value="Update" onclick="form.target = '_self';"/> <input type="submit" name="submit" value="Save" onclick="form.target = '_blank';"/>
 	</form>	
 
 {% include "footer.html" %}

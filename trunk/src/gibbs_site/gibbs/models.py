@@ -187,6 +187,13 @@ class Compound(models.Model):
             self._all_species = self.species.all()
         return self._all_species
     
+    def _GetDGSource(self):
+        """Returns the source of the dG data."""
+        if not self.all_species:
+            return None
+        
+        return self.all_species[0].formation_energy.source
+        
     html_formula = property(GetHtmlFormattedFormula)
     link = property(GetLink)
     kegg_link = property(GetKeggLink)
@@ -194,6 +201,7 @@ class Compound(models.Model):
     all_common_names = property(lambda self: self.common_names.all())
     all_species = property(GetSpecies)
     standard_formation_energy = property(DeltaG)
+    dg_source = property(_GetDGSource)
     
     def StashTransformedSpeciesEnergies(self, ph, ionic_strength):
         """Stash the transformed species formation energy in each one."""
@@ -233,6 +241,7 @@ class CompoundWithCoeff(object):
         self.coeff = coeff
         self.name = name
         self.concentration = concentration
+        self.transformed_energy = None
         
     def Minus(self):
         """Returns a new CompoundWithCoeff with coeff = -self.coeff."""
@@ -529,6 +538,8 @@ class Reaction(object):
                 logging.info('No estimate for compound %s', id)
                 return None
             
+            compound_w_coeff.transformed_energy = est 
+
             sum += coeff * est
         
         return sum
@@ -626,5 +637,6 @@ class Reaction(object):
     balanced_with_water = property(CanBalanceWithWater)
     extra_atoms = property(ExtraAtoms)
     missing_atoms = property(MissingAtoms)
+    all_compounds = property(lambda self: self.reactants + self.products)
     
     
