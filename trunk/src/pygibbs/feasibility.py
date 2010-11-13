@@ -106,7 +106,7 @@ def create_cplex(S, dG0_f, log_stream=None):
     #cpl.set_warning_stream(None)
     
     cpl.set_problem_name('LP')
-    cpl.variables.add(names=["c%d" % c for c in range(Nc)])
+    cpl.variables.add(names=["c%d" % c for c in range(Nc)], lb=[-1e6]*Nc, ub=[1e6]*Nc)
 
     for r in xrange(Nr):
         c_list = pylab.find(S[r, :])
@@ -212,10 +212,10 @@ def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, bounds=None):
             continue # unknown dG0_f - cannot bound this compound's concentration at all
 
         if (bounds == None or bounds[c][0] == None):
-            # lower bound: x_i + r/(1+r) * pC >= dG0_f + R*T*ln(Cmid) 
+            # lower bound: x_i + r/(1+r) * R*T*ln(10)*pC >= dG0_f + R*T*ln(Cmid) 
             cpl.linear_constraints.add(senses='G', names=['c%d_lower' % c], rhs=[dG0_f[c, 0] + R*T*pylab.log(c_mid)])
             cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'c%d' % c, 1)
-            cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'pC', ratio / (ratio + 1.0))
+            cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'pC', R*T*pylab.log(10) * ratio / (ratio + 1.0))
         else:
             # this compound has a specific lower bound on its activity
             cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][0]))
@@ -223,10 +223,10 @@ def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, bounds=None):
         row_upper = pylab.zeros(Nc + 1)
         row_upper[c] = 1
         if (bounds == None or bounds[c][1] == None):
-            # upper bound: x_i - 1/(1+r) * pC <= dG0_f + R*T*ln(Cmid)
+            # upper bound: x_i - 1/(1+r) * R*T*ln(10)*pC <= dG0_f + R*T*ln(Cmid)
             cpl.linear_constraints.add(senses='L', names=['c%d_upper' % c], rhs=[dG0_f[c, 0] + R*T*pylab.log(c_mid)])
             cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'c%d' % c, 1)
-            cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'pC', -1 / (ratio + 1.0))
+            cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'pC', -R*T*pylab.log(10) / (ratio + 1.0))
         else:
             # this compound has a specific upper bound on its activity
             cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][1]))
@@ -260,18 +260,13 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, bounds=None, log_stream=None):
     if (cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal):
         raise LinProgNoSolutionException("")
     x = pylab.matrix(cpl.solution.get_values()).T
-    
-    dG_f = pylab.zeros((Nc, 1))
-    good_indices = pylab.find(pylab.isfinite(dG0_f))
-    nan_indices = pylab.find(pylab.isnan(dG0_f))
-    dG_f[good_indices, :] = dG0_f[good_indices, :] + R * T * x[good_indices, :]
-    dG_f[nan_indices, :] = R * T * x[nan_indices, :]
+    dG_f = x[:Nc, 0]
+    pCr = x[Nc, 0]
+    concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
 
-    concentrations = pylab.exp(x[:Nc, 0])
-    pCr = x[Nc, 0] / pylab.log(10) # move from the natural base to base 10
-
-    sys.stderr.write(str(x) + "\n")
-    sys.stderr.write("range = %g - %g\n" % pC_to_range(pCr, c_mid, 3))
+    #sys.stderr.write(str(pylab.hstack([dG0_f, dG_f, concentrations])) + "\n")
+    #sys.stderr.write(str(pylab.dot(S, pylab.hstack([dG0_f, dG_f]))) + "\n")
+    #sys.stderr.write("range = %.2g - %.2g\n" % pC_to_range(pCr, c_mid, 3))
     return (dG_f, concentrations, pCr)
 
 def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, log_stream=None):
@@ -458,7 +453,7 @@ if (__name__ == "__main__"):
     gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
     gc.init()
     c_range = (1e-6, 1e-2)
-    c_mid = 1e-4
+    c_mid = 1e-3
     pH = 8
     I = 0.1
     T = 300
@@ -468,7 +463,7 @@ if (__name__ == "__main__"):
     csv_output = csv.writer(f)
     csv_output.writerow(("MID", "module name", "pH", "I", "T", "pCr"))
     for mid in sorted(gc.kegg().mid2rid_map.keys()):
-    #for mid in [9]:
+    #for mid in [8]:
         module_name = gc.kegg().mid2name_map[mid]
         try:
             for pH in [6, 7, 8, 9]:
@@ -506,7 +501,6 @@ if (__name__ == "__main__"):
                         csv_output.writerow([mid, module_name, pH, I, T, B])
                     except LinProgNoSolutionException:
                         sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
-                    sys.exit(0)
                         
         except KeggMissingModuleException:
             continue
