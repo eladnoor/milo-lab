@@ -48,22 +48,18 @@ fit_window_size = 1.5 # hours
 fit_start_threshold = 0.01
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
-t_max = 10
+t_max = 5
 OD_min = 0.046
 
 rows = ['A', 'B', 'C', 'D', 'E']
 colors = ['g', 'b', 'm', 'r', 'c', 'k', 'b:', 'g:']
 
 vlegend = []
-for r in xrange(len(rows)):
-    vlegend += [(rows[r], colors[r], [(r, 0), (r, 1), (r, 2)])]
-plots.append(('+IPTG', (0, t_max), (1e-3, 1), 'OD', vlegend))
-
-vlegend = []
-for r in xrange(len(rows)):
-    vlegend += [(rows[r], colors[r], [(r, 4), (r, 5), (r, 6)])]
-plots.append(('-IPTG', (0, t_max), (1e-3, 1), 'OD', vlegend))
-
+vlegend += [("rbsB +IPTG", 'r', [(1, 0), (1, 1), (1, 2)])]
+vlegend += [("rbsB -IPTG", 'r:', [(1, 4), (1, 5), (1, 6)])]
+vlegend += [("rbsD +IPTG", 'b', [(3, 0), (3, 1), (3, 2)])]
+vlegend += [("rbsD -IPTG", 'b:', [(3, 4), (3, 5), (3, 6)])]
+plots.append(('RBS rubisco', (0, t_max), (3e-3, 1), 'OD', vlegend))
 
 for (plot_title, t_range, y_range, y_label, data_series) in plots:
     sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
@@ -72,7 +68,7 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
     xlabel('Time (hr)')
     ylabel(y_label)
     
-    labels = set()
+    label2legend = {}
     label2line = []
     for (label, color, cells) in data_series:
         for (row, col) in cells:
@@ -90,13 +86,22 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
                 raise Exception("unrecognised Y label: " + y_label)
             
             line = plot(time, values, color)
-            if (label not in labels):
+            if (label not in label2legend):
                 label2line.append((line, label))
-                labels.add(label)
+                label2legend[label] = label + ", T (hr) = "
+
+            try:
+                growth_rate = vp.fit_growth(time, values, fit_window_size, fit_start_threshold)
+            except Exception:
+                sys.stderr.write("WARNING: cannot calculate the growth rate in cell (%d, %d)\n" % (row, col))
+            if (growth_rate > 1e-10):
+                label2legend[label] += "%.2f  " % (log(2.0) / growth_rate)
+            else:
+                label2legend[label] += "0  "
                 
 
     rcParams['legend.fontsize'] = 6
-    legend([a[0] for a in label2line], [a[1] for a in label2line], loc='upper left')
+    legend([a[0] for a in label2line], [label2legend[a[1]] for a in label2line], loc='lower right')
     yscale('log')
     axis([t_range[0], t_range[1], y_range[0], y_range[1]])
     pp.savefig(fig)
