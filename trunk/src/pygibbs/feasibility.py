@@ -3,6 +3,7 @@ import cvxopt.solvers
 import csv, sys
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 from matplotlib.font_manager import FontProperties
+from toolbox.html_writer import HtmlWriter
 
 try:
     import cplex
@@ -78,9 +79,9 @@ def linprog(f, A, b, lb=[], ub=[], log_stream=None):
         #cpl.set_warning_stream(None)
         
         cpl.set_problem_name('LP')
-        cpl.variables.add(names=["c%d" % c for c in range(Nc)])
-        #cpl.variables.set_lower_bounds(lb)
-        #cpl.variables.set_upper_bounds(ub)
+        cpl.variables.add(names=["c%d" % c for c in range(Nc)], lb=[-1e6]*Nc, ub=[1e6]*Nc)
+        cpl.variables.set_lower_bounds(lb)
+        cpl.variables.set_upper_bounds(ub)
     
         cpl.objective.set_linear([(c, f[c, 0]) for c in range(Nc)])
         
@@ -89,7 +90,6 @@ def linprog(f, A, b, lb=[], ub=[], log_stream=None):
             for c in range(Nc):
                 cpl.linear_constraints.set_coefficients(r, c, A[r, c])
         cpl.linear_constraints.set_rhs([(r, b[r, 0]) for r in range(Nr)])
-        cpl.write("../res/test.lp", "lp")
         cpl.solve()
         if (cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal):
             return None
@@ -105,6 +105,7 @@ def create_cplex(S, dG0_f, log_stream=None):
     cpl.set_results_stream(None)
     #cpl.set_warning_stream(None)
     
+    Nr, Nc = S.shape
     cpl.set_problem_name('LP')
     cpl.variables.add(names=["c%d" % c for c in range(Nc)], lb=[-1e6]*Nc, ub=[1e6]*Nc)
 
@@ -170,21 +171,14 @@ def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, log_stream=None):
     # Set 'B' as the objective
     cpl.objective.set_linear([("B", 1)])
     
-    cpl.write("../res/test_MCMF.lp", "lp")
+    #cpl.write("../res/test_MCMF.lp", "lp")
     cpl.solve()
     if (cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal):
         raise LinProgNoSolutionException("")
-    x = pylab.matrix(cpl.solution.get_values()).T
-    
-    # calculate the dG_f, and complete the unknown formation energies according to the solution 'x'
-    dG_f = pylab.zeros((Nc, 1))
-    good_indices = pylab.find(pylab.isfinite(dG0_f))
-    nan_indices = pylab.find(pylab.isnan(dG0_f))
-    dG_f[good_indices, :] = dG0_f[good_indices, :] + R * T * x[good_indices, :]
-    dG_f[nan_indices, :] = R * T * x[nan_indices, :]
 
-    concentrations = pylab.exp(x[:Nc, 0])
-    MCMF = x[Nc, 0] * R * T # convert to units of kJ/mol
+    dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
+    concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
+    MCMF = cpl.solution.get_values(["B"])[0] * R * T # convert to units of kJ/mol
 
     return (dG_f, concentrations, MCMF)
 
@@ -245,28 +239,21 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, bounds=None, log_stream=None):
         
         output: (concentrations, margin)
     """
-    (Nr, Nc) = S.shape
-    
-    # compute right hand-side vector - r,
-    # i.e. the deltaG0' of the reactions divided by -RT
-    if (S.shape[1] != dG0_f.shape[0]):
-        raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (S.shape[1], dG0_f.shape[0]))
+    Nc = S.shape[1]
+    if (Nc != dG0_f.shape[0]):
+        raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
 
     cpl = create_cplex(S, dG0_f, log_stream)
     generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, bounds)
 
-    cpl.write("../res/test_PCR.lp", "lp")
+    #cpl.write("../res/test_PCR.lp", "lp")
     cpl.solve()
     if (cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal):
         raise LinProgNoSolutionException("")
-    x = pylab.matrix(cpl.solution.get_values()).T
-    dG_f = x[:Nc, 0]
-    pCr = x[Nc, 0]
+    dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
+    pCr = cpl.solution.get_values(["pC"])[0]
 
-    #sys.stderr.write(str(pylab.hstack([dG0_f, dG_f, concentrations])) + "\n")
-    #sys.stderr.write(str(pylab.dot(S, pylab.hstack([dG0_f, dG_f]))) + "\n")
-    #sys.stderr.write("range = %.2g - %.2g\n" % pC_to_range(pCr, c_mid, 3))
     return (dG_f, concentrations, pCr)
 
 def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, log_stream=None):
@@ -296,12 +283,15 @@ def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, l
     return (dG_f, concentrations, pCr)
 
 def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, html_writer):
-    kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
-
-    # draw a graph representation of the pathway        
     (Nr, Nc) = S.shape
     
-    # calculate the dG_f of each compound, and then use S to calculate dG_r
+    kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
+
+    # adjust the directions of the reactions in S to fit the fluxes
+    S = pylab.dot(pylab.diag(pylab.sign(fluxes)), S)
+    fluxes = [abs(f) for f in fluxes]
+
+    # calculate the dG0_f of each compound
     dG0_f = pylab.zeros((Nc, 1))
     ind_nan = []
     html_writer.write('<table border="1">\n')
@@ -325,7 +315,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     bounds = [thermodynamics.bounds.get(cid, (None, None)) for cid in cids]
     res = {}
     try:
-        res['pCr'] = find_pCr(S, dG0_f, c_mid=thermodynamics.c_mid, ratio=3, bounds=bounds)
+        res['pCr'] = find_pCr(S, dG0_f, c_mid=thermodynamics.c_mid, ratio=3.0, bounds=bounds)
         #res['PCR2'] = find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=c_mid, bounds=bounds)
         res['MCMF'] = find_mcmf(S, dG0_f, c_range=thermodynamics.c_range, bounds=bounds)
     except LinProgNoSolutionException:
@@ -446,10 +436,8 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         
     return res
 
-if (__name__ == "__main__"):
-    from groups import GroupContribution, GroupMissingTrainDataError, GroupDecompositionError
-    from kegg import KeggParseException, KeggMissingModuleException
-    
+def test_all_modules():
+    from pygibbs.groups import GroupContribution
     gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
     gc.init()
     c_range = (1e-6, 1e-2)
@@ -463,45 +451,53 @@ if (__name__ == "__main__"):
     csv_output = csv.writer(f)
     csv_output.writerow(("MID", "module name", "pH", "I", "T", "pCr"))
     for mid in sorted(gc.kegg().mid2rid_map.keys()):
-    #for mid in [8]:
         module_name = gc.kegg().mid2name_map[mid]
-        try:
-            for pH in [6, 7, 8, 9]:
-                for I in [0.0, 0.1, 0.2]:
-                    (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
-                    (Nr, Nc) = S.shape
-                    dG0_f = pylab.zeros((Nc, 1))
-                    bounds = []
-                    for c in range(Nc):
-                        cid = map_cid.get(cids[c], cids[c])
-                        try:
-                            pmap = gc.cid2pmap(cid)
-                            dG0_f[c] = gc.pmap_to_dG0(pmap, pH, I, T)
-                        except MissingCompoundFormationEnergy as e:
-                            sys.stderr.write("M%05d: Setting the dG0_f of C%05d to NaN because: %s\n"\
-                                            % (mid, cid, str(e)))
-                            dG0_f[c] = pylab.nan
-                
-                    bounds = [gc.kegg().cid2bounds.get(cid, (None, None)) for cid in cids]
-
+        (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
+        (Nr, Nc) = S.shape
+        for pH in [6, 7, 8, 9]:
+            for I in [0.0, 0.1, 0.2]:
+                dG0_f = pylab.zeros((Nc, 1))
+                bounds = []
+                for c in range(Nc):
+                    cid = map_cid.get(cids[c], cids[c])
                     try:
-                        (dG_f, concentrations, pCr) = find_pCr(S, dG0_f, c_mid=c_mid, ratio=3.0, bounds=bounds)
-                        dG_r = pylab.dot(S, dG_f)
-                        
-                        sys.stderr.write("M%05d: pH = %g, I = %g, pCr = %.2f\n" % (mid, pH, I, pCr))
-                        csv_output.writerow([mid, module_name, pH, I, T, pCr])
-                    except LinProgNoSolutionException:
-                        sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
+                        pmap = gc.cid2pmap(cid)
+                        dG0_f[c] = gc.pmap_to_dG0(pmap, pH, I, T)
+                    except MissingCompoundFormationEnergy as e:
+                        sys.stderr.write("M%05d: Setting the dG0_f of C%05d to NaN because: %s\n"\
+                                        % (mid, cid, str(e)))
+                        dG0_f[c] = pylab.nan
+            
+                bounds = [gc.kegg().cid2bounds.get(cid, (None, None)) for cid in cids]
 
-                    try:
-                        (dG_f, concentrations, B) = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
-                        dG_r = pylab.dot(S, dG_f)
+                try:
+                    (dG_f, concentrations, pCr) = find_pCr(S, dG0_f, c_mid=c_mid, ratio=3.0, bounds=bounds)
+                    dG_r = pylab.dot(S, dG_f)
+                    
+                    sys.stderr.write("M%05d: pH = %g, I = %g, pCr = %.2f\n" % (mid, pH, I, pCr))
+                    csv_output.writerow([mid, module_name, pH, I, T, pCr])
+                except LinProgNoSolutionException:
+                    sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
+
+                try:
+                    (dG_f, concentrations, B) = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
+                    dG_r = pylab.dot(S, dG_f)
+                    
+                    sys.stderr.write("M%05d: pH = %g, I = %g, MCMF = %.2f\n" % (mid, pH, I, B))
+                    csv_output.writerow([mid, module_name, pH, I, T, B])
+                except LinProgNoSolutionException:
+                    sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
                         
-                        sys.stderr.write("M%05d: pH = %g, I = %g, MCMF = %.2f\n" % (mid, pH, I, B))
-                        csv_output.writerow([mid, module_name, pH, I, T, B])
-                    except LinProgNoSolutionException:
-                        sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
-                        
-        except KeggMissingModuleException:
-            continue
     f.close()
+
+def test_single_module(mid):
+    from pygibbs.groups import GroupContribution
+    html_writer = HtmlWriter("../res/thermodynamic_module_analysis.html")
+    gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+    gc.init()
+    
+    (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
+    thermodynamic_pathway_analysis(S, rids, fluxes, cids, gc, gc.kegg(), html_writer)
+
+if (__name__ == "__main__"):
+    test_single_module(9)
