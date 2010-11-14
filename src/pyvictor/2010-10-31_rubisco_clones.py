@@ -44,7 +44,7 @@ rcParams['legend.fontsize'] = 12
 #rcParams['figure.subplot.hspace'] = 0.3
 #figure()
 
-plot_growth_rate = False
+plot_growth_rate = True
 fit_window_size = 1.5 # hours
 fit_start_threshold = 0.01
 
@@ -54,19 +54,21 @@ OD_min = 0.046
 
 rows_left = ['blank', 'K12', 'LYC1', 'LYC2', 'LYC3' ,'LYC4', 'LYC5', 'LYC6']
 rows_right = ['blank (LB)', 'K12 (LB)', 'YFP-D', 'YFP-E', 'YFP-Z', 'YFP-D (LB)', 'YFP-E (LB)', 'YFP-Z (LB)']
-colors = ['gray', 'red', 'orange', 'pink', 'cyan', 'green', 'blue', 'magenta']
+colors = ['gray', 'red', 'magenta', 'blue', 'cyan', 'green', 'blue', 'orange']
 
 vlegend = []
-for r in xrange(8):
+#for r in [0, 1, 2, 3, 4, 5, 6, 7]:
+for r in [1, 3, 4, 5, 7]:
     #vlegend += [(rows_left[r] + ' -IPTG', colors[r] + ':', [(r, 0), (r, 1), (r, 2)])]
     vlegend += [(rows_left[r] + ' +IPTG', colors[r], [(r, 3), (r, 4), (r, 5)])]
-plots.append(('Left', (0, t_max), (1e-3, 1), 'OD', vlegend))
+plots.append(('Lycopene Growth on M19 and glucose', (0, t_max), (7e-3, 1), 'OD', vlegend))
 
-vlegend = []
-for r in xrange(8):
-    #vlegend += [(rows_right[r] + ' -IPTG', colors[r] + ':', [(r, 6), (r, 7), (r, 8)])]
-    vlegend += [(rows_right[r] + ' +IPTG', colors[r], [(r, 9), (r, 10), (r, 11)])]
-plots.append(('Right', (0, t_max), (1e-3, 1), 'OD', vlegend))
+if False:
+    vlegend = []
+    for r in xrange(8):
+        #vlegend += [(rows_right[r] + ' -IPTG', colors[r] + ':', [(r, 6), (r, 7), (r, 8)])]
+        vlegend += [(rows_right[r] + ' +IPTG', colors[r], [(r, 9), (r, 10), (r, 11)])]
+    plots.append(('Right', (0, t_max), (1e-3, 1), 'OD', vlegend))
 
 
 for (plot_title, t_range, y_range, y_label, data_series) in plots:
@@ -98,14 +100,17 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
                 label2line.append((line, label))
                 label2legend[label] = label
                 if plot_growth_rate:
-                    label2legend[label] += ", g = "
+                    label2legend[label] += ", T = "
             
             if plot_growth_rate:
                 try:
                     growth_rate = vp.fit_growth(time, values, fit_window_size, fit_start_threshold)
-                    label2legend[label] += "%.1f  " % growth_rate
                 except Exception:
                     sys.stderr.write("WARNING: cannot calculate the growth rate in cell (%d, %d)\n" % (row, col))
+                if (growth_rate > 1e-10):
+                    label2legend[label] += "%.1f  " % (log(2.0) / growth_rate)
+                else:
+                    label2legend[label] += "0  "
 
     rcParams['legend.fontsize'] = 6
     legend([a[0] for a in label2line], [label2legend[a[1]] for a in label2line], loc='lower right')

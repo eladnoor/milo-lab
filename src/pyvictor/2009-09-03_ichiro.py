@@ -26,7 +26,7 @@ if (not os.path.exists('../res')):
 if (not os.path.exists('../res/victor')):
     os.mkdir('../res/victor')
 
-name = "Elad's OD600_20101025_233"
+name = "OD600_20090902_121"
 vp_vec = []
 vp = VictorParser()
 vp.parse_excel("../data/victor/%s.xls" % (name))
@@ -44,29 +44,23 @@ rcParams['legend.fontsize'] = 12
 #rcParams['figure.subplot.hspace'] = 0.3
 #figure()
 
+plot_growth_rate = True
 fit_window_size = 1.5 # hours
 fit_start_threshold = 0.01
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
-t_max = 5
+t_max = 30
 OD_min = 0.046
 
-rows_left = ['K12', 'mCherry', '510', '1' ,'2', '8', '10']
-rows_right = ['K12', 'prkZ', 'B', 'Csmall', 'D', 'E', 'Z']
-colors = ['b', 'm', 'r', 'c', 'k', 'y', 'g']
+rows = ['K1', 'K2', 'blank', 'K3', 'K4']
+colors = ['orange', 'red', 'magenta', 'blue', 'green', 'cyan', 'blue', 'orange']
 
 vlegend = []
-for r in xrange(2, 7):
-    #vlegend += [(rows_left[r] + ' -IPTG', colors[r] + ':', [(r+1, 0), (r+1, 1), (r+1, 2)])]
-    vlegend += [(rows_left[r] + ' +IPTG', colors[r], [(r+1, 3), (r+1, 4), (r+1, 5)])]
-plots.append(('Left', (0, t_max), (7e-3, 1), 'OD', vlegend))
-
-vlegend = []
-for r in xrange(1, 7):
-    #vlegend += [(rows_right[r] + ' -IPTG', colors[r] + ':', [(r+1, 6), (r+1, 7), (r+1, 8)])]
-    vlegend += [(rows_right[r] + ' +IPTG', colors[r], [(r+1, 9), (r+1, 10), (r+1, 11)])]
-plots.append(('Right', (0, t_max), (7e-3, 1), 'OD', vlegend))
-
+#for r in [0, 1, 2, 3, 4, 5, 6, 7]:
+for r in [0, 1, 3, 4]:
+    #vlegend += [(rows_left[r] + ' -IPTG', colors[r] + ':', [(r, 0), (r, 1), (r, 2)])]
+    vlegend += [(rows[r], colors[r], [(r, c) for c in xrange(6)])]
+plots.append(('Ichiro strains', (0, t_max), (2e-3, 1), 'OD', vlegend))
 
 for (plot_title, t_range, y_range, y_label, data_series) in plots:
     sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
@@ -95,16 +89,19 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
             line = plot(time, values, color)
             if (label not in label2legend):
                 label2line.append((line, label))
-                label2legend[label] = label + ", T (hr) = "
-
-            try:
-                growth_rate = vp.fit_growth(time, values, fit_window_size, fit_start_threshold)
-            except Exception:
-                sys.stderr.write("WARNING: cannot calculate the growth rate in cell (%d, %d)\n" % (row, col))
-            if (growth_rate > 1e-10):
-                label2legend[label] += "%.1f  " % (log(2.0) / growth_rate)
-            else:
-                label2legend[label] += "0  "
+                label2legend[label] = label
+                if plot_growth_rate:
+                    label2legend[label] += ", T = "
+            
+            if plot_growth_rate:
+                try:
+                    growth_rate = vp.fit_growth(time, values, fit_window_size, fit_start_threshold)
+                except Exception:
+                    sys.stderr.write("WARNING: cannot calculate the growth rate in cell (%d, %d)\n" % (row, col))
+                if (growth_rate > 1e-10):
+                    label2legend[label] += "%.1f  " % (log(2.0) / growth_rate)
+                else:
+                    label2legend[label] += "0  "
 
     rcParams['legend.fontsize'] = 6
     legend([a[0] for a in label2line], [label2legend[a[1]] for a in label2line], loc='lower right')

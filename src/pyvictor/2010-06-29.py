@@ -4,7 +4,7 @@ from matplotlib import font_manager
 import sys
 
 vp = VictorParser()
-fname = "../data/Elad's OD600_20100629_186.xls"
+fname = "../data/victor/Elad's OD600_20100629_186.xls"
 vp.parse_excel(fname)
 #(t, v) = vp.get_data(0, 0, 0)
 #fit_growth(t, v, 1.5, plot_figure=True)
@@ -52,4 +52,4 @@ title('GFP')
 xlabel('Time (hr)')
 ylabel('OD')
 axis([0, t.max(), 0.001, 1])
-savefig('../res/2010-06-29.pdf', format='pdf')
+savefig('../res/victor/2010-06-29.pdf', format='pdf')

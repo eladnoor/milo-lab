@@ -48,7 +48,7 @@ fit_window_size = 1.5 # hours
 fit_start_threshold = 0.01
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
-t_max = 30
+t_max = 20
 OD_min = 0.046
 
 rows_left = ['blank', 'Z-B', 'B-D', 'E-D', 'B-Z' ,'C-B', 'K12', 'mCherry']
@@ -56,17 +56,17 @@ rows_right = ['B', 'C', 'D', 'E', 'Z', 'YFP-Z', 'K12', 'mCherry']
 colors = ['k--', 'b', 'm', 'r', 'c', 'k', 'y', 'g']
 
 vlegend = []
-for r in xrange(8):
+#for r in [0, 1, 2, 3, 4, 5, 6, 7]:
+for r in [1, 2, 3, 4, 6]:
     #vlegend += [(rows_left[r] + ' -IPTG', colors[r] + ':', [(r, 0), (r, 1), (r, 2)])]
     vlegend += [(rows_left[r] + ' +IPTG', colors[r], [(r, 3), (r, 4), (r, 5)])]
-plots.append(('Left', (0, t_max), (1e-3, 1), 'OD', vlegend))
+plots.append(('Left', (0, t_max), (1e-2, 1), 'OD', vlegend))
 
 vlegend = []
-for r in xrange(8):
+for r in [2, 3, 4, 5, 6]:
     #vlegend += [(rows_right[r] + ' -IPTG', colors[r] + ':', [(r, 6), (r, 7), (r, 8)])]
     vlegend += [(rows_right[r] + ' +IPTG', colors[r], [(r, 9), (r, 10), (r, 11)])]
-plots.append(('Right', (0, t_max), (1e-3, 1), 'OD', vlegend))
-
+plots.append(('Right', (0, t_max), (1e-2, 1), 'OD', vlegend))
 
 for (plot_title, t_range, y_range, y_label, data_series) in plots:
     sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
@@ -95,13 +95,16 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
             line = plot(time, values, color)
             if (label not in label2legend):
                 label2line.append((line, label))
-                label2legend[label] = label + ", g = "
+                label2legend[label] = label + ", T (hr) = "
 
             try:
                 growth_rate = vp.fit_growth(time, values, fit_window_size, fit_start_threshold)
-                label2legend[label] += "%.1f  " % growth_rate
             except Exception:
                 sys.stderr.write("WARNING: cannot calculate the growth rate in cell (%d, %d)\n" % (row, col))
+            if (growth_rate > 1e-10):
+                label2legend[label] += "%.1f  " % (log(2.0) / growth_rate)
+            else:
+                label2legend[label] += "0  "
 
     rcParams['legend.fontsize'] = 6
     legend([a[0] for a in label2line], [label2legend[a[1]] for a in label2line], loc='lower right')

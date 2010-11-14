@@ -9,11 +9,11 @@ if (not os.path.exists('../res')):
 
 vp = VictorParser()
 name = "RBS-GFP 28-07-10"
-fname = "../data/%s.xls" % name
+fname = "../data/victor/%s.xls" % name
 if (not os.path.exists(fname)):
     raise Exception("Cannot locate the Excel file: " + fname)
 vp.parse_excel(fname)
-pp = PdfPages('../res/%s.pdf' % name)
+pp = PdfPages('../res/victor/%s.pdf' % name)
 
 #rcParams['text.usetex'] = True
 rcParams['legend.fontsize'] = 12

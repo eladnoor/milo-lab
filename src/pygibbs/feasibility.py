@@ -284,12 +284,11 @@ def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, l
 
 def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, html_writer):
     (Nr, Nc) = S.shape
-    
-    kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
 
     # adjust the directions of the reactions in S to fit the fluxes
-    S = pylab.dot(pylab.diag(pylab.sign(fluxes)), S)
     fluxes = [abs(f) for f in fluxes]
+    
+    kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
 
     # calculate the dG0_f of each compound
     dG0_f = pylab.zeros((Nc, 1))
@@ -415,14 +414,20 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     # write all the results in tables as well
 
     for optimization in res.keys():
+        (dG_f, conc, score) = res[optimization]
         html_writer.write('<p>Biochemical Compound Formation Energies (%s)<br>\n' % optimization)
         html_writer.write('<table border="1">\n')
         html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "Concentration [M]", "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]") + '\n')
         for c in range(Nc):
             cid = cids[c]
             name = kegg.cid2name(cid)
-            html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2g</td><td>%.2f</td><td>%.2f</td></tr>\n' % \
-                              (cid, name, conc[c, 0], dG0_f[c], dG0_f[c] + R*T*pylab.log(conc[c, 0])))
+
+            if (pylab.isnan(dG0_f[c, 0])):
+                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n' % \
+                                  (cid, name, "N/A", "N/A", "N/A"))
+            else:
+                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2g</td><td>%.2f</td><td>%.2f</td></tr>\n' % \
+                                  (cid, name, conc[c, 0], dG0_f[c, 0], dG_f[c, 0]))
         html_writer.write('</table></p>\n')
 
         html_writer.write('<p>Biochemical Reaction Energies (%s)<br>\n' % optimization)
@@ -430,8 +435,12 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         html_writer.write('  ' + '<td>%s</td>'*3 % ("KEGG RID", "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]") + '\n')
         for r in range(Nr):
             rid = rids[r]
-            html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%.2f</td><td>%.2f</td></tr>\n' % \
-                              (kegg.rid2link(rid), kegg.rid2name(rid), rid, dG0_r[r, 0], dG_r[r, 0]))
+            if (pylab.isnan(dG0_r[r, 0])):
+                html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%s</td><td>%.2f</td></tr>\n' % \
+                                  (kegg.rid2link(rid), kegg.rid2name(rid), rid, "N/A", dG_r[r, 0]))
+            else:
+                html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%.2f</td><td>%.2f</td></tr>\n' % \
+                                  (kegg.rid2link(rid), kegg.rid2name(rid), rid, dG0_r[r, 0], dG_r[r, 0]))
         html_writer.write('</table></p>\n')
         
     return res
