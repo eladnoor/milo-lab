@@ -166,7 +166,7 @@
 ,178,"Thymine",349.99,,-1,5,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,178,"Thymine",293.25,,0,6,0,"test","Alberty (2003) beta","Cytidine0=0"
 "C(O)C(O)C(O)C(O)C=O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)",
-"CC(C)[C@@H](C(=O)O)N",183,"L-Valine",-358.65,-611.99,0,11,0,"train","Alberty (2003)",
+"CC(C)[C@@H](C(=O)[O-])[NH3+]",183,"L-Valine",-358.65,-611.99,0,11,0,"train","Alberty (2003)",
 "C(C(=O)CO)O",184,"Glycerone",-451,,0,6,0,"train","Alberty (2003) beta",
 "C(C1C(C(C(C(O1)OC2C(OC(C(C2O)O)O)CO)O)O)O)O",185,"Cellobiose",-1585.94,,0,22,0,"test","Alberty (2003) beta",
 "C[C@@H](C(=O)[O-])O",186,"Lactate",-516.72,-686.64,-1,5,0,"train","Alberty (2003)",
@@ -261,7 +261,7 @@
 ,475,"Cytidine",0,,0,13,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,475,"Cytidine",-22.09,,1,14,0,"test","Alberty (2003) beta","Cytidine0=0"
 "C([C@H]([C@@H]([C@@H](C=O)O)O)O)O",476,"D-Lyxose",-749.14,,0,10,0,"train","Alberty (2003)",
-"C([C@@H](C(=O)O)N)SSC[C@@H](C(=O)O)N",491,"L-cystine",-666.51,,0,12,0,"train","Alberty (2003)",
+"C([C@@H](C(=O)[O-])[NH3+])SSC[C@@H](C(=O)[O-])[NH3+]",491,"L-cystine",-666.51,,0,12,0,"train","Alberty (2003)",
 ,533,"NO_g",86.55,90.25,0,0,0,"test","Alberty (2003) beta",
 "C1[C@@H]2[C@H]([C@H]([C@H](n3cnc4c(N)ncnc34)O2)O)OP(=O)([O-])O1",575,"Cyclic-AMP",-629.68,,-1,11,0,"skip","Alberty (2003) beta","decomposition scheme doesn't support this kind of P-ring"
 "C(C(C=O)O)O",577,"D-Glyceraldehyde",-440.02,,0,6,0,"train","Alberty (2003) beta",
@@ -294,8 +294,8 @@
 "CCOC(=O)C",849,"Ethyl-acetate",-337.65,-482,0,8,0,"train","Alberty (2003)",
 ,887,"N2O_q",104.2,82.05,0,0,0,"test","Alberty (2003) beta",
 ,920,"Glutathione-CoA",-35.85,,-1,50,0,"test","Alberty (2003)","CoA-1=0, Glutathione=0 ?"
-"C([C@@H](C(=O)O)N)OP(=O)([O-])[O-]",1005,"O-Phospho-L-serine",-1360.75,,-2,6,0,"train","Alberty (2003) beta",
-"C([C@@H](C(=O)O)N)OP(=O)([O-])O",1005,"O-Phospho-L-serine",-1397.51,,-1,7,0,"train","Alberty (2003) beta",
+"C([C@@H](C(=O)[O-])[NH3+])OP(=O)([O-])[O-]",1005,"O-Phospho-L-serine",-1360.75,,-2,6,0,"train","Alberty (2003) beta",
+"C([C@@H](C(=O)[O-])[NH3+])OP(=O)([O-])O",1005,"O-Phospho-L-serine",-1397.51,,-1,7,0,"train","Alberty (2003) beta",
 "C(CO)C(=O)[O-]",1013,"3-Hydroxypropanoate",-518.4,,-1,5,0,"train","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@H]1[C@@H]([C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O)O",1083,"Trehalose",-1582.76,,0,22,0,"train","Alberty (2003) beta",
 "C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",1096,"D-Sorbitol-6P",-1790.86,,-2,13,0,"train","Alberty (2003) beta",

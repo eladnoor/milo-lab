@@ -1,9 +1,10 @@
 import sys
 from pygibbs.groups import GroupContribution, GroupMissingTrainDataError, GroupDecompositionError
 from hatzimanikatis import Hatzi
-from pygibbs.thermodynamics import Thermodynamics
+from pygibbs.thermodynamics import Thermodynamics, R, default_T
 import pybel
 from pygibbs.kegg import KeggParseException
+from pylab import log
         
 G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathways")
 G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
@@ -64,11 +65,16 @@ if False:
 if False:
     G.analyze_pathway("../data/thermodynamics/pathways.txt")
 
+def calc_pKa(group_0, group_1):
+    glist = [G.all_groups[i] for i in G.nonzero_groups]
+    index = [glist.index(group_0), glist.index(group_1)]
+    dG0_f = [G.group_contributions[i] for i in index]
+    return (dG0_f[0] - dG0_f[1])/(R*default_T*log(10))
 
 if True: # calculate the pKa for some common groups
-    glist = [(group_name, charge) for (gid, group_name, protons, charge, smarts_str, focal_atoms) in G.list_of_groups]
     
-    i0 = G.nonzero_groups[glist.index(("-COO", 0))]
-    i1 = G.nonzero_groups[glist.index(("-COO", -1))]
-    
-    print G.group_contributions[i0], G.group_contributions[i1]
+    print "-NH2 (0 -> 1)", calc_pKa((u"-N", 2, 0), (u"-N", 3, 1))
+    print "-COO (-1 -> 1)", calc_pKa((u"-COO", 0, -1), (u"-COO", 1, 0))
+    print "-OPO3 (-2 -> -1)", calc_pKa((u"-OPO3", 0, -2), (u"-OPO3", 1, -1))
+    print "-CO-OPO3 (-2 -> -1)", calc_pKa((u"CO-OPO3", 0, -2), (u"CO-OPO3", 1, -1))
+    print "-CO-OPO3 (-1 -> 0)", calc_pKa((u"CO-OPO3", 1, -1), (u"CO-OPO3", 2, 0))
