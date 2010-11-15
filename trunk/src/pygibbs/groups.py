@@ -200,21 +200,16 @@ class GroupContribution(Thermodynamics):
             self.cid2pmap_dict.setdefault(cid, {})
             self.cid2pmap_dict[cid].setdefault((nH, z), []).append(dG0)
 
-        # TODO: FIX THIS REASONING !!!
-        
+        cid2pmap_obs = {} # observed formation energies
         for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 0;"):
             (cid, nH, z, dG0) = row
-            if (self.override_gc_with_measurements and cid in self.cid2pmap_dict):
-                self.cid2pmap_dict[cid] = {}
-                self.cid2pmap_dict[cid].setdefault((nH, z), [])
-                self.cid2pmap_dict[cid][(nH, z)].append(dG0)
-            elif (cid not in self.cid2pmap_dict):
-                self.cid2pmap_dict[cid] = {}
-                self.cid2pmap_dict[cid][(nH, z)] = []
-                self.cid2pmap_dict[cid][(nH, z)].append(dG0)
-            elif ((nH, z) not in self.cid2pmap_dict[cid]):
-                self.cid2pmap_dict[cid][(nH, z)] = []
-                self.cid2pmap_dict[cid][(nH, z)].append(dG0)
+            cid2pmap_obs.setdefault(cid, {})
+            cid2pmap_obs[cid].setdefault((nH, z), []).append(dG0)
+
+        # add the observed data to the cid2pmap_dict (and override the estimated data if required)
+        for cid in cid2pmap_obs.keys():
+            if (self.override_gc_with_measurements or cid not in self.cid2pmap_dict):
+                self.cid2pmap_dict[cid] = cid2pmap_obs[cid]
         
         sys.stderr.write("[DONE]\n")
             
