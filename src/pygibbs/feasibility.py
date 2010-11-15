@@ -4,6 +4,7 @@ import csv, sys
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
+from pygibbs import kegg
 
 try:
     import cplex
@@ -178,7 +179,7 @@ def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, log_stream=None):
 
     dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
-    MCMF = cpl.solution.get_values(["B"])[0] * R * T # convert to units of kJ/mol
+    MCMF = cpl.solution.get_values(["B"])[0]
 
     return (dG_f, concentrations, MCMF)
 
@@ -415,7 +416,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
 
     for optimization in res.keys():
         (dG_f, conc, score) = res[optimization]
-        html_writer.write('<p>Biochemical Compound Formation Energies (%s)<br>\n' % optimization)
+        html_writer.write('<p>Biochemical Compound Formation Energies (%s = %.1f)<br>\n' % (optimization, score))
         html_writer.write('<table border="1">\n')
         html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "Concentration [M]", "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]") + '\n')
         for c in range(Nc):
@@ -430,9 +431,10 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
                                   (cid, name, conc[c, 0], dG0_f[c, 0], dG_f[c, 0]))
         html_writer.write('</table></p>\n')
 
-        html_writer.write('<p>Biochemical Reaction Energies (%s)<br>\n' % optimization)
+        html_writer.write('<p>Biochemical Reaction Energies (%s = %.1f)<br>\n' % (optimization, score))
         html_writer.write('<table border="1">\n')
         html_writer.write('  ' + '<td>%s</td>'*3 % ("KEGG RID", "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]") + '\n')
+        dG_r = pylab.dot(S, dG_f)
         for r in range(Nr):
             rid = rids[r]
             if (pylab.isnan(dG0_r[r, 0])):
@@ -456,15 +458,21 @@ def test_all_modules():
     T = 300
     map_cid = {201:2, 454:8} # CIDs that should be mapped to other CIDs because they are unspecific (like NTP => ATP)
     
+    cids_with_missing_dG_f = set()
+    
     f = open("../res/feasibility.csv", "w")
     csv_output = csv.writer(f)
-    csv_output.writerow(("MID", "module name", "pH", "I", "T", "pCr"))
+    csv_output.writerow(("MID", "module name", "pH", "I", "T", "pCr", "MCMF"))
     for mid in sorted(gc.kegg().mid2rid_map.keys()):
         module_name = gc.kegg().mid2name_map[mid]
-        (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
+        try:
+            (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
+        except kegg.KeggMissingModuleException as e:
+            sys.stderr.write("WARNING: " + str(e) + "\n")
+            continue
         (Nr, Nc) = S.shape
-        for pH in [6, 7, 8, 9]:
-            for I in [0.0, 0.1, 0.2]:
+        for pH in [5, 6, 7, 8, 9]:
+            for I in [0.0, 0.1, 0.2, 0.3, 0.4]:
                 dG0_f = pylab.zeros((Nc, 1))
                 bounds = []
                 for c in range(Nc):
@@ -473,40 +481,41 @@ def test_all_modules():
                         pmap = gc.cid2pmap(cid)
                         dG0_f[c] = gc.pmap_to_dG0(pmap, pH, I, T)
                     except MissingCompoundFormationEnergy as e:
-                        sys.stderr.write("M%05d: Setting the dG0_f of C%05d to NaN because: %s\n"\
-                                        % (mid, cid, str(e)))
+                        if (cid not in cids_with_missing_dG_f):
+                            sys.stderr.write("Setting the dG0_f of C%05d to NaN because: %s\n"\
+                                             % (cid, str(e)))
+                            cids_with_missing_dG_f.add(cid)
                         dG0_f[c] = pylab.nan
             
                 bounds = [gc.kegg().cid2bounds.get(cid, (None, None)) for cid in cids]
 
                 try:
                     (dG_f, concentrations, pCr) = find_pCr(S, dG0_f, c_mid=c_mid, ratio=3.0, bounds=bounds)
-                    dG_r = pylab.dot(S, dG_f)
-                    
-                    sys.stderr.write("M%05d: pH = %g, I = %g, pCr = %.2f\n" % (mid, pH, I, pCr))
-                    csv_output.writerow([mid, module_name, pH, I, T, pCr])
                 except LinProgNoSolutionException:
                     sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
+                    pCr = None
 
                 try:
-                    (dG_f, concentrations, B) = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
-                    dG_r = pylab.dot(S, dG_f)
-                    
-                    sys.stderr.write("M%05d: pH = %g, I = %g, MCMF = %.2f\n" % (mid, pH, I, B))
-                    csv_output.writerow([mid, module_name, pH, I, T, B])
+                    (dG_f, concentrations, MCMF) = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
                 except LinProgNoSolutionException:
                     sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
+                    MCMF = None
+                
+                csv_output.writerow([mid, module_name, pH, I, T, pCr, MCMF])
                         
     f.close()
 
-def test_single_module(mid):
+def test_single_modules(mids):
     from pygibbs.groups import GroupContribution
     html_writer = HtmlWriter("../res/thermodynamic_module_analysis.html")
     gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
     gc.init()
     
-    (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
-    thermodynamic_pathway_analysis(S, rids, fluxes, cids, gc, gc.kegg(), html_writer)
+    for mid in mids:
+        html_writer.write("<h2>M%05d</h2>\n" % mid)
+        (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
+        thermodynamic_pathway_analysis(S, rids, fluxes, cids, gc, gc.kegg(), html_writer)
 
 if (__name__ == "__main__"):
-    test_single_module(9)
+    test_single_modules([5, 305, 719])
+    #test_all_modules()

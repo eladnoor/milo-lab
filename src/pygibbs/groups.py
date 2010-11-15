@@ -164,7 +164,7 @@ class GroupContribution(Thermodynamics):
                 # If the compound is measured:
                 if (cid in self.cid2pmap_obs):
                     pmap = self.cid2pmap_obs[cid]
-                    for ((nH, z), dG0) in pmap.iteritems():
+                    for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
                         self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, False))
 
                 # Try to also estimate the dG0_f using Group Contribution:
@@ -187,7 +187,7 @@ class GroupContribution(Thermodynamics):
                     continue
                 self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "OK"))
                 self.cid2pmap_dict[cid] = pmap
-                for ((nH, z), dG0) in pmap.iteritems():
+                for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
                     self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, True))
             
             self.comm.commit()
@@ -197,14 +197,22 @@ class GroupContribution(Thermodynamics):
         # Now load the data into the cid2pmap_dict:
         for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 1;"):
             (cid, nH, z, dG0) = row
-            self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
+            self.cid2pmap_dict.setdefault(cid, {})
+            self.cid2pmap_dict[cid].setdefault((nH, z), []).append(dG0)
 
         for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 0;"):
             (cid, nH, z, dG0) = row
-            if (self.override_gc_with_measurements):
-                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
-            elif (cid not in self.cid2pmap_dict or (nH, z) not in self.cid2pmap_dict[cid]):
-                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
+            if (self.override_gc_with_measurements and cid in self.cid2pmap_dict):
+                self.cid2pmap_dict[cid] = {}
+                self.cid2pmap_dict[cid][(nH, z)] = []
+                self.cid2pmap_dict[cid][(nH, z)].append(dG0)
+            elif (cid not in self.cid2pmap_dict):
+                self.cid2pmap_dict[cid] = {}
+                self.cid2pmap_dict[cid][(nH, z)] = []
+                self.cid2pmap_dict[cid][(nH, z)].append(dG0)
+            elif ((nH, z) not in self.cid2pmap_dict[cid]):
+                self.cid2pmap_dict[cid][(nH, z)] = []
+                self.cid2pmap_dict[cid][(nH, z)].append(dG0)
         
         sys.stderr.write("[DONE]\n")
             
@@ -232,7 +240,7 @@ class GroupContribution(Thermodynamics):
                 use_for = 'test'
             else:
                 use_for = 'train'
-            for ((nH, z), dG0) in self.cid2pmap_obs[cid].iteritems():
+            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap_obs[cid]):
                 self.comm.execute("INSERT INTO observation VALUES(?,?,?,?,?,?)", (cid, self.kegg().cid2name(cid), nH, z, dG0, use_for))
         
         self.load_cid2pmap()
@@ -362,7 +370,7 @@ class GroupContribution(Thermodynamics):
             unassigned_nodes = unassigned_nodes - set(nodes)
         
         if (assert_result and len(unassigned_nodes) > 0):
-            s = self.get_group_analysis_table(mol, groups, unassigned_nodes)
+            s = self.groups_to_table(mol, groups, unassigned_nodes)
             raise GroupDecompositionError("Unable to decompose %s into groups.\n%s" % (mol.title, s))        
         return (groups, unassigned_nodes)
         
@@ -800,7 +808,7 @@ class GroupContribution(Thermodynamics):
             z = self.groupvec2charge(groupvec)
             try:
                 dG0 = self.groupvec2val(groupvec)
-                pmap[nH, z] = dG0
+                pmap.setdefault((nH, z), []).append(dG0)
             except GroupMissingTrainDataError as e:
                 s = "Species nH = %d, z = %d : " % (nH, z) + ", ".join([self.all_group_names[g] for g in e.missing_groups])
                 all_missing_groups.append(s)
@@ -846,16 +854,6 @@ class GroupContribution(Thermodynamics):
 
             return pmap
     
-    @staticmethod
-    def pmap_to_dG0(pmap, pH=default_pH, I=default_I, T=default_T, most_abundant=False):
-        if (len(pmap) == 0):
-            raise ValueError("Empty pmap given to 'pmap_to_dG0'")
-        dG0_trans = pylab.array([Thermodynamics.transform(dG0, nH, z, pH, I, T) for ((nH, z), dG0) in pmap.iteritems()])
-        if (most_abundant):
-            return min(dG0_trans)
-        else:
-            return - R * T * log_sum_exp(-dG0_trans / (R * T))
-
     def estimate_pKa_keggcid(self, cid, charge, T=default_T):
         """
             Estimates the pKa of the compound.
@@ -884,7 +882,7 @@ class GroupContribution(Thermodynamics):
         """
         pmap = self.estimate_pmap(mol)
         if (type(pH) != types.ListType and type(I) != types.ListType):
-            return self.pmap_to_dG0(pmap, pH, I, T)      
+            return Thermodynamics.pmap_to_dG0(pmap, pH, I, T)      
         else:
             if (type(pH) != types.ListType):
                 pH = [pH]
@@ -894,7 +892,7 @@ class GroupContribution(Thermodynamics):
             dG0_matrix = pylab.zeros((len(pH), len(I)))
             for i in range(len(pH)):
                 for j in range(len(I)):
-                    dG0_matrix[i, j] = self.pmap_to_dG0(pmap, pH[i], I[j], T)      
+                    dG0_matrix[i, j] = Thermodynamics.pmap_to_dG0(pmap, pH[i], I[j], T)      
             
             return dG0_matrix
             
@@ -905,7 +903,7 @@ class GroupContribution(Thermodynamics):
         """
         pmap = self.cid2pmap(cid)
         if (pH.__class__ == float and I.__class__ == float):
-            return self.pmap_to_dG0(pmap, pH, I, T, most_abundant)      
+            return Thermodynamics.pmap_to_dG0(pmap, pH, I, T, most_abundant)      
         else:
             if (pH.__class__ == float):
                 pH = [pH]
@@ -915,7 +913,7 @@ class GroupContribution(Thermodynamics):
             dG0_matrix = pylab.zeros((len(pH), len(I)))
             for i in range(len(pH)):
                 for j in range(len(I)):
-                    dG0_matrix[i, j] = self.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant)      
+                    dG0_matrix[i, j] = Thermodynamics.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant)      
             
             return dG0_matrix
     
@@ -936,7 +934,7 @@ class GroupContribution(Thermodynamics):
         stoichiometry_vector = sparse_reaction.values()
 
         if (pH.__class__ == float and I.__class__ == float):
-            dG0_vector = [self.pmap_to_dG0(pmap, pH, I, T, most_abundant) for pmap in pmaps]
+            dG0_vector = [Thermodynamics.pmap_to_dG0(pmap, pH, I, T, most_abundant) for pmap in pmaps]
             dG0 = pylab.dot(stoichiometry_vector, dG0_vector)
             return dG0
         else:
@@ -948,7 +946,7 @@ class GroupContribution(Thermodynamics):
             dG0_matrix = pylab.zeros((len(pH), len(I)))
             for i in range(len(pH)):
                 for j in range(len(I)):
-                    dG0_vector = [self.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant) for pmap in pmaps]
+                    dG0_vector = [Thermodynamics.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant) for pmap in pmaps]
                     dG0_matrix[i, j] = pylab.dot(stoichiometry_vector, dG0_vector)
             
             return dG0_matrix
@@ -1014,7 +1012,7 @@ class GroupContribution(Thermodynamics):
             pmap = self.cid2pmap_dict[cid]
             for i in range(len(pH)):
                 for j in range(len(I)):
-                    dG0 = self.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant)
+                    dG0 = Thermodynamics.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant)
                     self.comm.execute("INSERT INTO dG0_f VALUES (?,?,?,?,?)", (cid, pH[i], I[j], T, dG0))
                     self.HTML.write('Estimated (pH=%f, I=%f, T=%f) &#x394;G\'<sub>f</sub> = %.2f kJ/mol or %.2f kcal/mol<br>\n' % (pH[i], I[j], T, dG0, dG0 / 4.2))
             self.HTML.write('</p>\n')
@@ -1102,7 +1100,7 @@ class GroupContribution(Thermodynamics):
             csv_output.writerow(("CONTRIBUTION", j, name, protons, charge, self.group_contributions[i]))
             
         for cid in self.cid2pmap_obs:
-            for ((nH, z), dG0) in self.cid2pmap_obs[cid].iteritems():
+            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap_obs[cid]):
                 if (cid in self.cid_test_set):
                     use_for = 'test'
                 else:
@@ -1330,8 +1328,8 @@ class GroupContribution(Thermodynamics):
             name = self.kegg().cid2name(cid)
             try:
                 pmap = self.cid2pmap(cid)
-                dG0_f[c] = self.pmap_to_dG0(pmap, pH, I, T)
-                for ((nH, z), dG0) in pmap.iteritems():
+                dG0_f[c] = Thermodynamics.pmap_to_dG0(pmap, pH, I, T)
+                for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
                     self.HTML.write('<tr><td>%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td>\n' % (cid, name, dG0, nH, z))
             
             except (kegg.KeggParseException, GroupMissingTrainDataError):
@@ -1489,7 +1487,8 @@ class GroupContribution(Thermodynamics):
         data = pylab.zeros((len(pmap), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
-            dG0_array = pylab.matrix([-Thermodynamics.transform(dG0, nH, z, pH, I, T) / (R * T) for ((nH, z), dG0) in pmap.iteritems()])
+            dG0_array = pylab.matrix([-Thermodynamics.transform(dG0, nH, z, pH, I, T) / (R * T) \
+                                      for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap)])
             dG0_array = dG0_array - max(dG0_array)
             p_array = pylab.exp(dG0_array)
             p_array = p_array / sum(p_array)
@@ -1499,13 +1498,13 @@ class GroupContribution(Thermodynamics):
         pylab.plot(pH_list, data.T)
         prop = pylab.matplotlib.font_manager.FontProperties(size=10)
         name = self.kegg().cid2name(cid)
-        pylab.legend(['%s [%d]' % (name, z) for ((nH, z), dG0) in pmap.iteritems()], prop=prop)
+        pylab.legend(['%s [%d]' % (name, z) for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap)], prop=prop)
         pylab.xlabel("pH")
         pylab.ylabel("Pseudoisomer proportion")
         self.HTML.embed_matplotlib_figure(protonation_fig, width=800, height=600)
         self.HTML.write('<table border="1">\n')
         self.HTML.write('  <tr><td>%s</td><td>%s</td><td>%s</td></tr>\n' % ('dG0_f', '# hydrogen', 'charge'))
-        for ((nH, z), dG0) in pmap.iteritems():
+        for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
             self.HTML.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
         self.HTML.write('</table>')
         self.HTML.write('</p>')
@@ -1581,9 +1580,10 @@ class GroupContribution(Thermodynamics):
 
     def analyze_decomposition(self, mol):
         (groups, unassigned_nodes) = self.decompose(mol)
-        return self.get_group_analysis_table(mol, groups, unassigned_nodes)
+        return GroupContribution.groups_to_table(mol, groups, unassigned_nodes)
         
-    def get_group_analysis_table(self, mol, groups, unassigned_nodes):
+    @staticmethod
+    def groups_to_table(mol, groups, unassigned_nodes):
         s = ""
         s += "%30s | %2s | %2s | %s\n" % ("group name", "nH", "z", "nodes")
         s += "-" * 50 + "\n"

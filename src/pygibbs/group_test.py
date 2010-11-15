@@ -10,7 +10,7 @@ G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
 G.init()
 G.load_cid2pmap(recalculate=False)
 
-if False:
+if True:
     H = Hatzi()
     (pH, I, T) = (0,0.0,303.15)
     
@@ -18,8 +18,8 @@ if False:
     smiles = []
 
     
-    cids = [683]
-    #smiles = ["c1ccc2c(c1)c(C[C@@H](C(=O)[O-])[NH3+])c[nH]2"]
+    #cids = [65]
+    smiles = ["NC(C)C(O)(=O)"]
     
     mols = []
     for cid in cids:
@@ -48,6 +48,7 @@ if False:
             pmap_m = G.estimate_pmap(m)
             #pmap_h = H.cid2pmap(cid)
             
+            print Thermodynamics.pmap_to_table(pmap_m)
             print "dG0'_f (M): ", Thermodynamics.pmap_to_dG0(pmap_m, pH, I, T)
             #print "dG0'_f (H): ", Thermodynamics.pmap_to_dG0(pmap_h, pH, I, T)
         except KeyError as e:
