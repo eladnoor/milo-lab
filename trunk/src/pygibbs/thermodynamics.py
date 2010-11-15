@@ -53,14 +53,23 @@ class Thermodynamics:
         """
         return -(R*T) * log_sum_exp(dG0 / (-R*T) + Thermodynamics.correction_function(nH, z, pH, I, T))
     
-    @staticmethod    
+    @staticmethod
     def pmap_to_dG0(pmap, pH, I, T, most_abundant=False):
         if (len(pmap) == 0):
             raise Exception("Empty pmap")
         
-        v_dG0 = array([dG0 for ((nH, z), dG0) in pmap.iteritems()])
-        v_nH  = array([nH for ((nH, z), dG0) in pmap.iteritems()])
-        v_z   = array([z for ((nH, z), dG0) in pmap.iteritems()])
+        v_dG0 = []
+        v_nH  = []
+        v_z   = []
+        for ((nH, z), dG0_list) in pmap.iteritems():
+            for dG0 in dG0_list:
+                v_dG0.append(dG0)
+                v_nH.append(nH)
+                v_z.append(z)
+
+        v_dG0 = array(v_dG0)
+        v_nH  = array(v_nH)
+        v_z   = array(v_z)
 
         if (most_abundant):
             return min(v_dG0 / (-R*T) + Thermodynamics.correction_function(v_nH, v_z, pH, I, T))
@@ -93,16 +102,34 @@ class Thermodynamics:
             curr_c_max = self.c_range[1]
         return (curr_c_min, curr_c_max)
             
+    @staticmethod
+    def pmap_to_matrix(pmap):
+        res = []
+        for ((nH, z), dG0_list) in pmap.iteritems():
+            for dG0 in dG0_list:
+                res.append((nH, z, dG0))
+        return res
+
+    @staticmethod
+    def pmap_to_table(pmap):
+        s = ""
+        s += "%2s | %2s | %s\n" % ("nH", "z", "dG0_f")
+        s += "-" * 20 + "\n"
+        for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
+            s += "%2d | %2d | %.1f\n" % (nH, z, dG0)
+        return s     
+
     def display_pmap(self, cid):
-        for ((nH, z), dG0) in self.cid2pmap(cid).iteritems():
+        for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
             print "C%05d | %2d | %2d | %6.2f" % (cid, nH, z, dG0)
-        
+    
     def write_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['CID', 'nH', 'charge', 'dG0'])
         for cid in self.get_all_cids():
-            for ((nH, z), dG0) in self.cid2pmap(cid).iteritems():
-                writer.writerow([cid, nH, z, dG0])
+            for ((nH, z), dG0_list) in self.cid2pmap(cid).iteritems():
+                for dG0 in dG0_list:
+                    writer.writerow([cid, nH, z, dG0])
                 
     def write_transformed_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
