@@ -10,16 +10,16 @@ G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
 G.init()
 G.load_cid2pmap(recalculate=False)
 
-if True:
+if False:
     H = Hatzi()
-    (pH, I, T) = (0,0.0,303.15)
+    (pH, I, T) = (7,0.1,298.15)
     
     cids = []
     smiles = []
 
     
     #cids = [65]
-    smiles = ["NC(C)C(O)(=O)"]
+    smiles = ["C(O)(=O)CC(=O)O"]
     
     mols = []
     for cid in cids:
@@ -60,5 +60,15 @@ if True:
         except GroupDecompositionError as e:
             sys.stderr.write(str(e) + "\n")
         m.draw()
-else:
+
+if False:
     G.analyze_pathway("../data/thermodynamics/pathways.txt")
+
+
+if True: # calculate the pKa for some common groups
+    glist = [(group_name, charge) for (gid, group_name, protons, charge, smarts_str, focal_atoms) in G.list_of_groups]
+    
+    i0 = G.nonzero_groups[glist.index(("-COO", 0))]
+    i1 = G.nonzero_groups[glist.index(("-COO", -1))]
+    
+    print G.group_contributions[i0], G.group_contributions[i1]

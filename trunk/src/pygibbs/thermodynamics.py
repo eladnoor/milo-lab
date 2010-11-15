@@ -108,15 +108,15 @@ class Thermodynamics:
         for ((nH, z), dG0_list) in pmap.iteritems():
             for dG0 in dG0_list:
                 res.append((nH, z, dG0))
-        return res
+        return sorted(res)
 
     @staticmethod
-    def pmap_to_table(pmap):
+    def pmap_to_table(pmap, pH=default_pH, I=default_I, T=default_T):
         s = ""
-        s += "%2s | %2s | %s\n" % ("nH", "z", "dG0_f")
-        s += "-" * 20 + "\n"
+        s += "%2s | %2s | %7s | %7s\n" % ("nH", "z", "dG0_f", "dG0'_f")
+        s += "-" * 35 + "\n"
         for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
-            s += "%2d | %2d | %.1f\n" % (nH, z, dG0)
+            s += "%2d | %2d | %7.1f | %7.1f\n" % (nH, z, dG0, Thermodynamics.transform(dG0, nH, z, pH, I, T))
         return s     
 
     def display_pmap(self, cid):

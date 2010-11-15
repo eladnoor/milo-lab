@@ -156,7 +156,7 @@ class GroupContribution(Thermodynamics):
             self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
             self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL, estimated BOOL);")
             self.comm.execute("CREATE TABLE gc_cid2error (cid INT, error TEXT);")
-            self.comm.execute("CREATE UNIQUE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH, estimated);")
+            self.comm.execute("CREATE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH, estimated);")
 
             for cid in self.kegg().get_all_cids():
                 sys.stderr.write('C%05d\n' % cid)
@@ -200,11 +200,13 @@ class GroupContribution(Thermodynamics):
             self.cid2pmap_dict.setdefault(cid, {})
             self.cid2pmap_dict[cid].setdefault((nH, z), []).append(dG0)
 
+        # TODO: FIX THIS REASONING !!!
+        
         for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 0;"):
             (cid, nH, z, dG0) = row
             if (self.override_gc_with_measurements and cid in self.cid2pmap_dict):
                 self.cid2pmap_dict[cid] = {}
-                self.cid2pmap_dict[cid][(nH, z)] = []
+                self.cid2pmap_dict[cid].setdefault((nH, z), [])
                 self.cid2pmap_dict[cid][(nH, z)].append(dG0)
             elif (cid not in self.cid2pmap_dict):
                 self.cid2pmap_dict[cid] = {}
@@ -513,9 +515,8 @@ class GroupContribution(Thermodynamics):
                 cid = int(cid)
                 nH = int(hydrogens)
                 z = int(charge)
-                if (cid not in self.cid2pmap_obs):
-                    self.cid2pmap_obs[cid] = {}
-                self.cid2pmap_obs[cid][(nH, z)] = dG0
+                self.cid2pmap_obs.setdefault(cid, {})
+                self.cid2pmap_obs[cid].setdefault((nH, z), []).append(dG0)
 
             if (use_for == "test"):
                 self.cid_test_set.add(int(cid))
@@ -585,7 +586,7 @@ class GroupContribution(Thermodynamics):
                 continue
             cid = int(cid)
             obs_val = float(obs_val)
-            self.cid2pmap_obs[cid][(0, 0)] = obs_val
+            self.cid2pmap_obs[cid][(0, 0)] = [obs_val]
             try:
                 mol = self.kegg().cid2mol(cid)
                 self.HTML.write('<h3><a href="%s">C%05d - %s</a></h3>\n' % (self.kegg().cid2link(cid), cid, self.kegg().cid2name(cid)))
@@ -783,7 +784,6 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('<h3><a name="obs_vs_err">Observed vs. Error</a></h3>\n')
         self.HTML.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
         sys.stderr.write('[DONE]\n')
-        self.HTML.flush()
 
     def kegg(self):
         if (self._kegg == None):
@@ -1332,7 +1332,7 @@ class GroupContribution(Thermodynamics):
                 for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
                     self.HTML.write('<tr><td>%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td>\n' % (cid, name, dG0, nH, z))
             
-            except (kegg.KeggParseException, GroupMissingTrainDataError):
+            except MissingCompoundFormationEnergy:
                 # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
                 dG0_f[c] = pylab.nan
                 ind_nan.append(c)
