@@ -3,7 +3,7 @@ from pylab import arange, NaN, isnan
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 
 class Alberty (Thermodynamics):
-    def read_alberty_mathematics(self, fname):
+    def read_alberty_mathematica(self, fname):
         """
             example line:
             acetatesp={{-369.31,-486.01,-1,3},{-396.45,-485.76,0,4}};
@@ -12,14 +12,12 @@ class Alberty (Thermodynamics):
         """
         file = open(fname, 'r')
         alberty_name_to_pmap = {}
-        alberty_name_to_H_pmap = {}
+        alberty_name_to_hmap = {} # same as pmap but for dH of formation
         for line in file.readlines():
             line.rstrip()
             if (line.find('=') == -1):
                 continue
             (alberty_name, values) = line.split('sp=', 1)
-            pmap = {}
-            H_pmap = {}
             for token in re.findall("{([0-9\-\.\,_\s]+)}", values):
                 val_list = token.split(',', 3)
                 dG0 = float(val_list[0])
@@ -31,12 +29,13 @@ class Alberty (Thermodynamics):
                 nH = int(val_list[3])
                 if (alberty_name.find("coA") != -1):
                     nH += 35
-                alberty_name_to_pmap.setdefault(alberty_name, {})[nH, z] = dG0
+                alberty_name_to_pmap.setdefault(alberty_name, {})
+                alberty_name_to_pmap[alberty_name].setdefault((nH, z), []).append(dG0)
                 if (not isnan(dH0)):
-                    H_pmap[(nH, z)] = dH0
-                
+                    alberty_name_to_hmap.setdefault(alberty_name, {})
+                    alberty_name_to_hmap[alberty_name].setdefault((nH, z), []).append(dH0)
             
-        return alberty_name_to_pmap
+        return (alberty_name_to_pmap, alberty_name_to_hmap)
         
     def read_alberty_kegg_mapping(self, fname):
         alberty_name_to_cid = {}
@@ -52,12 +51,17 @@ class Alberty (Thermodynamics):
     
     def __init__(self):
         Thermodynamics.__init__(self)
-        alberty_name_to_pmap = self.read_alberty_mathematics("../data/thermodynamics/alberty_mathematica.txt")
+        (alberty_name_to_pmap, alberty_name_to_hmap) = self.read_alberty_mathematica("../data/thermodynamics/alberty_mathematica.txt")
         alberty_name_to_cid = self.read_alberty_kegg_mapping("../data/thermodynamics/alberty_names.csv")
+
         self.cid2pmap_dict = {}
+        self.cid2hmap_dict = {}
         for name in sorted(alberty_name_to_cid.keys()):
             cid = alberty_name_to_cid[name]
-            self.cid2pmap_dict[cid] = alberty_name_to_pmap[name]
+            if (name in alberty_name_to_pmap):
+                self.cid2pmap_dict[cid] = alberty_name_to_pmap[name]
+            if (name in alberty_name_to_hmap):
+                self.cid2hmap_dict[cid] = alberty_name_to_hmap[name]
     
     def cid2pmap(self, cid):
         if (cid in self.cid2pmap_dict):

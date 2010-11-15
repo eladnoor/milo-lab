@@ -7,7 +7,7 @@ class Hatzi (Thermodynamics):
         Thermodynamics.__init__(self)
         csv_reader = csv.reader(open("../data/thermodynamics/hatzimanikatis_cid.csv", "r"))
         csv_reader.next()
-        self.cid2pmap_dict = {80 : {(0, 0) : 0} } # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
+        self.cid2pmap_dict = {80 : {(0, 0) : [0]} } # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
         for row in csv_reader:
             cid = int(row[0][1:])
             if (row[1] == "Not calculated"):
@@ -18,7 +18,7 @@ class Hatzi (Thermodynamics):
             # This should work since the transformed energies are linear in nH, and therefore it shouldn't matter
             # when calculating dG0 or reactions (since the real number of hydrogens will cancel out).
             nH = z
-            self.cid2pmap_dict[cid] = {(nH, z) : dG0_f}
+            self.cid2pmap_dict[cid] = {(nH, z) : [dG0_f]}
    
     def cid2pmap(self, cid):
         if (cid in self.cid2pmap_dict):

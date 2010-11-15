@@ -1554,8 +1554,9 @@ class KeggPathologic:
                 self.create_small_edge(Gdot, out_node, c_nodes[c][r], coeff=S[r,c], arrowhead="open")
         
         return Gdot
-    
-if (__name__ == '__main__'):
+
+
+def export_json_file():
     import json
     
     sqlite_name = "gibbs.sqlite"
@@ -1574,3 +1575,25 @@ if (__name__ == '__main__'):
     json_file = open("../res/kegg_compounds.json", 'w')
     json_file.write(json.dumps(compound_list))
     json_file.close()
+
+def export_compound_connectivity():
+    kegg = Kegg()
+    
+    entry2fields_map = parse_kegg_file(kegg.COMPOUND_FILE)
+    csv_file = csv.writer(open("../res/cid_connectivity.csv", 'w'))
+    csv_file.writerow(("CID", "#reactions"))
+    for key in sorted(entry2fields_map.keys()):
+        field_map = entry2fields_map[key]
+        if (key[0] != 'C'):
+            continue
+        cid = int(key[1:])
+        rid_list = []
+        if ("REACTION" in field_map):
+            for rname in field_map["REACTION"].split():
+                rid_list.append(int(rname[1:]))
+                
+        csv_file.writerow((cid, len(rid_list)))
+    
+if (__name__ == '__main__'):
+    # export_json_file()
+    export_compound_connectivity()

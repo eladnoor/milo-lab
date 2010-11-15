@@ -66,7 +66,7 @@ class GradientAscent (Thermodynamics):
                 nH = int(row[i_nH])
             
             if (cid > 0):
-                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = dG0
+                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = [dG0]
                 cids.add(cid)
         return cids
 
@@ -102,7 +102,7 @@ class GradientAscent (Thermodynamics):
                 else:
                     for cid in unknown_cids: # @@@ there is a problem for CIDs that have no InChI, I currently put nH=0, z=0 for them
                         for (nH, z) in self.gc.cid2pseudoisomers(cid):
-                            self.cid2pmap_dict.setdefault(cid, {})[nH, z] = 0.0
+                            self.cid2pmap_dict.setdefault(cid, {})[nH, z] = [0.0]
                         known_cids.add(cid)
             
             self.data.append((sparse_reaction, pH, I, T, evaluation, dG0_r))
@@ -110,6 +110,8 @@ class GradientAscent (Thermodynamics):
             for cid in reaction_cids:
                 self.cid2rowids.setdefault(cid, []).append(rowid)
 
+        if (self.data == []):
+            raise Exception("None of the measurements from NIST can be used!")
         self.train_rowids = range(len(self.data))
         self.test_rowids = range(len(self.data)) # by default assume all the training data is also the testing data
         self.update_cache()
@@ -184,7 +186,7 @@ class GradientAscent (Thermodynamics):
         self.gc.comm.execute("DROP TABLE IF EXISTS cid2prm")
         self.gc.comm.execute("CREATE TABLE cid2prm (cid INT, dG0_f REAL, nH INT, z INT, anchor BOOL)")
         for cid in self.get_all_cids():
-            for ((nH, z), dG0) in self.cid2pmap(cid).iteritems():
+            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
                 self.gc.comm.execute("INSERT INTO cid2prm VALUES(?,?,?,?,?)", (cid, dG0, nH, z, cid in self.anchors))
         self.gc.comm.commit()
 
@@ -193,9 +195,8 @@ class GradientAscent (Thermodynamics):
         self.anchors = set()
         for row in self.gc.comm.execute("SELECT * FROM cid2prm"):
             (cid, dG0, nH, z, anchor) = row
-            if (cid not in self.cid2pmap_dict):
-                self.cid2pmap_dict[cid] = {}
-            self.cid2pmap_dict[cid][nH, z] = dG0
+            self.cid2pmap_dict.setdefault(cid, {})
+            self.cid2pmap_dict[cid].setdefault(nH, z, []).append(dG0)
             if (anchor):
                 self.anchors.add(cid)
         self.update_cache()
@@ -286,13 +287,14 @@ class GradientAscent (Thermodynamics):
         for e in sorted(evaluation_map.keys()):
             (measured, predicted) = evaluation_map[e]
             plot(measured, predicted, '+')
-            leg.append('%s (N = %d, r$^2$ = %.2f [kJ/mol])' % (e, len(measured), util.calc_r2(measured, predicted)))
+            leg.append('%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), util.calc_rmse(measured, predicted)))
         
         prop = font_manager.FontProperties(size=12)
         legend(leg, loc='upper left', prop=prop)
         
         r2 = util.calc_r2(dG0_obs_vec, dG0_est_vec)
-        title(r'N = %d, r$^2$ = %.2f' % (len(dG0_obs_vec), r2), fontsize=14)
+        rmse = util.calc_rmse(dG0_obs_vec, dG0_est_vec)
+        title(r'N = %d, RMSE = %.1f [kJ/mol], r$^2$ = %.2f' % (len(dG0_obs_vec), rmse, r2), fontsize=14)
         xlabel(r'$\Delta_{obs} G^\circ$ [kJ/mol]', fontsize=14)
         ylabel(r'$\Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
         min_x = min(dG0_obs_vec)
@@ -368,7 +370,7 @@ class GradientAscent (Thermodynamics):
         
         new_pmap = {}
         for i in range(num_pseudoisomers):
-            new_pmap[nH_list[i], z_list[i]] = dG0[i]
+            new_pmap[nH_list[i], z_list[i]] = [dG0[i]]
         return new_pmap
     
     def hill_climb(self, max_i):
@@ -453,7 +455,7 @@ class GradientAscent (Thermodynamics):
         csv_writer = csv.writer(open(csv_fname, 'w'))
         csv_writer.writerow(('CID', 'dG0_f', 'nH', 'charge'))
         for cid in self.get_all_cids():
-            for ((nH, z), dG0) in self.cid2pmap(cid).iteritems():
+            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
                 csv_writer.writerow((cid, dG0, nH, z))
                 
     def analyse_reaction(self, reaction_to_analyze):

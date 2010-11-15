@@ -91,7 +91,7 @@
 "CC=O",84,"Acetaldehyde",-139,-212.23,0,4,0,"train","Alberty (2003)",
 "O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O",85,"D-Fructose-6-phosphate",-1760.8,-2265.17,-2,11,0,"train","Alberty (2003)",
 "O1C(CO)(O)C(O)C(O)C1COP([O-])(O)=O",85,"D-Fructose-6-phosphate",-1796.6,-2263.37,-1,12,0,"train","Alberty (2003)",
-"C(=N)(N)O",86,"Urea",-202.8,-317.65,0,4,0,"train","Alberty (2003)",
+"C(N)(N)=O",86,"Urea",-202.8,-317.65,0,4,0,"test","Alberty (2003)",
 "N(=O)[O-]",88,"Nitrite",-32.2,-104.6,-1,0,0,"test","Alberty (2003) beta",
 "N(=O)O",88,"Nitrite",-50.6,-119.2,0,1,0,"test","Alberty (2003) beta",
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@]1(CO)[C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O",89,"Sucrose",-1564.7,-2199.87,0,22,0,"train","Alberty (2003)",
@@ -152,7 +152,7 @@
 ,147,"Adenine",313.4,,0,5,0,"skip","Alberty (2003) beta","double entry (also measured as dG=310.67)"
 "C([C@@H](C(=O)[O-])O)C(=O)[O-]",149,"L-Malate",-842.66,,-2,4,0,"train","Alberty (2003)",
 "C([C@@H](C(=O)[O-])O)C(=O)O",149,"L-Malate",-872.68,,-1,5,0,"train","Alberty (2003)",
-"C([C@@H](C(=O)O)N)C(=N)O",152,"L-Asparagine",-525.93,-766.09,0,8,0,"train","Alberty (2003)",
+"C([C@@H](C(=O)[O-])[NH3+])C(N)=O",152,"L-Asparagine",-525.93,-766.09,0,8,0,"train","Alberty (2003)",
 "C(C(=O)[O-])C(CC(=O)[O-])(C(=O)[O-])O",158,"Citrate",-1162.69,-1515.11,-3,5,0,"train","Alberty (2003)",
 "C(C(=O)[O-])C(CC(=O)[O-])(C(=O)O)O",158,"Citrate",-1199.18,-1518.46,-2,6,0,"train","Alberty (2003)",
 "C(C(=O)[O-])C(CC(=O)O)(C(=O)O)O",158,"Citrate",-1226.33,-1520.88,-1,7,0,"train","Alberty (2003)",
@@ -165,7 +165,7 @@
 "C(=O)(N)OP(=O)(O)O",169,"Carbamoyl-P",-1310.73,,0,4,0,"train","Alberty (2003) beta","Pi is fully protonated - ASSUMPTION"
 ,178,"Thymine",349.99,,-1,5,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,178,"Thymine",293.25,,0,6,0,"test","Alberty (2003) beta","Cytidine0=0"
-"C1[C@H]([C@@H]([C@H]([C@H](O1)O)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)",
+"C(O)C(O)C(O)C(O)C=O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)",
 "CC(C)[C@@H](C(=O)O)N",183,"L-Valine",-358.65,-611.99,0,11,0,"train","Alberty (2003)",
 "C(C(=O)CO)O",184,"Glycerone",-451,,0,6,0,"train","Alberty (2003) beta",
 "C(C1C(C(C(C(O1)OC2C(OC(C(C2O)O)O)CO)O)O)O)O",185,"Cellobiose",-1585.94,,0,22,0,"test","Alberty (2003) beta",
@@ -481,7 +481,7 @@
 "c1ccc(cc1)C[C@@H](C(=O)O)N",79,"L-Phenylalanine",-207.01,,,,0,"skip","Thauer (1977)",
 "c1cc(ccc1C[C@@H](C(=O)O)N)O",82,"L-Tyrosine",-370.53,,,,0,"skip","Thauer (1977)",
 "CC=O",84,"Acetaldehyde",-139.68,,,,0,"skip","Thauer (1977)",
-"C(=N)(N)O",86,"Urea",-203.66,,,,0,"skip","Thauer (1977)",
+"C(N)(N)=O",86,"Urea",-203.66,,,,0,"skip","Thauer (1977)",
 "N(=O)O",88,"Nitrite",-37.22,,,,0,"skip","Thauer (1977)",
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@]1(CO)[C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O",89,"Sucrose",-1551.1,,,,0,"skip","Thauer (1977)",
 "OS(=O)O",94,"Sulfite",-527.56,,,,0,"skip","Thauer (1977)",
@@ -489,7 +489,7 @@
 "C(C(CO)O)O",116,"Glycerol",-488.29,,,,0,"skip","Thauer (1977)",
 "C([C@@H]1[C@H]([C@H](C(O1)O)O)O)O",121,"D-Ribose",-756.94,,,,0,"skip","Thauer (1977)",
 "c1ccc(cc1)O",146,"Phenol",-52.07,,,,0,"skip","Thauer (1977)",
-"C([C@@H](C(=O)O)N)C(=N)O",152,"L-Asparagine",-526.56,,,,0,"skip","Thauer (1977)",
+"C([C@@H](C(=O)[O-])[NH3+])C(=N)O",152,"L-Asparagine",-526.56,,,,0,"skip","Thauer (1977)",
 "C(C(=O)O)C(CC(=O)O)(C(=O)O)O",158,"Citrate",-1167.78,,,,0,"skip","Thauer (1977)",
 "C(C(=O)O)O",160,"Glycolate",-530.7,,,,0,"skip","Thauer (1977)",
 "CCC(=O)O",163,"Propanoate",-360.91,,,,0,"skip","Thauer (1977)",
