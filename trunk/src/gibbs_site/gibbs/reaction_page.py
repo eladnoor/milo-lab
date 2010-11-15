@@ -19,7 +19,8 @@ def ReactionPage(request):
         raise Http404
     
     # Figure out which template to render (based on which submit button they pressed).
-    template_name = _REACTION_TEMPLATES_BY_SUBMIT.get(form.cleaned_submit)
+    template_name = _REACTION_TEMPLATES_BY_SUBMIT.get(form.cleaned_submit,
+                                                      'reaction_page.html')
 
     # Fetch parameters and compounds.
     i_s = form.cleaned_ionic_strength
