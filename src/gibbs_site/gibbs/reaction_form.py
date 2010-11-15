@@ -22,7 +22,8 @@ class ReactionForm(form_utils.BaseForm):
     
     query = forms.CharField(max_length=2048, required=False)
     balance_w_water = forms.BooleanField(required=False)
-    submit = forms.ChoiceField(choices=[('Update', 'update'),
+    submit = forms.ChoiceField(required=False,
+                               choices=[('Update', 'update'),
                                         ('Save', 'save')])
     
     # Convenience accessors for clean data with defaults.

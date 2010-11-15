@@ -4,7 +4,7 @@ from django.http import Http404
 from django.shortcuts import render_to_response
 from gibbs import compound_form
 from gibbs import models
-from utils import django_utils
+from util import django_utils
 
 def CompoundPage(request):
     """Renders a page for a particular compound."""
