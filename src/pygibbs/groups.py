@@ -697,22 +697,26 @@ class GroupContribution(Thermodynamics):
                         (group_matrix_reduced.shape[0], group_matrix_reduced.shape[1], matrixrank(group_matrix_reduced)))
         self.HTML.write('<table border="1">\n<tr><td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td><td>Group Vector</td></tr>')
         for i in range(group_matrix_reduced.shape[0]):
-            self.HTML.write('<tr><td>%.2f</td><td>%s</td></tr>' % (self.obs[i], ' '.join([str(x) for x in group_matrix_reduced[i, :]])))
+            self.HTML.write('<tr><td>%.2f</td><td>%s</td></tr>' % \
+                            (self.obs[i], ' '.join([str(x) for x in group_matrix_reduced[i, :]])))
         self.HTML.write('</table>')
         
         self.HTML.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
         self.HTML.write('<table border="1">')
-        self.HTML.write('  <tr><td>Group Name</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
-        j = 0
-        for i in range(len(self.all_group_names)):
-            if (i in self.nonzero_groups):
-                contribution = self.group_contributions[j]
-                compound_list_str = ' | '.join([self.mol_names[k] for k in pylab.find(group_matrix_reduced[:, j] > 0)])
-                self.HTML.write('  <tr><td>%s</td><td>%8.2f</td><td>%s</td></tr>\n' % (self.all_group_names[i], contribution, compound_list_str))
-                j += 1
-            else:
-                self.HTML.write('  <tr><td>%s</td><td>?</td><td></td></tr>\n' % (self.all_group_names[i]))
+        self.HTML.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>z</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
+        for i in xrange(len(self.nonzero_groups)):
+            contribution = self.group_contributions[i]
+            (group_name, nH, z) = self.all_groups[self.nonzero_groups[i]]
+            compound_list_str = ' | '.join([self.mol_names[k] for k in pylab.find(group_matrix_reduced[:, i] > 0)])
+            self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' % \
+                            (i, group_name, nH, z, contribution, compound_list_str))
         self.HTML.write('</table>\n')
+
+        self.HTML.write("<p>\nGroups that had no examples in the training set:<br>\n")
+        zero_groups = set(range(len(self.all_groups))).difference(self.nonzero_groups)
+        self.HTML.write("<ol>\n<li>")
+        self.HTML.write("</li>\n<li>".join(["%s [nH=%d, z=%d]" % self.all_groups[i] for i in sorted(zero_groups)]))
+        self.HTML.write("</li>\n</ol>\n</p>\n")
 
     def analyze_training_set(self):
         self.write_regression_report()
@@ -1322,9 +1326,8 @@ class GroupContribution(Thermodynamics):
             cid = cids[c]
             name = self.kegg().cid2name(cid)
             try:
-                pmap = self.cid2pmap(cid)
-                dG0_f[c] = Thermodynamics.pmap_to_dG0(pmap, pH, I, T)
-                for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
+                dG0_f[c] = self.cid_to_dG0(cid, pH, I, T)
+                for (nH, z, dG0) in self.cid2pmatrix(cid):
                     self.HTML.write('<tr><td>%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td>\n' % (cid, name, dG0, nH, z))
             
             except MissingCompoundFormationEnergy:
@@ -1478,12 +1481,12 @@ class GroupContribution(Thermodynamics):
         T = kegg.parse_float_field(field_map, "T", default_T)
         cid = kegg.parse_string_field(field_map, "COMPOUND")
         cid = int(cid[1:])
-        pmap = self.cid2pmap(cid)
-        data = pylab.zeros((len(pmap), len(pH_list)))
+        pmatrix = self.cid2pmatrix(cid)
+        data = pylab.zeros((len(self.cid), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
             dG0_array = pylab.matrix([-Thermodynamics.transform(dG0, nH, z, pH, I, T) / (R * T) \
-                                      for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap)])
+                                      for (nH, z, dG0) in self.cid])
             dG0_array = dG0_array - max(dG0_array)
             p_array = pylab.exp(dG0_array)
             p_array = p_array / sum(p_array)
@@ -1493,13 +1496,13 @@ class GroupContribution(Thermodynamics):
         pylab.plot(pH_list, data.T)
         prop = pylab.matplotlib.font_manager.FontProperties(size=10)
         name = self.kegg().cid2name(cid)
-        pylab.legend(['%s [%d]' % (name, z) for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap)], prop=prop)
+        pylab.legend(['%s [%d]' % (name, z) for (nH, z, dG0) in pmatrix], prop=prop)
         pylab.xlabel("pH")
         pylab.ylabel("Pseudoisomer proportion")
         self.HTML.embed_matplotlib_figure(protonation_fig, width=800, height=600)
         self.HTML.write('<table border="1">\n')
         self.HTML.write('  <tr><td>%s</td><td>%s</td><td>%s</td></tr>\n' % ('dG0_f', '# hydrogen', 'charge'))
-        for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
+        for (nH, z, dG0) in pmatrix:
             self.HTML.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
         self.HTML.write('</table>')
         self.HTML.write('</p>')

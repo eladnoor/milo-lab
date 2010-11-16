@@ -300,10 +300,9 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         cid = cids[c]
         name = kegg.cid2name(cid)
         try:
-            pmap = thermodynamics.cid2pmap(cid)
-            for ((nH, z), dG0) in pmap.iteritems():
+            for (nH, z, dG0) in  thermodynamics.cid2pmatrix(cid):
                 html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (cid, name, dG0, nH, z))
-            dG0_f[c] = thermodynamics.pmap_to_dG0(pmap)
+            dG0_f[c] = thermodynamics.cid_to_dG0(cid)
         
         except MissingCompoundFormationEnergy:
             # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction

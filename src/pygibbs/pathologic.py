@@ -224,6 +224,7 @@ def main():
     
     pl.gc.c_range = (1e-6, 1e-2)
     pl.max_solutions = 3
+    pl.max_reactions = 10
     #pl.find_path('glyoxlyate(no_thermodynamics)', source={}, target={48:1}, thermo_method="none")
     #pl.find_path('glyoxlyate(1uM-10mM)', source={}, target={48:1}, thermo_method="global")
     #pl.c_range = (1e-9, 1e-2); pl.find_path('acetyl-CoA 1nM-10mM', source={}, target={24:1}, thermo_method="global")
