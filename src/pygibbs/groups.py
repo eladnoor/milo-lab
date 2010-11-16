@@ -1117,7 +1117,7 @@ class GroupContribution(Thermodynamics):
         for row in self.comm.execute("SELECT * FROM observation"):
             (cid, name, nH, z, dG0_f, use_for) = row
             self.cid2pmap_obs.setdefault(cid, {})
-            self.cid2pmap_obs[cid][nH, z] = dG0_f
+            self.cid2pmap_obs[cid][nH, z] = [dG0_f]
             if (use_for == 'test'):
                 self.cid_test_set.add(cid)
                 
