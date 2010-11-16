@@ -65,16 +65,26 @@ if False:
 if False:
     G.analyze_pathway("../data/thermodynamics/pathways.txt")
 
-def calc_pKa(group_0, group_1):
+def calc_pKa_group(group_0, group_1):
     glist = [G.all_groups[i] for i in G.nonzero_groups]
     index = [glist.index(group_0), glist.index(group_1)]
     dG0_f = [G.group_contributions[i] for i in index]
     return (dG0_f[0] - dG0_f[1])/(R*default_T*log(10))
 
+def calc_pKa_compound(cid, pseudo_0, pseudo_1):
+    pmap = G.cid2pmap_obs[cid]
+    dG0_f = [pmap[pseudo_0][0], pmap[pseudo_1][0]]
+    return (dG0_f[0] - dG0_f[1])/(R*default_T*log(10))
+
 if True: # calculate the pKa for some common groups
     
-    print "-NH2 (0 -> 1)", calc_pKa((u"-N", 2, 0), (u"-N", 3, 1))
-    print "-COO (-1 -> 1)", calc_pKa((u"-COO", 0, -1), (u"-COO", 1, 0))
-    print "-OPO3 (-2 -> -1)", calc_pKa((u"-OPO3", 0, -2), (u"-OPO3", 1, -1))
-    print "-CO-OPO3 (-2 -> -1)", calc_pKa((u"CO-OPO3", 0, -2), (u"CO-OPO3", 1, -1))
-    print "-CO-OPO3 (-1 -> 0)", calc_pKa((u"CO-OPO3", 1, -1), (u"CO-OPO3", 2, 0))
+    print "-NH2 (0 -> 1)", calc_pKa_group((u"-N", 2, 0), (u"-N", 3, 1))
+    print "-COO (-1 -> 1)", calc_pKa_group((u"-COO", 0, -1), (u"-COO", 1, 0))
+    print "-OPO3 (-2 -> -1)", calc_pKa_group((u"-OPO3", 0, -2), (u"-OPO3", 1, -1))
+    print "-CO-OPO3 (-2 -> -1)", calc_pKa_group((u"CO-OPO3", 0, -2), (u"CO-OPO3", 1, -1))
+    print "-CO-OPO3 (-1 -> 0)", calc_pKa_group((u"CO-OPO3", 1, -1), (u"CO-OPO3", 2, 0))
+
+    print "acetyl-P (-2 -> -1)", calc_pKa_compound(227, (3, -2), (4, -1))
+    print "acetyl-P (-1 -> 0)", calc_pKa_compound(227, (4, -1), (5, 0))
+    print "carbamoyl-P (-2 -> -1)", calc_pKa_compound(169, (2, -2), (3, -1))
+    print "carbamoyl-P (-1 -> 0)", calc_pKa_compound(169, (3, -1), (4, 0))

@@ -35,8 +35,7 @@
 "amide",2,0,"C(=O)[NH2]",,
 "two fused rings =n<",0,0,"[nR2]",,"participating in two fused aromatic rings"
 "ring =n<",0,0,"[nH0X3]",,"double bond and one single bond participating in a ring"
-"ring -n-",1,0,"[nH1X3]",,"participating in a ring"
-"ring -n-",0,-1,"[nH0X2-1]",,"participating in a ring"
+"ring -nH-",1,0,"[nH1X3]",,"participating in a ring"
 "ring =n-",0,0,"[nH0X2]",,"participating in a ring"
 "two fused rings -N<",0,0,"[NR2]",,"participating in two fused rings"
 "ring =N<",0,0,"[NH0X3R1]=[C,N]",0,"double bond and one single bond participating in a ring"
