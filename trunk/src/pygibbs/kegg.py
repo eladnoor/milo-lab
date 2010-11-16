@@ -920,8 +920,8 @@ class Kegg:
         """
         csv_file = csv.writer(open('../res/compounds.csv', 'w'))
         csv_file.writerow(["CID", "EXACT MASS"] + ELEMENTS.symbols)
-        for cid in kegg.get_all_cids():
-            comp = kegg.cid2compound(cid)
+        for cid in self.get_all_cids():
+            comp = self.cid2compound(cid)
             atom_vec = comp.get_atom_vector()
             if (atom_vec == None):
                 continue
@@ -931,12 +931,12 @@ class Kegg:
         smiles2cid_map = {}
         inchi2cid_map = {}
         
-        list_of_cids = kegg.get_all_cids_with_inchi()
+        list_of_cids = self.get_all_cids_with_inchi()
         #list_of_cids = list_of_cids[0:40]
         
         for cid in list_of_cids:
             #sys.stderr.write("Converting INCHI of compound %s (C%05d)\n" % (kegg.cid2name(cid), cid))
-            smiles = kegg.cid2smiles(cid)
+            smiles = self.cid2smiles(cid)
             smiles2cid_map[smiles] = cid
             inchi2cid_map[smiles2inchi(smiles)] = cid
     
@@ -944,25 +944,25 @@ class Kegg:
         csv_file.writerow(["CID +", "CID -", "Pi(1) or CoA(2)"])
         for cid in list_of_cids:
             try:
-                mol = kegg.cid2mol(cid)
+                mol = self.cid2mol(cid)
             except KeggParseException:
                 continue
             if (len(mol.atoms) <= 5):
                 continue # ignore compounds which are too small (e.g. orthophosphate)
             smiles_pi = "P(=O)([OH,O-])[OH,O-]"
             for pgroup in pybel.Smarts(smiles_pi).findall(mol):
-                tmp_mol = kegg.cid2mol(cid)
+                tmp_mol = self.cid2mol(cid)
                 remove_atoms_from_mol(tmp_mol, pgroup)
                 new_smiles = mol2smiles(tmp_mol)
                 new_inchi = smiles2inchi(new_smiles)
                 if (new_inchi in inchi2cid_map):
                     new_cid = inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 1])
-                    sys.stderr.write("Match: %s = %s + Pi\n" % (kegg.cid2name(cid), kegg.cid2name(new_cid)))
+                    sys.stderr.write("Match: %s = %s + Pi\n" % (self.cid2name(cid), self.cid2name(new_cid)))
             
             smiles_coa = 'SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@]([H])1[C@]([H])([C@]([H])([C@]([H])(n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O'
             for cgroup in pybel.Smarts(smiles_coa).findall(mol):
-                tmp_mol = kegg.cid2mol(cid)
+                tmp_mol = self.cid2mol(cid)
                 cgroup = list(cgroup)
                 sulfur_atom = cgroup.pop(0)
                 tmp_mol.OBMol.GetAtom(sulfur_atom).SetAtomicNum(8)
@@ -973,7 +973,7 @@ class Kegg:
                 if (new_inchi in inchi2cid_map):
                     new_cid = inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 2])
-                    sys.stderr.write("Match: %s = %s + CoA\n" % (kegg.cid2name(cid), kegg.cid2name(new_cid)))
+                    sys.stderr.write("Match: %s = %s + CoA\n" % (self.cid2name(cid), self.cid2name(new_cid)))
                     
     def create_compound_node(self, Gdot, cid, node_name=None):
         if (node_name == None):

@@ -79,6 +79,9 @@ class Thermodynamics:
     def cid2pmap(self, cid):
         raise Exception("method not implemented")
 
+    def cid2pmatrix(self, cid):
+        return Thermodynamics.pmap_to_matrix(self.cid2pmap(cid))
+
     def get_all_cids(self):
         raise Exception("method not implemented")
         
