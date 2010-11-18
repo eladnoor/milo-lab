@@ -108,6 +108,7 @@ class GroupMissingTrainDataError(GroupContributionError):
 class GroupContribution(Thermodynamics):    
     def __init__(self, sqlite_name, html_name=None, log_file=sys.stderr):
         Thermodynamics.__init__(self)
+        self.source_string = "Group Contribution"
         self._kegg = None
         self.LOG_FILE = log_file
         if (html_name != None):

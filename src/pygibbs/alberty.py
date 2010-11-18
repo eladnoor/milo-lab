@@ -1,6 +1,7 @@
 import csv, re, sys
 from pylab import arange, NaN, isnan
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
+from kegg import Kegg
 
 class Alberty (Thermodynamics):
     def read_alberty_mathematica(self, fname):
@@ -51,6 +52,7 @@ class Alberty (Thermodynamics):
     
     def __init__(self):
         Thermodynamics.__init__(self)
+        self.source_string = "Alberty"
         (alberty_name_to_pmap, alberty_name_to_hmap) = self.read_alberty_mathematica("../data/thermodynamics/alberty_mathematica.txt")
         alberty_name_to_cid = self.read_alberty_kegg_mapping("../data/thermodynamics/alberty_names.csv")
 
@@ -76,6 +78,9 @@ if (__name__ == '__main__'):
     A = Alberty()
     A.write_data_to_csv('../res/alberty.csv')
     A.write_transformed_data_to_csv('../res/alberty_transformed.csv')
+    
+    kegg = Kegg()
+    A.write_data_to_json("../res/alberty.json", kegg)
     A.I = 0.25
     A.T = 300;
     sparse_reaction = {13:-1, 1:-1, 9:2}

@@ -25,6 +25,7 @@ class Thermodynamics:
         self.c_mid = 1e-4
         self.c_range = (1e-6, 1e-2)
         self.bounds = {}
+        self.source_string = "Unknown"
 
     @staticmethod
     def debye_huckel(I):
@@ -133,6 +134,24 @@ class Thermodynamics:
             for ((nH, z), dG0_list) in self.cid2pmap(cid).iteritems():
                 for dG0 in dG0_list:
                     writer.writerow([cid, nH, z, dG0])
+
+    def write_data_to_json(self, json_fname, kegg):
+        import json
+
+        formations = []
+        for cid in self.get_all_cids():
+            h = {}
+            h["inchi"] = kegg.cid2inchi(cid)
+            h["source"] = self.source_string
+            h["species"] = []
+            for ((nH, z), dG0_list) in self.cid2pmap(cid).iteritems():
+                for dG0 in dG0_list:
+                    h["species"].append({"nH":nH, "z":z, "dG0_f":dG0})
+            formations.append(h)
+
+        json_file = open(json_fname, 'w')
+        json_file.write(json.dumps(formations))
+        json_file.close()
                 
     def write_transformed_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))

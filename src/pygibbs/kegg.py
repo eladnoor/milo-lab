@@ -1,6 +1,7 @@
 import csv, sqlite3, pybel, openbabel, sys, os, urllib, difflib, re, pydot, pylab
 from toolbox import util
 from copy import deepcopy
+import gzip
 
 #########################################################################################
 
@@ -1570,9 +1571,9 @@ def export_json_file():
     compound_list = []
     for row in cursor.execute("SELECT * FROM kegg_compound"):
         (cid, pubchem_id, mass, formula, inchi, from_kegg, cas, names) = row
-        compound_list.append((cid, inchi, mass, formula, names.split(';')))
+        compound_list.append({"CID": "C%05d" % cid, "InChI":inchi, "mass":mass, "formula":formula, "names":names.split(';')})
         
-    json_file = open("../res/kegg_compounds.json", 'w')
+    json_file = gzip.open("../res/kegg_compounds.json.gz", 'w')
     json_file.write(json.dumps(compound_list))
     json_file.close()
 
@@ -1595,5 +1596,5 @@ def export_compound_connectivity():
         csv_file.writerow((cid, len(rid_list)))
     
 if (__name__ == '__main__'):
-    # export_json_file()
-    export_compound_connectivity()
+    export_json_file()
+    #export_compound_connectivity()

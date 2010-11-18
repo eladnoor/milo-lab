@@ -15,6 +15,7 @@ from toolbox import util
 class GradientAscent (Thermodynamics):
     def __init__(self, gc):
         Thermodynamics.__init__(self)
+        self.source_string = "Gradient Ascent"
         self.gc = gc
         self.kegg = gc.kegg()
         self.data = []           # this will hold all the training data in one place, each row represents a measurement
