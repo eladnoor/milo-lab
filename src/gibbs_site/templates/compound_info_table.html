@@ -42,14 +42,14 @@
 	{% for specie in compound.all_species %}
 	<tr>
 		<td>{{ specie.net_charge }}</td>
-		<td>{{ specie.formation_energy.value|floatformat:1 }}</td>
+		<td>{{ specie.formation_energy|floatformat:1 }}</td>
 		<td>{% if specie.transformed_energy %}
 				{{ specie.transformed_energy|floatformat:1 }}
 				{% else %}
 					N/A
 			{% endif %}
 		</td>
-		<td>{{ specie.formation_energy.source }}</td>
+		<td>{{ specie.formation_energy_source }}</td>
 	</tr>
 	{% endfor %}
 </table>

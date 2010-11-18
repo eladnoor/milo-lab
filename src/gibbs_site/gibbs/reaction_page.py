@@ -3,7 +3,7 @@ import logging
 from django.http import Http404
 from django.shortcuts import render_to_response
 from gibbs import concentration_profile
-from gibbs import models
+from gibbs import reaction
 from gibbs import reaction_form
 
 
@@ -46,24 +46,24 @@ def ReactionPage(request):
     # Build the Reaction object and potentially balance it.
     zipped_reactants = zip(form.cleaned_reactantCoeffs, clean_reactants, reactant_names)
     zipped_products = zip(form.cleaned_productCoeffs, clean_products, product_names)
-    reaction = models.Reaction.FromIds(zipped_reactants, zipped_products,
-                                       cprofile)
+    rxn = reaction.Reaction.FromIds(zipped_reactants, zipped_products,
+                                    cprofile)
     if form.cleaned_balance_w_water:
-        reaction.TryBalanceWithWater()
+        rxn.TryBalanceWithWater()
     
     # Compute the dG estimate.
-    delta_g_estimate = reaction.DeltaG(pH=ph,
+    delta_g_estimate = rxn.DeltaG(pH=ph,
                                        ionic_strength=i_s)
     
     # Render the template.
-    balance_with_water_link = reaction.GetBalanceWithWaterLink(
+    balance_with_water_link = rxn.GetBalanceWithWaterLink(
             ph, i_s, cprofile_name, form.cleaned_query)
-    template_data = {'reaction': reaction,
+    template_data = {'reaction': rxn,
                      'query': form.cleaned_query,
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
-                     'no_dg_explanation': reaction.NoDeltaGExplanation(),
+                     'no_dg_explanation': rxn.NoDeltaGExplanation(),
                      'concentration_profile': cprofile_name,
                      'balance_with_water_link': balance_with_water_link}
     return render_to_response(template_name, template_data)
