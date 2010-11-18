@@ -3,7 +3,7 @@ import logging
 from django.http import Http404
 from django.shortcuts import render_to_response
 from gibbs import concentration_profile
-from gibbs import models
+from gibbs import reaction
 from gibbs import search_form
 from gibbs import service_config
 
@@ -30,7 +30,6 @@ def ResultsPage(request):
         try:
             parsed_reaction = query_parser.ParseReactionQuery(query)
         except Exception:
-            template_data['warning'] = 'Failed to parse your search query!'
             return render_to_response('error_page.html', template_data)
 
         reaction_matches = reaction_matcher.MatchReaction(parsed_reaction)
@@ -43,15 +42,15 @@ def ResultsPage(request):
         reactants, products = best_reaction
         
         cprofile = concentration_profile.GetProfile()
-        reaction = models.Reaction.FromIds(reactants, products, cprofile)
-        delta_g_estimate = reaction.DeltaG(
+        rxn = reaction.Reaction.FromIds(reactants, products, cprofile)
+        delta_g_estimate = rxn.DeltaG(
             pH=ph, ionic_strength=ionic_strength)
 
-        balance_with_water_link = reaction.GetBalanceWithWaterLink(
+        balance_with_water_link = rxn.GetBalanceWithWaterLink(
             ph, ionic_strength, cprofile.name, query)
         template_data.update({'delta_g_estimate': delta_g_estimate,
-                              'no_dg_explanation': reaction.NoDeltaGExplanation(),
-                              'reaction': reaction,
+                              'no_dg_explanation': rxn.NoDeltaGExplanation(),
+                              'reaction': rxn,
                               'balance_with_water_link': balance_with_water_link})
         return render_to_response('reaction_page.html', template_data)
 

@@ -13,9 +13,8 @@ class SpeciesFormationEnergyTest(unittest.TestCase):
     """Tests for SpeciesFormationEnergy"""
         
     def testTransform(self):
-        specie = models.Specie(number_of_hydrogens=2, net_charge=-1)
-        sfe = models.SpeciesFormationEnergy(value=-10.0)
-        sfe.specie = specie
+        specie = models.Specie(number_of_hydrogens=2, net_charge=-1,
+                               formation_energy=-10.0)
         
         # Test some hand-calculated numbers: (ph, ionic strength, result)
         test_data = (
@@ -41,10 +40,9 @@ class SpeciesFormationEnergyTest(unittest.TestCase):
              )
 
         for ph, ionic_strength, expected_transform in test_data:
-            self.assertAlmostEqual(expected_transform,
-                                   sfe.transform(pH=ph,
-                                                 ionic_strength=ionic_strength),
-                                   3)
+            actual_transform = specie.Transform(pH=ph, ionic_strength=ionic_strength)
+            self.assertAlmostEqual(expected_transform, actual_transform, 3)
+
 
 class CompoundTest(unittest.TestCase):
     
@@ -67,13 +65,12 @@ class CompoundTest(unittest.TestCase):
 
     def testDeltaG(self):
         # Create a test compound.
-        species = [models.Specie(number_of_hydrogens=12, net_charge=0),
-                   models.Specie(number_of_hydrogens=11, net_charge=-1),
-                   models.Specie(number_of_hydrogens=10, net_charge=-2)]
-        sfes = [models.SpeciesFormationEnergy(value=v)
-                for v in (-10.5, -12.1, -13.4)]
-        for specie, sfe in zip(species, sfes):
-            sfe.specie = specie
+        species = [models.Specie(number_of_hydrogens=12, net_charge=0,
+                                 formation_energy=-10.5),
+                   models.Specie(number_of_hydrogens=11, net_charge=-1,
+                                 formation_energy=-12.1),
+                   models.Specie(number_of_hydrogens=10, net_charge=-2,
+                                 formation_energy=-13.4)]
 
         compound = models.Compound(kegg_id='fake compound')
         compound._all_species = species
@@ -90,9 +87,7 @@ class CompoundTest(unittest.TestCase):
             self.assertAlmostEqual(expected_dg,
                                    compound.DeltaG(pH=ph, ionic_strength=i_s),
                                    3)
-        
 
-            
 
 if __name__ == '__main__':
     unittest.main()
