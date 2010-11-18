@@ -165,7 +165,7 @@
 "C(=O)(N)OP(=O)(O)O",169,"Carbamoyl-P",-1310.73,,0,4,0,"train","Alberty (2003) beta","Pi is fully protonated - ASSUMPTION"
 ,178,"Thymine",349.99,,-1,5,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,178,"Thymine",293.25,,0,6,0,"test","Alberty (2003) beta","Cytidine0=0"
-"C(O)C(O)C(O)C(O)C=O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)",
+"C1[C@H]([C@@H]([C@H](C(O1)O)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)",
 "CC(C)[C@@H](C(=O)[O-])[NH3+]",183,"L-Valine",-358.65,-611.99,0,11,0,"train","Alberty (2003)",
 "C(C(=O)CO)O",184,"Glycerone",-451,,0,6,0,"train","Alberty (2003) beta",
 "C(C1C(C(C(C(O1)OC2C(OC(C(C2O)O)O)CO)O)O)O)O",185,"Cellobiose",-1585.94,,0,22,0,"test","Alberty (2003) beta",

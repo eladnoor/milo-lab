@@ -10,6 +10,7 @@ G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathways")
 G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
 G.init()
 G.load_cid2pmap(recalculate=False)
+G.write_data_to_json("../res/group_contribution.json", G.kegg())
 
 if True:
     H = Hatzi()

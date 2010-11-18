@@ -5,6 +5,7 @@ from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy, J_per
 class Hatzi (Thermodynamics):
     def __init__(self):
         Thermodynamics.__init__(self)
+        self.source_string = "Hatzimanikatis"
         csv_reader = csv.reader(open("../data/thermodynamics/hatzimanikatis_cid.csv", "r"))
         csv_reader.next()
         self.cid2pmap_dict = {80 : {(0, 0) : [0]} } # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
