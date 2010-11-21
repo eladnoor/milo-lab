@@ -142,6 +142,13 @@ class Compound(models.Model):
         super(Compound, self).__init__(*args, **kwargs)
         self._all_species = None
     
+    def save(self):
+        """Custom save-time behavior."""
+        if self.inchi:
+            self.achiral_inchi = inchi.AchiralInchi(self.inchi)
+        
+        super(Compound, self).save()
+    
     def clean(self):
         """Custom save-time behavior."""
         if self.inchi:

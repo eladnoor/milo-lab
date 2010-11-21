@@ -137,8 +137,10 @@ class Matcher(object):
         
         Args:
             matches: an unfiltered list of match objects.
-        """ 
-        return [m for m in matches if m.score >= self._min_score]
+        """
+        f = lambda match: (match.score >= self._min_score and
+                           match.value.mass and match.value.formula)
+        return filter(f, matches) 
     
     def _SortAndClip(self, matches):
         matches.sort(key=lambda m: m.score, reverse=True)
