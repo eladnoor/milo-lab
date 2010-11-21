@@ -12,7 +12,7 @@ G.init()
 G.load_cid2pmap(recalculate=False)
 G.write_data_to_json("../res/group_contribution.json", G.kegg())
 
-if True:
+if False:
     H = Hatzi()
     (pH, I, T) = (7,0.1,298.15)
     
@@ -80,16 +80,16 @@ def calc_pKa_compound(cid, pseudo_0, pseudo_1):
 if True: # calculate the pKa for some common groups
     
     print "%30s: %5.2f" % ("-NH2 (0 -> 1)", calc_pKa_group((u"-N", 2, 0), (u"-N", 3, 1)))
-    print "%30s: %5.2f" % ("-COO (-1 -> 1)", calc_pKa_group((u"-COO", 0, -1), (u"-COO", 1, 0)))
+    print "%30s: %5.2f" % ("-COO (-1 -> 0)", calc_pKa_group((u"-COO", 0, -1), (u"-COO", 1, 0)))
     print "%30s: %5.2f" % ("-OPO3 (-2 -> -1)", calc_pKa_group((u"-OPO3", 0, -2), (u"-OPO3", 1, -1)))
     print "%30s: %5.2f" % ("-CO-OPO3 (-2 -> -1)", calc_pKa_group((u"CO-OPO3", 0, -2), (u"CO-OPO3", 1, -1)))
     print "%30s: %5.2f" % ("-CO-OPO3 (-1 -> 0)", calc_pKa_group((u"CO-OPO3", 1, -1), (u"CO-OPO3", 2, 0)))
 
-    print "%30s: %5.2f" % ("acetyl-P (-2 -> -1)", calc_pKa_compound(227, (3, -2), (4, -1)))
-    print "%30s: %5.2f" % ("acetyl-P (-1 -> 0)", calc_pKa_compound(227, (4, -1), (5, 0)))
-    print "%30s: %5.2f" % ("carbamoyl-P (-2 -> -1)", calc_pKa_compound(169, (2, -2), (3, -1)))
-    print "%30s: %5.2f" % ("carbamoyl-P (-1 -> 0)", calc_pKa_compound(169, (3, -1), (4, 0)))
+    #print "%30s: %5.2f" % ("acetyl-P (-2 -> -1)", calc_pKa_compound(227, (3, -2), (4, -1)))
+    #print "%30s: %5.2f" % ("acetyl-P (-1 -> 0)", calc_pKa_compound(227, (4, -1), (5, 0)))
+    #print "%30s: %5.2f" % ("carbamoyl-P (-2 -> -1)", calc_pKa_compound(169, (2, -2), (3, -1)))
+    #print "%30s: %5.2f" % ("carbamoyl-P (-1 -> 0)", calc_pKa_compound(169, (3, -1), (4, 0)))
 
-    print "%30s: %5.2f" % ("ATP (-4 -> -3)", calc_pKa_compound(2, (12, -4), (13, -3)))
-    print "%30s: %5.2f" % ("ATP (-3 -> -2)", calc_pKa_compound(2, (13, -3), (14, -2)))
-    print "%30s: %5.2f" % ("BPG (-4 -> -3)", calc_pKa_compound(236, (4, -4), (5, -3)))
+    #print "%30s: %5.2f" % ("ATP (-4 -> -3)", calc_pKa_compound(2, (12, -4), (13, -3)))
+    #print "%30s: %5.2f" % ("ATP (-3 -> -2)", calc_pKa_compound(2, (13, -3), (14, -2)))
+    #print "%30s: %5.2f" % ("BPG (-4 -> -3)", calc_pKa_compound(236, (4, -4), (5, -3)))
