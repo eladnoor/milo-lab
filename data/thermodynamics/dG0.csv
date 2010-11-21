@@ -165,7 +165,6 @@
 "C(=O)(N)OP(=O)(O)O",169,"Carbamoyl-P",-1310.73,,0,4,0,"train","Alberty (2003) beta","Pi is fully protonated - ASSUMPTION"
 ,178,"Thymine",349.99,,-1,5,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,178,"Thymine",293.25,,0,6,0,"test","Alberty (2003) beta","Cytidine0=0"
-"C1[C@H]([C@@H]([C@H](C(O1)O)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)",
 "CC(C)[C@@H](C(=O)[O-])[NH3+]",183,"L-Valine",-358.65,-611.99,0,11,0,"train","Alberty (2003)",
 "C(C(=O)CO)O",184,"Glycerone",-451,,0,6,0,"train","Alberty (2003) beta",
 "C(C1C(C(C(C(O1)OC2C(OC(C(C2O)O)O)CO)O)O)O)O",185,"Cellobiose",-1585.94,,0,22,0,"test","Alberty (2003) beta",
@@ -184,7 +183,10 @@
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)O",212,"Adenosine",-194.5,-612.3,0,13,0,"train","Alberty (2003)",
 ,214,"Thymidine",-157.59,,-1,13,0,"test","Alberty (2003) beta","Cytidine0=0"
 ,214,"Thymidine",-214.65,,0,14,0,"test","Alberty (2003) beta","Cytidine0=0"
-"C([C@H]([C@H]([C@@H](C=O)O)O)O)O",216,"D-Arabinose",-742.23,-1043.79,0,10,0,"train","Alberty (2003)",
+"OC[C@@H]1[C@@H]([C@H](C(O1)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)","five-membered C4O ring form (xylofuranose)"
+"C1[C@H]([C@@H]([C@H](C(O1)O)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"skip","Alberty (2003)","six-membered C5O ring form (xylopyranose)"
+"C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)O",216,"D-Arabinose",-742.23,-1043.79,0,10,0,"train","Alberty (2003)","five-membered C4O ring form (arabinofuranose)"
+"C1[C@H]([C@H]([C@@H](C(O1)O)O)O)O",216,"D-Arabinose",-742.23,-1043.79,0,10,0,"skip","Alberty (2003)","six-membered C5O ring form (arabinopyranose)"
 "C[NH3+]",218,"Methylamine",-39.86,-124.93,1,6,0,"train","Alberty (2003)",
 ,224,"Adenosine-5P-Sulfate",-1541.98,,-2,12,0,"test","Alberty (2003) beta",
 "CC(=O)OP(=O)([O-])[O-]",227,"Acetyl-phosphate",-1219.39,,-2,3,0,"train","Alberty (2003)",
@@ -300,8 +302,8 @@
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@H]1[C@@H]([C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O)O",1083,"Trehalose",-1582.76,,0,22,0,"train","Alberty (2003) beta",
 "C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",1096,"D-Sorbitol-6P",-1790.86,,-2,13,0,"train","Alberty (2003) beta",
 "C(C(C(C(C(COP(=O)([O-])O)O)O)O)O)O",1096,"D-Sorbitol-6P",-1827.51,,-1,14,0,"train","Alberty (2003) beta",
-"C(C(C(C(C=O)O)O)O)OP(=O)([O-])[O-]",1112,"D-arabinose-5P",-1598.34,,-2,9,0,"train","Alberty (2003) beta",
-"C(C(C(C(C=O)O)O)O)OP(=O)([O-])O",1112,"D-arabinose-5P",-1636.53,,-1,10,0,"train","Alberty (2003) beta",
+"C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)OP(=O)([O-])[O-]",1112,"D-arabinose-5P",-1598.34,,-2,9,0,"train","Alberty (2003) beta",
+"C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)OP(=O)([O-])O",1112,"D-arabinose-5P",-1636.53,,-1,10,0,"train","Alberty (2003) beta",
 "C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])[O-]",1113,"D-galactose-6P",-1756.81,,-2,11,0,"train","Alberty (2003) beta",
 "C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])O",1113,"D-galactose-6P",-1793.57,,-1,12,0,"train","Alberty (2003) beta",
 "C(C(C(=O)[O-])O)C(=O)C(=O)[O-]",1127,"4-hydroxy-2-oxoglutarate",-971.78,,-2,4,0,"train","Alberty (2003) beta",

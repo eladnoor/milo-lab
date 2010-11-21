@@ -1,5 +1,5 @@
 from groups import GroupContribution
-from common import R
+from thermodynamics import R
 from pylab import log, zeros, vstack, pinv, dot, inf, plot, matrix, show, figure, NaN, isnan, find
 import csv
 import kegg
