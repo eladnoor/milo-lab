@@ -247,6 +247,7 @@ class GradientAscent (Thermodynamics):
             unknown_set = set(sparse_reaction.keys()).difference(known_cid_set)
             if (len(unknown_set) > 0):
                 sys.stderr.write("One of the compounds in reaction at row %d in NIST doesn't have a dG0_f\n" % rowid)
+                continue
             if (evaluation not in evaluation_map):
                 evaluation_map[evaluation] = ([], [])
             
@@ -263,17 +264,27 @@ class GradientAscent (Thermodynamics):
             n_measurements = min([cid2count[cid] for cid in sparse_reaction.keys()])
             total_list.append([abs(dG0_r - dG0_pred), dG0_r, dG0_pred, sparse_reaction, pH, I, T, evaluation, n_measurements])
         
+        # plot the profile graph
+        rcParams['text.usetex'] = False
+        rcParams['legend.fontsize'] = 12
+        rcParams['font.family'] = 'sans-serif'
+        rcParams['font.size'] = 16
+        rcParams['lines.linewidth'] = 2
+        rcParams['lines.markersize'] = 3
+        rcParams['figure.figsize'] = [8.0, 6.0]
+        rcParams['figure.dpi'] = 100
+        
         fig1 = figure()
         hold(True)
-        leg = []
         
+        colors = ['purple', 'orange', 'green', 'red', 'cyan']
         for e in sorted(evaluation_map.keys()):
             (measured, predicted) = evaluation_map[e]
-            plot(measured, predicted, '+')
-            leg.append('%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), util.calc_rmse(measured, predicted)))
+            label = '%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), util.calc_rmse(measured, predicted))
+            c = colors.pop(0)
+            plot(measured, predicted, marker='.', linestyle='None', markerfacecolor=c, markeredgecolor=c, markersize=5, label=label)
         
-        prop = font_manager.FontProperties(size=12)
-        legend(leg, loc='upper left', prop=prop)
+        legend(loc='upper left')
         
         r2 = util.calc_r2(dG0_obs_vec, dG0_est_vec)
         rmse = util.calc_rmse(dG0_obs_vec, dG0_est_vec)
@@ -299,15 +310,17 @@ class GradientAscent (Thermodynamics):
         ylabel(r'$|| \Delta_{obs} G^\circ - \Delta_{est} G^\circ ||$ [kJ/mol]', fontsize=14)
         xscale('log')
         
+        fig1.savefig('../res/nist/%s.svg' % key)
+        
         html_writer.write("<h2>%s</h2>" % key)
         
-        html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
-        html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
+        html_writer.embed_matplotlib_figure(fig1, width=400, height=300)
+        html_writer.embed_matplotlib_figure(fig2, width=400, height=300)
         
         html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (key))
         html_writer.write('<div id="%s" style="display:none">' % key)
 
-        html_writer.embed_matplotlib_figure(fig3, width=640, height=480)
+        html_writer.embed_matplotlib_figure(fig3, width=400, height=300)
 
         table_headers = ["|error|", "dG0(obs)", "dG0(pred)", "reaction", "pH", "I", "T", "evaluation", "min_num_measurements"]
         html_writer.write("<table>\n")
