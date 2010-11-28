@@ -56,7 +56,7 @@ class Thermodynamics:
     
     @staticmethod
     def pmap_to_dG0(pmap, pH, I, T, most_abundant=False):
-        if (len(pmap) == 0):
+        if not pmap:
             raise Exception("Empty pmap")
         
         v_dG0 = []

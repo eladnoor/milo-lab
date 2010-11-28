@@ -9,6 +9,7 @@ from pygibbs import kegg
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException
 
+
 def find_smarts(smarts_str, mol):
     """
         This corrects the pyBel version of Smarts.findall() which returns results as tuples,
@@ -20,7 +21,8 @@ def find_smarts(smarts_str, mol):
         results.append([(n - 1) for n in match])
     return results
 
-def find_pchains(mol, lengths=[1, 2, 3], ignore_protonations=False):
+
+def find_pchains(mol, lengths=(1, 2, 3), ignore_protonations=False):
     """
         end should be 'OC' for chains that do not really end, but link to carbons
         end should be '[O-1,OH]' for chains that end in an hydroxyl
@@ -75,6 +77,7 @@ def find_pchains(mol, lengths=[1, 2, 3], ignore_protonations=False):
                     group_map[("-OPO2-", protons, charge)].append(set(pchain[i:(i + 4)]))
                 
     return sorted(list(group_map.iteritems()))
+
 
 class GroupContributionError(Exception):
     def __init__(self, value):

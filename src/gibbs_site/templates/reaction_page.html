@@ -62,7 +62,7 @@
 			{% for compound in reaction.all_compounds %}
 			<tr>
 				<td><a href="{{ compound.compound.link }}">{{ compound.name }}</a></td>
-				<td>{{ compound.transformed_energy }}</td>
+				<td>{{ compound.transformed_energy|floatformat:1 }}</td>
 				<td>{{ compound.compound.dg_source }}</td>
 			</tr>
 			{% endfor %}

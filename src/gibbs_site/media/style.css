@@ -19,6 +19,11 @@ a {
 	text-decoration: none;
 }
 
+#logo {
+	background: url('/media/images/equilibrator_logo.png') no-repeat center -50px;
+	height: 220px;
+}
+
 .errorMsg {
 	background-color: #C00;
 }
@@ -46,7 +51,7 @@ a {
 }
 
 #subtitle {
-	font-size: 24px;
+	font-size: 20px;
 }
 
 .subscript {
@@ -67,6 +72,15 @@ a {
 #searchForm #submitButton {
 	height: 40px;
 	font-size: 20px;
+}
+
+.directions {
+	text-align: left;
+	color: grey;
+	margin: -10px auto;
+	padding: 0px;
+	width: 86%;
+	font-size: 14px;
 }
 
 #examples table {
