@@ -2,6 +2,8 @@
 	{% include "header.html" %}
 {% endwith %}
 
+	<div class="centerize">
+
 	{% if not reaction.is_balanced %}
 		<div class="warning">Reaction is not balanced!
 		{% if reaction.balanced_with_water and balance_with_water_link %}
@@ -70,6 +72,8 @@
 		{% endif %}
 	
 		<input type="submit" name="submit" value="Update" onclick="form.target = '_self';"/> <input type="submit" name="submit" value="Save" onclick="form.target = '_blank';"/>
-	</form>	
+	</form>
+	
+	</div>
 
 {% include "footer.html" %}
