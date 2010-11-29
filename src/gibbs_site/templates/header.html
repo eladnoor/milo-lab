@@ -1,6 +1,7 @@
 <html>
 	<head>
 		<title>{{ title }}</title>
+		<link href="/media/main.css" rel="stylesheet" type="text/css">
 		<link href="/media/style.css" rel="stylesheet" type="text/css">
 		<link href="/media/jquery-ui-1.8.5.custom.css" rel="stylesheet" type="text/css">
 		<script type="text/javascript" src="/media/jquery-1.4.2.min.js"></script>
@@ -9,12 +10,20 @@
 		<script type="text/javascript" src="/media/main.js"></script>
 	</head>
 	<body>
-	
-	{% include "search_form.html" %}
-	
-	{% if error_msg %}
-		<div class="errorMsg">{{ error_msg|safe }}</div>
-	{% endif %}
-	{% if warning %}
-		<div class="warning">{{ warning|safe }}</div>
-	{% endif %}
+		
+	<div class="header clearfix">
+		<div class="logoSmall"><a href="/"><img src="/media/images/equilibrator_logo_small.png" /></a></div>
+		<div id="searchForm">
+			<form name="searchForm" action="/search" method="get">
+				<div>
+					{% if query %}
+						<input type="text" name="query" id="queryField" value="{{ query }}" />
+						{% else %}
+						<input type="text" name="query" id="queryField" />
+					{% endif %}
+		
+					<input type="submit" id="submitButton" value="Search" />
+				</div>
+			</form>
+		</div>
+	</div>

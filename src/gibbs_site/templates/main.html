@@ -1,7 +1,7 @@
 <html>
 	<head>
 		<title>Compound and Reaction Search</title>
-		<link href="/media/style.css" rel="stylesheet" type="text/css">
+		<link href="/media/main.css" rel="stylesheet" type="text/css">
 		<link href="/media/jquery-ui-1.8.5.custom.css" rel="stylesheet" type="text/css">
 		<script type="text/javascript" src="/media/jquery-1.4.2.min.js"></script>
 		<script type="text/javascript" src="/media/jquery-ui-1.8.5.custom.min.js"></script>
@@ -9,23 +9,35 @@
 		<script type="text/javascript" src="/media/main.js"></script>
 	</head>
 	<body>
-	<div id="logo"></div>
 	
-	<div id="title">
-		<div>eQuilibrator</div>
-		<div id="subtitle">The Biochemical Thermodynamics Calculator</div>
-	</div>
+	<div class="centerize">
 	
-	{% include "search_form.html" %}
-	
-	<div class="directions">
-		Search for a <b>compound</b> or <b>reaction</b> or try an <b>example</b> below.
-	</div>
-	
-	{% include "examples.html" %}
-	
-	<div id="footer">
-		{% include "about_links.html" %}
+		<div class="logo">
+			<img src="/media/images/equilibrator_logo.png" />
+		</div>
+		
+		<div class="title">
+			<div>eQuilibrator</div>
+			<div class="subtitle">The Biochemical Thermodynamics Calculator</div>
+		</div>
+			
+		<div id="searchForm">
+			<form name="searchForm" action="/search" method="get">
+				<div>
+					<input type="text" name="query" id="queryField" />
+					<input type="submit" id="submitButton" value="Search" />
+				</div>
+			</form>
+			<div class="directions">
+				Type a <b>compound name</b> or <b>reaction</b> or try an <b>example</b> below.
+			</div>
+		</div>
+		
+		{% include "examples.html" %}
+		
+		<div id="footer">
+			{% include "about_links.html" %}
+		</div>
 	</div>
 	
 	</body>
