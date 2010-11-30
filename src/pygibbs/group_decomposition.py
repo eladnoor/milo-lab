@@ -3,6 +3,7 @@
 import csv
 import logging
 import pybel
+import pylab
 import sys
 
 
@@ -18,53 +19,27 @@ class MalformedGroupDefinitionError(GroupsDataError):
     pass
 
 
-class GroupDecomposition(object):
-    """Class representing the group decomposition of a molecule."""
+class GroupsData(object):
+    """Contains data about all groups."""
     
-    def __init__(self, mol, groups, unassigned_nodes):
-        self.mol = mol
-        self.groups = groups
-        self.unassigned_nodes = unassigned_nodes
-
-    def ToTableString(self):
-        """Returns the decomposition as a tabular string."""
-        spacer = '-' * 50 + '\n'
-        l = ['%30s | %2s | %2s | %s\n' % ("group name", "nH", "z", "nodes"),
-             spacer]
-                
-        for group_name, protons, charge, node_sets in self.groups:
-            for n_set in node_sets:
-                s = '%30s | %2d | %2d | %s\n' % (group_name, protons, charge,
-                                                 ','.join([str(i) for i in n_set]))
-                l.append(s)
-
-        if self.unassigned_nodes:
-            l.append('\nUnassigned nodes: \n')
-            l.append('%10s | %10s | %10s | %10s\n' % ('index', 'atomicnum',
-                                                      'valence', 'charge'))
-            l.append(spacer)
-            
-            for i in self.unassigned_nodes:
-                a = self.mol.atoms[i]
-                l.append('%10d | %10d | %10d | %10d\n' % (i, a.atomicnum,
-                                                          a.heavyvalence, a.formalcharge))
-        return ''.join(l)
-
-
-class GroupDecomposer(object):
-    """Decomposes compounds into their constituent groups."""
-    
-    def __init__(self, groups_data):
-        """Construct a GroupDecomposer.
+    def __init__(self, groups):
+        """Construct GroupsData.
         
         Args:
-            groups_data: a list of per-group data.
+            groups: a list of group tuples, read from CSV.
         """
-        self.groups = groups_data
-
+        self.groups = groups
+        self.all_groups = [(group_name, protons, charge)
+                           for _, group_name, protons, charge, _, _ in groups]
+        # add the 'origin' group (i.e. for the 0-bias of the linear regression)
+        self.all_groups += [('origin', 0, 0)]
+        self.all_group_names = ['%s [H%d %d]' % (group_name, protons, charge) for (group_name, protons, charge) in self.all_groups]
+        self.all_group_protons = pylab.array([protons for (group_name, protons, charge) in self.all_groups])
+        self.all_group_charges = pylab.array([charge for (group_name, protons, charge) in self.all_groups])
+    
     @staticmethod
     def FromGroupsFile(filename):
-        """Factory that initializes a GroupDecomposer from a CSV file."""
+        """Factory that initializes a GroupData from a CSV file."""
         assert filename
         list_of_groups = []
         
@@ -99,7 +74,88 @@ class GroupDecomposer(object):
             gid += 1
         logging.info('Done reading groups data.')
         
-        return GroupDecomposer(list_of_groups)
+        return GroupsData(list_of_groups)    
+
+
+class GroupDecomposition(object):
+    """Class representing the group decomposition of a molecule."""
+    
+    def __init__(self, groups_data, mol, groups, unassigned_nodes):
+        self.groups_data = groups_data
+        self.mol = mol
+        self.groups = groups
+        self.unassigned_nodes = unassigned_nodes
+
+    def ToTableString(self):
+        """Returns the decomposition as a tabular string."""
+        spacer = '-' * 50 + '\n'
+        l = ['%30s | %2s | %2s | %s\n' % ("group name", "nH", "z", "nodes"),
+             spacer]
+                
+        for group_name, protons, charge, node_sets in self.groups:
+            for n_set in node_sets:
+                s = '%30s | %2d | %2d | %s\n' % (group_name, protons, charge,
+                                                 ','.join([str(i) for i in n_set]))
+                l.append(s)
+
+        if self.unassigned_nodes:
+            l.append('\nUnassigned nodes: \n')
+            l.append('%10s | %10s | %10s | %10s\n' % ('index', 'atomicnum',
+                                                      'valence', 'charge'))
+            l.append(spacer)
+            
+            for i in self.unassigned_nodes:
+                a = self.mol.atoms[i]
+                l.append('%10d | %10d | %10d | %10d\n' % (i, a.atomicnum,
+                                                          a.heavyvalence, a.formalcharge))
+        return ''.join(l)
+
+    def __str__(self):
+        """Convert the groups to a string."""        
+        group_strs = []
+        for group_name, protons, charge, node_sets in self.groups:
+            if node_sets:
+                group_strs.append('%s [H%d %d] x %d' % (group_name, protons, charge, len(node_sets)))
+        return " | ".join(group_strs)
+    
+    def AsVector(self):
+        """Return the group in vector format.
+        
+        Note: self.groups contains an entry for *all possible* groups, which is
+        why this function returns consistent values for all compounds.
+        """
+        origin = [1]
+        group_vec = [len(node_sets) for (gname, ps, charge, node_sets) in self.groups]
+        return group_vec + origin
+
+    def ToVectorString(self):
+        """A string of the vector representation."""
+        group_strs = []
+        gvec = self.AsVector()
+        
+        for i, name in enumerate(self.groups_data.all_group_names):
+            if gvec[i]:
+                group_strs.append('%s x %d' % (name, gvec[i]))
+        return " | ".join(group_strs)
+
+
+class GroupDecomposer(object):
+    """Decomposes compounds into their constituent groups."""
+    
+    def __init__(self, groups_data):
+        """Construct a GroupDecomposer.
+        
+        Args:
+            groups_data: a GroupsData object.
+        """
+        self.groups_data = groups_data
+
+    @staticmethod
+    def FromGroupsFile(filename):
+        """Factory that initializes a GroupDecomposer from a CSV file."""
+        assert filename
+        gd = GroupsData.FromGroupsFile(filename)
+        return GroupDecomposer(gd)
 
     @staticmethod
     def _IsPhosphate(group_name):
@@ -139,19 +195,18 @@ class GroupDecomposer(object):
     def _TerminalPChainSmarts(length):
         return ''.join(['[OH,O-]', 'P(=O)([OH,O-])O' * length, 'C'])
 
-    # Not intended to be mutable.
-    DEFAULT_PHOSPHATE_GROUP_MAP = {
-            # Initial group
-            ("-OPO3-", 1, 0): [],
-            ("-OPO3-", 0, -1): [],
-            # Middle group
-            ("-OPO2-", 1, 0): [],
-            ("-OPO2-", 0, -1): [],
-            # Final group
-            #("-OPO3",  2,  0): [],
-            ("-OPO3", 1, -1): [],
-            ("-OPO3", 0, -2): []
-            }
+    INITIAL_P_1 = ("-OPO3-", 1, 0)
+    INITIAL_P_2 = ("-OPO3-", 0, -1)
+    MIDDLE_P_1 = ("-OPO2-", 1, 0)
+    MIDDLE_P_2 = ("-OPO2-", 0, -1)
+    FINAL_P_1 = ("-OPO3", 1, -1)
+    FINAL_P_2 = ("-OPO3", 0, -2)
+    #FINAL_P_3 = ("-OPO3",  2,  0)
+    
+    PHOSPHATE_GROUPS = (
+        INITIAL_P_1, INITIAL_P_2,
+        MIDDLE_P_1, MIDDLE_P_2,
+        FINAL_P_1, FINAL_P_2)
 
     @staticmethod
     def FindPhosphateChains(mol, max_length=3, ignore_protonations=False):
@@ -167,7 +222,7 @@ class GroupDecomposer(object):
         Returns:
             
         """
-        group_map = dict(GroupDecomposer.DEFAULT_PHOSPHATE_GROUP_MAP)
+        group_map = dict((pg, []) for pg in GroupDecomposer.PHOSPHATE_GROUPS)
         v_charge = [a.formalcharge for a in mol.atoms]
         
         for length in xrange(1, max_length + 1):
@@ -238,7 +293,7 @@ class GroupDecomposer(object):
         unassigned_nodes = set(range(len(mol.atoms)))
         groups = []
         
-        for (gid, group_name, protons, charge, smarts_str, focal_atoms) in self.groups:
+        for _, group_name, protons, charge, smarts_str, focal_atoms in self.groups_data.groups:
             # Phosphate chains require a special treatment
             if self._IsPhosphate(group_name):
                 pchain_groups = None
@@ -283,7 +338,8 @@ class GroupDecomposer(object):
         for nodes in self.FindSmarts(mol, '[H]'): 
             unassigned_nodes = unassigned_nodes - set(nodes)
         
-        decomposition = GroupDecomposition(mol, groups, unassigned_nodes)
+        decomposition = GroupDecomposition(self.groups_data, mol,
+                                           groups, unassigned_nodes)
         if assert_result and decomposition.unassigned_nodes:
             raise GroupDecompositionError('Unable to decompose %s into groups.\n%s' %
                                           (mol.title, decomposition.ToTableString()))
@@ -291,15 +347,22 @@ class GroupDecomposer(object):
         return decomposition
 
 
-if __name__ == '__main__':
+def main():
     decomposer = GroupDecomposer.FromGroupsFile('../../data/thermodynamics/groups_species.csv')
     
-    smiles = 'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O'
-    smiles = 'C1C=CN(C=C1C(=O)N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OCC3C(C(C(O3)N4C=NC5=C4N=CN=C5N)O)O)O)O'
-    #smiles = 'C(C1C(C(C(C(O1)O)O)O)O)O'
-    mol = pybel.readstring('smiles', smiles)
-    
-    decomposition = decomposer.Decompose(mol)
-    print decomposition.ToTableString()
+    # ATP
+    atp = 'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O'
+    # CoA
+    coa = 'C1C=CN(C=C1C(=O)N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OCC3C(C(C(O3)N4C=NC5=C4N=CN=C5N)O)O)O)O'
+    # Glucose
+    glucose = 'C(C1C(C(C(C(O1)O)O)O)O)O'
+    smiless = [atp, coa, glucose]
+    mols = [pybel.readstring('smiles', s) for s in smiless]
 
-    
+    for mol in mols:    
+        decomposition = decomposer.Decompose(mol)
+        print decomposition.ToTableString()
+        print decomposition.ToVectorString()
+
+if __name__ == '__main__':
+    main()   
