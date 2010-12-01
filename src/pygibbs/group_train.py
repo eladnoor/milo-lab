@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from pygibbs.groups import GroupContribution
 from toolbox.sql import write_csv_table
 

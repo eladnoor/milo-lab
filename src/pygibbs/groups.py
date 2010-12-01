@@ -1,4 +1,14 @@
-import sys, pybel, openbabel, csv, pylab, sqlite3, re, types
+#!/usr/bin/python
+
+import sys
+import pybel
+import openbabel
+import csv
+import pylab
+import sqlite3
+import re
+import types
+
 from copy import deepcopy
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.util import matrixrank, multi_distribute, log_sum_exp, _mkdir
@@ -8,75 +18,7 @@ from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr,
 from pygibbs import kegg
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException
-
-
-def find_smarts(smarts_str, mol):
-    """
-        This corrects the pyBel version of Smarts.findall() which returns results as tuples,
-        and as 1-based indices, although Molecule.atoms is 0-based.
-        Note that 'nodes' is 1-based, since that's how Smarts works
-    """
-    results = []
-    for match in pybel.Smarts(smarts_str).findall(mol):
-        results.append([(n - 1) for n in match])
-    return results
-
-
-def find_pchains(mol, lengths=(1, 2, 3), ignore_protonations=False):
-    """
-        end should be 'OC' for chains that do not really end, but link to carbons
-        end should be '[O-1,OH]' for chains that end in an hydroxyl
-    """
-    group_map = {}
-    group_map[("-OPO3-", 1, 0)] = [] # init group
-    group_map[("-OPO3-", 0, -1)] = [] # init group
-    group_map[("-OPO2-", 1, 0)] = [] # middle group
-    group_map[("-OPO2-", 0, -1)] = [] # middle group
-    #group_map[("-OPO3",  2,  0)] = [] # final group
-    group_map[("-OPO3", 1, -1)] = [] # final group
-    group_map[("-OPO3", 0, -2)] = [] # final group
-
-    v_charge = [a.formalcharge for a in mol.atoms]
-    
-    for length in lengths:
-        smarts_str = "CO" + ("P(=O)([OH,O-])O" * length) + "C"
-        for pchain in find_smarts(smarts_str, mol):
-            if (ignore_protonations):
-                group_map[("-OPO3-", 0, -1)].append(set(pchain[1:6]))
-            else:
-                charge = v_charge[pchain[4]]
-                protons = charge + 1
-                group_map[("-OPO3-", protons, charge)].append(set(pchain[1:6]))
-            for i in range(6, len(pchain) - 1, 4):
-                if (ignore_protonations):
-                    group_map[("-OPO2-", 0, -1)].append(set(pchain[i:(i + 4)]))
-                else:
-                    charge = v_charge[pchain[i + 2]]
-                    protons = charge + 1
-                    group_map[("-OPO2-", protons, charge)].append(set(pchain[i:(i + 4)]))
-    
-        smarts_str = "[OH,O-]" + ("P(=O)([OH,O-])O" * length) + "C"
-        for pchain in find_smarts(smarts_str, mol):
-            if (ignore_protonations):
-                group_map[("-OPO3", 1, -1)].append(set(pchain[0:5]))
-            else:
-                charge = v_charge[pchain[0]] + v_charge[pchain[3]]
-                protons = charge + 2
-                if (("-OPO3", protons, charge) not in group_map):
-                    sys.stderr.write("WARNING: This protonation (%d) level is not allowed for terminal phosphate groups. " % protons)
-                    sys.stderr.write("Assuming the level is actually 1 - i.e. the charge is (-1).\n")
-                    group_map[("-OPO3", 1, -1)].append(set(pchain[0:5]))
-                else:
-                    group_map[("-OPO3", protons, charge)].append(set(pchain[0:5]))
-            for i in range(5, len(pchain) - 1, 4):
-                if (ignore_protonations):
-                    group_map[("-OPO2-", 0, -1)].append(set(pchain[i:(i + 4)]))
-                else:
-                    charge = v_charge[pchain[i + 2]]
-                    protons = charge + 1
-                    group_map[("-OPO2-", protons, charge)].append(set(pchain[i:(i + 4)]))
-                
-    return sorted(list(group_map.iteritems()))
+from pygibbs import group_decomposition
 
 
 class GroupContributionError(Exception):
@@ -182,7 +124,7 @@ class GroupContribution(Thermodynamics):
                     self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot determine molecular structure"))
                     continue
                 try:
-                    pmap = self.estimate_pmap(mol)
+                    pmap = self.estimate_pmap(mol, ignore_protonations=True)
                 except GroupDecompositionError:
                     self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot decompose into groups"))
                     continue
@@ -192,7 +134,7 @@ class GroupContribution(Thermodynamics):
                 self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "OK"))
                 self.cid2pmap_dict[cid] = pmap
                 for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
-                    self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, True))
+                    self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, int(nH), int(z), dG0, True))
             
             self.comm.commit()
 
@@ -228,10 +170,10 @@ class GroupContribution(Thermodynamics):
 
         self.comm.execute("DROP TABLE IF EXISTS contribution")
         self.comm.execute("CREATE TABLE contribution (gid INT, name TEXT, protons INT, charge INT, dG0_gr REAL)")
-        for i in range(len(self.group_contributions)):
+        for i, gc in enumerate(self.group_contributions):
             j = int(self.nonzero_groups[i])
-            (name, protons, charge) = self.all_groups[j]
-            self.comm.execute("INSERT INTO contribution VALUES(?,?,?,?,?)", (j, name, protons, charge, self.group_contributions[i]))
+            name, protons, charge = self.groups_data.all_groups[j]
+            self.comm.execute("INSERT INTO contribution VALUES(?,?,?,?,?)", (j, name, protons, charge, gc))
             
         self.comm.execute("DROP TABLE IF EXISTS observation")
         self.comm.execute("CREATE TABLE observation (cid INT, name TEXT, protons INT, charge INT, dG0_f REAL, use_for TEXT)")
@@ -248,50 +190,14 @@ class GroupContribution(Thermodynamics):
         self.comm.commit()
             
     def load_groups(self, group_fname=None):
-        self.list_of_groups = [] # a map of inchi string to the location in the group_list
-        if (group_fname != None):
-            sys.stderr.write("Loading the list of groups from %s into the database ... " % group_fname)
-            group_csv_file = csv.reader(open(group_fname, 'r'))
-            group_csv_file.next()
-        
-            self.comm.execute("DROP TABLE IF EXISTS groups;")
-            self.comm.execute("CREATE TABLE groups (gid INT, name TEXT, protons INT, charge INT, smarts TEXT, focal_atoms TEXT, remark TEXT)")
-            gid = 0
-            for row in group_csv_file:
-                try:
-                    (group_name, protons, charge, smarts, focal_atom_set, remark) = row
-                except ValueError:
-                    raise Exception("Wrong number of columns (%d) in one of the rows in %s: %s" % (len(row), group_fname, str(row)))
-                try: # this is just to make sure the Smarts definition are proper
-                    pybel.Smarts(smarts)
-                except IOError:
-                    raise Exception("Cannot parse SMARTS from line %d: %s" % (group_csv_file.line_num, smarts))
-                
-                self.comm.execute("INSERT INTO groups VALUES(?,?,?,?,?,?,?)", (gid, group_name, int(protons), int(charge), smarts, focal_atom_set, remark))
-                gid += 1
-            sys.stderr.write("[DONE]\n")
-            self.comm.commit()
-
-        sys.stderr.write("Reading the list of groups from the database ... ")
-        for row in self.comm.execute("SELECT * FROM groups"):
-            (gid, group_name, protons, charge, smarts, focal_atom_set, remark) = row
+        if group_fname:
+            self.groups_data = group_decomposition.GroupsData.FromGroupsFile(group_fname)
+            self.groups_data.ToDatabase(self.comm)
+        else:
+            self.groups_data = group_decomposition.GroupsData.FromDatabase(self.comm)
             
-            if (focal_atom_set != ""): # otherwise, consider all the atoms as focal atoms
-                focal_atoms = set([int(i) for i in focal_atom_set.split('|')])
-            else:
-                focal_atoms = None
+        self.group_decomposer = group_decomposition.GroupDecomposer(self.groups_data)
 
-            self.list_of_groups.append((gid, group_name, protons, charge, str(smarts), focal_atoms))
-        sys.stderr.write("[DONE]\n")
-
-        mol = pybel.readstring('smi', 'C') # the specific compound is meaningless since we only want the group names
-        mol.removeh()
-        (groups, unassigned_nodes) = self.decompose(mol)
-        self.all_groups = [(group_name, protons, charge) for (group_name, protons, charge, node_sets) in groups] + [('origin', 0, 0)] # add the 'origin' group (i.e. for the 0-bias of the linear regression)
-        self.all_group_names = ["%s [H%d %d]" % (group_name, protons, charge) for (group_name, protons, charge) in self.all_groups]
-        self.all_group_protons = pylab.array([protons for (group_name, protons, charge) in self.all_groups])
-        self.all_group_charges = pylab.array([charge for (group_name, protons, charge) in self.all_groups])
-    
     def does_table_exist(self, table_name):
         for row in self.comm.execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
             return True
@@ -323,129 +229,15 @@ class GroupContribution(Thermodynamics):
         for media in self.media_list:
             if ((cid, media) in self.cid2conc):
                 c_list.append((media, self.cid2conc[(cid, media)]))
-        return c_list
-    
-    def decompose(self, mol, ignore_protonations=False, assert_result=False):
-        """
-            The flag 'ignore_protonations' should be used when decomposing a compound with lacing protonation
-            representation (for example, the KEGG database doesn't posses this information).
-            If this flag is set to True, it overrides the '(C)harge sensitive' flag in the groups file (i.e. - *PC)
-        """
-        unassigned_nodes = set(range(len(mol.atoms)))
-        groups = []
-        for (gid, group_name, protons, charge, smarts_str, focal_atoms) in self.list_of_groups:
-    
-            if (group_name[0:2] == "*P"): # phosphate chains require a special treatment
-                if (group_name[2] == "I" or ignore_protonations): # (I)gnore charges
-                    pchain_groups = find_pchains(mol, ignore_protonations=True)
-                elif (group_name[2] == "C"): # (C)harge sensitive
-                    pchain_groups = find_pchains(mol, ignore_protonations=False)
-                else:
-                    raise Exception("Unrecognized phosphate wildcard: " + group_name)
-                for (group_key, group_nodesets) in pchain_groups:
-                    (group_name, protons, charge) = group_key
-                    current_groups = []
-                    for focal_set in group_nodesets:
-                        if (focal_set.issubset(unassigned_nodes)): # check that the focal-set doesn't override an assigned node
-                            current_groups.append(focal_set)
-                            unassigned_nodes = unassigned_nodes - focal_set
-                    groups.append((group_name, protons, charge, current_groups))
-            else:
-                current_groups = []
-                for nodes in find_smarts(smarts_str, mol):
-                    try:
-                        if (focal_atoms != None):
-                            focal_set = set([nodes[i] for i in focal_atoms])
-                        else:
-                            focal_set = set(nodes)
-                    except IndexError:
-                        sys.stderr.write("Focal set for group %s is out of range: %s" % (group_name, str(focal_atoms)))
-                        sys.exit(-1)
-
-                    if (focal_set.issubset(unassigned_nodes)): # check that the focal-set doesn't override an assigned node
-                        current_groups.append(focal_set)
-                        unassigned_nodes = unassigned_nodes - focal_set
-                groups.append((group_name, protons, charge, current_groups))
-        
-        for nodes in find_smarts("[H]", mol): # ignore the hydrogen atoms when checking which atom is unassigned
-            unassigned_nodes = unassigned_nodes - set(nodes)
-        
-        if (assert_result and len(unassigned_nodes) > 0):
-            s = self.groups_to_table(mol, groups, unassigned_nodes)
-            raise GroupDecompositionError("Unable to decompose %s into groups.\n%s" % (mol.title, s))        
-        return (groups, unassigned_nodes)
-        
-    def groups_to_string(self, groups):    
-        group_strs = []
-        for (group_name, protons, charge, node_sets) in groups:
-            if (len(node_sets) > 0):
-                group_strs.append('%s [H%d %d] x %d' % (group_name, protons, charge, len(node_sets)))
-        return " | ".join(group_strs)
-    
-    def get_decomposition_str(self, mol):
-        (groups, unassigned_nodes) = self.decompose(mol, assert_result=True)
-        self.groups_to_string(groups)
-    
-    def groups_to_vector(self, groups):
-        return [len(node_sets) for (group_name, protons, charge, node_sets) in groups] + [1] # add 1 for the 'origin' group
-    
-    def get_groupvec(self, mol):
-        (groups, unassigned_nodes) = self.decompose(mol, assert_result=True)
-        return self.groups_to_vector(groups)
-        
-    def groupvec2str(self, groupvec):
-        group_strs = []
-        for i in range(len(self.all_group_names)):
-            if (groupvec[i] > 0):
-                group_strs.append('%s x %d' % (self.all_group_names[i], groupvec[i]))
-        return " | ".join(group_strs)
-    
-    def groupvec2charge(self, groupvec):
-        return int(pylab.dot(groupvec, self.all_group_charges))
-
-    def groupvec2protons(self, groupvec):
-        return int(pylab.dot(groupvec, self.all_group_protons))            
-
-    def get_protonated_groupvec(self, mol):
-        (groups, unassigned_nodes) = self.decompose(mol, ignore_protonations=True, assert_result=True)
-        
-        # 'group_name_to_index' is a map from each group name to its indices in the groupvec
-        # note that some groups appear more than once (since they can have multiple protonation
-        # levels).
-        group_name_to_index = {}
-
-        # 'group_name_to_count' is a map from each group name to its number of appearences in 'mol'
-        group_name_to_count = {}
-        for i in range(len(groups)):
-            (group_name, protons, charge, node_sets) = groups[i]
-            group_name_to_index[group_name] = group_name_to_index.get(group_name, []) + [i]
-            group_name_to_count[group_name] = group_name_to_count.get(group_name, 0) + len(node_sets)
-        
-        index_vector = [] # maps the new indices to the original ones that are used in groupvec
-
-        # a list of pairs, each containing the 'count' of each group and the number of possible protonations.
-        total_slots_pairs = [] 
-
-        for group_name in group_name_to_index.keys():
-            groupvec_indices = group_name_to_index[group_name]
-            index_vector += groupvec_indices
-            total_slots_pairs.append((group_name_to_count[group_name], len(groupvec_indices)))
-
-        # generate all possible assignments of protonations. Each group can appear several times, and we
-        # can assign a different protonation level to each of the instances.
-        groupvec_list = []
-        for assignment in multi_distribute(total_slots_pairs):
-            v = [0] * len(index_vector)
-            for i in range(len(v)):
-                v[index_vector[i]] = assignment[i]
-            groupvec_list.append(v + [1]) # add 1 for the 'origin' group
-        return groupvec_list
+        return c_list        
             
     def get_pseudoisomers(self, mol):
         pseudoisomers = set()
-        for groupvec in self.get_protonated_groupvec(mol):
-            nH = self.groupvec2protons(groupvec)
-            z = self.groupvec2charge(groupvec)
+        decomposition = self.group_decomposer.Decompose(mol)
+        
+        for groupvec in decomposition.PseudoisomerVectors():
+            nH = groupvec.Protons()
+            z = groupvec.NetCharge()
             pseudoisomers.add((nH, z))
         return sorted(list(pseudoisomers))
         
@@ -549,16 +341,20 @@ class GroupContribution(Thermodynamics):
             except AssertionError:
                 raise Exception("PyBel failed when trying to draw the compound %s" % compound_name)
     
-            (groups, unassigned_nodes) = self.decompose(mol, assert_result=True)
-            groupvec = self.groups_to_vector(groups)
+            decomposition = self.group_decomposer.Decompose(mol, strict=True)
+            groupvec = decomposition.AsVector()
             self.mol_names.append(name)
             X.append(groupvec)
             y.append(dG0)
-            self.HTML.write("Decomposition = %s<br>\n" % self.groups_to_string(groups))
-            if (int(hydrogens) != self.groupvec2protons(groupvec)):
-                self.HTML.write("ERROR: Hydrogen count doesn't match: explicit = %d, formula = %d<br>\n" % (int(hydrogens), self.groupvec2protons(groupvec)))
-            if (int(charge) != self.groupvec2charge(groupvec)):
-                self.HTML.write("ERROR: Charge doesn't match: explicit = %d, formula = %d<br>\n" % (int(charge), self.groupvec2charge(groupvec)))
+            self.HTML.write("Decomposition = %s<br>\n" % decomposition)
+            
+            gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
+            if int(hydrogens) != gc_hydrogens:
+                self.HTML.write("ERROR: Hydrogen count doesn't match: explicit = %d, formula = %d<br>\n" %
+                                (int(hydrogens), gc_hydrogens))
+            if int(charge) != gc_charge:
+                self.HTML.write("ERROR: Charge doesn't match: explicit = %d, formula = %d<br>\n" %
+                                (int(charge), gc_charge))
                 
         if (X == []):
             raise Exception("Could not use any of the groups in dG0.csv, aborting.")
@@ -595,7 +391,7 @@ class GroupContribution(Thermodynamics):
                 self.HTML.write('INCHI = %s<br>\n' % inchi)
                 self.inchi2val_obs[inchi] = obs_val
                 
-                groupvec = self.get_groupvec(mol)
+                groupvec = self.group_decomposer.Decompose(mol).AsVector()
                 self.mol_list.append(mol)
                 X.append(groupvec)
                 y.append(obs_val)
@@ -627,7 +423,7 @@ class GroupContribution(Thermodynamics):
         
         self.comm.execute("DROP TABLE IF EXISTS train_groups")
         self.comm.execute("CREATE TABLE train_groups (name TEXT, protons INT, charge INT)")
-        for (group_name, protons, charge) in self.all_groups:
+        for (group_name, protons, charge) in self.groups_data.all_groups:
             self.comm.execute("INSERT INTO train_groups VALUES(?,?,?)", (group_name, protons, charge))
 
         self.comm.execute("DROP TABLE IF EXISTS train_molecules")
@@ -654,14 +450,14 @@ class GroupContribution(Thermodynamics):
 
     def export_training_data(self, prefix):
         gmat_csv = csv.writer(open(prefix + "group_matrix.csv", "w"))
-        gmat_csv.writerow(["compound name"] + self.all_group_names + ["observed dG0"])
+        gmat_csv.writerow(["compound name"] + self.groups_data.all_group_names + ["observed dG0"])
         (n_comp, n_groups) = self.group_matrix.shape
         for i in range(n_comp):
             gmat_csv.writerow([self.mol_names[i]] + [x for x in self.group_matrix[i, :]] + [self.obs[i]])
 
         glist_csv = csv.writer(open(prefix + "groups.csv", "w"))
         glist_csv.writerow(("GROUP NAME", "PROTONS", "CHARGE"))
-        for (group_name, protons, charge) in self.all_groups:
+        for (group_name, protons, charge) in self.groups_data.all_groups:
             glist_csv.writerow((group_name, protons, charge))
     
     def linear_regression_train(self):
@@ -708,18 +504,19 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
         self.HTML.write('<table border="1">')
         self.HTML.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>z</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
-        for i in xrange(len(self.nonzero_groups)):
+        for i, group in enumerate(self.nonzero_groups):
             contribution = self.group_contributions[i]
-            (group_name, nH, z) = self.all_groups[self.nonzero_groups[i]]
+            group_name, nH, z = self.groups_data.all_groups[group]
             compound_list_str = ' | '.join([self.mol_names[k] for k in pylab.find(group_matrix_reduced[:, i] > 0)])
             self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' % \
                             (i, group_name, nH, z, contribution, compound_list_str))
         self.HTML.write('</table>\n')
 
         self.HTML.write("<p>\nGroups that had no examples in the training set:<br>\n")
-        zero_groups = set(range(len(self.all_groups))).difference(self.nonzero_groups)
+        zero_groups = set(range(len(self.groups_data.all_groups))).difference(self.nonzero_groups)
         self.HTML.write("<ol>\n<li>")
-        self.HTML.write("</li>\n<li>".join(["%s [nH=%d, z=%d]" % self.all_groups[i] for i in sorted(zero_groups)]))
+        self.HTML.write("</li>\n<li>".join(["%s [nH=%d, z=%d]" % self.groups_data.all_groups[i]
+                                            for i in sorted(zero_groups)]))
         self.HTML.write("</li>\n</ol>\n</p>\n")
 
     def analyze_training_set(self):
@@ -798,22 +595,24 @@ class GroupContribution(Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
 
-    def estimate_pmap(self, mol):
+    def estimate_pmap(self, mol, ignore_protonations=False):
         try:
-            all_groupvecs = self.get_protonated_groupvec(mol)
+            all_groupvecs = self.group_decomposer.Decompose(
+                mol, ignore_protonations).PseudoisomerVectors()
         except GroupDecompositionError as e:
             raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
 
         all_missing_groups = []
         pmap = {}
         for groupvec in all_groupvecs:
-            nH = self.groupvec2protons(groupvec)
-            z = self.groupvec2charge(groupvec)
+            nH = groupvec.Hydrogens()
+            z = groupvec.NetCharge()
             try:
                 dG0 = self.groupvec2val(groupvec)
                 pmap.setdefault((nH, z), []).append(dG0)
             except GroupMissingTrainDataError as e:
-                s = "Species nH = %d, z = %d : " % (nH, z) + ", ".join([self.all_group_names[g] for g in e.missing_groups])
+                s = "Species nH = %d, z = %d : " % (nH, z) + ", ".join([self.groups_data.all_group_names[g]
+                                                                        for g in e.missing_groups])
                 all_missing_groups.append(s)
         
         if (len(pmap) == 0):
@@ -1581,53 +1380,19 @@ class GroupContribution(Thermodynamics):
         return self.analyze_decomposition(self.kegg().cid2mol(cid))
 
     def analyze_decomposition(self, mol):
-        (groups, unassigned_nodes) = self.decompose(mol)
-        return GroupContribution.groups_to_table(mol, groups, unassigned_nodes)
+        return self.group_decomposer.Decompose(mol).ToTableString()
         
-    @staticmethod
-    def groups_to_table(mol, groups, unassigned_nodes):
-        s = ""
-        s += "%30s | %2s | %2s | %s\n" % ("group name", "nH", "z", "nodes")
-        s += "-" * 50 + "\n"
-        for (group_name, protons, charge, node_sets) in groups:
-            for n_set in node_sets:
-                s += "%30s | %2d | %2d | %s\n" % (group_name, protons, charge, ','.join([str(i) for i in n_set]))
-        if (len(unassigned_nodes) > 0):
-            s += "\nUnassigned nodes: \n"
-            s += "%10s | %10s | %10s | %10s\n" % ('index', 'atomicnum', 'valence', 'charge')
-            s += "-" * 50 + "\n"
-            for i in unassigned_nodes:
-                a = mol.atoms[i]
-                s += "%10d | %10d | %10d | %10d\n" % (i, a.atomicnum, a.heavyvalence, a.formalcharge)
-        return s
 
 #################################################################################################################
 #                                                   MAIN                                                        #
 #################################################################################################################
     
-if (__name__ == '__main__'):
-
-    G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
-    G.read_compound_abundance("../data/thermodynamics/compound_abundance.csv")
-    G.write_gc_tables()
-    G.init()
-    G.load_cid2pmap(recalculate=False)
-    G.cid2pmap(3167)
-
-    if (False): # Affinity of substrate group contribution
-        G = GroupContribution("Km", "../data/groups_martin.csv")
-        G.train("../data/cid_vs_log-km.csv", use_dG0_format=False)
+if __name__ == '__main__':
     
-        G.write_cid_group_matrix("../res/group_matrix.csv")
-
-    if (False): # for Shira
-        G = GroupContribution("dG0", "../data/groups_for_shira.csv")
-        
-        mol = G.kegg().cid2mol(58)
-        (groups, unassigned_nodes) = G.decompose(mol)
-        for i in unassigned_nodes:
-            print mol.atoms[i].type
-        
-        G.write_rid_group_matrix("../res/rid_to_groups.csv")
+    G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_train")
+    G.load_groups("../data/thermodynamics/groups_species.csv")
+    G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
+    G.analyze_training_set()
+    G.load_cid2pmap(recalculate=True) 
 
 
