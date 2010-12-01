@@ -91,12 +91,11 @@ class GroupContribution(Thermodynamics):
         self.load_contributions()
         self.load_concentrations()
         self.load_training_data()
-        self.load_cid2pmap(recalculate=False)
+        self.load_cid2pmap()
         self.kegg()
 
-    def load_cid2pmap(self, recalculate=False):
-        if (not self.does_table_exist('gc_cid2prm') or recalculate):
-            sys.stderr.write("Recalculating the table of chemical formation energies for all KEGG compounds:\n")
+    def save_cid2pmap(self, recalculate=False):
+            sys.stderr.write("Calculating the table of chemical formation energies for all KEGG compounds:\n")
             self.comm.execute("DROP TABLE IF EXISTS gc_cid2prm")
             self.comm.execute("DROP TABLE IF EXISTS gc_cid2error")
             self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
@@ -138,6 +137,7 @@ class GroupContribution(Thermodynamics):
             
             self.comm.commit()
 
+    def load_cid2pmap(self):
         self.cid2pmap_dict = {}
 
         # Now load the data into the cid2pmap_dict:
@@ -1393,6 +1393,5 @@ if __name__ == '__main__':
     G.load_groups("../data/thermodynamics/groups_species.csv")
     G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
     G.analyze_training_set()
-    G.load_cid2pmap(recalculate=True) 
-
+    G.save_cid2pmap(recalculate=True) 
 
