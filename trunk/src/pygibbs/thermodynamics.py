@@ -22,7 +22,7 @@ class Thermodynamics:
         self.I = default_I
         self.T = default_T
         
-        self.c_mid = 1e-4
+        self.c_mid = 1e-3
         self.c_range = (1e-6, 1e-2)
         self.bounds = {}
         self.source_string = "Unknown"

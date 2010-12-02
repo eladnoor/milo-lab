@@ -301,14 +301,16 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
         name = kegg.cid2name(cid)
         try:
             for (nH, z, dG0) in  thermodynamics.cid2pmatrix(cid):
-                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (cid, name, dG0, nH, z))
+                html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % \
+                                  (kegg.cid2link(cid), cid, name, dG0, nH, z))
             dG0_f[c] = thermodynamics.cid_to_dG0(cid)
         
         except MissingCompoundFormationEnergy:
             # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
             dG0_f[c] = pylab.nan
             ind_nan.append(c)
-            html_writer.write('<tr><td>C%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % (cid, name))
+            html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % \
+                              (kegg.cid2link(cid), cid, name))
     html_writer.write('</table>\n')
     
     bounds = [thermodynamics.bounds.get(cid, (None, None)) for cid in cids]
@@ -423,11 +425,11 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
             name = kegg.cid2name(cid)
 
             if (pylab.isnan(dG0_f[c, 0])):
-                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n' % \
-                                  (cid, name, "N/A", "N/A", "N/A"))
+                html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n' % \
+                                  (kegg.cid2link(cid), cid, name, "N/A", "N/A", "N/A"))
             else:
-                html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%.2g</td><td>%.2f</td><td>%.2f</td></tr>\n' % \
-                                  (cid, name, conc[c, 0], dG0_f[c, 0], dG_f[c, 0]))
+                html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2g</td><td>%.2f</td><td>%.2f</td></tr>\n' % \
+                                  (kegg.cid2link(cid), cid, name, conc[c, 0], dG0_f[c, 0], dG_f[c, 0]))
         html_writer.write('</table></p>\n')
 
         html_writer.write('<p>Biochemical Reaction Energies (%s = %.1f)<br>\n' % (optimization, score))

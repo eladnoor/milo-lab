@@ -96,7 +96,7 @@ class Stoichiometric_LP():
         for r in range(len(self.reactions)):
             self.cpl.linear_constraints.set_coefficients('num_reactions', self.reactions[r].name + "_gamma", 1)
     
-    def add_dGr_constraints(self, thermodynamics, pCr=False, MCMF=False):
+    def add_dGr_constraints(self, thermodynamics, pCr=False, MCMF=False, maximal_dG=0.0):
         """
             Create concentration variables for each CID in the database (at least in one reaction).
             If this compound doesn't have a dG0_f, its concentration will not be constrained.
@@ -121,15 +121,14 @@ class Stoichiometric_LP():
             self.mcmf = True
             self.cpl.variables.add(names=["mcmf"], lb=[-1e6], ub=[1e6])
         
-        all_cids_in_reactions = set()
         for r in range(len(self.reactions)):
-            all_cids_in_reactions = all_cids_in_reactions.union(self.reactions[r].sparse.keys())
+            self.cids_with_concentration = self.cids_with_concentration.union(self.reactions[r].sparse.keys())
         
         cid2dG0 = {}
         
         # if the dG0_f is unknown, the concentration must remain unbound
         # therefore we leave only the known compounds in the encountered_cids set
-        for cid in all_cids_in_reactions:
+        for cid in self.cids_with_concentration:
             self.cpl.variables.add(names=["C%05d_conc" % cid], lb=[-1e6], ub=[1e6])
             try:
                 cid2dG0[cid] = thermodynamics.cid_to_dG0(cid)
@@ -175,7 +174,7 @@ class Stoichiometric_LP():
             self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1e6)
             if (self.mcmf):
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "mcmf", -1)
-            self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - dG0_r/(R*thermodynamics.T))
+            self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - (dG0_r - maximal_dG)/(R*thermodynamics.T))
 
     def add_localized_dGf_constraints(self, thermodynamics):
         for r in range(len(self.reactions)):
@@ -219,21 +218,6 @@ class Stoichiometric_LP():
             for c in pylab.find(self.S[:,r] != 0):
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "C%05d_potential" % self.compounds[c].cid, self.S[c,r])
 
-    def ban_current_solution(self):
-        if (self.milp == False):
-            raise Exception("Cannot ban a solution without the MILP variables")
-
-        constraint_name = "solution_%03d" % self.solution_index
-        self.solution_index += 1
-
-        self.cpl.linear_constraints.add(names=[constraint_name], senses='L')
-        N_active = 0
-        for r in range(len(self.reactions)):
-            if (self.gammas[r] > 0.5 and self.fluxes[r] > 1e-6):
-                self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1)
-                N_active += 1
-        self.cpl.linear_constraints.set_rhs(constraint_name, N_active - 1)
-
     def set_objective(self):
         if (self.milp == False): # minimize the total flux of reactions (weighted)
             obj = [(self.reactions[r].name, weight) for (r, weight) in self.weights]
@@ -248,7 +232,7 @@ class Stoichiometric_LP():
 
     def solve(self, export_fname=None):
         self.cpl.solve()
-        if (self.milp == False):
+        if not self.milp:
             if (self.cpl.solution.get_status() == cplex.callbacks.SolveCallback.status.optimal):
                 self.fluxes = self.cpl.solution.get_values([rn.name for rn in self.reactions])
                 self.gammas = []
@@ -257,6 +241,7 @@ class Stoichiometric_LP():
                         self.gammas.append(1)
                     else:
                         self.gammas.append(0)
+                self.log_concentrations = None
                 return True
             else:
                 return False
@@ -264,28 +249,64 @@ class Stoichiometric_LP():
             if (self.cpl.solution.get_status() == cplex.callbacks.SolveCallback.status.MIP_optimal):
                 self.fluxes = self.cpl.solution.get_values([rn.name for rn in self.reactions])
                 self.gammas = self.cpl.solution.get_values([rn.name + "_gamma" for rn in self.reactions])
+                self.log_concentrations = []
+                if self.use_dG_f:
+                    for c in self.compounds:
+                        if (c.cid in self.cids_with_concentration):
+                            self.log_concentrations += self.cpl.solution.get_values(["C%05d_conc" % c.cid])
+                        else:
+                            self.log_concentrations += [pylab.NaN]
                 return True
             else:
                 return False
+
+    def ban_current_solution(self):
+        if (self.milp == False):
+            raise Exception("Cannot ban a solution without the MILP variables")
+
+        constraint_name = "solution_%03d" % self.solution_index
+        self.solution_index += 1
+
+        self.cpl.linear_constraints.add(names=[constraint_name], senses='L')
+        N_active = 0
+        for r in range(len(self.reactions)):
+            if (self.gammas[r] > 0.5 and self.fluxes[r] > 1e-6):
+                self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1)
+                N_active += 1
+        self.cpl.linear_constraints.set_rhs(constraint_name, N_active - 1)
     
     def get_total_flux(self):
         return sum(self.fluxes)
     
     def get_fluxes(self):
+        reactions = []
         fluxes = []
-        for r in range(len(self.reactions)):
-            if (self.gammas[r] > 0.5 and self.fluxes[r] > 1e-6):
-                fluxes.append((r, self.fluxes[r]))
-        return fluxes
+        for r in xrange(len(self.reactions)):
+            if self.gammas[r] > 0.5 and self.fluxes[r] > 1e-6:
+                reactions.append(self.reactions[r])
+                fluxes.append(self.fluxes[r])
+        return (reactions, fluxes)
     
     def get_conc(self):
-        if (self.use_dG_f == False):
+        if not self.use_dG_f:
             return None
-        cid2conc = {}
-        for cid in sorted(self.encountered_cids):
-            [conc] = self.cpl.solution.get_values(["C%05d_conc" % cid])
-            cid2conc[cid] = conc
-        return cid2conc
+        
+        # first create a set that contains all the CIDs that participate in active reactions
+        active_cids = set()
+        for r in range(len(self.reactions)):
+            if (self.gammas[r] > 0.5 and self.fluxes[r] > 1e-6):
+                active_cids = active_cids.union(self.reactions[r].sparse.keys())
+        
+        # get the concentrations for these CIDs in the solution
+        cids = []
+        concentrations = []
+        for c in xrange(len(self.compounds)):
+            if self.compounds[c].cid in active_cids:
+                cids.append(self.compounds[c].cid)
+                concentrations.append(pylab.exp(self.log_concentrations[c]))
+        
+        # return a pair with two lists, one of the CIDs and the other of the concentrations
+        return (cids, concentrations)
 
     def get_margin(self):
         if (not self.pCr):
