@@ -512,6 +512,7 @@ class GradientAscent (Thermodynamics):
 def main():
 
     gc = GroupContribution(sqlite_name="gibbs.sqlite")
+    gc.override_gc_with_measurements = True
     gc.init()
     grad = GradientAscent(gc)
     nist = Nist(gc.kegg())

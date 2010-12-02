@@ -450,7 +450,7 @@ class Kegg:
             if ("NAME" in field_map):
                 all_names = field_map["NAME"].replace('\t', '').split(';')
                 for name in all_names:
-                    self.name2cid_map[name] = cid
+                    self.name2cid_map[name.lower()] = cid
                 comp.name = all_names[0]
                 comp.all_names = all_names
             if ("MASS" in field_map):
@@ -693,7 +693,7 @@ class Kegg:
         elif (type(cid) == str):
             return self.cid2compound_map[int(cid[1:])]
         else:
-            raise KeyError("Compound ID must be integer (e.g. 22) or string (e.g. 'C00022')")
+            raise KeyError("Compound ID must be integer (e.g. 22) or string (e.g. 'C00022'), not: " + str(cid))
 
     def rid2reaction(self, rid):
         if (type(rid) == int):
@@ -1501,11 +1501,7 @@ class KeggPathologic:
         Gdot.add_edge(edge)
         return edge
     
-    def draw_module(self, mid):
-        (S, rids, cids) = self.get_module(mid)
-        return self.draw_pathway(S, rids, cids)
-            
-    def draw_pathway(self, fluxes, reactions):
+    def draw_pathway(self, reactions, fluxes):
         Gdot = pydot.Dot()
         Nr = len(reactions)
         

@@ -138,10 +138,10 @@ COFR C00003 <=> C00004 % NAD+ <=> NADH
 COFR C00006 <=> C00005 % NADP+ <=> NADPH
 COFR C00016 <=> C01352 % FAD <=> FADH2
 COFR C00138 <=> C00139 % reduced ferredoxin <=> oxidized ferredoxin
-COFR C00030 <=> C00028 % donor (reduced acceptor) <=> acceptor
-COFR C00125 <=> C00126 % Ferricytochrome c <=> Ferrocytochrome c
-COFR C00996 <=> C00999 % Ferricytochrome b5 <=> Ferrocytochrome b5
-COFR C01070 <=> C01071 % Ferricytochrome c-553 <=> Ferrocytochrome c-553
-COFR C05906 <=> C01617 % Leucocyanidin <=> Taxifolin
-COFR C00343 <=> C00342 % Thioredoxin disulfide <=> Thioredoxin
-COFR C03648 <=> C00974 % cis-3,4-Leucopelargonidin <=> Dihydrokaempferol
+#COFR C00030 <=> C00028 % donor (reduced acceptor) <=> acceptor
+#COFR C00125 <=> C00126 % Ferricytochrome c <=> Ferrocytochrome c
+#COFR C00996 <=> C00999 % Ferricytochrome b5 <=> Ferrocytochrome b5
+#COFR C01070 <=> C01071 % Ferricytochrome c-553 <=> Ferrocytochrome c-553
+#COFR C05906 <=> C01617 % Leucocyanidin <=> Taxifolin
+#COFR C00343 <=> C00342 % Thioredoxin disulfide <=> Thioredoxin
+#COFR C03648 <=> C00974 % cis-3,4-Leucopelargonidin <=> Dihydrokaempferol
