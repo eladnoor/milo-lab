@@ -56,7 +56,7 @@
 				  {% if kegg_id == 'C00001' or kegg_id == 'C00080' %}
 				  <input type="hidden" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" />
 				  	{% if kegg_id == 'C00001' %}
-				  		<a href="<a href="/faq#waterConcentration">{{ reactant.micromolar_concentration_string }} &mu;M</a>
+				  		<a href="<a href="/faq#waterConcentration">55 M</a>
 				  	{% else %}
 				  		N/A
 				  	{% endif %}
@@ -78,7 +78,7 @@
 				  {% if kegg_id == 'C00001' or kegg_id == 'C00080' %}
 				  <input type="hidden" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" />
 				  	{% if kegg_id == 'C00001' %}
-				  		<a href="<a href="/faq#waterConcentration">{{ product.micromolar_concentration_string }} &mu;M</a>
+				  		<a href="<a href="/faq#waterConcentration">55 M</a>
 				  	{% else %}
 				  		N/A (<a href="/faq#hConcentration">Why?</a>)
 				  	{% endif %}
