@@ -12,7 +12,7 @@
 }
 
 .header #searchForm {
-	padding-top: 30px;
+	padding-top: 40px;
 	padding-left: 10px;
 }
 
@@ -21,8 +21,8 @@
 }
 
 .logoSmall img {
-	width: 137px;
-	height: 82px;
+	width: 150px;
+	height: 120px;
 	border: none;
 	float: left;
 	margin: 7px;
