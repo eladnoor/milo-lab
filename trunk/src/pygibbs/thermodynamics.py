@@ -8,6 +8,8 @@ default_T = 298.15 # K
 default_I = 0.1 # mM
 default_pH = 7.0
 default_c0 = 1 # M
+default_pMg = 3
+
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -32,27 +34,31 @@ class Thermodynamics:
         return (2.91482 * sqrt(I)) / (1 + 1.6 * sqrt(I))
 
     @staticmethod
-    def correction_function(nH, z, pH, I, T):
+    def correction_function(nH, nMg, z, pH, pMg, I, T):
         """
             nH and z - are the species parameters (can be vectors)
             pH and I - are the conditions, must be scalars
             returns the correction element used in the transform function
+            
+        Returns:
+            The correction, in units of RT.
         """
         DH = Thermodynamics.debye_huckel(I) / (R*T)
-        return -nH * (log(10)*pH + DH) + (z**2) * DH
+        return -nMg * (log(10)*pMg) - nH * (log(10)*pH + DH) + (z**2) * DH
 
     @staticmethod
     def transform(dG0, nH, z, pH, I, T):
         return dG0 - R*T*Thermodynamics.correction_function(nH, z, pH, I, T)
 
     @staticmethod
-    def array_transform(dG0, nH, z, pH, I, T):
+    def array_transform(dG0, nH, nMg, z, pH, pMg, I, T):
         """
             dG0, nH and z - are the species parameters (can be vectors)
             pH and I - are the conditions, must be scalars
             returns the transformed gibbs energy: dG0'
         """
-        return -(R*T) * log_sum_exp(dG0 / (-R*T) + Thermodynamics.correction_function(nH, z, pH, I, T))
+        return (-(R*T) * log_sum_exp(dG0 / (-R*T) +
+                Thermodynamics.correction_function(nH, nMg, z, pH, pMg, I, T)))
     
     @staticmethod
     def pmap_to_dG0(pmap, pH, I, T, most_abundant=False):
@@ -105,14 +111,6 @@ class Thermodynamics:
         if (curr_c_max == None and use_default):
             curr_c_max = self.c_range[1]
         return (curr_c_min, curr_c_max)
-            
-    @staticmethod
-    def pmap_to_matrix(pmap):
-        res = []
-        for ((nH, z), dG0_list) in pmap.iteritems():
-            for dG0 in dG0_list:
-                res.append((nH, z, dG0))
-        return sorted(res)
 
     @staticmethod
     def pmap_to_table(pmap, pH=default_pH, I=default_I, T=default_T):

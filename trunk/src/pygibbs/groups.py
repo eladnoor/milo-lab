@@ -4,6 +4,7 @@ import sys
 import pybel
 import openbabel
 import csv
+import logging
 import pylab
 import sqlite3
 import re
@@ -13,13 +14,13 @@ from copy import deepcopy
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.util import matrixrank, multi_distribute, log_sum_exp, _mkdir
 from toolbox.sql import write_table_to_html, write_query_to_html
-from pygibbs.thermodynamics import R, default_pH, default_I, default_T, default_c0, Thermodynamics, MissingCompoundFormationEnergy
+from pygibbs.thermodynamics import R, default_pH, default_pMg, default_I, default_T, default_c0, Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
+from pygibbs import group_decomposition, pseudoisomer
 from pygibbs import kegg
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException
-from pygibbs import group_decomposition
-
+from pygibbs import pseudoisomer
 
 class GroupContributionError(Exception):
     def __init__(self, value):
@@ -94,63 +95,63 @@ class GroupContribution(Thermodynamics):
         self.load_cid2pmap()
         self.kegg()
 
-    def save_cid2pmap(self, recalculate=False):
-            sys.stderr.write("Calculating the table of chemical formation energies for all KEGG compounds:\n")
-            self.comm.execute("DROP TABLE IF EXISTS gc_cid2prm")
-            self.comm.execute("DROP TABLE IF EXISTS gc_cid2error")
-            self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
-            self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, dG0 REAL, estimated BOOL);")
-            self.comm.execute("CREATE TABLE gc_cid2error (cid INT, error TEXT);")
-            self.comm.execute("CREATE INDEX gc_cid2prm_ind ON gc_cid2prm (cid, nH, estimated);")
+    def save_cid2pmap(self):
+        self.cid2pmap_dict = {}
+        sys.stderr.write("Calculating the table of chemical formation energies for all KEGG compounds:\n")
+        self.comm.execute("DROP TABLE IF EXISTS gc_cid2prm")
+        self.comm.execute("DROP TABLE IF EXISTS gc_cid2error")
+        self.comm.execute("DROP INDEX IF EXISTS gc_cid2prm_ind")
+        self.comm.execute("CREATE TABLE gc_cid2prm (cid INT, nH INT, z INT, mgs INT, dG0 REAL, estimated BOOL);")
+        self.comm.execute("CREATE TABLE gc_cid2error (cid INT, error TEXT);")
 
-            for cid in self.kegg().get_all_cids():
-                sys.stderr.write('C%05d\n' % cid)
-                
-                # If the compound is measured:
-                if (cid in self.cid2pmap_obs):
-                    pmap = self.cid2pmap_obs[cid]
-                    for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
-                        self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, nH, z, dG0, False))
-
-                # Try to also estimate the dG0_f using Group Contribution:
-                comp = self.kegg().cid2compound(cid)
-                if (comp.inchi == None):
-                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "no InChI exists"))
-                    continue
-                try:
-                    mol = comp.get_mol() 
-                except KeggParseException:
-                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot determine molecular structure"))
-                    continue
-                try:
-                    pmap = self.estimate_pmap(mol, ignore_protonations=True)
-                except GroupDecompositionError:
-                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot decompose into groups"))
-                    continue
-                except GroupMissingTrainDataError:
-                    self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "contains groups lacking training data"))
-                    continue
-                self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "OK"))
-                self.cid2pmap_dict[cid] = pmap
-                for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
-                    self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?)", (cid, int(nH), int(z), dG0, True))
+        for cid in self.kegg().get_all_cids():
+            sys.stderr.write('C%05d\n' % cid)
             
-            self.comm.commit()
+            # If the compound is measured:
+            if (cid in self.cid2pmap_obs):
+                pmap = self.cid2pmap_obs[cid]
+                for (nH, z, mgs, dG0) in pmap.ToMatrix():
+                    self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?,?)", (cid, nH, z, mgs, dG0, False))
+
+            # Try to also estimate the dG0_f using Group Contribution:
+            comp = self.kegg().cid2compound(cid)
+            if (comp.inchi == None):
+                self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "no InChI exists"))
+                continue
+            try:
+                mol = comp.get_mol() 
+            except KeggParseException:
+                self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot determine molecular structure"))
+                continue
+            try:
+                pmap = self.estimate_pmap(mol, ignore_protonations=True)
+            except GroupDecompositionError:
+                self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "cannot decompose into groups"))
+                continue
+            except GroupMissingTrainDataError:
+                self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "contains groups lacking training data"))
+                continue
+            self.comm.execute("INSERT INTO gc_cid2error VALUES(?,?)", (cid, "OK"))
+            self.cid2pmap_dict[cid] = pmap
+            for (nH, z, mgs, dG0) in pmap.ToMatrix():
+                self.comm.execute("INSERT INTO gc_cid2prm VALUES(?,?,?,?,?,?)", (cid, int(nH), int(z), int(mgs), dG0, True))
+        
+        self.comm.commit()
 
     def load_cid2pmap(self):
         self.cid2pmap_dict = {}
 
         # Now load the data into the cid2pmap_dict:
-        for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 1;"):
-            (cid, nH, z, dG0) = row
-            self.cid2pmap_dict.setdefault(cid, {})
-            self.cid2pmap_dict[cid].setdefault((nH, z), []).append(dG0)
+        for row in self.comm.execute("SELECT cid, nH, z, mgs, dG0 from gc_cid2prm WHERE estimated == 1;"):
+            (cid, nH, z, mgs, dG0) = row
+            self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            self.cid2pmap_dict[cid].Add(nH, z, mgs, dG0)
 
         cid2pmap_obs = {} # observed formation energies
-        for row in self.comm.execute("SELECT cid, nH, z, dG0 from gc_cid2prm WHERE estimated == 0;"):
-            (cid, nH, z, dG0) = row
-            cid2pmap_obs.setdefault(cid, {})
-            cid2pmap_obs[cid].setdefault((nH, z), []).append(dG0)
+        for row in self.comm.execute("SELECT cid, nH, z, mgs, dG0 from gc_cid2prm WHERE estimated == 0;"):
+            (cid, nH, z, mgs, dG0) = row
+            cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            cid2pmap_obs[cid].Add(nH, z, mgs, dG0)
 
         # add the observed data to the cid2pmap_dict (and override the estimated data if required)
         for cid in cid2pmap_obs.keys():
@@ -169,24 +170,23 @@ class GroupContribution(Thermodynamics):
         sys.stderr.write("Storing the group contribution data in the database ... \n")
 
         self.comm.execute("DROP TABLE IF EXISTS contribution")
-        self.comm.execute("CREATE TABLE contribution (gid INT, name TEXT, protons INT, charge INT, dG0_gr REAL)")
+        self.comm.execute("CREATE TABLE contribution (gid INT, name TEXT, protons INT, charge INT, mgs INT, dG0_gr REAL)")
         for i, gc in enumerate(self.group_contributions):
             j = int(self.nonzero_groups[i])
-            name, protons, charge = self.groups_data.all_groups[j]
-            self.comm.execute("INSERT INTO contribution VALUES(?,?,?,?,?)", (j, name, protons, charge, gc))
+            name, protons, charge, mgs = self.groups_data.all_groups[j]
+            self.comm.execute("INSERT INTO contribution VALUES(?,?,?,?,?,?)", (j, name, protons, charge, mgs, gc))
             
         self.comm.execute("DROP TABLE IF EXISTS observation")
-        self.comm.execute("CREATE TABLE observation (cid INT, name TEXT, protons INT, charge INT, dG0_f REAL, use_for TEXT)")
+        self.comm.execute("CREATE TABLE observation (cid INT, name TEXT, protons INT, charge INT, mgs INT, dG0_f REAL, use_for TEXT)")
 
         for cid in self.cid2pmap_obs.keys():
             if (cid in self.cid_test_set):
                 use_for = 'test'
             else:
                 use_for = 'train'
-            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap_obs[cid]):
-                self.comm.execute("INSERT INTO observation VALUES(?,?,?,?,?,?)", (cid, self.kegg().cid2name(cid), nH, z, dG0, use_for))
+            for (nH, z, mgs, dG0) in self.cid2pmap_obs[cid].ToMatrix():
+                self.comm.execute("INSERT INTO observation VALUES(?,?,?,?,?,?,?)", (cid, self.kegg().cid2name(cid), nH, z, mgs, dG0, use_for))
         
-        self.load_cid2pmap()
         self.comm.commit()
             
     def load_groups(self, group_fname=None):
@@ -306,8 +306,9 @@ class GroupContribution(Thermodynamics):
                 cid = int(cid)
                 nH = int(hydrogens)
                 z = int(charge)
-                self.cid2pmap_obs.setdefault(cid, {})
-                self.cid2pmap_obs[cid].setdefault((nH, z), []).append(dG0)
+                mgs = int(Mg)
+                self.cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
+                self.cid2pmap_obs[cid].Add(nH, z, mgs, dG0)
 
             if (use_for == "test"):
                 self.cid_test_set.add(int(cid))
@@ -336,10 +337,13 @@ class GroupContribution(Thermodynamics):
             counter += 1
             self.HTML.embed_img(img_fname, mol.title)
             self.HTML.write('<br>\n')
+            
             try:
                 mol.draw(show=False, filename=img_fname)
             except AssertionError:
                 raise Exception("PyBel failed when trying to draw the compound %s" % compound_name)
+            except (TypeError, IndexError):
+                logging.warning('Failed to draw compound.')
     
             decomposition = self.group_decomposer.Decompose(mol, strict=True)
             groupvec = decomposition.AsVector()
@@ -381,7 +385,7 @@ class GroupContribution(Thermodynamics):
                 continue
             cid = int(cid)
             obs_val = float(obs_val)
-            self.cid2pmap_obs[cid][(0, 0)] = [obs_val]
+            self.cid2pmap_obs[cid].Add(0, 0, 0, obs_val)
             try:
                 mol = self.kegg().cid2mol(cid)
                 self.HTML.write('<h3><a href="%s">C%05d - %s</a></h3>\n' % (self.kegg().cid2link(cid), cid, self.kegg().cid2name(cid)))
@@ -422,9 +426,10 @@ class GroupContribution(Thermodynamics):
             self.comm.execute("INSERT INTO train_observations VALUES(%f)" % self.obs[i])
         
         self.comm.execute("DROP TABLE IF EXISTS train_groups")
-        self.comm.execute("CREATE TABLE train_groups (name TEXT, protons INT, charge INT)")
-        for (group_name, protons, charge) in self.groups_data.all_groups:
-            self.comm.execute("INSERT INTO train_groups VALUES(?,?,?)", (group_name, protons, charge))
+        self.comm.execute("CREATE TABLE train_groups (name TEXT, protons INT, charge INT, mgs INT)")
+        for (group_name, protons, charge, mgs) in self.groups_data.all_groups:
+            self.comm.execute("INSERT INTO train_groups VALUES(?,?,?,?)",
+                              (group_name, protons, charge, mgs))
 
         self.comm.execute("DROP TABLE IF EXISTS train_molecules")
         self.comm.execute("CREATE TABLE train_molecules (name TEXT)")
@@ -503,19 +508,19 @@ class GroupContribution(Thermodynamics):
         
         self.HTML.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
         self.HTML.write('<table border="1">')
-        self.HTML.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>z</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
+        self.HTML.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>z</td><td>mgs</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
         for i, group in enumerate(self.nonzero_groups):
             contribution = self.group_contributions[i]
-            group_name, nH, z = self.groups_data.all_groups[group]
+            group_name, nH, z, mgs = self.groups_data.all_groups[group]
             compound_list_str = ' | '.join([self.mol_names[k] for k in pylab.find(group_matrix_reduced[:, i] > 0)])
-            self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' % \
-                            (i, group_name, nH, z, contribution, compound_list_str))
+            self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' %
+                            (i, group_name, nH, z, mgs, contribution, compound_list_str))
         self.HTML.write('</table>\n')
 
         self.HTML.write("<p>\nGroups that had no examples in the training set:<br>\n")
         zero_groups = set(range(len(self.groups_data.all_groups))).difference(self.nonzero_groups)
         self.HTML.write("<ol>\n<li>")
-        self.HTML.write("</li>\n<li>".join(["%s [nH=%d, z=%d]" % self.groups_data.all_groups[i]
+        self.HTML.write("</li>\n<li>".join(["%s [nH=%d, z=%d, mg=%d]" % self.groups_data.all_groups[i]
                                             for i in sorted(zero_groups)]))
         self.HTML.write("</li>\n</ol>\n</p>\n")
 
@@ -599,23 +604,29 @@ class GroupContribution(Thermodynamics):
         try:
             all_groupvecs = self.group_decomposer.Decompose(
                 mol, ignore_protonations).PseudoisomerVectors()
-        except GroupDecompositionError as e:
+        except group_decomposition.GroupDecompositionError as e:
             raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
 
+        if not all_groupvecs:
+            raise GroupContributionError('Found no pseudoisomers for %s'
+                                         % mol.title)
+
         all_missing_groups = []
-        pmap = {}
+        pmap = pseudoisomer.PseudoisomerMap()
         for groupvec in all_groupvecs:
-            nH = groupvec.Hydrogens()
-            z = groupvec.NetCharge()
             try:
                 dG0 = self.groupvec2val(groupvec)
-                pmap.setdefault((nH, z), []).append(dG0)
+                pmap.AddGroupVector(groupvec, dG0)
             except GroupMissingTrainDataError as e:
-                s = "Species nH = %d, z = %d : " % (nH, z) + ", ".join([self.groups_data.all_group_names[g]
-                                                                        for g in e.missing_groups])
+                gp_str = ", ".join([self.groups_data.all_group_names[g]
+                                    for g in e.missing_groups])
+                s = "Species nH = %d, z = %d mg = %d: %s" % (groupvec.Hydrogens(),
+                                                             groupvec.NetCharge(),
+                                                             groupvec.Magnesiums(),
+                                                             gp_str) 
                 all_missing_groups.append(s)
         
-        if (len(pmap) == 0):
+        if pmap.Empty():
             raise GroupMissingTrainDataError("All species of %s have missing groups:" % mol.title, all_missing_groups)            
 
         return pmap
@@ -625,20 +636,22 @@ class GroupContribution(Thermodynamics):
             returns a list of 3-tuples of dG0 (untransformed), nH and z.
             Each tuple represents one of the pseudoisomers.
         """
-
         # if the entire KEGG compound database has been computed in advance, use the cached data
-        if (use_cache and self.cid2pmap_dict != None):
-            if (cid in self.cid2pmap_dict):
+        if use_cache and self.cid2pmap_dict != None:
+            if cid in self.cid2pmap_dict:
                 return self.cid2pmap_dict[cid]
             else:
                 raise MissingCompoundFormationEnergy("Formation energy cannot be determined using group contribution", cid)
 
-
         if (cid == 80): # H+
-            return {(0, 0):0}
+            pmap = pseudoisomer.PseudoisomerMap()
+            pmap.Add(0, 0, 0, 0)
+            return pmap
 
         if (cid in self.cid2pmap_obs and (self.override_gc_with_measurements or cid in self.cid_test_set)):
-            return self.cid2pmap_obs[cid]
+            pmap = pseudoisomer.PseudoisomerMap()
+            pmap.AddAll(self.cid2pmap_obs[cid])
+            return pmap
         else:
             try:
                 mol = self.kegg().cid2mol(cid)
@@ -647,14 +660,12 @@ class GroupContribution(Thermodynamics):
             
             mol.title = "C%05d" % cid
             try:
-                pmap = self.estimate_pmap(mol)
+                return self.estimate_pmap(mol)
             except GroupContributionError as e:
-                if (cid in self.cid2pmap_obs):
+                if cid in self.cid2pmap_obs:
                     return self.cid2pmap_obs[cid]
                 else:
                     raise MissingCompoundFormationEnergy(str(e), cid)
-
-            return pmap
     
     def estimate_pKa_keggcid(self, cid, charge, T=default_T):
         """
@@ -677,47 +688,25 @@ class GroupContribution(Thermodynamics):
         
         return (dG0_p0 - dG0_p1) / (R * T * pylab.log(10))
 
-    def estimate_dG0(self, mol, pH=default_pH, I=default_I, T=default_T): # T = temperature in K
+    def estimate_dG0(self, mol, pH=default_pH, pMg=default_pMg,
+                     I=default_I, T=default_T):
         """
             Calculates the standard transformed Gibbs energy of formation of the pseudoisomer group
-            (according to Alberty).            
+            (according to Alberty).
+            
+            T in Kelvin
         """
         pmap = self.estimate_pmap(mol)
-        if (type(pH) != types.ListType and type(I) != types.ListType):
-            return Thermodynamics.pmap_to_dG0(pmap, pH, I, T)      
-        else:
-            if (type(pH) != types.ListType):
-                pH = [pH]
-            if (type(I) != types.ListType):
-                I = [I]
-    
-            dG0_matrix = pylab.zeros((len(pH), len(I)))
-            for i in range(len(pH)):
-                for j in range(len(I)):
-                    dG0_matrix[i, j] = Thermodynamics.pmap_to_dG0(pmap, pH[i], I[j], T)      
+        return pmap.TransformMatrix(pH, pMg, I, T)
             
-            return dG0_matrix
-            
-    def estimate_dG0_keggcid(self, cid, pH=default_pH, I=default_I, T=default_T, most_abundant=False): # T = temperature in K
+    def estimate_dG0_keggcid(self, cid, pH=default_pH, pMg=default_pMg,
+                             I=default_I, T=default_T, most_abundant=False): # T = temperature in K
         """
             Calculates the standard transformed Gibbs energy of formation of the pseudoisomer group
             (according to Alberty).            
         """
         pmap = self.cid2pmap(cid)
-        if (pH.__class__ == float and I.__class__ == float):
-            return Thermodynamics.pmap_to_dG0(pmap, pH, I, T, most_abundant)      
-        else:
-            if (pH.__class__ == float):
-                pH = [pH]
-            if (I.__class__ == float):
-                I = [I]
-    
-            dG0_matrix = pylab.zeros((len(pH), len(I)))
-            for i in range(len(pH)):
-                for j in range(len(I)):
-                    dG0_matrix[i, j] = Thermodynamics.pmap_to_dG0(pmap, pH[i], I[j], T, most_abundant)      
-            
-            return dG0_matrix
+        return pmap.TransformMatrix(pH, pMg, I, T)
     
     def estimate_dG0_reaction(self, sparse_reaction, pH=default_pH, I=default_I, T=default_T, most_abundant=False):
         """
@@ -895,19 +884,19 @@ class GroupContribution(Thermodynamics):
     def save_contributions(self, filename):
         sys.stderr.write("Saving the group contribution data to: %s\n" % filename)
         csv_output = csv.writer(open(filename, "w"))
-        csv_output.writerow(("row type", "ID", "name", "protons", "charge", "dG"))
+        csv_output.writerow(("row type", "ID", "name", "protons", "charge", "Mgs", "dG"))
         for i in range(len(self.group_contributions)):
             j = self.nonzero_groups[i]
-            (name, protons, charge) = self.all_groups[j]
-            csv_output.writerow(("CONTRIBUTION", j, name, protons, charge, self.group_contributions[i]))
+            (name, protons, charge, mgs) = self.all_groups[j]
+            csv_output.writerow(("CONTRIBUTION", j, name, protons, charge, mgs, self.group_contributions[i]))
             
         for cid in self.cid2pmap_obs:
-            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap_obs[cid]):
+            for (nH, z, mgs, dG0) in self.cid2pmap_obs[cid].ToMatrix():
                 if (cid in self.cid_test_set):
                     use_for = 'test'
                 else:
                     use_for = 'train'
-                csv_output.writerow(("OBSERVATION", cid, self.kegg().cid2name(cid), nH, z, dG0, use_for))
+                csv_output.writerow(("OBSERVATION", cid, self.kegg().cid2name(cid), nH, z, mgs, dG0, use_for))
             
     def load_contributions(self):
         sys.stderr.write("Loading the group contribution data from the database ... ")
@@ -917,14 +906,14 @@ class GroupContribution(Thermodynamics):
         self.cid_test_set = set()
         
         for row in self.comm.execute("SELECT * FROM contribution"):
-            (gid, name, protons, charge, dG0_gr) = row
+            (gid, unused_name, unused_protons, unused_charge, unused_mg, dG0_gr) = row
             self.nonzero_groups.append(gid)
             self.group_contributions.append(dG0_gr)
         
         for row in self.comm.execute("SELECT * FROM observation"):
-            (cid, name, nH, z, dG0_f, use_for) = row
-            self.cid2pmap_obs.setdefault(cid, {})
-            self.cid2pmap_obs[cid][nH, z] = [dG0_f]
+            (cid, unused_name, nH, z, mgs, dG0_f, use_for) = row
+            self.cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            self.cid2pmap_obs[cid].Add(nH, z, mgs, dG0_f)
             if (use_for == 'test'):
                 self.cid_test_set.add(cid)
                 
@@ -1389,9 +1378,52 @@ class GroupContribution(Thermodynamics):
     
 if __name__ == '__main__':
     
-    G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_train")
-    G.load_groups("../data/thermodynamics/groups_species.csv")
-    G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
-    G.analyze_training_set()
-    G.save_cid2pmap(recalculate=True) 
+    if False:
+        G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_train")
+        G.load_groups("../data/thermodynamics/groups_species.csv")
+        G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
+        G.analyze_training_set()
+        G.save_cid2pmap()
+    else:
+        G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+        G.init()
+        
+        atp = pybel.readstring('smiles',
+                               'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
+        adp = pybel.readstring('smiles',
+                               'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)O)O)O')
+        cytidine = pybel.readstring('smiles', 'C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)O')
+        ctp = pybel.readstring('smiles', 'C1=CN(C(=O)N=C1N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
+        cdp = pybel.readstring('smiles', 'C1=CN(C(=O)N=C1N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)O)O)O')
+        
+        atpmap = G.estimate_pmap(atp, ignore_protonations=True)
+        adpmap = G.estimate_pmap(adp, ignore_protonations=True)
+        ctpmap = G.estimate_pmap(ctp, ignore_protonations=True)
+        cdpmap = G.estimate_pmap(cdp, ignore_protonations=True)
+        cytidinemap = G.estimate_pmap(cytidine, ignore_protonations=True)
+        print 'ATP', atpmap
+        print 'ADP', adpmap
+        print 'CTP', ctpmap
+        print 'CDP', cdpmap
+        print 'Cytidine', cytidinemap
+
+        pMg = 3
+        dgatp = atpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
+        dgadp = adpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
+        dgctp = ctpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
+        dgcdp = cdpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
+        dgcytidine = cytidinemap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
+        print 'ATP', dgatp
+        print 'ADP', dgadp
+        print 'CTP', dgctp
+        print 'CDP', dgcdp
+        print 'Cytidine', dgcytidine
+
+        dgwater = G.estimate_dG0_keggcid(1, pMg=pMg)
+        dgpi = G.estimate_dG0_keggcid(9, pMg=pMg)
+        print 'H2O', dgwater
+        print 'Pi', dgpi
+        
+        print 'dGr(CTP)', - dgctp - dgwater + dgcdp + dgpi
+        print 'dGr(ATP)', - dgatp - dgwater + dgadp + dgpi
 
