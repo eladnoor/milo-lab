@@ -1,0 +1,1071 @@
+"CID","name","formula","step","T","pKa"
+22,"Pyruvic acid","C3H4O3",1,25,2.39
+25,"L-Glutamic acid","C5H9NO4",1,25,2.13
+25,"L-Glutamic acid","C5H9NO4",2,25,4.31
+25,"L-Glutamic acid","C5H9NO4",3,,9.67
+33,"Acetic acid","C2H4O2",1,25,4.76
+36,"Oxaloacetic acid","C4H4O5",1,25,2.55
+36,"Oxaloacetic acid","C4H4O5",2,25,4.37
+36,"Oxaloacetic acid","C4H4O5",3,25,13.03
+37,"Glycine","C2H5NO2",1,25,2.35
+37,"Glycine","C2H5NO2",2,25,9.78
+41,"L-Alanine","C3H7NO2",1,25,2.34
+41,"L-Alanine","C3H7NO2",2,25,9.87
+42,"Succinic acid","C4H6O4",1,25,4.21
+42,"Succinic acid","C4H6O4",2,25,5.64
+47,"L-Lysine","C6H14N2O2",1,25,2.16
+47,"L-Lysine","C6H14N2O2",2,25,9.06
+47,"L-Lysine","C6H14N2O2",3,25,10.54
+48,"Glyoxylic acid","C2H2O3",1,25,3.18
+49,"L-Aspartic acid","C4H7NO4",1,25,1.99
+49,"L-Aspartic acid","C4H7NO4",2,25,3.9
+49,"L-Aspartic acid","C4H7NO4",3,25,9.9
+51,"l-Glutathione","C10H17N3O6S",1,25,2.12
+51,"l-Glutathione","C10H17N3O6S",2,25,3.59
+51,"l-Glutathione","C10H17N3O6S",3,25,8.75
+51,"l-Glutathione","C10H17N3O6S",4,25,9.65
+58,"Formic acid","CH2O2",1,25,3.75
+62,"L-Arginine","C6H14N4O2",1,25,1.82
+62,"L-Arginine","C6H14N4O2",2,25,8.99
+62,"L-Arginine","C6H14N4O2",3,25,12.5
+64,"L-Glutamine","C5H10N2O3",1,25,2.17
+64,"L-Glutamine","C5H10N2O3",2,25,9.13
+65,"L-Serine","C3H7NO3",1,25,2.19
+65,"L-Serine","C3H7NO3",2,25,9.21
+67,"Formaldehyde ","CH2O",1,25,13.27
+72,"L-Ascorbic acid","C6H8O6",1,25,4.04
+72,"L-Ascorbic acid","C6H8O6",2,16,11.7
+73,"L-Methionine","C5H11NO2S",1,25,2.13
+73,"L-Methionine","C5H11NO2S",2,25,9.27
+77,"L-Ornithine","C5H12N2O2",1,25,1.71
+77,"L-Ornithine","C5H12N2O2",2,25,8.69
+77,"L-Ornithine","C5H12N2O2",3,25,10.76
+78,"L-Tryptophan","C11H12N2O2",1,25,2.46
+79,"L-Phenylalanine","C9H11NO2",1,25,2.2
+79,"L-Phenylalanine","C9H11NO2",2,25,9.31
+82,"L-Tyrosine","C9H11NO3",1,25,2.2
+82,"L-Tyrosine","C9H11NO3",2,25,9.11
+82,"L-Tyrosine","C9H11NO3",3,25,10.1
+84,"Acetaldehyde ","C2H4O",1,25,13.57
+86,"Urea ","CH4N2O",1,25,0.1
+89,"Sucrose","C12H22O11",1,25,12.7
+90,"Pyrocatechol","C6H6O2",1,25,9.34
+90,"Pyrocatechol","C6H6O2",2,25,12.6
+97,"L-Cysteine","C3H7NO2S",1,25,1.5
+97,"L-Cysteine","C3H7NO2S",2,25,8.7
+97,"L-Cysteine","C3H7NO2S",3,25,10.2
+99,"β-Alanine","C3H7NO2",1,25,3.55
+99,"β-Alanine","C3H7NO2",2,25,10.24
+106,"Uracil","C4H4N2O2",1,25,9.45
+109,"2-Oxobutanoic acid","C4H6O3",1,25,2.5
+114,"Choline","C5H14NO",1,25,13.9
+116,"Glycerol","C3H8O3",1,25,14.15
+121,"L-Ribose","C5H10O5",1,25,12.22
+122,"Fumaric acid","C4H4O4",1,25,3.02
+122,"Fumaric acid","C4H4O4",2,25,4.38
+123,"L-Leucine","C6H13NO2",1,25,2.33
+123,"L-Leucine","C6H13NO2",2,25,9.74
+132,"Methanol ","CH4O",1,25,15.5
+134,"1,4-Butanediamine","C4H12N2",1,25,10.8
+134,"1,4-Butanediamine","C4H12N2",2,25,9.63
+135,"L-Histidine","C6H9N3O2",1,25,1.8
+135,"L-Histidine","C6H9N3O2",2,25,6.04
+135,"L-Histidine","C6H9N3O2",3,25,9.33
+147,"Adenine","C5H5N5",1,,4.3
+147,"Adenine","C5H5N5",2,,9.83
+148,"L-Proline","C5H9NO2",1,25,1.95
+148,"L-Proline","C5H9NO2",2,25,10.64
+152,"L-Asparagine","C4H8N2O3",1,20,2.1
+152,"L-Asparagine","C4H8N2O3",2,20,8.8
+155,"DL-Homocysteine","C4H9NO2S",1,25,2.22
+155,"DL-Homocysteine","C4H9NO2S",2,25,8.87
+155,"DL-Homocysteine","C4H9NO2S",3,25,10.86
+156,"4-Hydroxybenzoic acid","C7H6O3",1,25,4.57
+156,"4-Hydroxybenzoic acid","C7H6O3",2,25,9.46
+158,"Citric acid","C6H8O7",1,25,3.13
+158,"Citric acid","C6H8O7",2,25,4.76
+158,"Citric acid","C6H8O7",3,25,6.4
+159,"D-Mannose","C6H12O6",1,25,12.08
+160,"Glycolic acid","C2H4O3",1,25,3.83
+163,"Propanoic acid","C3H6O2",1,25,4.87
+164,"Acetoacetic acid","C4H6O3",1,25,3.6
+178,"Thymine","C5H6N2O2",1,25,9.94
+180,"Benzoic acid","C7H6O2",1,25,4.2
+181,"D-Xylose","C5H10O5",1,18,12.14
+183,"L-Valine","C5H11NO2",1,25,2.29
+183,"L-Valine","C5H11NO2",2,25,9.74
+188,"L-Threonine","C4H9NO3",1,25,2.09
+188,"L-Threonine","C4H9NO3",2,25,9.1
+189,"Ethanolamine","C2H7NO",1,25,9.5
+209,"Oxalic acid","C2H2O4",1,25,1.25
+209,"Oxalic acid","C2H2O4",2,25,3.81
+212,"Adenosine","C10H13N5O4",1,25,3.6
+212,"Adenosine","C10H13N5O4",2,25,12.4
+213,"Sarcosine","C3H7NO2",1,25,2.21
+213,"Sarcosine","C3H7NO2",2,25,10.1
+218,"Methylamine ","CH5N",1,25,10.66
+230,"3,4-Dihydroxybenzoic acid","C7H6O4",1,25,4.48
+230,"3,4-Dihydroxybenzoic acid","C7H6O4",2,25,8.83
+230,"3,4-Dihydroxybenzoic acid","C7H6O4",3,25,12.6
+242,"Guanine","C5H5N5O",1,40,9.92
+245,"2-Aminoethanesulfonic acid","C2H7NO3S",1,25,1.5
+245,"2-Aminoethanesulfonic acid","C2H7NO3S",2,25,9.06
+246,"Butanoic acid","C4H8O2",1,25,4.83
+253,"3-Pyridinecarboxylic acid","C6H5NO2",1,25,2
+253,"3-Pyridinecarboxylic acid","C6H5NO2",2,25,4.82
+255,"Riboflavin","C17H20N4O6",1,,1.7
+255,"Riboflavin","C17H20N4O6",2,25,9.69
+258,"Glyceric acid","C3H6O4",1,25,3.52
+261,"Benzaldehyde","C7H6O",1,25,14.9
+262,"Hypoxanthine","C5H4N4O",1,25,8.7
+263,"L-Homoserine","C4H9NO3",1,25,2.71
+263,"L-Homoserine","C4H9NO3",2,25,9.62
+292,"Aniline","C6H7N",1,25,4.87
+300,"Creatine","C4H9N3O2",1,25,2.63
+300,"Creatine","C4H9N3O2",2,25,14.3
+311,"Isocitric acid","C6H8O7",1,25,3.29
+311,"Isocitric acid","C6H8O7",2,25,4.71
+311,"Isocitric acid","C6H8O7",3,25,6.4
+327,"Citrulline","C6H13N3O3",1,25,2.43
+327,"Citrulline","C6H13N3O3",2,25,9.69
+334,"4-Aminobutanoic acid","C4H9NO2",1,25,4.03
+334,"4-Aminobutanoic acid","C4H9NO2",2,25,10.56
+355,"Levodopa","C9H11NO4",1,25,2.32
+355,"Levodopa","C9H11NO4",2,25,8.72
+355,"Levodopa","C9H11NO4",3,25,9.96
+355,"Levodopa","C9H11NO4",4,25,11.79
+366,"Uric acid","C5H4N4O3",1,12,3.89
+380,"Cytosine","C4H5N3O",1,,4.6
+380,"Cytosine","C4H5N3O",2,,12.16
+383,"Malonic acid","C3H4O4",1,25,2.85
+383,"Malonic acid","C3H4O4",2,25,5.7
+386,"Carnosine","C9H14N4O3",1,20,2.73
+386,"Carnosine","C9H14N4O3",2,20,6.87
+386,"Carnosine","C9H14N4O3",3,20,9.73
+388,"Histamine","C5H9N3",1,25,6.04
+388,"Histamine","C5H9N3",2,25,9.75
+392,"D-Mannitol","C6H14O6",1,18,13.5
+396,"Pyrimidine","C4H4N2",1,20,1.23
+398,"Tryptamine","C10H12N2",1,25,10.2
+407,"L-Isoleucine","C6H13NO2",1,25,2.32
+407,"L-Isoleucine","C6H13NO2",2,25,9.76
+408,"2-Piperidinecarboxylic acid","C6H11NO2",1,25,2.28
+408,"2-Piperidinecarboxylic acid","C6H11NO2",2,25,10.72
+409,"Methanethiol ","CH4S",1,25,10.33
+423,"trans-Cinnamic acid","C9H8O2",1,25,4.44
+431,"5-Aminopentanoic acid","C5H11NO2",1,25,4.27
+431,"5-Aminopentanoic acid","C5H11NO2",2,25,10.77
+469,"Ethanol","C2H6O",1,25,15.5
+475,"Cytidine","C9H13N3O5",1,,4.22
+475,"Cytidine","C9H13N3O5",2,,12.5
+489,"Glutaric acid","C5H8O4",1,18,4.32
+489,"Glutaric acid","C5H8O4",2,25,5.42
+491,"L-Cystine","C6H12N2O4S2",1,,1
+491,"L-Cystine","C6H12N2O4S2",2,,2.1
+491,"L-Cystine","C6H12N2O4S2",3,,8.02
+491,"L-Cystine","C6H12N2O4S2",4,,8.71
+506,"DL-Cysteic acid","C3H7NO5S",1,25,1.3
+506,"DL-Cysteic acid","C3H7NO5S",2,25,1.9
+506,"DL-Cysteic acid","C3H7NO5S",3,25,8.7
+511,"Acrylic acid","C3H4O2",1,25,4.25
+543,"Dimethylamine","C2H7N",1,25,10.73
+547,"Norepinephrine","C8H11NO3",1,25,8.64
+547,"Norepinephrine","C8H11NO3",2,25,9.7
+552,"meso-Tartaric acid","C4H6O6",1,25,3.17
+552,"meso-Tartaric acid","C4H6O6",2,25,4.91
+565,"Trimethylamine","C3H9N",1,25,9.8
+571,"Cyclohexylamine","C6H13N",1,25,10.64
+581,"Glycocyamine","C3H7N3O2",1,25,2.82
+587,"3-Hydroxybenzoic acid","C7H6O3",1,25,4.08
+587,"3-Hydroxybenzoic acid","C7H6O3",2,19,9.92
+604,"1,10-Phenanthroline","C12H8N2",1,25,4.84
+628,"2,5-Dihydroxybenzoic acid","C7H6O4",1,25,2.97
+633,"4-Hydroxybenzaldehyde","C7H6O2",1,25,7.61
+695,"Cholic acid","C24H40O5",1,,6.4
+711,"Malic acid","C4H6O5",1,25,3.4
+711,"Malic acid","C4H6O5",2,25,5.11
+715,"2-Amino-4-hydroxypteridine","C6H5N5O",1,20,2.27
+715,"2-Amino-4-hydroxypteridine","C6H5N5O",2,20,7.96
+719,"Betaine","C5H11NO2",1,0,1.83
+725,"Thioctic acid","C8H14O2S2",1,,5.4
+729,"Tropine","C8H15NO",1,15,3.8
+745,"L-Nicotine","C10H14N2",1,,8.02
+745,"L-Nicotine","C10H14N2",2,,3.12
+747,"Pyridine","C5H5N",1,25,5.23
+780,"5-Hydroxytryptamine","C10H12N2O",1,25,9.8
+780,"5-Hydroxytryptamine","C10H12N2O",2,25,11.1
+791,"Creatinine","C4H7N3O",1,25,4.8
+791,"Creatinine","C4H7N3O",2,,9.2
+797,"Ethylamine","C2H7N",1,25,10.65
+803,"Pentanoic acid","C5H10O2",1,20,4.83
+813,"Barbituric acid","C4H4N2O3",1,25,4.01
+870,"4-Nitrophenol","C6H5NO3",1,25,7.15
+898,"L-Tartaric acid","C4H6O6",1,25,2.98
+898,"L-Tartaric acid","C4H6O6",2,25,4.34
+928,"2-Mercaptoethanol","C2H6OS",1,25,9.72
+956,"2-Aminoadipic acid","C6H11NO4",1,25,2.14
+956,"2-Aminoadipic acid","C6H11NO4",2,25,4.21
+956,"2-Aminoadipic acid","C6H11NO4",3,25,9.77
+986,"1,3-Propanediamine","C3H10N2",1,25,10.55
+986,"1,3-Propanediamine","C3H10N2",2,25,8.88
+989,"4-Hydroxybutanoic acid","C4H8O3",1,25,4.72
+1013,"3-Hydroxypropanoic acid","C3H6O3",1,25,4.51
+1026,"N,N-Dimethylglycine","C4H9NO2",1,25,9.89
+1060,"L-3,5-Diiodotyrosine","C9H9I2NO3",1,25,2.12
+1060,"L-3,5-Diiodotyrosine","C9H9I2NO3",2,25,5.32
+1060,"L-3,5-Diiodotyrosine","C9H9I2NO3",3,25,9.48
+1066,"1,3-Cyclohexanedione","C6H8O2",1,25,5.26
+1104,"Trimethylamine oxide","C3H9NO",1,20,4.65
+1152,"L-1-Methylhistidine","C7H11N3O2",1,25,1.69
+1152,"L-1-Methylhistidine","C7H11N3O2",2,25,6.48
+1152,"L-1-Methylhistidine","C7H11N3O2",3,25,8.85
+1152,"L-3-Methylhistidine","C7H11N3O2",1,25,1.92
+1152,"L-3-Methylhistidine","C7H11N3O2",2,25,6.56
+1152,"L-3-Methylhistidine","C7H11N3O2",3,25,8.73
+1380,"Ethyleneglycol","C2H6O2",1,25,15.1
+1384,"Maleic acid","C4H4O4",1,25,1.92
+1384,"Maleic acid","C4H4O4",2,25,6.23
+1417,"Cyanic acid","CHNO",1,25,3.7
+1424,"3,4,5-Trihydroxybenzoic acid","C7H6O5",1,25,4.41
+1432,"Lactic acid","C3H6O3",1,25,3.86
+1454,"p-Toluic acid","C8H8O2",1,25,4.37
+1467,"m-Cresol","C7H8O",1,25,10.09
+1468,"p-Cresol","C7H8O",1,25,10.26
+1516,"Morphine","C17H19NO3",1,25,8.21
+1516,"Morphine","C17H19NO3",2,20,9.85
+1542,"o-Cresol","C7H8O",1,25,10.29
+1546,"2-Furancarboxylic acid","C5H4O3",1,25,3.16
+1550,"Agaritine","C12H17N3O4",1,,3.4
+1550,"Agaritine","C12H17N3O4",2,,8.86
+1551,"Allantoin","C4H6N4O3",1,25,8.96
+1566,"Cyanamide ","CH2N2",1,29,1.1
+1575,"l-Ephedrine","C10H15NO",1,10,9.96
+1576,"Etoposide","C29H32O13",1,,9.8
+1585,"Hexanoic acid","C6H12O2",1,25,4.85
+1586,"N-Benzoylglycine","C9H9NO3",1,25,3.62
+1589,"Imidazole","C3H4N2",1,25,6.99
+1595,"Linoleic acid","C18H32O2",1,,7.6
+1601,"Nonanoic acid","C9H18O2",1,25,4.96
+1606,"Phthalic acid","C8H6O4",1,25,2.94
+1606,"Phthalic acid","C8H6O4",2,25,5.43
+1672,"1,5-Pentanediamine","C5H14N2",1,25,10.05
+1672,"1,5-Pentanediamine","C5H14N2",2,25,10.93
+1678,"Cysteamine","C2H7NS",1,25,8.27
+1678,"Cysteamine","C2H7NS",2,25,10.53
+1699,"Gibberellic acid","C19H22O6",1,,4
+1740,"Octylamine","C8H19N",1,25,10.65
+1746,"Piperidine","C5H11N",1,25,11.12
+1751,"Resorcinol","C6H6O2",1,25,9.32
+1751,"Resorcinol","C6H6O2",2,25,11.1
+1799,"DL-Norvaline","C5H11NO2",1,,2.36
+1799,"DL-Norvaline","C5H11NO2",2,,9.72
+1814,"Haloperidol","C21H23ClFNO2",1,,8.3
+1817,"Homocystine","C8H16N2O4S2",1,25,1.59
+1817,"Homocystine","C8H16N2O4S2",2,25,2.54
+1817,"Homocystine","C8H16N2O4S2",3,25,8.52
+1817,"Homocystine","C8H16N2O4S2",4,25,9.44
+1826,"L-Norvaline","C5H11NO2",1,25,2.32
+1826,"L-Norvaline","C5H11NO2",2,25,9.81
+1829,"L-Thyroxine","C15H11I4NO4",1,25,2.2
+1829,"L-Thyroxine","C15H11I4NO4",2,25,6.45
+1829,"L-Thyroxine","C15H11I4NO4",3,25,10.1
+1837,"Nitroethane","C2H5NO2",1,25,8.46
+1857,"Thioacetic acid","C2H4OS",1,25,3.33
+1874,"2-Iodophenol","C6H5IO",1,25,8.51
+1879,"L-Pyroglutamic acid","C5H7NO3",1,25,3.32
+1912,"Erythromycin","C37H67NO13",1,,8.8
+1921,"Glycocholic acid","C26H43NO6",1,,4.4
+1926,"Indomethacin","C19H16ClNO4",1,,4.5
+1933,"L-Norleucine","C6H13NO2",1,25,2.34
+1933,"L-Norleucine","C6H13NO2",2,25,9.83
+1965,"Trimethoprim","C14H18N4O3",1,,6.6
+1987,"2-Aminophenol","C6H7NO",1,20,4.78
+1987,"2-Aminophenol","C6H7NO",2,20,9.97
+1988,"2-Nitrophenol","C6H5NO3",1,25,7.23
+2001,"Allyl alcohol","C3H6O",1,25,15.5
+2037,"N-Glycylglycine","C4H8N2O3",1,25,3.14
+2037,"N-Glycylglycine","C4H8N2O3",2,,8.17
+2046,"Hyoscyamine","C17H23NO3",1,21,9.7
+2066,"Pseudotropine","C8H15NO",1,15,3.8
+2086,"Thioglycolic acid","C2H4O2S",1,25,3.68
+2107,"DL-Tartaric acid","C4H6O6",1,25,3.03
+2107,"DL-Tartaric acid","C4H6O6",2,25,4.37
+2124,"4-Chlorophenol","C6H5ClO",1,25,9.41
+2126,"4-Nitroaniline","C6H6N2O2",1,25,1.02
+2168,"Mefenamic acid","C15H15NO2",1,,4.2
+2170,"Methylmalonic acid","C4H6O4",1,25,3.07
+2170,"Methylmalonic acid","C4H6O4",2,25,5.76
+2181,"Phenoxyacetic acid","C8H8O3",1,25,3.17
+2227,"2-Naphthylamine","C10H9N",1,25,4.16
+2261,"DL-2-Aminobutanoic acid","C4H9NO2",1,25,2.29
+2261,"DL-2-Aminobutanoic acid","C4H9NO2",2,25,9.83
+2267,"Pentostatin","C11H16N4O4",1,,5.2
+2299,"N-Methylaniline","C7H9N",1,25,4.85
+2304,"Phenylhydrazine","C6H8N2",1,15,8.79
+2357,"2-Chlorobenzoic acid","C7H5ClO2",1,25,2.9
+2359,"2-Fluorobenzoic acid","C7H5FO2",1,25,3.27
+2364,"3-Fluorobenzoic acid","C7H5FO2",1,25,3.86
+2370,"4-Chlorobenzoic acid","C7H5ClO2",1,25,4
+2371,"4-Fluorobenzoic acid","C7H5FO2",1,25,4.15
+2372,"4-Aminophenol","C6H7NO",1,25,5.48
+2372,"4-Aminophenol","C6H7NO",2,25,10.3
+2378,"6-Aminohexanoic acid","C6H13NO2",1,25,4.37
+2378,"6-Aminohexanoic acid","C6H13NO2",2,25,10.8
+2454,"m-Phenylenediamine","C6H8N2",1,20,5.11
+2454,"m-Phenylenediamine","C6H8N2",2,20,2.5
+2496,"2,4-Dinitrophenol","C6H4N2O5",1,25,4.07
+2499,"2-Hydroxybiphenyl","C12H10O",1,25,10.01
+2502,"2-Pyridinol","C5H5NO",1,20,0.75
+2502,"2-Pyridinol","C5H5NO",2,20,11.65
+2519,"4-Methoxybenzoic acid","C8H8O3",1,25,4.5
+2632,"2-Methylpropanoic acid","C4H8O2",1,20,4.84
+2656,"Heptanedioic acid","C7H12O4",1,25,4.71
+2656,"Heptanedioic acid","C7H12O4",2,25,5.58
+2846,"N,N-Dimethylaniline","C8H11N",1,25,5.07
+3005,"2-(Methylamino)benzoic acid","C8H9NO2",1,25,5.34
+3067,"3-Hydroxybenzaldehyde","C7H6O2",1,25,8.98
+3173,"(Methylthio)acetic acid","C3H6O2S",1,25,3.66
+3224,"3,5-Dibromo-L-tyrosine","C9H9Br2NO3",1,,2.17
+3224,"3,5-Dibromo-L-tyrosine","C9H9Br2NO3",2,,6.45
+3224,"3,5-Dibromo-L-tyrosine","C9H9Br2NO3",3,,7.6
+3479,"Folinic acid","C20H23N7O7",1,,3.1
+3479,"Folinic acid","C20H23N7O7",2,,4.8
+3479,"Folinic acid","C20H23N7O7",3,,10.4
+3500,"Ethyl acetoacetate","C6H10O3",1,25,10.68
+3722,"2,3-Pyridinedicarboxylic acid","C7H5NO4",1,25,2.43
+3722,"2,3-Pyridinedicarboxylic acid","C7H5NO4",2,25,4.78
+3758,"Dopamine","C8H11NO2",1,25,8.9
+3758,"Dopamine","C8H11NO2",2,25,10.6
+3882,"Piperine","C17H19NO3",1,18,12.22
+4178,"3,5-Dibromo-4-hydroxybenzonitrile","C7H3Br2NO",1,,4.06
+4483,"Deoxycholic acid","C24H40O4",1,,6.58
+5058,"3-Aminophenol","C6H7NO",1,20,4.37
+5058,"3-Aminophenol","C6H7NO",2,20,9.82
+5080,"Novobiocin","C31H36N2O11",1,,4.3
+5080,"Novobiocin","C31H36N2O11",2,,9.1
+5122,"Taurocholic acid","C26H45NO7S",1,,1.4
+5986,"Propargyl alcohol","C3H4O",1,25,13.6
+6091,"Aconitine","C34H47NO11",1,,5.88
+6104,"Adipic acid","C6H10O4",1,18,4.41
+6104,"Adipic acid","C6H10O4",2,18,5.41
+6108,"Fluoroacetic acid","C2H3FO2",1,25,2.59
+6173,"Thebaine","C19H21NO3",1,15,6.05
+6174,"Codeine","C18H21NO3",1,,8.21
+6202,"Salicylaldehyde","C7H6O2",1,25,8.37
+6244,"Acetamide","C2H5NO",1,25,15.1
+6323,"Isoquinoline","C9H7N",1,20,5.4
+6333,"2-Aminobenzenesulfonic acid","C6H7NO3S",1,25,2.46
+6334,"3-Aminobenzenesulfonic acid","C6H7NO3S",1,25,3.74
+6335,"4-Aminobenzenesulfonic acid","C6H7NO3S",1,25,3.23
+6337,"Terephthalic acid","C8H6O4",1,25,3.54
+6337,"Terephthalic acid","C8H6O4",2,25,4.34
+6338,"2-Quinolinol","C9H7NO",1,20,-0.31
+6338,"2-Quinolinol","C9H7NO",2,20,11.76
+6413,"Quinoline","C9H7N",1,20,4.9
+6423,"Octanoic acid","C8H16O2",1,25,4.89
+6522,"Strychnine","C21H22N2O2",1,25,8.26
+6526,"Quinine","C20H24N2O2",1,25,8.52
+6526,"Quinine","C20H24N2O2",2,25,4.13
+6527,"Quinidine","C20H24N2O2",1,20,5.4
+6527,"Quinidine","C20H24N2O2",2,20,10
+6528,"Cinchonine","C19H22N2O",1,,5.85
+6528,"Cinchonine","C19H22N2O",2,,9.92
+6530,"Cupreine","C19H22N2O2",1,,6.57
+6533,"Papaverine","C20H21NO4",1,,6.4
+6535,"Physostigmine","C15H21N3O2",1,,6.12
+6535,"Physostigmine","C15H21N3O2",2,,12.24
+6538,"Harmine","C13H12N2O",1,,7.7
+6539,"Reserpine","C33H40N2O9",1,,6.6
+6544,"Veratridine","C36H51NO11",1,,9.54
+6554,"Cyanuric acid","C3H3N3O3",1,,6.88
+6554,"Cyanuric acid","C3H3N3O3",2,,11.4
+6554,"Cyanuric acid","C3H3N3O3",3,,13.5
+6688,"Rifampin","C43H58N4O12",1,,1.7
+6688,"Rifampin","C43H58N4O12",2,,7.9
+6748,"Isopropylamine","C3H9N",1,25,10.63
+6755,"Chloroacetic acid","C2H3ClO2",1,25,2.87
+6771,"Triethanolamine","C6H15NO3",1,25,7.76
+6805,"Acetazolamide","C4H6N4O3S2",1,,7.2
+6808,"Acetohydroxamic acid","C2H5NO2",1,,8.7
+6813,"Nitrobenzene","C6H5NO2",1,0,3.98
+6823,"Amiodarone","C25H29I2NO3",1,25,6.56
+6824,"Amitriptyline","C20H23N",1,,9.4
+6837,"Azathioprine","C9H7N7O2S",1,,8.2
+6897,"Cephradine","C16H19N3O4S",1,,2.63
+6897,"Cephradine","C16H19N3O4S",2,,7.27
+6914,"Clindamycin","C18H33ClN2O5S",1,,7.6
+6924,"Clozapine","C18H19ClN4",1,,3.7
+6924,"Clozapine","C18H19ClN4",2,,7.6
+6997,"Fenoprofen","C15H14O3",1,,7.3
+7056,"Isoproterenol","C11H17NO3",1,,8.64
+7086,"Benzeneacetic acid","C8H8O2",1,25,4.31
+7130,"Theophylline","C7H8N4O2",1,25,8.77
+7188,"Verapamil","C27H38N2O4",1,,8.6
+7196,"Methylphenidate","C14H19NO2",1,,8.9
+7201,"Vinblastine","C46H58N4O9",1,,5.4
+7201,"Vinblastine","C46H58N4O9",2,,7.4
+7204,"Vincristine","C46H56N4O10",1,,5.4
+7211,"m-Toluic acid","C8H8O2",1,25,4.25
+7215,"O-Toluic acid","C8H8O2",1,25,3.91
+7270,"Nizatidine","C12H21N5O2S2",1,,2.1
+7270,"Nizatidine","C12H21N5O2S2",2,,6.8
+7273,"Succinimide","C4H5NO2",1,25,9.62
+7318,"Sulfisoxazole","C11H13N3O3S",1,,5
+7408,"Protriptyline","C19H21N",1,,8.2
+7434,"Phenobarbital","C12H12N2O3",1,,7.3
+7434,"Phenobarbital","C12H12N2O3",2,,11.8
+7440,"Phenylbutazone","C19H20N2O2",1,,4.5
+7461,"Chlorothiazide","C7H6ClN3O4S2",1,,6.85
+7461,"Chlorothiazide","C7H6ClN3O4S2",2,,9.45
+7474,"Pilocarpine","C11H16N2O2",1,25,1.6
+7474,"Pilocarpine","C11H16N2O2",2,25,6.9
+7480,"Theobromine","C7H8N4O2",1,18,7.89
+7490,"2,2,2-Trichloroethanol ","C2H3Cl3O",1,25,12.24
+7525,"Ketamine","C13H16ClNO",1,,7.5
+7527,"Ethyl 4-aminobenzoate","C9H11NO2",1,,2.5
+7536,"Amobarbital","C11H18N2O3",1,25,8
+7543,"Ergonovine","C19H23N3O2",1,,6.8
+7565,"Acetanilide","C8H9NO",1,25,0.5
+7581,"Pteridine","C6H4N4",1,20,4.05
+7592,"Colchicine","C22H25NO6",1,20,12.36
+7672,"Biguanide","C2H7N5",1,,11.52
+7672,"Biguanide","C2H7N5",2,,2.93
+7763,"Hydroflumethiazide","C8H8F3N3O4S2",1,,8.9
+7763,"Hydroflumethiazide","C8H8F3N3O4S2",2,,9.7
+7764,"Methazolamide","C5H8N4O3S2",1,,7.3
+7765,"Methylclothiazide","C9H11Cl2N3O4S2",1,,9.4
+7967,"Bithionol","C12H6Cl4O2S",1,,4.82
+7967,"Bithionol","C12H6Cl4O2S",2,,10.5
+7973,"Piperazine","C4H10N2",1,25,9.73
+7973,"Piperazine","C4H10N2",2,25,5.33
+8217,"Iopanoic acid","C11H12I3NO2",1,,4.8
+8261,"Nonanedioic acid","C9H16O4",1,25,4.53
+8261,"Nonanedioic acid","C9H16O4",2,25,5.33
+8262,"3-Methylbutanoic acid","C5H10O2",1,25,4.77
+8277,"Sebacic acid","C10H18O4",1,,4.59
+8277,"Sebacic acid","C10H18O4",2,,5.59
+8278,"Octanedioic acid","C8H14O4",1,25,4.52
+8306,"Hexylamine","C6H15N",1,25,10.56
+8660,"Atisine","C22H33NO2",1,,12.2
+9084,"Brucine","C23H26N2O4",1,,6.04
+9084,"Brucine","C23H26N2O4",2,,11.07
+9421,"Emetine","C29H40N2O4",1,,5.77
+9421,"Emetine","C29H40N2O4",2,,6.64
+9592,"Noscapine","C22H23NO7",1,,7.8
+,"Benzamide","C7H7NO",1,25,"˜13"
+9822,"Cyclohexanecarboxylic acid","C7H12O2",1,25,4.91
+9876,"Lycodine","C16H22N2",1,,3.97
+9876,"Lycodine","C16H22N2",2,,8.08
+10129,"Arecoline","C8H13NO2",1,,6.84
+10164,"2-Pyridinecarboxylic acid","C6H5NO2",1,20,0.99
+10164,"2-Pyridinecarboxylic acid","C6H5NO2",2,20,5.39
+10571,"Aspergillic acid","C12H20N2O2",1,,5.5
+10763,"Cytisine","C11H14N2O",1,,6.11
+10763,"Cytisine","C11H14N2O",2,,13.08
+10783,"Sparteine","C15H26N2",1,20,2.24
+10783,"Sparteine","C15H26N2",2,20,9.46
+10820,"Solanine","C45H73NO15",1,15,6.66
+10848,"Tropacocaine","C15H19NO2",1,15,4.32
+10897,"Carbendazim","C9H9N3O2",1,,4.48
+10998,"4-Aminobiphenyl","C12H11N",1,18,4.35
+11004,"2,6-Dimethylaniline","C8H11N",1,25,3.89
+11010,"2-Fluoroaniline","C6H6FN",1,25,3.2
+11013,"3-Fluoroaniline","C6H6FN",1,25,3.59
+11014,"4-Fluoroaniline","C6H6FN",1,25,4.65
+11016,"Diphenylamine","C12H11N",1,25,0.79
+11032,"Triclopyr","C7H4Cl3NO3",1,,2.68
+11150,"Trichloroacetic acid","C2HCl3O2",1,20,0.66
+11153,"Teniposide","C32H32O13S",1,,10.13
+11169,"Sulfathiazole","C9H9N3O2S2",1,,7.2
+11379,"Cinchonidine","C19H22N2O",1,,5.8
+11379,"Cinchonidine","C19H22N2O",2,,10.03
+11692,"Tetrodotoxin","C11H17N3O8",1,,8.76
+11713,"2-Naphthol","C10H8O",1,25,9.63
+11714,"1-Naphthol","C10H8O",1,25,9.39
+11754,"Cephaloridine","C19H17N3O4S2",1,,3.2
+12600,"Phenol Red","C19H14O5S",1,,7.9
+14101,"2-Naphthalenecarboxylic acid","C11H8O2",1,25,4.16
+14130,"2-tert-Butylphenol","C10H14O",1,25,10.62
+14188,"3-tert-Butylphenol","C10H14O",1,25,10.12
+14200,"4-tert-Butylphenol","C10H14O",1,25,10.23
+14219,"2-Chlorophenol","C6H5ClO",1,25,8.56
+14224,"4-Hydroxybiphenyl","C12H10O",1,25,9.55
+14270,"3-Chlorophenol","C6H5ClO",1,25,9.12
+14286,"Phenolphthalein","C20H14O4",1,25,9.7
+14302,"Dinoseb","C10H12N2O5",1,,4.62
+14342,"3-Hydroxybiphenyl","C12H10O",1,25,9.64
+14402,"o-Phenylenediamine","C6H8N2",1,20,4.57
+14402,"o-Phenylenediamine","C6H8N2",2,20,0.8
+14415,"Thiourea ","CH4N2S",1,25,-1
+14418,"3-Nitrophenol","C6H5NO3",1,25,8.36
+14419,"2,4-Dichloroaniline","C6H5Cl2N",1,22,2.05
+14447,"2-Methylpyridine","C6H7N",1,25,6
+14450,"4-Chloroaniline","C6H6ClN",1,25,3.98
+14452,"Morpholine","C4H9NO",1,25,8.5
+14453,"4-Bromophenol","C6H5BrO",1,25,9.37
+14455,"N-Ethylaniline","C8H11N",1,25,5.12
+14686,"Dicyclohexylamine","C12H23N",1,,10.4
+14691,"Triethylamine","C6H15N",1,25,10.75
+14695,"Nitrilotriacetic acid","C6H9NO6",1,20,3.03
+14695,"Nitrilotriacetic acid","C6H9NO6",2,20,3.07
+14695,"Nitrilotriacetic acid","C6H9NO6",3,20,10.7
+14790,"1-Naphthylamine","C10H9N",1,25,3.92
+14841,"2-Bromophenol","C6H5BrO",1,25,8.45
+14866,"Trichloroacetaldehyde ","C2HCl3O",1,25,10.04
+15562,"Benzylamine","C7H9N",1,25,9.34
+15584,"Phenol","C6H6O",1,25,9.99
+16200,"Benzeneboronic acid","C6H7BO2",1,,8.83
+16234,"2-Nitrobenzoic acid","C7H5NO4",1,25,2.17
+16444,"p-Benzidine","C12H12N2",1,20,4.65
+16444,"p-Benzidine","C12H12N2",2,20,3.43
+16485,"4-Fluorophenol","C6H5FO",1,25,9.89
+17148,"Oleanolic acid","C30H48O3",1,,2.52
+17714,"Heptanoic acid","C7H14O2",1,25,4.89
+,"Ergometrinine","C19H23N3O2",1,,7.3
+,"3,5-Pyridinedicarboxylic acid","C7H5NO4",1,25,2.8
+,"2,4,6-Trihydroxybenzoic acid","C7H6O5",1,25,1.68
+,"4-Amino-2-hydroxybenzoic acid","C7H7NO3",1,,3.25
+,"4-(Methylamino)benzoica acid","C8H9NO2",1,25,5.04
+,"3-Furancarboxylic acid","C5H4O3",1,25,3.9
+,"3-Pyridinol","C5H5NO",1,20,4.79
+,"3-Pyridinol","C5H5NO",2,20,8.75
+,"4-Pyridinol","C5H5NO",1,20,3.2
+,"4-Pyridinol","C5H5NO",2,20,11.12
+,"5-Amino-4-oxopentanoic acid","C5H9NO3",1,25,4.05
+,"5-Amino-4-oxopentanoic acid","C5H9NO3",2,25,8.9
+,"2-Methylbutanoic acid","C5H10O2",1,25,4.8
+,"2,3-Dichlorophenol","C6H4Cl2O",1,25,7.44
+,"2,5-Dinitrophenol","C6H4N2O5",1,15,5.15
+,"3-Bromophenol","C6H5BrO",1,25,9.03
+,"2-Fluorophenol","C6H5FO",1,25,8.73
+,"3-Fluorophenol","C6H5FO",1,25,9.29
+,"3-Iodophenol","C6H5IO",1,25,9.03
+,"4-Iodophenol","C6H5IO",1,25,9.33
+,"2-Pyridinecarboxaldehyde","C6H5NO",1,25,12.68
+,"4-Pyridinecarboxaldehyde","C6H5NO",1,30,12.05
+,"4-Pyridinecarboxylic acid","C6H5NO2",1,25,1.77
+,"4-Pyridinecarboxylic acid","C6H5NO2",2,25,4.84
+,"2-Chloroaniline","C6H6ClN",1,25,2.66
+,"3-Chloroaniline","C6H6ClN",1,25,3.52
+,"2-Nitroaniline","C6H6N2O2",1,25,-0.25
+,"3-Nitroaniline","C6H6N2O2",1,25,2.46
+,"3-Hydroxybenzenesulfonic acid","C6H6O4S",1,25,9.07
+,"4-Hydroxybenzenesulfonic acid","C6H6O4S",1,25,9.11
+,"3-Methylpyridine","C6H7N",1,25,5.7
+,"4-Methylpyridine","C6H7N",1,25,5.99
+,"p-Phenylenediamine","C6H8N2",1,20,6.31
+,"p-Phenylenediamine","C6H8N2",2,20,2.97
+,"3-Chlorobenzoic acid","C7H5ClO2",1,25,3.84
+,"3-Nitrobenzoic acid","C7H5NO4",1,25,3.46
+,"4-Nitrobenzoic acid","C7H5NO4",1,25,3.43
+,"2,4-Pyridinedicarboxylic acid","C7H5NO4",1,25,2.15
+,"2,6-Pyridinedicarboxylic acid","C7H5NO4",1,25,2.16
+,"2,6-Pyridinedicarboxylic acid","C7H5NO4",2,25,4.76
+,"2-Hydroxybenzoic acid","C7H6O3",1,20,2.98
+,"2-Hydroxybenzoic acid","C7H6O3",2,20,13.6
+,"2,4-Dihydroxybenzoic acid","C7H6O4",1,25,3.11
+,"2,4-Dihydroxybenzoic acid","C7H6O4",2,25,8.55
+,"2,4-Dihydroxybenzoic acid","C7H6O4",3,25,14
+,"3,5-Dihydroxybenzoic acid","C7H6O4",1,25,4.04
+,"2-Methoxyphenol","C7H8O2",1,25,9.98
+,"3-Methoxyphenol","C7H8O2",1,25,9.65
+,"4-Methoxyphenol","C7H8O2",1,25,10.21
+,"2-Methylaniline","C7H9N",1,25,4.45
+,"3-Methylaniline","C7H9N",1,25,4.71
+,"4-Methylaniline","C7H9N",1,25,5.08
+,"3-Formylbenzoic acid","C8H6O3",1,25,3.84
+,"4-Formylbenzoic acid","C8H6O3",1,25,3.77
+,"2-Methoxybenzoic acid","C8H8O3",1,25,4.08
+,"3-(Methylamino)benzoic acid","C8H9NO2",1,25,5.1
+,"3-Quinolinol","C9H7NO",1,20,4.28
+,"3-Quinolinol","C9H7NO",2,20,8.08
+,"4-Quinolinol","C9H7NO",1,20,2.23
+,"4-Quinolinol","C9H7NO",2,20,11.28
+,"6-Quinolinol","C9H7NO",1,20,5.15
+,"6-Quinolinol","C9H7NO",2,20,8.9
+,"8-Quinolinol","C9H7NO",1,25,4.91
+,"8-Quinolinol","C9H7NO",2,25,9.81
+,"8-Quinolinecarboxylic acid","C10H7NO2",1,25,1.82
+,"d-Ephedrine","C10H15NO",1,10,10.14
+,"1-Naphthalenecarboxylic acid","C11H8O2",1,25,3.69
+,"2-tert-Butylbenzoic acid","C11H14O2",1,25,3.54
+,"3-tert-Butylbenzoic acid","C11H14O2",1,25,4.2
+,"4-tert-Butylbenzoic acid","C11H14O2",1,25,4.38
+,"2-Aminobiphenyl","C12H11N",1,25,3.83
+,"3-Aminobiphenyl","C12H11N",1,18,4.25
+,"Nitromethane ","CH3NO2",1,25,10.21
+,"Carbamodithioic acid","CH3NS2",1,25,2.95
+,"O-Methylhydroxylamine ","CH5NO",1,,12.5
+,"Guanidine ","CH5N3",1,25,13.6
+,"Trifluoroacetic acid","C2HF3O2",1,25,0.52
+,"Dichloroacetic acid","C2H2Cl2O2",1,25,1.35
+,"Bromoacetic acid","C2H3BrO2",1,25,2.9
+,"2,2,2-Trifluoroethanol ","C2H3F3O",1,25,12.37
+,"Iodoacetic acid","C2H3IO2",1,25,3.18
+,"Nitroacetic acid","C2H3NO4",1,24,1.48
+,"1H-1,2,3-Triazole ","C2H3N3",1,20,1.17
+,"1H-1,2,4-Triazole ","C2H3N3",1,20,2.27
+,"Aminoacetonitrile ","C2H4N2",1,25,5.34
+,"Ethyleneimine ","C2H5N",1,25,8.04
+,"Ethanimidamide","C2H6N2",1,25,12.1
+,"Dimethylarsinic acid","C2H7AsO2",1,25,1.57
+,"Dimethylarsinic acid","C2H7AsO2",2,25,6.27
+,"1,2-Ethanediamine","C2H8N2",1,25,9.92
+,"1,2-Ethanediamine","C2H8N2",2,25,6.86
+,"1-Hydroxy-1,1-diphosphonoethane","C2H8O7P2",1,,1.35
+,"1-Hydroxy-1,1-diphosphonoethane","C2H8O7P2",2,,2.87
+,"1-Hydroxy-1,1-diphosphonoethane","C2H8O7P2",3,,7.03
+,"1-Hydroxy-1,1-diphosphonoethane","C2H8O7P2",4,,11.3
+,"2-Propynoic acid","C3H2O2",1,25,1.84
+,"Oxazole","C3H3NO",1,33,0.8
+,"Isoxazole","C3H3NO",1,25,-2
+,"Cyanoacetic acid","C3H3NO2",1,25,2.47
+,"Thiazole","C3H3NS",1,25,2.52
+,"1H-Pyrazole","C3H4N2",1,25,2.49
+,"2-Thiazolamine","C3H4N2S",1,20,5.36
+,"Hydroxypropanedioic acid","C3H4O5",1,,2.42
+,"Hydroxypropanedioic acid","C3H4O5",2,,4.54
+,"3-Bromopropanoic acid","C3H5BrO2",1,25,4
+,"2-Chloropropanoic acid","C3H5ClO2",1,25,2.83
+,"3-Chloropropanoic acid","C3H5ClO2",1,25,3.98
+,"3-Aminopropanenitrile","C3H6N2",1,20,7.8
+,"1,3,5-Triazine-2,4,6-triamine","C3H6N6",1,25,5
+,"Allylamine","C3H7N",1,25,9.49
+,"Azetidine","C3H7N",1,25,11.29
+,"2-Propanone oxime","C3H7NO",1,25,12.42
+,"Ethylene glycol monomethyl ether","C3H8O2",1,25,14.8
+,"Propylamine","C3H9N",1,25,10.54
+,"2-Methoxyethylamine","C3H9NO",1,25,9.4
+,"1,2-Propanediamine, (±)","C3H10N2",1,25,9.82
+,"1,2-Propanediamine, (±)","C3H10N2",2,25,6.61
+,"1,3-Diamino-2-propanol","C3H10N2O",1,20,9.69
+,"1,3-Diamino-2-propanol","C3H10N2O",2,20,7.93
+,"1,2,3-Triaminopropane","C3H11N3",1,20,9.59
+,"1,2,3-Triaminopropane","C3H11N3",2,20,7.95
+,"Flucytosine","C4H4FN3O",1,,3.26
+,"Pyrazine","C4H4N2",1,20,0.65
+,"Pyridazine","C4H4N2",1,20,2.24
+,"Alloxanic acid","C4H4N2O5",1,25,6.64
+,"5-Nitropyrimidinamine","C4H4N4O2",1,20,0.35
+,"2-Butynoic acid","C4H4O2",1,25,2.62
+,"Pyrrole","C4H5N",1,25,-3.8
+,"2-Pyrimidinamine","C4H5N3",1,20,3.45
+,"4-Pyrimidinamine","C4H5N3",1,20,5.71
+,"6-Methyl-1,2,4-triazine-3,5(2H,4H)-dione","C4H5N3O2",1,,7.6
+,"1-Methylimidazol","C4H6N2",1,25,6.95
+,"trans-Crotonic acid","C4H6O2",1,25,4.69
+,"3-Butenoic acid","C4H6O2",1,25,4.34
+,"Cyclopropanecarboxylic acid","C4H6O2",1,25,4.83
+,"Dihydroxytartaric acid","C4H6O8",1,25,1.92
+,"2-Chlorobutanoic acid","C4H7ClO2",1,,2.86
+,"3-Chlorobutanoic acid","C4H7ClO2",1,,4.05
+,"4-Chlorobutanoic acid","C4H7ClO2",1,,4.52
+,"4-Cyanobutanoic acid","C4H7NO2",1,25,2.42
+,"N-Acetylglycine ","C4H7NO3",1,25,3.67
+,"Iminodiacetic acid","C4H7NO4",1,,2.98
+,"Iminodiacetic acid","C4H7NO4",2,,9.89
+,"2,4,6-Pyrimidinetriamine","C4H7N5",1,20,6.84
+,"3-Hydroxybutanoica acid (±)","C4H8O3",1,25,4.7
+,"Ethoxyacetic acid","C4H8O3",1,18,3.65
+,"Pyrrolidine acid","C4H9N",1,25,11.31
+,"2-Methylalanine","C4H9NO2",1,25,2.36
+,"2-Methylalanine","C4H9NO2",2,25,10.21
+,"2,4-Diaminobutanoic acid","C4H10N2O2",1,25,1.85
+,"2,4-Diaminobutanoic acid","C4H10N2O2",2,25,8.24
+,"2,4-Diaminobutanoic acid","C4H10N2O2",3,25,10.44
+,"1,2,3,4-Butanetetrol","C4H10O4",1,,13.9
+,"Butylamine","C4H11N",1,25,10.6
+,"sec-Butylamine","C4H11N",1,25,10.56
+,"tert-Butylamine","C4H11N",1,25,10.68
+,"Diethylamine","C4H11N",1,25,10.84
+,"Tris(hydroxymethyl) methylamine","C4H11NO3",1,20,8.3
+,"3-Bromopyridine","C5H4BrN",1,25,2.84
+,"2-Chloropyridine","C5H4ClN",1,25,0.49
+,"3-Chloropyridine","C5H4ClN",1,25,2.81
+,"4-Chloropyridine","C5H4ClN",1,25,3.83
+,"2-Fluoropyridine","C5H4FN",1,25,-0.44
+,"4-Nitropyridine","C5H4N2O2",1,25,1.61
+,"1H-Purine","C5H4N4",1,20,2.3
+,"1H-Purine","C5H4N4",2,20,8.96
+,"Allopurinol","C5H4N4O",1,,10.2
+,"1,7-Dihydro-6Hpurine-6-thione","C5H4N4S",1,,7.77
+,"1,7-Dihydro-6Hpurine-6-thione","C5H4N4S",2,,11.17
+,"2-Thiophenecarboxylic acid","C5H4O2S",1,25,3.49
+,"3-Thiophenecarboxylic acid","C5H4O2S",1,25,4.1
+,"2(1H)-Pyridinone","C5H5NO",1,20,0.75
+,"2(1H)-Pyridinone","C5H5NO",2,20,11.65
+,"Pyridine-1-oxide","C5H5NO",1,24,0.79
+,"1H-Pyrrole-2-carboxylic acid","C5H5NO2",1,20,4.45
+,"1H-Pyrrole-3-carboxylic acid","C5H5NO2",1,20,5
+,"Pyrazinecarboxamide","C5H5N3O",1,,0.5
+,"2-Pyridinamine","C5H6N2",1,20,6.82
+,"3-Pyridinamine","C5H6N2",1,25,6.04
+,"4-Pyridinamine","C5H6N2",1,25,9.11
+,"2-Methylpyrazine","C5H6N2",1,27,1.45
+,"1,1-Cyclopropanedicarboxylic acid","C5H6O4",1,25,1.82
+,"1,1-Cyclopropanedicarboxylic acid","C5H6O4",2,25,7.43
+,"trans-1-Propene-1,2-dicarboxylic acid","C5H6O4",1,25,3.09
+,"trans-1-Propene-1,2-dicarboxylic acid","C5H6O4",2,25,4.75
+,"1-Propene-2,3-dicarboxylic acid","C5H6O4",1,25,3.85
+,"1-Propene-2,3-dicarboxylic acid","C5H6O4",2,25,5.45
+,"2-Oxoglutaric acid","C5H6O5",1,25,2.47
+,"2-Oxoglutaric acid","C5H6O5",2,25,4.68
+,"5,5-Dimethyl-2,4-oxazolidinedione","C5H7NO3",1,37,6.13
+,"2,5-Pyridinediamine","C5H7N3",1,20,6.48
+,"Methylaminopyrazine","C5H7N3",1,25,3.39
+,"Azaserine","C5H7N3O4",1,,8.55
+,"2,4-Dimethylimidazole","C5H8N2",1,25,8.36
+,"trans-3-Pentenoic acid","C5H8O2",1,25,4.51
+,"Dimethylmalonic acid","C5H8O4",1,25,3.15
+,"Methylsuccinic acid","C5H8O4",1,25,4.13
+,"Methylsuccinic acid","C5H8O4",2,25,5.64
+,"trans-4-Hydroxyproline","C5H9NO3",1,25,1.82
+,"trans-4-Hydroxyproline","C5H9NO3",2,25,9.66
+,"Glycylalanine","C5H10N2O3",1,25,3.15
+,"Glycylserine","C5H10N2O4",1,25,2.98
+,"Glycylserine","C5H10N2O4",2,25,8.38
+,"2,2-Dimethylpropanoic acid","C5H10O2",1,20,5.03
+,"D-2-Deoxyribose","C5H10O4",1,25,12.61
+,"N-Methylpyrrolidine","C5H11N",1,25,10.46
+,"4-Methylmorpholine","C5H11NO",1,25,7.38
+,"N-Propylglycine","C5H11NO2",1,25,2.35
+,"N-Propylglycine","C5H11NO2",2,25,10.19
+,"Tetramethylurea","C5H12N2O",1,,2
+,"Pentylamine","C5H13N",1,25,10.63
+,"3-Pentanamine","C5H13N",1,17,10.59
+,"3-Methyl-1-butanamine","C5H13N",1,25,10.6
+,"2-Methyl-2-butanamine","C5H13N",1,19,10.85
+,"2,2-Dimethylpropylamine","C5H13N",1,25,10.15
+,"Diethylmethylamine","C5H13N",1,25,10.35
+,"4-Amino-3,5,6-trichloro-2-pyridinecarboxlic acid","C6H3Cl3N2O2",1,,3.6
+,"2,4,6-Trinitrophenol","C6H3N3O7",1,24,0.42
+,"3,5-Dibromoaniline","C6H5Br2N",1,25,2.34
+,"1H-Benzotriazole","C6H5N3",1,20,1.6
+,"Xanthopterin","C6H5N5O2",1,20,6.59
+,"Xanthopterin","C6H5N5O2",3,20,9.31
+,"2-Bromoaniline","C6H6BrN",1,25,2.53
+,"3-Bromoaniline","C6H6BrN",1,25,3.53
+,"4-Bromoaniline","C6H6BrN",1,25,3.89
+,"2-Iodoaniline","C6H6IN",1,25,2.54
+,"3-Iodoaniline","C6H6IN",1,25,3.58
+,"4-Iodoaniline","C6H6IN",1,25,3.81
+,"3-Pyridinecarboxamide","C6H6N2O",1,20,3.3
+,"2-Pyridinecarbox-aldehyde-oxime","C6H6N2O",1,20,3.59
+,"2-Pyridinecarbox-aldehyde-oxime","C6H6N2O",2,20,10.18
+,"p-Hydroquinone","C6H6O2",1,25,9.85
+,"p-Hydroquinone","C6H6O2",2,25,11.4
+,"Benzenesulfinic acid","C6H6O2S",1,20,1.3
+,"Benzenesulfonic acid","C6H6O3S",1,25,0.7
+,"5-Hydroxy-2-(hydroxymethyl)-4H-pyran-4-one","C6H6O4",1,,7.9
+,"cis-1-Propene-1,2,3-tricarboxylic acid","C6H6O6",1,25,1.95
+,"trans-1-Propene-1,2,3-tricarboxylic acid","C6H6O6",1,25,2.8
+,"trans-1-Propene-1,2,3-tricarboxylic acid","C6H6O6",2,25,4.46
+,"Benzenethiol","C6H6S",1,25,6.62
+,"2-Methoxypyridine","C6H7NO",1,20,3.28
+,"3-Methoxypyridine","C6H7NO",1,25,4.78
+,"4-Methoxypyridine","C6H7NO",1,25,6.58
+,"N-Methylpyridinamine","C6H8N2",1,20,9.65
+,"2,4-Hexadienoic acid","C6H8O2",1,25,4.76
+,"2,2-Dimethyl-1,3-dioxane-4,6-dione","C6H8O4",1,,5.1
+,"L-γ-Carboxyglutamic acid","C6H9NO6",1,25,1.7
+,"L-γ-Carboxyglutamic acid","C6H9NO6",2,25,3.2
+,"L-γ-Carboxyglutamic acid","C6H9NO6",3,25,4.75
+,"L-γ-Carboxyglutamic acid","C6H9NO6",4,25,9.9
+,"4,6-Dimethylpyrimidinamine","C6H9N3",1,20,4.82
+,"Cyclopentanecarboxylic acid","C6H10O2",1,25,4.99
+,"3-Methylglutaric acid","C6H10O4",1,25,4.24
+,"Adipamic acid","C6H11NO3",1,25,4.63
+,"N-(N-Glycylglycyl)glycine","C6H11N3O4",1,25,3.23
+,"N-(N-Glycylglycyl)glycine","C6H11N3O4",2,25,8.09
+,"Glycylasparagine","C6H11N3O4",1,25,2.94
+,"Glycylasparagine","C6H11N3O4",2,18,8.44
+,"Triethylenediamine","C6H12N2",1,,3
+,"Triethylenediamine","C6H12N2",2,,8.7
+,"4-Methylpentanoic acid","C6H12O2",1,18,4.84
+,"β-D-Fructose","C6H12O6",1,25,12.27
+,"α-D-Glucose","C6H12O6",1,25,12.46
+,"1-Methylpiperidine","C6H13N",1,25,10.38
+,"1,2-Dimethylpyrrolidine","C6H13N",1,26,10.2
+,"N-Ethylmorpholine","C6H13NO",1,25,7.67
+,"N,N-Bis(2-hydroxyethyl) glycine","C6H13NO4",1,20,8.35
+,"cis-1,2-Cyclohexanediamine","C6H14N2",1,20,9.93
+,"cis-1,2-Cyclohexanediamine","C6H14N2",2,20,6.13
+,"trans-1,2-Cyclohexanediamine","C6H14N2",1,20,9.94
+,"trans-1,2-Cyclohexanediamine","C6H14N2",2,20,6.47
+,"cis-2,5-Dimethylpiperazine","C6H14N2",1,25,9.66
+,"cis-2,5-Dimethylpiperazine","C6H14N2",2,25,5.2
+,"Diisopropylamine","C6H15N",1,25,11.05
+,"1,6-Hexanediamine","C6H16N2",1,0,11.86
+,"1,6-Hexanediamine","C6H16N2",2,0,10.76
+,"N,N,N’,N’-Tetramethyl-1,2-ethanediamine","C6H16N2",1,25,10.4
+,"N,N,N’,N’-Tetramethyl-1,2-ethanediamine","C6H16N2",2,25,8.26
+,"Hexamethyldisilazane","C6H19NSi2",1,,7.55
+,"Pentafluorobenzoic acid","C7HF5O2",1,25,1.75
+,"2,4,6-Trinitrobenzoic acid","C7H3N3O8",1,25,0.65
+,"2,4-Dinitrobenzoic acid","C7H4N2O6",1,25,1.43
+,"2-Bromobenzoic acid","C7H5BrO2",1,25,2.85
+,"3-Bromobenzoic acid","C7H5BrO2",1,25,3.81
+,"4-Bromobenzoic acid","C7H5BrO2",1,25,3.96
+,"2-(Trifluoromethyl)phenol","C7H5F3O",1,25,8.95
+,"3-(Trifluoromethyl)phenol","C7H5F3O",1,25,8.68
+,"2-Iodobenzoic acid","C7H5IO2",1,25,2.86
+,"3-Iodobenzoic acid","C7H5IO2",1,25,3.87
+,"4-Iodobenzoic acid","C7H5IO2",1,25,4
+,"2-Hydroxybenzonitrile","C7H5NO",1,25,6.86
+,"3-Hydroxybenzonitrile","C7H5NO",1,25,8.61
+,"4-Hydroxybenzonitrile","C7H5NO",1,25,7.97
+,"Saccharin","C7H5NO3S",1,18,11.68
+,"3-(Trifluoromethyl)aniline","C7H6F3N",1,25,3.49
+,"4-(Trifluoromethyl)aniline","C7H6F3N",1,25,2.45
+,"1H-Benzimidazole","C7H6N2",1,25,5.53
+,"2-Aminobenzonitrile","C7H6N2",1,25,0.77
+,"3-Aminobenzonitrile","C7H6N2",1,25,2.75
+,"4-Aminobenzonitrile","C7H6N2",1,25,1.74
+,"Aniline-2-carboxylic acid","C7H7NO2",1,25,2.17
+,"Aniline-2-carboxylic acid","C7H7NO2",2,25,4.85
+,"Aniline-3-carboxylic acid","C7H7NO2",1,25,3.07
+,"Aniline-3-carboxylic acid","C7H7NO2",2,25,4.79
+,"Aniline-4-carboxylic acid","C7H7NO2",1,25,2.5
+,"Aniline-4-carboxylic acid","C7H7NO2",2,25,4.87
+,"Hydrochlorothiazide","C7H8ClN3O4S2",1,,7.9
+,"Hydrochlorothiazide","C7H8ClN3O4S2",2,,9.2
+,"4-(Methylthio)phenol","C7H8OS",1,25,9.53
+,"Benzenemethanethiol","C7H8S",1,25,9.43
+,"2-Ethylpyridine","C7H9N",1,25,5.89
+,"2,3-Dimethylpyridine","C7H9N",1,25,6.57
+,"2,4-Dimethylpyridine","C7H9N",1,25,6.99
+,"2,5-Dimethylpyridine","C7H9N",1,25,6.4
+,"2,6-Dimethylpyridine","C7H9N",1,25,6.65
+,"3,4-Dimethylpyridine","C7H9N",1,25,6.46
+,"3,5-Dimethylpyridine","C7H9N",1,25,6.15
+,"2-Methoxyaniline","C7H9NO",1,25,4.53
+,"3-Methoxyaniline","C7H9NO",1,25,4.2
+,"4-Methoxyaniline","C7H9NO",1,25,5.36
+,"2-(Methylthio)aniline","C7H9NS",1,25,3.45
+,"4-(Methylthio)aniline","C7H9NS",1,25,4.35
+,"2-Dimethylaminopurine","C7H9N5",1,20,4
+,"2-Dimethylaminopurine","C7H9N5",2,20,10.24
+,"Butylpropanedioic acid","C7H12O4",1,5,2.96
+,"α-Ethylglutamic acid","C7H13NO4",1,25,3.85
+,"α-Ethylglutamic acid","C7H13NO4",2,25,7.84
+,"α-Methylglucoside","C7H14O6",1,25,13.71
+,"1-Ethylpiperidine","C7H15N",1,23,10.45
+,"1,2-Dimethylpiperidine,(±)","C7H15N",1,25,10.22
+,"Carnitine","C7H15NO3",1,25,3.8
+,"Heptylamine","C7H17N",1,25,10.67
+,"2-Heptanamine","C7H17N",1,19,10.7
+,"3-Cyanobenzoic acid","C8H5NO2",1,25,3.6
+,"4-Cyanobenzoic acid","C8H5NO2",1,25,3.55
+,"Cinnoline","C8H6N2",1,20,2.37
+,"Quinazoline","C8H6N2",1,29,3.43
+,"Quinoxaline","C8H6N2",1,20,0.56
+,"Phthalazine","C8H6N2",1,20,3.47
+,"Nitrofurantoin","C8H6N4O5",1,,7.2
+,"Isophthalic acid","C8H6O4",1,25,3.7
+,"Isophthalic acid","C8H6O4",2,25,4.6
+,"2-Chlorobenzeneacetic acid","C8H7ClO2",1,25,4.07
+,"3-Chlorobenzeneacetic acid","C8H7ClO2",1,25,4.14
+,"4-Chlorobenzeneacetic acid","C8H7ClO2",1,25,4.19
+,"2-Chlorophenoxyacetic acid","C8H7ClO3",1,25,3.05
+,"3-Chlorophenoxyacetic acid","C8H7ClO3",1,25,3.1
+,"2-Nitrobenzeneacetic acid","C8H7NO4",1,25,4
+,"3-Nitrobenzeneacetic acid","C8H7NO4",1,25,3.97
+,"4-Nitrobenzeneacetic acid","C8H7NO4",1,25,3.85
+,"2-Methyl-1H-benzimidazole","C8H8N2",1,25,6.19
+,"1-(2-Hydroxyphenyl)ethanone","C8H8O2",1,25,10.06
+,"1-(3-Hydroxyphenyl)ethanone","C8H8O2",1,25,9.19
+,"1-(4-Hydroxyphenyl)ethanone","C8H8O2",1,25,8.05
+,"3-Methoxybenzoic acid","C8H8O3",1,25,4.1
+,"Mandelic acid","C8H8O3",1,25,3.37
+,"2,5-Hydroxybenzeneacetic","C8H8O4",1,25,4.4
+,"N-Phenylglycine","C8H9NO2",1,25,1.83
+,"N-Phenylglycine","C8H9NO2",2,,4.39
+,"4-Bromo-N,N-dimethylaniline","C8H10BrN",1,25,4.23
+,"3-Chloro-N,Ndimethylaniline","C8H10ClN",1,20,3.83
+,"4-Chloro-N,Ndimethylaniline","C8H10ClN",1,20,4.39
+,"N,N-Dimethyl-3-nitroaniline","C8H10N2O2",1,25,2.62
+,"Benzeneethanamine","C8H11N",1,25,9.83
+,"2,4,6-Trimethylpyridine","C8H11N",1,25,7.43
+,"2-Ethoxyaniline","C8H11NO",1,28,4.43
+,"3-Ethoxyaniline","C8H11NO",1,25,4.18
+,"4-Ethoxyaniline","C8H11NO",1,28,5.2
+,"4-(2-Aminoethyl)phenol","C8H11NO",1,25,9.74
+,"4-(2-Aminoethyl)phenol","C8H11NO",2,25,10.52
+,"2-(2-Methoxyethyl)pyridine","C8H11NO",1,,5.5
+,"6-Azauridine","C8H11N3O6",1,,6.7
+,"Phenylbiguanide","C8H11N5",1,,10.76
+,"Phenylbiguanide","C8H11N5",2,,2.13
+,"Barbital","C8H12N2O3",1,25,7.43
+,"5,5-Dimethyl-1,3-cyclohexanedione","C8H12O2",1,25,5.15
+,"N-Glycylleucine","C8H16N2O3",1,25,3.18
+,"N-Leucylglycine","C8H16N2O3",1,25,3.25
+,"N-Leucylglycine","C8H16N2O3",2,25,8.2
+,"2-Propylpentanoic acid","C8H16O2",1,,4.6
+,"2-Propylpiperidine,(S)","C8H17N",1,,10.9
+,"2,2,4-Trimethylpiperidine","C8H17N",1,30,11.04
+,"trans-6-Propyl-3-","C8H17NO",1,,10.3
+,"N-Methyl-2-heptanamine","C8H19N",1,17,10.99
+,"Dibutylamine","C8H19N",1,21,11.25
+,"1,8-Octanediamine","C8H20N2",1,20,11
+,"1,8-Octanediamine","C8H20N2",2,20,10.1
+,"3-Bromoquinoline","C9H6BrN",1,25,2.69
+,"Trans-o-Chlorocinnamic acid","C9H7ClO2",1,25,4.23
+,"Trans-m-Chlorocinnamic acid","C9H7ClO2",1,25,4.29
+,"Trans-p-Chlorocinnamic acid","C9H7ClO2",1,25,4.41
+,"7-Isoquinolinol","C9H7NO",1,20,5.68
+,"7-Isoquinolinol","C9H7NO",2,20,8.9
+,"2-Cyanophenoxyacetic acid","C9H7NO3",1,25,2.98
+,"3-Cyanophenoxyacetic acid","C9H7NO3",1,25,3.03
+,"4-Cyanophenoxyacetic acid","C9H7NO3",1,25,2.93
+,"2-Quinolinamine","C9H8N2",1,20,7.34
+,"3-Quinolinamine","C9H8N2",1,20,4.91
+,"4-Quinolinamine","C9H8N2",1,20,9.17
+,"1-Isoquinolinamine","C9H8N2",1,20,7.62
+,"3-Isoquinolinamine","C9H8N2",1,20,5.05
+,"Cis-Cinnamic acid","C9H8O2",1,25,3.88
+,"Α-Methylenebenezeneacetic acid","C9H8O2",1,,4.35
+,"2-(Acetyloxy)benzoic acid","C9H8O4",1,25,3.48
+,"3-(2-Chlorophenyl)-propanoic acid","C9H9ClO2",1,25,4.58
+,"3-(3-Chlorophenyl)-propanoic acid","C9H9ClO2",1,25,4.59
+,"3-(4-Chlorophenyl)-propanoic acid","C9H9ClO2",1,25,4.61
+,"3-(2-Nitrophenyl)-propanoic acid","C9H9NO4",1,25,4.5
+,"3-(4-Nitrophenyl)-propanoic acid","C9H9NO4",1,25,4.47
+,"L-3-Iodotyrosine","C9H10INO3",1,25,2.2
+,"L-3-Iodotyrosine","C9H10INO3",2,25,8.7
+,"L-3-Iodotyrosine","C9H10INO3",3,25,9.1
+,"2-Ethylbenzimidazole","C9H10N2",1,25,6.18
+,"3,5-Dimethylbenzoic acid","C9H10O2",1,25,4.32
+,"Benzenepropanoic acid","C9H10O2",1,25,4.66
+,"Α-Methylbenzeneacetic acid","C9H10O2",1,25,4.64
+,"Α-Hydroxy-α-methylbenezeneacetic acid","C9H10O3",1,25,3.47
+,"N-Allylaniline","C9H11N",1,25,4.17
+,"1-Indanamine","C9H11N",1,22,9.21
+,"4-(Dimethylamino)-benzoic acid","C9H11NO2",1,,6.03
+,"4-(Dimethylamino)-benzoic acid","C9H11NO2",2,,11.49
+,"Tyrosineamide","C9H12N2O2",1,25,7.33
+,"N-Isopropylaniline","C9H13N",1,25,5.77
+,"Epinephrine","C9H13NO3",1,25,8.66
+,"Epinephrine","C9H13NO3",2,25,9.95
+,"5’-Uridylic acid","C9H13N2O9P",1,,6.4
+,"5’-Uridylic acid","C9H13N2O9P",2,,9.5
+,"Phenylpropanolamine hydrochloride","C9H14ClNO",1,,9.44
+,"Metharbital","C9H14N2O3",1,,8.45
+,"3’-Cytidylic acid","C9H14N3O8P",1,,0.8
+,"3’-Cytidylic acid","C9H14N3O8P",2,,4.28
+,"3’-Cytidylic acid","C9H14N3O8P",3,,6
+,"Captopril","C9H15NO3S",1,,3.7
+,"Captopril","C9H15NO3S",2,,9.8
+,"Minoxidil","C9H15N5O",1,,4.61
+,"N-Butylpiperidine","C9H19N",1,23,10.47
+,"2,2,6,6-Tetramethylpiperidine","C9H19N",1,25,11.07
+,"Nonylamine","C9H21N",1,25,10.64
+,"2-Methylquinoline","C10H9N",1,20,5.83
+,"4-Methylquinoline","C10H9N",1,20,5.67
+,"5-Methylquinoline","C10H9N",1,20,5.2
+,"5-Amino-1-naphthol","C10H9NO",1,25,3.97
+,"6-Methoxyquinoline","C10H9NO",1,20,5.03
+,"1H-Indole-3-acetic acid","C10H9NO2",1,,4.75
+,"o-Methylcinnamic acid","C10H10O2",1,25,4.5
+,"m-Methylcinnamic acid","C10H10O2",1,25,4.44
+,"p-Methylcinnamic acid","C10H10O2",1,25,4.56
+,"Dideoxyinosine","C10H12N4O3",1,,9.12
+,"5,6,7,8-Tetrahydro-2-naphthalenol","C10H12O",1,25,10.48
+,"Benzenebutanoic acid","C10H12O2",1,25,4.76
+,"Propyl 3,4,5-trihydroxybenzoate","C10H12O5",1,,8.11
+,"5’-Adenylic","C10H14N5O7P",1,,3.8
+,"5’-Adenylic","C10H14N5O7P",2,,6.2
+,"N-tert-Butylaniline","C10H15N",1,25,7
+,"N,N-Diethylaniline","C10H15N",1,25,6.57
+,"L-Argininosuccinic acid","C10H18N4O5",1,25,1.62
+,"L-Argininosuccinic acid","C10H18N4O5",2,25,2.7
+,"L-Argininosuccinic acid","C10H18N4O5",3,25,4.26
+,"L-Argininosuccinic acid","C10H18N4O5",4,25,9.58
+,"Bornylamine","C10H19N",1,25,10.17
+,"Neobornylamine","C10H19N",1,25,10.01
+,"Butylcyclohexylamine","C10H21N",1,25,11.23
+,"1,2,2,6,6-Pentamethylpiperidine","C10H21N",1,30,11.25
+,"Decylamine","C10H23N",1,25,10.64
+,"1H-Perimidine","C11H8N2",1,20,6.35
+,"Methyl-1-naphthylamine","C11H11N",1,27,3.67
+,"Sulfamethoxypyridazine","C11H12N4O3S",1,,6.7
+,"Mefluidide","C11H13F3N2O3S",1,,4.6
+,"Hydrastinine","C11H13NO3",1,,11.38
+,"N,N-Diethyl-2-methylaniline","C11H17N",1,25,7.24
+,"Methoxamine hydrochloride","C11H18ClNO3",1,25,9.2
+,"Undecylamine","C11H25N",1,25,10.63
+,"Methylphosphonothioic acid S[2-[bis(1-isopropyl)amino]-ethyl], O-ethylester","C11H26NO2PS",1,,7.9
+,"Phenazine","C12H8N2",1,20,1.2
+,"2-Benzylpyridine","C12H11N",1,25,5.13
+,"4-Aminoazobenzene","C12H11N3",1,25,2.82
+,"Iocetamic acid","C12H13I3N2O3",1,,4
+,"N,N-Dimethyl-1-naphthylamine","C12H13N",1,25,4.83
+,"N,N-Dimethyl-2-naphthylamine","C12H13N",1,25,4.57
+,"Sulfamethazine","C12H14N4O2S",1,,7.4
+,"Sulfamethazine","C12H14N4O2S",2,,2.65
+,"Sulfacytine","C12H14N4O3S",1,,6.9
+,"α-Maltose","C12H22O11",1,21,12.05
+,"Dodecylamine","C12H27N",1,25,10.63
+,"Acridine","C13H9N",1,20,5.58
+,"Phenanthridine","C13H9N",1,20,5.58
+,"9-Acridinamine","C13H10N2",1,20,9.99
+,"2-Phenylbenzimidazole","C13H10N2",1,25,5.23
+,"2-Phenylbenzimidazole","C13H10N2",2,25,11.91
+,"2-Phenylbenzoic acid","C13H10O2",1,25,3.46
+,"2-Phenoxybenzoic acid","C13H10O3",1,25,3.53
+,"3-Phenoxybenzoic acid","C13H10O3",1,25,3.95
+,"4-Phenoxybenzoic acid","C13H10O3",1,25,4.57
+,"3,6-Acridinediamine","C13H11N3",1,20,9.65
+,"Ethacrynic acid","C13H12Cl2O4",1,,3.5
+,"Sulfabenzamide","C13H12N2O3S",1,25,4.57
+,"4-Benzylaniline","C13H13N",1,25,2.17
+,"Harmaline","C13H14N2O13",1,,4.2
+,"Imazapyr","C13H15N3O3",1,,1.9
+,"Imazapyr","C13H15N3O3",2,,3.6
+,"4-[(Dipropylamino)-sulfonyl]benzoic acid","C13H19NO4S",1,,5.8
+,"2,6-Di-tert-butylpyridine","C13H21N",1,,3.58
+,"(Tridecyl)amine","C13H29N",1,25,10.63
+,"Perfluidone","C14H12F3NO4S2",1,,2.5
+,"α-Phenylbenzeneacetic acid","C14H12O2",1,25,3.94
+,"Α-Hydroxy-α-phenylbenezeneacetic acid","C14H12O3",1,25,3.04
+,"Tolazamide","C14H21N3O3S",1,25,3.6
+,"Atenolol","C14H22N2O3",1,,9.6
+,"Tetradecylamine","C14H31N",1,25,10.62
+,"Clonazepam","C15H10ClN3O3",1,,1.5
+,"Clonazepam","C15H10ClN3O3",2,,10.5
+,"Methyl Red","C15H15N3O2",1,,2.5
+,"Methyl Red","C15H15N3O2",2,,9.5
+,"NeutralRed","C15H17ClN4",1,,6.7
+,"Imazethapyr","C15H19N3O3",1,,2.1
+,"Imazethapyr","C15H19N3O3",2,,3.9
+,"Pentadecylamine","C15H33N",1,25,10.61
+,"Valium","C16H13ClN2O",1,,3.4
+,"Chlorodiazepoxide","C16H14ClN3O",1,,4.8
+,"Lysergic","C16H16N2O2",1,,3.44
+,"Lysergic","C16H16N2O2",2,,7.68
+,"Cephalexin","C16H17N3O4S",1,,5.2
+,"Cephalexin","C16H17N3O4S",2,,7.3
+,"Hexadecylamine","C16H35N",1,25,10.61
+,"Apomorphine","C17H17NO2",1,,7
+,"Apomorphine","C17H17NO2",2,,8.92
+,"Mycophenolic acid","C17H20O6",1,,4.5
+,"Nadolol","C17H27NO4",1,,9.67
+,"Dibenzepin","C18H21N3O",1,,8.25
+,"Octadecylamine","C18H39N",1,25,10.6
+,"Bromophenol Blue","C19H10Br4O5S",1,,4
+,"Hydroquinine","C20H26N2O2",1,,5.33
+,"Bromocresol Green","C21H14Br4O5S",1,,4.7
+,"Bromocresol Purple","C21H16Br2O5S",1,,6.3
+,"CresolRed","C21H18O5S",1,,8.3
+,"Hydrastine","C21H21NO6",1,,7.8
+,"Furethidine","C21H31NO4",1,,7.48
+,"Lisinopril","C21H35N3O7",1,,2.5
+,"Lisinopril","C21H35N3O7",2,,4
+,"Lisinopril","C21H35N3O7",3,,6.7
+,"Lisinopril","C21H35N3O7",4,,10.1
+,"o-Cresolphthalein","C22H18O4",1,,9.4
+,"Droperidol","C22H22FN3O2",1,,7.64
+,"Benzpiperylon","C22H25N3O",1,,6.73
+,"Benzpiperylon","C22H25N3O",2,,9.13
+,"Aconine","C25H41NO9",1,,9.52
+,"Bromothymol Blue","C27H28Br2O5S",1,,7
+,"Bromadiolone","C30H23BrO4",1,21,4.04

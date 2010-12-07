@@ -1378,7 +1378,7 @@ class GroupContribution(Thermodynamics):
     
 if __name__ == '__main__':
     
-    if False:
+    if True:
         G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_train")
         G.load_groups("../data/thermodynamics/groups_species.csv")
         G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)

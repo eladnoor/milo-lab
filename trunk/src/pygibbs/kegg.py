@@ -1,4 +1,4 @@
-import csv, sqlite3, pybel, openbabel, sys, os, urllib, difflib, re, pydot, pylab
+import csv, sqlite3, pybel, openbabel, sys, os, urllib, re, pydot, pylab
 from toolbox import util
 from copy import deepcopy
 import gzip
@@ -450,7 +450,8 @@ class Kegg:
             if ("NAME" in field_map):
                 all_names = field_map["NAME"].replace('\t', '').split(';')
                 for name in all_names:
-                    self.name2cid_map[name.lower()] = cid
+                    name = name.strip()
+                    self.name2cid_map[name] = cid
                 comp.name = all_names[0]
                 comp.all_names = all_names
             if ("MASS" in field_map):
@@ -758,16 +759,18 @@ class Kegg:
     def get_all_rids(self):
         return sorted(self.rid2reaction_map.keys())
     
-    def name2cid(self, compound_name, fuzziness_cutoff=1):
-        if (compound_name in self.name2cid_map):
-            return self.name2cid_map[compound_name]
-        elif (fuzziness_cutoff < 1):
-            matches = difflib.get_close_matches(compound_name, self.get_all_names(), 1, cutoff=fuzziness_cutoff)
-            if (matches != []):
-                match = matches[0]
-                return self.name2cid_map[match]
-        
-        return None
+    def name2cid(self, compound_name, cutoff=None):
+        if compound_name in self.name2cid_map:
+            return self.name2cid_map[compound_name], compound_name, 0
+
+        if cutoff:
+            #matches = difflib.get_close_matches(compound_name, self.get_all_names(), 1, cutoff=cutoff)
+            matches = util.get_close_matches(compound_name, self.get_all_names(), n=1, cutoff=cutoff)
+            if matches:
+                match, distance = matches[0]
+                return self.name2cid_map[match], match, distance
+            
+            return None, None, None
 
     def add_smiles(self, name, smiles):
         comp = Compound()

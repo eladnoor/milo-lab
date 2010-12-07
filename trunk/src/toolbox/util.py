@@ -1,6 +1,7 @@
 import os, types, pylab
 from toolbox.cartesian_product import cartesian_product
 from pylab import svd, find, exp, log, pi, nan, mean, sqrt, array, dot
+import Levenshtein
 
 def read_simple_mapfile(filename, default_value=""):
     map = {}
@@ -171,7 +172,7 @@ def rank(v):
         Returns a list of the ranks from an unsorted list
     """
     sx = sorted([(v[i], i) for i in range(len(v))])
-    rowidx = [i for (x,i) in sx]
+    rowidx = [i for (_,i) in sx]
     ranks = range(len(v))
     for i in range(len(v)):
         ranks[rowidx[i]] = i
@@ -187,7 +188,7 @@ def tiedrank(v):
     """
 
     sx = sorted([(v[i], i) for i in range(len(v))])
-    rowidx = [i for (x,i) in sx]
+    rowidx = [i for (_,i) in sx]
     ranks = range(len(v))
 
     i = 0
@@ -202,22 +203,8 @@ def tiedrank(v):
     return ranks
 
 def matrixrank(X):
-    (U, M, V) = svd(X)
+    (unused_U, M, unused_V) = svd(X)
     return len(find(M > 1e-8))
-
-def distribute(total, num_slots):
-    if num_slots == 1:
-        return [[total]]
-    
-    if total == 0:
-        return [[0] * num_slots]
-    
-    all_options = []
-    for i in xrange(total+1):
-        for opt in distribute(total-i, num_slots-1):
-            all_options.append([i] + opt)
-            
-    return all_options
 
 def lsum(l):
     """
@@ -234,6 +221,49 @@ def lsum(l):
         else:
             s.append(member)
     return s
+
+def distribute(total, num_slots):
+    """
+        Returns:
+            a list with all the distinct options of distributing 'total' balls
+            in 'num_slots' slots.
+        
+        Example:
+            distribute(3, 2) = [[0, 3], [1, 2], [2, 1], [3, 0]]
+    """
+    if num_slots == 1:
+        return [[total]]
+    
+    if total == 0:
+        return [[0] * num_slots]
+    
+    all_options = []
+    for i in xrange(total+1):
+        for opt in distribute(total-i, num_slots-1):
+            all_options.append([i] + opt)
+            
+    return all_options
+    
+def multi_distribute(total_slots_pairs):
+    """
+        Returns:
+            similar to distribute, but with more constraints on the sub-totals
+            in each group of slots. Every pair in the input list represents
+            the subtotal of the number of balls and the number of available balls for them.
+            The total of the numbers in these slots will be equal to the subtotal.
+        
+        Example:
+            multi_distribute([(1, 2), (2, 2)]) =
+            [[0, 1, 0, 2], [0, 1, 1, 1], [0, 1, 2, 0], [1, 0, 0, 2], [1, 0, 1, 1], [1, 0, 2, 0]]
+            
+            in words, the subtotal of the two first slots must be 1, and the subtotal
+            of the two last slots must be 2.
+    """
+    multilist_of_options = []
+    for (total, num_slots) in total_slots_pairs:
+        multilist_of_options.append(distribute(total, num_slots))
+
+    return [lsum(l) for l in cartesian_product(multilist_of_options)]
 
 def log_sum_exp(v):
     if (len(v) == 0):
@@ -258,13 +288,6 @@ def log_subt_exp(x1, x2):
     else:
         return complex(x2 + log(1 - exp(x1-x2)), pi)
 
-def multi_distribute(total_slots_pairs):
-    multilist_of_options = []
-    for total, num_slots in total_slots_pairs:
-        multilist_of_options.append(distribute(total, num_slots))
-
-    return [lsum(l) for l in cartesian_product(multilist_of_options)]
-
 def plot_xy(cursor, query, prefix=None, color='b', marker='.', xlog=False, ylog=False, xlabel='', ylabel='', title=''):
     """
         Executes the 'query' which should return two numerical columns.
@@ -272,14 +295,12 @@ def plot_xy(cursor, query, prefix=None, color='b', marker='.', xlog=False, ylog=
     cursor.execute(query)
     x_list = []
     y_list = []
-    mu_x = 0
     for row in cursor:
         (x, y) = row
         if (x != None and y != None):
             x_list.append(x)
             y_list.append(y)
     
-    n = len(x_list)
     X = pylab.array(x_list)
     Y = pylab.array(y_list)
     pylab.figure()
@@ -297,6 +318,27 @@ def plot_xy(cursor, query, prefix=None, color='b', marker='.', xlog=False, ylog=
         pylab.savefig('../res/%s.pdf' % prefix, format='pdf')
     pylab.hold(False)
     
+
+def get_close_matches(word, possibilities, n=3, cutoff=None, case_sensitive=False):
+    """
+        Given a string and a list of strings to lookup, returns a list of
+        pairs of the n-closest strings (according to the edit-distance),
+        and their respective distances from 'word'.
+        If cutoff is given, the returned list will contain only the string
+        which are closer than the cutoff.
+    """
+    
+    hits = []
+    for possibility in possibilities:
+        if case_sensitive:
+            d = Levenshtein.distance(word, possibility)
+        else:
+            d = Levenshtein.distance(word.lower(), possibility.lower())
+        if cutoff and d < cutoff:
+            hits.append((possibility, d))
+
+    return sorted(hits, cmp=lambda x,y: cmp(x[1], y[1]))
+
 ###############################################################
 def test():
     print tiedrank([5,4,3,2,1])
@@ -306,6 +348,8 @@ def test():
     
     print flatten([[1,2,3],[4,[5,6],[[7]]]])
     print lsum([[[1],[2]],3,set([4,5,6]),(7,8,9),10])
+    
+    print multi_distribute([(1,2),(2,2)])
       
 if (__name__ == '__main__'):
     test()
