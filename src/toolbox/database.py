@@ -29,6 +29,14 @@ class SQLDatabase(Database):
         if drop_if_exists:
             self.Execute("DROP TABLE IF EXISTS %s" % table_name)
         self.Execute("CREATE TABLE %s (%s)" % (table_name, columns))
+    
+    def CreateIndex(self, index_name, table_name, columns, unique=True, drop_if_exists=True):
+        if drop_if_exists:
+            self.Execute("DROP INDEX IF EXISTS %s" % index_name)
+        if unique:
+            self.Execute("CREATE UNIQUE INDEX %s ON %s (%s)" % (index_name, table_name, columns))
+        else:
+            self.Execute("CREATE INDEX %s ON %s (%s)" % (index_name, table_name, columns))
             
     def Insert(self, table_name, list):
         sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, ','.join(["?"]*len(list)))

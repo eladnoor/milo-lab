@@ -1,4 +1,4 @@
-import os, types, pylab
+import os, types, pylab, csv
 from toolbox.cartesian_product import cartesian_product
 from pylab import svd, find, exp, log, pi, nan, mean, sqrt, array, dot
 import Levenshtein
@@ -14,6 +14,28 @@ def read_simple_mapfile(filename, default_value=""):
             map[key.strip()] = value.strip()
     file.close()
     return map
+
+def ReadCsvWithTitles(filename):
+    """
+        Input:
+            A filename of a CSV file.
+            Assumes the first line in the CSV contains the titles.
+        
+        Returns:
+            A list of dictionaries, one for each row in the CSV.
+            The keys for each dictionary are the titles and the values are the 
+            values from that line for each of the columns.
+            Both keys and values are strings.
+    """
+    csv_reader = csv.reader(open(filename, 'r'))
+    titles = csv_reader.next()
+    data = []
+    for row in csv_reader:
+        row_dict = {}
+        for i, title in enumerate(titles):
+            row_dict[title] = row[i]
+        data.append(row_dict)
+    return data
 
 def _mkdir(newdir):
     """works the way a good mkdir should :)
