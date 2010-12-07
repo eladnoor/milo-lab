@@ -206,14 +206,17 @@ def matrixrank(X):
     return len(find(M > 1e-8))
 
 def distribute(total, num_slots):
-    if (num_slots == 1):
+    if num_slots == 1:
         return [[total]]
-    if (total == 0):
+    
+    if total == 0:
         return [[0] * num_slots]
+    
     all_options = []
-    for i in range(total+1):
+    for i in xrange(total+1):
         for opt in distribute(total-i, num_slots-1):
             all_options.append([i] + opt)
+            
     return all_options
 
 def lsum(l):
@@ -254,10 +257,10 @@ def log_subt_exp(x1, x2):
         return complex(x1 + log(1 - exp(x2-x1)), 0)
     else:
         return complex(x2 + log(1 - exp(x1-x2)), pi)
-    
+
 def multi_distribute(total_slots_pairs):
     multilist_of_options = []
-    for (total, num_slots) in total_slots_pairs:
+    for total, num_slots in total_slots_pairs:
         multilist_of_options.append(distribute(total, num_slots))
 
     return [lsum(l) for l in cartesian_product(multilist_of_options)]

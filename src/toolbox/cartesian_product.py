@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-class cartesian_product:
+class cartesian_product(object):
     
     def __init__(self, list_of_lists=[], unique_values=False):
         self._list_of_lists = list_of_lists
