@@ -231,14 +231,14 @@ def main():
     pl.maximal_dG = -5
     #pl.max_reactions = 10
     
-    source = {}; target = {48:1}
-    name = "=> glyoxylate (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+    #source = {}; target = {48:1}
+    #name = "=> glyoxylate (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
 
-    #source = {}; target = {197:1}
-    #name = "=> 3PG (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.max_reactions)
+    source = {}; target = {197:1}
+    name = "=> 3PG (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
     
     #source = {}; target = {24:1}
-    #name = "=> acetyl-CoA (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.max_reactions)
+    #name = "=> acetyl-CoA (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
     
     pl.find_path(name, source, target)
     
