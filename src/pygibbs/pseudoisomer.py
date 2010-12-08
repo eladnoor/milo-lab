@@ -2,8 +2,7 @@
 
 import pylab
 import types
-
-from pygibbs import thermodynamics
+import thermodynamics
 
 class PseudoisomerMap(object):
     """A map from pseudoisomers to dG values."""

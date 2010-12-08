@@ -4,7 +4,7 @@ from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 
 class Stoichiometric_LP():
     
-    def __init__(self, name='Stoichiometric_LP', log_file=sys.stderr):
+    def __init__(self, name='Stoichiometric_LP', log_file=None):
         self.cpl = cplex.Cplex()
         self.cpl.set_problem_name(name)
         self.cpl.set_log_stream(log_file)
@@ -231,7 +231,11 @@ class Stoichiometric_LP():
         self.cpl.objective.set_linear(obj)
 
     def solve(self, export_fname=None):
-        self.cpl.solve()
+        try:
+            self.cpl.solve()
+        except cplex.exceptions.CplexSolverError:
+            return False
+            
         if not self.milp:
             if (self.cpl.solution.get_status() == cplex.callbacks.SolveCallback.status.optimal):
                 self.fluxes = self.cpl.solution.get_values([rn.name for rn in self.reactions])

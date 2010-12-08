@@ -1,25 +1,28 @@
-import csv, sys
 from pylab import arange
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy, J_per_cal
+import pseudoisomer
+from toolbox.util import ReadCsvWithTitles
 
 class Hatzi (Thermodynamics):
     def __init__(self):
         Thermodynamics.__init__(self)
         self.source_string = "Hatzimanikatis"
-        csv_reader = csv.reader(open("../data/thermodynamics/hatzimanikatis_cid.csv", "r"))
-        csv_reader.next()
-        self.cid2pmap_dict = {80 : {(0, 0) : [0]} } # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
-        for row in csv_reader:
-            cid = int(row[0][1:])
-            if (row[1] == "Not calculated"):
+        H_pmap = pseudoisomer.PseudoisomerMap()
+        H_pmap.Add(0, 0, 0, 0)
+        self.cid2pmap_dict = {80 : H_pmap} # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
+        for row in ReadCsvWithTitles("../data/thermodynamics/hatzimanikatis_cid.csv"):
+            cid = int(row['ENTRY'][1:])
+            if (row['DELTAG'] == "Not calculated"):
                 continue
-            dG0_f = float(row[1]) * J_per_cal
-            z = int(row[3])
+            dG0_f = float(row['DELTAG']) * J_per_cal
+            z = int(row['CHARGE'])
             # Hatzimanikatis does not give the number of hydrogen atoms in his table, so we use the charge instead.
             # This should work since the transformed energies are linear in nH, and therefore it shouldn't matter
             # when calculating dG0 or reactions (since the real number of hydrogens will cancel out).
             nH = z
-            self.cid2pmap_dict[cid] = {(nH, z) : [dG0_f]}
+            nMg = 0
+            self.cid2pmap_dict[cid] = pseudoisomer.PseudoisomerMap()
+            self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0_f)
    
     def cid2pmap(self, cid):
         if (cid in self.cid2pmap_dict):
@@ -32,6 +35,8 @@ class Hatzi (Thermodynamics):
 
         
 if (__name__ == "__main__"):
+    import sys
+
     H = Hatzi()
     H.I = 0.25
     H.T = 300;

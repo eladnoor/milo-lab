@@ -1,9 +1,12 @@
-import csv, pylab, re, sys
+import pylab, re, logging, sys
 from kegg import KeggParseException, Kegg
 from thermodynamics import default_T
 from matplotlib.backends.backend_pdf import PdfPages
 from alberty import Alberty
 from toolbox import util
+from toolbox.html_writer import HtmlWriter
+from pygibbs.thermodynamics import default_pMg
+from numpy.core.numeric import arange
 
 class Nist:
     def __init__(self, kegg=None, fname='../data/thermodynamics/nist.csv'):
@@ -11,14 +14,14 @@ class Nist:
             self.kegg = Kegg()
         else:
             self.kegg = kegg
-        self.parse_nist_csv(fname)
+        self.ParseNistCsv(fname)
         
         self.cid2count = {}
         for row in self.data:
-            for cid in row[6].keys():
+            for cid in row['sparse'].keys():
                 self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
 
-    def parse_nist_csv(self, fname):
+    def ParseNistCsv(self, filename):
         """
             Reads the table of NIST reaction measurements and returns it as a table
         """
@@ -29,45 +32,36 @@ class Nist:
             except ValueError:
                 return None
         ###
-        
-        csv_reader = csv.reader(open(fname, 'r'))
-        
         # read the NIST data from the CSV file, complete the missing conditions with the default values
         # replace the textual reaction with a "sparse_reaction" vector representation of the formula
         # and calculate the delta-G0 (instead of the Keq)
-        self.titles = csv_reader.next()
         self.data = []
-        rowid = 0
-        for row in csv_reader:
-            rowid += 1
-            if (row[12] != "" and row[12] != "cosolvent => none" and row[12] != "addded solute => none" and row[12] != "solvent => none"):
+        for row_dict in util.ReadCsvWithTitles(filename):
+            if (row_dict['comment'] and row_dict['comment'] != "cosolvent => none" and row_dict['comment'] != "addded solute => none" and row_dict['comment'] != "solvent => none"):
                 continue
 
             try:
-                reaction = row[6]
-                if (reaction == ""): # this reaction couldn't be mapped to KEGG IDs
+                reaction = row_dict['kegg_reaction']
+                if not reaction: # this reaction couldn't be mapped to KEGG IDs
                     continue
-                sparse_reaction = Nist.parse_reaction_formula(reaction)
-                if (not self.balance_reaction(sparse_reaction)):
+                row_dict['sparse'] = Nist.ParseReactionFormula(reaction)
+                if not self.BalanceReaction(row_dict['sparse']):
                     continue
-                row[6] = sparse_reaction
             except KeggParseException as e:
-                sys.stderr.write("WARNING: Cannot use reaction \"%s\", because: %s\n" % (reaction, str(e)))
+                logging.warning("cannot use reaction \"%s\", because: %s" % (reaction, str(e)))
                 continue
     
-            [Keq, T, I, pH] = [none_float(x) for x in row[8:12]]
-            if (Keq == None or pH == None or I == None): # missing Keq or pH makes the data unusable
+            if not (row_dict['K'] and row_dict['pH'] and row_dict['I']): # missing Keq, pH or I makes the data unusable
                 continue
-            if (T == None):
-                T = default_T # default temperature (room)
-            row[8] = float(Keq)
-            row[9] = T
-            row[10] = I
-            row[11] = pH
-            self.data.append(row)
+            row_dict['K'] = float(row_dict['K'])
+            row_dict['pH'] = float(row_dict['pH'])
+            row_dict['I'] = float(row_dict['I'])
+            row_dict['T'] = none_float(row_dict['T']) or default_T
+            row_dict['pMg'] = none_float(row_dict['pMg']) or default_pMg
+            self.data.append(row_dict)
         
     @staticmethod
-    def parse_reaction_formula_side(s):
+    def ParseReactionFormulaSide(s):
         """ parse the side formula, e.g. '2 C00001 + C00002 + 3 C00003'
             return the set of CIDs, ignore stoichiometry
         """
@@ -91,7 +85,7 @@ class Nist:
         return compound_bag
       
     @staticmethod
-    def parse_reaction_formula(formula):
+    def ParseReactionFormula(formula):
         """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
             return the set of substrates, products and the direction of the reaction
         """
@@ -100,28 +94,28 @@ class Nist:
         except ValueError:
             raise KeggParseException("There should be exactly one '=' sign")
         sparse_reaction = {}
-        for (cid, amount) in Nist.parse_reaction_formula_side(left).iteritems():
+        for (cid, amount) in Nist.ParseReactionFormulaSide(left).iteritems():
             sparse_reaction[cid] = -amount
-        for (cid, amount) in Nist.parse_reaction_formula_side(right).iteritems():
+        for (cid, amount) in Nist.ParseReactionFormulaSide(right).iteritems():
             if (cid in sparse_reaction):
                 raise KeggParseException("C%05d appears on both sides of this formula" % cid)
             sparse_reaction[cid] = amount
         
         return sparse_reaction
     
-    def balance_reaction(self, sparse_reaction):
+    def BalanceReaction(self, sparse_reaction):
         atom_bag = {}
         try:
             for (cid, coeff) in sparse_reaction.iteritems():
                 cid_atom_bag = self.kegg.cid2atom_bag(cid)
                 if (cid_atom_bag == None):
-                    sys.stderr.write("WARNING: C%05d has no explicit formula, cannot check if this reaction is balanced\n" % cid)
+                    logging.debug("C%05d has no explicit formula, cannot check if this reaction is balanced" % cid)
                     return True
                 for (atomicnum, count) in cid_atom_bag.iteritems():
                     atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
                     
         except KeyError as e:
-            sys.stderr.write("WARNING: " + str(e) + ", cannot check if this reaction is balanced\n")
+            logging.warning(str(e) + ", cannot check if this reaction is balanced")
             return True
     
         if (atom_bag.get('O', 0) != 0):
@@ -140,7 +134,7 @@ class Nist:
         
         return True
     
-    def analyze_stats(self, pdf_fname):
+    def AnalyzeStats(self, html_writer):
         """
             Produces a set of plots that show some statistics about the NIST database
         """
@@ -148,23 +142,25 @@ class Nist:
         T_list = []
         I_list = []
         pH_list = []
+        pMg_list = []
         for row in self.data:
-            T_list.append(float(row[9]) - 273.15)
-            I_list.append(float(row[10]))
-            pH_list.append(float(row[11]))
+            T_list.append(float(row['T']) - 273.15)
+            I_list.append(float(row['I']))
+            pH_list.append(float(row['pH']))
+            pMg_list.append(float(row['pMg']))
         
         fig1 = pylab.figure()
         pylab.rc('text', usetex=False)
         pylab.rc('font', family='serif', size=7)
         pylab.title("NIST database statistics")
         pylab.subplot(2,2,1)
-        pylab.hist(T_list, range(int(min(T_list)), int(max(T_list)+1)))
+        pylab.hist(T_list, arange(int(min(T_list)), int(max(T_list)+1), 2.5))
         pylab.xlabel("Temperature (C)")
         pylab.ylabel("No. of measurements")
         pylab.subplot(2,2,2)
-        pylab.plot(pH_list, T_list, '.', markersize=2)
-        pylab.xlabel("pH")
-        pylab.ylabel(r"Temperature (C)")
+        pylab.hist(pMg_list, pylab.arange(0, 6, 0.1))
+        pylab.xlabel("pMg")
+        pylab.ylabel("No. of measurements")
         pylab.subplot(2,2,4)
         pylab.hist(pH_list, pylab.arange(4, 11, 0.1))
         pylab.xlabel("pH")
@@ -173,6 +169,8 @@ class Nist:
         pylab.hist(I_list, pylab.arange(0, 1, 0.025))
         pylab.xlabel("Ionic Strength [mM]")
         pylab.ylabel("No. of measurements")
+
+        html_writer.embed_matplotlib_figure(fig1)
 
         alberty = Alberty()
         alberty_cids = set(alberty.cid2pmap_dict.keys())
@@ -190,22 +188,21 @@ class Nist:
         hist_a[0] = len(alberty_cids.difference(self.cid2count.keys()))
         
         fig2 = pylab.figure()
-        pylab.rc('text', usetex=True)
         pylab.rc('font', size=10)
         pylab.hold(True)
         p1 = pylab.bar(range(N), hist_a, color='b')
         p2 = pylab.bar(range(N), hist_b, color='r', bottom=hist_a[0:N])
-        pylab.text(N-1, hist_a[N-1]+hist_b[N-1], '$\ge$%d' % (N-1), fontsize=10, horizontalalignment='right', verticalalignment='baseline')
-        pylab.xlabel("$N$ reactions")
-        pylab.ylabel("no. of compounds measured in $N$ reactions")
+        pylab.text(N-1, hist_a[N-1]+hist_b[N-1], '> %d' % (N-1), fontsize=10, horizontalalignment='right', verticalalignment='baseline')
+        pylab.xlabel("N reactions")
+        pylab.ylabel("no. of compounds measured in N reactions")
         pylab.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
 
-        pp = PdfPages(pdf_fname)
-        pp.savefig(fig1)
-        pp.savefig(fig2)
-        pp.close()
+        html_writer.embed_matplotlib_figure(fig2)
         
 if (__name__ == "__main__"):
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     util._mkdir("../res/nist")
     nist = Nist()
-    nist.analyze_stats("../res/nist/nist_statistics.pdf")
+    html_writer = HtmlWriter("../res/nist/statistics.html")
+    nist.AnalyzeStats(html_writer)
+    html_writer.close()

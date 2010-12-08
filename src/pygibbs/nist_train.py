@@ -1,7 +1,5 @@
 import csv
 from pylab import *
-from matplotlib import font_manager
-from matplotlib.backends.backend_pdf import PdfPages
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import KeggParseException
@@ -10,7 +8,9 @@ from pygibbs.alberty import Alberty
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
 from pygibbs import reverse_thermo
-from toolbox import util
+from pygibbs import pseudoisomer
+from toolbox import util, database
+import logging
 
 class GradientAscent (Thermodynamics):
     def __init__(self, gc):
@@ -41,33 +41,20 @@ class GradientAscent (Thermodynamics):
             Read the training data from a CSV file, into the cid2pmap_dict.
             Returns a set containing the imported CIDs.
         """
-        csv_reader = csv.reader(open(train_csv_fname))
-        titles = csv_reader.next() # "cid","compound name","dG0","charge","hydrogens"
-        try:
-            i_cid = titles.index("cid")
-            i_dG0 = titles.index("dG0")
-            i_z = titles.index("charge")
-            i_nH = titles.index("hydrogens")
-        except ValueError:
-            raise Exception("this CSV file %s does not have the correct titles" % train_csv_fname)
-        
-        try:
-            i_use = titles.index("use_for")
-        except ValueError:
-            i_use = None
-        
         cids = set()
-        for row in csv_reader:
+        for row_dict in util.ReadCsvWithTitles(train_csv_fname):
             if (format == 'long'):
-                if (i_use != None and row[i_use] in ['skip']):
+                if (row_dict.get('use_for', 'skip') in ['skip']):
                     continue
-                cid = int(row[i_cid])
-                dG0 = float(row[i_dG0])
-                z = int(row[i_z])
-                nH = int(row[i_nH])
+                cid = int(row_dict['cid'])
+                dG0 = float(row_dict['dG0'])
+                z = int(row_dict['charge'])
+                nH = int(row_dict['hydrogens'])
+                mgs = int(row_dict.get('Mgs', 0))
             
-            if (cid > 0):
-                self.cid2pmap_dict.setdefault(cid, {})[nH, z] = [dG0]
+            if cid:
+                self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
+                self.cid2pmap_dict[cid].Add(nH, z, mgs, dG0)
                 cids.add(cid)
         return cids
 
@@ -82,19 +69,18 @@ class GradientAscent (Thermodynamics):
         
         known_cids = set(thermodynamics.get_all_cids())
         for row in nist.data:
-            sparse_reaction = row[6]
-            [Keq, T, I, pH] = row[8:12]
-            if (T_range != None and not (T_range[0] < T < T_range[1])):
+            Keq, T, I, pH, pMg = row['K'], row['T'], row['I'], row['pH'], row['pMg']
+            if (T_range and not (T_range[0] < T < T_range[1])):
                 continue # the temperature is outside the allowed range
             dG0_r = -R*T*log(Keq)
             if (override_I != None):
                 I = override_I
-            if (row[3] == 'A'):
+            if (row['evaluation'] == 'A'):
                 evaluation = 'A'
             else:
                 evaluation = 'B - D'
             #evaluation = row[2]
-            reaction_cids = set(sparse_reaction.keys())
+            reaction_cids = set(row['sparse'].keys())
             unknown_cids = reaction_cids.difference(known_cids)
             
             if len(unknown_cids) > 0:
@@ -102,11 +88,12 @@ class GradientAscent (Thermodynamics):
                     continue # this reaction contains compounds that are not in the training set
                 else:
                     for cid in unknown_cids: # @@@ there is a problem for CIDs that have no InChI, I currently put nH=0, z=0 for them
-                        for (nH, z) in self.gc.cid2pseudoisomers(cid):
-                            self.cid2pmap_dict.setdefault(cid, {})[nH, z] = [0.0]
+                        for (nH, z, mgs) in self.gc.cid2pseudoisomers(cid):
+                            self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
+                            self.cid2pmap_dict[cid].Add(nH, z, mgs, 0.0)
                         known_cids.add(cid)
             
-            self.data.append((sparse_reaction, pH, I, T, evaluation, dG0_r))
+            self.data.append((row['sparse'], pH, I, T, evaluation, dG0_r))
             rowid = len(self.data) - 1
             for cid in reaction_cids:
                 self.cid2rowids.setdefault(cid, []).append(rowid)
@@ -137,7 +124,7 @@ class GradientAscent (Thermodynamics):
         y = zeros((N, 1))
         X = zeros((N, len(cid_list)))
         for r in range(N):
-            (sparse_reaction, pH, I, T, evaluation, dG0_r_transformed) = self.data[self.train_rowids[r]]
+            (sparse_reaction, pH, I, T, unused_evaluation, dG0_r_transformed) = self.data[self.train_rowids[r]]
             dG0_r = dG0_r_transformed
             for (cid, coeff) in sparse_reaction.iteritems():
                 c = cid_list.index(cid)
@@ -171,35 +158,16 @@ class GradientAscent (Thermodynamics):
             rowid_list = rowid_list.intersection(self.cid2rowids[cid_to_cache])
 
         for rowid in rowid_list:
-            (sparse_reaction, pH, I, T, evaluation, dG0_r) = self.data[rowid]
+            (sparse_reaction, pH, pMg, I, T, unused_evaluation, dG0_r) = self.data[rowid]
             if (cid_to_cache == None):
                 cid_list = sparse_reaction.keys()
             else:
                 cid_list = [cid_to_cache]
                 
             for cid in cid_list: 
-                self.cache_cid[(rowid,cid)] = Thermodynamics.pmap_to_dG0(thermodynamics.cid2pmap(cid), pH, I, T) * sparse_reaction[cid]
+                self.cache_cid[(rowid,cid)] = thermodynamics.cid2pmap(cid).Transform(pH, pMg, I, T) * sparse_reaction[cid]
             dG0_pred = sum([self.cache_cid[(rowid,cid)] for cid in sparse_reaction.keys()])
             self.cache_error[rowid] = (dG0_pred - dG0_r)**2
-
-    def save_energies(self):
-        self.gc.comm.execute("DROP TABLE IF EXISTS cid2prm")
-        self.gc.comm.execute("CREATE TABLE cid2prm (cid INT, dG0_f REAL, nH INT, z INT, anchor BOOL)")
-        for cid in self.get_all_cids():
-            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
-                self.gc.comm.execute("INSERT INTO cid2prm VALUES(?,?,?,?,?)", (cid, dG0, nH, z, cid in self.anchors))
-        self.gc.comm.commit()
-
-    def load_energies(self):
-        self.cid2pmap_dict = {}
-        self.anchors = set()
-        for row in self.gc.comm.execute("SELECT * FROM cid2prm"):
-            (cid, dG0, nH, z, anchor) = row
-            self.cid2pmap_dict.setdefault(cid, {})
-            self.cid2pmap_dict[cid].setdefault(nH, z, []).append(dG0)
-            if (anchor):
-                self.anchors.add(cid)
-        self.update_cache(self)
 
     @staticmethod
     def sparse_reaction_to_string(sparse_reaction, kegg, cids=False):
@@ -226,7 +194,7 @@ class GradientAscent (Thermodynamics):
             recalculate all the dG0_r for the reaction from NIST and compare to the measured data
         """
         
-        sys.stderr.write("Calculate the correlation between %s's predictions and the NIST database\n" % key)
+        logging.info("calculate the correlation between %s's predictions and the NIST database" % key)
         
         known_cid_set = thermodynamics.get_all_cids()
         dG0_obs_vec = []
@@ -246,7 +214,7 @@ class GradientAscent (Thermodynamics):
                 I = default_I
             unknown_set = set(sparse_reaction.keys()).difference(known_cid_set)
             if (len(unknown_set) > 0):
-                sys.stderr.write("One of the compounds in reaction at row %d in NIST doesn't have a dG0_f\n" % rowid)
+                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % rowid)
                 continue
             if (evaluation not in evaluation_map):
                 evaluation_map[evaluation] = ([], [])
@@ -254,7 +222,7 @@ class GradientAscent (Thermodynamics):
             try:
                 dG0_pred = thermodynamics.reaction_to_dG0(sparse_reaction, pH, I, T)
             except MissingCompoundFormationEnergy:
-                sys.stderr.write("One of the compounds in reaction at row %d in NIST doesn't have a dG0_f\n" % rowid)
+                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % rowid)
                 continue
                 
             dG0_obs_vec.append(dG0_r)
@@ -341,7 +309,7 @@ class GradientAscent (Thermodynamics):
             Recalculate the dG0_f (of all its species) of the compound assuming all other CIDs are known
             and using all the measurements where the selected CID appears
         """
-        #sys.stderr.write("Reevaluation the dG0_f of C%05d ... " % cid_to_reevaluate)
+        logging.info("reevaluation the dG0_f of C%05d ... " % cid_to_reevaluate)
         
         measurements = []
         rowid_list = set(self.train_rowids).intersection(self.cid2rowids.get(cid_to_reevaluate, []))
@@ -451,7 +419,7 @@ class GradientAscent (Thermodynamics):
                     best_pmap = curr_pmap
             
             if (best_pmap == None):
-                sys.stderr.write(" Stopping because none of the CIDs could improve the MSE anymore")
+                logging.info("stopping because none of the CIDs could improve the MSE anymore")
                 break
             self.cid2pmap_dict[best_cid] = best_pmap
             old_MSE = best_MSE
@@ -465,8 +433,8 @@ class GradientAscent (Thermodynamics):
         csv_writer = csv.writer(open(csv_fname, 'w'))
         csv_writer.writerow(('CID', 'dG0_f', 'nH', 'charge'))
         for cid in self.get_all_cids():
-            for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
-                csv_writer.writerow((cid, dG0, nH, z))
+            for (nH, z, mgs, dG0) in self.cid2pmap(cid).ToMatrix:
+                csv_writer.writerow((cid, dG0, nH, z, mgs))
                 
     def analyse_reaction(self, reaction_to_analyze):
         known_cid_set = self.get_all_cids()
@@ -510,8 +478,8 @@ class GradientAscent (Thermodynamics):
 ################################################################################################################
 
 def main():
-
-    gc = GroupContribution(sqlite_name="gibbs.sqlite")
+    db = database.SqliteDatabase('gibbs.sqlite')
+    gc = GroupContribution(db)
     gc.override_gc_with_measurements = True
     gc.init()
     grad = GradientAscent(gc)
@@ -529,7 +497,7 @@ def main():
 
         #html_writer.write("<h2>Using Group Contribution (Hatzimanikatis' implementation)</h2>")
         #html_writer.write("<h3>Correlation with the reduced NIST database (containing only compounds that appear in Alberty's list)</h3>")
-        #sys.stderr.write("Calculate the correlation between Hatzimanikatis' predictions and the reduced NIST database\n")
+        #logging.info("calculate the correlation between Hatzimanikatis' predictions and the reduced NIST database")
         #grad.verify_results("Hatzimanikatis_Reduced", hatzi, html_writer)
 
         #grad.load_nist_data(nist, hatzi, skip_missing_reactions=True, T_range=(298, 314))
@@ -547,7 +515,7 @@ def main():
         grad.load_nist_data(nist, grad, skip_missing_reactions=True)
         print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.hill_climb(max_i=20000)
-        grad.save_energies()
+        grad.save_energies(grad.gc.comm, "gradient_cid2prm")
         grad.verify_results("gradient1")
         
     elif False:
@@ -556,7 +524,7 @@ def main():
         print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.hill_climb(max_i=20000)
-        grad.save_energies()
+        grad.save_energies(grad.gc.comm, "gradient_cid2prm")
         grad.verify_results("gradient2")
     
     elif False:
@@ -566,7 +534,7 @@ def main():
         print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.cid2pmap_dict = alberty.cid2pmap_dict
         grad.deterministic_hill_climb(max_i=200)
-        grad.save_energies()
+        grad.save_energies(grad.gc.comm, "gradient_cid2prm")
         grad.verify_results("gradient_deterministic")
         
     elif False:
@@ -575,7 +543,7 @@ def main():
         grad.load_nist_data(nist, skip_missing_reactions=False)
         print "Training %d compounds using %d reactions: " % (len(grad.cid2pmap_dict.keys()), len(grad.data))
         grad.hill_climb(max_i=20000)
-        grad.save_energies()
+        grad.save_energies(grad.gc.comm, "gradient_cid2prm")
         grad.verify_results("gradient3")
     
     elif False: # Use Alberty's table from (Mathematica 2006) to calculate the dG0 of all possible reactions in KEGG
@@ -600,8 +568,8 @@ def main():
         csv_writer = csv.writer(open("../res/nist/pseudoisomers.csv", "w"))
                 
         cid_set = set()
-        for row in nist.data[1:]:
-            sparce_reaction = row[6]
+        for row in nist.data:
+            sparce_reaction = row['sparse']
             cid_set.update(sparce_reaction.keys())
         
         html_writer.write("<table border=1>\n")
@@ -633,4 +601,5 @@ def main():
         html_writer.close()
 
 if (__name__ == '__main__'):
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     main()

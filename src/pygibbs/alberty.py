@@ -1,7 +1,8 @@
 import csv, re, sys
-from pylab import arange, NaN, isnan
+from pylab import arange, NaN, isfinite
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from kegg import Kegg
+from pygibbs import pseudoisomer
 
 class Alberty (Thermodynamics):
     def read_alberty_mathematica(self, fname):
@@ -30,11 +31,13 @@ class Alberty (Thermodynamics):
                 nH = int(val_list[3])
                 if (alberty_name.find("coA") != -1):
                     nH += 35
-                alberty_name_to_pmap.setdefault(alberty_name, {})
-                alberty_name_to_pmap[alberty_name].setdefault((nH, z), []).append(dG0)
-                if (not isnan(dH0)):
-                    alberty_name_to_hmap.setdefault(alberty_name, {})
-                    alberty_name_to_hmap[alberty_name].setdefault((nH, z), []).append(dH0)
+                mgs = 0
+                
+                alberty_name_to_pmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
+                alberty_name_to_pmap[alberty_name].Add(nH, z, mgs, dG0)
+                if isfinite(dH0):
+                    alberty_name_to_hmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
+                    alberty_name_to_hmap[alberty_name].Add(nH, z, mgs, dH0)
             
         return (alberty_name_to_pmap, alberty_name_to_hmap)
         
@@ -43,11 +46,8 @@ class Alberty (Thermodynamics):
         csv_file = csv.reader(open(fname, 'r'))
         csv_file.next()
         for row in csv_file:
-            if (row[0] == "" or row[2] == ""):
-                continue
-            cid = int(row[0])
-            alberty_name = row[2]
-            alberty_name_to_cid[alberty_name] = cid
+            if row[0] and row[2]:
+                alberty_name_to_cid[row[2]] = int(row[0])
         return alberty_name_to_cid
     
     def __init__(self):

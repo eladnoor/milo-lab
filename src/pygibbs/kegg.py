@@ -1,7 +1,8 @@
-import csv, sqlite3, pybel, openbabel, sys, os, urllib, re, pydot, pylab
+import csv, sqlite3, pybel, openbabel, os, urllib, re, pydot, pylab
 from toolbox import util
 from copy import deepcopy
 import gzip
+import logging
 
 #########################################################################################
 
@@ -176,7 +177,8 @@ class Elements:
         for row in csv_file:
             # an = Atomic Number, mp = Melting Point, bp = Boiling Point, 
             # ec = Electron Configuration, ie = Ionization Energy
-            (an, weight, name, symbol, mp, bp, density, earthcrust, discovery, ec, ie) = row
+            an, unused_weight, unused_name, symbol, unused_mp, unused_bp, \
+                unused_density, unused_earthcrust, unused_discovery, unused_ec, unused_ie = row
             self.symbol_to_an[symbol] = int(an)
             self.an_to_symbol[int(an)] = symbol
     
@@ -251,7 +253,7 @@ class Compound:
                 an = ELEMENTS.symbol_to_an[elem]
                 atom_vector[an-1] = count
             except KeyError:
-                sys.stderr.write("Unsupported element in (C%05d): %s\n" % (self.cid, elem))
+                logging.warning("unsupported element in (C%05d): %s" % (self.cid, elem))
                 return None
         return atom_vector
     
@@ -365,7 +367,7 @@ class Reaction:
         return max([abs(x) for x in self.sparse.values()]) > 0.01
     
     def is_specific(self, cid2atom_bag):
-        for (cid, coeff) in self.sparse.iteritems():
+        for cid in self.sparse.keys():
             atom_bag = cid2atom_bag.get(cid, None)
             if (atom_bag == None or 'R' in atom_bag):
                 # this reaction cannot be checked since there is an unspecific compound
@@ -409,8 +411,7 @@ class Reaction:
         return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % self.rid
     
 class Kegg:
-    def __init__(self, log_file=sys.stderr):
-        self.LOG_FILE = log_file
+    def __init__(self):
         util._mkdir('../kegg')
         
         # default colors for pydot (used to plot modules)
@@ -436,7 +437,7 @@ class Kegg:
         self.name2cid_map = {}
         self.cid2compound_map = {}
 
-        sys.stderr.write("Retrieving COMPOUND file and parsing it ... ")
+        logging.info("Retrieving COMPOUND file and parsing it")
         if (not os.path.exists(self.COMPOUND_FILE)):
             urllib.urlretrieve(self.COMPOUND_URL, self.COMPOUND_FILE)
 
@@ -465,10 +466,8 @@ class Kegg:
                     comp.cas = cas
             
             self.cid2compound_map[cid] = comp
-                
-        sys.stderr.write('[DONE]\n')
 
-        sys.stderr.write("Retrieving REACTION file and parsing it ... ")
+        logging.info("Retrieving REACTION file and parsing it")
         if (not os.path.exists(self.REACTION_FILE)):
             urllib.urlretrieve(self.REACTION_URL, self.REACTION_FILE)
 
@@ -494,12 +493,10 @@ class Kegg:
                 if ("EQUATION" in field_map):
                     r.equation = field_map["EQUATION"]
             except (KeggParseException, KeggNonCompoundException, ValueError):
-                #self.LOG_FILE.write("WARNING: cannot parse reaction formula: " + equation_value + "\n")
+                logging.debug("cannot parse reaction formula: " + equation_value)
                 pass
 
-        sys.stderr.write('[DONE]\n')
-
-        sys.stderr.write("Retrieving INCHI file and parsing it ... ")
+        logging.info("Retrieving INCHI file and parsing it")
         if (not os.path.exists(self.INCHI_FILE)):
             urllib.urlretrieve(self.INCHI_URL, self.INCHI_FILE)
 
@@ -513,8 +510,7 @@ class Kegg:
                 continue
             cid = int(key[1:])
             if (not cid in self.cid2compound_map):
-                pass
-                #sys.stderr.write("Compound C%05d is in inchi.txt, but not in compounds.txt\n" % cid)
+                logging.debug("Compound C%05d is in inchi.txt, but not in compounds.txt\n" % cid)
             else:
                 # since the convention in KEGG for undefined chirality is 'u' instead of the standard '?'
                 # we need to replace all the 'u's with '?'s before starting to use this file.
@@ -524,9 +520,8 @@ class Kegg:
                 inchi = re.sub(r'(\d)u', r'\1?', inchi)
                 self.cid2compound_map[cid].inchi = inchi
                 self.inchi2cid_map[inchi] = cid
-        sys.stderr.write('[DONE]\n')
-        
-        sys.stderr.write("Retrieving MODULE file and parsing it ... ")
+
+        logging.info("Retrieving MODULE file and parsing it")
         if (not os.path.exists(self.MODULE_FILE)):
             urllib.urlretrieve(self.MODULE_URL, self.MODULE_FILE)
 
@@ -538,19 +533,18 @@ class Kegg:
                 field_map = entry2fields_map[key]
                 mid = int(key[1:6])
                 name = field_map["NAME"]
-                pathway = field_map.get("PATHWAY", "")
+                #pathway = field_map.get("PATHWAY", "")
                 self.mid2rid_map[mid] = None
                 self.mid2name_map[mid] = name
                 if ("REACTION" in field_map):
                     try:
                         self.mid2rid_map[mid] = self.parse_module("M%05d" % mid, field_map)
                     except KeggParseException as e:
-                        self.LOG_FILE.write("WARNING: M%05d cannot be parsed %s" % (mid, str(e)))
+                        logging.debug("M%05d cannot be parsed %s" % (mid, str(e)))
             except ValueError as e:
-                self.LOG_FILE.write("WARNING: module M%05d contains a syntax error - %s\n" % (mid, str(e)))
-        sys.stderr.write('[DONE]\n')
+                logging.debug("module M%05d contains a syntax error - %s" % (mid, str(e)))
         
-        sys.stderr.write("Parsing the COFACTOR file ... ")
+        logging.info("Parsing the COFACTOR file")
         self.cofactors2names = {}
         self.cid2bounds = {}
         cofactor_csv = csv.reader(open('../data/thermodynamics/cofactors.csv', 'r'))
@@ -569,7 +563,6 @@ class Kegg:
 
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
-        sys.stderr.write('[DONE]\n')
 
     def parse_explicit_module(self, field_map):
         """
@@ -592,7 +585,7 @@ class Kegg:
                     for (f) in re.findall('\(x([0-9\.]+)\)', remainder):
                         flux = float(f)
                 
-                (spr, temp_direction) = parse_reaction_formula(left_clause + " => " + right_clause)
+                (spr, unused_direction) = parse_reaction_formula(left_clause + " => " + right_clause)
                 
                 for cid in (spr.keys()):
                     if (cid not in cids and cid != 80): # don't include H+ as a compound
@@ -628,26 +621,26 @@ class Kegg:
             rid = rid_clause.split(',')[0]
             rid = int(rid[1:])
             if (rid not in self.rid2reaction_map):
-                self.LOG_FILE.write("WARNING: module %s contains an unknown RID (R%05d)\n" % (module_name, rid))
+                logging.debug("module %s contains an unknown RID (R%05d)" % (module_name, rid))
                 continue
             
-            (spr_module, direction_module) = parse_reaction_formula(left_clause + " => " + right_clause)
+            (spr_module, unused_direction_module) = parse_reaction_formula(left_clause + " => " + right_clause)
             spr_rid = self.rid2reaction(rid).sparse
             
             directions = []
             for cid in spr_module.keys():
                 if (cid not in spr_rid):
-                    self.LOG_FILE.write("WARNING: in %s:R%05d does not contain the compound C%05d\n" % (module_name, rid, cid))
+                    logging.debug("in %s:R%05d does not contain the compound C%05d" % (module_name, rid, cid))
                 elif (spr_module[cid] * spr_rid[cid] > 0):
                     directions.append(1)
                 elif (spr_module[cid] * spr_rid[cid] < 0):
                     directions.append(-1)
             
             if (directions == []):
-                self.LOG_FILE.write("WARNING: in %s:R%05d could not determine the direction\n" % (module_name, rid))
+                logging.debug("in %s:R%05d could not determine the direction" % (module_name, rid))
                 return None
             if (-1 in directions and 1 in directions):
-                self.LOG_FILE.write("WARNING: in %s:R%05d the direction is inconsistent\n" % (module_name, rid))
+                logging.debug("in %s:R%05d the direction is inconsistent" % (module_name, rid))
                 return None
             elif (-1 in directions):
                 rid_flux_list.append((rid, -1))
@@ -656,8 +649,8 @@ class Kegg:
         return rid_flux_list
 
     def rid_flux_list_to_matrix(self, rid_flux_list):
-        rids = [rid for (rid, f) in rid_flux_list]
-        fluxes = [f for (rid, f) in rid_flux_list]
+        rids = [rid for (rid, _) in rid_flux_list]
+        fluxes = [f for (_, f) in rid_flux_list]
         
         # first gather all the CIDs from all the reactions
         cids = []
@@ -877,6 +870,10 @@ class Kegg:
         except KeggReactionNotBalancedException as e:
             raise KeggReactionNotBalancedException("Unbalanced reaction (" + formula + "): " + str(e))
         
+        if direction in ['<-', '<=']:
+            for cid in sparse_reaction.keys():
+                sparse_reaction[cid] = -sparse_reaction[cid]
+                
         return sparse_reaction
     
     def check_reaction_balance(self, sparse_reaction, ignore_hydrogens=True):
@@ -939,7 +936,7 @@ class Kegg:
         #list_of_cids = list_of_cids[0:40]
         
         for cid in list_of_cids:
-            #sys.stderr.write("Converting INCHI of compound %s (C%05d)\n" % (kegg.cid2name(cid), cid))
+            logging.debug("Converting INCHI of compound %s (C%05d)" % (self.cid2name(cid), cid))
             smiles = self.cid2smiles(cid)
             smiles2cid_map[smiles] = cid
             inchi2cid_map[smiles2inchi(smiles)] = cid
@@ -962,7 +959,7 @@ class Kegg:
                 if (new_inchi in inchi2cid_map):
                     new_cid = inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 1])
-                    sys.stderr.write("Match: %s = %s + Pi\n" % (self.cid2name(cid), self.cid2name(new_cid)))
+                    logging.info("Match: %s = %s + Pi" % (self.cid2name(cid), self.cid2name(new_cid)))
             
             smiles_coa = 'SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@]([H])1[C@]([H])([C@]([H])([C@]([H])(n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O'
             for cgroup in pybel.Smarts(smiles_coa).findall(mol):
@@ -977,7 +974,7 @@ class Kegg:
                 if (new_inchi in inchi2cid_map):
                     new_cid = inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 2])
-                    sys.stderr.write("Match: %s = %s + CoA\n" % (self.cid2name(cid), self.cid2name(new_cid)))
+                    logging.info("Match: %s = %s + CoA" % (self.cid2name(cid), self.cid2name(new_cid)))
                     
     def create_compound_node(self, Gdot, cid, node_name=None):
         if (node_name == None):
@@ -1058,7 +1055,7 @@ class Kegg:
             
     def draw_pathway(self, S, rids, cids):
         Gdot = pydot.Dot()
-        (Nr, Nc) = S.shape
+        (_, Nc) = S.shape
         
         c_nodes = []
         for c in range(Nc):
@@ -1142,8 +1139,7 @@ class Kegg:
         html_writer.write("</ul></li>\n")
         
 class KeggPathologic:
-    def __init__(self, log_file=sys.stderr, kegg=None): # CO2, HCO3-
-        self.LOG_FILE = log_file
+    def __init__(self, kegg=None): # CO2, HCO3-
 
         self.edge_color = "cadetblue"
         self.edge_fontcolor = "indigo"
@@ -1165,7 +1161,7 @@ class KeggPathologic:
         self.cofactors = set()
 
         if (kegg == None):
-            kegg = Kegg(log_file)
+            kegg = Kegg()
 
         inchi2compound = {}
         self.cid2compound = {}
@@ -1186,7 +1182,7 @@ class KeggPathologic:
             reaction = kegg.rid2reaction(rid)
             ver = reaction.verify(self.cid2atom_bag)
             if (ver != None):
-                self.LOG_FILE.write("R%05d is %s, not adding it to Pathologic\n" % (rid, ver))
+                logging.debug("R%05d is %s, not adding it to Pathologic" % (rid, ver))
             else:
                 self.reactions += self.create_reactions("R%05d" % rid, reaction.direction, reaction.sparse, rid=rid)
 
@@ -1204,7 +1200,7 @@ class KeggPathologic:
             In stiochio_mode, all reactions are not touched, so only SETC, NEWC, DELC, COFR are used.
         """
         
-        sys.stderr.write("Updating the database using %s ... " % fname)
+        logging.info("updating the database using %s" % fname)
         update_file = open(fname, 'r')
 
         banned_reactions = set()
@@ -1254,23 +1250,21 @@ class KeggPathologic:
     
         html_writer.write('</ul>\n')
         update_file.close()
-        sys.stderr.write("[DONE]\n")
 
-        sys.stderr.write("Removing reaction which are banned or involve a banned compound ... ")
+        logging.info("removing reaction which are banned or involve a banned compound")
         
         # create a new map of RID to reactants, without the co-factors.
         # if the reaction is not balanced, skip it and don't add it to the new map.
         temp_reactions = []
         for r in self.reactions:
             if (r.rid in banned_reactions):
-                self.LOG_FILE.write("This reaction has been banned by its RID (R%05d): %s\n" % (r.rid, r.name))
+                logging.debug("this reaction has been banned by its RID (R%05d): %s" % (r.rid, r.name))
             elif ( len(banned_compounds.intersection(r.get_cids())) > 0 ):
-                self.LOG_FILE.write("This reaction has been banned by at least one of its CIDs (%s): %s\n" % (str(banned_compounds.intersection(r.get_cids())), r.name))
+                logging.debug("this reaction has been banned by at least one of its CIDs (%s): %s" % (str(banned_compounds.intersection(r.get_cids())), r.name))
             else:
                 temp_reactions.append(r)
                 
         self.reactions = temp_reactions + added_reactions
-        sys.stderr.write("[DONE]\n")
 
     def create_reactions(self, name, direction, sparse_reaction, rid=None, weight=1):
         spr = deepcopy(sparse_reaction)
@@ -1369,7 +1363,7 @@ class KeggPathologic:
         def sparse_to_unique_string(sparse_reaction):
             return ' + '.join(["%d %d" % (coeff, cid) for (cid, coeff) in sorted(sparse_reaction.iteritems())])
 
-        sys.stderr.write("Creating the Stoichiometry Matrix ... ")
+        logging.info("creating the Stoichiometry Matrix")
         cids = set()
         for r in self.reactions:
             for cid in r.get_cids():
@@ -1411,7 +1405,7 @@ class KeggPathologic:
         # share the same reactants (with different co-factors).
         # Although this is a stoichiometric redundancy, thermodynamically this is important
         # since each version of this reaction will have different constraints.
-        sys.stderr.write("%d compounds & %d reactions [DONE]\n" % (Ncompounds, Nreactions))
+        logging.info("the Stoichiometry matrix contains %d compounds & %d reactions" % (Ncompounds, Nreactions))
         return (f, S, compounds, self.reactions)
 
     def create_compound_node(self, Gdot, comp, node_name=None, is_cofactor=False):
@@ -1569,7 +1563,7 @@ def export_json_file():
 
     compound_list = []
     for row in cursor.execute("SELECT * FROM kegg_compound"):
-        (cid, pubchem_id, mass, formula, inchi, from_kegg, cas, names) = row
+        (cid, unused_pubchem_id, mass, formula, inchi, unused_from_kegg, unused_cas, names) = row
         compound_list.append({"CID": "C%05d" % cid, "InChI":inchi, "mass":mass, "formula":formula, "names":names.split(';')})
         
     json_file = gzip.open("../res/kegg_compounds.json.gz", 'w')
