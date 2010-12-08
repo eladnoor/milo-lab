@@ -295,14 +295,14 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     dG0_f = pylab.zeros((Nc, 1))
     ind_nan = []
     html_writer.write('<table border="1">\n')
-    html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z") + '\n')
+    html_writer.write('  ' + '<td>%s</td>'*6 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z", "nMg") + '\n')
     for c in range(Nc):
         cid = cids[c]
         name = kegg.cid2name(cid)
         try:
-            for (nH, z, dG0) in  thermodynamics.cid2pmatrix(cid):
-                html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % \
-                                  (kegg.cid2link(cid), cid, name, dG0, nH, z))
+            for (nH, z, nMg, dG0) in thermodynamics.cid2pmatrix(cid):
+                html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td><td>%d</td></tr>\n' % \
+                                  (kegg.cid2link(cid), cid, name, dG0, nH, z, nMg))
             dG0_f[c] = thermodynamics.cid_to_dG0(cid)
         
         except MissingCompoundFormationEnergy:

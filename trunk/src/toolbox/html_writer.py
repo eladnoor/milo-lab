@@ -5,6 +5,7 @@ html_writer.py - Construct HTML pages
 
 """
 
+import util
 import os
 import xml.dom.minidom
 
@@ -110,7 +111,7 @@ class HtmlWriter(BaseHtmlWriter):
         self.flush_always = flush_always
         if (not os.path.exists(self.filepath)):
             if (force_path_creation and not os.path.exists(self.filepath)):
-                os.mkdir(self.filepath)
+                util._mkdir(self.filepath)
             else:
                 raise Exception("cannot write to HTML file %s since the directory doesn't exist" % filename)
         

@@ -120,7 +120,7 @@ class GroupsData(object):
         gid = 0
         for row in group_csv_file:
             try:
-                (group_name, protons, charge, smarts, focal_atoms, remark) = row
+                (group_name, protons, charge, smarts, focal_atoms, unused_remark) = row
                 
                 if focal_atoms:
                     focal_atoms = GroupsData._ConvertFocalAtoms(focal_atoms)
@@ -149,13 +149,13 @@ class GroupsData(object):
         return GroupsData(list_of_groups)    
 
     @staticmethod
-    def FromDatabase(db_comm):
+    def FromDatabase(db):
         """Factory that initializes a GroupData from a DB connection."""
         logging.info('Reading the list of groups from the database.')
         
         list_of_groups = []
-        for row in db_comm.execute("SELECT * FROM groups"):
-            (gid, group_name, protons, charge, mgs, smarts, focal_atom_set, remark) = row
+        for row in db.Execute("SELECT * FROM groups"):
+            (gid, group_name, protons, charge, mgs, smarts, focal_atom_set, unused_remark) = row
             
             if (focal_atom_set != ""): # otherwise, consider all the atoms as focal atoms
                 focal_atoms = set([int(i) for i in focal_atom_set.split('|')])
@@ -168,20 +168,17 @@ class GroupsData(object):
         
         return GroupsData(list_of_groups)
     
-    def ToDatabase(self, db_comm):
+    def ToDatabase(self, db):
         """Write the GroupsData to the database."""
         logging.info('Writing GroupsData to the database.')
         
-        db_comm.execute('DROP TABLE IF EXISTS groups;')
-        db_comm.execute('CREATE TABLE groups (gid INT, name TEXT, protons INT, charge INT, mgs INT, smarts TEXT, focal_atoms TEXT, remark TEXT)')    
+        db.CreateTable('groups', 'gid INT, name TEXT, protons INT, charge INT, mgs INT, smarts TEXT, focal_atoms TEXT, remark TEXT')
         for gid, group_name, protons, charge, mgs, smarts, focal_atom_set in self.groups:
             focal_atom_str = '|'.join([str(fa) for fa in focal_atom_set])
-            
-            db_comm.execute('INSERT INTO groups VALUES(?,?,?,?,?,?,?,?)', (gid, group_name, int(protons), int(charge),
-                                                                         int(mgs), smarts, focal_atom_str, ''))
+            db.Insert('groups', [gid, group_name, int(protons), int(charge), 
+                                 int(mgs), smarts, focal_atom_str, ''])
 
         logging.info('Done writing groups data into database.')
-        
         
 class GroupVector(list):
     """A vector of groups."""
@@ -341,10 +338,10 @@ class GroupDecomposer(object):
         return GroupDecomposer(gd)
     
     @staticmethod
-    def FromDatabase(db_comm):
+    def FromDatabase(db):
         """Factory that initializes a GroupDecomposer from a CSV file."""
-        assert db_comm
-        gd = GroupsData.FromDatabase(db_comm)
+        assert db
+        gd = GroupsData.FromDatabase(db)
         return GroupDecomposer(gd)
     
     @staticmethod
@@ -400,7 +397,6 @@ class GroupDecomposer(object):
             
             for p_group, pmg_group in all_pmg_groups:
                 if chain_map[p_group]:
-                    added = True
                     AddMg(p_group, pmg_group, mg)
                     break
 
@@ -526,7 +522,7 @@ class GroupDecomposer(object):
         unassigned_nodes = set(range(len(mol.atoms)))
         groups = []
         
-        for gid, group_name, protons, charge, mgs, smarts_str, focal_atoms in self.groups_data.groups:
+        for unused_gid, group_name, protons, charge, mgs, smarts_str, focal_atoms in self.groups_data.groups:
             # Phosphate chains require a special treatment
             if GroupsData.IsPhosphate(group_name):
                 pchain_groups = None

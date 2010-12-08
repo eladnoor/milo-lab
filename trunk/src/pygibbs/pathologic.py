@@ -1,32 +1,30 @@
-import sys, pylab, cplex
+import pylab, cplex, sys
 from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
 from pygibbs.groups import GroupContribution
 from pygibbs.feasibility import thermodynamic_pathway_analysis
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
+import logging
+from toolbox import database
 
 ################################################################################
 #                               CONSTANTS & DEFAULTS                           #
 ################################################################################
 class Pathologic:
-    def __init__(self):
+    def __init__(self, db, html_writer):
         cplex.Cplex() # causes CPLEX to print its initialization message
         _mkdir('../res/pathologic')
-        self.LOG_FILE = open('../res/pathologic/pathologic.log', 'w')
-        self.gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathologic", log_file=self.LOG_FILE)
+        self.gc = GroupContribution(db, html_writer)
         self.gc.init()
         self.thermodynamic_method = "global" # options are: "none", "pCr", "MCMF", "global" or "localized"
         self.maximal_dG = 0 # use this to change the thermodynamic constraints to have a different MCMF (when set to 0, it is the usual feasibility measure)
         self.max_reactions = None
         self.max_solutions = 100
         self.flux_relaxtion_factor = None
-        self.kegg_patholotic = KeggPathologic(self.LOG_FILE, self.gc.kegg())
+        self.kegg_patholotic = KeggPathologic(self.gc.kegg())
         self.update_file = '../data/thermodynamics/database_updates.txt'
 
-    def __del__(self):
-        self.LOG_FILE.close()
-        
     def find_path(self, experiment_name, source=None, target=None):
         _mkdir('../res/pathologic/' + experiment_name)
         self.gc.HTML.write('<a href="pathologic/' + experiment_name + '.html">' + experiment_name + '</a><br>\n')
@@ -65,34 +63,32 @@ class Pathologic:
         
         exp_html.write('</div><br>\n')
         
-        self.LOG_FILE.write("All compounds:\n")
+        logging.debug("All compounds:")
         for c in range(len(compounds)):
-            self.LOG_FILE.write("%05d) C%05d = %s\n" % (c, compounds[c].cid, compounds[c].name))
-        self.LOG_FILE.write("All reactions:\n")
+            logging.debug("%05d) C%05d = %s" % (c, compounds[c].cid, compounds[c].name))
+        logging.debug("All reactions:")
         for r in range(len(reactions)):
-            self.LOG_FILE.write("%05d) R%05d = %s\n" % (r, reactions[r].rid, str(reactions[r])))
+            logging.debug("%05d) R%05d = %s" % (r, reactions[r].rid, str(reactions[r])))
 
         # Find a solution with a minimal total flux
-        sys.stderr.write("Preparing the CPLEX object for solving the minimal flux problem ... ")
+        logging.info("Preparing the CPLEX object for solving the minimal flux problem")
         exp_html.write('<b>Minimum flux</b>')
-        slip = Stoichiometric_LP("Pathologic", self.LOG_FILE)
+        slip = Stoichiometric_LP("Pathologic")
         slip.add_stoichiometric_constraints(f, S, compounds, reactions, source, target)
         slip.set_objective()
         slip.export("../res/pathologic/%s/%03d_lp.txt" % (experiment_name, 0))
         exp_html.write(' (<a href="%s/%03d_lp.txt">LP file</a>): ' % (experiment_name, 0))
-        sys.stderr.write("[DONE]\n")
-        sys.stderr.write("Solving ... ")
+        logging.info("Solving")
         if (not slip.solve() ):
             exp_html.write("<b>There are no solutions!</b>")
-            sys.stderr.write("There are no solutions. Quitting!")
+            logging.warning("There are no solutions. Quitting!")
             return
-        sys.stderr.write("writing solution ...")
+        logging.info("writing solution")
         best_flux = slip.get_total_flux()
         self.write_current_solution(exp_html, slip, experiment_name)
-        sys.stderr.write("[DONE]\n")
 
-        sys.stderr.write("Preparing the CPLEX object for solving the minimal reaction problem using MILP ... ")
-        milp = Stoichiometric_LP("Pathologic", self.LOG_FILE)
+        logging.info("Preparing the CPLEX object for solving the minimal reaction problem using MILP")
+        milp = Stoichiometric_LP("Pathologic")
         milp.solution_index = 1
         milp.add_stoichiometric_constraints(f, S, compounds, reactions, source, target)
         milp.add_milp_variables()
@@ -110,22 +106,19 @@ class Pathologic:
         elif (self.thermodynamic_method == "localized"):
             milp.add_localized_dGf_constraints(self.gc)
         
-        sys.stderr.write("[DONE]\n")
-
         for index in range(1, self.max_solutions+1):
             # create the MILP problem to constrain the previous solutions not to reappear again.
-            sys.stderr.write("Round %03d, solving using MILP ... " % (milp.solution_index))
+            logging.info("Round %03d, solving using MILP" % (milp.solution_index))
             milp.set_objective()
             milp.export("../res/pathologic/%s/%03d_lp.txt" % (experiment_name, milp.solution_index))
             exp_html.write('<b>Solution #%d</b> (<a href="%s/%03d_lp.txt">LP file</a>): '  % (index, experiment_name, index))
             if (not milp.solve()):
                 exp_html.write("<b>No solution found</b>")
-                sys.stderr.write("No more solutions. Quitting!")
+                logging.info("No more solutions. Quitting!")
                 return
-            sys.stderr.write("writing solution ...")
+            logging.info("writing solution")
             self.write_current_solution(exp_html, milp, experiment_name)
             milp.ban_current_solution()
-            sys.stderr.write("[DONE]\n")
         exp_html.close()
 
     def write_current_solution(self, exp_html, lp, experiment_name):
@@ -222,25 +215,30 @@ class Pathologic:
 ################################################################################
 
 def main():
-    pl = Pathologic()
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+    db = database.SqliteDatabase('gibbs.sqlite')
+    html_writer = HtmlWriter('../res/pathologic.html')
+    pl = Pathologic(db, html_writer)
+
     
     pl.update_file = '../data/thermodynamics/database_updates_with_MOG_reactions.txt'
     pl.thermodynamic_method = 'global'
     pl.gc.c_range = (1e-6, 1e-2)
     pl.max_solutions = 1
-    pl.maximal_dG = -5
     #pl.max_reactions = 10
     
     #source = {}; target = {48:1}
     #name = "=> glyoxylate (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
 
-    source = {}; target = {197:1}
-    name = "=> 3PG (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
-    
     #source = {}; target = {24:1}
     #name = "=> acetyl-CoA (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+
+    source = {}; target = {197:1}
+    for pl.maximal_dG in [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 10, 100]:
+        name = "=> 3PG (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+        logging.info(name)
+        pl.find_path(name, source, target)
     
-    pl.find_path(name, source, target)
     
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")
 
