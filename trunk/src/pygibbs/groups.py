@@ -161,8 +161,9 @@ class GroupContribution(Thermodynamics):
         self.db.CreateTable('contribution', 'gid INT, name TEXT, protons INT, charge INT, mgs INT, dG0_gr REAL')
         for i, gc in enumerate(self.group_contributions):
             j = int(self.nonzero_groups[i])
-            name, protons, charge, mgs = self.groups_data.all_groups[j]
-            self.db.Insert('contribution', [j, name, protons, charge, mgs, gc])
+            group = self.groups_data.all_groups[j]
+            self.db.Insert('contribution', [j, group.name, group.protons,
+                                            group.charge, group.mgs, gc])
             
         self.db.CreateTable('observation', 'cid INT, name TEXT, protons INT, charge INT, mgs INT, dG0_f REAL, use_for TEXT')
         for cid in self.cid2pmap_obs.keys():
@@ -406,8 +407,9 @@ class GroupContribution(Thermodynamics):
             self.db.Insert('train_observations', [self.obs[i]])
         
         self.db.CreateTable('train_groups', 'name TEXT, nH INT, z INT, nMg INT')
-        for (group_name, nH, z, nMg) in self.groups_data.all_groups:
-            self.db.Insert('train_groups', [group_name, nH, z, nMg])
+        for group in self.groups_data.all_groups:
+            self.db.Insert('train_groups', [group.name, group.protons,
+                                            group.charge, group.mgs])
 
         self.db.CreateTable('train_molecules', 'name TEXT')
         for name in self.mol_names:
@@ -488,16 +490,18 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>charge</td><td>nMg</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
         for i, group in enumerate(self.nonzero_groups):
             contribution = self.group_contributions[i]
-            group_name, nH, z, mgs = self.groups_data.all_groups[group]
+            nonzero_group = self.groups_data.all_groups[group]
             compound_list_str = ' | '.join([self.mol_names[k] for k in pylab.find(group_matrix_reduced[:, i] > 0)])
             self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' %
-                            (i, group_name, nH, z, mgs, contribution, compound_list_str))
+                            (i, nonzero_group.name, nonzero_group.protons,
+                             nonzero_group.charge, nonzero_group.mgs,
+                             contribution, compound_list_str))
         self.HTML.write('</table>\n')
 
         self.HTML.write("<p>\nGroups that had no examples in the training set:<br>\n")
         zero_groups = set(range(len(self.groups_data.all_groups))).difference(self.nonzero_groups)
         self.HTML.write("<ol>\n<li>")
-        self.HTML.write("</li>\n<li>".join(["%s [nH=%d, z=%d, mg=%d]" % self.groups_data.all_groups[i]
+        self.HTML.write("</li>\n<li>".join([str(self.groups_data.all_groups[i])
                                             for i in sorted(zero_groups)]))
         self.HTML.write("</li>\n</ol>\n</p>\n")
 
