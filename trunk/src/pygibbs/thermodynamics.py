@@ -78,11 +78,11 @@ class Thermodynamics:
         pMg = pMg or self.pMg
         return self.cid2pmap(cid).Transform(pH, pMg, I, T, most_abundant=False)
     
-    def reaction_to_dG0(self, sparse_reaction, pH=None, I=None, T=None):
+    def reaction_to_dG0(self, sparse_reaction, pH=None, pMg=None, I=None, T=None):
         """
             calculate the predicted dG0_r
         """
-        return sum([coeff * self.cid_to_dG0(cid, pH, I, T) for (cid, coeff) in sparse_reaction.iteritems()])
+        return sum([coeff * self.cid_to_dG0(cid, pH, pMg, I, T) for (cid, coeff) in sparse_reaction.iteritems()])
     
     def cid_to_bounds(self, cid, use_default=True):
         (curr_c_min, curr_c_max) = self.bounds.get(cid, (None, None))

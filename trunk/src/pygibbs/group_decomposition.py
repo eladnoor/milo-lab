@@ -282,9 +282,17 @@ class GroupDecomposition(object):
     def Magnesiums(self):
         """Returns the number of Mg2+ ions."""
         return self.AsVector().Magnesiums()
+    
+    def CountGroups(self):
+        """Returns the total number of groups in the decomposition."""
+        return sum([len(gdata[-1]) for gdata in self.groups])
 
     def PseudoisomerVectors(self):
         """Returns a list of group vectors, one per pseudo-isomer."""    
+        if not self.CountGroups():
+            logging.info('No groups in this decomposition, not calculating pseudoisomers.')
+            return []
+        
         # A map from each group name to its indices in the group vector.
         # Note that some groups appear more than once (since they can have
         # multiple protonation levels).
@@ -457,7 +465,7 @@ class GroupDecomposer(object):
         for length in xrange(1, max_length + 1):
             # Find internal phosphate chains (ones in the middle of the molecule).
             smarts_str = GroupDecomposer._InternalPChainSmarts(length)
-            chain_map = dict((k, v) for (k, v) in group_map.iteritems())
+            chain_map = dict((k, []) for (k, _) in group_map.iteritems())
             for pchain in GroupDecomposer.FindSmarts(mol, smarts_str):
                 working_pchain = list(pchain)
                 working_pchain.pop() # Lose the carbons
@@ -474,14 +482,13 @@ class GroupDecomposer(object):
                     atoms, charge = pop_phosphate(working_pchain, 8)
                     add_group(chain_map, '-OPO2-OPO2-', charge, atoms)
             
-            # TODO...
             assigned_mgs = GroupDecomposer.AttachMgToPhosphateChain(mol, chain_map,
                                                                     assigned_mgs)
             GroupDecomposer.UpdateGroupMapFromChain(group_map, chain_map)
             
             # Find terminal phosphate chains.
             smarts_str = GroupDecomposer._TerminalPChainSmarts(length)
-            chain_map = dict((k, v) for (k, v) in group_map.iteritems())
+            chain_map = dict((k, []) for (k, _) in group_map.iteritems())
             for pchain in GroupDecomposer.FindSmarts(mol, smarts_str):
                 working_pchain = list(pchain)
                 working_pchain.pop() # Lose the carbon

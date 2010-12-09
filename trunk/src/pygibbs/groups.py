@@ -219,7 +219,7 @@ class GroupContribution(Thermodynamics):
             
     def get_pseudoisomers(self, mol):
         pseudoisomers = set()
-        decomposition = self.group_decomposer.Decompose(mol)
+        decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=True)
         
         for groupvec in decomposition.PseudoisomerVectors():
             nH = groupvec.Hydrogens()
@@ -578,13 +578,13 @@ class GroupContribution(Thermodynamics):
     def estimate_pmap(self, mol, ignore_protonations=False):
         try:
             all_groupvecs = self.group_decomposer.Decompose(
-                mol, ignore_protonations).PseudoisomerVectors()
+                mol, ignore_protonations, strict=True).PseudoisomerVectors()
         except group_decomposition.GroupDecompositionError as e:
             raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
 
         if not all_groupvecs:
-            raise GroupContributionError('Found no pseudoisomers for %s'
-                                         % mol.title)
+            raise GroupDecompositionError('Found no pseudoisomers for %s'
+                                          % mol.title)
 
         all_missing_groups = []
         pmap = pseudoisomer.PseudoisomerMap()
