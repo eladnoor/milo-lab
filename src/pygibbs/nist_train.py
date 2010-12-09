@@ -12,7 +12,7 @@ from pygibbs import pseudoisomer
 from toolbox import util, database
 import logging
 
-class GradientAscent (Thermodynamics):
+class GradientAscent(Thermodynamics):
     def __init__(self, gc):
         Thermodynamics.__init__(self)
         self.source_string = "Gradient Ascent"
@@ -70,15 +70,19 @@ class GradientAscent (Thermodynamics):
         known_cids = set(thermodynamics.get_all_cids())
         for row in nist.data:
             Keq, T, I, pH, pMg = row['K'], row['T'], row['I'], row['pH'], row['pMg']
-            if (T_range and not (T_range[0] < T < T_range[1])):
+            if T_range and not (T_range[0] < T < T_range[1]):
+                logging.warning('Temperature %f not within allowed range.', T)
                 continue # the temperature is outside the allowed range
+            
             dG0_r = -R*T*log(Keq)
-            if (override_I != None):
+            if override_I:
                 I = override_I
-            if (row['evaluation'] == 'A'):
+                
+            if row['evaluation'] == 'A':
                 evaluation = 'A'
             else:
                 evaluation = 'B - D'
+                
             #evaluation = row[2]
             reaction_cids = set(row['sparse'].keys())
             unknown_cids = reaction_cids.difference(known_cids)
@@ -93,7 +97,7 @@ class GradientAscent (Thermodynamics):
                             self.cid2pmap_dict[cid].Add(nH, z, mgs, 0.0)
                         known_cids.add(cid)
             
-            self.data.append((row['sparse'], pH, I, T, evaluation, dG0_r))
+            self.data.append((row['sparse'], pH, pMg, I, T, evaluation, dG0_r))
             rowid = len(self.data) - 1
             for cid in reaction_cids:
                 self.cid2rowids.setdefault(cid, []).append(rowid)
@@ -124,7 +128,7 @@ class GradientAscent (Thermodynamics):
         y = zeros((N, 1))
         X = zeros((N, len(cid_list)))
         for r in range(N):
-            (sparse_reaction, pH, I, T, unused_evaluation, dG0_r_transformed) = self.data[self.train_rowids[r]]
+            (sparse_reaction, pH, pMg, I, T, unused_evaluation, dG0_r_transformed) = self.data[self.train_rowids[r]]
             dG0_r = dG0_r_transformed
             for (cid, coeff) in sparse_reaction.iteritems():
                 c = cid_list.index(cid)
@@ -204,12 +208,12 @@ class GradientAscent (Thermodynamics):
         
         cid2count = {}
         for rowid in self.train_rowids:
-            (sparse_reaction, pH, I, T, evaluation, dG0_r) = self.data[rowid]
+            (sparse_reaction, pH, pMg, I, T, evaluation, dG0_r) = self.data[rowid]
             for cid in sparse_reaction.keys():
                 cid2count[cid] = cid2count.setdefault(cid, 0) + 1
         
         for rowid in self.test_rowids:
-            (sparse_reaction, pH, I, T, evaluation, dG0_r) = self.data[rowid]
+            (sparse_reaction, pH, pMg, I, T, evaluation, dG0_r) = self.data[rowid]
             if (ignore_I):
                 I = default_I
             unknown_set = set(sparse_reaction.keys()).difference(known_cid_set)
@@ -220,7 +224,7 @@ class GradientAscent (Thermodynamics):
                 evaluation_map[evaluation] = ([], [])
             
             try:
-                dG0_pred = thermodynamics.reaction_to_dG0(sparse_reaction, pH, I, T)
+                dG0_pred = thermodynamics.reaction_to_dG0(sparse_reaction, pH, pMg, I, T)
             except MissingCompoundFormationEnergy:
                 logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % rowid)
                 continue
@@ -230,7 +234,7 @@ class GradientAscent (Thermodynamics):
             evaluation_map[evaluation][0].append(dG0_r)
             evaluation_map[evaluation][1].append(dG0_pred)
             n_measurements = min([cid2count[cid] for cid in sparse_reaction.keys()])
-            total_list.append([abs(dG0_r - dG0_pred), dG0_r, dG0_pred, sparse_reaction, pH, I, T, evaluation, n_measurements])
+            total_list.append([abs(dG0_r - dG0_pred), dG0_r, dG0_pred, sparse_reaction, pH, pMg, I, T, evaluation, n_measurements])
         
         # plot the profile graph
         rcParams['text.usetex'] = False
@@ -272,7 +276,7 @@ class GradientAscent (Thermodynamics):
         ylabel(r'no. of measurements', fontsize=14)
 
         fig3 = figure()
-        plot([row[8] for row in total_list], [abs(row[1] - row[2]) for row in total_list], '.')
+        plot([row[9] for row in total_list], [abs(row[1] - row[2]) for row in total_list], '.')
         title(r'The effect of the number of measurements on the estimation error' % rmse, fontsize=14)
         xlabel(r'minimum no. of measurements among reaction compounds', fontsize=14)
         ylabel(r'$|| \Delta_{obs} G^\circ - \Delta_{est} G^\circ ||$ [kJ/mol]', fontsize=14)
@@ -290,7 +294,7 @@ class GradientAscent (Thermodynamics):
 
         html_writer.embed_matplotlib_figure(fig3, width=400, height=300)
 
-        table_headers = ["|error|", "dG0(obs)", "dG0(pred)", "reaction", "pH", "I", "T", "evaluation", "min_num_measurements"]
+        table_headers = ["|error|", "dG0(obs)", "dG0(pred)", "reaction", "pH", "pMg", "I", "T", "evaluation", "min_num_measurements"]
         html_writer.write("<table>\n")
         html_writer.write("<tr><td>" + "</td><td>".join(table_headers) + "</td></tr>\n")
         

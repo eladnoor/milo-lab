@@ -1,8 +1,5 @@
 def Singleton(cls):
-    """Decorator that makes a class a singleton.
-    
-    TODO(flamholz): move somewhere more central.
-    """
+    """Decorator that makes a class a singleton."""
     instance_container = []
     def getinstance():
         if not len(instance_container):
