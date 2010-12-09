@@ -21,24 +21,78 @@ class MalformedGroupDefinitionError(GroupsDataError):
     pass
 
 
+class Group(object):
+    """Representation of a single group."""
+    
+    def __init__(self, id, name, protons, charge, mgs,
+                 smarts=None, focal_atoms=None):
+        self.id = id
+        self.name = name
+        self.protons = protons
+        self.charge = charge
+        self.mgs = mgs
+        self.smarts = smarts
+        self.focal_atoms = focal_atoms
+
+    def IsPhosphate(self):
+        return self.name.startswith('*P')
+    
+    def IgnoreCharges(self):
+        # (I)gnore charges
+        return self.name[2] == 'I'
+    
+    def ChargeSensitive(self):
+        # (C)harge sensitive
+        return self.name[2] == 'C'
+    
+    def FocalSet(self, nodes):
+        """Get the set of focal atoms from the match.
+        
+        Args:
+            nodes: the nodes matching this group.
+        
+        Returns:
+            A set of focal atoms.
+        """
+        if self.focal_atoms:
+            return set([nodes[i] for i in self.focal_atoms])
+        return set(nodes)
+    
+    def __str__(self):
+        return '%s [H%d Z%d Mg%d]' % (self.name, self.protons, self.charge, self.mgs)
+    
+    def __eq__(self, other):
+        """Enable == checking."""
+        return (self.name == other.name and
+                self.protons == other.protons and
+                self.charge == other.charge and
+                self.mgs == other.mgs)
+    
+    def __hash__(self):
+        """We are HASHABLE!"""
+        return hash((self.name, self.protons, self.charge, self.mgs))
+    
+
 class GroupsData(object):
     """Contains data about all groups."""
     
+    ORIGIN = Group('Origin', 'Origin', protons=0, charge=0, mgs=0)
+    
     # Phosphate groups need special treatment, so they are defined in code...
     # TODO(flamholz): Define them in the groups file.
-    INITIAL_P_1 = ('-OPO3-', 1, 0, 0)
-    INITIAL_P_2 = ('-OPO3-', 0, -1, 0)
-    MIDDLE_P_1 = ('-OPO2-', 1, 0, 0)
-    MIDDLE_P_2 = ('-OPO2-', 0, -1, 0)
-    FINAL_P_1 = ('-OPO3', 1, -1, 0)
-    FINAL_P_2 = ('-OPO3', 0, -2, 0)
+    INITIAL_P_1 = Group('InitialP1', '-OPO3-', 1, 0, 0)
+    INITIAL_P_2 = Group('InitialP1', '-OPO3-', 0, -1, 0)
+    MIDDLE_P_1 = Group('MiddleP1', '-OPO2-', 1, 0, 0)
+    MIDDLE_P_2 = Group('MiddleP2', '-OPO2-', 0, -1, 0)
+    FINAL_P_1 = Group('FinalP1', '-OPO3', 1, -1, 0)
+    FINAL_P_2 = Group('FinalP2', '-OPO3', 0, -2, 0)
     #FINAL_P_3 = ('-OPO3',  2,  0)
-    INITIAL_2_PHOSPHATE = ('-OPO3-OPO2-', 0, -2, 0)
-    MIDDLE_2_PHOSPHATE = ('-OPO2-OPO2-', 0, -2, 0)
+    INITIAL_2_PHOSPHATE = Group('Initial2PChain', '-OPO3-OPO2-', 0, -2, 0)
+    MIDDLE_2_PHOSPHATE = Group('Middle2PChain', '-OPO2-OPO2-', 0, -2, 0)
 
     # Phosphate groups with magnesium ions.
-    MIDDLE_2_P_MG = ('-OPO2-OPO2-', 0, 0, 1)
-    FINAL_P_MG_2 = ('-OPO3', 0, 0, 1)
+    MIDDLE_2_P_MG = Group('Initial2PChain', '-OPO2-OPO2-', 0, 0, 1)
+    FINAL_P_MG_2 = Group('Middle2PChainMg', '-OPO3', 0, 0, 1)
     
     DEFAULT_INTERIOR_P = MIDDLE_P_2  # Ignoring protonation, interior chain
     DEFAULT_EXTERIOR_P = FINAL_P_1   # Ignoring protonation, exterior chain
@@ -60,47 +114,32 @@ class GroupsData(object):
     MIDDLE_PHOSPHATES_TO_MGS = ((MIDDLE_2_PHOSPHATE, MIDDLE_2_P_MG),)    
     FINAL_PHOSPHATES_TO_MGS = ((FINAL_P_2, FINAL_P_MG_2),)
     
-    def __init__(self, groups):
+    def __init__(self, groups, include_mg=True):
         """Construct GroupsData.
         
         Args:
-            groups: a list of group tuples, read from CSV.
+            groups: a list of Group objects.
         """
         self.groups = groups
-        self.all_groups = self._GetAllGroups(self.groups) 
-        self.all_group_names = ['%s [H%d %d %d]' % (group_name, protons, charge, mgs) for
-                                (group_name, protons, charge, mgs) in self.all_groups]
-        self.all_group_hydrogens = pylab.array([protons for (group_name, protons, charge, mgs) in self.all_groups])
-        self.all_group_charges = pylab.array([charge for (group_name, protons, charge, mgs) in self.all_groups])
-        self.all_group_mgs = pylab.array([mgs for (group_name, protons, charge, mgs) in self.all_groups])
-    
-    @staticmethod
-    def IsPhosphate(group_name):
-        return group_name.startswith('*P')
-    
-    @staticmethod
-    def IgnoreCharges(group_name):
-        # (I)gnore charges
-        return group_name[2] == 'I'
-    
-    @staticmethod
-    def ChargeSensitive(group_name):
-        # (C)harge sensitive
-        return group_name[2] == 'C'
+        self.all_groups = self._GetAllGroups(self.groups)
+        self.all_group_names = [str(g) for g in self.all_groups]
+        self.all_group_hydrogens = pylab.array([g.protons for g in self.all_groups])
+        self.all_group_charges = pylab.array([g.charge for g in self.all_groups])
+        self.all_group_mgs = pylab.array([g.mgs for g in self.all_groups])
     
     @staticmethod
     def _GetAllGroups(groups):
         all_groups = []
         
-        for _, group_name, protons, charge, mgs, _, _ in groups:
+        for group in groups:
             # Expand phosphate groups.
-            if GroupsData.IsPhosphate(group_name):
+            if group.IsPhosphate():
                 all_groups.extend(GroupsData.PHOSPHATE_GROUPS)
             else:
-                all_groups.append((group_name, protons, charge, mgs))
+                all_groups.append(group)
         
         # Add the origin.
-        all_groups.append(('origin', 0, 0, 0))
+        all_groups.append(GroupsData.ORIGIN)
         return all_groups
     
     @staticmethod
@@ -132,9 +171,10 @@ class GroupsData(object):
                 # Check that the smarts are good.
                 pybel.Smarts(smarts)
                 
-                Mgs = 0
-                list_of_groups.append((gid, group_name, protons, charge,
-                                       Mgs, str(smarts), focal_atoms))
+                mgs = 0
+                group = Group(gid, group_name, protons, charge, mgs, str(smarts),
+                              focal_atoms)
+                list_of_groups.append(group)
             except ValueError, msg:
                 print msg
                 raise GroupsDataError('Wrong number of columns (%d) in one of the rows in %s: %s' %
@@ -154,11 +194,11 @@ class GroupsData(object):
         logging.info('Reading the list of groups from the database.')
         
         list_of_groups = []
-        for row in db.Execute("SELECT * FROM groups"):
+        for row in db.Execute('SELECT * FROM groups'):
             (gid, group_name, protons, charge, mgs, smarts, focal_atom_set, unused_remark) = row
             
-            if (focal_atom_set != ""): # otherwise, consider all the atoms as focal atoms
-                focal_atoms = set([int(i) for i in focal_atom_set.split('|')])
+            if focal_atom_set: # otherwise, consider all the atoms as focal atoms
+                focal_atoms = GroupsData._ConvertFocalAtoms(focal_atom_set)
             else:
                 focal_atoms = None
 
@@ -173,10 +213,10 @@ class GroupsData(object):
         logging.info('Writing GroupsData to the database.')
         
         db.CreateTable('groups', 'gid INT, name TEXT, protons INT, charge INT, mgs INT, smarts TEXT, focal_atoms TEXT, remark TEXT')
-        for gid, group_name, protons, charge, mgs, smarts, focal_atom_set in self.groups:
-            focal_atom_str = '|'.join([str(fa) for fa in focal_atom_set])
-            db.Insert('groups', [gid, group_name, int(protons), int(charge), 
-                                 int(mgs), smarts, focal_atom_str, ''])
+        for group in self.groups:
+            focal_atom_str = '|'.join([str(fa) for fa in group.focal_atoms])
+            db.Insert('groups', [group.id, group.name, int(group.protons), int(group.charge), 
+                                 int(group.mgs), group.smarts, focal_atom_str, ''])
 
         logging.info('Done writing groups data into database.')
         
@@ -232,10 +272,11 @@ class GroupDecomposition(object):
         l = ['%30s | %2s | %2s | %2s | %s\n' % ("group name", "nH", "z", "mgs", "nodes"),
              spacer]
                 
-        for group_name, protons, charge, mgs, node_sets in self.groups:
+        for group, node_sets in self.groups:
             for n_set in node_sets:
-                s = '%30s | %2d | %2d | %2d | %s\n' % (group_name, protons, charge, mgs,
-                                                 ','.join([str(i) for i in n_set]))
+                s = '%30s | %2d | %2d | %2d | %s\n' % (group.name, group.protons,
+                                                       group.charge, group.mgs,
+                                                       ','.join([str(i) for i in n_set]))
                 l.append(s)
 
         if self.unassigned_nodes:
@@ -253,10 +294,11 @@ class GroupDecomposition(object):
     def __str__(self):
         """Convert the groups to a string."""        
         group_strs = []
-        for group_name, protons, charge, mgs, node_sets in self.groups:
+        for group, node_sets in self.groups:
             if node_sets:
-                group_strs.append('%s [H%d %d %d] x %d' % (group_name, protons,
-                                                           charge, mgs, len(node_sets)))
+                group_strs.append('%s [H%d %d %d] x %d' % (group.name, group.protons,
+                                                           group.charge, group.mgs,
+                                                           len(node_sets)))
         return " | ".join(group_strs)
     
     def AsVector(self):
@@ -266,7 +308,7 @@ class GroupDecomposition(object):
         why this function returns consistent values for all compounds.
         """
         group_vec = GroupVector(self.groups_data)
-        for unused_gname, unused_ps, unused_charge, unused_mgs, node_sets in self.groups:
+        for unused_group, node_sets in self.groups:
             group_vec.append(len(node_sets))
         group_vec.append(1) # The origin
         return group_vec
@@ -301,9 +343,9 @@ class GroupDecomposition(object):
         # 'group_name_to_count' is a map from each group name to its number of appearances in 'mol'
         group_name_to_count = {}
         for i, gdata in enumerate(self.groups):
-            group_name, unused_hydrogens, unused_charge, unused_mgs, node_sets = gdata
-            group_name_to_index.setdefault(group_name, []).append(i)
-            group_name_to_count[group_name] = group_name_to_count.get(group_name, 0) + len(node_sets)
+            group, node_sets = gdata
+            group_name_to_index.setdefault(group.name, []).append(i)
+            group_name_to_count[group.name] = group_name_to_count.get(group.name, 0) + len(node_sets)
         
         index_vector = [] # maps the new indices to the original ones that are used in groupvec
 
@@ -450,13 +492,12 @@ class GroupDecomposer(object):
                 chain_map[default].append(atoms)
             else:
                 # NOTE(flamholz): We rely on the default number of magnesiums being 0 (which it is).
-                default_protons, default_charge, mgs = default[1], default[2], default[3]
-                protons = default_protons + charge - default_charge
-                group = (group_name, protons, charge, mgs)
+                protons = default.protons + charge - default.charge
+                group = Group(default.id, group_name, protons, charge, default.mgs)
                 if group not in chain_map:
                     logging.warning('This protonation (%d) level is not allowed for terminal phosphate groups.' % protons)
-                    logging.warning('Using the defailt protonation level (%d) for this name ("%s").' %
-                                    (default[1], default[0]))
+                    logging.warning('Using the default protonation level (%d) for this name ("%s").' %
+                                    (default.protons, default.name))
                     chain_map[default].append(atoms)
                 else:
                     chain_map[group].append(atoms)
@@ -529,20 +570,19 @@ class GroupDecomposer(object):
         unassigned_nodes = set(range(len(mol.atoms)))
         groups = []
         
-        for unused_gid, group_name, protons, charge, mgs, smarts_str, focal_atoms in self.groups_data.groups:
+        for group in self.groups_data.groups:
             # Phosphate chains require a special treatment
-            if GroupsData.IsPhosphate(group_name):
+            if group.IsPhosphate():
                 pchain_groups = None
-                if GroupsData.IgnoreCharges(group_name) or ignore_protonations:
+                if group.IgnoreCharges() or ignore_protonations:
                     pchain_groups = self.FindPhosphateChains(mol, ignore_protonations=True)
-                elif GroupsData.ChargeSensitive(group_name):
+                elif group.ChargeSensitive():
                     pchain_groups = self.FindPhosphateChains(mol, ignore_protonations=False)
                 else:
                     raise MalformedGroupDefinitionError(
-                        'Unrecognized phosphate wildcard: %s' % group_name)
+                        'Unrecognized phosphate wildcard: %s' % group.name)
                 
-                for group_key, group_nodesets in pchain_groups:
-                    group_name, protons, charge, mgs = group_key
+                for phosphate_group, group_nodesets in pchain_groups:
                     current_groups = []
                     
                     for focal_set in group_nodesets:
@@ -550,25 +590,23 @@ class GroupDecomposer(object):
                             # Check that the focal-set doesn't override an assigned node
                             current_groups.append(focal_set)
                             unassigned_nodes = unassigned_nodes - focal_set
-                    groups.append((group_name, protons, charge, mgs, current_groups))
+                    groups.append((phosphate_group, current_groups))
                     
             else:  # Not a phosphate group
                 current_groups = []
-                for nodes in self.FindSmarts(mol, smarts_str):
+                for nodes in self.FindSmarts(mol, group.smarts):
                     try:
-                        if focal_atoms:
-                            focal_set = set([nodes[i] for i in focal_atoms])
-                        else:
-                            focal_set = set(nodes)
+                        focal_set = group.FocalSet(nodes)
                     except IndexError:
                         logging.error('Focal set for group %s is out of range: %s'
-                                      % (group_name, str(focal_atoms)))
+                                      % (str(group), str(group.focal_atoms)))
                         sys.exit(-1)
 
-                    if (focal_set.issubset(unassigned_nodes)): # check that the focal-set doesn't override an assigned node
+                    # check that the focal-set doesn't override an assigned node
+                    if focal_set.issubset(unassigned_nodes): 
                         current_groups.append(focal_set)
                         unassigned_nodes = unassigned_nodes - focal_set
-                groups.append((group_name, protons, charge, mgs, current_groups))
+                groups.append((group, current_groups))
         
         # Ignore the hydrogen atoms when checking which atom is unassigned
         for nodes in self.FindSmarts(mol, '[H]'): 
@@ -595,7 +633,7 @@ def main():
 
     smiless = [
                ('ATP', atp),
-               #('CoA', coa), ('Glucose', glucose), ('MgAtp', mgatp),
+               ('CoA', coa), ('Glucose', glucose), ('MgAtp', mgatp),
                #('CTP', ctp)
                ]
     mols = [(name, pybel.readstring('smiles', s)) for name, s in smiless]

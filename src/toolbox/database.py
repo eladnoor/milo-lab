@@ -1,6 +1,6 @@
 import sqlite3, csv
 
-class Database():
+class Database(object):
     
     def __init__(self):
         raise Exception("class Database is an abstract class and cannot be instantiated")
