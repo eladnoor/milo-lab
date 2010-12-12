@@ -26,13 +26,13 @@ if (not os.path.exists('../res')):
 if (not os.path.exists('../res/victor')):
     os.mkdir('../res/victor')
 
-name = "2010_12_07_mid-experiment"
 vp_vec = []
-vp = VictorParser()
-vp.parse_excel("../data/victor/%s.xls" % (name))
-vp_vec.append(vp)
+for name in ["Elad's OD600_20101206_239", "Elad's OD600_20101209_240"]:
+    vp = VictorParser()
+    vp.parse_excel("../data/victor/%s.xls" % (name))
+    vp_vec.append(vp)
 
-pp = PdfPages('../res/victor/%s.pdf' % name)
+pp = PdfPages('../res/victor/2010-12-07_pTac_serine_growth.pdf')
 
 #rcParams['text.usetex'] = True
 rcParams['legend.fontsize'] = 12
@@ -44,20 +44,21 @@ rcParams['legend.fontsize'] = 12
 #rcParams['figure.subplot.hspace'] = 0.3
 #figure()
 
-plot_growth_rate = True
+plot_growth_rate = False
 fit_window_size = 1.5 # hours
 fit_start_threshold = 0.01
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
-t_max = 24
-OD_min = 0.046
+t_max = 150
+#OD_min = 0.046
+OD_min = 0
 
 vlegend = []
 #for r in [0, 1, 2, 3, 4, 5, 6, 7]:
 for r in xrange(5):
     for c in xrange(12):
-        vlegend += [('(%d,%d)' % (r,c), 'm', [(r, c)])]
-plots.append(('Serine Growth', (0, t_max), (1e-3, 1), 'OD', vlegend))
+        vlegend = [('(%d,%d)' % (r,c), 'm', [(r, c)])]
+        plots.append(('Serine Growth (%d, %d)' % (r+1, c+1), (0, t_max), (0, 3e-1), 'OD', vlegend))
 
 for (plot_title, t_range, y_range, y_label, data_series) in plots:
     sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
@@ -102,7 +103,7 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
 
     rcParams['legend.fontsize'] = 6
     legend([a[0] for a in label2line], [label2legend[a[1]] for a in label2line], loc='lower right')
-    yscale('log')
+    #yscale('log')
     axis([t_range[0], t_range[1], y_range[0], y_range[1]])
     pp.savefig(fig)
 

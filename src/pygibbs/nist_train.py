@@ -301,7 +301,7 @@ class GradientAscent(Thermodynamics):
         for row in sorted(total_list, reverse=True):
             sparse_reaction = row[3]
             row[3] = self.kegg.sparse_to_hypertext(sparse_reaction, show_cids=False)
-            html_writer.write("<tr><td>" + "</td><td>".join([str(x) for x in row]) + "</td></tr>\n")
+            html_writer.write("<tr><td>" + "</td><td>".join(["%.1f" % x for x in row[:3]] + [str(x) for x in row[3:]]) + "</td></tr>\n")
         html_writer.write("</table>\n")
         html_writer.write("</div><br>\n")
 
@@ -482,7 +482,7 @@ class GradientAscent(Thermodynamics):
 ################################################################################################################
 
 def main():
-    db = database.SqliteDatabase('gibbs.sqlite')
+    db = database.SqliteDatabase('../res/gibbs.sqlite')
     gc = GroupContribution(db)
     gc.override_gc_with_measurements = True
     gc.init()

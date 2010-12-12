@@ -30,10 +30,18 @@ def ReadCsvWithTitles(filename):
     csv_reader = csv.reader(open(filename, 'r'))
     titles = csv_reader.next()
     data = []
+    row_number = 0
     for row in csv_reader:
+        row_number += 1
+        
+        if len(row) > len(titles):
+            raise Exception("%s - line #%d - number of columns is larger than in the title row" % (filename, row_number))
         row_dict = {}
         for i, title in enumerate(titles):
-            row_dict[title] = row[i]
+            if i < len(row):
+                row_dict[title] = row[i]
+            else:
+                row_dict[title] = None
         data.append(row_dict)
     return data
 

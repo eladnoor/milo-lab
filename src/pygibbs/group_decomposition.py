@@ -24,13 +24,13 @@ class MalformedGroupDefinitionError(GroupsDataError):
 class Group(object):
     """Representation of a single group."""
     
-    def __init__(self, id, name, protons, charge, mgs,
+    def __init__(self, id, name, protons, charge, nMg,
                  smarts=None, focal_atoms=None):
         self.id = id
         self.name = name
         self.protons = protons
         self.charge = charge
-        self.mgs = mgs
+        self.nMg = nMg
         self.smarts = smarts
         self.focal_atoms = focal_atoms
 
@@ -59,24 +59,24 @@ class Group(object):
         return set(nodes)
     
     def __str__(self):
-        return '%s [H%d Z%d Mg%d]' % (self.name, self.protons, self.charge, self.mgs)
+        return '%s [H%d Z%d Mg%d]' % (self.name, self.protons, self.charge, self.nMg)
     
     def __eq__(self, other):
         """Enable == checking."""
-        return (self.name == other.name and
+        return (str(self.name) == str(other.name) and
                 self.protons == other.protons and
                 self.charge == other.charge and
-                self.mgs == other.mgs)
+                self.nMg == other.nMg)
     
     def __hash__(self):
         """We are HASHABLE!"""
-        return hash((self.name, self.protons, self.charge, self.mgs))
+        return hash((self.name, self.protons, self.charge, self.nMg))
     
 
 class GroupsData(object):
     """Contains data about all groups."""
     
-    ORIGIN = Group('Origin', 'Origin', protons=0, charge=0, mgs=0)
+    ORIGIN = Group('Origin', 'Origin', protons=0, charge=0, nMg=0)
     
     # Phosphate groups need special treatment, so they are defined in code...
     # TODO(flamholz): Define them in the groups file.
@@ -125,7 +125,7 @@ class GroupsData(object):
         self.all_group_names = [str(g) for g in self.all_groups]
         self.all_group_hydrogens = pylab.array([g.protons for g in self.all_groups])
         self.all_group_charges = pylab.array([g.charge for g in self.all_groups])
-        self.all_group_mgs = pylab.array([g.mgs for g in self.all_groups])
+        self.all_group_mgs = pylab.array([g.nMg for g in self.all_groups])
     
     @staticmethod
     def _GetAllGroups(groups):
@@ -195,15 +195,14 @@ class GroupsData(object):
         
         list_of_groups = []
         for row in db.Execute('SELECT * FROM groups'):
-            (gid, group_name, protons, charge, mgs, smarts, focal_atom_set, unused_remark) = row
+            (gid, group_name, protons, charge, nMg, smarts, focal_atom_set, unused_remark) = row
             
             if focal_atom_set: # otherwise, consider all the atoms as focal atoms
                 focal_atoms = GroupsData._ConvertFocalAtoms(focal_atom_set)
             else:
                 focal_atoms = None
 
-            list_of_groups.append((gid, group_name, protons, charge, mgs,
-                                   str(smarts), focal_atoms))
+            list_of_groups.append(Group(gid, group_name, protons, charge, nMg, str(smarts), focal_atoms))
         logging.info('Done reading groups data.')
         
         return GroupsData(list_of_groups)
@@ -212,13 +211,17 @@ class GroupsData(object):
         """Write the GroupsData to the database."""
         logging.info('Writing GroupsData to the database.')
         
-        db.CreateTable('groups', 'gid INT, name TEXT, protons INT, charge INT, mgs INT, smarts TEXT, focal_atoms TEXT, remark TEXT')
+        db.CreateTable('groups', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, smarts TEXT, focal_atoms TEXT, remark TEXT')
         for group in self.groups:
             focal_atom_str = '|'.join([str(fa) for fa in group.focal_atoms])
             db.Insert('groups', [group.id, group.name, int(group.protons), int(group.charge), 
-                                 int(group.mgs), group.smarts, focal_atom_str, ''])
+                                 int(group.nMg), group.smarts, focal_atom_str, ''])
 
         logging.info('Done writing groups data into database.')
+
+    def Index(self, gr):
+        return self.all_groups.index(gr)
+    
         
 class GroupVector(list):
     """A vector of groups."""
@@ -244,6 +247,26 @@ class GroupVector(list):
                 group_strs.append('%s x %d' % (name, self[i]))
         return " | ".join(group_strs)
     
+    def __iadd__(self, other):
+        for i in xrange(len(self.groups_data.all_group_names)):
+            self[i] += other[i]
+
+    def __isub__(self, other):
+        for i in xrange(len(self.groups_data.all_group_names)):
+            self[i] -= other[i]
+            
+    def __add__(self, other):
+        result = GroupVector(self.groups_data)
+        for i in xrange(len(self.groups_data.all_group_names)):
+            result.append(self[i] + other[i])
+        return result
+
+    def __sub__(self, other):
+        result = GroupVector(self.groups_data)
+        for i in xrange(len(self.groups_data.all_group_names)):
+            result.append(self[i] - other[i])
+        return result
+    
     def NetCharge(self):
         """Returns the net charge."""
         return int(pylab.dot(self, self.groups_data.all_group_charges))
@@ -255,7 +278,7 @@ class GroupVector(list):
     def Magnesiums(self):
         """Returns the number of Mg2+ ions."""
         return int(pylab.dot(self, self.groups_data.all_group_mgs))
-
+    
 
 class GroupDecomposition(object):
     """Class representing the group decomposition of a molecule."""
@@ -269,13 +292,13 @@ class GroupDecomposition(object):
     def ToTableString(self):
         """Returns the decomposition as a tabular string."""
         spacer = '-' * 50 + '\n'
-        l = ['%30s | %2s | %2s | %2s | %s\n' % ("group name", "nH", "z", "mgs", "nodes"),
+        l = ['%30s | %2s | %2s | %3s | %s\n' % ("group name", "nH", "z", "nMg", "nodes"),
              spacer]
                 
         for group, node_sets in self.groups:
             for n_set in node_sets:
                 s = '%30s | %2d | %2d | %2d | %s\n' % (group.name, group.protons,
-                                                       group.charge, group.mgs,
+                                                       group.charge, group.nMg,
                                                        ','.join([str(i) for i in n_set]))
                 l.append(s)
 
@@ -297,7 +320,7 @@ class GroupDecomposition(object):
         for group, node_sets in self.groups:
             if node_sets:
                 group_strs.append('%s [H%d %d %d] x %d' % (group.name, group.protons,
-                                                           group.charge, group.mgs,
+                                                           group.charge, group.nMg,
                                                            len(node_sets)))
         return " | ".join(group_strs)
     
@@ -493,7 +516,7 @@ class GroupDecomposer(object):
             else:
                 # NOTE(flamholz): We rely on the default number of magnesiums being 0 (which it is).
                 protons = default.protons + charge - default.charge
-                group = Group(default.id, group_name, protons, charge, default.mgs)
+                group = Group(default.id, group_name, protons, charge, default.nMg)
                 if group not in chain_map:
                     logging.warning('This protonation (%d) level is not allowed for terminal phosphate groups.' % protons)
                     logging.warning('Using the default protonation level (%d) for this name ("%s").' %

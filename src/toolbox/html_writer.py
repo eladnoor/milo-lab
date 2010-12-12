@@ -8,6 +8,8 @@ html_writer.py - Construct HTML pages
 import util
 import os
 import xml.dom.minidom
+import math
+import openbabel, oasa
 
 class BaseHtmlWriter:
     def __init__(self):
@@ -75,13 +77,115 @@ class BaseHtmlWriter:
         Gdot.write('.svg', prog='dot', format='svg')
         self.extract_svg_from_file('.svg', width, height)
         os.remove('.svg')
+
+    @staticmethod
+    def pybel_mol_to_oasa_mol(mol):
+        etab = openbabel.OBElementTable()
+        oasa_mol = oasa.molecule()
+        for atom in mol.atoms:
+            v = oasa_mol.create_vertex()
+            v.symbol = etab.GetSymbol(atom.atomicnum)
+            v.charge = atom.formalcharge
+            oasa_mol.add_vertex(v)
+
+        for bond in openbabel.OBMolBondIter(mol.OBMol):
+            e = oasa_mol.create_edge()
+            e.order = bond.GetBO()
+            if bond.IsHash():
+                e.type = "h"
+            elif bond.IsWedge():
+                e.type = "w"
+            oasa_mol.add_edge(bond.GetBeginAtomIdx() - 1,
+                         bond.GetEndAtomIdx() - 1,
+                         e)
+        # I'm sure there's a more elegant way to do the following, but here goes...
+        # let's set the stereochemistry around double bonds
+        mol.write("can") # Perceive UP/DOWNness
+        for bond in openbabel.OBMolBondIter(mol.OBMol):
+            ends = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+            if bond.GetBO() == 2:
+                stereobonds = [[b for b in openbabel.OBAtomBondIter(mol.OBMol.GetAtom(x)) if b.GetIdx() != bond.GetIdx() and (b.IsUp() or b.IsDown())]
+                               for x in ends]
+                if stereobonds[0] and stereobonds[1]: # Needs to be defined at either end
+                    if stereobonds[0][0].IsUp() == stereobonds[1][0].IsUp():
+                        # Either both up or both down
+                        stereo = oasa.stereochemistry.cis_trans_stereochemistry.SAME_SIDE
+                    else:
+                        stereo = oasa.stereochemistry.cis_trans_stereochemistry.OPPOSITE_SIDE
+                    atomids = [(b[0].GetBeginAtomIdx(), b[0].GetEndAtomIdx()) for b in stereobonds]
+                    extremes = []
+                    for id, end in zip(ends, atomids):
+                        if end[0] == id:
+                            extremes.append(end[1])
+                        else:
+                            extremes.append(end[0])
+                    center = oasa_mol.get_edge_between(oasa_mol.atoms[ends[0] - 1], oasa_mol.atoms[ends[1] - 1])
+                    st = oasa.stereochemistry.cis_trans_stereochemistry(
+                              center = center, value = stereo,
+                              references = (oasa_mol.atoms[extremes[0] - 1], oasa_mol.atoms[ends[0] - 1],
+                                            oasa_mol.atoms[ends[1] - 1], oasa_mol.atoms[extremes[1] - 1]))
+                    oasa_mol.add_stereochemistry(st)
         
-    def extract_svg_from_file(self, fname, width=320, height=240):
-        x = xml.dom.minidom.parse(fname)
-        svg = x.getElementsByTagName("svg")[0]
+        oasa_mol.remove_unimportant_hydrogens()
+        oasa.coords_generator.calculate_coords(oasa_mol, bond_length=30)
+        return oasa_mol
+    
+    @staticmethod
+    def oasa_mol_to_canvas(oasa_mol):
+        maxx = max([v.x for v in oasa_mol.vertices])
+        minx = min([v.x for v in oasa_mol.vertices])
+        maxy = max([v.y for v in oasa_mol.vertices])
+        miny = min([v.y for v in oasa_mol.vertices])
+        maxcoord = max(maxx - minx, maxy - miny)
+        fontsize = 16
+        bondwidth = 6
+        linewidth = 2
+        if maxcoord > 270: # 300  - margin * 2
+            for v in oasa_mol.vertices:
+                v.x *= 270. / maxcoord
+                v.y *= 270. / maxcoord
+            fontsize *= math.sqrt(270. / maxcoord)
+            bondwidth *= math.sqrt(270. / maxcoord)
+            linewidth *= math.sqrt(270. / maxcoord)
+        canvas = oasa.cairo_out.cairo_out()
+        canvas.show_hydrogens_on_hetero = True
+        canvas.font_size = fontsize
+        canvas.bond_width = bondwidth
+        canvas.line_width = linewidth
+        return canvas
+            
+    def embed_molecule_as_png(self, mol, png_filename, width=320, height=240):
+        """
+            Create a 2D depiction of the molecule and adds it as a PNG into the HTML
+            OASA is used for 2D coordinate generation and depiction.
+        """
+        
+        oasa_mol = HtmlWriter.pybel_mol_to_oasa_mol(mol)
+        canvas = HtmlWriter.oasa_mol_to_canvas(oasa_mol)
+        canvas.mol_to_cairo(oasa_mol, png_filename, format='png')
+        self.embed_img(png_filename, mol.title)
+
+    def embed_molecule_as_svg(self, mol, width=320, height=240):
+        """
+            Create a 2D depiction of the molecule and adds it as an SVG into the HTML
+            OASA is used for 2D coordinate generation and depiction.
+        """
+        
+        oasa_mol = HtmlWriter.pybel_mol_to_oasa_mol(mol)
+        canvas = HtmlWriter.oasa_mol_to_canvas(oasa_mol)
+        canvas.mol_to_cairo(oasa_mol, '.svg', format='svg')
+        self.extract_svg_from_file('.svg', width, height)
+        os.remove('.svg')
+
+    def extract_svg_from_xmldom(self, dom, width=320, height=240):
+        svg = dom.getElementsByTagName("svg")[0]
         svg.setAttribute('width', '%dpt' % width)
         svg.setAttribute('height', '%dpt' % height)
         self.write(svg.toprettyxml(indent='  ', newl=''))
+                
+    def extract_svg_from_file(self, fname, width=320, height=240):
+        xmldom = xml.dom.minidom.parse(fname)
+        self.extract_svg_from_xmldom(xmldom, width, height)
     
     def branch(self, relative_path, link_text=None):
         """

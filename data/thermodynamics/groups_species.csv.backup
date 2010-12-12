@@ -31,25 +31,32 @@
 "*PC",0,0,"P",0,"phosphate chains - (C)harge sensitive"
 "-PO3",0,-2,"[C,N]P(=O)([O-])[O-]","1|2|3|4","terminal phosphate group not attached by oxygen"
 "-PO3",1,-1,"[C,N]P(=O)([O-])O","1|2|3|4","terminal phosphate group not attached by oxygen"
-"two fused rings =n<",0,0,"[nR2]",,"participating in two fused aromatic rings"
-"ring =n<",0,0,"[nH0X3]",,"double bond and one single bond participating in a ring"
-"ring -nH-",1,0,"[nH1X3]",,"participating in a ring"
-"ring -nH=",1,1,"[nH1X3+]",,"participating in a ring"
-"ring =n-",0,0,"[nH0X2]",,"participating in a ring"
-"two fused rings -N<",0,0,"[NR2]",,"participating in two fused rings"
-"ring =N<",0,0,"[NH0X3R1]=[C,N]",0,"double bond and one single bond participating in a ring"
-"-N-",2,1,"[NH2X4R0+1]",,
-"-N-",1,0,"[NH1X3R0]",,
-"ring =N-",1,0,"[NH1X3R1]=[C,N]",0,"participating in a ring"
-"ring =N-",0,0,"[NH0X2R1]=[C,N]",0,"participating in a ring"
-"ring -N-",1,0,"[NH1X3R1]",,"participating in a ring"
-"ring -N-",0,-1,"[NH0X2R1-1]",,"participating in a ring"
-"ring -N<",0,0,"[NH0X3R1]",,"participating in a ring"
-"=N",2,1,"[NH2]=[C,c,N,n]",0,
-"=N",1,0,"[NH1]=[C,c,N,n]",0,
-"CO-N",2,0,"C(=O)N",,"primary amine next to keto"
-"-N",3,1,"[NH3][C,c,N,n]",0,"primary amine"
-"-N",2,0,"[NH2][C,c,N,n]",0,"primary amine"
+"amino acid",5,1,"[CH1X4](C(=O)[OH])[NH3+]",,
+"amino acid",4,0,"[CH1X4](C(=O)[O-])[NH3+]",,
+"amino acid",3,-1,"[CH1X4](C(=O)[O-])[NH2]",,
+"N in a primary amide",2,0,"C(=O)[NH2]",2,
+"N secondary amide",1,0,"[C,N]C(=O)[NH1X3]C","3",
+"guanidine",4,1,"C(=[NH2+])[NH2]",,
+"two fused rings -n<",0,0,"[n;H0;R2]",,"participating in two fused aromatic rings"
+"ring -n<",0,0,"[n;H0;X3;R1;+0]",,
+"ring =n-",0,0,"[n;H0;X2;+0]",,
+"ring =n-",1,1,"[n;H1;X3;+1]",,
+"ring -nH-",1,0,"[n;H1;X3;+0]",,
+"ring -nH-",0,-1,"[n;H0;X2;-1]",,
+"two fused rings -N<",0,0,"[N;H0;R2;+0]",,"participating in two fused rings"
+"ring -N<",0,0,"[N;H0;X3;R1;+0]=[C,N]",0,"double bond and one single bond participating in a ring"
+"-N-",2,1,"[N;H2;X4;R0;+1]",,
+"-N-",1,0,"[N;H1;X3;R0;+0]",,
+"ring =N-",1,0,"[N;H1;X3;R1;+0]=[C,N]",0,"participating in a ring"
+"ring =N-",0,0,"[N;H0;X2;R1;+0]=[C,N]",0,"participating in a ring"
+"ring -NH-",1,0,"[N;H1;X3;R1;+0]",,"participating in a ring"
+"ring -NH-",0,-1,"[N;H0;X2;R1;-1]",,"participating in a ring"
+"ring -N<",0,0,"[N;H0;X3;R1;+0]",,"participating in a ring"
+"=N",2,1,"A=[NH2]",1,
+"=N",1,0,"A=[NH1]",1,
+"-N",3,1,"A[NH3]",1,
+"-N",2,0,"A[NH2]",1,
+"ring c-N",2,0,"c[NH2]",,
 "#N",0,0,"[NH0X1R0]#[C,c,N,n]",0,
 "-N<",1,1,"[NH1X4R0]",,
 "-N<",0,0,"[NH0X3R0]",,
@@ -58,8 +65,9 @@
 "ring -o(c=O)-",0,0,"O=[cH0X3R][oH0X2R]","0|1|2","ester (participating in an aromatic ring)"
 "ring -O(C=O)-",0,0,"O=[CH0X3R][OH0X2R]","0|1|2","ester (participating in a nonaromatic ring)"
 "-O(C=O)-",0,0,"[CH0X3](=O)[OH0X2]","0|1|2","ester"
-"ring >c=O",0,0,"c=O","0|1","ketone (participating in an aromatic ring)"
-"ring >c-O",0,-1,"c[O-]","0|1","hydroxyl (participating in an aromatic ring)"
+"ring >c=O",0,0,"c=[O;H0;X1;+0]","0|1","ketone (participating in an aromatic ring)"
+"ring >c-O",1,0,"c[O;H1;X2;+0]","0|1","hydroxyl (participating in an aromatic ring)"
+"ring >c-O",0,-1,"c[O;H0;X1;-1]","0|1","hydroxyl (participating in an aromatic ring)"
 "ring >C=O",0,0,"[CR]=O","0|1","ketone (participating in a ring)"
 "-COO",0,-1,"[C,c,N,n]C(=O)[O-]","1|2|3","carboxylic acid (ion)"
 "-COO",1,0,"[C,c,N,n]C(=O)[OH]","1|2|3","carboxylic acid"
@@ -67,7 +75,8 @@
 "-C=O",1,0,"[C,c,N,n][CH1]=O","1|2","aldehyde"
 "ring -o-",0,0,"[c,n][oH0X2R][c,n]",1,"participating in an aromatic ring"
 "ring -O-",0,0,"[C,N][OH0X2R][C,N]",1,"participating in a nonaromatic ring"
-"-O",1,0,"[C,c,N,n][OH1X2]",1,"hydroxyl"
+"-O",1,0,"[C,N][O;H1;X2;+0]",1,"hydroxyl"
+"-O",0,-1,"[C,N][O;H1;X2;-1]",1,"hydroxyl"
 "-O-",0,0,"[C,c,N,n][OH0X2][C,N]",1,"ether"
 "#C-",0,0,"[C,N]#[CH0X2][C,N]",1,
 "two fused rings =c<",0,0,"[cR2]",,"participating in two fused aromatic rings"

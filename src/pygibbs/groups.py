@@ -5,7 +5,8 @@ import pybel
 import openbabel
 import csv
 import logging
-import pylab
+from pylab import nan, find, sum, absolute, array, inv, pinv, plot, log, dot, xlabel, ylabel, figure, hold, text, savefig, zeros, rcParams, mean, std, arange, ylim, xlim, axhspan, axvspan, legend, matrix, exp, contour, meshgrid, clabel
+from matplotlib import font_manager
 import re
 import types
 
@@ -19,6 +20,7 @@ from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException
 from toolbox import database, util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
+from pygibbs.dissociation_constants import DissociationConstants
 
 class GroupContributionError(Exception):
     def __init__(self, value):
@@ -67,6 +69,8 @@ class GroupContribution(Thermodynamics):
         self.db = db
         self.hatzi = Hatzi()
         self.cid2pmap_dict = None
+        
+        self.dissociation = DissociationConstants(db, self.HTML, self.kegg())
     
     def __del__(self):
         self.HTML.close()
@@ -93,7 +97,7 @@ class GroupContribution(Thermodynamics):
     def save_cid2pmap(self):
         self.cid2pmap_dict = {}
         logging.info("calculating the table of chemical formation energies for all KEGG compounds:")
-        self.db.CreateTable('gc_cid2prm', 'cid INT, nH INT, z INT, mgs INT, dG0 REAL, estimated BOOL')
+        self.db.CreateTable('gc_cid2prm', 'cid INT, nH INT, z INT, nMg INT, dG0 REAL, estimated BOOL')
         self.db.CreateTable('gc_cid2error', 'id INT, error TEXT')
 
         for cid in self.kegg().get_all_cids():
@@ -102,8 +106,8 @@ class GroupContribution(Thermodynamics):
             # If the compound is measured:
             if (cid in self.cid2pmap_obs):
                 pmap = self.cid2pmap_obs[cid]
-                for (nH, z, mgs, dG0) in pmap.ToMatrix():
-                    self.db.Insert('gc_cid2prm', [cid, nH, z, mgs, dG0, False])
+                for (nH, z, nMg, dG0) in pmap.ToMatrix():
+                    self.db.Insert('gc_cid2prm', [cid, nH, z, nMg, dG0, False])
 
             # Try to also estimate the dG0_f using Group Contribution:
             comp = self.kegg().cid2compound(cid)
@@ -125,8 +129,8 @@ class GroupContribution(Thermodynamics):
                 continue
             self.db.Insert('gc_cid2error', [cid, 'OK'])
             self.cid2pmap_dict[cid] = pmap
-            for (nH, z, mgs, dG0) in pmap.ToMatrix():
-                self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(mgs), dG0, True])
+            for (nH, z, nMg, dG0) in pmap.ToMatrix():
+                self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
         
         self.db.Commit()
 
@@ -134,45 +138,53 @@ class GroupContribution(Thermodynamics):
         self.cid2pmap_dict = {}
 
         # Now load the data into the cid2pmap_dict:
-        for row in self.db.Execute("SELECT cid, nH, z, mgs, dG0 from gc_cid2prm WHERE estimated == 1;"):
-            cid, nH, z, mgs, dG0 = row
+        for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 1;"):
+            cid, nH, z, nMg, dG0 = row
             self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
-            self.cid2pmap_dict[cid].Add(nH, z, mgs, dG0)
+            self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
 
         cid2pmap_obs = {} # observed formation energies
-        for row in self.db.Execute("SELECT cid, nH, z, mgs, dG0 from gc_cid2prm WHERE estimated == 0;"):
-            cid, nH, z, mgs, dG0 = row
+        for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 0;"):
+            cid, nH, z, nMg, dG0 = row
             cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
-            cid2pmap_obs[cid].Add(nH, z, mgs, dG0)
+            cid2pmap_obs[cid].Add(nH, z, nMg, dG0)
 
         # add the observed data to the cid2pmap_dict (and override the estimated data if required)
         for cid in cid2pmap_obs.keys():
             if (self.override_gc_with_measurements or cid not in self.cid2pmap_dict):
                 self.cid2pmap_dict[cid] = cid2pmap_obs[cid]
         
-    def train(self, obs_fname, use_dG0_format=False):
+    def train(self, pka_fname, obs_fname, use_dG0_format=False):
+        l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = self.read_training_data_pKa(pka_fname)
+        #l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = [], [], []
+
         if (use_dG0_format):
-            self.read_training_data_dG0(obs_fname)
+            l_groupvec_formation, l_deltaG_formation, l_names_formation = self.read_training_data_dG0(obs_fname)
         else:
-            self.read_training_data(obs_fname)
+            l_groupvec_formation, l_deltaG_formation, l_names_formation = self.read_training_data(obs_fname)
+        
+        l_groupvec = l_groupvec_pKa + l_groupvec_formation
+        l_deltaG = l_deltaG_pKa + l_deltaG_formation
+        l_names = l_names_pKa + l_names_formation
+        self.save_training_data(l_groupvec, l_deltaG, l_names)
         self.group_contributions = self.linear_regression_train()
 
         logging.info("storing the group contribution data in the database")
-        self.db.CreateTable('contribution', 'gid INT, name TEXT, protons INT, charge INT, mgs INT, dG0_gr REAL')
+        self.db.CreateTable('contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL')
         for i, gc in enumerate(self.group_contributions):
             j = int(self.nonzero_groups[i])
             group = self.groups_data.all_groups[j]
             self.db.Insert('contribution', [j, group.name, group.protons,
-                                            group.charge, group.mgs, gc])
+                                            group.charge, group.nMg, gc])
             
-        self.db.CreateTable('observation', 'cid INT, name TEXT, protons INT, charge INT, mgs INT, dG0_f REAL, use_for TEXT')
+        self.db.CreateTable('observation', 'cid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_f REAL, use_for TEXT')
         for cid in self.cid2pmap_obs.keys():
             if (cid in self.cid_test_set):
                 use_for = 'test'
             else:
                 use_for = 'train'
-            for (nH, z, mgs, dG0) in self.cid2pmap_obs[cid].ToMatrix():
-                self.db.Insert('observation', [cid, self.kegg().cid2name(cid), nH, z, mgs, dG0, use_for])
+            for (nH, z, nMg, dG0) in self.cid2pmap_obs[cid].ToMatrix():
+                self.db.Insert('observation', [cid, self.kegg().cid2name(cid), nH, z, nMg, dG0, use_for])
         
         self.db.Commit()
             
@@ -251,9 +263,9 @@ class GroupContribution(Thermodynamics):
             X           - is the group regression matrix
             dG_obs      - is the observed dG0 vector.
         """
-        X = []
-        y = []
-        self.mol_names = [] # is the list of Molecules (pybel class) used for the regression
+        l_groupvec = []
+        l_deltaG = []
+        l_names = [] # is the list of Molecules (pybel class) used for the regression
         self.inchi2val_obs = {}
         self.cid2pmap_obs = {}
         self.cid_test_set = set()
@@ -263,14 +275,7 @@ class GroupContribution(Thermodynamics):
         counter = 0
         for row in util.ReadCsvWithTitles(obs_fname):
             #smiles, cid, compound_name, dG0, unused_dH0, charge, hydrogens, Mg, use_for, ref, unused_assumption 
-            if row['charge']:
-                try:
-                    name = "%s [%d]" % (row['compound name'], int(row['charge']))
-                except ValueError:
-                    raise Exception("charge value is not an integer: " + row['charge'])
-            else:
-                name = row['compound name']
-            
+            name = "%s (z=%s, nH=%s, nMg=%s)" % (row['compound name'], row['charge'], row['hydrogens'], row['Mg'])
             logging.info('reading data for ' + name)
             self.HTML.write("<h3>%s, %s</h3>\n" % (name, row['ref']))
 
@@ -290,11 +295,14 @@ class GroupContribution(Thermodynamics):
 
             if row['cid']:
                 cid = int(row['cid'])
-                nH = int(row['hydrogens'])
-                z = int(row['charge'])
-                mgs = int(row['Mg'])
+                try:
+                    nH = int(row['hydrogens'])
+                    z = int(row['charge'])
+                    nMg = int(row['Mg'])
+                except ValueError:
+                    raise Exception("can't read the data about %s" % (row['compound name']))
                 self.cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
-                self.cid2pmap_obs[cid].Add(nH, z, mgs, dG0)
+                self.cid2pmap_obs[cid].Add(nH, z, nMg, dG0)
 
             if (row['use for'] == "test"):
                 self.cid_test_set.add(int(cid))
@@ -321,21 +329,19 @@ class GroupContribution(Thermodynamics):
             
             img_fname = self.FIG_DIR + '/train_%05d.png' % counter
             counter += 1
-            self.HTML.embed_img(img_fname, mol.title)
-            self.HTML.write('<br>\n')
-            
             try:
-                mol.draw(show=False, filename=img_fname)
-            except AssertionError:
-                raise Exception("PyBel failed when trying to draw the compound %s" % row['compound name'])
-            except (TypeError, IndexError):
-                logging.warning('Failed to draw compound.')
+                self.HTML.embed_molecule_as_png(mol, img_fname)
+            except (TypeError, IndexError, AssertionError):
+                logging.warning("PyBel cannot draw the compound %s" % name)
+                self.HTML.write('WARNING: cannot draw this compound using PyBel\n')
+
+            self.HTML.write('<br>\n')
     
             decomposition = self.group_decomposer.Decompose(mol, strict=True)
             groupvec = decomposition.AsVector()
-            self.mol_names.append(name)
-            X.append(groupvec)
-            y.append(dG0)
+            l_names.append(name)
+            l_groupvec.append(groupvec)
+            l_deltaG.append(dG0)
             self.HTML.write("Decomposition = %s<br>\n" % decomposition)
             
             gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
@@ -346,17 +352,12 @@ class GroupContribution(Thermodynamics):
                 self.HTML.write("ERROR: Charge doesn't match: explicit = %d, formula = %d<br>\n" %
                                 (int(row['charge']), gc_charge))
                 
-        if (X == []):
-            raise Exception("Could not use any of the groups in dG0.csv, aborting.")
+        return (l_groupvec, l_deltaG, l_names)        
         
-        self.group_matrix = pylab.array(X)
-        self.obs = pylab.array(y).T
-        self.save_training_data()
-    
     def read_training_data(self, obs_fname):
-        X = []
-        y = []
-        self.mol_list = [] # is the list of Molecules (pybel class) used for the regression
+        l_groupvec = []
+        l_deltaG = []
+        l_names = [] # is the list of Molecules (pybel class) used for the regression
         self.inchi2val_obs = {}
         self.cid2pmap_obs = {}
         
@@ -382,37 +383,81 @@ class GroupContribution(Thermodynamics):
                 self.inchi2val_obs[inchi] = obs_val
                 
                 groupvec = self.group_decomposer.Decompose(mol).AsVector()
-                self.mol_list.append(mol)
-                X.append(groupvec)
-                y.append(obs_val)
+                l_names.append(mol)
+                l_groupvec.append(groupvec)
+                l_deltaG.append(obs_val)
                 self.HTML.write('Decomposition = %s <br>\n' % self.get_decomposition_str(mol))
             except GroupDecompositionError:
                 self.HTML.write('Could not be decomposed<br>\n')
             except KeyError:
                 self.HTML.write('Compound has no INCHI in KEGG<br>\n')
 
-        self.group_matrix = pylab.array(X)
-        self.obs = pylab.array(y).T
-        self.save_training_data()
+        return (l_groupvec, l_deltaG, l_names)        
 
-    def save_training_data(self):
-        n_obs = self.group_matrix.shape[0]
-        n_groups = self.group_matrix.shape[1]
+    def read_training_data_pKa(self, pka_fname):
+        
+        def smiles2groupvec(smiles, id):
+            mol = pybel.readstring('smiles', str(smiles))
+            mol.title = id
+            self.HTML.embed_molecule_as_png(mol, '../res/dissociation_constants/%s.png' % id, height=100, width=100)
+            try:
+                return self.group_decomposer.Decompose(mol, strict=True)
+            except GroupDecompositionError as e:
+                logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
+                raise e
+        
+        l_groupvec = []
+        l_deltaG = []
+        l_names = [] # is the list of Molecules
+
+        self.dissociation.LoadValuesToDB(pka_fname)
+        self.HTML.write('<h2><a name=compounds>List of pKa for training</a></h2>\n')
+        self.HTML.write('Source File = %s<br>\n' % pka_fname)
+        for cid, step, T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa"):
+            logging.info("Reading pKa data for C%05d, %s, step %d" % (cid, self.kegg().cid2name(cid), step))
+            self.HTML.write('<h3>C%05d - %s - step %d</h3>\n' % (cid, self.kegg().cid2name(cid), step))
+            T = T or default_T
+            dG0 = R*T*log(10)*pKa
+            self.HTML.write('pKa = %.2f, T = %.2f \n</br>' % (pKa, T))
+            self.HTML.write('&#x394;G<sub>p</sub> = %.2f<br>\n' % dG0)
+            if smiles_below and smiles_above:
+                self.HTML.write('SMILES = %s >> %s<br>\n' % (smiles_below, smiles_above))
+                decomposition_below = smiles2groupvec(smiles_below, "C%05d_%d_b" % (cid, step))
+                decomposition_above = smiles2groupvec(smiles_above, "C%05d_%d_a" % (cid, step))
+                groupvec = decomposition_above.AsVector() - decomposition_below.AsVector()
+                obs_name = self.kegg().cid2name(cid) + " [%d -> %d]" % \
+                    (decomposition_below.NetCharge(), decomposition_above.NetCharge())
+                self.HTML.write('<br>\nDecomposition = %s<br>\n' % str(groupvec))
+                l_groupvec.append(groupvec)
+                l_deltaG.append(dG0)
+                l_names.append(obs_name)
+            else:
+                self.HTML.write('No SMILES provided<br>\n')
+        
+        return (l_groupvec, l_deltaG, l_names)        
+
+    def save_training_data(self, l_groupvec, l_deltaG, l_names):
+        n_obs = len(l_deltaG)
+        if not n_obs:
+            raise Exception("No observations have been given for training")
+        
+        n_groups = len(l_groupvec[0])
+        
         self.db.CreateTable('train_group_matrix', ",".join(["g%d REAL" % i for i in range(n_groups)]))
         for j in range(n_obs):
-            self.db.Insert('train_group_matrix', self.group_matrix[j, :].tolist())
+            self.db.Insert('train_group_matrix', l_groupvec[j])
         
         self.db.CreateTable('train_observations', 'obs REAL')
         for i in range(n_obs):
-            self.db.Insert('train_observations', [self.obs[i]])
+            self.db.Insert('train_observations', [l_deltaG[i]])
         
         self.db.CreateTable('train_groups', 'name TEXT, nH INT, z INT, nMg INT')
         for group in self.groups_data.all_groups:
             self.db.Insert('train_groups', [group.name, group.protons,
-                                            group.charge, group.mgs])
+                                            group.charge, group.nMg])
 
         self.db.CreateTable('train_molecules', 'name TEXT')
-        for name in self.mol_names:
+        for name in l_names:
             self.db.Insert('train_molecules', [name])
 
         self.db.Commit()
@@ -421,44 +466,58 @@ class GroupContribution(Thermodynamics):
         X = []
         for row in self.db.Execute("SELECT * FROM train_group_matrix"):
             X.append(list(row))
-        self.group_matrix = pylab.array(X)
+        self.group_matrix = array(X)
 
         y = []
-        for row in self.db.Execute("SELECT obs FROM train_observations"):
+        for row in self.db.Execute("SELECT * FROM train_observations"):
             y.append(row[0])
-        self.obs = pylab.array(y)
+        self.obs = array(y)
         
         self.mol_names = []
         for row in self.db.Execute("SELECT name FROM train_molecules"):
             self.mol_names.append(row[0])
 
-    def export_training_data(self, prefix):
-        gmat_csv = csv.writer(open(prefix + "group_matrix.csv", "w"))
-        gmat_csv.writerow(["compound name"] + self.groups_data.all_group_names + ["observed dG0"])
-        (n_comp, _) = self.group_matrix.shape
-        for i in range(n_comp):
-            gmat_csv.writerow([self.mol_names[i]] + [x for x in self.group_matrix[i, :]] + [self.obs[i]])
-
-        glist_csv = csv.writer(open(prefix + "groups.csv", "w"))
-        glist_csv.writerow(("GROUP NAME", "PROTONS", "CHARGE"))
-        for (group_name, protons, charge) in self.groups_data.all_groups:
-            glist_csv.writerow((group_name, protons, charge))
-    
     def linear_regression_train(self):
-        self.nonzero_groups = pylab.find(pylab.sum(self.group_matrix, 0) > 0)
-        nonzero_group_mat = self.group_matrix[:, self.nonzero_groups]
-        inv_corr_mat = pylab.pinv(pylab.dot(nonzero_group_mat.T, nonzero_group_mat))
-        group_contributions = pylab.dot(pylab.dot(inv_corr_mat, nonzero_group_mat.T), self.obs)
+        self.load_training_data()
+        
+        #### verify that there are no compounds with more than one unique group:
+        
+        # find all columns that are nonzero only in one row
+        unique_groups = find(sum(self.group_matrix != 0, 0) == 1)
+        # find rows that have more than one group from that set
+        dangerous_rows = find(sum(self.group_matrix[:,unique_groups] != 0, 1) > 1)
+        
+        # this is dangerous since the weight can be arbitrarily distributed between the two groups
+        # and will cause severe miscalculations in predictions of compounds that contain only on of
+        # these groups.
+        if len(dangerous_rows):
+            for j in dangerous_rows:
+                logging.warning('The observation %s has more than one unique group, not using it for training' % self.mol_names[j])
+            #raise Exception('Cannot perform the regression when there are rows with more than one unique group')
+        
+        # remove the dangerous rows from the matrix and the obs vector
+        self.safe_rows = find(sum(self.group_matrix[:,unique_groups] != 0, 1) < 2)
+        self.truncated_group_mat = self.group_matrix[self.safe_rows, :]
+        self.truncated_obs = self.obs[self.safe_rows]
+        self.truncated_mol_names = [self.mol_names[i] for i in self.safe_rows]
+        
+        # remove the groups that have no examples from the matrix
+        self.nonzero_groups = find(sum(absolute(self.truncated_group_mat), 0) > 0)
+        self.truncated_group_mat = self.truncated_group_mat[:, self.nonzero_groups]
+        
+        inv_corr_mat = pinv(dot(self.truncated_group_mat.T, self.truncated_group_mat))
+        #inv_corr_mat = inv(dot(truncated_group_mat.T, truncated_group_mat))
+        group_contributions = dot(dot(inv_corr_mat, self.truncated_group_mat.T), self.truncated_obs)
         return group_contributions
     
     def groupvec2val(self, groupvec):
         if (self.group_contributions == None):
             raise Exception("You need to first Train the system before using it to estimate values")
 
-        missing_groups = set(pylab.find(groupvec)).difference(set(self.nonzero_groups))
+        missing_groups = set(find(groupvec)).difference(set(self.nonzero_groups))
         if (len(missing_groups) == 0):
             groupvec = [groupvec[i] for i in self.nonzero_groups]
-            return pylab.dot(groupvec, self.group_contributions)
+            return dot(groupvec, self.group_contributions)
         else:
             raise GroupMissingTrainDataError("can't estimate because some groups have no training data", missing_groups)
     
@@ -474,15 +533,20 @@ class GroupContribution(Thermodynamics):
         
         return self.groupvec2val(groupvec)
 
-    def write_regression_report(self):
+    def write_regression_report(self, include_raw_data=False):
+        if include_raw_data:
+            self.db.Table2HTML(self.HTML, 'train_group_matrix')
+            self.db.Table2HTML(self.HTML, 'train_observations')
+            self.db.Table2HTML(self.HTML, 'train_molecules')
+            
         group_matrix_reduced = self.group_matrix[:, self.nonzero_groups]
         self.HTML.write('<h2><a name="regression">Regression</a></h2>\n')
         self.HTML.write('<ul><li>%d compounds</li><li>%d groups</li><li>%d rank</li></ul>\n' % \
                         (group_matrix_reduced.shape[0], group_matrix_reduced.shape[1], matrixrank(group_matrix_reduced)))
-        self.HTML.write('<table border="1">\n<tr><td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td><td>Group Vector</td></tr>')
+        self.HTML.write('<table border="1">\n<tr><td>Name</td><td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td><td>Group Vector</td></tr>')
         for i in range(group_matrix_reduced.shape[0]):
-            self.HTML.write('<tr><td>%.2f</td><td>%s</td></tr>' % \
-                            (self.obs[i], ' '.join([str(x) for x in group_matrix_reduced[i, :]])))
+            self.HTML.write('<tr><td>%s</td><td>%.2f</td><td>%s</td></tr>' % \
+                            (self.mol_names[i], self.obs[i], ' '.join(['%d' % x for x in group_matrix_reduced[i, :]])))
         self.HTML.write('</table>')
         
         self.HTML.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
@@ -491,10 +555,10 @@ class GroupContribution(Thermodynamics):
         for i, group in enumerate(self.nonzero_groups):
             contribution = self.group_contributions[i]
             nonzero_group = self.groups_data.all_groups[group]
-            compound_list_str = ' | '.join([self.mol_names[k] for k in pylab.find(group_matrix_reduced[:, i] > 0)])
+            compound_list_str = ' | '.join([self.mol_names[k] for k in find(group_matrix_reduced[:, i])])
             self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' %
                             (i, nonzero_group.name, nonzero_group.protons,
-                             nonzero_group.charge, nonzero_group.mgs,
+                             nonzero_group.charge, nonzero_group.nMg,
                              contribution, compound_list_str))
         self.HTML.write('</table>\n')
 
@@ -508,36 +572,33 @@ class GroupContribution(Thermodynamics):
     def analyze_training_set(self):
         self.write_regression_report()
         
-        n_obs = len(self.obs)
+        n_obs = len(self.safe_rows)
         val_obs = []
         val_est = []
         val_err = []
         deviations = []
-
-        nonzero_group_mat = self.group_matrix[:, self.nonzero_groups]
-        compounds_with_unique_groups = [] 
-        for i in range(n_obs):
-            subset = pylab.array(range(0, i) + range((i + 1), n_obs))
-            reduced_mat = nonzero_group_mat[subset, :]
+        
+        unique_groups = find(sum(self.truncated_group_mat != 0, 0) == 1)
+        row_without_unique_groups = find(sum(self.truncated_group_mat[:, unique_groups] != 0, 1) == 0)
+        
+        for i in row_without_unique_groups:
+            # leave out the row corresponding with observation 'i'
+            subset = array(range(0, i) + range((i + 1), n_obs))
+            reduced_mat = self.truncated_group_mat[subset, :]
             
-            groups_in_i = set(pylab.find(nonzero_group_mat[i, :] > 0).tolist())
-            groups_in_others = set(pylab.find(pylab.sum(reduced_mat, 0) > 0).tolist())
-            if (not groups_in_i.issubset(groups_in_others)):
-                compounds_with_unique_groups.append(i)
-            else:
-                inv_corr_mat = pylab.pinv(pylab.dot(reduced_mat.T, reduced_mat))
-                group_contributions = pylab.dot(pylab.dot(inv_corr_mat, reduced_mat.T), self.obs[subset])
-                
-                estimation = pylab.dot(nonzero_group_mat[i, :], group_contributions)
-                error = self.obs[i] - estimation
-                val_obs.append(self.obs[i])
-                val_est.append(estimation)
-                val_err.append(error)
-                deviations.append((abs(error), self.mol_names[i], self.obs[i], estimation, error))
+            inv_corr_mat = pinv(dot(reduced_mat.T, reduced_mat))
+            group_contributions = dot(dot(inv_corr_mat, reduced_mat.T), self.truncated_obs[subset])
+            
+            estimation = dot(self.truncated_group_mat[i, :], group_contributions)
+            error = self.truncated_obs[i] - estimation
+            val_obs.append(self.truncated_obs[i])
+            val_est.append(estimation)
+            val_err.append(error)
+            deviations.append((abs(error), self.truncated_mol_names[i], self.truncated_obs[i], estimation, error))
         
         logging.info("writing the table of estimation errors for each compound")
         self.HTML.write('<h2><a name="error_table">Compound Estimation Error</a></h2>\n')
-        self.HTML.write('<b>std(error) = %.2f kJ/mol</b>\n' % pylab.std(val_err))
+        self.HTML.write('<b>std(error) = %.2f kJ/mol</b>\n' % std(val_err))
         self.HTML.write('<table border="1">')
         self.HTML.write('  <tr><td>Compound Name</td><td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td><td>Error [kJ/mol]</td><td>Remark</td></tr>\n')
         deviations.sort(reverse=True)
@@ -546,26 +607,26 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('</table>\n')
         
         logging.info("Plotting graphs for observed vs. estimated")
-        obs_vs_est_fig = pylab.figure()
-        pylab.plot(val_obs, val_est, '.')
-        pylab.xlabel('Observed (obs)')
-        pylab.ylabel('Estimated (est)')
-        pylab.hold(True)
+        obs_vs_est_fig = figure()
+        plot(val_obs, val_est, '.')
+        xlabel('Observed (obs)')
+        ylabel('Estimated (est)')
+        hold(True)
         for (_, mol_name, obs, est, err) in deviations:
-            pylab.text(obs, est, mol_name, fontsize=4)
-        pylab.savefig('%s/obs_vs_est.pdf' % self.FIG_DIR, format='pdf')
+            text(obs, est, mol_name, fontsize=4)
+        savefig('%s/obs_vs_est.pdf' % self.FIG_DIR, format='pdf')
         self.HTML.write('<h3><a name="obs_vs_est">Observed vs. Estimated</a></h3>\n')
         self.HTML.embed_matplotlib_figure(obs_vs_est_fig, width=1000, height=800)
         
-        obs_vs_err_fig = pylab.figure()
-        pylab.plot(val_obs, val_err, '+')
-        pylab.xlabel('Observed (obs)')
-        pylab.ylabel('Estimation error (est - obs)')
-        pylab.hold(True)
+        obs_vs_err_fig = figure()
+        plot(val_obs, val_err, '+')
+        xlabel('Observed (obs)')
+        ylabel('Estimation error (est - obs)')
+        hold(True)
         for (_, mol_name, obs, est, err) in deviations:
-            pylab.text(obs, err, mol_name, fontsize=4)
+            text(obs, err, mol_name, fontsize=4)
     
-        pylab.savefig('%s/obs_vs_err.pdf' % self.FIG_DIR, format='pdf', orientation='landscape')
+        savefig('%s/obs_vs_err.pdf' % self.FIG_DIR, format='pdf', orientation='landscape')
         self.HTML.write('<h3><a name="obs_vs_err">Observed vs. Error</a></h3>\n')
         self.HTML.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
 
@@ -665,7 +726,7 @@ class GroupContribution(Thermodynamics):
         if (dG0_p1 == None):
             raise GroupMissingTrainDataError("cannot calculate dG0_f for C%05d pseudoisomer with charge %d" % (cid, charge + 1))
         
-        return (dG0_p0 - dG0_p1) / (R * T * pylab.log(10))
+        return (dG0_p0 - dG0_p1) / (R * T * log(10))
 
     def estimate_dG0(self, mol, pH=default_pH, pMg=default_pMg,
                      I=default_I, T=default_T):
@@ -705,7 +766,7 @@ class GroupContribution(Thermodynamics):
 
         if type(pH) != types.ListType and type(I) != types.ListType:
             dG0_vector = [pmap.Transform(pH, pMg, I, T, most_abundant) for pmap in pmaps]
-            dG0 = pylab.dot(stoichiometry_vector, dG0_vector)
+            dG0 = dot(stoichiometry_vector, dG0_vector)
             return dG0
         else:
             if type(pH) != types.ListType:
@@ -713,11 +774,11 @@ class GroupContribution(Thermodynamics):
             if type(I) != types.ListType:
                 I = [float(I)]
             
-            dG0_matrix = pylab.zeros((len(pH), len(I)))
+            dG0_matrix = zeros((len(pH), len(I)))
             for i in range(len(pH)):
                 for j in range(len(I)):
                     dG0_vector = [pmap.Transform(pH[i], pMg, I[j], T, most_abundant) for pmap in pmaps]
-                    dG0_matrix[i, j] = pylab.dot(stoichiometry_vector, dG0_vector)
+                    dG0_matrix[i, j] = dot(stoichiometry_vector, dG0_vector)
             
             return dG0_matrix
 
@@ -727,10 +788,10 @@ class GroupContribution(Thermodynamics):
         """
         
         dG0 = self.estimate_dG0_reaction(sparse_reaction, pH, pMg, I, T, most_abundant)
-        concentration_vector = [pylab.log(self.get_concentration(cid, c0, media)) for cid in sparse_reaction.keys()]
+        concentration_vector = [log(self.get_concentration(cid, c0, media)) for cid in sparse_reaction.keys()]
         stoichiometry_vector = sparse_reaction.values()
         
-        return dG0 + R * T * pylab.dot(stoichiometry_vector, concentration_vector)        
+        return dG0 + R * T * dot(stoichiometry_vector, concentration_vector)        
 
     def estimate_dG_keggrid(self, rid, pH=default_pH, pMg=default_pMg, I=default_I, T=default_T, c0=default_c0, media=None, most_abundant=False):
         """
@@ -761,9 +822,9 @@ class GroupContribution(Thermodynamics):
             
     def rid2groupvec(self, rid):
         sparse_reaction = self.kegg().rid2sparse_reaction(rid) 
-        group_matrix = pylab.matrix([self.cid2groupvec(cid) for cid in sparse_reaction.keys()])
-        stoichiometry_vector = pylab.matrix(sparse_reaction.values())
-        total_groupvec = pylab.dot(stoichiometry_vector, group_matrix)
+        group_matrix = matrix([self.cid2groupvec(cid) for cid in sparse_reaction.keys()])
+        stoichiometry_vector = matrix(sparse_reaction.values())
+        total_groupvec = dot(stoichiometry_vector, group_matrix)
         return total_groupvec.tolist()[0]
 
     def analyze_all_kegg_compounds(self, pH=[default_pH], pMg=default_pMg, I=[default_I], T=default_T, most_abundant=False):
@@ -895,20 +956,21 @@ class GroupContribution(Thermodynamics):
     def read_compound_abundance(self, filename):
         self.db.CreateTable('compound_abundance', 'cid INT, media TEXT, concentration REAL')
         for row in util.ReadCsvWithTitles(filename):
-            if not row['cid']:
+            if not row['Kegg ID']:
                 continue
+            cid = int(row['Kegg ID'])
             if row['use'] != '1':
                 continue
             try:
-                self.db.Insert('compound_abundance', [int(row['cid']), "glucose", float(row['Glucose'])])
+                self.db.Insert('compound_abundance', [cid, "glucose", float(row['Glucose'])])
             except ValueError:
                 pass
             try:
-                self.db.Insert('compound_abundance', [int(row['cid']), "glucose", float(row['Glycerol'])])
+                self.db.Insert('compound_abundance', [cid, "glucose", float(row['Glycerol'])])
             except ValueError:
                 pass
             try:
-                self.db.Insert('compound_abundance', [int(row['cid']), "glucose", float(row['Acetate'])])
+                self.db.Insert('compound_abundance', [cid, "glucose", float(row['Acetate'])])
             except ValueError:
                 pass
         self.db.Commit()
@@ -1008,8 +1070,8 @@ class GroupContribution(Thermodynamics):
         dG_f = {}
         dG_r = {}
         for (method, media, pH, I, T, c0, plot_key) in params_list:
-            dG0_f[plot_key] = pylab.zeros((Nc, 1))
-            dG_f[plot_key] = pylab.zeros((Nc, 1))
+            dG0_f[plot_key] = zeros((Nc, 1))
+            dG_f[plot_key] = zeros((Nc, 1))
             for c in range(Nc):
                 if (method == "MILO"):
                     dG0_f[plot_key][c] = self.cid_to_dG0(cids[c], pH=pH, I=I, T=T)
@@ -1018,33 +1080,33 @@ class GroupContribution(Thermodynamics):
                 else:
                     raise Exception("Unknown dG evaluation method: " + method)
                 # add the effect of the concentration on the dG_f (from dG0_f to dG_f)
-                dG_f[plot_key][c] = dG0_f[plot_key][c] + R * T * pylab.log(self.get_concentration(cids[c], c0, media))
-            dG0_r[plot_key] = pylab.dot(S, dG0_f[plot_key])
-            dG_r[plot_key] = pylab.dot(S, dG_f[plot_key])
+                dG_f[plot_key][c] = dG0_f[plot_key][c] + R * T * log(self.get_concentration(cids[c], c0, media))
+            dG0_r[plot_key] = dot(S, dG0_f[plot_key])
+            dG_r[plot_key] = dot(S, dG_f[plot_key])
         
         # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 10
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 2
-        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
-        pylab.rcParams['figure.dpi'] = 100
-        profile_fig = pylab.figure()
-        pylab.hold(True)
-        data = pylab.zeros((Nr + 1, len(legend)))
+        rcParams['text.usetex'] = False
+        rcParams['legend.fontsize'] = 10
+        rcParams['font.family'] = 'sans-serif'
+        rcParams['font.size'] = 12
+        rcParams['lines.linewidth'] = 2
+        rcParams['lines.markersize'] = 2
+        rcParams['figure.figsize'] = [8.0, 6.0]
+        rcParams['figure.dpi'] = 100
+        profile_fig = figure()
+        hold(True)
+        data = zeros((Nr + 1, len(legend)))
         for i in range(len(legend)):
             for r in range(1, Nr + 1):
                 data[r, i] = sum(dG_r[legend[i]][:r, 0])
-        pylab.plot(data)
-        pylab.legend(legend, loc="lower left")
+        plot(data)
+        legend(legend, loc="lower left")
 
         for i in range(len(rids)):
-            pylab.text(i + 0.5, pylab.mean(data[i:(i + 2), 0]), rids[i], fontsize=6, horizontalalignment='center', backgroundcolor='white')
+            text(i + 0.5, mean(data[i:(i + 2), 0]), rids[i], fontsize=6, horizontalalignment='center', backgroundcolor='white')
         
-        pylab.xlabel("Reaction no.")
-        pylab.ylabel("dG [kJ/mol]")
+        xlabel("Reaction no.")
+        ylabel("dG [kJ/mol]")
         self.HTML.embed_matplotlib_figure(profile_fig, width=800, heigh=600)
         self.HTML.write('</p>')
     
@@ -1079,7 +1141,7 @@ class GroupContribution(Thermodynamics):
         (Nr, Nc) = S.shape
 
         # calculate the dG_f of each compound, and then use S to calculate dG_r
-        dG0_f = pylab.zeros((Nc, 1))
+        dG0_f = zeros((Nc, 1))
         ind_nan = []
         self.HTML.write('<table border="1">\n')
         self.HTML.write('  <td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z"))
@@ -1093,20 +1155,20 @@ class GroupContribution(Thermodynamics):
             
             except MissingCompoundFormationEnergy:
                 # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
-                dG0_f[c] = pylab.nan
+                dG0_f[c] = nan
                 ind_nan.append(c)
                 self.HTML.write('<tr><td>%05d</td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td>\n' % (cid, name))
         self.HTML.write('</table>\n')
         bounds = [concentration_bounds.get(cid, (None, None)) for cid in cids]
-        pC = pylab.arange(0, 20, 0.1)
-        B_vec = pylab.zeros(len(pC))
+        pC = arange(0, 20, 0.1)
+        B_vec = zeros(len(pC))
         #label_vec = [""] * len(pC)
         #limiting_reactions = set()
         for i in xrange(len(pC)):
             c_range = pC_to_range(pC[i], c_mid=c_mid)
             unused_dG_f, unused_concentrations, B = find_mcmf(S, dG0_f, c_range, bounds=bounds)
             B_vec[i] = B
-            #curr_limiting_reactions = set(pylab.find(abs(dG_r - B) < 1e-9)).difference(limiting_reactions)
+            #curr_limiting_reactions = set(find(abs(dG_r - B) < 1e-9)).difference(limiting_reactions)
             #label_vec[i] = ", ".join(["%d" % rids[r] for r in curr_limiting_reactions]) # all RIDs of reactions that have dG_r = B
             #limiting_reactions |= curr_limiting_reactions
 
@@ -1122,39 +1184,39 @@ class GroupContribution(Thermodynamics):
             B_physiological = None
 
         # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 10
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 5
-        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
-        pylab.rcParams['figure.dpi'] = 100
+        rcParams['text.usetex'] = False
+        rcParams['legend.fontsize'] = 10
+        rcParams['font.family'] = 'sans-serif'
+        rcParams['font.size'] = 12
+        rcParams['lines.linewidth'] = 2
+        rcParams['lines.markersize'] = 5
+        rcParams['figure.figsize'] = [8.0, 6.0]
+        rcParams['figure.dpi'] = 100
         
-        slack_fig = pylab.figure()
-        pylab.plot(pC, B_vec, 'b')
+        slack_fig = figure()
+        plot(pC, B_vec, 'b')
         #for i in xrange(len(pC)):
-        #    pylab.text(pC[i], B_vec[i], label_vec[i], fontsize=6, horizontalalignment='left', backgroundcolor='white')
-        pylab.xlabel('pC')
-        pylab.ylabel('slack [kJ/mol]')
-        (ymin, _) = pylab.ylim()
-        (xmin, _) = pylab.xlim()
-#        pylab.broken_barh([(xmin, pCr), (pCr, xmax)], (ymin, 0), facecolors=('yellow', 'green'), alpha=0.3)
-        pylab.axhspan(ymin, 0, facecolor='b', alpha=0.15)
+        #    text(pC[i], B_vec[i], label_vec[i], fontsize=6, horizontalalignment='left', backgroundcolor='white')
+        xlabel('pC')
+        ylabel('slack [kJ/mol]')
+        (ymin, _) = ylim()
+        (xmin, _) = xlim()
+#        broken_barh([(xmin, pCr), (pCr, xmax)], (ymin, 0), facecolors=('yellow', 'green'), alpha=0.3)
+        axhspan(ymin, 0, facecolor='b', alpha=0.15)
         title = 'C_mid = %g' % c_mid
         if (pCr != None and pCr < pC.max()):
             title += ', pCr = %.1f' % pCr
-            pylab.plot([pCr, pCr], [ymin, 0], 'k--')
-            pylab.text(pCr, 0, 'pCr = %.1f' % pCr, fontsize=8)
+            plot([pCr, pCr], [ymin, 0], 'k--')
+            text(pCr, 0, 'pCr = %.1f' % pCr, fontsize=8)
             if (pCr < physiological_pC):
-                pylab.axvspan(pCr, physiological_pC, facecolor='g', alpha=0.3)
+                axvspan(pCr, physiological_pC, facecolor='g', alpha=0.3)
         if (B_physiological != None and physiological_pC < pC.max()):
             title += ', slack = %.1f [kJ/mol]' % B_physiological
-            pylab.plot([xmin, physiological_pC], [B_physiological, B_physiological], 'k--')
-            pylab.text(physiological_pC, B_physiological, 'B=%.1f' % B_physiological, fontsize=8)
+            plot([xmin, physiological_pC], [B_physiological, B_physiological], 'k--')
+            text(physiological_pC, B_physiological, 'B=%.1f' % B_physiological, fontsize=8)
         
-        pylab.title(title)
-        pylab.ylim(ymin=ymin)
+        title(title)
+        ylim(ymin=ymin)
         self.HTML.embed_matplotlib_figure(slack_fig, width=800, height=600)
 
         # write a table of the compounds and their dG0_f
@@ -1172,7 +1234,7 @@ class GroupContribution(Thermodynamics):
         for r in range(Nr):
             rid_str = '<a href="http://www.genome.jp/dbget-bin/www_bget?rn:R%05d">R%05d</a>' % (rids[r], rids[r])
             spr = {}
-            for c in pylab.find(S[r, :]):
+            for c in find(S[r, :]):
                 spr[cids[c]] = S[r, c]
             reaction_str = self.kegg().sparse_to_hypertext(spr)
             self.HTML.write('<tr><td>%s</td><td>%s</td><td>%g</td>\n' % (rid_str, reaction_str, fluxes[r]))
@@ -1225,13 +1287,13 @@ class GroupContribution(Thermodynamics):
             
         sparse_reaction = self.kegg().formula_to_sparse(formula)
         dG_r = self.estimate_dG_reaction(sparse_reaction, pH_list, I_list, T, c0, media, most_abundant)
-        contour_fig = pylab.figure()
+        contour_fig = figure()
         
-        pH_meshlist, I_meshlist = pylab.meshgrid(pH_list, I_list)
-        CS = pylab.contour(pH_meshlist.T, I_meshlist.T, dG_r)       
-        pylab.clabel(CS, inline=1, fontsize=10)
-        pylab.xlabel("pH")
-        pylab.ylabel("Ionic Strength")
+        pH_meshlist, I_meshlist = meshgrid(pH_list, I_list)
+        CS = contour(pH_meshlist.T, I_meshlist.T, dG_r)       
+        clabel(CS, inline=1, fontsize=10)
+        xlabel("pH")
+        ylabel("Ionic Strength")
         self.HTML.embed_matplotlib_figure(contour_fig, width=800, height=600)
         self.HTML.write('<br>\n' + self.kegg().sparse_to_hypertext(sparse_reaction) + '<br>\n')
         self.HTML.write('</p>')
@@ -1243,23 +1305,23 @@ class GroupContribution(Thermodynamics):
         cid = kegg.parse_string_field(field_map, "COMPOUND")
         cid = int(cid[1:])
         pmatrix = self.cid2pmatrix(cid)
-        data = pylab.zeros((len(self.cid), len(pH_list)))
+        data = zeros((len(self.cid), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
-            dG0_array = pylab.matrix([-Thermodynamics.transform(dG0, nH, z, pH, I, T) / (R * T) \
+            dG0_array = matrix([-Thermodynamics.transform(dG0, nH, z, pH, I, T) / (R * T) \
                                       for (nH, z, dG0) in self.cid])
             dG0_array = dG0_array - max(dG0_array)
-            p_array = pylab.exp(dG0_array)
+            p_array = exp(dG0_array)
             p_array = p_array / sum(p_array)
             data[:, j] = p_array    
         
-        protonation_fig = pylab.figure()
-        pylab.plot(pH_list, data.T)
-        prop = pylab.matplotlib.font_manager.FontProperties(size=10)
+        protonation_fig = figure()
+        plot(pH_list, data.T)
+        prop = font_manager.FontProperties(size=10)
         name = self.kegg().cid2name(cid)
-        pylab.legend(['%s [%d]' % (name, z) for (nH, z, dG0) in pmatrix], prop=prop)
-        pylab.xlabel("pH")
-        pylab.ylabel("Pseudoisomer proportion")
+        legend(['%s [%d]' % (name, z) for (nH, z, dG0) in pmatrix], prop=prop)
+        xlabel("pH")
+        ylabel("Pseudoisomer proportion")
         self.HTML.embed_matplotlib_figure(protonation_fig, width=800, height=600)
         self.HTML.write('<table border="1">\n')
         self.HTML.write('  <tr><td>%s</td><td>%s</td><td>%s</td></tr>\n' % ('dG0_f', '# hydrogen', 'charge'))
@@ -1314,7 +1376,7 @@ class GroupContribution(Thermodynamics):
 
     def add_vectors(self, stoichiometric_vector1, cid_vector1, stoichiometric_vector2, cid_vector2):
         cid_vector = list(set(cid_vector1 + cid_vector2))
-        stoichiometric_vector = pylab.zeros(len(cid_vector))
+        stoichiometric_vector = zeros(len(cid_vector))
         for i in range(len(cid_vector)):
             try:
                 i1 = cid_vector1.index(cid_vector[i])
@@ -1327,7 +1389,7 @@ class GroupContribution(Thermodynamics):
             except ValueError:
                 pass
         
-        nonzero_values = pylab.find(stoichiometric_vector != 0)
+        nonzero_values = find(stoichiometric_vector != 0)
         cid_vector = [cid_vector[i] for i in nonzero_values]
         stoichiometric_vector = stoichiometric_vector[nonzero_values]
         
@@ -1346,54 +1408,33 @@ class GroupContribution(Thermodynamics):
     
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
-    db = database.SqliteDatabase('gibbs.sqlite')
-    html_writer = HtmlWriter('../res/dG0_train.html')
+    db = database.SqliteDatabase('../res/gibbs.sqlite')
     if True:
+        html_writer = HtmlWriter('../res/dG0_train.html')
         G = GroupContribution(db, html_writer)
         G.load_groups("../data/thermodynamics/groups_species.csv")
-        G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
+        G.train('../data/thermodynamics/pKa_with_cids.csv', "../data/thermodynamics/dG0.csv", use_dG0_format=True)
         G.analyze_training_set()
         G.save_cid2pmap()
     else:
-        G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+        html_writer = HtmlWriter('../res/dG0_test.html')
+        G = GroupContribution(db, html_writer)
         G.init()
         
-        atp = pybel.readstring('smiles',
-                               'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
-        adp = pybel.readstring('smiles',
-                               'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)O)O)O')
-        cytidine = pybel.readstring('smiles', 'C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)O')
-        ctp = pybel.readstring('smiles', 'C1=CN(C(=O)N=C1N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
-        cdp = pybel.readstring('smiles', 'C1=CN(C(=O)N=C1N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)O)O)O')
+        mols = {}
+        #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
+        #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
+        mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
         
-        atpmap = G.estimate_pmap(atp, ignore_protonations=True)
-        adpmap = G.estimate_pmap(adp, ignore_protonations=True)
-        ctpmap = G.estimate_pmap(ctp, ignore_protonations=True)
-        cdpmap = G.estimate_pmap(cdp, ignore_protonations=True)
-        cytidinemap = G.estimate_pmap(cytidine, ignore_protonations=True)
-        print 'ATP', atpmap
-        print 'ADP', adpmap
-        print 'CTP', ctpmap
-        print 'CDP', cdpmap
-        print 'Cytidine', cytidinemap
-
-        pMg = 3
-        dgatp = atpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
-        dgadp = adpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
-        dgctp = ctpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
-        dgcdp = cdpmap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
-        dgcytidine = cytidinemap.Transform(pH=default_pH, pMg=pMg, I=default_I, T=default_T)
-        print 'ATP', dgatp
-        print 'ADP', dgadp
-        print 'CTP', dgctp
-        print 'CDP', dgcdp
-        print 'Cytidine', dgcytidine
-
-        dgwater = G.estimate_dG0_keggcid(1, pMg=pMg)
-        dgpi = G.estimate_dG0_keggcid(9, pMg=pMg)
-        print 'H2O', dgwater
-        print 'Pi', dgpi
+        #smarts = pybel.Smarts('[n;H1;D2;+0]')
         
-        print 'dGr(CTP)', - dgctp - dgwater + dgcdp + dgpi
-        print 'dGr(ATP)', - dgatp - dgwater + dgadp + dgpi
+        for key, mol in mols.iteritems():
+            mol.title = key
+            mol.draw()
+            print '-'*100
+            print key
+            #print smarts.findall(mol)
+            print G.analyze_decomposition(mol)
+            #pmap = G.estimate_pmap(mol, ignore_protonations=False)
+            #print pmap
 
