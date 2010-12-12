@@ -11,6 +11,7 @@ default_pH = 7.0
 default_c0 = 1 # M
 default_pMg = 3
 
+dG0_f_Mg = -455.3 # kJ/mol, formation energy of Mg2+
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -46,7 +47,7 @@ class Thermodynamics:
             The correction, in units of RT.
         """
         DH = Thermodynamics.debye_huckel(I) / (R*T)
-        return -nMg * (log(10)*pMg) - nH * (log(10)*pH + DH) + (z**2) * DH
+        return -nMg * (log(10)*pMg - dG0_f_Mg) - nH * (log(10)*pH + DH) + (z**2) * DH
 
     @staticmethod
     def transform(dG0, nH, z, pH, I, T):

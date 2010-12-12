@@ -1,14 +1,22 @@
 import csv, re, logging
 from kegg import Kegg
 from toolbox.database import SqliteDatabase
+from toolbox.util import ReadCsvWithTitles, _mkdir
 from pygibbs.group_decomposition import GroupDecomposer, GroupsData
+from toolbox.html_writer import HtmlWriter
+import pybel
+import sys
 
 class DissociationConstants:
-    def __init__(self, db):
-        self.kegg = Kegg()
-        self.groups_data = GroupsData.FromDatabase(db.comm)
+    def __init__(self, db, html_writer, kegg=None):
+        if kegg:
+            self.kegg = kegg
+        else:
+            self.kegg = Kegg()
+        self.groups_data = GroupsData.FromDatabase(db)
         self.group_decomposer = GroupDecomposer(self.groups_data)
         self.db = db
+        self.html_writer = html_writer
         self.cid2pKas = {}
     
     def ReadCSV(self, fname):
@@ -74,34 +82,37 @@ class DissociationConstants:
         self.WriteCSV('../res/pKa.csv', data)
         # Now, the user must go over the output file, fix the problems in it and save it to:
         # ../data/thermodynamics/pKa_with_cids.csv
-            
-    def LoadValues(self):
+    
+    def LoadValuesToDB(self, csv_filename='../data/thermodynamics/pKa_with_cids.csv'):
         """
             Load the data regarding pKa values according to KEGG compound IDs.
             First attempts to retrieve the data from the DB. If the table doesn't
             exist, it reads it from the CSV file (while caching it in the DB).
         """
         
-        if not self.db.DoesTableExist('pKa'):
-            csv_reader = csv.reader(open('../data/thermodynamics/pKa_with_cids.csv', 'r'))
-            csv_reader.next() # skip title row
-    
-            self.db.CreateTable('pKa', 'cid INT, step INT, T REAL, pKa REAL')
-            for cid,_,_,step,T,pKa in csv_reader:
-                if cid:
-                    self.db.Insert('pKa', [int(cid), int(step), str(T), float(pKa)])
-            
-            self.db.Commit()
-
-        for cid, step, T, pKa in self.db.Execute("SELECT * FROM pKa"):
-            self.cid2pKas.setdefault(cid, []).append(pKa)
+        self.db.CreateTable('pKa', 'cid INT, step INT, T REAL, pKa REAL, smiles_below TEXT, smiles_above TEXT')
+        for row in ReadCsvWithTitles(csv_filename):
+            if row['cid']:
+                if row['T']:
+                    T = float(row['T']) + 273.15
+                else:
+                    T = 298.15
+                self.db.Insert('pKa', [int(row['cid']), int(row['step']), T, 
+                                       float(row['pKa']), row['smiles_below'], row['smiles_above']])
+        
+        self.db.Commit()
             
     def AnalyseValues(self):
-        for cid, pKas in sorted(self.cid2pKas.iteritems()):
-            mol = self.kegg.cid2mol(cid)
-            decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=True)
-            active_groups = self.GetActiveGroups(decomposition)
-            print cid, self.kegg.cid2name(cid), pKas, active_groups
+        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa"):
+            logging.info("analyzing C%05d" % cid)
+            self.DrawProtonation(cid, step, pKa, smiles_below, smiles_above)
+            self.cid2pKas.setdefault(cid, []).append(pKa)
+
+        #for cid, pKas in sorted(self.cid2pKas.iteritems()):
+        #    mol = self.kegg.cid2mol(cid)
+        #    decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=True)
+        #    active_groups = self.GetActiveGroups(decomposition)
+        #    print cid, self.kegg.cid2name(cid), pKas, active_groups
 
     def GetActiveGroups(self, decomposition):
         group_name_to_index = {}
@@ -119,9 +130,38 @@ class DissociationConstants:
                 active_groups.append((name, group_name_to_count[name]))
         
         return active_groups
-        
+    
+    def DrawProtonation(self, cid, step, pKa, smiles_below, smiles_above):
+        self.html_writer.write('<h3>C%05d - %s</h3><br>\n' % (cid, self.kegg.cid2name(cid)))
+        self.html_writer.write('<p>')
+        if smiles_below and smiles_above:
+            self.smiles2HTML(smiles_below, "C%05d_%d_below" % (cid, step))
+            self.html_writer.write(" pKa = %.2f " % pKa)
+            self.smiles2HTML(smiles_above, "C%05d_%d_above" % (cid, step))
+        else:
+            self.html_writer.write('pKa = %.2f, \n' % pKa)
+            self.html_writer.write('No SMILES provided...')
+        self.html_writer.write('</p>')
+    
+    def smiles2HTML(self, smiles, id):
+        try:
+            mol = pybel.readstring('smiles', str(smiles))
+        except IOError:
+            self.html_writer.write('Error reading smiles: ' + smiles)
+            return
+        mol.removeh()
+        #self.html_writer.write(smiles)
+        self.html_writer.embed_molecule_as_png(mol, '../res/dissociation_constants/%s.png' % id, height=100, width=100)
 
 if (__name__ == '__main__'):
-    dc = DissociationConstants(SqliteDatabase("../res/gibbs.sqlite"))
-    dc.LoadValues()
-    dc.AnalyseValues()
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+    db = SqliteDatabase("../res/gibbs.sqlite")
+    html_writer = HtmlWriter("../res/dissociation_constants.html")
+    _mkdir('../res/dissociation_constants')
+    
+    dissociation = DissociationConstants(db, html_writer)
+    if False:
+        dissociation.MatchCIDs()
+    else:
+        dissociation.LoadValuesToDB()
+        dissociation.AnalyseValues()
