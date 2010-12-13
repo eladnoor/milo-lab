@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 import csv
-import logging
 import pybel
 import pylab
 import sys
+import logging
 
 from toolbox import util
 
@@ -189,10 +189,25 @@ class GroupsData(object):
         return GroupsData(list_of_groups)    
 
     @staticmethod
-    def FromDatabase(db):
-        """Factory that initializes a GroupData from a DB connection."""
+    def FromDatabase(db, filename=None):
+        """Factory that initializes a GroupData from a DB connection.
+        
+        Args:
+            db: a Database object.
+            filename: an optional filename to load data from when
+                it's not in the DB. Will write to DB if reading from file.
+        
+        Returns:
+            An initialized GroupsData object.
+        """
         logging.info('Reading the list of groups from the database.')
         
+        if not db.DoesTableExist('groups') and filename:
+            groups_data = GroupsData.FromGroupsFile(filename)
+            groups_data.ToDatabase(db)
+            return groups_data
+        
+        # Table should exist.
         list_of_groups = []
         for row in db.Execute('SELECT * FROM groups'):
             (gid, group_name, protons, charge, nMg, smarts, focal_atom_set, unused_remark) = row
