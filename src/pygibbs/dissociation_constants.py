@@ -2,18 +2,17 @@ import csv, re, logging
 from kegg import Kegg
 from toolbox.database import SqliteDatabase
 from toolbox.util import ReadCsvWithTitles, _mkdir
-from pygibbs.group_decomposition import GroupDecomposer, GroupsData
+from pygibbs.group_decomposition import GroupDecomposer
 from toolbox.html_writer import HtmlWriter
 import pybel
 import sys
 
 class DissociationConstants(object):
-    def __init__(self, db, html_writer, kegg=None, groups_filename=None):
-        self.kegg = kegg or Kegg()
-        self.groups_data = GroupsData.FromDatabase(db, filename=groups_filename)
-        self.group_decomposer = GroupDecomposer(self.groups_data)
+    def __init__(self, db, html_writer, kegg=None, group_decomposer=None):
         self.db = db
         self.html_writer = html_writer
+        self.kegg = kegg or Kegg()
+        self.group_decomposer = group_decomposer or GroupDecomposer.FromDatabase(db)
         self.cid2pKas = {}
     
     def ReadCSV(self, fname):

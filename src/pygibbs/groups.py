@@ -14,7 +14,9 @@ from copy import deepcopy
 from toolbox.util import matrixrank, _mkdir
 from pygibbs.thermodynamics import R, default_pH, default_pMg, default_I, default_T, default_c0, Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
-from pygibbs import group_decomposition, pseudoisomer
+from pygibbs import groups_data
+from pygibbs import group_decomposition
+from pygibbs import pseudoisomer
 from pygibbs import kegg
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException
@@ -188,14 +190,10 @@ class GroupContribution(Thermodynamics):
         self.db.Commit()
             
     def load_groups(self, group_fname=None):
-        if group_fname:
-            self.groups_data = group_decomposition.GroupsData.FromGroupsFile(group_fname)
-            self.groups_data.ToDatabase(self.db)
-        else:
-            self.groups_data = group_decomposition.GroupsData.FromDatabase(self.db)
-        
-        self.dissociation = DissociationConstants(self.db, self.HTML, self.kegg(), group_fname)
+        self.groups_data = groups_data.GroupsData.FromDatabase(self.db, filename=group_fname)
         self.group_decomposer = group_decomposition.GroupDecomposer(self.groups_data)
+        self.dissociation = DissociationConstants(self.db, self.HTML,
+                                                  self.kegg(), self.group_decomposer)
 
     def does_table_exist(self, table_name):
         for unused_ in self.db.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
@@ -1407,7 +1405,6 @@ class GroupContribution(Thermodynamics):
 #################################################################################################################
     
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     if True:
         html_writer = HtmlWriter('../res/dG0_train.html')

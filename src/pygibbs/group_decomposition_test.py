@@ -1,7 +1,9 @@
 import unittest
 import pybel
 
+from pygibbs import groups_data
 from pygibbs import group_decomposition
+
 
 PHOSPHATE = pybel.readstring('smiles', 'OP(O)(=O)O')
 ATP = pybel.readstring('smiles',
@@ -32,12 +34,12 @@ class GroupsDecompositionTest(unittest.TestCase):
                                                                      max_length=4)
         ps_dict = mk_ps_dict(ps)
         
-        self.assertEqual(1, len(ps_dict[group_decomposition.GroupsData.MIDDLE_P_2]))
-        self.assertEqual(1, len(ps_dict[group_decomposition.GroupsData.MIDDLE_2_PHOSPHATE]))
-        self.assertEqual(1, len(ps_dict[group_decomposition.GroupsData.FINAL_P_1]))
-        ps_dict.pop(group_decomposition.GroupsData.MIDDLE_P_2)
-        ps_dict.pop(group_decomposition.GroupsData.MIDDLE_2_PHOSPHATE)
-        ps_dict.pop(group_decomposition.GroupsData.FINAL_P_1)
+        self.assertEqual(1, len(ps_dict[groups_data.GroupsData.MIDDLE_P_2]))
+        self.assertEqual(1, len(ps_dict[groups_data.GroupsData.MIDDLE_2_PHOSPHATE]))
+        self.assertEqual(1, len(ps_dict[groups_data.GroupsData.FINAL_P_1]))
+        ps_dict.pop(groups_data.GroupsData.MIDDLE_P_2)
+        ps_dict.pop(groups_data.GroupsData.MIDDLE_2_PHOSPHATE)
+        ps_dict.pop(groups_data.GroupsData.FINAL_P_1)
         for l in ps_dict.itervalues():
             self.assertFalse(l)
         
@@ -46,10 +48,10 @@ class GroupsDecompositionTest(unittest.TestCase):
                                                                      ignore_protonations=True,
                                                                      max_length=4)
         ps_dict = mk_ps_dict(ps)
-        self.assertEqual(1, len(ps_dict[group_decomposition.GroupsData.MIDDLE_2_PHOSPHATE]))
-        self.assertEqual(1, len(ps_dict[group_decomposition.GroupsData.FINAL_P_1]))
-        ps_dict.pop(group_decomposition.GroupsData.MIDDLE_2_PHOSPHATE)
-        ps_dict.pop(group_decomposition.GroupsData.FINAL_P_1)
+        self.assertEqual(1, len(ps_dict[groups_data.GroupsData.MIDDLE_2_PHOSPHATE]))
+        self.assertEqual(1, len(ps_dict[groups_data.GroupsData.FINAL_P_1]))
+        ps_dict.pop(groups_data.GroupsData.MIDDLE_2_PHOSPHATE)
+        ps_dict.pop(groups_data.GroupsData.FINAL_P_1)
         for l in ps_dict.itervalues():
             self.assertFalse(l)    
     
