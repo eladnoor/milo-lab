@@ -159,6 +159,9 @@ class BaseHtmlWriter:
             Create a 2D depiction of the molecule and adds it as a PNG into the HTML
             OASA is used for 2D coordinate generation and depiction.
         """
+        dir_path = os.path.abspath(os.path.dirname(png_filename))
+        if not os.path.exists(dir_path):
+            util._mkdir(dir_path)
         
         oasa_mol = HtmlWriter.pybel_mol_to_oasa_mol(mol)
         canvas = HtmlWriter.oasa_mol_to_canvas(oasa_mol)
