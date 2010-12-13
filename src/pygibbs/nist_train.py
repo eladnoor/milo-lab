@@ -604,6 +604,5 @@ def main():
         html_writer.write("</table>\n")
         html_writer.close()
 
-if (__name__ == '__main__'):
-    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+if __name__ == '__main__':
     main()

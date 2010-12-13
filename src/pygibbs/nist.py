@@ -8,7 +8,7 @@ from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamics import default_pMg
 from numpy.core.numeric import arange
 
-class Nist:
+class Nist(object):
     def __init__(self, kegg=None, fname='../data/thermodynamics/nist.csv'):
         if (kegg == None):
             self.kegg = Kegg()
@@ -138,7 +138,8 @@ class Nist:
         """
             Produces a set of plots that show some statistics about the NIST database
         """
-
+        logging.info('Analyzing stats against NIST database.')
+        
         T_list = []
         I_list = []
         pH_list = []
@@ -198,9 +199,9 @@ class Nist:
         pylab.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
 
         html_writer.embed_matplotlib_figure(fig2)
+        logging.info('Done analyzing stats.')
         
-if (__name__ == "__main__"):
-    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+if __name__ == '__main__':
     util._mkdir("../res/nist")
     nist = Nist()
     html_writer = HtmlWriter("../res/nist/statistics.html")

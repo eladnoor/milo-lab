@@ -69,9 +69,7 @@ class GroupContribution(Thermodynamics):
         self.db = db
         self.hatzi = Hatzi()
         self.cid2pmap_dict = None
-        
-        self.dissociation = DissociationConstants(db, self.HTML, self.kegg())
-    
+            
     def __del__(self):
         self.HTML.close()
     
@@ -96,12 +94,12 @@ class GroupContribution(Thermodynamics):
 
     def save_cid2pmap(self):
         self.cid2pmap_dict = {}
-        logging.info("calculating the table of chemical formation energies for all KEGG compounds:")
+        logging.info('Calculating the table of chemical formation energies for all KEGG compounds.')
         self.db.CreateTable('gc_cid2prm', 'cid INT, nH INT, z INT, nMg INT, dG0 REAL, estimated BOOL')
         self.db.CreateTable('gc_cid2error', 'id INT, error TEXT')
 
         for cid in self.kegg().get_all_cids():
-            logging.info('C%05d' % cid)
+            logging.debug('Saving KEGG Compound C%05d' % cid)
             
             # If the compound is measured:
             if (cid in self.cid2pmap_obs):
@@ -133,6 +131,7 @@ class GroupContribution(Thermodynamics):
                 self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
         
         self.db.Commit()
+        logging.info('Done writing KEGG compounds.')
 
     def load_cid2pmap(self):
         self.cid2pmap_dict = {}
@@ -194,7 +193,8 @@ class GroupContribution(Thermodynamics):
             self.groups_data.ToDatabase(self.db)
         else:
             self.groups_data = group_decomposition.GroupsData.FromDatabase(self.db)
-            
+        
+        self.dissociation = DissociationConstants(self.db, self.HTML, self.kegg(), group_fname)
         self.group_decomposer = group_decomposition.GroupDecomposer(self.groups_data)
 
     def does_table_exist(self, table_name):
