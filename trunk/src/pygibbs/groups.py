@@ -17,6 +17,7 @@ from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr,
 from pygibbs import groups_data
 from pygibbs import group_decomposition
 from pygibbs import pseudoisomer
+from pygibbs import pseudoisomers_data
 from pygibbs import kegg
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException
@@ -91,7 +92,7 @@ class GroupContribution(Thermodynamics):
         self.db.CreateTable('gc_cid2error', 'id INT, error TEXT')
 
         for cid in self.kegg().get_all_cids():
-            logging.debug('Saving KEGG Compound C%05d' % cid)
+            logging.info('Saving KEGG Compound C%05d' % cid)
             
             # If the compound is measured:
             if (cid in self.cid2pmap_obs):
@@ -149,7 +150,7 @@ class GroupContribution(Thermodynamics):
         l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = self.read_training_data_pKa(pka_fname)
         #l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = [], [], []
 
-        if (use_dG0_format):
+        if use_dG0_format:
             l_groupvec_formation, l_deltaG_formation, l_names_formation = self.read_training_data_dG0(obs_fname)
         else:
             l_groupvec_formation, l_deltaG_formation, l_names_formation = self.read_training_data(obs_fname)
@@ -250,9 +251,10 @@ class GroupContribution(Thermodynamics):
         """
             Finds all the compounds which have a valid dG0 in the dG0.csv file,
             and generates a regression matrix using the KEGG groups for these compounds.
-            Return values is a tuple (X, y) where:
+            Return values is a tuple (X, dG_obs, names) where:
             X           - is the group regression matrix
             dG_obs      - is the observed dG0 vector.
+            names       - is the list of compound names.
         """
         l_groupvec = []
         l_deltaG = []
@@ -263,59 +265,53 @@ class GroupContribution(Thermodynamics):
         
         self.HTML.write('<h2><a name=compounds>List of compounds for training</a></h2>\n')
         self.HTML.write('Source File = %s<br>\n' % obs_fname)
+        
+        pdata = pseudoisomers_data.PseudoisomersData.FromFile(obs_fname)
+        
         counter = 0
-        for row in util.ReadCsvWithTitles(obs_fname):
-            #smiles, cid, compound_name, dG0, unused_dH0, charge, hydrogens, Mg, use_for, ref, unused_assumption 
-            name = "%s (z=%s, nH=%s, nMg=%s)" % (row['compound name'], row['charge'], row['hydrogens'], row['Mg'])
-            logging.info('reading data for ' + name)
-            self.HTML.write("<h3>%s, %s</h3>\n" % (name, row['ref']))
+        for ps_isomer in pdata:
+            name = str(ps_isomer)
+            logging.info('Verifying data for %s', name)
+            
+            self.HTML.write("<h3>%s, %s</h3>\n" % (ps_isomer.name, ps_isomer.ref))
 
-            if not row['dG0']:
+            if not ps_isomer.dG0:
                 self.HTML.write('No data for &#x394;G<sub>f</sub><br>\n')
                 continue
 
-            if (row['use for'] == "skip"):
+            if ps_isomer.Skip():
                 self.HTML.write('Compound marked as not to be used<br>\n')
                 continue
                 
-            try:
-                dG0 = float(row['dG0'])
-                self.HTML.write('&#x394;G<sub>f</sub> = %.2f<br>\n' % dG0)
-            except ValueError:
-                raise Exception("Invalid dG0: " + str(dG0))
+            self.HTML.write('&#x394;G<sub>f</sub> = %.2f<br>\n' % ps_isomer.dG0)
 
-            if row['cid']:
-                cid = int(row['cid'])
-                try:
-                    nH = int(row['hydrogens'])
-                    z = int(row['charge'])
-                    nMg = int(row['Mg'])
-                except ValueError:
-                    raise Exception("can't read the data about %s" % (row['compound name']))
-                self.cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
-                self.cid2pmap_obs[cid].Add(nH, z, nMg, dG0)
+            if ps_isomer.cid:
+                self.cid2pmap_obs.setdefault(ps_isomer.cid, pseudoisomer.PseudoisomerMap())
+                self.cid2pmap_obs[ps_isomer.cid].Add(ps_isomer.hydrogens, ps_isomer.net_charge,
+                                                     ps_isomer.magnesiums, ps_isomer.dG0)
 
-            if (row['use for'] == "test"):
-                self.cid_test_set.add(int(cid))
+            if ps_isomer.Test():
+                self.cid_test_set.add(ps_isomer.cid)
                 self.HTML.write('Compound marked to be used only for testing (not training)<br>\n')
                 continue
-            elif (row['use for'] == "train"):
+            
+            elif ps_isomer.Train():
                 self.HTML.write('Compound marked to be used for training<br>\n')
             else:
-                raise Exception("Unknown usage flag: " + row['use for'])
+                raise Exception("Unknown usage flag: %s" % ps_isomer.use_for)
 
-            if (row['smiles'] == ""):
-                raise Exception("Cannot use compound '%s' for training if it lacks a SMILES string" % row['compound name'])
+            if not ps_isomer.smiles:
+                raise Exception("Cannot use compound '%s' for training if it lacks a SMILES string" % ps_isomer.name)
             try:
-                self.HTML.write('SMILES = %s<br>\n' % row['smiles'])
-                mol = pybel.readstring('smiles', row['smiles'])
+                self.HTML.write('SMILES = %s<br>\n' % ps_isomer.smiles)
+                mol = ps_isomer.Mol()
                 mol.removeh()
             except TypeError:
-                raise Exception("Invalid smiles: " + row['smiles'])
+                raise Exception("Invalid smiles: " + ps_isomer.smiles)
 
             inchi = self.mol2inchi(mol)
             self.HTML.write('INCHI = %s<br>\n' % inchi)
-            self.inchi2val_obs[inchi] = dG0
+            self.inchi2val_obs[inchi] = ps_isomer.dG0
             mol.title = name
             
             img_fname = self.FIG_DIR + '/train_%05d.png' % counter
@@ -333,21 +329,20 @@ class GroupContribution(Thermodynamics):
             except group_decomposition.GroupDecompositionError as e:
                 logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
                 continue
-                #raise e
             
             groupvec = decomposition.AsVector()
             l_names.append(name)
             l_groupvec.append(groupvec)
-            l_deltaG.append(dG0)
+            l_deltaG.append(ps_isomer.dG0)
             self.HTML.write("Decomposition = %s<br>\n" % decomposition)
             
             gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
-            if int(row['hydrogens']) != gc_hydrogens:
+            if ps_isomer.hydrogens != gc_hydrogens:
                 self.HTML.write("ERROR: Hydrogen count doesn't match: explicit = %d, formula = %d<br>\n" %
-                                (int(row['hydrogens']), gc_hydrogens))
-            if int(row['charge']) != gc_charge:
+                                (ps_isomer.hydrogens, gc_hydrogens))
+            if ps_isomer.net_charge != gc_charge:
                 self.HTML.write("ERROR: Charge doesn't match: explicit = %d, formula = %d<br>\n" %
-                                (int(row['charge']), gc_charge))
+                                (ps_isomer.net_charge, gc_charge))
                 
         return (l_groupvec, l_deltaG, l_names)        
         
