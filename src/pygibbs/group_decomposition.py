@@ -20,7 +20,7 @@ class GroupDecomposition(object):
         self.mol = mol
         self.groups = groups
         self.unassigned_nodes = unassigned_nodes
-
+    
     def ToTableString(self):
         """Returns the decomposition as a tabular string."""
         spacer = '-' * 50 + '\n'
@@ -29,7 +29,7 @@ class GroupDecomposition(object):
                 
         for group, node_sets in self.groups:
             for n_set in node_sets:
-                s = '%30s | %2d | %2d | %2d | %s\n' % (group.name, group.protons,
+                s = '%30s | %2d | %2d | %2d | %s\n' % (group.name, group.hydrogens,
                                                        group.charge, group.nMg,
                                                        ','.join([str(i) for i in n_set]))
                 l.append(s)
@@ -49,11 +49,10 @@ class GroupDecomposition(object):
     def __str__(self):
         """Convert the groups to a string."""        
         group_strs = []
-        for group, node_sets in self.groups:
-            if node_sets:
-                group_strs.append('%s [H%d %d %d] x %d' % (group.name, group.protons,
-                                                           group.charge, group.nMg,
-                                                           len(node_sets)))
+        for group, node_sets in self.NonEmptyGroups():
+            group_strs.append('%s [H%d %d %d] x %d' % (group.name, group.hydrogens,
+                                                       group.charge, group.nMg,
+                                                       len(node_sets)))
         return " | ".join(group_strs)
     
     def AsVector(self):
@@ -68,12 +67,18 @@ class GroupDecomposition(object):
         group_vec.append(1) # The origin
         return group_vec
     
+    def NonEmptyGroups(self):
+        """Generator for non-empty groups."""
+        for group, node_sets in self.groups:
+            if node_sets:
+                yield group, node_sets
+    
     def NetCharge(self):
         """Returns the net charge."""
         return self.AsVector().NetCharge()
     
     def Hydrogens(self):
-        """Returns the number of protons."""
+        """Returns the number of hydrogens."""
         return self.AsVector().Hydrogens()
     
     def Magnesiums(self):
@@ -122,6 +127,13 @@ class GroupDecomposition(object):
             v += [1]  # add 1 for the 'origin' group
             groupvec_list.append(group_vector.GroupVector(self.groups_data, v))
         return groupvec_list
+
+    # Various properties
+    nonempty_groups = property(NonEmptyGroups)
+    hydrogens = property(Hydrogens)
+    net_charge = property(NetCharge)
+    magnesiums = property(Magnesiums)
+    group_count = property(CountGroups)
 
 
 class GroupDecomposer(object):
@@ -257,13 +269,13 @@ class GroupDecomposer(object):
                 chain_map[default].append(atoms)
             else:
                 # NOTE(flamholz): We rely on the default number of magnesiums being 0 (which it is).
-                protons = default.protons + charge - default.charge
-                group = groups_data.Group(default.id, group_name, protons,
+                hydrogens = default.hydrogens + charge - default.charge
+                group = groups_data.Group(default.id, group_name, hydrogens,
                                           charge, default.nMg)
                 if group not in chain_map:
-                    logging.warning('This protonation (%d) level is not allowed for terminal phosphate groups.' % protons)
+                    logging.warning('This protonation (%d) level is not allowed for terminal phosphate groups.' % hydrogens)
                     logging.warning('Using the default protonation level (%d) for this name ("%s").' %
-                                    (default.protons, default.name))
+                                    (default.hydrogens, default.name))
                     chain_map[default].append(atoms)
                 else:
                     chain_map[group].append(atoms)
@@ -408,10 +420,15 @@ def main():
         print name    
         decomposition = decomposer.Decompose(mol)
         print decomposition.ToTableString()
-        print decomposition.AsVector()
-        print 'Net charge', decomposition.NetCharge()
-        print 'Hydrogens', decomposition.Hydrogens()
+        print 'Group count', decomposition.group_count
+        print 'Net charge', decomposition.net_charge
+        print 'Hydrogens', decomposition.hydrogens
+        print 'Magnesiums', decomposition.magnesiums
         
+        print 'Group Vector:'
+        print decomposition.AsVector()
+        
+        print 'Pseudoisomer Vectors:'
         for v in decomposition.PseudoisomerVectors():
             print v
 

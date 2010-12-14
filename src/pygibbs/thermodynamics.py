@@ -62,15 +62,18 @@ class Thermodynamics:
         """
         return (-(R*T) * log_sum_exp(dG0 / (-R*T) +
                 Thermodynamics.correction_function(nH, nMg, z, pH, pMg, I, T)))
+    
+    def source(self):
+        return self.source_string
 
     def cid2pmap(self, cid):
-        raise Exception("method not implemented")
+        raise NotImplementedError
 
     def cid2pmatrix(self, cid):
         return self.cid2pmap(cid).ToMatrix()
 
     def get_all_cids(self):
-        raise Exception("method not implemented")
+        raise NotImplementedError
         
     def cid_to_dG0(self, cid, pH=None, pMg=None, I=None, T=None):
         pH = pH or self.pH

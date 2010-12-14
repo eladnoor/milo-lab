@@ -17,11 +17,11 @@ class MalformedGroupDefinitionError(GroupsDataError):
 class Group(object):
     """Representation of a single group."""
     
-    def __init__(self, id, name, protons, charge, nMg,
+    def __init__(self, id, name, hydrogens, charge, nMg,
                  smarts=None, focal_atoms=None):
         self.id = id
         self.name = name
-        self.protons = protons
+        self.hydrogens = hydrogens
         self.charge = charge
         self.nMg = nMg
         self.smarts = smarts
@@ -52,7 +52,7 @@ class Group(object):
         return set(nodes)
     
     def __str__(self):
-        return '%s [H%d Z%d Mg%d]' % (self.name, self.protons, self.charge, self.nMg)
+        return '%s [H%d Z%d Mg%d]' % (self.name, self.hydrogens, self.charge, self.nMg)
     
     def __eq__(self, other):
         """Enable == checking.
@@ -60,7 +60,7 @@ class Group(object):
         Only checks name, protons, charge, and nMg.
         """
         return (str(self.name) == str(other.name) and
-                self.protons == other.protons and
+                self.hydrogens == other.hydrogens and
                 self.charge == other.charge and
                 self.nMg == other.nMg)
     
@@ -69,13 +69,13 @@ class Group(object):
         
         Note that the hash depends on the same attributes that are checked for equality.
         """
-        return hash((self.name, self.protons, self.charge, self.nMg))
+        return hash((self.name, self.hydrogens, self.charge, self.nMg))
     
 
 class GroupsData(object):
     """Contains data about all groups."""
     
-    ORIGIN = Group('Origin', 'Origin', protons=0, charge=0, nMg=0)
+    ORIGIN = Group('Origin', 'Origin', hydrogens=0, charge=0, nMg=0)
     
     # Phosphate groups need special treatment, so they are defined in code...
     # TODO(flamholz): Define them in the groups file.
@@ -122,7 +122,7 @@ class GroupsData(object):
         self.groups = groups
         self.all_groups = self._GetAllGroups(self.groups)
         self.all_group_names = [str(g) for g in self.all_groups]
-        self.all_group_hydrogens = pylab.array([g.protons for g in self.all_groups])
+        self.all_group_hydrogens = pylab.array([g.hydrogens for g in self.all_groups])
         self.all_group_charges = pylab.array([g.charge for g in self.all_groups])
         self.all_group_mgs = pylab.array([g.nMg for g in self.all_groups])
     
