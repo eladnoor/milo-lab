@@ -1,13 +1,100 @@
 import pylab, re, logging, sys
 from kegg import KeggParseException, Kegg
 from thermodynamics import default_T
-from matplotlib.backends.backend_pdf import PdfPages
 from alberty import Alberty
 from toolbox import util
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamics import default_pMg
 from numpy.core.numeric import arange
+from pylab import log
+from thermodynamics import R
 
+class NistMissingCrucialDataException(Exception):
+    def __init__(self, value, cid=0):
+        self.value = value
+        self.cid = cid
+    def __str__(self):
+        return repr(self.value)    
+
+class NistRowData:
+    def __init__(self, row_dict, row_number):
+        self.row_number = row_number
+        self.reaction = row_dict['kegg_reaction']
+        if not self.reaction:
+            raise NistMissingCrucialDataException(
+                "cannot use this NIST reaction because it couldn't be mapped to KEGG IDs")
+
+        try:
+            self.sparse = NistRowData.ParseReactionFormula(self.reaction)
+        except KeggParseException as e:
+            raise NistMissingCrucialDataException("cannot use reaction \"%s\", because: %s" % (self.reaction, str(e)))
+
+        if not (row_dict['K'] and row_dict['pH'] and row_dict['I']): # missing Keq, pH or I makes the data unusable
+            raise NistMissingCrucialDataException(
+                "cannot use this NIST reaction because it is missing information about K, pH or I")
+        
+        self.K = float(row_dict['K'])
+        self.pH = float(row_dict['pH'])
+        self.I = float(row_dict['I'])
+        self.T = NistRowData.none_float(row_dict['T']) or default_T
+        self.pMg = NistRowData.none_float(row_dict['pMg']) or default_pMg
+        self.K_type = row_dict['Ktype']
+
+        self.dG0_r = -R*self.T*log(self.K)
+        
+        self.evaluation = row_dict['evaluation']
+        self.comment = row_dict['comment']
+
+        if self.comment not in [None,
+                                "",
+                                "cosolvent => none", 
+                                "cosolvent => none",
+                                "addded solute => none", 
+                                "solvent => none"]:
+            raise NistMissingCrucialDataException(
+                "cannot use this NIST reaction because of an unknown solvent: " + self.comment)
+            
+        if self.K_type not in ["K'", "Kc'", "Km'"]:
+            raise NistMissingCrucialDataException(
+                "cannot use this NIST reaction because of the Keq is not transformed: " + self.K_type)
+    
+    @staticmethod
+    def none_float(x):
+        try:
+            return float(x)
+        except ValueError:
+            return None
+    
+    @staticmethod
+    def ParseReactionFormula(formula):
+        """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
+            return the set of substrates, products and the direction of the reaction
+        """
+        try:
+            (left, right) = formula.split(' = ', 1)
+        except ValueError:
+            raise KeggParseException("There should be exactly one '=' sign")
+        sparse_reaction = {}
+        for (cid, amount) in Nist.ParseReactionFormulaSide(left).iteritems():
+            sparse_reaction[cid] = -amount
+        for (cid, amount) in Nist.ParseReactionFormulaSide(right).iteritems():
+            if (cid in sparse_reaction):
+                raise KeggParseException("C%05d appears on both sides of this formula" % cid)
+            sparse_reaction[cid] = amount
+        
+        return sparse_reaction
+    
+    def GetCIDs(self):
+        return self.sparse.keys()
+    
+    def PredictFormationEnergy(self, thermodynamics, cid):
+        return thermodynamics.cid2pmap(cid).Transform(self.pH, self.pMg, self.I, self.T)
+    
+    def PredictReactionEnergy(self, thermodynamics):
+        return sum([self.PredictFormationEnergy(thermodynamics, cid)*coeff 
+                    for cid, coeff in self.sparse.iteritems()])
+            
+    
 class Nist(object):
     def __init__(self, kegg=None, fname='../data/thermodynamics/nist.csv'):
         if (kegg == None):
@@ -17,8 +104,8 @@ class Nist(object):
         self.ParseNistCsv(fname)
         
         self.cid2count = {}
-        for row in self.data:
-            for cid in row['sparse'].keys():
+        for nist_row_data in self.data:
+            for cid in nist_row_data.sparse.keys():
                 self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
 
     def ParseNistCsv(self, filename):
@@ -26,39 +113,22 @@ class Nist(object):
             Reads the table of NIST reaction measurements and returns it as a table
         """
         ###
-        def none_float(x):
-            try:
-                return float(x)
-            except ValueError:
-                return None
-        ###
         # read the NIST data from the CSV file, complete the missing conditions with the default values
         # replace the textual reaction with a "sparse_reaction" vector representation of the formula
         # and calculate the delta-G0 (instead of the Keq)
         self.data = []
+        row_counter = 1
         for row_dict in util.ReadCsvWithTitles(filename):
-            if (row_dict['comment'] and row_dict['comment'] != "cosolvent => none" and row_dict['comment'] != "addded solute => none" and row_dict['comment'] != "solvent => none"):
-                continue
-
+            row_counter += 1
             try:
-                reaction = row_dict['kegg_reaction']
-                if not reaction: # this reaction couldn't be mapped to KEGG IDs
-                    continue
-                row_dict['sparse'] = Nist.ParseReactionFormula(reaction)
-                if not self.BalanceReaction(row_dict['sparse']):
-                    continue
-            except KeggParseException as e:
-                logging.warning("cannot use reaction \"%s\", because: %s" % (reaction, str(e)))
+                nist_row_data = NistRowData(row_dict, row_counter)
+            except NistMissingCrucialDataException as e:
+                logging.info("%s - line #%d - %s" % (filename, row_counter, str(e)))
                 continue
-    
-            if not (row_dict['K'] and row_dict['pH'] and row_dict['I']): # missing Keq, pH or I makes the data unusable
-                continue
-            row_dict['K'] = float(row_dict['K'])
-            row_dict['pH'] = float(row_dict['pH'])
-            row_dict['I'] = float(row_dict['I'])
-            row_dict['T'] = none_float(row_dict['T']) or default_T
-            row_dict['pMg'] = none_float(row_dict['pMg']) or default_pMg
-            self.data.append(row_dict)
+            if self.IsReactionBalanced(nist_row_data.sparse):
+                self.data.append(nist_row_data)
+            else:
+                logging.info("%s - line #%d - %s" % (filename, row_counter, "reaction is not balanced"))
         
     @staticmethod
     def ParseReactionFormulaSide(s):
@@ -84,26 +154,7 @@ class Nist(object):
         
         return compound_bag
       
-    @staticmethod
-    def ParseReactionFormula(formula):
-        """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
-            return the set of substrates, products and the direction of the reaction
-        """
-        try:
-            (left, right) = formula.split(' = ', 1)
-        except ValueError:
-            raise KeggParseException("There should be exactly one '=' sign")
-        sparse_reaction = {}
-        for (cid, amount) in Nist.ParseReactionFormulaSide(left).iteritems():
-            sparse_reaction[cid] = -amount
-        for (cid, amount) in Nist.ParseReactionFormulaSide(right).iteritems():
-            if (cid in sparse_reaction):
-                raise KeggParseException("C%05d appears on both sides of this formula" % cid)
-            sparse_reaction[cid] = amount
-        
-        return sparse_reaction
-    
-    def BalanceReaction(self, sparse_reaction):
+    def IsReactionBalanced(self, sparse_reaction):
         atom_bag = {}
         try:
             for (cid, coeff) in sparse_reaction.iteritems():
@@ -144,11 +195,11 @@ class Nist(object):
         I_list = []
         pH_list = []
         pMg_list = []
-        for row in self.data:
-            T_list.append(float(row['T']) - 273.15)
-            I_list.append(float(row['I']))
-            pH_list.append(float(row['pH']))
-            pMg_list.append(float(row['pMg']))
+        for nist_row_data in self.data:
+            T_list.append(nist_row_data.T - 273.15)
+            I_list.append(nist_row_data.I)
+            pH_list.append(nist_row_data.pH)
+            pMg_list.append(nist_row_data.pMg)
         
         fig1 = pylab.figure()
         pylab.rc('text', usetex=False)

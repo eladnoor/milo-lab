@@ -15,28 +15,25 @@ class DissociationConstants(object):
         self.group_decomposer = group_decomposer or GroupDecomposer.FromDatabase(db)
         self.cid2pKas = {}
     
-    def ReadCSV(self, fname):
+    def ReadOriginalCSV(self, filename):
         """
             Reads the raw data collected from the CRC handbook and tries to map every
             compound name there to a KEGG compound ID.
         """
-        csv_reader = csv.reader(open(fname, 'r'))
-        csv_reader.next() # skip title row
-        
         last_formula = None
         last_name = None
         data = []
-        for formula, name, step, T, pKa in csv_reader:
-            if (name or formula):
-                cid, kegg_name, distance = self.FindCID(formula, name)
-                last_formula = formula
-                last_name = name
-                step = 1
+        for row_dict in ReadCsvWithTitles(filename):
+            if row_dict['name'] and row_dict['formula']:
+                cid, kegg_name, distance = self.FindCID(row_dict['formula'], row_dict['name'])
+                last_formula = row_dict['formula']
+                last_name = row_dict['name']
+                row_dict['step'] = 1
             else:
-                name = last_name
-                formula = last_formula
+                row_dict['name'] = last_name
+                row_dict['formula'] = last_formula
 
-            data.append((cid, kegg_name, distance, name, formula, step, T, pKa))
+            data.append((cid, kegg_name, distance, row_dict['name'], row_dict['formula'], row_dict['step'], row_dict['T'], row_dict['pKa']))
         
         return data
     
@@ -74,7 +71,7 @@ class DissociationConstants(object):
             csv_writer.writerow((cid, kegg_name, distance, name, formula, step, T, pKa))
 
     def MatchCIDs(self):
-        data = self.ReadCSV('../data/thermodynamics/pKa.csv')
+        data = self.ReadOriginalCSV('../data/thermodynamics/pKa.csv')
         self.WriteCSV('../res/pKa.csv', data)
         # Now, the user must go over the output file, fix the problems in it and save it to:
         # ../data/thermodynamics/pKa_with_cids.csv
@@ -109,6 +106,12 @@ class DissociationConstants(object):
         #    decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=True)
         #    active_groups = self.GetActiveGroups(decomposition)
         #    print cid, self.kegg.cid2name(cid), pKas, active_groups
+
+    def GetAllpKas(self):
+        cid2pKa_list = {}
+        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa"):
+            cid2pKa_list.setdefault(cid, []).append(pKa)
+        return cid2pKa_list   
 
     def GetActiveGroups(self, decomposition):
         group_name_to_index = {}
