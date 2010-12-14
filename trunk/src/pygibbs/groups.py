@@ -165,7 +165,7 @@ class GroupContribution(Thermodynamics):
         for i, gc in enumerate(self.group_contributions):
             j = int(self.nonzero_groups[i])
             group = self.groups_data.all_groups[j]
-            self.db.Insert('contribution', [j, group.name, group.protons,
+            self.db.Insert('contribution', [j, group.name, group.hydrogens,
                                             group.charge, group.nMg, gc])
             
         self.db.CreateTable('observation', 'cid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_f REAL, use_for TEXT')
@@ -453,7 +453,7 @@ class GroupContribution(Thermodynamics):
         
         self.db.CreateTable('train_groups', 'name TEXT, nH INT, z INT, nMg INT')
         for group in self.groups_data.all_groups:
-            self.db.Insert('train_groups', [group.name, group.protons,
+            self.db.Insert('train_groups', [group.name, group.hydrogens,
                                             group.charge, group.nMg])
 
         self.db.CreateTable('train_molecules', 'name TEXT')
@@ -557,7 +557,7 @@ class GroupContribution(Thermodynamics):
             nonzero_group = self.groups_data.all_groups[group]
             compound_list_str = ' | '.join([self.mol_names[k] for k in find(group_matrix_reduced[:, i])])
             self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' %
-                            (i, nonzero_group.name, nonzero_group.protons,
+                            (i, nonzero_group.name, nonzero_group.hydrogens,
                              nonzero_group.charge, nonzero_group.nMg,
                              contribution, compound_list_str))
         self.HTML.write('</table>\n')

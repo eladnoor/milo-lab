@@ -4,7 +4,7 @@ from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from kegg import Kegg
 from pygibbs import pseudoisomer
 
-class Alberty (Thermodynamics):
+class Alberty(Thermodynamics):
     def read_alberty_mathematica(self, fname):
         """
             example line:
@@ -74,7 +74,7 @@ class Alberty (Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
     
-if (__name__ == '__main__'):
+if __name__ == '__main__':
     A = Alberty()
     A.write_data_to_csv('../res/alberty.csv')
     A.write_transformed_data_to_csv('../res/alberty_transformed.csv')

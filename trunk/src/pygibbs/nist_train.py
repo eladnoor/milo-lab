@@ -29,7 +29,7 @@ class GradientAscent(Thermodynamics):
         self.cache_cid = {}      # for each (rowid,cid) pair - holds the last calculated dG_f (multiplied by the stoichiometric coeff)
 
     def cid2pmap(self, cid):
-        if (cid in self.cid2pmap_dict):
+        if cid in self.cid2pmap_dict:
             return self.cid2pmap_dict[cid]
         else:
             raise MissingCompoundFormationEnergy("The compound C%05d does not have a value for its formation energy of any of its pseudoisomers" % cid, cid)
@@ -43,15 +43,15 @@ class GradientAscent(Thermodynamics):
             Returns a set containing the imported CIDs.
         """
         cids = set()
-        for row_dict in util.ReadCsvWithTitles(train_csv_fname):
-            if (format == 'long'):
-                if (row_dict.get('use_for', 'skip') in ['skip']):
-                    continue
-                cid = int(row_dict['cid'])
-                dG0 = float(row_dict['dG0'])
-                z = int(row_dict['charge'])
-                nH = int(row_dict['hydrogens'])
-                nMg = int(row_dict.get('Mgs', 0))
+        for row_dict in csv.DictReader(open(train_csv_fname)):
+            if row_dict.get('use_for', 'skip') == 'skip':
+                continue
+            
+            cid = int(row_dict['cid'])
+            dG0 = float(row_dict['dG0'])
+            z = int(row_dict['charge'])
+            nH = int(row_dict['hydrogens'])
+            nMg = int(row_dict.get('Mgs', 0))
             
             if cid:
                 self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
@@ -193,8 +193,16 @@ class GradientAscent(Thermodynamics):
         return " + ".join(left) + " = " + " + ".join(right)
     
     def verify_results(self, key, thermodynamics, html_writer):
-        """
-            recalculate all the dG0_r for the reaction from NIST and compare to the measured data
+        """Calculate all the dG0_r for the reaction from NIST and compare to
+           the measured data.
+        
+        Write results to HTML.
+        
+        Args:
+            key: The name of this group of results.
+            thermodynamics: a Thermodynamics object that provides dG estimates.
+            html_writer: to write HTML.
+            ignore_I: whether or not to ignore the ionic strength in NIST.
         """
         
         logging.info("calculate the correlation between %s's predictions and the NIST database" % key)
@@ -202,7 +210,10 @@ class GradientAscent(Thermodynamics):
         known_cid_set = thermodynamics.get_all_cids()
         dG0_obs_vec = []
         dG0_est_vec = []
-        evaluation_map = {} # a mapping from each evaluation method (NIST calls separates them to A, B, C and D) to the results of the relevant measurements
+       
+        # A mapping from each evaluation method (NIST calls separates them to
+        # A, B, C and D) to the results of the relevant measurements
+        evaluation_map = {}
         total_list = []
         
         cid2count = {}
@@ -212,14 +223,15 @@ class GradientAscent(Thermodynamics):
         
         for row_data in self.data:
             unknown_set = set(row_data.GetCIDs()).difference(known_cid_set)
-            if (len(unknown_set) > 0):
+
+            if unknown_set:
                 logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % row_data.row_number)
                 continue
             
             #label = row_data.evaluation
             label = row_data.K_type
             
-            if (label not in evaluation_map):
+            if label not in evaluation_map:
                 evaluation_map[label] = ([], [])
             
             try:

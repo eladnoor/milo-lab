@@ -34,13 +34,18 @@ class PseudoisomerMap(object):
         self.dgs.setdefault(key, []).append(dG0)
     
     def AddGroupVector(self, groupvector, dG0):
+        """Add a GroupVector with a dG0 value to the map."""
         key = self._MakeGroupVectorKey(groupvector)
         self.dgs.setdefault(key, []).append(dG0)
     
     def Empty(self):
+        """Return true if there are no entries in the map."""
         return len(self.dgs) == 0
     
     def Transform(self, pH, pMg, I, T, most_abundant=False):
+        """Transform this set of pseudoisomers to a dG value at
+           the specified conditions.
+        """
         v_dG0 = []
         v_nH  = []
         v_z   = []
