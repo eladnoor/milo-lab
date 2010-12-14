@@ -232,7 +232,11 @@ class HtmlWriter(BaseHtmlWriter):
         self.file.write(str)
         if (self.flush_always):
             self.file.flush()
-            
+    
+    def __del__(self):
+        if self.file:
+            self.close()
+        
     def close(self):
         BaseHtmlWriter.close(self)
         self.file.flush()

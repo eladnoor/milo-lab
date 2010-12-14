@@ -32,16 +32,6 @@ class GroupContributionError(Exception):
             return self.value
         else:
             return repr(self.value)
-
-
-class GroupDecompositionError(GroupContributionError):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        if (type(self.value) == types.StringType):
-            return self.value
-        else:
-            return repr(self.value)
     
 class GroupMissingTrainDataError(GroupContributionError):
     def __init__(self, value, missing_groups=[]):
@@ -121,7 +111,7 @@ class GroupContribution(Thermodynamics):
                 continue
             try:
                 pmap = self.estimate_pmap(mol, ignore_protonations=True)
-            except GroupDecompositionError:
+            except group_decomposition.GroupDecompositionError:
                 self.db.Insert('gc_cid2error', [cid, 'cannot decompose into groups'])
                 continue
             except GroupMissingTrainDataError:
@@ -190,7 +180,10 @@ class GroupContribution(Thermodynamics):
         self.db.Commit()
             
     def load_groups(self, group_fname=None):
-        self.groups_data = groups_data.GroupsData.FromDatabase(self.db, filename=group_fname)
+        if group_fname:
+            self.groups_data = groups_data.GroupsData.FromGroupsFile(group_fname)
+        else:
+            self.groups_data = groups_data.GroupsData.FromDatabase(self.db)
         self.group_decomposer = group_decomposition.GroupDecomposer(self.groups_data)
         self.dissociation = DissociationConstants(self.db, self.HTML,
                                                   self.kegg(), self.group_decomposer)
@@ -243,7 +236,7 @@ class GroupContribution(Thermodynamics):
         try:
             comp = self.kegg().cid2compound(cid)
             return self.get_pseudoisomers(comp.get_mol())
-        except GroupDecompositionError:
+        except group_decomposition.GroupDecompositionError:
             return [(self.kegg().cid2num_hydrogens(cid), self.kegg().cid2charge(cid), 0)]
         except kegg.KeggParseException:
             return [(0, 0, 0)]
@@ -335,7 +328,13 @@ class GroupContribution(Thermodynamics):
 
             self.HTML.write('<br>\n')
     
-            decomposition = self.group_decomposer.Decompose(mol, strict=True)
+            try:
+                decomposition = self.group_decomposer.Decompose(mol, strict=True)
+            except group_decomposition.GroupDecompositionError as e:
+                logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
+                continue
+                #raise e
+            
             groupvec = decomposition.AsVector()
             l_names.append(name)
             l_groupvec.append(groupvec)
@@ -385,7 +384,7 @@ class GroupContribution(Thermodynamics):
                 l_groupvec.append(groupvec)
                 l_deltaG.append(obs_val)
                 self.HTML.write('Decomposition = %s <br>\n' % self.get_decomposition_str(mol))
-            except GroupDecompositionError:
+            except group_decomposition.GroupDecompositionError:
                 self.HTML.write('Could not be decomposed<br>\n')
             except KeyError:
                 self.HTML.write('Compound has no INCHI in KEGG<br>\n')
@@ -400,9 +399,10 @@ class GroupContribution(Thermodynamics):
             self.HTML.embed_molecule_as_png(mol, '../res/dissociation_constants/%s.png' % id, height=100, width=100)
             try:
                 return self.group_decomposer.Decompose(mol, strict=True)
-            except GroupDecompositionError as e:
+            except group_decomposition.GroupDecompositionError as e:
                 logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
-                raise e
+                return None
+                #raise e
         
         l_groupvec = []
         l_deltaG = []
@@ -422,6 +422,8 @@ class GroupContribution(Thermodynamics):
                 self.HTML.write('SMILES = %s >> %s<br>\n' % (smiles_below, smiles_above))
                 decomposition_below = smiles2groupvec(smiles_below, "C%05d_%d_b" % (cid, step))
                 decomposition_above = smiles2groupvec(smiles_above, "C%05d_%d_a" % (cid, step))
+                if not decomposition_below or not decomposition_above:
+                    continue
                 groupvec = decomposition_above.AsVector() - decomposition_below.AsVector()
                 obs_name = self.kegg().cid2name(cid) + " [%d -> %d]" % \
                     (decomposition_below.NetCharge(), decomposition_above.NetCharge())
@@ -522,7 +524,7 @@ class GroupContribution(Thermodynamics):
     def estimate_val(self, mol):
         try:
             groupvec = self.get_groupvec(mol)
-        except GroupDecompositionError as e:
+        except group_decomposition.GroupDecompositionError as e:
             inchi = self.mol2inchi(mol)
             if (inchi in self.inchi2val_obs):
                 return self.inchi2val_obs[inchi]
@@ -643,10 +645,10 @@ class GroupContribution(Thermodynamics):
             all_groupvecs = self.group_decomposer.Decompose(
                 mol, ignore_protonations, strict=True).PseudoisomerVectors()
         except group_decomposition.GroupDecompositionError as e:
-            raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
+            raise group_decomposition.GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
 
         if not all_groupvecs:
-            raise GroupDecompositionError('Found no pseudoisomers for %s'
+            raise group_decomposition.GroupDecompositionError('Found no pseudoisomers for %s'
                                           % mol.title)
 
         all_missing_groups = []
@@ -815,8 +817,8 @@ class GroupContribution(Thermodynamics):
     def cid2groupvec(self, cid):
         try:
             return self.get_groupvec(self.kegg().cid2mol(cid))
-        except GroupDecompositionError:
-            raise GroupDecompositionError("Unable to decompose %s (C%05d) into groups" % (self.kegg().cid2name(cid), cid))
+        except group_decomposition.GroupDecompositionError:
+            raise group_decomposition.GroupDecompositionError("Unable to decompose %s (C%05d) into groups" % (self.kegg().cid2name(cid), cid))
             
     def rid2groupvec(self, rid):
         sparse_reaction = self.kegg().rid2sparse_reaction(rid) 
@@ -861,7 +863,7 @@ class GroupContribution(Thermodynamics):
                     for j in range(len(I)):
                         self.db.Insert('dG0_r', [rid, pH[i], pMg, I[j], T, dG0[i, j]])
                         self.HTML.write('Estimated (pH=%f, I=%f, T=%f) &#x394;G\'<sub>r</sub> = %.2f kJ/mol<br>\n' % (pH[i], I[j], T, dG0[i, j]))
-            except GroupDecompositionError as e:
+            except group_decomposition.GroupDecompositionError as e:
                 self.HTML.write('Warning, cannot decompose one of the compounds: ' + str(e) + '<br>\n')
             except GroupMissingTrainDataError as e:
                 self.HTML.write('Warning, cannot estimate: ' + str(e) + '<br>\n')
@@ -879,7 +881,7 @@ class GroupContribution(Thermodynamics):
             try:
                 groupvec = self.cid2groupvec(cid)
                 csv_file.writerow([cid] + groupvec)
-            except GroupDecompositionError as e:
+            except group_decomposition.GroupDecompositionError as e:
                 print str(e)
                 continue
             except kegg.KeggParseException as e:
@@ -901,7 +903,7 @@ class GroupContribution(Thermodynamics):
                     if (groupvec[i] != 0):
                         groupstr += "%s : %d, " % (group_names[i], groupvec[i])
                 groupstr_to_counter[groupstr] = groupstr_to_counter.get(groupstr, 0) + 1
-            except GroupDecompositionError as e:
+            except group_decomposition.GroupDecompositionError as e:
                 print "R%05d: Cannot decompose at least one of the compounds\n" % rid + str(e)
             except kegg.KeggParseException as e:
                 print str(e)
@@ -1417,20 +1419,22 @@ if __name__ == '__main__':
         html_writer = HtmlWriter('../res/dG0_test.html')
         G = GroupContribution(db, html_writer)
         G.init()
+        G.load_groups("../data/thermodynamics/groups_species.csv")
         
         mols = {}
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
-        mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
+        #mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
+        mols['Glutamate'] = pybel.readstring('smiles', 'C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O')
         
-        #smarts = pybel.Smarts('[n;H1;D2;+0]')
+        smarts = pybel.Smarts("[C;H1;X4][O;H0]P")
         
         for key, mol in mols.iteritems():
             mol.title = key
             mol.draw()
             print '-'*100
             print key
-            #print smarts.findall(mol)
+            print smarts.findall(mol)
             print G.analyze_decomposition(mol)
             #pmap = G.estimate_pmap(mol, ignore_protonations=False)
             #print pmap

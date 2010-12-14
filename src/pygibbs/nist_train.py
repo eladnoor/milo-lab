@@ -11,6 +11,7 @@ from pygibbs import reverse_thermo
 from pygibbs import pseudoisomer
 from toolbox import util, database
 import logging
+from copy import deepcopy
 
 class GradientAscent(Thermodynamics):
     def __init__(self, gc):
@@ -50,11 +51,11 @@ class GradientAscent(Thermodynamics):
                 dG0 = float(row_dict['dG0'])
                 z = int(row_dict['charge'])
                 nH = int(row_dict['hydrogens'])
-                mgs = int(row_dict.get('Mgs', 0))
+                nMg = int(row_dict.get('Mgs', 0))
             
             if cid:
                 self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
-                self.cid2pmap_dict[cid].Add(nH, z, mgs, dG0)
+                self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
                 cids.add(cid)
         return cids
 
@@ -64,43 +65,42 @@ class GradientAscent(Thermodynamics):
             with a no data (on dG0_f). In this case, the GradientAscent object is meant only to improve
             the dG0_f of the training data, but not to discover formation energies of new compounds.
         """
-        self.data = []
         self.cid2rowids = {}
         
         known_cids = set(thermodynamics.get_all_cids())
-        for row in nist.data:
-            Keq, T, I, pH, pMg = row['K'], row['T'], row['I'], row['pH'], row['pMg']
-            if T_range and not (T_range[0] < T < T_range[1]):
-                logging.warning('Temperature %f not within allowed range.', T)
+        
+        # filter out the rows in nist.data that cannot be evaluated for some reason
+        self.data = []
+        for nist_row_data in nist.data:
+            row_data = deepcopy(nist_row_data)
+            if T_range and not (T_range[0] < row_data.T < T_range[1]):
+                logging.warning('Temperature %f not within allowed range.', nist_row_data.T)
                 continue # the temperature is outside the allowed range
             
-            dG0_r = -R*T*log(Keq)
             if override_I:
-                I = override_I
+                row_data.I = override_I
                 
-            if row['evaluation'] == 'A':
-                evaluation = 'A'
-            else:
-                evaluation = 'B - D'
+            if row_data.evaluation != 'A':
+                row_data.evaluation = 'B - D'
                 
             #evaluation = row[2]
-            reaction_cids = set(row['sparse'].keys())
+            reaction_cids = set(row_data.GetCIDs())
             unknown_cids = reaction_cids.difference(known_cids)
             
-            if len(unknown_cids) > 0:
+            if unknown_cids:
                 if skip_missing_reactions:
                     continue # this reaction contains compounds that are not in the training set
                 else:
-                    for cid in unknown_cids: # @@@ there is a problem for CIDs that have no InChI, I currently put nH=0, z=0 for them
-                        for (nH, z, mgs) in self.gc.cid2pseudoisomers(cid):
+                    # @@@ there is a problem for CIDs that have no InChI, I currently put nH=0, nMg=0 and z=0 for them
+                    for cid in unknown_cids:
+                        for (nH, z, nMg) in self.gc.cid2pseudoisomers(cid):
                             self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
-                            self.cid2pmap_dict[cid].Add(nH, z, mgs, 0.0)
+                            self.cid2pmap_dict[cid].Add(nH, z, nMg, 0.0)
                         known_cids.add(cid)
             
-            self.data.append((row['sparse'], pH, pMg, I, T, evaluation, dG0_r))
-            rowid = len(self.data) - 1
+            self.data.append(row_data)
             for cid in reaction_cids:
-                self.cid2rowids.setdefault(cid, []).append(rowid)
+                self.cid2rowids.setdefault(cid, []).append(len(self.data) - 1)
 
         if (self.data == []):
             raise Exception("None of the measurements from NIST can be used!")
@@ -128,13 +128,13 @@ class GradientAscent(Thermodynamics):
         y = zeros((N, 1))
         X = zeros((N, len(cid_list)))
         for r in range(N):
-            (sparse_reaction, pH, pMg, I, T, unused_evaluation, dG0_r_transformed) = self.data[self.train_rowids[r]]
-            dG0_r = dG0_r_transformed
-            for (cid, coeff) in sparse_reaction.iteritems():
+            row_data = self.data[self.train_rowids[r]]
+            dG0_r = row_data.dG0_r
+            for (cid, coeff) in row_data.sparse.iteritems():
                 c = cid_list.index(cid)
                 X[r, c] = coeff
                 (nH, z) = cid2species[cid]
-                dG0_r -= coeff * (nH*R*T*log(10)*pH - 2.91482*(z**2 - nH)*sqrt(I) / (1 + 1.6*sqrt(I)))
+                dG0_r -= coeff * (nH*R*row_data.T*log(10)*row_data.pH - 2.91482*(z**2 - nH)*sqrt(row_data.I) / (1 + 1.6*sqrt(row_data.I)))
             y[r, 0] = dG0_r
 
         inv_corr_mat = pinv(dot(X.T, X))
@@ -161,17 +161,16 @@ class GradientAscent(Thermodynamics):
         else:
             rowid_list = rowid_list.intersection(self.cid2rowids[cid_to_cache])
 
-        for rowid in rowid_list:
-            (sparse_reaction, pH, pMg, I, T, unused_evaluation, dG0_r) = self.data[rowid]
+        for rowid, row_data in enumerate(self.data):
             if (cid_to_cache == None):
-                cid_list = sparse_reaction.keys()
+                cid_list = row_data.sparse.keys()
             else:
                 cid_list = [cid_to_cache]
                 
             for cid in cid_list: 
-                self.cache_cid[(rowid,cid)] = thermodynamics.cid2pmap(cid).Transform(pH, pMg, I, T) * sparse_reaction[cid]
-            dG0_pred = sum([self.cache_cid[(rowid,cid)] for cid in sparse_reaction.keys()])
-            self.cache_error[rowid] = (dG0_pred - dG0_r)**2
+                self.cache_cid[(rowid, cid)] = row_data.PredictFormationEnergy(thermodynamics, cid) * row_data.sparse[cid]
+            dG0_pred = sum([self.cache_cid[(rowid,cid)] for cid in row_data.GetCIDs()])
+            self.cache_error[rowid] = (dG0_pred - row_data.dG0_r)**2
 
     @staticmethod
     def sparse_reaction_to_string(sparse_reaction, kegg, cids=False):
@@ -193,7 +192,7 @@ class GradientAscent(Thermodynamics):
         
         return " + ".join(left) + " = " + " + ".join(right)
     
-    def verify_results(self, key, thermodynamics, html_writer, ignore_I=False):
+    def verify_results(self, key, thermodynamics, html_writer):
         """
             recalculate all the dG0_r for the reaction from NIST and compare to the measured data
         """
@@ -207,34 +206,39 @@ class GradientAscent(Thermodynamics):
         total_list = []
         
         cid2count = {}
-        for rowid in self.train_rowids:
-            (sparse_reaction, pH, pMg, I, T, evaluation, dG0_r) = self.data[rowid]
-            for cid in sparse_reaction.keys():
+        for row_data in self.data:
+            for cid in row_data.GetCIDs():
                 cid2count[cid] = cid2count.setdefault(cid, 0) + 1
         
-        for rowid in self.test_rowids:
-            (sparse_reaction, pH, pMg, I, T, evaluation, dG0_r) = self.data[rowid]
-            if (ignore_I):
-                I = default_I
-            unknown_set = set(sparse_reaction.keys()).difference(known_cid_set)
+        for row_data in self.data:
+            unknown_set = set(row_data.GetCIDs()).difference(known_cid_set)
             if (len(unknown_set) > 0):
-                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % rowid)
+                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % row_data.row_number)
                 continue
-            if (evaluation not in evaluation_map):
-                evaluation_map[evaluation] = ([], [])
+            
+            #label = row_data.evaluation
+            label = row_data.K_type
+            
+            if (label not in evaluation_map):
+                evaluation_map[label] = ([], [])
             
             try:
-                dG0_pred = thermodynamics.reaction_to_dG0(sparse_reaction, pH, pMg, I, T)
+                dG0_pred = row_data.PredictReactionEnergy(thermodynamics)
             except MissingCompoundFormationEnergy:
-                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % rowid)
+                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % row_data.row_number)
                 continue
                 
-            dG0_obs_vec.append(dG0_r)
+            dG0_obs_vec.append(row_data.dG0_r)
             dG0_est_vec.append(dG0_pred)
-            evaluation_map[evaluation][0].append(dG0_r)
-            evaluation_map[evaluation][1].append(dG0_pred)
-            n_measurements = min([cid2count[cid] for cid in sparse_reaction.keys()])
-            total_list.append([abs(dG0_r - dG0_pred), dG0_r, dG0_pred, sparse_reaction, pH, pMg, I, T, evaluation, n_measurements])
+            evaluation_map[label][0].append(row_data.dG0_r)
+            evaluation_map[label][1].append(dG0_pred)
+            n_measurements = min([cid2count[cid] for cid in row_data.GetCIDs()])
+            error = abs(row_data.dG0_r - dG0_pred)
+
+            total_list.append([error, row_data.dG0_r, dG0_pred, 
+                               row_data.sparse, row_data.pH, row_data.pMg, 
+                               row_data.I, row_data.T, row_data.evaluation, 
+                               n_measurements])
         
         # plot the profile graph
         rcParams['text.usetex'] = False
@@ -249,7 +253,7 @@ class GradientAscent(Thermodynamics):
         fig1 = figure()
         hold(True)
         
-        colors = ['purple', 'orange', 'green', 'red', 'cyan']
+        colors = ['purple', 'orange', 'lightgreen', 'red', 'cyan']
         for e in sorted(evaluation_map.keys()):
             (measured, predicted) = evaluation_map[e]
             label = '%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), util.calc_rmse(measured, predicted))
