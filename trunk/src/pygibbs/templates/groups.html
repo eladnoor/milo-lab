@@ -1,0 +1,39 @@
+<html>
+	<head>
+		<title>Per Compound Groups</title>
+	</head>
+	<body>
+	{% for compound in compounds %}
+		<div class="compound">
+			<div class="name">{{compound.name}}</div>
+			<div class="property">Number of Groups: {{compound.decomposition.group_count}}</div>
+			<div class="property">Net Charge: {{compound.decomposition.net_charge}}</div>
+			<div class="property">Protons: {{compound.decomposition.hydrogens}}</div>
+			<div class="property">Magnesiums: {{compound.decomposition.magnesiums}}</div>
+		
+			<table class="decomposition">
+				<tr>
+					<th>Group Name</th>
+					<th>Net Charge</th>
+					<th>Hydrogens</th>
+					<th>Magnesiums</th>
+					<th>Atoms</th>
+				</tr>
+				{% for group, node_sets in compound.decomposition.nonempty_groups %}
+					{% for node_set in node_sets %}
+					<tr>
+						<td>{{group.name}}</td>
+						<td>{{group.charge}}</td>
+						<td>{{group.hydrogens}}</td>
+						<td>{{group.nMg}}</td>
+						<td>{{node_set|join:", "}}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+			</table>
+		</div>
+		
+		
+	{% endfor %}
+	</body>
+</html>
