@@ -1,5 +1,6 @@
 from pylab import arange
-from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy, J_per_cal
+from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
+from thermodynamic_constants import J_per_cal
 import pseudoisomer
 from toolbox.util import ReadCsvWithTitles
 

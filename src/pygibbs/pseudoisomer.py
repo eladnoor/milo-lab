@@ -2,7 +2,8 @@
 
 import pylab
 import types
-import thermodynamics
+from thermodynamic_constants import R, default_T, correction_function, array_transform
+from toolbox.util import log_sum_exp
 
 class PseudoisomerMap(object):
     """A map from pseudoisomers to dG values."""
@@ -17,16 +18,16 @@ class PseudoisomerMap(object):
                 groupvector.Magnesiums())
     
     @staticmethod
-    def _MakeKey(nH, z, mgs):
-        return (nH, z, mgs)
+    def _MakeKey(nH, z, nMg):
+        return (nH, z, nMg)
     
     def AddAll(self, pmap_dict):
         for key, value in pmap_dict.iteritems():
             self.AddKey(key, value)
     
-    def Add(self, nH, z, mgs, dG0):
+    def Add(self, nH, z, nMg, dG0):
         """For when you don't have a group vector."""
-        key = self._MakeKey(nH, z, mgs)
+        key = self._MakeKey(nH, z, nMg)
         self.dgs.setdefault(key, []).append(dG0)
     
     def AddKey(self, key, dG0):
@@ -52,12 +53,12 @@ class PseudoisomerMap(object):
         v_mg  = []
         
         for key, dG0_list in self.dgs.iteritems():
-            nH, z, mgs = key
+            nH, z, nMg = key
             for dG0 in dG0_list:
                 v_dG0.append(dG0)
                 v_nH.append(nH)
                 v_z.append(z)
-                v_mg.append(mgs)
+                v_mg.append(nMg)
 
         v_dG0 = pylab.array(v_dG0)
         v_nH  = pylab.array(v_nH)
@@ -65,12 +66,10 @@ class PseudoisomerMap(object):
         v_mg  = pylab.array(v_mg)
 
         if most_abundant:
-            return min(v_dG0 / (-thermodynamics.R*T) +
-                       thermodynamics.Thermodynamics.correction_function(v_nH, v_mg, v_z,
-                                                                         pH, pMg, I, T))
+            return min(v_dG0 / (-R*T) +
+                       correction_function(v_nH, v_mg, v_z, pH, pMg, I, T))
         else:
-            return thermodynamics.Thermodynamics.array_transform(v_dG0, v_nH, v_mg, v_z,
-                                                                 pH, pMg, I, T)
+            return array_transform(v_dG0, v_nH, v_mg, v_z, pH, pMg, I, T)
     
     def TransformMatrix(self, pH, pMg, I, T):
         """Potentially return multiple results..."""
@@ -91,13 +90,30 @@ class PseudoisomerMap(object):
 
     def ToMatrix(self):
         res = []
-        for ((nH, z, mgs), dG0_list) in self.dgs.iteritems():
+        for ((nH, z, nMg), dG0_list) in self.dgs.iteritems():
             for dG0 in dG0_list:
-                res.append((nH, z, mgs, dG0))
+                res.append((nH, z, nMg, dG0))
         return sorted(res)
     
     def __str__(self):
         s = ""
-        for ((nH, z, mgs), dG0_list) in self.dgs.iteritems():
-            s += "%2d %2d %2d %s\n" % (nH, z, mgs, str(dG0_list))
+        for ((nH, z, nMg), dG0_list) in self.dgs.iteritems():
+            s += "%2d %2d %2d %s\n" % (nH, z, nMg, str(dG0_list))
         return s
+    
+    def GetdG0(self, nH, z, nMg, T=default_T):
+        if (nH, z, nMg) not in self.dgs:
+            return None
+        
+        dG0_list = self.dgs[nH, z, nMg]
+        return -(R*T) * log_sum_exp([x/(-R*T) for x in dG0_list])
+    
+    def GetpKa(self, nH, z, nMg, T=default_T):
+        dG0_below = self.GetdG0(nH, z, nMg, T)
+        dG0_above = self.GetdG0(nH+1, z+1, nMg, T)
+        if not dG0_below or not dG0_above:
+            return None
+        else:
+            return (dG0_below - dG0_above) / (R*T*pylab.log(10))
+        
+        
