@@ -19,13 +19,14 @@ from pygibbs import groups_data, thermodynamic_constants
 from pygibbs import group_decomposition
 from pygibbs import pseudoisomer
 from pygibbs import pseudoisomers_data
-from pygibbs import kegg
 from pygibbs.hatzimanikatis import Hatzi
-from pygibbs.kegg import KeggParseException
+from pygibbs.kegg import KeggParseException, Kegg, parse_bool_field,\
+    parse_float_field, parse_vfloat_field, parse_string_field, parse_kegg_file
 from toolbox import database, util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.groups_data import Group
+import os
 
 class GroupContributionError(Exception):
     def __init__(self, value):
@@ -47,22 +48,27 @@ class GroupMissingTrainDataError(GroupContributionError):
             return repr(self.value)
 
 class GroupContribution(Thermodynamics):    
-    def __init__(self, db, html_writer=None, log_file=sys.stderr):
+    def __init__(self, db, html_writer=None, kegg=None, log_file=sys.stderr):
         Thermodynamics.__init__(self)
-        self.source_string = "Group Contribution"
-        self._kegg = None
+        self.db = db
+
         if html_writer:
-            self.FIG_DIR = html_writer.filename.rsplit('.', 1)[0]
+            self.FIG_DIR = os.path.basename(html_writer.filename).rsplit('.', 1)[0]
             _mkdir(self.FIG_DIR)
             self.HTML = html_writer
         else:
-            self.FIG_DIR = '../res'
-            _mkdir(self.FIG_DIR)
+            self.FIG_DIR = ''
             self.HTML = NullHtmlWriter()
+
+        if kegg:
+            self._kegg = kegg
+        else:
+            self._kegg = Kegg()
+        self.bounds = deepcopy(self._kegg.cid2bounds)
+        self.hatzi = Hatzi()
+        self.hatzi.bounds = self.bounds
             
         self.override_gc_with_measurements = True
-        self.db = db
-        self.hatzi = Hatzi()
         self.cid2pmap_dict = None
             
     def __del__(self):
@@ -242,7 +248,7 @@ class GroupContribution(Thermodynamics):
             return self.get_pseudoisomers(comp.get_mol())
         except group_decomposition.GroupDecompositionError:
             return [(self.kegg().cid2num_hydrogens(cid), self.kegg().cid2charge(cid), 0)]
-        except kegg.KeggParseException:
+        except KeggParseException:
             return [(0, 0, 0)]
     
     def mol2inchi(self, mol):
@@ -393,22 +399,24 @@ class GroupContribution(Thermodynamics):
         
         def smiles2groupvec(smiles, id):
             mol = pybel.readstring('smiles', str(smiles))
+            mol.removeh()
             mol.title = id
-            self.HTML.embed_molecule_as_png(mol, '../res/dissociation_constants/%s.png' % id, height=100, width=100)
+            self.HTML.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id)
             try:
-                return self.group_decomposer.Decompose(mol, strict=True)
-            except group_decomposition.GroupDecompositionError as e:
-                logging.error('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
-                raise e
+                return self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
+            except group_decomposition.GroupDecompositionError as _e:
+                logging.warning('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
+                self.HTML.write('%s Could not be decomposed<br>\n' % smiles)
+                #raise e
         
         l_groupvec = []
         l_deltaG = []
-        l_names = [] # is the list of Molecules
+        l_names = [] # is the list of Molecules' names
 
         self.dissociation.LoadValuesToDB(pka_fname)
         self.HTML.write('<h2><a name=compounds>List of pKa for training</a></h2>\n')
         self.HTML.write('Source File = %s<br>\n' % pka_fname)
-        for cid, step, T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa"):
+        for cid, step, T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa WHERE cid IS NOT NULL AND step IS NOT NULL"):
             logging.info("Reading pKa data for C%05d, %s, step %d" % (cid, self.kegg().cid2name(cid), step))
             self.HTML.write('<h3>C%05d - %s - step %d</h3>\n' % (cid, self.kegg().cid2name(cid), step))
             T = T or default_T
@@ -530,7 +538,7 @@ class GroupContribution(Thermodynamics):
         
         return self.groupvec2val(groupvec)
 
-    def write_regression_report(self, include_raw_data=False):
+    def write_regression_report(self, include_raw_data=False, T=default_T, pH=default_pH):
         if include_raw_data:
             self.db.Table2HTML(self.HTML, 'train_group_matrix')
             self.db.Table2HTML(self.HTML, 'train_observations')
@@ -548,15 +556,16 @@ class GroupContribution(Thermodynamics):
         
         self.HTML.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
         self.HTML.write('<table border="1">')
-        self.HTML.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>charge</td><td>nMg</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
+        self.HTML.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>charge</td><td>nMg</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>&#x394;<sub>gr</sub>G\' [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
         for i, group in enumerate(self.nonzero_groups):
-            contribution = self.group_contributions[i]
             nonzero_group = self.groups_data.all_groups[group]
+            dG0_gr = self.group_contributions[i]
+            dG0_gr_tag = dG0_gr + R*T*log(10)*pH*nonzero_group.hydrogens
             compound_list_str = ' | '.join([self.mol_names[k] for k in find(group_matrix_reduced[:, i])])
-            self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%s</td></tr>\n' %
+            self.HTML.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%8.2f</td><td>%s</td></tr>\n' %
                             (i, nonzero_group.name, nonzero_group.hydrogens,
                              nonzero_group.charge, nonzero_group.nMg,
-                             contribution, compound_list_str))
+                             dG0_gr, dG0_gr_tag, compound_list_str))
         self.HTML.write('</table>\n')
 
         self.HTML.write("<p>\nGroups that had no examples in the training set:<br>\n")
@@ -628,10 +637,6 @@ class GroupContribution(Thermodynamics):
         self.HTML.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
 
     def kegg(self):
-        if (self._kegg == None):
-            self._kegg = kegg.Kegg()
-        self.bounds = deepcopy(self._kegg.cid2bounds)
-        self.hatzi.bounds = self.bounds
         return self._kegg        
 
     def get_all_cids(self):
@@ -864,7 +869,7 @@ class GroupContribution(Thermodynamics):
                 self.HTML.write('Warning, cannot decompose one of the compounds: ' + str(e) + '<br>\n')
             except GroupMissingTrainDataError as e:
                 self.HTML.write('Warning, cannot estimate: ' + str(e) + '<br>\n')
-            except kegg.KeggParseException as e:
+            except KeggParseException as e:
                 self.HTML.write('Warning, cannot parse INCHI: ' + str(e) + '<br>\n')
             except KeyError as e:
                 self.HTML.write('Warning, cannot locate this reaction in KEGG: ' + str(e) + '<br>\n')
@@ -881,7 +886,7 @@ class GroupContribution(Thermodynamics):
             except group_decomposition.GroupDecompositionError as e:
                 print str(e)
                 continue
-            except kegg.KeggParseException as e:
+            except KeggParseException as e:
                 print str(e)
                 continue
             
@@ -902,7 +907,7 @@ class GroupContribution(Thermodynamics):
                 groupstr_to_counter[groupstr] = groupstr_to_counter.get(groupstr, 0) + 1
             except group_decomposition.GroupDecompositionError as e:
                 print "R%05d: Cannot decompose at least one of the compounds\n" % rid + str(e)
-            except kegg.KeggParseException as e:
+            except KeggParseException as e:
                 print str(e)
             except KeyError as e:
                 print "R%05d: Cannot locate the reaction or one of the compounds in kegg\n" % rid + str(e)
@@ -1038,9 +1043,9 @@ class GroupContribution(Thermodynamics):
         
         # read the list of methods for calculating the dG
         methods = []
-        if (kegg.parse_bool_field(field_map, 'MILO', True)):
+        if (parse_bool_field(field_map, 'MILO', True)):
             methods.append('MILO')
-        if (kegg.parse_bool_field(field_map, 'HATZI', False)):
+        if (parse_bool_field(field_map, 'HATZI', False)):
             methods.append('HATZI')
         
         # prepare the legend for the profile graph
@@ -1112,7 +1117,7 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('<ul>\n')
         self.HTML.write('<li>Conditions:</br><ol>\n')
         # c_mid the middle value of the margin: min(conc) < c_mid < max(conc) 
-        c_mid = kegg.parse_float_field(field_map, 'C_MID', 1e-3)
+        c_mid = parse_float_field(field_map, 'C_MID', 1e-3)
         (pH, I, T) = (default_pH, default_I, default_T)
         concentration_bounds = deepcopy(self.kegg().cid2bounds)
         if ("CONDITIONS" in field_map):
@@ -1134,7 +1139,7 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('</ul>\n')
         self.write_metabolic_graph(S, rids, cids, '%s/%s_graph.svg' % (self.FIG_DIR, key))
         
-        physiological_pC = kegg.parse_float_field(field_map, "PHYSIO", 4)
+        physiological_pC = parse_float_field(field_map, "PHYSIO", 4)
         (Nr, Nc) = S.shape
 
         # calculate the dG_f of each compound, and then use S to calculate dG_r
@@ -1245,7 +1250,7 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('<li>Conditions:</br><ol>\n')
                     
         # The method for how we are going to calculate the dG0
-        method = kegg.parse_string_field(field_map, "METHOD", "MILO")
+        method = parse_string_field(field_map, "METHOD", "MILO")
 
         if (method == "MILO"):
             thermodynamics = self
@@ -1266,19 +1271,19 @@ class GroupContribution(Thermodynamics):
                 self.HTML.write(', [C%05d] = %g\n' % (cid, conc))
             self.HTML.write('</li>\n')
         self.HTML.write('</ol></li>')
-        thermodynamics.c_range = kegg.parse_vfloat_field(field_map, "C_RANGE", [1e-6, 1e-2])
-        thermodynamics.c_mid = kegg.parse_float_field(field_map, 'C_MID', 1e-3)
+        thermodynamics.c_range = parse_vfloat_field(field_map, "C_RANGE", [1e-6, 1e-2])
+        thermodynamics.c_mid = parse_float_field(field_map, 'C_MID', 1e-3)
         
         thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg(), self.HTML)
 
     def analyze_contour(self, key, field_map):
-        pH_list = kegg.parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
-        I_list = kegg.parse_vfloat_field(field_map, "I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
-        T = kegg.parse_float_field(field_map, "T", default_T)
-        most_abundant = kegg.parse_bool_field(field_map, "ABUNDANT", False)
-        formula = kegg.parse_string_field(field_map, "REACTION")
-        c0 = kegg.parse_float_field(field_map, "C0", 1.0)
-        media = kegg.parse_string_field(field_map, "MEDIA", "None")
+        pH_list = parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
+        I_list = parse_vfloat_field(field_map, "I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
+        T = parse_float_field(field_map, "T", default_T)
+        most_abundant = parse_bool_field(field_map, "ABUNDANT", False)
+        formula = parse_string_field(field_map, "REACTION")
+        c0 = parse_float_field(field_map, "C0", 1.0)
+        media = parse_string_field(field_map, "MEDIA", "None")
         if (media == "None"):
             media = None
             
@@ -1296,10 +1301,10 @@ class GroupContribution(Thermodynamics):
         self.HTML.write('</p>')
 
     def analyze_protonation(self, key, field_map):
-        pH_list = kegg.parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
-        I = kegg.parse_float_field(field_map, "I", default_I)
-        T = kegg.parse_float_field(field_map, "T", default_T)
-        cid = kegg.parse_string_field(field_map, "COMPOUND")
+        pH_list = parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
+        I = parse_float_field(field_map, "I", default_I)
+        T = parse_float_field(field_map, "T", default_T)
+        cid = parse_string_field(field_map, "COMPOUND")
         cid = int(cid[1:])
         pmatrix = self.cid2pmatrix(cid)
         data = zeros((len(self.cid), len(pH_list)))
@@ -1330,7 +1335,7 @@ class GroupContribution(Thermodynamics):
     def analyze_pathway(self, filename):
         self.HTML.write("<h1>Pathway analysis using Group Contribution Method</h1>\n")
         self.kegg()
-        entry2fields_map = kegg.parse_kegg_file(filename)
+        entry2fields_map = parse_kegg_file(filename)
         
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
@@ -1395,8 +1400,8 @@ class GroupContribution(Thermodynamics):
     def analyze_decomposition_cid(self, cid):
         return self.analyze_decomposition(self.kegg().cid2mol(cid))
 
-    def analyze_decomposition(self, mol):
-        return self.group_decomposer.Decompose(mol).ToTableString()
+    def analyze_decomposition(self, mol, ignore_protonations=False, strict=False):
+        return self.group_decomposer.Decompose(mol, ignore_protonations, strict).ToTableString()
     
     def get_group_contribution(self, name, nH, z, nMg=0):
         gr = Group(None, name, nH, z, nMg)

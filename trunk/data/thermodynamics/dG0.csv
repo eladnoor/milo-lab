@@ -267,10 +267,10 @@
 ,533,"NO_g",86.55,90.25,0,0,0,"test","Alberty (2003) beta",
 "C1[C@@H]2[C@H]([C@H]([C@H](n3cnc4c(N)ncnc34)O2)O)OP(=O)([O-])O1",575,"Cyclic-AMP",-629.68,,-1,11,0,"skip","Alberty (2003) beta","decomposition scheme doesn't support this kind of P-ring"
 "C(C(C=O)O)O",577,"D-Glyceraldehyde",-440.02,,0,6,0,"train","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1574.49,,-2,9,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1612.67,,-1,10,0,"train","Alberty (2003)",
-"C(C1C(C(C(O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1587.7,,-2,9,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1625.88,,-1,10,0,"train","Alberty (2003) beta",
+"C([C@@H]1[C@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1574.49,,-2,9,0,"skip","Alberty (2003)","duplicate entry with big difference"
+"C([C@@H]1[C@H]([C@H]([C@H](O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1612.67,,-1,10,0,"skip","Alberty (2003)","duplicate entry with big difference"
+"C(C1C(C(C(O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1587.7,,-2,9,0,"skip","Alberty (2003) beta",
+"C(C1C(C(C(O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1625.88,,-1,10,0,"skip","Alberty (2003) beta",
 "C([C@H](C(=O)[O-])OP(=O)([O-])[O-])O",631,"2-Phospho-D-glycerate",-1496.38,,-3,4,0,"train","Alberty (2003)",
 "C([C@H](C(=O)[O-])OP(=O)([O-])O)O",631,"2-Phospho-D-glycerate",-1539.99,,-2,5,0,"train","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O",636,"D-Mannose-1P",-1754.56,,-2,11,0,"train","Alberty (2003) beta",

@@ -5,36 +5,43 @@ import pybel
 from pygibbs.kegg import KeggParseException
 from toolbox import database
 from toolbox.html_writer import HtmlWriter
+from pygibbs.groups_data import GroupsData
+from pygibbs.group_decomposition import GroupDecomposer
+from pygibbs.kegg import Kegg
 
-def main(G):        
+def main(db, html_writer):        
+    groups_data = GroupsData.FromGroupsFile("../data/thermodynamics/groups_species.csv")
+    group_decomposer = GroupDecomposer(groups_data)
+    kegg = Kegg()
+
+    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()
-    G.load_cid2pmap()
     
     (pH, pMg, I, T) = (7, 3, 0.1, 298.15)
     
     cids = []
-    smiles = ["C(=O)(O)C(=O)CC(=O)O"]
-    smarts = pybel.Smarts("[C;H1,H2][C;H0](=O)C")
+    smiles = ['C[NH2+]CC(=O)O']
+    smarts = pybel.Smarts("[N;H2;X4;R0;+1]")
     
     mols = []
     for cid in cids:
         try:
-            mols += [G.kegg().cid2mol(cid)]
+            mols += [kegg.cid2mol(cid)]
         except KeggParseException:
             continue
         except KeyError:
             continue
     
     for s in smiles:
-        mol = pybel.readstring('smiles', s)
-        mol.removeh()
-        mols += [mol]
+        mols += [pybel.readstring('smiles', s)]
     
     for m in mols:
+        print '-' * 50
         try:
             m.removeh()
-            print smarts.findall(mol)
-            print G.analyze_decomposition(m)
+            print "SMARTS PATTERN FOUND AT:", smarts.findall(m)
+            decomposition = group_decomposer.Decompose(m, ignore_protonations=False, strict=True)
+            print decomposition.ToTableString()
             pmap_m = G.estimate_pmap(m)
             print pmap_m
             print "dG0'_f (M): ", pmap_m.Transform(pH, pMg, I, T)
@@ -45,10 +52,11 @@ def main(G):
             for miss_list in e.missing_groups:
                 sys.stderr.write(str(miss_list) + "\n")
         except GroupDecompositionError as e:
-            #sys.stderr.write(str(e) + "\n")
+            sys.stderr.write(str(e) + "\n")
             pass
         m.draw()
     
+    print '-' * 50
     if True: # calculate the pKa for some common groups
         print "-NH2 -> -NH3[+] : pKa = %.1f" % G.calc_pKa_group("-N", 3, 1)
         print "-COO[-] -> -COOH : pKa = %.1f" % G.calc_pKa_group("-COO", 1, 0)
@@ -60,7 +68,6 @@ def main(G):
 if __name__ == "__main__":
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/dG0_test.html')
-    G = GroupContribution(db, html_writer)
-    main(G)
+    main(db, html_writer)
     #G.analyze_pathway("../data/thermodynamics/pathways.txt")
     

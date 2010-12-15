@@ -185,30 +185,18 @@ class Elements:
 global ELEMENTS; ELEMENTS = Elements()
 
 class KeggParseException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
+    pass
         
 class KeggNonCompoundException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
+    pass
 
 class KeggReactionNotBalancedException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)    
+    pass
     
 class KeggMissingModuleException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
+    pass
 
-class Compound:
+class Compound(object):
     free_cid = -1 # class static variable
     
     def __init__(self, cid=None):
@@ -323,7 +311,7 @@ class Compound:
         return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % self.cid
     
     
-class Reaction:
+class Reaction(object):
     free_rid = -1 # class static variable
     
     def __init__(self, name, sparse_reaction, rid=None, direction='<=>', weight=1):
@@ -410,7 +398,7 @@ class Reaction:
     def get_link(self):
         return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % self.rid
     
-class Kegg:
+class Kegg(object):
     def __init__(self):
         util._mkdir('../kegg')
         
@@ -1138,7 +1126,7 @@ class Kegg:
         html_writer.write('<li><b>Total:</b>  ' + vector_to_hypertext(v_total, cids, show_cids=show_cids) + '</li>\n')
         html_writer.write("</ul></li>\n")
         
-class KeggPathologic:
+class KeggPathologic(object):
     def __init__(self, kegg=None): # CO2, HCO3-
 
         self.edge_color = "cadetblue"
