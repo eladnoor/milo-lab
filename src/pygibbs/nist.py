@@ -7,7 +7,7 @@ from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamics import default_pMg
 from numpy.core.numeric import arange
 from pylab import log
-from thermodynamics import R
+from pygibbs.thermodynamic_constants import R
 
 class NistMissingCrucialDataException(Exception):
     def __init__(self, value, cid=0):

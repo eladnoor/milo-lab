@@ -15,6 +15,9 @@ class BaseHtmlWriter:
     def __init__(self):
         pass
 
+    def relative_to_full_path(self, relpath):
+        raise Exception("class not implemented")
+
     def write(self):
         raise Exception("class not implemented")
 
@@ -154,21 +157,23 @@ class BaseHtmlWriter:
         canvas.line_width = linewidth
         return canvas
             
-    def embed_molecule_as_png(self, mol, png_filename, width=320, height=240):
+    def embed_molecule_as_png(self, mol, png_filename, width=50, height=50):
         """
             Create a 2D depiction of the molecule and adds it as a PNG into the HTML
             OASA is used for 2D coordinate generation and depiction.
         """
-        dir_path = os.path.abspath(os.path.dirname(png_filename))
+        full_filename = self.relative_to_full_path(png_filename)
+        
+        dir_path = os.path.abspath(os.path.dirname(full_filename))
         if not os.path.exists(dir_path):
             util._mkdir(dir_path)
         
         oasa_mol = HtmlWriter.pybel_mol_to_oasa_mol(mol)
         canvas = HtmlWriter.oasa_mol_to_canvas(oasa_mol)
-        canvas.mol_to_cairo(oasa_mol, png_filename, format='png')
+        canvas.mol_to_cairo(oasa_mol, full_filename, format='png')
         self.embed_img(png_filename, mol.title)
 
-    def embed_molecule_as_svg(self, mol, width=320, height=240):
+    def embed_molecule_as_svg(self, mol, width=50, height=50):
         """
             Create a 2D depiction of the molecule and adds it as an SVG into the HTML
             OASA is used for 2D coordinate generation and depiction.
@@ -209,6 +214,10 @@ class NullHtmlWriter(BaseHtmlWriter):
     
     def write(self, str):
         pass
+    
+    def relative_to_full_path(self, relpath):
+        pass
+
 
 class HtmlWriter(BaseHtmlWriter):
     def __init__(self, filename, force_path_creation=True, flush_always=True):
@@ -226,6 +235,9 @@ class HtmlWriter(BaseHtmlWriter):
         self.write_header()
         self.write_js(self.filepath)
     
+    def relative_to_full_path(self, relpath):
+        return self.filepath + "/" + relpath
+
     def write(self, str):
         if (self.file == None):
             raise Exception("cannot write to this HTML since it is already closed")

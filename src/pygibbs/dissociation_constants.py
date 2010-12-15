@@ -1,5 +1,5 @@
 import csv, re, logging
-from kegg import Kegg
+from kegg import Kegg, KeggParseException
 from toolbox.database import SqliteDatabase
 from toolbox.util import ReadCsvWithTitles, _mkdir
 from pygibbs.group_decomposition import GroupDecomposer
@@ -93,8 +93,14 @@ class DissociationConstants(object):
                     T = 298.15
                 
                 if row['pKa']:
-                    self.db.Insert('pKa', [cid, int(row['step']), T, 
-                                           float(row['pKa']), row['smiles_below'], row['smiles_above']])
+                    try:
+                        pKa = float(row['pKa'])
+                        self.db.Insert('pKa', [cid, int(row['step']), T, 
+                                               pKa, row['smiles_below'], 
+                                               row['smiles_above']])
+                    except ValueError:
+                        logging.warning("the pKa value for C%05d is not a proper number" % cid)
+                        continue
                 else:
                     self.db.Insert('pKa', [cid, None, None, None, None, None])
                     
@@ -102,7 +108,7 @@ class DissociationConstants(object):
         self.db.Commit()
             
     def AnalyseValues(self):
-        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa WHERE pKa IS NOT NULL"):
+        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa ORDER BY cid"):
             logging.info("analyzing C%05d" % cid)
             self.DrawProtonation(cid, step, pKa, smiles_below, smiles_above)
             self.cid2pKas.setdefault(cid, []).append(pKa)
@@ -115,8 +121,10 @@ class DissociationConstants(object):
 
     def GetAllpKas(self):
         cid2pKa_list = {}
-        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa"):
-            cid2pKa_list.setdefault(cid, []).append(pKa)
+        for cid, pKa in self.db.Execute("SELECT cid, pKa FROM pKa"):
+            cid2pKa_list.setdefault(cid, [])
+            if pKa:
+                cid2pKa_list[cid].append(pKa)
         return cid2pKa_list   
 
     def GetActiveGroups(self, decomposition):
@@ -139,16 +147,23 @@ class DissociationConstants(object):
     def DrawProtonation(self, cid, step, pKa, smiles_below, smiles_above):
         self.html_writer.write('<h3>C%05d - %s</h3><br>\n' % (cid, self.kegg.cid2name(cid)))
         self.html_writer.write('<p>')
-        if smiles_below and smiles_above:
+        if not pKa:
+            self.html_writer.write('No known pKas at the physiological range')
+            self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
+        elif smiles_below and smiles_above:
             self.smiles2HTML(smiles_below, "C%05d_%d_below" % (cid, step))
             self.html_writer.write(" pKa = %.2f " % pKa)
             self.smiles2HTML(smiles_above, "C%05d_%d_above" % (cid, step))
         else:
             self.html_writer.write('pKa = %.2f, \n' % pKa)
-            self.html_writer.write('No SMILES provided...')
+            self.html_writer.write('no SMILES provided...')
+            try:
+                self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
+            except KeggParseException:
+                pass
         self.html_writer.write('</p>')
     
-    def smiles2HTML(self, smiles, id):
+    def smiles2HTML(self, smiles, id, height=50, width=50):
         try:
             mol = pybel.readstring('smiles', str(smiles))
         except IOError:
@@ -156,7 +171,7 @@ class DissociationConstants(object):
             return
         mol.removeh()
         #self.html_writer.write(smiles)
-        self.html_writer.embed_molecule_as_png(mol, '../res/dissociation_constants/%s.png' % id, height=50, width=50)
+        self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id, height=height, width=width)
 
 if (__name__ == '__main__'):
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)

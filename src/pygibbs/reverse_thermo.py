@@ -1,5 +1,7 @@
 import csv, re, random
-from pygibbs.thermodynamics import Thermodynamics, R
+from pygibbs.thermodynamics import Thermodynamics
+from pygibbs.thermodynamic_constants import R, correction_function,\
+    array_transform
 from scipy.stats.stats import mean
 from numpy.linalg.linalg import inv, LinAlgError, array
 from matplotlib.pyplot import hold, figure, subplot, plot, xlabel, ylabel, title,\
@@ -42,7 +44,7 @@ def solve(measurements, nH, z):
     log_X = zeros((Nm, Ns))
     for i in range(Nm):
         (dG0_tag, pH, I, T) = measurements[i]
-        log_X[i,:] = Thermodynamics.correction_function(nH, z, pH, I, T) + dG0_tag / (R*T)
+        log_X[i,:] = correction_function(nH, z, pH, I, T) + dG0_tag / (R*T)
 
     log_C = log_dot(log_X.T, log_X) # C = (X'*X)
     
@@ -52,7 +54,7 @@ def solve(measurements, nH, z):
     M = mean(log_C)
     try:
         log_inv_C = log_mat(inv(exp(log_C - M))) - M
-    except LinAlgError as e:
+    except LinAlgError:
         raise ReverseTransformError("Transform matrix is underdetermined (%d x %d), cannot solve pseudoisomer dG0" % (Nm, Ns))
     
     log_a = log_dot(log_inv_C, log_dot(log_X.T, zeros((Nm,1)))) # a = C_inv * X' * ones(Nm,1)
@@ -64,7 +66,7 @@ def solve(measurements, nH, z):
     diff = zeros((Nm, 1))
     for i in range(Nm):
         (dG0_tag, pH, I, T) = measurements[i]
-        dG_tag_pred = Thermodynamics.array_transform(dG0_solution, nH, z, pH, I, T)
+        dG_tag_pred = array_transform(dG0_solution, nH, z, pH, I, T)
         diff[i,0] = dG0_tag - dG_tag_pred
     
     return dG0_solution + mean(diff)
@@ -84,7 +86,7 @@ def test1():
     # conditions: pH, I, T
     #conditions = [(pH, 0.0, 300.0) for pH in [4.1, 4.5, 4.2, 4.3, 4.4, 4.5, 4.5, 6.5, 7.2, 8.9]]
     conditions = []
-    for i in range(1000):
+    for unused_i in range(1000):
         conditions.append((random.randrange(0.0, 18.0) + random.random(), 0.0, 300.0))
     
     figure()
@@ -95,7 +97,7 @@ def test1():
         noisy_measurements = []
         for (pH, I, T) in conditions:
             noise = random.normalvariate(0, noise_level)
-            dG0_tag = Thermodynamics.array_transform(dG0, nH, z, pH, I, T)
+            dG0_tag = array_transform(dG0, nH, z, pH, I, T)
             dG0_tag_noisy = dG0_tag+noise
             measurements.append((dG0_tag, pH, I, T))
             noisy_measurements.append((dG0_tag_noisy, pH, I, T))
@@ -103,7 +105,7 @@ def test1():
             log_y = -dG0_tag / (R*T)
             log_y_noisy = -dG0_tag_noisy / (R*T)
             log_diff = log_subt_exp(log_y_noisy, log_y)
-            #print log_y, noise, log_diff
+            print log_y, noise, log_diff
     
         dG0_r = solve(noisy_measurements, nH, z)
     
@@ -123,8 +125,8 @@ def test1():
         T = 300.0
         I = 0.0
         for pH in pH_list:
-            dG_tag_orig = Thermodynamics.array_transform(dG0, nH, z, pH, I, T)
-            dG_tag_pred = Thermodynamics.array_transform(dG0_r, nH, z, pH, I, T)
+            dG_tag_orig = array_transform(dG0, nH, z, pH, I, T)
+            dG_tag_pred = array_transform(dG0_r, nH, z, pH, I, T)
             #print "%4.1f | %4.1f | %11.2f | %11.2f" % (pH, I, dG_tag_orig, dG_tag_pred)
             dG_tag_orig_list.append(dG_tag_orig)
             dG_tag_pred_list.append(dG_tag_pred)
@@ -170,9 +172,9 @@ def test2():
         for i in range(5):
             measurements.append((dG0[i], pH[i], I, T))
 
-        dG_array = array([dG for (dG, dH, z, nH) in compound2species[compound_name]])
-        z_array = array([z for (dG, dH, z, nH) in compound2species[compound_name]])
-        nH_array = array([nH for (dG, dH, z, nH) in compound2species[compound_name]])
+        dG_array = array([dG for (dG, _, z, nH) in compound2species[compound_name]])
+        z_array = array([z for (dG, _, z, nH) in compound2species[compound_name]])
+        nH_array = array([nH for (dG, _, z, nH) in compound2species[compound_name]])
         
         dG0_r = solve(measurements, nH_array, z_array)
         print compound_name, ";".join(["(%.1f,%.1f)" % (dG_array[i], dG0_r[i]) for i in range(len(dG0_r))])
@@ -191,9 +193,9 @@ def test2():
         for i in range(3):
             measurements.append((dG0[i], pH, I[i], T))
 
-        dG_array = array([dG for (dG, dH, z, nH) in compound2species[compound_name]])
-        z_array = array([z for (dG, dH, z, nH) in compound2species[compound_name]])
-        nH_array = array([nH for (dG, dH, z, nH) in compound2species[compound_name]])
+        dG_array = array([dG for (dG, _, z, nH) in compound2species[compound_name]])
+        z_array = array([z for (dG, _, z, nH) in compound2species[compound_name]])
+        nH_array = array([nH for (dG, _, z, nH) in compound2species[compound_name]])
         
         dG0_r = solve(measurements, nH_array, z_array)
         print compound_name, ";".join(["(%.1f,%.1f)" % (dG_array[i], dG0_r[i]) for i in range(len(dG0_r))])
@@ -202,8 +204,7 @@ def test3():
     T = 300
     dG0 = array([-2768.11, -2811.48, -2838.18])
     M = max(dG0)
-    for i in range(100):
-        
+    for unused_i in range(100):
         for j in range(dG0.shape[0]):
             e = random.normalvariate(0,1)
             log_y = -(dG0[j]-M)/(R*T)

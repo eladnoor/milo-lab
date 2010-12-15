@@ -3,7 +3,8 @@ from pylab import *
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import KeggParseException
-from pygibbs.thermodynamics import R,  default_I, Thermodynamics, MissingCompoundFormationEnergy
+from pygibbs.thermodynamic_constants import R
+from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.alberty import Alberty
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
