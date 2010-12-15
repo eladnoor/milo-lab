@@ -86,17 +86,23 @@ class DissociationConstants(object):
         self.db.CreateTable('pKa', 'cid INT, step INT, T REAL, pKa REAL, smiles_below TEXT, smiles_above TEXT')
         for row in ReadCsvWithTitles(csv_filename):
             if row['cid']:
+                cid = int(row['cid'])
                 if row['T']:
                     T = float(row['T']) + 273.15
                 else:
                     T = 298.15
-                self.db.Insert('pKa', [int(row['cid']), int(row['step']), T, 
-                                       float(row['pKa']), row['smiles_below'], row['smiles_above']])
+                
+                if row['pKa']:
+                    self.db.Insert('pKa', [cid, int(row['step']), T, 
+                                           float(row['pKa']), row['smiles_below'], row['smiles_above']])
+                else:
+                    self.db.Insert('pKa', [cid, None, None, None, None, None])
+                    
         
         self.db.Commit()
             
     def AnalyseValues(self):
-        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa"):
+        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa WHERE pKa IS NOT NULL"):
             logging.info("analyzing C%05d" % cid)
             self.DrawProtonation(cid, step, pKa, smiles_below, smiles_above)
             self.cid2pKas.setdefault(cid, []).append(pKa)
@@ -150,7 +156,7 @@ class DissociationConstants(object):
             return
         mol.removeh()
         #self.html_writer.write(smiles)
-        self.html_writer.embed_molecule_as_png(mol, '../res/dissociation_constants/%s.png' % id, height=100, width=100)
+        self.html_writer.embed_molecule_as_png(mol, '../res/dissociation_constants/%s.png' % id, height=50, width=50)
 
 if (__name__ == '__main__'):
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)

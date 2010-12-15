@@ -228,10 +228,13 @@ class GroupsData(object):
         db.CreateTable('groups', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, smarts TEXT, focal_atoms TEXT, remark TEXT')
         for group in self.groups:
             focal_atom_str = '|'.join([str(fa) for fa in group.focal_atoms])
-            db.Insert('groups', [group.id, group.name, int(group.protons), int(group.charge), 
+            db.Insert('groups', [group.id, group.name, int(group.hydrogens), int(group.charge), 
                                  int(group.nMg), group.smarts, focal_atom_str, ''])
 
         logging.info('Done writing groups data into database.')
 
     def Index(self, gr):
-        return self.all_groups.index(gr)
+        try:
+            return self.all_groups.index(gr)
+        except ValueError:
+            raise ValueError('group %s is not defined' % str(gr))

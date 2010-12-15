@@ -12,9 +12,10 @@ import types
 
 from copy import deepcopy
 from toolbox.util import matrixrank, _mkdir
-from pygibbs.thermodynamics import R, default_pH, default_pMg, default_I, default_T, default_c0, Thermodynamics, MissingCompoundFormationEnergy
+from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_I, default_T, default_c0, dG0_f_Mg
+from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
-from pygibbs import groups_data
+from pygibbs import groups_data, thermodynamic_constants
 from pygibbs import group_decomposition
 from pygibbs import pseudoisomer
 from pygibbs import pseudoisomers_data
@@ -24,6 +25,7 @@ from pygibbs.kegg import KeggParseException
 from toolbox import database, util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from pygibbs.dissociation_constants import DissociationConstants
+from pygibbs.groups_data import Group
 
 class GroupContributionError(Exception):
     def __init__(self, value):
@@ -183,6 +185,7 @@ class GroupContribution(Thermodynamics):
     def load_groups(self, group_fname=None):
         if group_fname:
             self.groups_data = groups_data.GroupsData.FromGroupsFile(group_fname)
+            self.groups_data.ToDatabase(self.db)
         else:
             self.groups_data = groups_data.GroupsData.FromDatabase(self.db)
         self.group_decomposer = group_decomposition.GroupDecomposer(self.groups_data)
@@ -328,7 +331,7 @@ class GroupContribution(Thermodynamics):
                 decomposition = self.group_decomposer.Decompose(mol, strict=True)
             except group_decomposition.GroupDecompositionError as e:
                 logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
-                continue
+                raise e
             
             groupvec = decomposition.AsVector()
             l_names.append(name)
@@ -395,9 +398,8 @@ class GroupContribution(Thermodynamics):
             try:
                 return self.group_decomposer.Decompose(mol, strict=True)
             except group_decomposition.GroupDecompositionError as e:
-                logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
-                return None
-                #raise e
+                logging.error('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
+                raise e
         
         l_groupvec = []
         l_deltaG = []
@@ -1303,7 +1305,7 @@ class GroupContribution(Thermodynamics):
         data = zeros((len(self.cid), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
-            dG0_array = matrix([-Thermodynamics.transform(dG0, nH, z, pH, I, T) / (R * T) \
+            dG0_array = matrix([-thermodynamic_constants.transform(dG0, nH, z, pH, I, T) / (R * T) \
                                       for (nH, z, dG0) in self.cid])
             dG0_array = dG0_array - max(dG0_array)
             p_array = exp(dG0_array)
@@ -1395,8 +1397,26 @@ class GroupContribution(Thermodynamics):
 
     def analyze_decomposition(self, mol):
         return self.group_decomposer.Decompose(mol).ToTableString()
-        
-
+    
+    def get_group_contribution(self, name, nH, z, nMg=0):
+        gr = Group(None, name, nH, z, nMg)
+        index_full = self.groups_data.Index(gr)
+        index_short = self.nonzero_groups.index(index_full)
+        dG0_gr = self.group_contributions[index_short]
+        return dG0_gr
+    
+    def calc_pKa_group(self, name, nH, z, nMg=0):
+        dG0_gr0 = self.get_group_contribution(name, nH-1, z-1, nMg)
+        dG0_gr1 = self.get_group_contribution(name, nH, z, nMg)
+        pKa = (dG0_gr0 - dG0_gr1)/(R*default_T*log(10))
+        return pKa
+    
+    def calc_pK_Mg_group(self, name, nH, z, nMg):
+        dG0_gr0 = self.get_group_contribution(name, nH, z-2, nMg-1)
+        dG0_gr1 = self.get_group_contribution(name, nH, z, nMg)
+        pK_Mg = (dG0_gr0 + dG0_f_Mg - dG0_gr1)/(R*default_T*log(10))
+        return pK_Mg
+    
 #################################################################################################################
 #                                                   MAIN                                                        #
 #################################################################################################################
@@ -1420,13 +1440,15 @@ if __name__ == '__main__':
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
         #mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
-        mols['Glutamate'] = pybel.readstring('smiles', 'C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O')
+        #mols['Glutamate'] = pybel.readstring('smiles', 'C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O')
+        mols['Tryptophan [0]'] = pybel.readstring('smiles', 'c1ccc2c(c1)c(CC(C(=O)[O-])[NH3+])c[nH]2')
+        mols['Tryptophan [-1]'] = pybel.readstring('smiles', 'c1ccc2c(c1)c(CC(C(=O)[O-])N)c[nH]2')
         
-        smarts = pybel.Smarts("[C;H1;X4][O;H0]P")
+        smarts = pybel.Smarts("[n;H1;X3;+1]")
         
         for key, mol in mols.iteritems():
             mol.title = key
-            mol.draw()
+            #mol.draw()
             print '-'*100
             print key
             print smarts.findall(mol)

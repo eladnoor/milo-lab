@@ -1,17 +1,6 @@
 import csv
-from pylab import log, sqrt, array
-from toolbox.util import log_sum_exp
+from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 import pseudoisomer
-
-R = 8.31e-3 # kJ/(K*mol)
-J_per_cal = 4.184
-default_T = 298.15 # K
-default_I = 0.1 # mM
-default_pH = 7.0
-default_c0 = 1 # M
-default_pMg = 3
-
-dG0_f_Mg = -455.3 # kJ/mol, formation energy of Mg2+
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -20,7 +9,7 @@ class MissingCompoundFormationEnergy(Exception):
     def __str__(self):
         return repr(self.value)    
 
-class Thermodynamics:
+class Thermodynamics(object):
     def __init__(self):
         self.pH = default_pH
         self.I = default_I
@@ -31,40 +20,6 @@ class Thermodynamics:
         self.c_range = (1e-6, 1e-2)
         self.bounds = {}
         self.source_string = "Unknown"
-
-    @staticmethod
-    def debye_huckel(I):
-        return (2.91482 * sqrt(I)) / (1 + 1.6 * sqrt(I))
-
-    @staticmethod
-    def correction_function(nH, nMg, z, pH, pMg, I, T):
-        """
-            nH and z - are the species parameters (can be vectors)
-            pH and I - are the conditions, must be scalars
-            returns the correction element used in the transform function
-            
-        Returns:
-            The correction, in units of RT.
-        """
-        DH = Thermodynamics.debye_huckel(I) / (R*T)
-        return -nMg * (log(10)*pMg - dG0_f_Mg) - nH * (log(10)*pH + DH) + (z**2) * DH
-
-    @staticmethod
-    def transform(dG0, nH, z, pH, I, T):
-        return dG0 - R*T*Thermodynamics.correction_function(nH, z, pH, I, T)
-
-    @staticmethod
-    def array_transform(dG0, nH, nMg, z, pH, pMg, I, T):
-        """
-            dG0, nH and z - are the species parameters (can be vectors)
-            pH and I - are the conditions, must be scalars
-            returns the transformed gibbs energy: dG0'
-        """
-        return (-(R*T) * log_sum_exp(dG0 / (-R*T) +
-                Thermodynamics.correction_function(nH, nMg, z, pH, pMg, I, T)))
-    
-    def source(self):
-        return self.source_string
 
     def cid2pmap(self, cid):
         raise NotImplementedError
