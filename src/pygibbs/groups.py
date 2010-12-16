@@ -1,41 +1,42 @@
 #!/usr/bin/python
 
-import sys
-import pybel
-import openbabel
 import csv
 import logging
-from pylab import nan, find, sum, absolute, array, inv, pinv, plot, log, dot, xlabel, ylabel, figure, hold, text, savefig, zeros, rcParams, mean, std, arange, ylim, xlim, axhspan, axvspan, legend, matrix, exp, contour, meshgrid, clabel
-from matplotlib import font_manager
+import openbabel
+import os
+import pybel
 import re
+import sys
 import types
 
+from matplotlib import font_manager
+from pylab import nan, find, sum, absolute, array, inv, pinv, plot, log
+from pylab import dot, xlabel, ylabel, figure, hold, text, savefig
+from pylab import zeros, rcParams, mean, std, arange, ylim, xlim, axhspan
+from pylab import  axvspan, legend, matrix, exp, contour, meshgrid, clabel
+
 from copy import deepcopy
-from toolbox.util import matrixrank, _mkdir
 from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_I, default_T, default_c0, dG0_f_Mg
 from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
-from pygibbs import groups_data, thermodynamic_constants
+from pygibbs import groups_data
+from pygibbs import thermodynamic_constants
 from pygibbs import group_decomposition
 from pygibbs import pseudoisomer
 from pygibbs import pseudoisomers_data
 from pygibbs.hatzimanikatis import Hatzi
-from pygibbs.kegg import KeggParseException, Kegg, parse_bool_field,\
-    parse_float_field, parse_vfloat_field, parse_string_field, parse_kegg_file
-from toolbox import database, util
-from toolbox.html_writer import HtmlWriter, NullHtmlWriter
+from pygibbs.kegg import KeggParseException, Kegg, parse_bool_field
+from pygibbs.kegg import parse_float_field, parse_vfloat_field, parse_string_field, parse_kegg_file
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.groups_data import Group
-import os
+from toolbox import database, util
+from toolbox.html_writer import HtmlWriter, NullHtmlWriter
+from toolbox.util import matrixrank, _mkdir
+
 
 class GroupContributionError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        if (type(self.value) == types.StringType):
-            return self.value
-        else:
-            return repr(self.value)
+    pass
+
     
 class GroupMissingTrainDataError(GroupContributionError):
     def __init__(self, value, missing_groups=[]):
@@ -46,6 +47,7 @@ class GroupMissingTrainDataError(GroupContributionError):
             return self.value
         else:
             return repr(self.value)
+
 
 class GroupContribution(Thermodynamics):    
     def __init__(self, db, html_writer=None, kegg=None, log_file=sys.stderr):
