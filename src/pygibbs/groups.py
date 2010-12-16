@@ -32,7 +32,8 @@ from pygibbs.groups_data import Group
 from toolbox import database, util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.util import matrixrank, _mkdir
-
+from toolbox.linear_regression import LinearRegression
+from gibbs_site import group_contribution
 
 class GroupContributionError(Exception):
     pass
@@ -72,6 +73,7 @@ class GroupContribution(Thermodynamics):
             
         self.override_gc_with_measurements = True
         self.cid2pmap_dict = None
+        self.redundant_subspace = None
             
     def __del__(self):
         self.HTML.close()
@@ -169,15 +171,16 @@ class GroupContribution(Thermodynamics):
         l_deltaG = l_deltaG_pKa + l_deltaG_formation
         l_names = l_names_pKa + l_names_formation
         self.save_training_data(l_groupvec, l_deltaG, l_names)
-        self.group_contributions = self.linear_regression_train()
+        self.group_contributions, self.redundant_subspace = \
+            self.linear_regression_train()
 
         logging.info("storing the group contribution data in the database")
         self.db.CreateTable('contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL')
-        for i, gc in enumerate(self.group_contributions):
+        for i, dG0_gr in enumerate(self.group_contributions):
             j = int(self.nonzero_groups[i])
             group = self.groups_data.all_groups[j]
             self.db.Insert('contribution', [j, group.name, group.hydrogens,
-                                            group.charge, group.nMg, gc])
+                                            group.charge, group.nMg, dG0_gr])
             
         self.db.CreateTable('observation', 'cid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_f REAL, use_for TEXT')
         for cid in self.cid2pmap_obs.keys():
@@ -512,10 +515,9 @@ class GroupContribution(Thermodynamics):
         self.nonzero_groups = find(sum(absolute(self.truncated_group_mat), 0) > 0)
         self.truncated_group_mat = self.truncated_group_mat[:, self.nonzero_groups]
         
-        inv_corr_mat = pinv(dot(self.truncated_group_mat.T, self.truncated_group_mat))
-        #inv_corr_mat = inv(dot(truncated_group_mat.T, truncated_group_mat))
-        group_contributions = dot(dot(inv_corr_mat, self.truncated_group_mat.T), self.truncated_obs)
-        return group_contributions
+        group_contributions, redundant_subspace = \
+            LinearRegression.LeastSquares(self.truncated_group_mat, self.truncated_obs)
+        return list(group_contributions.flat), redundant_subspace
     
     def groupvec2val(self, groupvec):
         if (self.group_contributions == None):
@@ -925,10 +927,10 @@ class GroupContribution(Thermodynamics):
         logging.info("Saving the group contribution data to: %s" % filename)
         csv_output = csv.writer(open(filename, "w"))
         csv_output.writerow(("row type", "ID", "name", "protons", "charge", "Mgs", "dG"))
-        for i in range(len(self.group_contributions)):
+        for i, dG0_gr in enumerate(self.group_contributions):
             j = self.nonzero_groups[i]
             (name, protons, charge, mgs) = self.all_groups[j]
-            csv_output.writerow(("CONTRIBUTION", j, name, protons, charge, mgs, self.group_contributions[i]))
+            csv_output.writerow(("CONTRIBUTION", j, name, protons, charge, mgs, dG0_gr))
             
         for cid in self.cid2pmap_obs:
             for (nH, z, mgs, dG0) in self.cid2pmap_obs[cid].ToMatrix():
@@ -1412,16 +1414,20 @@ class GroupContribution(Thermodynamics):
         dG0_gr = self.group_contributions[index_short]
         return dG0_gr
     
-    def calc_pKa_group(self, name, nH, z, nMg=0):
-        dG0_gr0 = self.get_group_contribution(name, nH-1, z-1, nMg)
-        dG0_gr1 = self.get_group_contribution(name, nH, z, nMg)
-        pKa = (dG0_gr0 - dG0_gr1)/(R*default_T*log(10))
+    def GetpKa_group(self, name, nH, z, nMg=0):
+        dG0_gr_deprotonated = self.get_group_contribution(name, nH-1, z-1, nMg)
+        dG0_gr_protonated = self.get_group_contribution(name, nH, z, nMg)
+        if not dG0_gr_deprotonated or not dG0_gr_protonated:
+            return None
+        pKa = (dG0_gr_deprotonated - dG0_gr_protonated)/(R*default_T*log(10))
         return pKa
     
-    def calc_pK_Mg_group(self, name, nH, z, nMg):
-        dG0_gr0 = self.get_group_contribution(name, nH, z-2, nMg-1)
-        dG0_gr1 = self.get_group_contribution(name, nH, z, nMg)
-        pK_Mg = (dG0_gr0 + dG0_f_Mg - dG0_gr1)/(R*default_T*log(10))
+    def GetpK_Mg_group(self, name, nH, z, nMg):
+        dG0_gr_without_Mg = self.get_group_contribution(name, nH, z-2, nMg-1)
+        dG0_gr_with_Mg = self.get_group_contribution(name, nH, z, nMg)
+        if not dG0_gr_without_Mg or not dG0_gr_with_Mg:
+            return None
+        pK_Mg = (dG0_gr_without_Mg + dG0_f_Mg - dG0_gr_with_Mg)/(R*default_T*log(10))
         return pK_Mg
     
 #################################################################################################################

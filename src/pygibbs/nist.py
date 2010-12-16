@@ -88,7 +88,7 @@ class NistRowData:
         return self.sparse.keys()
     
     def PredictFormationEnergy(self, thermodynamics, cid):
-        return thermodynamics.cid2pmap(cid).Transform(self.pH, self.pMg, self.I, self.T)
+        return thermodynamics.cid2pmap(cid).Transform(pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
     
     def PredictReactionEnergy(self, thermodynamics):
         return sum([self.PredictFormationEnergy(thermodynamics, cid)*coeff 

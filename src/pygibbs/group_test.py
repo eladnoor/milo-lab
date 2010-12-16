@@ -58,12 +58,12 @@ def main(db, html_writer):
     
     print '-' * 50
     if True: # calculate the pKa for some common groups
-        print "-NH2 -> -NH3[+] : pKa = %.1f" % G.calc_pKa_group("-N", 3, 1)
-        print "-COO[-] -> -COOH : pKa = %.1f" % G.calc_pKa_group("-COO", 1, 0)
-        print "-OPO3[2-] -> -HOPO3[-] : pKa = %.1f" % G.calc_pKa_group("-OPO3", 1, -1)
-        print "-CO-OPO3[2-] -> -CO-HOPO3[-] : pKa = %.1f" % G.calc_pKa_group("CO-OPO3", 1, -1, 0)
-        print "-CO-HOPO3[-] -> -CO-H2OPO3 : pKa = %.1f" % G.calc_pKa_group("CO-OPO3", 2, 0, 0)
-        print "-OPO3.Mg -> -OPO3[2-] : pK_Mg = %.1f" % G.calc_pK_Mg_group("-OPO3", 0, 0, 1)
+        print "-NH2 -> -NH3[+] : pKa = %.1f" % G.GetpKa_group("-N", 3, 1)
+        print "-COO[-] -> -COOH : pKa = %.1f" % G.GetpKa_group("-COO", 1, 0)
+        print "-OPO3[2-] -> -HOPO3[-] : pKa = %.1f" % G.GetpKa_group("-OPO3", 1, -1)
+        print "-CO-OPO3[2-] -> -CO-HOPO3[-] : pKa = %.1f" % G.GetpKa_group("CO-OPO3", 1, -1, 0)
+        print "-CO-HOPO3[-] -> -CO-H2OPO3 : pKa = %.1f" % G.GetpKa_group("CO-OPO3", 2, 0, 0)
+        print "-OPO3.Mg -> -OPO3[2-] : pK_Mg = %.1f" % G.GetpK_Mg_group("-OPO3", 0, 0, 1)
 
 if __name__ == "__main__":
     db = database.SqliteDatabase('../res/gibbs.sqlite')

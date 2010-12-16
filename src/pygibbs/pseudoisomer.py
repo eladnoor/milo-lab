@@ -4,6 +4,7 @@ import pylab
 import types
 from thermodynamic_constants import R, default_T, correction_function, array_transform
 from toolbox.util import log_sum_exp
+from pygibbs.thermodynamic_constants import dG0_f_Mg
 
 class PseudoisomerMap(object):
     """A map from pseudoisomers to dG values."""
@@ -66,8 +67,7 @@ class PseudoisomerMap(object):
         v_mg  = pylab.array(v_mg)
 
         if most_abundant:
-            return min(v_dG0 / (-R*T) +
-                       correction_function(v_nH, v_mg, v_z, pH, pMg, I, T))
+            return min(dG0 + R*T*correction_function(nH, nMg, z, pH, pMg, I, T))
         else:
             return array_transform(v_dG0, v_nH, v_mg, v_z, pH, pMg, I, T)
     
@@ -109,11 +109,18 @@ class PseudoisomerMap(object):
         return -(R*T) * log_sum_exp([x/(-R*T) for x in dG0_list])
     
     def GetpKa(self, nH, z, nMg, T=default_T):
-        dG0_below = self.GetdG0(nH, z, nMg, T)
-        dG0_above = self.GetdG0(nH+1, z+1, nMg, T)
-        if not dG0_below or not dG0_above:
+        dG0_f_deprotonated = self.GetdG0(nH-1, z-1, nMg, T)
+        dG0_f_protonated = self.GetdG0(nH, z, nMg, T)
+        if not dG0_f_deprotonated or not dG0_f_protonated:
             return None
         else:
-            return (dG0_below - dG0_above) / (R*T*pylab.log(10))
+            return (dG0_f_deprotonated - dG0_f_protonated) / (R*T*pylab.log(10))
         
+    def GetpK_Mg(self, nH, z, nMg, T=default_T):
+        dG0_f_without_Mg = self.GetdG0(nH, z-2, nMg-1, T)
+        dG0_f_with_Mg = self.GetdG0(nH, z, nMg, T)
+        if not dG0_f_without_Mg or not dG0_f_with_Mg:
+            return None
+        else:
+            return (dG0_f_without_Mg + dG0_f_Mg - dG0_f_with_Mg) / (R*T*pylab.log(10))
         

@@ -9,7 +9,7 @@ from pygibbs.group_decomposition import GroupDecomposer
 from pygibbs import pseudoisomer
 
 
-def Calculate_pKa(db, html_writer, kegg, cid2pKa_list, filename="../data/thermodynamics/dG0.csv"):
+def Calculate_pKa_and_pKMg(db, html_writer, kegg, cid2pKa_list, filename="../data/thermodynamics/dG0.csv"):
     cid2pmap = {}
     smiles_dict = {}
     
@@ -52,26 +52,28 @@ def Calculate_pKa(db, html_writer, kegg, cid2pKa_list, filename="../data/thermod
         else: 
             smiles_dict[cid, nH, z, nMg] = ''
 
-    csv_writer = csv.writer(open('../res/pKa_from_dG0.csv', 'w'))
+    #csv_writer = csv.writer(open('../res/pKa_from_dG0.csv', 'w'))
     
     html_writer.write('<table border="1">\n<tr><td>' + 
-                      '</td><td>'.join(['CID', 'nH', 'charge', 'nMg', 'dG0_f', 'pKa', 'smiles_before' ,'smiles_after']) + 
+                      '</td><td>'.join(['CID', 'name', 'formula', 'nH', 'charge', 'nMg', 'dG0_f', 'pKa', 'pK_Mg']) + 
                       '</td></tr>\n')
     for cid in sorted(cid2pmap.keys()):
-        step = 1
-        for nH, z, nMg, dG0 in sorted(cid2pmap[cid].ToMatrix(), key=lambda x:(x[2], x[0]), reverse=True):
+        #step = 1
+        for nH, z, nMg, dG0 in sorted(cid2pmap[cid].ToMatrix(), key=lambda x:(-x[2], -x[0])):
             pKa = cid2pmap[cid].GetpKa(nH, z, nMg)
-            html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%.1f</td>' % \
-                              (cid, kegg.cid2name(cid), kegg.cid2formula(cid), nH, z, nMg, dG0))
-            if pKa:
-                html_writer.write('<td>%.2f</td><td>%s</td><td>%s</td>' \
-                                  % (pKa, smiles_dict[cid, nH+1, z+1, nMg], smiles_dict[cid, nH, z, nMg]))
-                if not nMg and cid not in cid2pKa_list:
-                    csv_writer.writerow([cid, kegg.cid2name(cid), kegg.cid2formula(cid), step, None, "%.2f" % pKa, smiles_dict[cid, nH+1, z+1, nMg], smiles_dict[cid, nH, z, nMg]])
-                    step += 1
-            else:
-                html_writer.write('<td>-</td><td>-</td><td>-</td>')
-            html_writer.write('</tr>\n')
+            pK_Mg = cid2pmap[cid].GetpK_Mg(nH, z, nMg)
+            html_writer.write('<tr><td>')
+            html_writer.write('</td><td>'.join(["C%05d" % cid, 
+                                                kegg.cid2name(cid) or "?", 
+                                                kegg.cid2formula(cid) or "?", 
+                                                str(nH), str(z), str(nMg), 
+                                                "%.1f" % dG0,
+                                                str(pKa),
+                                                str(pK_Mg)]))
+            #if not nMg and cid not in cid2pKa_list:
+            #    csv_writer.writerow([cid, kegg.cid2name(cid), kegg.cid2formula(cid), step, None, "%.2f" % pKa, smiles_dict[cid, nH+1, z+1, nMg], smiles_dict[cid, nH, z, nMg]])
+            #    step += 1
+            html_writer.write('</td></tr>\n')
     html_writer.write('</table>\n')
 
 def Nist_pKas(db, html_writer, kegg, cid2pKa_list):
@@ -120,6 +122,6 @@ if (__name__ == "__main__"):
     
     cid2pKa_list = get_cid2pKa_list(db, html_writer, kegg)
     Nist_pKas(db, html_writer, kegg, cid2pKa_list)
-    Calculate_pKa(db, html_writer, kegg, cid2pKa_list)
+    Calculate_pKa_and_pKMg(db, html_writer, kegg, cid2pKa_list)
     
     html_writer.close()
