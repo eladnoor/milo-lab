@@ -1,0 +1,134 @@
+<html>
+	<head>
+		<title>Per Compound Groups</title>
+		<style type="text/css">
+		.fakeLink {
+			color: blue;
+			text-decoration: underline;
+		}
+		
+		.toc {
+			margin-top: 10px;
+			margin-bottom: 20px;
+			font-size: 20px;
+		}
+		
+		.toc ul {
+			font-size: 16px;
+		}
+		
+		.collection {
+			margin-bottom: 20px;
+		}
+		
+		.collection .title {
+			font-weight: bold;
+			font-size: 24px;
+		}
+		
+		.pisomer {
+			font-size: 20px;
+			margin-bottom: 10px;
+		}
+		
+		.pisomer div {
+			margin-left: 10px;
+		}
+		
+		.decomposition, .fullDecomposition, .property {
+			font-size: 14px;
+		}
+		
+		.fullDecomposition {
+			display: none;
+			margin-left: 30px;
+		}
+		</style>
+		<script type="text/javascript">
+		function showId(id, caller) {
+			var elt = document.getElementById(id);
+			elt.style.display = 'block';
+			caller.style.display = 'none';
+		}
+		</script>
+	</head>
+	<body>
+
+	<div class="toc">Table of Contents
+		<ul class="toc">
+	{% for collection in pseudoisomer_collections %}
+		<li><a href="#{{collection.name}}">{{collection.name}} Set</a></li>
+	{% endfor %}
+		</ul>
+	</div>
+	
+	{% for collection in pseudoisomer_collections %}
+	
+	<div class="collection">
+		<div class="title"><a name="{{collection.name}}">{{collection.name}} Set</a></div>
+	
+	{% for isomer in collection.pseudoisomers %}
+		<div class="pisomer">
+			<div class="gt">
+				<a name="{{isomer.data.tag}}">
+					{{isomer.data.name}} [h={{isomer.data.hydrogens}}, z={{isomer.data.net_charge}}, mg={{isomer.data.magnesiums}}]
+				</a>
+				
+				<div class="property">&Delta;G: {{isomer.data.dG0}}</div>
+				{% if isomer.data.smiles %}
+				<div class="property">SMILES expression: {{isomer.data.smiles}}</div>
+				{% endif %}
+				{% if isomer.data.cid %}
+				<div class="property">KEGG ID: {{isomer.data.cid}}</div>
+				{% endif %}
+				{% if isomer.data.ref %}
+				<div class="property">Ref: {{isomer.data.ref}}</div>
+				{% endif %}
+			</div>
+			
+			{% if isomer.decomposition %}
+			<div class="decomposition">Decomposition
+				<div class="property">Number of Groups: {{isomer.decomposition.group_count}}</div>
+				<div class="property">Net Charge: {{isomer.decomposition.net_charge}}</div>
+				<div class="property">Protons: {{isomer.decomposition.hydrogens}}</div>
+				<div class="property">Magnesiums: {{isomer.decomposition.magnesiums}}</div>
+				<div class="property">
+					<a class="fakeLink" onclick="showId('{{isomer.data.tag}}', this)">
+						Show Full Decomposition
+					</a>
+				</div>
+			</div>
+		
+			<table class="fullDecomposition" id="{{isomer.data.tag}}">
+				<tr>
+					<th>Group Name</th>
+					<th>Net Charge</th>
+					<th>Hydrogens</th>
+					<th>Magnesiums</th>
+					<th>Atoms</th>
+				</tr>
+				{% for group, node_sets in isomer.decomposition.nonempty_groups %}
+					{% for node_set in node_sets %}
+					<tr>
+						<td>{{group.name}}</td>
+						<td>{{group.charge}}</td>
+						<td>{{group.hydrogens}}</td>
+						<td>{{group.nMg}}</td>
+						<td>{{node_set|join:", "}}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+			</table>
+			{% else %}
+				<div class="decomposition">Unable to decompose.</div>
+			{% endif %}
+			
+		</div>
+		
+	{% endfor %}
+	
+	</div>
+	
+	{% endfor %}
+	</body>
+</html>

@@ -30,11 +30,22 @@ class PseudoisomerEntry(object):
     
     def Mol(self):
         """Returns a new Mol object corresponding to this compound."""
+        if not self.smiles:
+            return None
         return pybel.readstring('smiles', self.smiles)
     
     def __str__(self):
         return '%s (z=%s, nH=%s, nMg=%s)' % (self.name, self.net_charge,
                                              self.hydrogens, self.magnesiums)
+        
+    def __hash__(self):
+        return hash((self.name, self.net_charge,
+                     self.hydrogens, self.magnesiums))
+    
+    def Tag(self):
+        return '%s%d' % (self.name, hash(self))
+        
+    tag = property(Tag)
     
 
 class PseudoisomersData(object):
