@@ -73,6 +73,13 @@ class GroupDecomposition(object):
             if node_sets:
                 yield group, node_sets
     
+    def SparseRepresentation(self):
+        """Returns a dictionary representation of the group.
+        
+        TODO(flamholz): make this return some custom object.
+        """
+        return dict((group, node_sets) for group, node_sets in self.NonEmptyGroups())
+    
     def NetCharge(self):
         """Returns the net charge."""
         return self.AsVector().NetCharge()

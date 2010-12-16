@@ -1,0 +1,66 @@
+<html>
+	<head>
+		<title>Group-level Stats</title>
+		<style type="text/css">
+		.group .name {
+			font-size: 20px;
+			color: green;
+		}
+		
+		.section .title {
+			font-size: 30px;
+			margin-bottom: 10px;
+		}
+		
+		.rareGroupsSegment {
+			margin-bottom: 30px;
+		}
+		
+		.rareGroupsSegment .title {
+			font-weight: bold;
+			font-size: 24px;
+		}
+		</style>
+	</head>
+	<body>
+	
+	{% if histo_image_name %}
+	<img src="{{ histo_image_name }}" />
+	{% endif %}
+
+	
+	<div class="section">
+		<div class="title">Rare Groups</div>
+	{% for rare_groups in rare_groups_by_count %}
+	<div class="rareGroupsSegment">
+		<div class="title">Groups With {{rare_groups.count}} Examples</div>
+		{% if rare_groups.groups %}
+		{% for g in rare_groups.groups %}
+			<div class="group">
+				<div class="name">{{g.group.name}}</div>
+				<ul>
+				{% for pisomer in g.pseudoisomers %}
+					<li>{{pisomer}}</li>
+				{% endfor %}
+				</ul>
+			</div>
+		{% endfor %}
+		{% else %}
+			No such groups
+		{% endif %}
+	</div>
+	{% endfor %}
+	</div>
+	
+	<div class="section">
+		<div class="title">Most Common Groups</div>
+		{% for group_data in most_common_groups %}
+		<div class="group">
+			<div class="name">{{group_data.group.name}}</div>
+			<div><ul><li>{{ group_data.count }} occurrences</li></ul></div>
+		</div>
+		{% endfor %}
+	</div>
+	
+	</body>
+</html>
