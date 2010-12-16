@@ -10,12 +10,12 @@ class LinearRegression:
         """
             Performs a safe LeastSquars.
             
-            Returns (x, V):
-                If A is fully ranked, V = [] and x is the ordinary least squares solution for A*x = y.
+            Returns (x, K):
+                If A is fully ranked, K = [] and x is the ordinary least squares solution for A*x = y.
                 
                 If A is not fully ranked, LeastSquares returns the best solution for A*x = y, using the pseudoinverse of cov(A).
-                V is the subspace of R^m which is not covered by the regression. The dimension of this subspace is: m - rank(A).
-                If one wants to interpolate the y-value for a new data point, it must be orthogonal to V (i.e. V*x = 0).
+                K is the kernel of A, its dimension is: m - rank(A).
+                If one wants to interpolate the y-value for a new data point, it must be orthogonal to K (i.e. K*x = 0).
         """
         n, m = A.shape
         if len(y.shape) > 1 and y.shape[1] != 1:
