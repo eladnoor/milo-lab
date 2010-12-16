@@ -73,7 +73,7 @@ class GroupContribution(Thermodynamics):
             
         self.override_gc_with_measurements = True
         self.cid2pmap_dict = None
-        self.redundant_subspace = None
+        self.group_nullspace = None
             
     def __del__(self):
         self.HTML.close()
@@ -171,7 +171,7 @@ class GroupContribution(Thermodynamics):
         l_deltaG = l_deltaG_pKa + l_deltaG_formation
         l_names = l_names_pKa + l_names_formation
         self.save_training_data(l_groupvec, l_deltaG, l_names)
-        self.group_contributions, self.redundant_subspace = \
+        self.group_contributions, self.group_nullspace = \
             self.linear_regression_train()
 
         logging.info("storing the group contribution data in the database")
@@ -487,6 +487,19 @@ class GroupContribution(Thermodynamics):
         for row in self.db.Execute("SELECT name FROM train_molecules"):
             self.mol_names.append(row[0])
 
+    def linear_regression_train_new(self):
+        self.load_training_data()
+        
+        self.safe_rows = range(self.group_matrix.shape[0])
+        self.truncated_group_mat = self.group_matrix
+        self.truncated_obs = self.obs
+        self.truncated_mol_names = self.mol_names
+        self.nonzero_groups = range(self.group_matrix.shape[1])
+        
+        group_contributions, nullspace = \
+            LinearRegression.LeastSquares(self.group_matrix, self.obs)
+        return list(group_contributions.flat), nullspace
+    
     def linear_regression_train(self):
         self.load_training_data()
         
@@ -515,9 +528,9 @@ class GroupContribution(Thermodynamics):
         self.nonzero_groups = find(sum(absolute(self.truncated_group_mat), 0) > 0)
         self.truncated_group_mat = self.truncated_group_mat[:, self.nonzero_groups]
         
-        group_contributions, redundant_subspace = \
+        group_contributions, nullspace = \
             LinearRegression.LeastSquares(self.truncated_group_mat, self.truncated_obs)
-        return list(group_contributions.flat), redundant_subspace
+        return list(group_contributions.flat), nullspace
     
     def groupvec2val(self, groupvec):
         if (self.group_contributions == None):
@@ -525,7 +538,9 @@ class GroupContribution(Thermodynamics):
 
         missing_groups = set(find(groupvec)).difference(set(self.nonzero_groups))
         if (len(missing_groups) == 0):
-            groupvec = [groupvec[i] for i in self.nonzero_groups]
+            groupvec = array([groupvec[i] for i in self.nonzero_groups])
+            if dot(self.group_nullspace, groupvec).norm2() < 1e-6:
+                raise GroupMissingTrainDataError("can't estimate because some groups have no training data", missing_groups)
             return dot(groupvec, self.group_contributions)
         else:
             raise GroupMissingTrainDataError("can't estimate because some groups have no training data", missing_groups)
