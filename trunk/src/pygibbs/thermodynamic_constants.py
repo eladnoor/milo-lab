@@ -24,10 +24,10 @@ def correction_function(nH, nMg, z, pH, pMg, I, T):
         The correction, in units of RT.
     """
     DH = debye_huckel(I) / (R*T)
-    return -nMg * (log(10)*pMg - dG0_f_Mg) - nH * (log(10)*pH + DH) + (z**2) * DH
+    return nMg * (log(10)*pMg - dG0_f_Mg) + nH * (log(10)*pH + DH) - (z**2) * DH
 
 def transform(dG0, nH, z, pH, I, T):
-    return dG0 - R*T*correction_function(nH, z, pH, I, T)
+    return dG0 + R*T*correction_function(nH, z, pH, I, T)
 
 def array_transform(dG0, nH, nMg, z, pH, pMg, I, T):
     """
