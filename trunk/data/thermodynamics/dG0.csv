@@ -290,7 +290,7 @@
 ,700,"XTP",-2739.37,,-5,10,0,"test","Alberty (2003) beta","Guanosine0=0"
 ,700,"XTP",-2788.4,,-4,11,0,"test","Alberty (2003) beta","Guanosine0=0"
 ,700,"XTP",-2831.78,,-3,12,0,"test","Alberty (2003) beta","Guanosine0=0"
-"CN1CC(NC1=N)=O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)","moved to 'test' becuase it contains 4 unique groups. might be wise to use it later one when we get more training data" 
+"Cn1cc(nc1N)O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)","moved to 'test' becuase it contains 4 unique groups. might be wise to use it later one when we get more training data" 
 "C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-948.31,,0,14,0,"train","Alberty (2003) beta",
 "C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-946.36,,0,14,0,"skip","Alberty (2003) beta","duplicate entry"
 "CCOC(=O)C",849,"Ethyl-acetate",-337.65,-482,0,8,0,"train","Alberty (2003)",
