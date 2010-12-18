@@ -1,5 +1,5 @@
 import csv
-from pylab import *
+from pylab import * #@UnusedWildImport
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import KeggParseException
@@ -338,10 +338,10 @@ class GradientAscent(Thermodynamics):
             raise Exception("Internal Error: there no training data involving C%05d" % cid_to_reevaluate)
         
         for rowid in rowid_list:
-            (sparse_reaction, pH, I, T, evaluation, dG0_r) = self.data[rowid]
+            (sparse_reaction, pH, I, T, unused_evaluation, dG0_r) = self.data[rowid]
             
             dG0_unknown = dG0_r # the dG of the reaction
-            for (cid, coeff) in sparse_reaction.iteritems():
+            for cid in sparse_reaction.keys():
                 if (cid != cid_to_reevaluate):
                     dG0_unknown -= self.cache_cid[(rowid,cid)] # subtract the contribution of cid to the dG0_r
 
@@ -354,8 +354,8 @@ class GradientAscent(Thermodynamics):
 
         old_pmap = self.cid2pmap(cid_to_reevaluate)
         num_pseudoisomers = len(old_pmap)
-        nH_list = [nH for (nH, z) in old_pmap.keys()]
-        z_list = [z for (nH, z) in old_pmap.keys()]
+        nH_list = [nH for (nH, _z) in old_pmap.keys()]
+        z_list = [z for (_nH, z) in old_pmap.keys()]
         
         try:
             dG0 = reverse_thermo.solve(measurements, array(nH_list), array(z_list))
@@ -465,7 +465,7 @@ class GradientAscent(Thermodynamics):
 
         # find all the rows in observed data that are the same as this reaction
         data_mat = []
-        for (sparse_reaction, pH, I, T, evaluation, dG0_obs) in self.test_data:
+        for (sparse_reaction, pH, I, T, unused_evaluation, dG0_obs) in self.test_data:
             if (reaction_to_analyze == sparse_reaction):
                 dG0_est = self.reaction_to_dG0(sparse_reaction, pH, I, T)
                 data_mat.append([pH, I, T, dG0_obs, dG0_est, dG0_obs-dG0_est])
