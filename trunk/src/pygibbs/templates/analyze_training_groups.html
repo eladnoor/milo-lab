@@ -6,7 +6,13 @@
 			font-size: 20px;
 			color: green;
 		}
-		
+
+		.toc {
+			margin-top: 10px;
+			margin-bottom: 20px;
+			font-size: 20px;
+		}
+
 		.section .title {
 			font-size: 30px;
 			margin-bottom: 10px;
@@ -24,11 +30,22 @@
 	</head>
 	<body>
 	
+	<div class="toc">Table of Contents
+		<ul class="toc">
+			<li><a href="#histo">Groups Histogram</a></li>
+			<li><a href="#rareGroups">Rarest Groups</a></li>
+			<li><a href="#commonGroups">Most Common Groups</a></li>
+			<li><a href="#commonPairs">Most Common Pairs of Groups</a></li>
+		</ul>
+	</div>
+
+	<a name="histo" />
 	{% if histo_image_name %}
 	<img src="{{ histo_image_name }}" />
 	{% endif %}
 
 	
+	<a name="rareGroups" />
 	<div class="section">
 		<div class="title">Rare Groups</div>
 	{% for rare_groups in rare_groups_by_count %}
@@ -52,6 +69,7 @@
 	{% endfor %}
 	</div>
 	
+	<a name="commonGroups" />
 	<div class="section">
 		<div class="title">Most Common Groups</div>
 		{% for group_data in most_common_groups %}
@@ -62,6 +80,7 @@
 		{% endfor %}
 	</div>
 	
+	<a name="commonPairs" />
 	<div class="section">
 		<div class="title">Most Common Pairs of Groups</div>
 		{% for pair_data in frequent_pairs %}
