@@ -1,8 +1,9 @@
-import sys, os
+import logging
 from pylab import *
 from matplotlib import font_manager
 from matplotlib.backends.backend_pdf import PdfPages
 from pytecan.tecan_parser import TecanParser
+from toolbox import util
 
 def get_data(index, row, col, vp_vec):
     """
@@ -21,11 +22,6 @@ def get_data(index, row, col, vp_vec):
 
     return (time_array, value_array)
 
-if (not os.path.exists('../res')):
-    os.mkdir('../res')
-if (not os.path.exists('../res/tecan')):
-    os.mkdir('../res/tecan')
-
 name_list = ["2010-12-16 rubisco prk"]
 
 vp_vec = []
@@ -34,6 +30,7 @@ for name in name_list:
     vp.parse_excel("../data/tecan/%s.xls" % (name))
     vp_vec.append(vp)
 
+util._mkdir('../res/tecan')
 pp = PdfPages('../res/tecan/%s.pdf' % name_list[0])
 
 #rcParams['text.usetex'] = True
@@ -46,7 +43,7 @@ rcParams['legend.fontsize'] = 12
 #rcParams['figure.subplot.hspace'] = 0.3
 #figure()
 
-plot_growth_rate = False
+plot_growth_rate = True
 fit_window_size = 1.5 # hours
 fit_start_threshold = 0.01
 
@@ -57,13 +54,15 @@ OD_min = 0
 
 vlegend = []
 #for r in [0, 1, 2, 3, 4, 5, 6, 7]:
+colors = ['red', 'green', 'blue', 'violet', 'orange', 'pink', 'cyan', 'purple']
 for r in xrange(8):
-    for c in xrange(12):
-        vlegend = [('(%d,%d)' % (r,c), 'm', [(r, c)])]
-        plots.append(('Growth Curve (%d, %d)' % (r+1, c+1), (0, t_max), (0, 1e-0), 'OD', vlegend))
+    for c in [0, 3, 6, 9]:
+        label = '%c%d-%d' % (ord("A")+r, c+1,c+3)
+        vlegend += [(label, colors[r], [(r, c), (r, c+1), (r, c+2)])]
+plots.append(('Growth Curves', (0, t_max), (0, 1e-0), 'OD', vlegend))
 
 for (plot_title, t_range, y_range, y_label, data_series) in plots:
-    sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
+    logging.info("Plotting %s (%s) ... \n" % (plot_title, y_label))
     fig = figure()
     title(plot_title)
     xlabel('Time (hr)')
@@ -97,7 +96,7 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
                 try:
                     growth_rate = vp.fit_growth(time, values, fit_window_size, fit_start_threshold)
                 except Exception:
-                    sys.stderr.write("WARNING: cannot calculate the growth rate in cell (%d, %d)\n" % (row, col))
+                    logging.warning("cannot calculate the growth rate in cell (%d, %d)\n" % (row, col))
                 if (growth_rate > 1e-10):
                     label2legend[label] += "%.1f  " % (log(2.0) / growth_rate)
                 else:

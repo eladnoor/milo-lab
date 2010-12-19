@@ -30,7 +30,7 @@ class LinearRegression:
 
         r = len(find(s > 1e-8)) # the rank of A
         if r < m:
-            logging.warning('The rank of A (%d) is lower than the number of columns'
+            logging.debug('The rank of A (%d) is lower than the number of columns'
                             ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
 
         inv_V = inv(V)
@@ -38,8 +38,6 @@ class LinearRegression:
         
         D = diag([1/s[i] for i in xrange(r)] + [0] * (m-r))
         inv_S = hstack([D, zeros((m, n-m))])
-        
-        print inv_V.shape, inv_S.shape, inv_U.shape, y.shape
         
         x = dot(inv_V, dot(inv_S, dot(inv_U, y)))
         return x, V[r:m,:]
