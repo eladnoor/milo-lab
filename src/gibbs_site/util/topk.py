@@ -14,9 +14,14 @@ class TopK(object):
     
     def _SmallestIndex(self):
         """Returns the index of the smallest element."""
-        l = [(item.score, i) for i, item in enumerate(self.items)]
-        smallest = min(l)
-        return smallest[1]
+        smallest = None
+        smallest_index = None
+        for i, item in enumerate(self.items):
+            if not smallest or item < smallest:
+                smallest = item
+                smallest_index = i
+                
+        return smallest_index
         
     def GetSorted(self, key=None):
         """Return top items as a sorted list using the key function."""
@@ -34,5 +39,5 @@ class TopK(object):
         
         # TODO(elad): cache the smallest index.
         smallest_index = self._SmallestIndex()
-        if self.items[smallest_index].score < elt:
+        if self.items[smallest_index] < elt:
             self.items[smallest_index] = elt

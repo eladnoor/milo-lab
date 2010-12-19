@@ -9,6 +9,22 @@ from pygibbs import groups_data
 from pygibbs import pseudoisomers_data
 from pygibbs import templates
 from toolbox import util
+from gibbs_site.util import topk
+
+class PairwiseGroupMap(object):
+    
+    def __init__(self, map):
+        self.map = map
+        
+    def GetMostFrequentCooccurences(self, num=20):
+        tk = topk.TopK(num)
+        for groups, pisomers in self.map.iteritems():
+            ga, gb = groups
+            tk.MaybeAdd((len(pisomers), ga, gb))
+        
+        return [(ga, gb, count) for count, ga, gb in
+                tk.GetSorted(key=lambda s:s[0])]
+        
 
 class GroupMap(object):
     
@@ -58,6 +74,20 @@ class DecompositionStats(object):
                 map.setdefault(group, set()).add(pisomer)
         
         return GroupMap(map)
+    
+    def GetPairwiseGroupMap(self):
+        group_cooccurrences = {}
+        for pisomer, decomposition in self.decompositions.iteritems():
+            sparse = decomposition.SparseRepresentation()
+            for ga in sparse:
+                for gb in sparse:
+                    if ga != gb:
+                        key = (ga, gb)
+                        if (gb, ga) in group_cooccurrences:
+                            key = (gb, ga)
+                        group_cooccurrences.setdefault(key, set()).add(pisomer)
+        return PairwiseGroupMap(group_cooccurrences)
+                
                 
 
 def main():
@@ -82,7 +112,6 @@ def main():
             logging.warning('Cannot get a Mol for pseudoisomer %s' % pisomer)
             continue
         
-        
     map = dstats.GetGroupMap()
     rare_groups = []
     for i in range(10):
@@ -95,10 +124,15 @@ def main():
     
     most_common_groups = map.GetMostCommonGroups()
     mcg_dicts = [{'count': c, 'group': g} for g,c in most_common_groups]
-        
+    
+    
+    frequent_pairs = dstats.GetPairwiseGroupMap().GetMostFrequentCooccurences()
+    freq_pairs_dicts = [{'count': c, 'groups': [ga, gb]} for ga, gb, c in frequent_pairs]
+    
     template_data = {'rare_groups_by_count': rare_groups,
                      'most_common_groups': mcg_dicts,
-                     'histo_image_name': image_name}
+                     'histo_image_name': image_name,
+                     'frequent_pairs': freq_pairs_dicts}
     templates.render_to_file('analyze_training_groups.html',
                              template_data,
                              '../res/analyze_training_groups.html')

@@ -37,7 +37,7 @@
 		{% if rare_groups.groups %}
 		{% for g in rare_groups.groups %}
 			<div class="group">
-				<div class="name">{{g.group.name}}</div>
+				<div class="name">{{g.group}}</div>
 				<ul>
 				{% for pisomer in g.pseudoisomers %}
 					<li>{{pisomer}}</li>
@@ -56,8 +56,22 @@
 		<div class="title">Most Common Groups</div>
 		{% for group_data in most_common_groups %}
 		<div class="group">
-			<div class="name">{{group_data.group.name}}</div>
+			<div class="name">{{group_data.group}}</div>
 			<div><ul><li>{{ group_data.count }} occurrences</li></ul></div>
+		</div>
+		{% endfor %}
+	</div>
+	
+	<div class="section">
+		<div class="title">Most Common Pairs of Groups</div>
+		{% for pair_data in frequent_pairs %}
+		<div class="group">
+			<div class="name">
+			{% for group in pair_data.groups %}
+				{{ group }} {% if not forloop.last %} x {% endif %}
+			{% endfor %}
+			</div>
+			<div><ul><li>{{ pair_data.count }} occurrences</li></ul></div>
 		</div>
 		{% endfor %}
 	</div>
