@@ -10,9 +10,11 @@ import os
 import xml.dom.minidom
 import math
 import openbabel, oasa
+import types
 
 class BaseHtmlWriter:
     def __init__(self):
+        self.div_counter = 0
         pass
 
     def relative_to_full_path(self, relpath):
@@ -56,6 +58,15 @@ class BaseHtmlWriter:
         for mem in l:
             self.write("  <li>%s</li>\n" % str(mem))
         self.write("</ul>\n")
+        
+    def insert_toggle(self, div_id=None):
+        if not div_id:
+            div_id = "DIV%05d" % self.div_counter
+            self.div_counter += 1
+        elif type(div_id) != types.StringType:
+            raise ValueError("HTML div ID must be a string")
+        self.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % div_id)
+        return div_id
     
     def embed_img(self, fig_fname, alternative_string=""):
         self.write('<img src="' + fig_fname + '" atl="' + alternative_string + '" />')

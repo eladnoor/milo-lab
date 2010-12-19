@@ -306,6 +306,14 @@ class Compound(object):
             return self.get_obmol(correctForPH, pH).GetTotalCharge()
         except KeggParseException:
             return 0
+        
+    def get_num_electrons(self):
+        obmol = self.get_obmol(correctForPH=False)
+        n_protons = 0
+        for i in xrange(obmol.NumAtoms()):
+            atom = obmol.GetAtom(i+1)
+            n_protons += atom.GetAtomicNum()
+        return n_protons - obmol.GetTotalCharge()
 
     def get_link(self):
         return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % self.cid
