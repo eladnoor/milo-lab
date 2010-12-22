@@ -1,4 +1,5 @@
 import sqlite3, csv
+import os
 
 class Database(object):
     
@@ -103,8 +104,15 @@ class SQLDatabase(Database):
 
 class SqliteDatabase(SQLDatabase):
     
-    def __init__(self, filename):
-        self.comm = sqlite3.connect(filename)
+    def __init__(self, filename, flag='w'):
+        if flag == 'r':
+            if not os.path.exists(filename):
+                raise IOError('No such file or directory: %s' % filename)
+            self.comm = sqlite3.connect(filename)
+        elif flag == 'w':
+            self.comm = sqlite3.connect(filename)
+        else:
+            raise ValueError('Illegal flag: %s' % str(flag))
     
     def Execute(self, command, arguments=None):
         if arguments:
