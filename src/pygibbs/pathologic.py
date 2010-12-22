@@ -216,10 +216,9 @@ class Pathologic:
 
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
-    db = database.SqliteDatabase('gibbs.sqlite')
+    db = database.SqliteDatabase('../res/gibbs.sqlite', 'r')
     html_writer = HtmlWriter('../res/pathologic.html')
     pl = Pathologic(db, html_writer)
-
     
     pl.update_file = '../data/thermodynamics/database_updates_with_MOG_reactions.txt'
     pl.thermodynamic_method = 'global'

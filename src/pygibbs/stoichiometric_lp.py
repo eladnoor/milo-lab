@@ -1,5 +1,5 @@
 import pylab, cplex, sys
-from thermodynamics import R
+from pygibbs.thermodynamic_constants import R
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 
 class Stoichiometric_LP():
