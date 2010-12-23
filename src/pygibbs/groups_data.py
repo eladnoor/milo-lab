@@ -126,6 +126,11 @@ class GroupsData(object):
         self.all_group_charges = pylab.array([g.charge for g in self.all_groups])
         self.all_group_mgs = pylab.array([g.nMg for g in self.all_groups])
     
+    def Count(self):
+        return len(self.all_groups)
+    
+    count = property(Count)
+    
     @staticmethod
     def _GetAllGroups(groups):
         all_groups = []
