@@ -36,6 +36,7 @@
 			<li><a href="#rareGroups">Rarest Groups</a></li>
 			<li><a href="#commonGroups">Most Common Groups</a></li>
 			<li><a href="#commonPairs">Most Common Pairs of Groups</a></li>
+			<li><a href="#linearDepPairs">Linearly Dependent Pairs of Groups</a></li>
 		</ul>
 	</div>
 
@@ -91,6 +92,33 @@
 			{% endfor %}
 			</div>
 			<div><ul><li>{{ pair_data.count }} occurrences</li></ul></div>
+		</div>
+		{% endfor %}
+	</div>
+	
+	<a name="linearDepPairs" />
+	<div class="section">
+		<div class="title">Linearly Dependent Pairs of Groups</div>
+		{% for pair_data in ratio_preserving_pairs %}
+		<div class="group">
+			<div class="name">
+			{% for group in pair_data.groups %}
+				{{ group }} {% if not forloop.last %} x {% endif %}
+			{% endfor %}
+			</div>
+			<div>
+			<ul>
+				<li>{{ pair_data.ratio }} ratio</li>
+				<li>{{ pair_data.count }} occurrences</li>
+			</ul>
+			</div>
+			<div>Occurs in
+			<ul>
+				{% for pisomer in pair_data.pisomers %}
+				<li>{{ pisomer }}</li>
+				{% endfor %}
+			</ul>
+			</div>
 		</div>
 		{% endfor %}
 	</div>
