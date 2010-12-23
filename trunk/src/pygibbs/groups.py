@@ -479,8 +479,8 @@ class GroupContribution(Thermodynamics):
 
     def linear_regression_train(self):
         self.load_training_data()
-        group_contributions, nullspace = \
-            LinearRegression.LeastSquares(self.group_matrix, self.obs)
+        group_contributions, nullspace = LinearRegression.LeastSquares(
+            self.group_matrix, self.obs)
         return list(group_contributions.flat), nullspace
     
     def groupvec2val(self, groupvec):
@@ -555,8 +555,8 @@ class GroupContribution(Thermodynamics):
             subset = range(n_obs)
             subset.pop(i)
             
-            group_contributions, nullspace = \
-                LinearRegression.LeastSquares(self.group_matrix[subset, :], self.obs[subset])
+            group_contributions, nullspace = LinearRegression.LeastSquares(
+                self.group_matrix[subset, :], self.obs[subset])
             
             if nullspace.shape[0] > self.group_nullspace.shape[0]:
                 logging.warning('# example %d is not linearly dependent in the other examples' % i)

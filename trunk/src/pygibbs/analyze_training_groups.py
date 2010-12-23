@@ -11,6 +11,7 @@ from pygibbs import templates
 from toolbox import util
 from gibbs_site.util import topk
 
+
 class PairwiseGroupMap(object):
     
     def __init__(self, decompositions, group_map, pairwise_map):
@@ -31,7 +32,7 @@ class PairwiseGroupMap(object):
         sparse = self.decompositions[pisomer].SparseRepresentation()
         return float(len(sparse[groupa])) / float(len(sparse[groupb]))
     
-    def GetRatioPreservingCooccurences(self):
+    def GetLinearlyDependentPairs(self):
         s = set()
         for groups, pisomers in self.map.iteritems():            
             ga, gb = groups
@@ -70,11 +71,32 @@ class GroupMap(object):
 
     def GetCounts(self):
         return self.counts
+    
+    def AverageNumExamples(self):
+        return pylab.mean(self.counts.values())
+    
+    def MedianNumExamples(self):
+        return pylab.median(self.counts.values())
+    
+    def StdDevNumExamples(self):
+        return pylab.std(self.counts.values())
+    
+    def NumExamplesRange(self):
+        cts = self.counts.values()
+        return min(cts), max(cts)
+    
+    average_examples = property(AverageNumExamples)
+    median_examples = property(MedianNumExamples)
+    std_dev_examples = property(StdDevNumExamples)
+    examples_range = property(NumExamplesRange)
 
     def GetGroupsByNumExamples(self, num_examples):
         matches = [(g,pisomers) for g,pisomers in self.map.iteritems()
                    if len(pisomers) == num_examples]
         return matches
+    
+    zeroes = property(lambda self: self.GetGroupsByNumExamples(0))
+    ones = property(lambda self: self.GetGroupsByNumExamples(1))
     
     def GetMostCommonGroups(self, num_groups=10):
         counts_per_group = [(c, g) for g,c in self.counts.iteritems()]
@@ -98,15 +120,15 @@ class GroupMap(object):
 
 class DecompositionStats(object):
     
-    def __init__(self, groups_data):
-        self.groups_data = groups_data
+    def __init__(self, gdata):
+        self.groups_data = gdata
         self.decompositions = {}
         
     def AddDecomposition(self, pisomer, decomposition):
         self.decompositions[pisomer] = decomposition
     
     def GetGroupMap(self):
-        map = {}
+        map = dict((group, set()) for group in self.groups_data.all_groups)
         for pisomer, decomposition in self.decompositions.iteritems():
             for group, node_sets in decomposition.SparseRepresentation().iteritems():
                 map.setdefault(group, set()).add(pisomer)
@@ -137,7 +159,7 @@ def main():
     pdata = pseudoisomers_data.PseudoisomersData.FromFile(
         '../data/thermodynamics/dG0.csv')
     
-    dstats = DecompositionStats(groups_data)
+    dstats = DecompositionStats(gdata)
 
     for pisomer in pdata:
         if not pisomer.Train():
@@ -168,15 +190,17 @@ def main():
     pairwise_map = dstats.GetPairwiseGroupMap()
     frequent_pairs = pairwise_map.GetMostFrequentCooccurences()
     freq_pairs_dicts = [{'count': c, 'groups': [ga, gb]} for ga, gb, c in frequent_pairs]
-    ratio_preserving_pairs = pairwise_map.GetRatioPreservingCooccurences()
-    ratio_pairs_dicts = [{'ratio': r, 'pisomers': p, 'count': len(p), 'groups': [ga, gb]}
-                         for ga, gb, r, p in ratio_preserving_pairs]
+    ld_pairs = pairwise_map.GetLinearlyDependentPairs()
+    ld_pairs_dicts = [{'ratio': r, 'pisomers': p, 'count': len(p), 'groups': [ga, gb]}
+                      for ga, gb, r, p in ld_pairs]
     
     template_data = {'rare_groups_by_count': rare_groups,
                      'most_common_groups': mcg_dicts,
                      'histo_image_name': image_name,
                      'frequent_pairs': freq_pairs_dicts,
-                     'ratio_preserving_pairs': ratio_pairs_dicts}
+                     'ld_pairs': ld_pairs_dicts,
+                     'groups_data': gdata,
+                     'group_map': map}
     templates.render_to_file('analyze_training_groups.html',
                              template_data,
                              '../res/analyze_training_groups.html')

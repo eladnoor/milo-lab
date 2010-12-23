@@ -33,6 +33,7 @@
 	<div class="toc">Table of Contents
 		<ul class="toc">
 			<li><a href="#histo">Groups Histogram</a></li>
+			<li><a href="#globalStats">Global Stats</a></li>
 			<li><a href="#rareGroups">Rarest Groups</a></li>
 			<li><a href="#commonGroups">Most Common Groups</a></li>
 			<li><a href="#commonPairs">Most Common Pairs of Groups</a></li>
@@ -45,13 +46,26 @@
 	<img src="{{ histo_image_name }}" />
 	{% endif %}
 
+	<a name="globalStats" /></a>
+	<div class="section">
+		<div class="title">Global Stats</div>
+		<ul>
+			<li>Number of groups: {{ groups_data.count }}</li>
+			<li>Number of groups with 0 examples: {{ group_map.zeroes|length }}</li>
+			<li>Number of groups with 1 example: {{ group_map.ones|length }}</li>
+			<li>Average # of examples per group: {{ group_map.average_examples }}</li>
+			<li>Median # of examples per group: {{ group_map.median_examples }}</li>
+			<li>std. dev. of # of examples per group: {{ group_map.std_dev_examples }}</li>
+			<li>Range of # of examples per group: {{ group_map.examples_range }}</li>
+		</ul>
+	</div>
 	
 	<a name="rareGroups" />
 	<div class="section">
 		<div class="title">Rare Groups</div>
 	{% for rare_groups in rare_groups_by_count %}
 	<div class="rareGroupsSegment">
-		<div class="title">Groups With {{rare_groups.count}} Examples</div>
+		<div class="title">Groups With {{rare_groups.count}} Examples ({{rare_groups.groups|length}})</div>
 		{% if rare_groups.groups %}
 		{% for g in rare_groups.groups %}
 			<div class="group">
@@ -72,7 +86,7 @@
 	
 	<a name="commonGroups" />
 	<div class="section">
-		<div class="title">Most Common Groups</div>
+		<div class="title">Most Common Groups ({{most_common_groups|length}})</div>
 		{% for group_data in most_common_groups %}
 		<div class="group">
 			<div class="name">{{group_data.group}}</div>
@@ -83,7 +97,7 @@
 	
 	<a name="commonPairs" />
 	<div class="section">
-		<div class="title">Most Common Pairs of Groups</div>
+		<div class="title">Most Common Pairs of Groups ({{frequent_pairs|length}})</div>
 		{% for pair_data in frequent_pairs %}
 		<div class="group">
 			<div class="name">
@@ -98,8 +112,8 @@
 	
 	<a name="linearDepPairs" />
 	<div class="section">
-		<div class="title">Linearly Dependent Pairs of Groups</div>
-		{% for pair_data in ratio_preserving_pairs %}
+		<div class="title">Linearly Dependent Pairs of Groups ({{ld_pairs|length}})</div>
+		{% for pair_data in ld_pairs %}
 		<div class="group">
 			<div class="name">
 			{% for group in pair_data.groups %}
