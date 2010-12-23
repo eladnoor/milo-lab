@@ -1,12 +1,13 @@
 import logging
-from numpy.linalg import svd, inv
-from numpy import diag, matrix, hstack, zeros, array, dot
+from numpy.linalg import svd, inv, norm
+from numpy import diag, matrix, hstack, vstack, zeros, array, dot, vstack
 from pylab import find
+import sys
 
 class LinearRegression:
     
     @staticmethod
-    def LeastSquares(A, y):
+    def LeastSquares(A, y, eps=1e-10):
         """
             Performs a safe LeastSquars.
             
@@ -26,9 +27,14 @@ class LinearRegression:
         if n < m:
             raise Exception('Linear problem is under-determined (more variables than equations)')
         
-        U, s, V = svd(A, full_matrices=True)
+        zero_columns = find([norm(A[:,i])<=eps for i in xrange(m)])
+        nonzero_columns = find([norm(A[:,i])>eps for i in xrange(m)])
+        A_red = A[:, nonzero_columns]
+        m_red = len(nonzero_columns)
+        
+        U, s, V = svd(A_red, full_matrices=True)
 
-        r = len(find(s > 1e-8)) # the rank of A
+        r = len(find(s > eps)) # the rank of A
         if r < m:
             logging.debug('The rank of A (%d) is lower than the number of columns'
                             ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
@@ -36,28 +42,69 @@ class LinearRegression:
         inv_V = inv(V)
         inv_U = inv(U)
         
-        D = diag([1/s[i] for i in xrange(r)] + [0] * (m-r))
-        inv_S = hstack([D, zeros((m, n-m))])
+        D = diag([1/s[i] for i in xrange(r)] + [0] * (m_red-r))
+        inv_S = hstack([D, zeros((m_red, n-m_red))])
         
         x = dot(inv_V, dot(inv_S, dot(inv_U, y)))
-        return x, V[r:m,:]
+        weights = zeros((m, 1))
+        weights[nonzero_columns, :] = x
+
+        kerA = zeros((m-r, m))
+        kerA[0:(m_red-r), nonzero_columns] = V[r:m_red,:]
+        for i, j in enumerate(zero_columns):
+            kerA[m_red-r+i, j] = 1
+        LinearRegression.GaussJordan(kerA, eps)
+
+        return weights, kerA
     
+    @staticmethod
+    def GaussJordan(A, eps=1e-10):
+        """
+            Puts given matrix (2D array) into the Reduced Row Echelon Form.
+            Returns True if successful, False if 'm' is singular.
+            NOTE: make sure all the matrix items support fractions! Int matrix will NOT work!
+            Written by Jarno Elonen in April 2005, released into Public Domain
+        """
+        h, w = A.shape
+        for y in xrange(0, h):
+            maxrow = y
+            for y2 in xrange(y+1, h):    # Find max pivot
+                if abs(A[y2, y]) > abs(A[maxrow, y]):
+                    maxrow = y2
+            A[[y,maxrow], :] = A[[maxrow,y], :]
+            if abs(A[y, y]) <= eps:     # Singular?
+                return False
+            for y2 in xrange(y+1, h):    # Eliminate column y
+                c = A[y2, y] / A[y, y]
+                for x in xrange(y, w):
+                    A[y2, x] -= A[y, x] * c
+        for y in xrange(h-1, 0-1, -1): # Backsubstitute
+            c  = A[y, y]
+            for y2 in xrange(0, y):
+                for x in xrange(w-1, y-1, -1):
+                    A[y2, x] -=  A[y, x] * A[y2, y] / c
+            A[y, y] /= c
+            for x in xrange(h, w):       # Normalize row y
+                A[y, x] /= c
+        return True
     
 if __name__ == '__main__':
     #A = matrix([[1, 2, 3],[2, 3, 4],[-1, 8, 2],[2, 3, 1]])
     #y = matrix([[1],[1],[1],[1]])
-    A = matrix([[0, 1, 1],[1, 2, 2],[-1, 1, 1]])
-    w = matrix([[1],[1],[1]])
-    y = array([2, 5, 1])
+    A = matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
+    
+    w = matrix([[1],[1],[1],[2],[1]])
     
     #y = A*x
     #print A
     #print x
     w_pred, V = LinearRegression.LeastSquares(A, A*w)
     print w_pred
+    print V
+
     
-    x1 = matrix([[0],[5],[5]])
-    x2 = matrix([[0],[1],[0]])
+    x1 = matrix([[0,0,0,1,0]]).T
+    x2 = matrix([[-1,0,0,-1,-2]]).T
     
-    print V*x1, x1.T*w_pred
-    print V*x2, x2.T*w_pred
+    print norm(V*x1)<1e-10, dot(x1.T, w_pred)[0,0], dot(x1.T, w)[0,0]
+    print norm(V*x2)<1e-10, dot(x2.T, w_pred)[0,0], dot(x2.T, w)[0,0]

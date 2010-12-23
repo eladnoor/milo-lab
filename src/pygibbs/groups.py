@@ -10,11 +10,11 @@ import sys
 import types
 
 from matplotlib import font_manager
-from pylab import nan, find, sum, absolute, array, pinv, plot, log
-from pylab import dot, xlabel, ylabel, figure, hold, text, savefig
+from pylab import nan, find, sum, array, plot, log
+from pylab import dot, xlabel, ylabel, figure, hold, text
 from pylab import zeros, rcParams, mean, std, arange, ylim, xlim, axhspan
 from pylab import axvspan, legend, matrix, exp, contour, meshgrid, clabel
-from numpy.linalg.linalg import norm
+from numpy.linalg import norm
 
 from copy import deepcopy
 from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_I, default_T, default_c0, dG0_f_Mg
@@ -272,7 +272,7 @@ class GroupContribution(Thermodynamics):
             
             self.HTML.write("<h3>%s, %s</h3>\n" % (ps_isomer.name, ps_isomer.ref))
 
-            if not ps_isomer.dG0:
+            if ps_isomer.dG0 == None:
                 self.HTML.write('No data for &#x394;G<sub>f</sub><br>\n')
                 continue
 
@@ -564,7 +564,7 @@ class GroupContribution(Thermodynamics):
                                    "linearly independent example"))
                 continue
             
-            estimation = dot(self.group_matrix[i, :], group_contributions)[0, 0]
+            estimation = dot(self.group_matrix[i, :], group_contributions)
             error = self.obs[i] - estimation
             
             val_names.append(self.mol_names[i])
@@ -909,12 +909,6 @@ class GroupContribution(Thermodynamics):
         f.close()
         
     def SaveContributionsToDB(self):
-        def float_zero(x):
-            if abs(x) < 1e-6:
-                return 0
-            else:
-                return x
-        
         self.db.CreateTable('observation', 'cid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_f REAL, use_for TEXT')
         for cid in self.cid2pmap_obs.keys():
             if (cid in self.cid_test_set):
@@ -927,13 +921,19 @@ class GroupContribution(Thermodynamics):
         logging.info("storing the group contribution data in the database")
         self.db.CreateTable('contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL, nullspace TEXT')
         
-        r = self.group_nullspace.shape[0] # the dimension of the nullspace
         for j, dG0_gr in enumerate(self.group_contributions):
             group = self.groups_data.all_groups[j]
-            nullspace_str = ','.join(["%g" % float_zero(self.group_nullspace[i, j]) for i in xrange(r)])
+            nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
             self.db.Insert('contribution', [j, group.name, group.hydrogens,
-                                            group.charge, group.nMg, float_zero(dG0_gr),
+                                            group.charge, group.nMg, dG0_gr,
                                             nullspace_str])
+            
+        self.db.CreateTable('nullspace', 'group_vector')
+        for i in xrange(self.group_nullspace.shape[0]):
+            nonzero_columns = find(abs(self.group_nullspace[i, :]) > 1e-10)
+            gv = ",".join(["%g x %s" % (self.group_nullspace[i, j], 
+                                        self.groups_data.all_groups[j].name) for j in nonzero_columns])
+            self.db.Insert('nullspace', [gv])
 
         self.db.Commit()
             
