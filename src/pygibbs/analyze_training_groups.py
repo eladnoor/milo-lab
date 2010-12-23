@@ -13,8 +13,10 @@ from gibbs_site.util import topk
 
 class PairwiseGroupMap(object):
     
-    def __init__(self, map):
-        self.map = map
+    def __init__(self, decompositions, group_map, pairwise_map):
+        self.map = pairwise_map
+        self.group_map = group_map
+        self.decompositions = decompositions
         
     def GetMostFrequentCooccurences(self, num=20):
         tk = topk.TopK(num)
@@ -24,7 +26,40 @@ class PairwiseGroupMap(object):
         
         return [(ga, gb, count) for count, ga, gb in
                 tk.GetSorted(key=lambda s:s[0])]
+    
+    def _GetRatio(self, pisomer, groupa, groupb):
+        sparse = self.decompositions[pisomer].SparseRepresentation()
+        return float(len(sparse[groupa])) / float(len(sparse[groupb]))
+    
+    def GetRatioPreservingCooccurences(self):
+        s = set()
+        for groups, pisomers in self.map.iteritems():            
+            ga, gb = groups
+            ratio = None
+            ratio_matches = True
+            for pisomer in pisomers:
+                current_ratio = self._GetRatio(pisomer, ga, gb)
+                
+                if not ratio:
+                    ratio = current_ratio
+                    continue
+                
+                if ratio != current_ratio:
+                    ratio_matches = False
+                    break
+                
+            if not ratio_matches:
+                continue
+            
+            num_together = len(pisomers)
+            counts = self.group_map.GetCounts()
+            acount, bcount = counts[ga], counts[gb]
+            if not num_together == acount or not num_together == bcount:
+                continue
+            
+            s.add((ga, gb, ratio, frozenset(pisomers)))
         
+        return s
 
 class GroupMap(object):
     
@@ -32,6 +67,9 @@ class GroupMap(object):
         self.map = map
         
         self.counts = dict((g, len(s)) for g,s in self.map.iteritems())
+
+    def GetCounts(self):
+        return self.counts
 
     def GetGroupsByNumExamples(self, num_examples):
         matches = [(g,pisomers) for g,pisomers in self.map.iteritems()
@@ -86,7 +124,9 @@ class DecompositionStats(object):
                         if (gb, ga) in group_cooccurrences:
                             key = (gb, ga)
                         group_cooccurrences.setdefault(key, set()).add(pisomer)
-        return PairwiseGroupMap(group_cooccurrences)
+        return PairwiseGroupMap(self.decompositions,
+                                self.GetGroupMap(),
+                                group_cooccurrences)
                 
                 
 
@@ -125,14 +165,18 @@ def main():
     most_common_groups = map.GetMostCommonGroups()
     mcg_dicts = [{'count': c, 'group': g} for g,c in most_common_groups]
     
-    
-    frequent_pairs = dstats.GetPairwiseGroupMap().GetMostFrequentCooccurences()
+    pairwise_map = dstats.GetPairwiseGroupMap()
+    frequent_pairs = pairwise_map.GetMostFrequentCooccurences()
     freq_pairs_dicts = [{'count': c, 'groups': [ga, gb]} for ga, gb, c in frequent_pairs]
+    ratio_preserving_pairs = pairwise_map.GetRatioPreservingCooccurences()
+    ratio_pairs_dicts = [{'ratio': r, 'pisomers': p, 'count': len(p), 'groups': [ga, gb]}
+                         for ga, gb, r, p in ratio_preserving_pairs]
     
     template_data = {'rare_groups_by_count': rare_groups,
                      'most_common_groups': mcg_dicts,
                      'histo_image_name': image_name,
-                     'frequent_pairs': freq_pairs_dicts}
+                     'frequent_pairs': freq_pairs_dicts,
+                     'ratio_preserving_pairs': ratio_pairs_dicts}
     templates.render_to_file('analyze_training_groups.html',
                              template_data,
                              '../res/analyze_training_groups.html')
