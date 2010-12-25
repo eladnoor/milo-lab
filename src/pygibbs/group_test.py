@@ -8,15 +8,16 @@ from toolbox.html_writer import HtmlWriter
 from pygibbs.groups_data import GroupsData
 from pygibbs.group_decomposition import GroupDecomposer
 from pygibbs.kegg import Kegg
+from pygibbs.thermodynamic_analysis import ThermodynamicAnalysis
 
-def main(db, html_writer):        
+def main():
+    db = database.SqliteDatabase('../res/gibbs.sqlite')
+    html_writer = HtmlWriter('../res/dG0_test.html')
+    G = GroupContribution(db, html_writer=html_writer)
+    G.init()
+
     groups_data = GroupsData.FromGroupsFile("../data/thermodynamics/groups_species.csv")
     group_decomposer = GroupDecomposer(groups_data)
-    kegg = Kegg()
-
-    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
-    G.init()
-    
     (pH, pMg, I, T) = (7, 3, 0.1, 298.15)
     
     cids = []
@@ -26,7 +27,7 @@ def main(db, html_writer):
     mols = []
     for cid in cids:
         try:
-            mols += [kegg.cid2mol(cid)]
+            mols += [G.kegg.cid2mol(cid)]
         except KeggParseException:
             continue
         except KeyError:
@@ -66,8 +67,5 @@ def main(db, html_writer):
         print "-OPO3.Mg -> -OPO3[2-] : pK_Mg = %.1f" % G.GetpK_Mg_group("-OPO3", 0, 0, 1)
 
 if __name__ == "__main__":
-    db = database.SqliteDatabase('../res/gibbs.sqlite')
-    html_writer = HtmlWriter('../res/dG0_test.html')
-    main(db, html_writer)
-    #G.analyze_pathway("../data/thermodynamics/pathways.txt")
+    main()
     

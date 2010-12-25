@@ -1,6 +1,7 @@
 import csv
 from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 import pseudoisomer
+import pylab
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -112,3 +113,24 @@ class Thermodynamics(object):
             if (anchor):
                 self.anchors.add(cid)
         self.update_cache(self)
+        
+    def write_pseudoisomers_to_html(self, html_writer, kegg, cids):
+        # calculate the dG0_f of each compound
+        dG0_f = pylab.zeros((len(cids), 1))
+        html_writer.write('<table border="1">\n')
+        html_writer.write('  ' + '<td>%s</td>'*6 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z", "nMg") + '\n')
+        for c, cid in enumerate(cids):
+            name = kegg.cid2name(cid)
+            try:
+                for (nH, z, nMg, dG0) in self.cid2pmatrix(cid):
+                    html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td><td>%d</td></tr>\n' % \
+                                      (kegg.cid2link(cid), cid, name, dG0, nH, z, nMg))
+                dG0_f[c] = self.cid_to_dG0(cid)
+            
+            except MissingCompoundFormationEnergy:
+                # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
+                dG0_f[c] = pylab.nan
+                html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % \
+                                  (kegg.cid2link(cid), cid, name))
+        html_writer.write('</table>\n')
+        return dG0_f

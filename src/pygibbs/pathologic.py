@@ -27,7 +27,7 @@ class Pathologic:
 
     def find_path(self, experiment_name, source=None, target=None):
         _mkdir('../res/pathologic/' + experiment_name)
-        self.gc.HTML.write('<a href="pathologic/' + experiment_name + '.html">' + experiment_name + '</a><br>\n')
+        self.gc.html_writer.write('<a href="pathologic/' + experiment_name + '.html">' + experiment_name + '</a><br>\n')
         exp_html = HtmlWriter('../res/pathologic/' + experiment_name + '.html')
         exp_html.write("<p><h1>%s</h1>\n" % experiment_name)
 

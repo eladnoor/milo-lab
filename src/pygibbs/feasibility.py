@@ -5,6 +5,7 @@ from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
 from pygibbs import kegg
+from toolbox.database import SqliteDatabase
 
 try:
     import cplex
@@ -290,29 +291,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     fluxes = [abs(f) for f in fluxes]
     
     kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
-
-    # calculate the dG0_f of each compound
-    dG0_f = pylab.zeros((Nc, 1))
-    ind_nan = []
-    html_writer.write('<table border="1">\n')
-    html_writer.write('  ' + '<td>%s</td>'*6 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z", "nMg") + '\n')
-    for c in range(Nc):
-        cid = cids[c]
-        name = kegg.cid2name(cid)
-        try:
-            for (nH, z, nMg, dG0) in thermodynamics.cid2pmatrix(cid):
-                html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td><td>%d</td></tr>\n' % \
-                                  (kegg.cid2link(cid), cid, name, dG0, nH, z, nMg))
-            dG0_f[c] = thermodynamics.cid_to_dG0(cid)
-        
-        except MissingCompoundFormationEnergy:
-            # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
-            dG0_f[c] = pylab.nan
-            ind_nan.append(c)
-            html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % \
-                              (kegg.cid2link(cid), cid, name))
-    html_writer.write('</table>\n')
-    
+    dG0_f = thermodynamics.write_pseudoisomers_to_html(html_writer, kegg, cids)
     bounds = [thermodynamics.bounds.get(cid, (None, None)) for cid in cids]
     res = {}
     try:
@@ -373,7 +352,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, 
     html_writer.embed_matplotlib_figure(profile_fig, width=480, height=360)
 
     # plot the optimal metabolite concentrations for the different optimization schemes
-
+    ind_nan = pylab.find(pylab.isnan(dG0_f))
     for optimization in res.keys():
         (dG_f, conc, score) = res[optimization]
         if (score == None):
@@ -508,8 +487,9 @@ def test_all_modules():
 
 def test_single_modules(mids):
     from pygibbs.groups import GroupContribution
+    db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/thermodynamic_module_analysis.html")
-    gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+    gc = GroupContribution(db, html_writer)
     gc.init()
     
     for mid in mids:

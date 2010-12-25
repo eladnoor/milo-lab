@@ -60,4 +60,4 @@ util._mkdir('../res/nist')
 dot_fname = '../res/nist/connectivity.dot'
 Gdot.write(dot_fname, format='dot')
 win.open_file(dot_fname)
-gtk.main()
+gtk.test_decomposition()
