@@ -14,6 +14,39 @@ class MalformedGroupDefinitionError(GroupsDataError):
     pass
 
 
+class _AllAtomsSet(object):
+    """A set containing all the atoms: used for focal atoms sets."""
+    
+    def __contains__(self, elt):
+        return True
+
+
+class FocalSet(object):
+    
+    def __init__(self, focal_atoms_str):
+        if not focal_atoms_str:
+            raise IllegalArgumentException(
+                'You must supply a non-empty focal atom string.'
+                ' You may use "None" or "All" in the obvious fashion.')
+        
+        self.str = focal_atoms_str
+        self.focal_atoms_set = None
+        prepped_str = self.str.strip().lower()
+        
+        if prepped_str == 'all':
+            self.focal_atoms_set = _AllAtomsSet()
+        elif prepped_str == 'none':
+            self.focal_atoms_set = set()
+        else:
+            self.focal_atoms_set = set([int(c) for c in self.str.split('|')])
+    
+    def __str__(self):
+        return self.str
+    
+    def __contains__(self, elt):
+        return self.focal_atoms_set.__contains__(elt)
+
+
 class Group(object):
     """Representation of a single group."""
     
@@ -46,10 +79,12 @@ class Group(object):
         
         Returns:
             A set of focal atoms.
-        """
-        if self.focal_atoms:
-            return set([nodes[i] for i in self.focal_atoms])
-        return set(nodes)
+        """        
+        focal_set = set()
+        for i, node in enumerate(nodes):
+            if i in self.focal_atoms:
+                focal_set.add(node)            
+        return focal_set
     
     def __str__(self):
         return '%s [H%d Z%d Mg%d]' % (self.name, self.hydrogens, self.charge, self.nMg)
@@ -70,7 +105,7 @@ class Group(object):
         Note that the hash depends on the same attributes that are checked for equality.
         """
         return hash((self.name, self.hydrogens, self.charge, self.nMg))
-    
+
 
 class GroupsData(object):
     """Contains data about all groups."""
@@ -148,7 +183,12 @@ class GroupsData(object):
     
     @staticmethod
     def _ConvertFocalAtoms(focal_atoms_str):
-        return [int(c) for c in focal_atoms_str.split('|')]
+        if not focal_atoms_str:
+            return _AllAtomsSet()
+        if focal_atoms_str.lower().strip() == 'none':
+            return set()
+        
+        return set([int(c) for c in focal_atoms_str.split('|')])
     
     @staticmethod
     def FromGroupsFile(filename):
@@ -165,8 +205,7 @@ class GroupsData(object):
             try:
                 (group_name, protons, charge, smarts, focal_atoms, unused_remark) = row
                 
-                if focal_atoms:
-                    focal_atoms = GroupsData._ConvertFocalAtoms(focal_atoms)
+                focal_atoms = FocalSet(focal_atoms)
                 if protons:
                     protons = int(protons)
                 if charge:
@@ -216,11 +255,8 @@ class GroupsData(object):
         for row in db.Execute('SELECT * FROM groups'):
             (gid, group_name, protons, charge, nMg, smarts, focal_atom_set, unused_remark) = row
             
-            if focal_atom_set: # otherwise, consider all the atoms as focal atoms
-                focal_atoms = GroupsData._ConvertFocalAtoms(focal_atom_set)
-            else:
-                focal_atoms = None
-
+            
+            focal_atoms = FocalSet(focal_atom_set)
             list_of_groups.append(Group(gid, group_name, protons, charge, nMg, str(smarts), focal_atoms))
         logging.info('Done reading groups data.')
         
@@ -232,7 +268,7 @@ class GroupsData(object):
         
         db.CreateTable('groups', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, smarts TEXT, focal_atoms TEXT, remark TEXT')
         for group in self.groups:
-            focal_atom_str = '|'.join([str(fa) for fa in group.focal_atoms])
+            focal_atom_str = str(group.focal_atoms)
             db.Insert('groups', [group.id, group.name, int(group.hydrogens), int(group.charge), 
                                  int(group.nMg), group.smarts, focal_atom_str, ''])
 
