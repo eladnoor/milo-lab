@@ -1,13 +1,10 @@
-import pylab, re, logging, sys
-from kegg import KeggParseException, Kegg
-from thermodynamics import default_T
-from alberty import Alberty
-from toolbox import util
+import pylab, re, logging
+from pygibbs.kegg import KeggParseException, Kegg
+from pygibbs.thermodynamics import default_T
+from pygibbs.alberty import Alberty
+from toolbox.util import _mkdir, ReadCsvWithTitles
 from toolbox.html_writer import HtmlWriter
-from pygibbs.thermodynamics import default_pMg
-from numpy.core.numeric import arange
-from pylab import log
-from pygibbs.thermodynamic_constants import R
+from pygibbs.thermodynamic_constants import R, default_pMg
 
 class NistMissingCrucialDataException(Exception):
     pass
@@ -39,7 +36,7 @@ class NistRowData:
         self.pMg = NistRowData.none_float(row_dict['pMg']) or default_pMg
         self.K_type = row_dict['Ktype']
 
-        self.dG0_r = -R*self.T*log(self.K)
+        self.dG0_r = -R*self.T*pylab.log(self.K)
         
         self.evaluation = row_dict['evaluation']
         self.comment = row_dict['comment']
@@ -119,7 +116,7 @@ class Nist(object):
         
         self.data = []
         row_counter = 1
-        for row_dict in util.ReadCsvWithTitles(filename):
+        for row_dict in ReadCsvWithTitles(filename):
             row_counter += 1
             try:
                 nist_row_data = NistRowData(row_dict, row_counter)
@@ -224,7 +221,7 @@ class Nist(object):
         pylab.rc('font', family='serif', size=7)
         pylab.title("NIST database statistics")
         pylab.subplot(2,2,1)
-        pylab.hist(T_list, arange(int(min(T_list)), int(max(T_list)+1), 2.5))
+        pylab.hist(T_list, pylab.arange(int(min(T_list)), int(max(T_list)+1), 2.5))
         pylab.xlabel("Temperature (C)")
         pylab.ylabel("No. of measurements")
         pylab.subplot(2,2,2)
@@ -271,7 +268,7 @@ class Nist(object):
         logging.info('Done analyzing stats.')
         
 if __name__ == '__main__':
-    util._mkdir("../res/nist")
+    _mkdir("../res/nist")
     nist = Nist()
     html_writer = HtmlWriter("../res/nist/statistics.html")
     nist.AnalyzeStats(html_writer)

@@ -10,23 +10,23 @@ import sys
 import types
 
 from copy import deepcopy
+import pylab
 from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_I, default_T, default_c0, dG0_f_Mg
 from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
+from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
 from pygibbs import groups_data
-from pygibbs import thermodynamic_constants
-from pygibbs import group_decomposition
-from pygibbs import pseudoisomer
-from pygibbs import pseudoisomers_data
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import KeggParseException, Kegg, parse_bool_field
 from pygibbs.kegg import parse_float_field, parse_vfloat_field, parse_string_field, parse_kegg_file
 from pygibbs.dissociation_constants import DissociationConstants
-from pygibbs.groups_data import Group
-from toolbox import database, util
+from pygibbs.groups_data import Group, GroupsData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
-import pylab
+from toolbox.database import SqliteDatabase
+from toolbox.util import ReadCsvWithTitles
+from pygibbs.pseudoisomers_data import PseudoisomersData
+from pygibbs.pseudoisomer import PseudoisomerMap
 
 class GroupContributionError(Exception):
     pass
@@ -116,7 +116,7 @@ class GroupContribution(Thermodynamics):
                 continue
             try:
                 pmap = self.estimate_pmap(mol, ignore_protonations=True)
-            except group_decomposition.GroupDecompositionError:
+            except GroupDecompositionError:
                 self.db.Insert('gc_cid2error', [cid, 'cannot decompose into groups'])
                 continue
             except GroupMissingTrainDataError:
@@ -136,13 +136,13 @@ class GroupContribution(Thermodynamics):
         # Now load the data into the cid2pmap_dict:
         for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 1;"):
             cid, nH, z, nMg, dG0 = row
-            self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            self.cid2pmap_dict.setdefault(cid, PseudoisomerMap())
             self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
 
         cid2pmap_obs = {} # observed formation energies
         for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 0;"):
             cid, nH, z, nMg, dG0 = row
-            cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            cid2pmap_obs.setdefault(cid, PseudoisomerMap())
             cid2pmap_obs[cid].Add(nH, z, nMg, dG0)
 
         # add the observed data to the cid2pmap_dict (and override the estimated data if required)
@@ -170,11 +170,11 @@ class GroupContribution(Thermodynamics):
             
     def load_groups(self, group_fname=None):
         if group_fname:
-            self.groups_data = groups_data.GroupsData.FromGroupsFile(group_fname)
+            self.groups_data = GroupsData.FromGroupsFile(group_fname)
             self.groups_data.ToDatabase(self.db)
         else:
-            self.groups_data = groups_data.GroupsData.FromDatabase(self.db)
-        self.group_decomposer = group_decomposition.GroupDecomposer(self.groups_data)
+            self.groups_data = GroupsData.FromDatabase(self.db)
+        self.group_decomposer = GroupDecomposer(self.groups_data)
         self.dissociation = DissociationConstants(self.db, self.html_writer,
                                                   self.kegg(), self.group_decomposer)
 
@@ -226,7 +226,7 @@ class GroupContribution(Thermodynamics):
         try:
             comp = self.kegg().cid2compound(cid)
             return self.get_pseudoisomers(comp.get_mol())
-        except group_decomposition.GroupDecompositionError:
+        except GroupDecompositionError:
             return [(self.kegg().cid2num_hydrogens(cid), self.kegg().cid2charge(cid), 0)]
         except KeggParseException:
             return [(0, 0, 0)]
@@ -257,7 +257,7 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
         self.html_writer.write('Source File = %s<br>\n' % obs_fname)
         
-        pdata = pseudoisomers_data.PseudoisomersData.FromFile(obs_fname)
+        pdata = PseudoisomersData.FromFile(obs_fname)
         
         counter = 0
         for ps_isomer in pdata:
@@ -277,7 +277,7 @@ class GroupContribution(Thermodynamics):
             self.html_writer.write('&#x394;G<sub>f</sub> = %.2f<br>\n' % ps_isomer.dG0)
 
             if ps_isomer.cid:
-                self.cid2pmap_obs.setdefault(ps_isomer.cid, pseudoisomer.PseudoisomerMap())
+                self.cid2pmap_obs.setdefault(ps_isomer.cid, PseudoisomerMap())
                 self.cid2pmap_obs[ps_isomer.cid].Add(ps_isomer.hydrogens, ps_isomer.net_charge,
                                                      ps_isomer.magnesiums, ps_isomer.dG0)
 
@@ -317,7 +317,7 @@ class GroupContribution(Thermodynamics):
     
             try:
                 decomposition = self.group_decomposer.Decompose(mol, strict=True)
-            except group_decomposition.GroupDecompositionError as e:
+            except GroupDecompositionError as e:
                 logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
                 raise e
             
@@ -373,7 +373,7 @@ class GroupContribution(Thermodynamics):
                 l_groupvec.append(groupvec)
                 l_deltaG.append(obs_val)
                 self.html_writer.write('Decomposition = %s <br>\n' % self.get_decomposition_str(mol))
-            except group_decomposition.GroupDecompositionError:
+            except GroupDecompositionError:
                 self.html_writer.write('Could not be decomposed<br>\n')
             except KeyError:
                 self.html_writer.write('Compound has no INCHI in KEGG<br>\n')
@@ -390,7 +390,7 @@ class GroupContribution(Thermodynamics):
             self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id)
             try:
                 return self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
-            except group_decomposition.GroupDecompositionError as _e:
+            except GroupDecompositionError as _e:
                 logging.warning('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
                 self.html_writer.write('%s Could not be decomposed<br>\n' % smiles)
                 #raise e
@@ -488,7 +488,7 @@ class GroupContribution(Thermodynamics):
     def estimate_val(self, mol):
         try:
             groupvec = self.get_groupvec(mol)
-        except group_decomposition.GroupDecompositionError as e:
+        except GroupDecompositionError as e:
             inchi = self.mol2inchi(mol)
             if (inchi in self.inchi2val_obs):
                 return self.inchi2val_obs[inchi]
@@ -629,15 +629,15 @@ class GroupContribution(Thermodynamics):
         try:
             all_groupvecs = self.group_decomposer.Decompose(
                 mol, ignore_protonations, strict=True).PseudoisomerVectors()
-        except group_decomposition.GroupDecompositionError as e:
-            raise group_decomposition.GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
+        except GroupDecompositionError as e:
+            raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
 
         if not all_groupvecs:
-            raise group_decomposition.GroupDecompositionError('Found no pseudoisomers for %s'
+            raise GroupDecompositionError('Found no pseudoisomers for %s'
                                           % mol.title)
 
         all_missing_groups = []
-        pmap = pseudoisomer.PseudoisomerMap()
+        pmap = PseudoisomerMap()
         for groupvec in all_groupvecs:
             try:
                 dG0 = self.groupvec2val(groupvec)
@@ -669,12 +669,12 @@ class GroupContribution(Thermodynamics):
                 raise MissingCompoundFormationEnergy("Formation energy cannot be determined using group contribution", cid)
 
         if (cid == 80): # H+
-            pmap = pseudoisomer.PseudoisomerMap()
+            pmap = PseudoisomerMap()
             pmap.Add(0, 0, 0, 0)
             return pmap
 
         if (cid in self.cid2pmap_obs and (self.override_gc_with_measurements or cid in self.cid_test_set)):
-            pmap = pseudoisomer.PseudoisomerMap()
+            pmap = PseudoisomerMap()
             pmap.AddAll(self.cid2pmap_obs[cid])
             return pmap
         else:
@@ -802,8 +802,8 @@ class GroupContribution(Thermodynamics):
     def cid2groupvec(self, cid):
         try:
             return self.get_groupvec(self.kegg().cid2mol(cid))
-        except group_decomposition.GroupDecompositionError:
-            raise group_decomposition.GroupDecompositionError("Unable to decompose %s (C%05d) into groups" % (self.kegg().cid2name(cid), cid))
+        except GroupDecompositionError:
+            raise GroupDecompositionError("Unable to decompose %s (C%05d) into groups" % (self.kegg().cid2name(cid), cid))
             
     def rid2groupvec(self, rid):
         sparse_reaction = self.kegg().rid2sparse_reaction(rid) 
@@ -848,7 +848,7 @@ class GroupContribution(Thermodynamics):
                     for j in range(len(I)):
                         self.db.Insert('dG0_r', [rid, pH[i], pMg, I[j], T, dG0[i, j]])
                         self.html_writer.write('Estimated (pH=%f, I=%f, T=%f) &#x394;G\'<sub>r</sub> = %.2f kJ/mol<br>\n' % (pH[i], I[j], T, dG0[i, j]))
-            except group_decomposition.GroupDecompositionError as e:
+            except GroupDecompositionError as e:
                 self.html_writer.write('Warning, cannot decompose one of the compounds: ' + str(e) + '<br>\n')
             except GroupMissingTrainDataError as e:
                 self.html_writer.write('Warning, cannot estimate: ' + str(e) + '<br>\n')
@@ -866,7 +866,7 @@ class GroupContribution(Thermodynamics):
             try:
                 groupvec = self.cid2groupvec(cid)
                 csv_file.writerow([cid] + groupvec)
-            except group_decomposition.GroupDecompositionError as e:
+            except GroupDecompositionError as e:
                 print str(e)
                 continue
             except KeggParseException as e:
@@ -888,7 +888,7 @@ class GroupContribution(Thermodynamics):
                     if (groupvec[i] != 0):
                         groupstr += "%s : %d, " % (group_names[i], groupvec[i])
                 groupstr_to_counter[groupstr] = groupstr_to_counter.get(groupstr, 0) + 1
-            except group_decomposition.GroupDecompositionError as e:
+            except GroupDecompositionError as e:
                 print "R%05d: Cannot decompose at least one of the compounds\n" % rid + str(e)
             except KeggParseException as e:
                 print str(e)
@@ -939,7 +939,7 @@ class GroupContribution(Thermodynamics):
 
         for row in self.db.Execute("SELECT * FROM observation"):
             (cid, unused_name, nH, z, mgs, dG0_f, use_for) = row
-            self.cid2pmap_obs.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            self.cid2pmap_obs.setdefault(cid, PseudoisomerMap())
             self.cid2pmap_obs[cid].Add(nH, z, mgs, dG0_f)
             if (use_for == 'test'):
                 self.cid_test_set.add(cid)
@@ -953,7 +953,7 @@ class GroupContribution(Thermodynamics):
                         
     def read_compound_abundance(self, filename):
         self.db.CreateTable('compound_abundance', 'cid INT, media TEXT, concentration REAL')
-        for row in util.ReadCsvWithTitles(filename):
+        for row in ReadCsvWithTitles(filename):
             if not row['Kegg ID']:
                 continue
             cid = int(row['Kegg ID'])
@@ -1007,7 +1007,7 @@ class GroupContribution(Thermodynamics):
 #################################################################################################################
     
 if __name__ == '__main__':
-    db = database.SqliteDatabase('../res/gibbs.sqlite')
+    db = SqliteDatabase('../res/gibbs.sqlite')
     if True:
         html_writer = HtmlWriter('../res/dG0_train.html')
         G = GroupContribution(db, html_writer)
