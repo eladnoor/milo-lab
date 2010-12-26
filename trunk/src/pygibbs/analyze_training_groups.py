@@ -98,7 +98,7 @@ class GroupMap(object):
     zeroes = property(lambda self: self.GetGroupsByNumExamples(0))
     ones = property(lambda self: self.GetGroupsByNumExamples(1))
     
-    def GetMostCommonGroups(self, num_groups=10):
+    def GetMostCommonGroups(self, num_groups=20):
         counts_per_group = [(c, g) for g,c in self.counts.iteritems()]
         counts_per_group.sort(reverse=True)
         return [(g,c) for c,g in counts_per_group[:num_groups]]
@@ -176,7 +176,7 @@ def main():
         
     map = dstats.GetGroupMap()
     rare_groups = []
-    for i in range(10):
+    for i in range(21):
         groups = map.GetGroupsByNumExamples(i)
         l = [{'group': g, 'pseudoisomers': ps} for g,ps in groups]
         rare_groups.append({'count': i, 'groups': l})

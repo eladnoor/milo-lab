@@ -9,7 +9,7 @@ class LinearRegression:
     @staticmethod
     def LeastSquares(A, y, eps=1e-10):
         """
-            Performs a safe LeastSquars.
+            Performs a safe LeastSquares.
             
             Returns (x, K):
                 If A is fully ranked, K = [] and x is the ordinary least squares solution for A*x = y.
@@ -36,8 +36,8 @@ class LinearRegression:
 
         r = len(find(s > eps)) # the rank of A
         if r < m:
-            logging.debug('The rank of A (%d) is lower than the number of columns'
-                            ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
+            logging.info('The rank of A (%d) is lower than the number of columns'
+                         ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
 
         inv_V = inv(V)
         inv_U = inv(U)
