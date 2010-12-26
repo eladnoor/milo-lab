@@ -101,12 +101,12 @@ class ThermodynamicAnalysis(object):
         
         return (S, rids, fluxes, cids)
 
-    def write_metabolic_graph(self, S, rids, cids):
+    def write_metabolic_graph(self, name, S, rids, cids):
         """
             draw a graph representation of the pathway
         """        
         Gdot = self.kegg.draw_pathway(S, rids, cids)
-        self.html_writer.embed_dot(Gdot, width=500, height=1000)
+        self.html_writer.embed_dot(Gdot, name, width=400, height=400)
 
     def analyze_profile(self, key, field_map):
         self.html_writer.write('<p>\n')
@@ -148,7 +148,7 @@ class ThermodynamicAnalysis(object):
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
         self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
         self.html_writer.write('</ul>')
-        self.write_metabolic_graph(S, rids, cids)
+        self.write_metabolic_graph(key, S, rids, cids)
         
         (Nr, Nc) = S.shape
 
@@ -223,7 +223,7 @@ class ThermodynamicAnalysis(object):
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
         self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
         self.html_writer.write('</ul>\n')
-        self.write_metabolic_graph(S, rids, cids)
+        self.write_metabolic_graph(key, S, rids, cids)
         
         physiological_pC = parse_float_field(field_map, "PHYSIO", 4)
         (Nr, Nc) = S.shape

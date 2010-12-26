@@ -1,12 +1,11 @@
-import pylab, cplex, sys
+import pylab, cplex, sys, logging
 from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
 from pygibbs.groups import GroupContribution
 from pygibbs.feasibility import thermodynamic_pathway_analysis
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
-import logging
-from toolbox import database
+from toolbox.database import SqliteDatabase
 
 ################################################################################
 #                               CONSTANTS & DEFAULTS                           #
@@ -130,7 +129,6 @@ class Pathologic:
         # draw network as a graph and link to it
         Gdot = self.kegg_patholotic.draw_pathway(sol_reactions, sol_fluxes)
         Gdot.write('../res/pathologic/%s/%s_graph.svg' % (experiment_name, solution_id), prog='dot', format='svg')
-        #exp_html.embed_dot(Gdot)
         exp_html.write(' <a href="%s/%s_graph.svg" target="_blank">network</a>' % (experiment_name, solution_id))
 
         exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (solution_id))
@@ -216,7 +214,7 @@ class Pathologic:
 
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
-    db = database.SqliteDatabase('../res/gibbs.sqlite', 'r')
+    db = SqliteDatabase('../res/gibbs.sqlite', 'r')
     html_writer = HtmlWriter('../res/pathologic.html')
     pl = Pathologic(db, html_writer)
     
@@ -242,10 +240,6 @@ def main():
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")
 
     # TODO: write a clustering algorithm to understand the solutions
-   
-    # TODO: When using "margin" optimization, there is no constraint on the total flux, and that can cause unwanted results (such as futile cycles).
-    # one solution for this is to find all futile cycles and remove them in post-processing.
-    # Note that these futile cycles are not of the thermodynamically infeasible kind (i.e. they are futile only if you ignore the co-factors).
     
 ####################################################################################################
 

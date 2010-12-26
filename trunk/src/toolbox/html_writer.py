@@ -5,12 +5,9 @@ html_writer.py - Construct HTML pages
 
 """
 
-import util
-import os
+import os, math, types, openbabel, oasa
 import xml.dom.minidom
-import math
-import openbabel, oasa
-import types
+from toolbox.util import _mkdir
 
 class BaseHtmlWriter:
     def __init__(self):
@@ -71,7 +68,7 @@ class BaseHtmlWriter:
     def embed_img(self, fig_fname, alternative_string=""):
         self.write('<img src="' + fig_fname + '" atl="' + alternative_string + '" />')
     
-    def embed_svg(self, fig_fname, alternative_string="", width=320, height=240, name=''):
+    def embed_svg(self, fig_fname, width=320, height=240, name=''):
         self.write('<object data="%s" type="image/svg+xml" width="%d" height="%d" name="%s"/></object>' % (fig_fname, width, height, name))
     
     def embed_matplotlib_figure(self, fig, width=320, height=240):
@@ -83,7 +80,7 @@ class BaseHtmlWriter:
         self.extract_svg_from_file('.svg', width, height)
         os.remove('.svg')
 
-    def embed_dot(self, Gdot, width=320, height=240):
+    def embed_dot_inline(self, Gdot, width=320, height=240):
         """
             Converts the DOT graph to an SVG DOM and uses the inline SVG option to 
             add it directly into the HTML (without creating a separate SVG file).
@@ -91,6 +88,15 @@ class BaseHtmlWriter:
         Gdot.write('.svg', prog='dot', format='svg')
         self.extract_svg_from_file('.svg', width, height)
         os.remove('.svg')
+
+    def embed_dot(self, Gdot, name, width=320, height=240):
+        """
+            Converts the DOT graph to an SVG DOM and uses the inline SVG option to 
+            add it directly into the HTML (without creating a separate SVG file).
+        """
+        svg_filename = self.relative_to_full_path(name + '.svg')
+        Gdot.write(svg_filename, prog='dot', format='svg')
+        self.embed_svg(svg_filename, width=width, height=height, name=name)
 
     @staticmethod
     def pybel_mol_to_oasa_mol(mol):
@@ -177,7 +183,7 @@ class BaseHtmlWriter:
         
         dir_path = os.path.abspath(os.path.dirname(full_filename))
         if not os.path.exists(dir_path):
-            util._mkdir(dir_path)
+            _mkdir(dir_path)
         
         oasa_mol = HtmlWriter.pybel_mol_to_oasa_mol(mol)
         canvas = HtmlWriter.oasa_mol_to_canvas(oasa_mol)
@@ -238,7 +244,7 @@ class HtmlWriter(BaseHtmlWriter):
         self.flush_always = flush_always
         if (not os.path.exists(self.filepath)):
             if (force_path_creation and not os.path.exists(self.filepath)):
-                util._mkdir(self.filepath)
+                _mkdir(self.filepath)
             else:
                 raise Exception("cannot write to HTML file %s since the directory doesn't exist" % filename)
         
