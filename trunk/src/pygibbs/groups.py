@@ -24,7 +24,6 @@ from pygibbs.groups_data import Group, GroupsData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from toolbox.util import ReadCsvWithTitles
 from pygibbs.pseudoisomers_data import PseudoisomersData
 from pygibbs.pseudoisomer import PseudoisomerMap
 
@@ -958,7 +957,7 @@ class GroupContribution(Thermodynamics):
                         
     def read_compound_abundance(self, filename):
         self.db.CreateTable('compound_abundance', 'cid INT, media TEXT, concentration REAL')
-        for row in ReadCsvWithTitles(filename):
+        for row in csv.DictReader(open(filename, 'r')):
             if not row['Kegg ID']:
                 continue
             cid = int(row['Kegg ID'])

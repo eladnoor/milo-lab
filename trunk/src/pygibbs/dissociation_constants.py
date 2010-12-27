@@ -1,7 +1,7 @@
 import csv, re, logging
 from kegg import Kegg, KeggParseException
 from toolbox.database import SqliteDatabase
-from toolbox.util import ReadCsvWithTitles, _mkdir
+from toolbox.util import _mkdir
 from pygibbs.group_decomposition import GroupDecomposer
 from toolbox.html_writer import HtmlWriter
 import pybel
@@ -23,7 +23,7 @@ class DissociationConstants(object):
         last_formula = None
         last_name = None
         data = []
-        for row_dict in ReadCsvWithTitles(filename):
+        for row_dict in csv.DictReader(open(filename, 'r')):
             if row_dict['name'] and row_dict['formula']:
                 cid, kegg_name, distance = self.FindCID(row_dict['formula'], row_dict['name'])
                 last_formula = row_dict['formula']
@@ -84,7 +84,7 @@ class DissociationConstants(object):
         """
         
         self.db.CreateTable('pKa', 'cid INT, step INT, T REAL, pKa REAL, smiles_below TEXT, smiles_above TEXT')
-        for row in ReadCsvWithTitles(csv_filename):
+        for row in csv.DictReader(open(csv_filename, 'r')):
             if row['cid']:
                 cid = int(row['cid'])
                 if row['T']:
