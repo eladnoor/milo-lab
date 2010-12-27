@@ -4,6 +4,7 @@ import pybel
 import sys
 import logging
 
+from toolbox import smarts_util
 from toolbox import util
 from pygibbs import groups_data
 from pygibbs import group_vector
@@ -176,22 +177,6 @@ class GroupDecomposer(object):
         assert db
         gd = groups_data.GroupsData.FromDatabase(db, filename)
         return GroupDecomposer(gd)
-    
-    @staticmethod
-    def FindSmarts(mol, smarts_str):
-        """
-        Corrects the pyBel version of Smarts.findall() which returns results as tuples,
-        with 1-based indices even though Molecule.atoms is 0-based.
-
-        Args:
-            mol: the molecule to search in.
-            smarts_str: the SMARTS query to search for.
-        
-        Returns:
-            The re-mapped list of SMARTS matches.
-        """
-        shift_left = lambda m: [(n - 1) for n in m] 
-        return map(shift_left, pybel.Smarts(smarts_str).findall(mol))
 
     @staticmethod
     def _InternalPChainSmarts(length):
@@ -225,7 +210,7 @@ class GroupDecomposer(object):
         
         all_pmg_groups = (groups_data.GroupsData.FINAL_PHOSPHATES_TO_MGS +
                           groups_data.GroupsData.MIDDLE_PHOSPHATES_TO_MGS)
-        for mg in GroupDecomposer.FindSmarts(mol, '[Mg+2]'):
+        for mg in smarts_util.FindSmarts(mol, '[Mg+2]'):
             if mg[0] in assigned_mgs:
                 continue
             
@@ -292,7 +277,7 @@ class GroupDecomposer(object):
             # Find internal phosphate chains (ones in the middle of the molecule).
             smarts_str = GroupDecomposer._InternalPChainSmarts(length)
             chain_map = dict((k, []) for (k, _) in group_map.iteritems())
-            for pchain in GroupDecomposer.FindSmarts(mol, smarts_str):
+            for pchain in smarts_util.FindSmarts(mol, smarts_str):
                 working_pchain = list(pchain)
                 working_pchain.pop() # Lose the carbons
                 working_pchain.pop(0)
@@ -315,7 +300,7 @@ class GroupDecomposer(object):
             # Find terminal phosphate chains.
             smarts_str = GroupDecomposer._TerminalPChainSmarts(length)
             chain_map = dict((k, []) for (k, _) in group_map.iteritems())
-            for pchain in GroupDecomposer.FindSmarts(mol, smarts_str):
+            for pchain in smarts_util.FindSmarts(mol, smarts_str):
                 working_pchain = list(pchain)
                 working_pchain.pop() # Lose the carbon
                 
@@ -355,6 +340,10 @@ class GroupDecomposer(object):
         unassigned_nodes = set(range(len(mol.atoms)))
         groups = []
         
+        def _AddCorrection(group, count):
+            l = [set() for _ in xrange(count)]
+            groups.append((group, l))
+        
         for group in self.groups_data.groups:
             # Phosphate chains require a special treatment
             if group.IsPhosphate():
@@ -376,10 +365,12 @@ class GroupDecomposer(object):
                             current_groups.append(focal_set)
                             unassigned_nodes = unassigned_nodes - focal_set
                     groups.append((phosphate_group, current_groups))
-                    
-            else:  # Not a phosphate group
+            elif group.IsCodedCorrection():
+                _AddCorrection(group, group.GetCorrection(mol))
+            # Not a phosphate group or expanded correction.
+            else:  
                 current_groups = []
-                for nodes in self.FindSmarts(mol, group.smarts):
+                for nodes in smarts_util.FindSmarts(mol, group.smarts):
                     try:
                         focal_set = group.FocalSet(nodes)
                     except IndexError:
@@ -394,7 +385,7 @@ class GroupDecomposer(object):
                 groups.append((group, current_groups))
         
         # Ignore the hydrogen atoms when checking which atom is unassigned
-        for nodes in self.FindSmarts(mol, '[H]'): 
+        for nodes in smarts_util.FindSmarts(mol, '[H]'): 
             unassigned_nodes = unassigned_nodes - set(nodes)
         
         decomposition = GroupDecomposition(self.groups_data, mol,
@@ -408,7 +399,30 @@ class GroupDecomposer(object):
 
 
 def main():
+    from pseudoisomers_data import PseudoisomersData
     decomposer = GroupDecomposer.FromGroupsFile('../data/thermodynamics/groups_species.csv')
+    pdata = PseudoisomersData.FromFile("../data/thermodynamics/dG0.csv")
+    
+    for ps_isomer in pdata:
+        if ps_isomer.Skip():
+            continue
+
+        if not ps_isomer.Complete():
+            continue
+        
+        try:
+            mol = ps_isomer.Mol()
+            mol.removeh()
+            mol.title = str(ps_isomer)
+            decomposition = decomposer.Decompose(mol, strict=True)
+        except GroupDecompositionError as e:
+            logging.error('Cannot decompose %s', mol.title)
+            continue
+        except (TypeError, AttributeError), e:
+            logging.error(e)
+            continue
+    
+    return
     
     atp = 'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O'
     coa = 'C1C=CN(C=C1C(=O)N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OCC3C(C(C(O3)N4C=NC5=C4N=CN=C5N)O)O)O)O'

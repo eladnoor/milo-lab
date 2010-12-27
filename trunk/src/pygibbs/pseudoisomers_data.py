@@ -18,6 +18,20 @@ class PseudoisomerEntry(object):
         self.dG0 = dG0
         self.ref = ref
         self.use_for = use_for
+    
+    def Complete(self):
+        """Returns true if it has enough data to use for training/testing."""
+        if not self.name or not self.smiles:
+            return False
+        
+        try:
+            int(self.net_charge)
+            int(self.hydrogens)
+            int(self.magnesiums)
+        except Exception, e:
+            return False
+        
+        return True
         
     def Train(self):
         return self.use_for.lower() == 'train'
@@ -33,6 +47,14 @@ class PseudoisomerEntry(object):
         if not self.smiles:
             return None
         return pybel.readstring('smiles', self.smiles)
+    
+    def MolNoH(self):
+        mol = self.Mol()
+        if not mol:
+            return None
+        
+        mol.removeh()
+        return mol
     
     def __str__(self):
         return '%s (z=%s, nH=%s, nMg=%s)' % (self.name, self.net_charge,
@@ -100,6 +122,7 @@ class PseudoisomersData(object):
             comp = PseudoisomerEntry(charge, hydrogens, nMg, smiles,
                                      dG0=dG0, name=name, cid=cid,
                                      ref=ref, use_for=use_for)
+                
             logging.info('Reading data for %s', comp)
             
             pseudoisomers.append(comp)

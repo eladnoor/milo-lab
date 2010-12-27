@@ -28,6 +28,7 @@ from toolbox.util import ReadCsvWithTitles
 from pygibbs.pseudoisomers_data import PseudoisomersData
 from pygibbs.pseudoisomer import PseudoisomerMap
 
+
 class GroupContributionError(Exception):
     pass
     
@@ -289,16 +290,16 @@ class GroupContribution(Thermodynamics):
             elif ps_isomer.Train():
                 self.html_writer.write('Compound marked to be used for training<br>\n')
             else:
-                raise Exception("Unknown usage flag: %s" % ps_isomer.use_for)
+                raise Exception('Unknown usage flag: %' % ps_isomer.use_for)
 
             if not ps_isomer.smiles:
                 raise Exception("Cannot use compound '%s' for training if it lacks a SMILES string" % ps_isomer.name)
             try:
                 self.html_writer.write('SMILES = %s<br>\n' % ps_isomer.smiles)
-                mol = ps_isomer.Mol()
-                mol.removeh()
-            except TypeError:
-                raise Exception("Invalid smiles: " + ps_isomer.smiles)
+                mol = ps_isomer.MolNoH()
+            except TypeError, e:
+                logging.error(e)
+                raise Exception('Invalid smiles: %s' % ps_isomer.smiles)
 
             inchi = self.mol2inchi(mol)
             self.html_writer.write('INCHI = %s<br>\n' % inchi)
@@ -310,7 +311,7 @@ class GroupContribution(Thermodynamics):
             try:
                 self.html_writer.embed_molecule_as_png(mol, img_fname)
             except (TypeError, IndexError, AssertionError):
-                logging.warning("PyBel cannot draw the compound %s" % name)
+                logging.warning('PyBel cannot draw the compound %s',  name)
                 self.html_writer.write('WARNING: cannot draw this compound using PyBel\n')
 
             self.html_writer.write('<br>\n')
@@ -329,11 +330,15 @@ class GroupContribution(Thermodynamics):
             
             gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
             if ps_isomer.hydrogens != gc_hydrogens:
-                self.html_writer.write("ERROR: Hydrogen count doesn't match: explicit = %d, formula = %d<br>\n" %
-                                (ps_isomer.hydrogens, gc_hydrogens))
+                s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
+                    ps_isomer.hydrogens, gc_hydrogens)
+                logging.error(s)
+                self.html_writer.write(s + '<br>\n')
             if ps_isomer.net_charge != gc_charge:
-                self.html_writer.write("ERROR: Charge doesn't match: explicit = %d, formula = %d<br>\n" %
-                                (ps_isomer.net_charge, gc_charge))
+                s = 'ERROR: Charge doesn\'t match: explicit = %d, formula = %d' % (
+                    ps_isomer.net_charge, gc_charge)
+                logging.error(s)
+                self.html_writer.write(s + '<br>\n')
                 
         self.html_writer.write('</div>')
         return (l_groupvec, l_deltaG, l_names)        

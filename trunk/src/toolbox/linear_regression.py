@@ -4,7 +4,7 @@ from numpy import diag, matrix, hstack, vstack, zeros, array, dot, vstack
 from pylab import find
 import sys
 
-class LinearRegression:
+class LinearRegression(object):
     
     @staticmethod
     def LeastSquares(A, y, eps=1e-10):
@@ -36,8 +36,8 @@ class LinearRegression:
 
         r = len(find(s > eps)) # the rank of A
         if r < m:
-            logging.info('The rank of A (%d) is lower than the number of columns'
-                         ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
+            logging.debug('The rank of A (%d) is lower than the number of columns'
+                          ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
 
         inv_V = inv(V)
         inv_U = inv(U)

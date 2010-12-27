@@ -5,6 +5,8 @@ import logging
 import pybel
 import pylab
 
+from toolbox import smarts_util
+
 
 class GroupsDataError(Exception):
     pass
@@ -60,6 +62,18 @@ class Group(object):
         self.smarts = smarts
         self.focal_atoms = focal_atoms
 
+    def _IsHydrocarbonGroup(self):
+        return self.name.startswith('*Hc')
+
+    def _IsSugarGroup(self):
+        return self.name.startswith('*Su')
+    
+    def _IsAromaticRingGroup(self):
+        return self.name.startswith('*Ar')
+    
+    def _IsHeteroaromaticRingGroup(self):
+        return self.name.startswith('*Har')
+
     def IsPhosphate(self):
         return self.name.startswith('*P')
     
@@ -70,6 +84,54 @@ class Group(object):
     def ChargeSensitive(self):
         # (C)harge sensitive
         return self.name[2] == 'C'
+    
+    def IsCodedCorrection(self):
+        """Returns True if this is a correction for which hand-written code.
+           must be executed.
+        """
+        return (self._IsHydrocarbonGroup() or
+                self._IsAromaticRingGroup() or
+                self._IsHeteroaromaticRingGroup())
+
+    @staticmethod
+    def _IsHydrocarbon(mol):
+        """Tests if a molecule is a simple hydrocarbon."""
+        if smarts_util.FindSmarts(mol, '[!C;!c]'):
+            # If we find anything other than a carbon (w/ hydrogens)
+            # then it's not a hydrocarbon.
+            return 0
+        return 1    
+
+    @staticmethod
+    def _CountAromaticRings(mol):
+        expressions = ['c1cccc1', 'c1ccccc1']
+        count = 0
+        for smarts_str in expressions:
+            count += len(smarts_util.FindSmarts(mol, smarts_str))
+        return count
+    
+    @staticmethod
+    def _CountHeteroaromaticRings(mol):
+        expressions = ['a1aaaa1', 'a1aaaaa1']
+        count = 0
+        for smarts_str in expressions:
+            for match in smarts_util.FindSmarts(mol, smarts_str):
+                atoms = set([mol.atoms[i].atomicnum for i in match])
+                atoms.discard(8)  # Ditch carbons
+                if atoms:
+                    count += 1
+        return count
+
+    def GetCorrection(self, mol):
+        """Get the value of the correction for this molecule."""
+        if self._IsHydrocarbonGroup():
+            return self._IsHydrocarbon(mol)
+        elif self._IsAromaticRingGroup():
+            return self._CountAromaticRings(mol)
+        elif self._IsHeteroaromaticRingGroup():
+            return self._CountHeteroaromaticRings(mol)
+        
+        raise TypeError('This group is not a correction.')
     
     def FocalSet(self, nodes):
         """Get the set of focal atoms from the match.
@@ -201,9 +263,18 @@ class GroupsData(object):
         group_csv_file.next() # Skip the header
     
         gid = 0
-        for row in group_csv_file:
+        for row in csv.DictReader(open(filename)):
+            if row.get('SKIP', False):
+                logging.warning('Skipping group %s', row.get('NAME'))
+                continue
+            
             try:
-                (group_name, protons, charge, smarts, focal_atoms, unused_remark) = row
+                group_name = row['NAME']
+                protons = row['PROTONS']
+                charge = row['CHARGE']
+                smarts = row['SMARTS']
+                focal_atoms = row['FOCAL_ATOMS']
+                remark = row['REMARK']
                 
                 focal_atoms = FocalSet(focal_atoms)
                 if protons:
@@ -218,8 +289,11 @@ class GroupsData(object):
                 group = Group(gid, group_name, protons, charge, mgs, str(smarts),
                               focal_atoms)
                 list_of_groups.append(group)
+            except KeyError, msg:
+                logging.error(msg)
+                raise GroupsDataError('Failed to parse row.')
             except ValueError, msg:
-                print msg
+                logging.error(msg)
                 raise GroupsDataError('Wrong number of columns (%d) in one of the rows in %s: %s' %
                                       (len(row), filename, str(row)))
             except IOError:
