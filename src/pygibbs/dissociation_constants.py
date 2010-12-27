@@ -6,6 +6,7 @@ from pygibbs.group_decomposition import GroupDecomposer
 from toolbox.html_writer import HtmlWriter
 import pybel
 import sys
+import openbabel
 
 class DissociationConstants(object):
     def __init__(self, db, html_writer, kegg=None, group_decomposer=None):
@@ -13,7 +14,6 @@ class DissociationConstants(object):
         self.html_writer = html_writer
         self.kegg = kegg or Kegg()
         self.group_decomposer = group_decomposer or GroupDecomposer.FromDatabase(db)
-        self.cid2pKas = {}
     
     def ReadOriginalCSV(self, filename):
         """
@@ -99,33 +99,47 @@ class DissociationConstants(object):
                                                pKa, row['smiles_below'], 
                                                row['smiles_above']])
                     except ValueError:
-                        logging.warning("the pKa value for C%05d is not a proper number" % cid)
+                        logging.warning("the pKa value for C%05d is not a proper number: %s" % (cid, row['pKa']))
                         continue
                 else:
                     self.db.Insert('pKa', [cid, None, None, None, None, None])
                     
-        
         self.db.Commit()
             
     def AnalyseValues(self):
         for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa ORDER BY cid"):
             logging.info("analyzing C%05d" % cid)
             self.DrawProtonation(cid, step, pKa, smiles_below, smiles_above)
-            self.cid2pKas.setdefault(cid, []).append(pKa)
-
-        #for cid, pKas in sorted(self.cid2pKas.iteritems()):
-        #    mol = self.kegg.cid2mol(cid)
-        #    decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=True)
-        #    active_groups = self.GetActiveGroups(decomposition)
-        #    print cid, self.kegg.cid2name(cid), pKas, active_groups
 
     def GetAllpKas(self):
         cid2pKa_list = {}
-        for cid, pKa in self.db.Execute("SELECT cid, pKa FROM pKa"):
+        cid2minimal_nH = {}
+        for cid, pKa, smiles_below, smiles_above in self.db.Execute(
+                        "SELECT cid, pKa, smiles_below, smiles_above FROM pKa"):
             cid2pKa_list.setdefault(cid, [])
             if pKa:
+                nH_below = DissociationConstants.smiles2nH(smiles_below)
+                nH_above = DissociationConstants.smiles2nH(smiles_above)
+                if nH_below != nH_above+1:
+                    raise Exception('The pKa=%.1f for C%05d has nH=%d below and nH=%d above it' % \
+                                    (pKa, cid, nH_below, nH_above))
                 cid2pKa_list[cid].append(pKa)
-        return cid2pKa_list   
+                if pKa == max(cid2pKa_list[cid]):
+                    cid2minimal_nH[cid] = nH_above
+            else:
+                cid2minimal_nH[cid] = self.kegg.cid2num_hydrogens(cid)
+                
+        return cid2pKa_list, cid2minimal_nH
+
+    @staticmethod
+    def smiles2nH(smiles, correctForPH=False):
+        obConversion = openbabel.OBConversion()
+        obConversion.SetInAndOutFormats("smiles", "mol")
+        obmol = openbabel.OBMol()
+        polaronly = False
+        obConversion.ReadString(obmol, str(smiles))
+        obmol.AddHydrogens(polaronly, correctForPH)
+        return obmol.NumAtoms() - obmol.NumHvyAtoms()
 
     def GetActiveGroups(self, decomposition):
         group_name_to_index = {}
