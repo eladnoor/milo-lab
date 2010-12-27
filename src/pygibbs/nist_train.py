@@ -226,7 +226,7 @@ class GradientAscent(Thermodynamics):
             unknown_set = set(row_data.GetCIDs()).difference(known_cid_set)
 
             if unknown_set:
-                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % row_data.row_number)
+                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
                 continue
             
             #label = row_data.evaluation
@@ -238,7 +238,7 @@ class GradientAscent(Thermodynamics):
             try:
                 dG0_pred = row_data.PredictReactionEnergy(thermodynamics)
             except MissingCompoundFormationEnergy:
-                logging.debug("one of the compounds in reaction at row %d in NIST doesn't have a dG0_f" % row_data.row_number)
+                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
                 continue
                 
             dG0_obs_vec.append(row_data.dG0_r)
@@ -500,17 +500,17 @@ class GradientAscent(Thermodynamics):
 
 def main():
     db = database.SqliteDatabase('../res/gibbs.sqlite')
+    html_writer = HtmlWriter("../res/nist/report.html")
     gc = GroupContribution(db)
     gc.override_gc_with_measurements = True
     gc.init()
     grad = GradientAscent(gc)
-    nist = Nist(gc.kegg())
+    nist = Nist(db, html_writer, gc.kegg())
+    nist.FromDatabase()
     alberty = Alberty()
     hatzi = Hatzi()
     
     if True:
-        html_writer = HtmlWriter("../res/nist/report.html")
-
         grad.load_nist_data(nist, alberty, skip_missing_reactions=False, T_range=(298, 314))
         grad.verify_results("Alberty", alberty, html_writer)
         
@@ -526,8 +526,6 @@ def main():
 
         #grad.load_nist_data(nist, gc, skip_missing_reactions=True, T_range=(298, 314))
         grad.verify_results("Milo", gc, html_writer)
-        html_writer.close()
-        
     elif False:
         # Run the gradient ascent algorithm, where the starting point is the same file used for training the GC algorithm
         grad.load_dG0_data("../data/thermodynamics/dG0.csv")
@@ -585,7 +583,6 @@ def main():
         
     elif False:
         util._mkdir("../res/nist/fig")
-        html_writer = HtmlWriter("../res/nist/pseudoisomers.html")
         csv_writer = csv.writer(open("../res/nist/pseudoisomers.csv", "w"))
                 
         cid_set = set()
@@ -619,7 +616,7 @@ def main():
             
             html_writer.write("</td></tr>\n")
         html_writer.write("</table>\n")
-        html_writer.close()
+    html_writer.close()
 
 if __name__ == '__main__':
     main()

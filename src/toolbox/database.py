@@ -1,5 +1,6 @@
 import sqlite3, csv
 import os
+import types
 
 class Database(object):
     
@@ -29,6 +30,10 @@ class SQLDatabase(Database):
     def CreateTable(self, table_name, columns, drop_if_exists=True):
         if drop_if_exists:
             self.Execute("DROP TABLE IF EXISTS %s" % table_name)
+        
+        if type(columns) == types.ListType:
+            columns = ','.join(['%s TEXT' % col for col in columns])    
+        
         self.Execute("CREATE TABLE %s (%s)" % (table_name, columns))
     
     def CreateIndex(self, index_name, table_name, columns, unique=True, drop_if_exists=True):
@@ -102,6 +107,16 @@ class SQLDatabase(Database):
             column_names = None
         self.Query2HTML(html_writer, "SELECT * FROM %s" % table_name, column_names)
 
+    def DictReader(self, table_name):
+        titles = self.GetColumnNames(table_name)
+        table_data = []
+        for row in self.Execute("SELECT * FROM %s" % table_name):
+            row_dict = {}
+            for i, title in enumerate(titles):
+                row_dict[title] = row[i]
+            table_data.append(row_dict)
+        return table_data    
+        
 class SqliteDatabase(SQLDatabase):
     
     def __init__(self, filename, flag='w'):

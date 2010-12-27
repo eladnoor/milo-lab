@@ -2,7 +2,7 @@ from pylab import arange
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from thermodynamic_constants import J_per_cal
 import pseudoisomer
-from toolbox.util import ReadCsvWithTitles
+import csv
 
 class Hatzi (Thermodynamics):
     def __init__(self):
@@ -11,7 +11,7 @@ class Hatzi (Thermodynamics):
         H_pmap = pseudoisomer.PseudoisomerMap()
         H_pmap.Add(0, 0, 0, 0)
         self.cid2pmap_dict = {80 : H_pmap} # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
-        for row in ReadCsvWithTitles("../data/thermodynamics/hatzimanikatis_cid.csv"):
+        for row in csv.DictReader(open("../data/thermodynamics/hatzimanikatis_cid.csv", 'r')):
             cid = int(row['ENTRY'][1:])
             if (row['DELTAG'] == "Not calculated"):
                 continue

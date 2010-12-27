@@ -15,36 +15,6 @@ def read_simple_mapfile(filename, default_value=""):
     file.close()
     return map
 
-def ReadCsvWithTitles(filename):
-    """
-        Input:
-            A filename of a CSV file.
-            Assumes the first line in the CSV contains the titles.
-        
-        Returns:
-            A list of dictionaries, one for each row in the CSV.
-            The keys for each dictionary are the titles and the values are the 
-            values from that line for each of the columns.
-            Both keys and values are strings.
-    """
-    csv_reader = csv.reader(open(filename, 'r'))
-    titles = csv_reader.next()
-    data = []
-    row_number = 0
-    for row in csv_reader:
-        row_number += 1
-        
-        if len(row) > len(titles):
-            raise Exception("%s - line #%d - number of columns is larger than in the title row" % (filename, row_number))
-        row_dict = {}
-        for i, title in enumerate(titles):
-            if i < len(row):
-                row_dict[title] = row[i]
-            else:
-                row_dict[title] = None
-        data.append(row_dict)
-    return data
-
 def _mkdir(newdir):
     """works the way a good mkdir should :)
         - already exists, silently complete

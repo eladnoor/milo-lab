@@ -27,7 +27,7 @@ class FocalSet(object):
     
     def __init__(self, focal_atoms_str):
         if not focal_atoms_str:
-            raise IllegalArgumentException(
+            raise ValueError(
                 'You must supply a non-empty focal atom string.'
                 ' You may use "None" or "All" in the obvious fashion.')
         
@@ -328,9 +328,10 @@ class GroupsData(object):
         list_of_groups = []
         for row in db.Execute('SELECT * FROM groups'):
             (gid, group_name, protons, charge, nMg, smarts, focal_atom_set, unused_remark) = row
-            
-            
-            focal_atoms = FocalSet(focal_atom_set)
+            try:
+                focal_atoms = FocalSet(focal_atom_set)
+            except ValueError as e:
+                raise ValueError('Group #%d (%s): %s' % (gid, group_name, str(e)))
             list_of_groups.append(Group(gid, group_name, protons, charge, nMg, str(smarts), focal_atoms))
         logging.info('Done reading groups data.')
         
