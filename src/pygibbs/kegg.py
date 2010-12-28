@@ -820,9 +820,12 @@ class Kegg(object):
 
     def cid2num_hydrogens(self, cid, correctForPH=True, pH=7.4):
         obmol = self.cid2obmol(cid, correctForPH, pH)
-        if (obmol == None):
-            return self.cid2compound(cid).get_atom_bag().get('H')
-        return (obmol.NumAtoms() - obmol.NumHvyAtoms()) # HvyAtoms are all the non-hydrogen atoms
+        if obmol:
+            return obmol.NumAtoms() - obmol.NumHvyAtoms() # HvyAtoms are all the non-hydrogen atoms
+        atom_bag = self.cid2compound(cid).get_atom_bag()
+        if atom_bag:
+            return atom_bag.get('H')
+        return None
         
     def cid2charge(self, cid, correctForPH=True, pH=7.4):
         obmol = self.cid2obmol(cid, correctForPH, pH)
