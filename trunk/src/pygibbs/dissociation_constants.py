@@ -7,6 +7,7 @@ from toolbox.html_writer import HtmlWriter
 import pybel
 import sys
 import openbabel
+from pygibbs.thermodynamic_constants import default_T
 
 class DissociationConstants(object):
     def __init__(self, db, html_writer, kegg=None, group_decomposer=None):
@@ -76,50 +77,52 @@ class DissociationConstants(object):
         # Now, the user must go over the output file, fix the problems in it and save it to:
         # ../data/thermodynamics/pKa_with_cids.csv
     
-    def LoadValuesToDB(self, csv_filename='../data/thermodynamics/pKa_with_cids.csv'):
+    def LoadValuesToDB(self, csv_filename='../data/thermodynamics/pKa_with_nH.csv'):
         """
             Load the data regarding pKa values according to KEGG compound IDs.
-            First attempts to retrieve the data from the DB. If the table doesn't
-            exist, it reads it from the CSV file (while caching it in the DB).
         """
         
-        self.db.CreateTable('pKa', 'cid INT, step INT, T REAL, pKa REAL, smiles_below TEXT, smiles_above TEXT')
+        self.db.CreateTable('pKa', 'cid INT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
         for row in csv.DictReader(open(csv_filename, 'r')):
-            if row['cid']:
-                cid = int(row['cid'])
-                if row['T']:
-                    T = float(row['T']) + 273.15
-                else:
-                    T = 298.15
+            cid = int(row['CID'])
+            if row['T']:
+                T = float(row['T']) + 273.15
+            else:
+                T = default_T
+            
+            pKa = row['pKa'] or None
+            if pKa:
+                pKa = float(pKa)
+            nH_below = row['nH_below'] or None
+            nH_above = row['nH_above'] or None
+            self.db.Insert('pKa', [cid, T, nH_below, nH_above, 
+                                   row['smiles_below'], row['smiles_above'],
+                                   pKa])
                 
-                if row['pKa']:
-                    try:
-                        pKa = float(row['pKa'])
-                        self.db.Insert('pKa', [cid, int(row['step']), T, 
-                                               pKa, row['smiles_below'], 
-                                               row['smiles_above']])
-                    except ValueError:
-                        logging.warning("the pKa value for C%05d is not a proper number: %s" % (cid, row['pKa']))
-                        continue
-                else:
-                    self.db.Insert('pKa', [cid, None, None, None, None, None])
-                    
         self.db.Commit()
             
     def AnalyseValues(self):
-        for cid, step, unused_T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa ORDER BY cid"):
+        #csv_writer = csv.writer(open('../res/pKa_with_nH.csv', 'w'))
+        #csv_writer.writerow(['CID', 'T', 'nH_below', 'nH_above', 'smiles_below', 'smiles_above', 'pKa'])
+        for cid, nH_below, nH_above, smiles_below, smiles_above, pKa in self.db.Execute(
+                "SELECT cid, nH_below, nH_above, smiles_below, smiles_above, pKa FROM pKa ORDER BY cid"):
             logging.info("analyzing C%05d" % cid)
-            self.DrawProtonation(cid, step, pKa, smiles_below, smiles_above)
+            self.DrawProtonation(cid, nH_below, nH_above, smiles_below, smiles_above, pKa)
+            #if smiles_below and smiles_above:
+            #    nH_below = DissociationConstants.smiles2nH(smiles_below)
+            #    nH_above = DissociationConstants.smiles2nH(smiles_above)
+            #else:
+            #    nH_below = None
+            #    nH_above = self.kegg.cid2num_hydrogens(cid)
+            #csv_writer.writerow([cid, T, nH_below, nH_above, smiles_below, smiles_above, pKa])
 
     def GetAllpKas(self):
         cid2pKa_list = {}
         cid2minimal_nH = {}
-        for cid, pKa, smiles_below, smiles_above in self.db.Execute(
-                        "SELECT cid, pKa, smiles_below, smiles_above FROM pKa"):
+        for cid, pKa, nH_below, nH_above in self.db.Execute(
+                        "SELECT cid, pKa, nH_below, nH_above FROM pKa"):
             cid2pKa_list.setdefault(cid, [])
             if pKa:
-                nH_below = DissociationConstants.smiles2nH(smiles_below)
-                nH_above = DissociationConstants.smiles2nH(smiles_above)
                 if nH_below != nH_above+1:
                     raise Exception('The pKa=%.1f for C%05d has nH=%d below and nH=%d above it' % \
                                     (pKa, cid, nH_below, nH_above))
@@ -158,16 +161,16 @@ class DissociationConstants(object):
         
         return active_groups
     
-    def DrawProtonation(self, cid, step, pKa, smiles_below, smiles_above):
+    def DrawProtonation(self, cid, nH_below, nH_above, smiles_below, smiles_above, pKa):
         self.html_writer.write('<h3>C%05d - %s</h3><br>\n' % (cid, self.kegg.cid2name(cid)))
         self.html_writer.write('<p>')
         if not pKa:
             self.html_writer.write('No known pKas at the physiological range')
             self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
         elif smiles_below and smiles_above:
-            self.smiles2HTML(smiles_below, "C%05d_%d_below" % (cid, step))
+            self.smiles2HTML(smiles_below, "C%05d_b_H%d" % (cid, nH_below))
             self.html_writer.write(" pKa = %.2f " % pKa)
-            self.smiles2HTML(smiles_above, "C%05d_%d_above" % (cid, step))
+            self.smiles2HTML(smiles_above, "C%05d_a_H%d" % (cid, nH_above))
         else:
             self.html_writer.write('pKa = %.2f, \n' % pKa)
             self.html_writer.write('no SMILES provided...')
