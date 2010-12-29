@@ -1,4 +1,4 @@
-"CID","T","nH_below","nH_above","smiles_below","smiles_above","pKa"
+"cid","T","nH_below","nH_above","smiles_below","smiles_above","pKa"
 1,,,2,,,
 2,298.15,14,13,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",4.68
 2,298.15,13,12,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-]",7.6

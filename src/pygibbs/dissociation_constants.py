@@ -100,19 +100,22 @@ class DissociationConstants(object):
                                  row['smiles_below'], row['smiles_above'], 
                                  row['pKa']])
 
-    def LoadValuesToDB(self, csv_filename='../data/thermodynamics/pKa_with_nH.csv'):
+    def LoadValuesToDB(self):
         """
             Load the data regarding pKa values according to KEGG compound IDs.
         """
         
+        csv_filename = '../data/thermodynamics/pKa_with_nH.csv'
         self.db.CreateTable('pKa', 'cid INT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
         for row in csv.DictReader(open(csv_filename, 'r')):
-            cid = int(row['cid'])
-            if row['T']:
-                T = float(row['T']) + 273.15
+            if int(row['cid']):
+                cid = int(row['cid'])
             else:
-                T = default_T
+                cid = None
             
+            T = default_T
+            if row['T']:
+                float(row['T'])
             pKa = row['pKa'] or None
             if pKa:
                 pKa = float(pKa)
@@ -189,9 +192,12 @@ class DissociationConstants(object):
             self.smiles2HTML(smiles_below, 'C%05d_b_H%d' % (cid, nH_below))
             self.html_writer.write(' pKa = %.2f ' % pKa)
             self.smiles2HTML(smiles_above, 'C%05d_a_H%d' % (cid, nH_above))
-        else:
+        elif nH_below and nH_above:
             self.html_writer.write('<b>nH = %d</b> pKa = %.2f <b>nH = %d</b>\n' % \
                                    (nH_below, pKa, nH_above))
+        else:
+            self.html_writer.write('<b>nH = ?</b> pKa = %.2f <b>nH = ?</b>\n' % \
+                                   pKa)
         
         self.html_writer.write('</br>')
     
@@ -214,7 +220,7 @@ if (__name__ == '__main__'):
     dissociation = DissociationConstants(db, html_writer)
     if False:
         dissociation.WriteCsvWithCids()
-    elif True:
+    elif False:
         dissociation.WriteCsvWithNumHydrogens()
     else:
         dissociation.LoadValuesToDB()
