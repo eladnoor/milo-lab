@@ -16,7 +16,7 @@ class DissociationConstants(object):
         self.kegg = kegg or Kegg()
         self.group_decomposer = group_decomposer or GroupDecomposer.FromDatabase(db)
     
-    def ReadOriginalCSV(self, filename):
+    def ReadOriginalCSV(self):
         """
             Reads the raw data collected from the CRC handbook and tries to map every
             compound name there to a KEGG compound ID.
@@ -24,7 +24,7 @@ class DissociationConstants(object):
         last_formula = None
         last_name = None
         data = []
-        for row_dict in csv.DictReader(open(filename, 'r')):
+        for row_dict in csv.DictReader(open('../data/thermodynamics/pKa_from_CRC.csv', 'r')):
             if row_dict['name'] and row_dict['formula']:
                 cid, kegg_name, distance = self.FindCID(row_dict['formula'], row_dict['name'])
                 last_formula = row_dict['formula']
@@ -34,7 +34,9 @@ class DissociationConstants(object):
                 row_dict['name'] = last_name
                 row_dict['formula'] = last_formula
 
-            data.append((cid, kegg_name, distance, row_dict['name'], row_dict['formula'], row_dict['step'], row_dict['T'], row_dict['pKa']))
+            data.append((cid, kegg_name, distance, row_dict['name'], 
+                         row_dict['formula'], row_dict['step'], 
+                         row_dict['T'], row_dict['pKa']))
         
         return data
     
@@ -65,18 +67,39 @@ class DissociationConstants(object):
         else:
             return cid, kegg_name, distance
     
-    def WriteCSV(self, fname, data):
-        csv_writer = csv.writer(open(fname, 'w'))
-        csv_writer.writerow(('CID', 'Kegg name', 'distance', 'original name', 'formula', 'step', 'T', 'pKa'))
+    def WriteCsvWithCids(self):
+        data = self.ReadOriginalCSV()
+        csv_writer = csv.writer(open('../res/pKa_with_cids.csv', 'w'))
+        csv_writer.writerow(('cid', 'Kegg name', 'distance', 'original name', 'formula', 'step', 'T', 'pKa'))
         for cid, kegg_name, distance, name, formula, step, T, pKa in data:
             csv_writer.writerow((cid, kegg_name, distance, name, formula, step, T, pKa))
 
-    def MatchCIDs(self):
-        data = self.ReadOriginalCSV('../data/thermodynamics/pKa.csv')
-        self.WriteCSV('../res/pKa.csv', data)
         # Now, the user must go over the output file, fix the problems in it and save it to:
         # ../data/thermodynamics/pKa_with_cids.csv
     
+    def WriteCsvWithNumHydrogens(self):
+        csv_writer = csv.writer(open('../res/pKa_with_nH.csv', 'w'))
+        csv_writer.writerow(['cid', 'T', 'nH_below', 'nH_above', 'smiles_below', 'smiles_above', 'pKa'])
+
+        csv_reader = csv.DictReader(open('../data/thermodynamics/pKa_with_cids.csv', 'r'))
+        for row in csv_reader:
+            if row['cid']:
+                cid = int(row['cid'])
+            else:
+                cid = None
+            nH_below = None
+            nH_above = None
+            
+            if cid:
+                if row['smiles_below'] and row['smiles_above']:
+                    nH_below = DissociationConstants.smiles2nH(row['smiles_above'])
+                    nH_above = DissociationConstants.smiles2nH(row['smiles_below'])
+                else:
+                    nH_above = self.kegg.cid2num_hydrogens(cid)
+            csv_writer.writerow([cid, row['T'], nH_below, nH_above, 
+                                 row['smiles_below'], row['smiles_above'], 
+                                 row['pKa']])
+
     def LoadValuesToDB(self, csv_filename='../data/thermodynamics/pKa_with_nH.csv'):
         """
             Load the data regarding pKa values according to KEGG compound IDs.
@@ -84,7 +107,7 @@ class DissociationConstants(object):
         
         self.db.CreateTable('pKa', 'cid INT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
         for row in csv.DictReader(open(csv_filename, 'r')):
-            cid = int(row['CID'])
+            cid = int(row['cid'])
             if row['T']:
                 T = float(row['T']) + 273.15
             else:
@@ -102,19 +125,10 @@ class DissociationConstants(object):
         self.db.Commit()
             
     def AnalyseValues(self):
-        #csv_writer = csv.writer(open('../res/pKa_with_nH.csv', 'w'))
-        #csv_writer.writerow(['CID', 'T', 'nH_below', 'nH_above', 'smiles_below', 'smiles_above', 'pKa'])
         for cid, nH_below, nH_above, smiles_below, smiles_above, pKa in self.db.Execute(
                 "SELECT cid, nH_below, nH_above, smiles_below, smiles_above, pKa FROM pKa ORDER BY cid"):
             logging.info("analyzing C%05d" % cid)
             self.DrawProtonation(cid, nH_below, nH_above, smiles_below, smiles_above, pKa)
-            #if smiles_below and smiles_above:
-            #    nH_below = DissociationConstants.smiles2nH(smiles_below)
-            #    nH_above = DissociationConstants.smiles2nH(smiles_above)
-            #else:
-            #    nH_below = None
-            #    nH_above = self.kegg.cid2num_hydrogens(cid)
-            #csv_writer.writerow([cid, T, nH_below, nH_above, smiles_below, smiles_above, pKa])
 
     def GetAllpKas(self):
         cid2pKa_list = {}
@@ -162,23 +176,24 @@ class DissociationConstants(object):
         return active_groups
     
     def DrawProtonation(self, cid, nH_below, nH_above, smiles_below, smiles_above, pKa):
-        self.html_writer.write('<h3>C%05d - %s</h3><br>\n' % (cid, self.kegg.cid2name(cid)))
-        self.html_writer.write('<p>')
+        self.html_writer.write('<h3>C%05d - %s</h3></br>\n' % (cid, self.kegg.cid2name(cid)))
+        try:
+            self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
+        except KeggParseException:
+            self.html_writer.write('<b>cannot draw molecule from KEGG</b>')
+        self.html_writer.write('</br>')
+
         if not pKa:
             self.html_writer.write('No known pKas at the physiological range')
-            self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
         elif smiles_below and smiles_above:
-            self.smiles2HTML(smiles_below, "C%05d_b_H%d" % (cid, nH_below))
-            self.html_writer.write(" pKa = %.2f " % pKa)
-            self.smiles2HTML(smiles_above, "C%05d_a_H%d" % (cid, nH_above))
+            self.smiles2HTML(smiles_below, 'C%05d_b_H%d' % (cid, nH_below))
+            self.html_writer.write(' pKa = %.2f ' % pKa)
+            self.smiles2HTML(smiles_above, 'C%05d_a_H%d' % (cid, nH_above))
         else:
-            self.html_writer.write('pKa = %.2f, \n' % pKa)
-            self.html_writer.write('no SMILES provided...')
-            try:
-                self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
-            except KeggParseException:
-                pass
-        self.html_writer.write('</p>')
+            self.html_writer.write('<b>nH = %d</b> pKa = %.2f <b>nH = %d</b>\n' % \
+                                   (nH_below, pKa, nH_above))
+        
+        self.html_writer.write('</br>')
     
     def smiles2HTML(self, smiles, id, height=50, width=50):
         try:
@@ -198,7 +213,9 @@ if (__name__ == '__main__'):
     
     dissociation = DissociationConstants(db, html_writer)
     if False:
-        dissociation.MatchCIDs()
+        dissociation.WriteCsvWithCids()
+    elif True:
+        dissociation.WriteCsvWithNumHydrogens()
     else:
         dissociation.LoadValuesToDB()
         dissociation.AnalyseValues()
