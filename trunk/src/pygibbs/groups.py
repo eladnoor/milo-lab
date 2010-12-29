@@ -150,8 +150,8 @@ class GroupContribution(Thermodynamics):
             if (self.override_gc_with_measurements or cid not in self.cid2pmap_dict):
                 self.cid2pmap_dict[cid] = cid2pmap_obs[cid]
         
-    def train(self, pka_fname, obs_fname, use_dG0_format=False):
-        l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = self.read_training_data_pKa(pka_fname)
+    def train(self, obs_fname, use_dG0_format=False):
+        l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = self.read_training_data_pKa()
         #l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = [], [], []
 
         if use_dG0_format:
@@ -385,7 +385,7 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('</div>')
         return (l_groupvec, l_deltaG, l_names)        
 
-    def read_training_data_pKa(self, pka_fname):
+    def read_training_data_pKa(self):
         
         def smiles2groupvec(smiles, id):
             mol = pybel.readstring('smiles', str(smiles))
@@ -403,33 +403,36 @@ class GroupContribution(Thermodynamics):
         l_deltaG = []
         l_names = [] # is the list of Molecules' names
 
-        self.dissociation.LoadValuesToDB(pka_fname)
+        self.dissociation.LoadValuesToDB()
         self.html_writer.write('<h2><a name=compounds>List of pKa for training</a>')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
-        self.html_writer.write('Source File = %s<br>\n' % pka_fname)
-        for cid, step, T, pKa, smiles_below, smiles_above in self.db.Execute("SELECT * FROM pKa WHERE cid IS NOT NULL AND step IS NOT NULL"):
-            logging.info("Reading pKa data for C%05d, %s, step %d" % (cid, self.kegg().cid2name(cid), step))
-            self.html_writer.write('<h3>C%05d - %s - step %d</h3>\n' % (cid, self.kegg().cid2name(cid), step))
-            T = T or default_T
+        for cid, T, nH_below, nH_above, smiles_below, smiles_above, pKa in self.db.Execute(
+                "SELECT cid, T, nH_below, nH_above, smiles_below, smiles_above, pKa FROM pKa"):
+            if not smiles_above or not smiles_below or not cid:
+                continue
+            
+            logging.info("Reading pKa data for C%05d, %s, nH=%d -> nH=%d" % \
+                         (cid, self.kegg().cid2name(cid), nH_below, nH_above))
+            self.html_writer.write('<h3>C%05d - %s - nH=%d -> nH=%d</h3>\n' % \
+                                   (cid, self.kegg().cid2name(cid), nH_below, nH_above))
+            
             dG0 = R*T*pylab.log(10)*pKa
             self.html_writer.write('pKa = %.2f, T = %.2f \n</br>' % (pKa, T))
             self.html_writer.write('&#x394;G<sub>p</sub> = %.2f<br>\n' % dG0)
-            if smiles_below and smiles_above:
-                self.html_writer.write('SMILES = %s >> %s<br>\n' % (smiles_below, smiles_above))
-                decomposition_below = smiles2groupvec(smiles_below, "C%05d_%d_b" % (cid, step))
-                decomposition_above = smiles2groupvec(smiles_above, "C%05d_%d_a" % (cid, step))
-                if not decomposition_below or not decomposition_above:
-                    continue
-                groupvec = decomposition_above.AsVector() - decomposition_below.AsVector()
-                obs_name = self.kegg().cid2name(cid) + " [%d -> %d]" % \
-                    (decomposition_below.NetCharge(), decomposition_above.NetCharge())
-                self.html_writer.write('<br>\nDecomposition = %s<br>\n' % str(groupvec))
-                l_groupvec.append(groupvec)
-                l_deltaG.append(dG0)
-                l_names.append(obs_name)
-            else:
-                self.html_writer.write('No SMILES provided<br>\n')
+            
+            self.html_writer.write('SMILES = %s >> %s<br>\n' % (smiles_below, smiles_above))
+            decomposition_below = smiles2groupvec(smiles_below, "C%05d_b_H%d" % (cid, nH_below))
+            decomposition_above = smiles2groupvec(smiles_above, "C%05d_a_H%d" % (cid, nH_above))
+            if not decomposition_below or not decomposition_above:
+                continue
+            groupvec = decomposition_above.AsVector() - decomposition_below.AsVector()
+            obs_name = self.kegg().cid2name(cid) + " [%d -> %d]" % \
+                (decomposition_below.NetCharge(), decomposition_above.NetCharge())
+            self.html_writer.write('<br>\nDecomposition = %s<br>\n' % str(groupvec))
+            l_groupvec.append(groupvec)
+            l_deltaG.append(dG0)
+            l_names.append(obs_name)
         
         self.html_writer.write('</div>')
         return (l_groupvec, l_deltaG, l_names)        
@@ -1016,7 +1019,7 @@ if __name__ == '__main__':
         html_writer = HtmlWriter('../res/dG0_train.html')
         G = GroupContribution(db, html_writer)
         G.load_groups("../data/thermodynamics/groups_species.csv")
-        G.train('../data/thermodynamics/pKa_with_cids.csv', "../data/thermodynamics/dG0.csv", use_dG0_format=True)
+        G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
         G.analyze_training_set()
         G.save_cid2pmap()
     else:
