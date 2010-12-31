@@ -79,7 +79,7 @@ class DissociationConstants(object):
     
     def WriteCsvWithNumHydrogens(self):
         csv_writer = csv.writer(open('../res/pKa_with_nH.csv', 'w'))
-        csv_writer.writerow(['cid', 'T', 'nH_below', 'nH_above', 'smiles_below', 'smiles_above', 'pKa'])
+        csv_writer.writerow(['cid', 'name', 'T', 'nH below', 'nH above', 'smiles below', 'smiles above', 'pKa'])
 
         csv_reader = csv.DictReader(open('../data/thermodynamics/pKa_with_cids.csv', 'r'))
         for row in csv_reader:
@@ -96,7 +96,8 @@ class DissociationConstants(object):
                     nH_above = DissociationConstants.smiles2nH(row['smiles_below'])
                 else:
                     nH_above = self.kegg.cid2num_hydrogens(cid)
-            csv_writer.writerow([cid, row['T'], nH_below, nH_above, 
+                name = self.kegg.cid2name(cid)
+            csv_writer.writerow([cid, name, row['T'], nH_below, nH_above, 
                                  row['smiles_below'], row['smiles_above'], 
                                  row['pKa']])
 
@@ -106,30 +107,38 @@ class DissociationConstants(object):
         """
         
         csv_filename = '../data/thermodynamics/pKa_with_nH.csv'
-        self.db.CreateTable('pKa', 'cid INT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
-        for row in csv.DictReader(open(csv_filename, 'r')):
+        self.db.CreateTable('pKa', 'cid INT, name TEXT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
+        for line_num, row in enumerate(csv.DictReader(open(csv_filename, 'r'))):
             if int(row['cid']):
                 cid = int(row['cid'])
             else:
                 cid = None
             
-            T = default_T
             if row['T']:
-                float(row['T'])
-            pKa = row['pKa'] or None
-            if pKa:
-                pKa = float(pKa)
-            nH_below = row['nH_below'] or None
-            nH_above = row['nH_above'] or None
-            self.db.Insert('pKa', [cid, T, nH_below, nH_above, 
-                                   row['smiles_below'], row['smiles_above'],
-                                   pKa])
+                T = float(row['T'])
+            else:
+                T = default_T
+            
+            if row['pKa']:
+                pKa = float(row['pKa'])
+            else:
+                pKa = None
+
+            try:
+                self.db.Insert('pKa', [cid, row['name'], T, float(row['nH below']), 
+                               float(row['nH above']), 
+                               row['smiles below'], row['smiles above'], pKa])
+            except ValueError:
+                raise Exception('Error while processing line #%d in %s' %\
+                                (line_num, csv_filename))
                 
         self.db.Commit()
             
     def AnalyseValues(self):
         for cid, nH_below, nH_above, smiles_below, smiles_above, pKa in self.db.Execute(
-                "SELECT cid, nH_below, nH_above, smiles_below, smiles_above, pKa FROM pKa ORDER BY cid"):
+                "SELECT cid, nH_below, nH_above, smiles_below, smiles_above, pKa FROM pKa"
+                " WHERE cid IS NOT NULL"
+                " ORDER BY cid"):
             logging.info("analyzing C%05d" % cid)
             self.DrawProtonation(cid, nH_below, nH_above, smiles_below, smiles_above, pKa)
 
@@ -137,17 +146,23 @@ class DissociationConstants(object):
         cid2pKa_list = {}
         cid2minimal_nH = {}
         for cid, pKa, nH_below, nH_above in self.db.Execute(
-                        "SELECT cid, pKa, nH_below, nH_above FROM pKa"):
+                        "SELECT cid, pKa, nH_below, nH_above FROM pKa"
+                        " WHERE cid IS NOT NULL and nH_below IS NOT NULL"
+                        " AND nH_above IS NOT NULL"
+                        " ORDER BY cid, pKa"):
+            # since we order the pKas in ascending order, the last pKa corresponds
+            # to the lowest nH 
+            cid2minimal_nH[cid] = nH_above
             cid2pKa_list.setdefault(cid, [])
+
             if pKa:
                 if nH_below != nH_above+1:
                     raise Exception('The pKa=%.1f for C%05d has nH=%d below and nH=%d above it' % \
                                     (pKa, cid, nH_below, nH_above))
                 cid2pKa_list[cid].append(pKa)
-                if pKa == max(cid2pKa_list[cid]):
-                    cid2minimal_nH[cid] = nH_above
-            else:
-                cid2minimal_nH[cid] = self.kegg.cid2num_hydrogens(cid)
+            elif nH_below != nH_above:
+                raise Exception("When a compound has no pKa, nH_below should be"
+                                " equal to nH_above, C%05d" % cid)
                 
         return cid2pKa_list, cid2minimal_nH
 

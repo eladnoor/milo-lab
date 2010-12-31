@@ -20,7 +20,7 @@ class NistRegression(object):
         self.nist = Nist(db, html_writer, self.kegg)
         self.nist.FromDatabase()
         dissociation = DissociationConstants(self.db, self.html_writer, self.kegg)
-        dissociation.LoadValuesToDB('../data/thermodynamics/pKa_with_cids.csv')
+        dissociation.LoadValuesToDB()
         self.cid2pKa_list, self.cid2min_nH = dissociation.GetAllpKas()
         
     def ReverseTransform(self):
@@ -29,16 +29,21 @@ class NistRegression(object):
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
-        for nist_row_data in self.nist.data():
-            dG0 = nist_row_data.dG0 + \
-                self.ReverseTransformReaction(nist_row_data.sparse, 
-                nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
-                nist_row_data.T)
-            logging.info('dG0_tag = %.1f -> dG0 = %.1f' % (nist_row_data.dG0, dG0))
+        for nist_row_data in self.nist.data:
+            required_cids = set(nist_row_data.sparse.keys())
+            if not required_cids.issubset(self.cid2pKa_list.keys()):
+                logging.info('reaction contains CIDs with unknown pKa values')
+            else:
+                dG0_r = nist_row_data.dG0_r + \
+                    self.ReverseTransformReaction(nist_row_data.sparse, 
+                    nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
+                    nist_row_data.T)
+                logging.info('dG0_tag = %.1f -> dG0 = %.1f' % (nist_row_data.dG0_r, dG0_r))
+                
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
-                    for coeff, cid in sparse.iteritems()])
+                    for cid, coeff in sparse.iteritems()])
 
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
         sum_exp = 0
