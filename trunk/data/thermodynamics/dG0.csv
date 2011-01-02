@@ -166,7 +166,7 @@
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])O",668,"Glucose-6-phosphate",-1800.59,-2274.64,-1,12,0,"train","Alberty (2003)",
 ,697,"N2(aq)",18.7,-10.54,0,0,0,"test","Alberty (2003)",
 ,697,"N2(g)",0,0,0,0,0,"skip","Alberty (2003)","irrelevant for aquatic reactions"
-"Cn1cc(nc1N)O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)","moved to 'test' becuase it contains 4 unique groups. might be wise to use it later one when we get more training data "
+"Cn1cc(nc1N)O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)",
 "CCOC(=O)C",849,"Ethyl-acetate",-337.65,-482,0,8,0,"train","Alberty (2003)",
 ,920,"Glutathione-CoA",-35.85,,-1,50,0,"test","Alberty (2003)","CoA-1=0, Glutathione=0 ?"
 "C(CO)C(=O)[O-]",1013,"3-Hydroxypropanoate",-518.4,,-1,5,0,"train","Alberty (2003)",

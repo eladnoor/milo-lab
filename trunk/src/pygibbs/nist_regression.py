@@ -18,7 +18,7 @@ class NistRegression(object):
         self.html_writer = html_writer
         self.kegg = kegg
         self.nist = Nist(db, html_writer, self.kegg)
-        self.nist.FromDatabase()
+        self.nist.Load()
         dissociation = DissociationConstants(self.db, self.html_writer, self.kegg)
         dissociation.LoadValuesToDB()
         self.cid2pKa_list, self.cid2min_nH = dissociation.GetAllpKas()
