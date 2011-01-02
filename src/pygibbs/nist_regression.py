@@ -2,7 +2,7 @@ from pygibbs.nist import Nist
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
-from toolbox.util import _mkdir
+from toolbox.util import _mkdir, log_sum_exp
 from toolbox.html_writer import HtmlWriter
 from pygibbs.group_decomposition import GroupDecomposer
 from pygibbs import pseudoisomer
@@ -39,21 +39,26 @@ class NistRegression(object):
                     nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
                     nist_row_data.T)
                 logging.info('dG0_tag = %.1f -> dG0 = %.1f' % (nist_row_data.dG0_r, dG0_r))
-                
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
                     for cid, coeff in sparse.iteritems()])
 
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
-        sum_exp = 0
-        pKa_list = self.cid2pKa_list[cid]
-        for n in xrange(1, len(pKa_list)):
-            sum_exp += 10**sum([pH - pKa_list[i] for i in xrange(n)])
-
         p = self.cid2min_nH[cid]
+        pKa_list = self.cid2pKa_list[cid]
 
-        return R * T * (pylab.log(sum_exp) - p * pylab.log(10) * pH)
+        exponent_list = [1]
+        for n in xrange(1, len(pKa_list)+1):
+            exponent_list.append(pylab.log(10) * sum([pH - pKa_list[i] for i in xrange(n)]))
+        lse = log_sum_exp(exponent_list)
+
+        logging.debug("C%05d, p=%d, pH=%.2f, pKa=[%s], exp=[%s], lse=%.2f, correction=%.2f" % \
+            (cid, p, pH, ','.join(['%.2f' % pKa for pKa in pKa_list]),
+             ','.join(['%.2f' % pKa for pKa in exponent_list]),
+             lse, R * T * (lse - p * pylab.log(10) * pH)))
+        
+        return R * T * (lse - p * pylab.log(10) * pH)
     
     def Nist_pKas(self):
         group_decomposer = GroupDecomposer.FromDatabase(self.db)
