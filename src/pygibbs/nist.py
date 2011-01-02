@@ -212,6 +212,13 @@ class Nist(object):
             for cid in nist_row_data.GetCIDs():
                 self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
         
+    def Load(self):
+        if not self.db.DoesTableExist('nist_data'):
+            self.FromCsvFile('../data/thermodynamics/nist.csv')
+            self.ToDatabase()
+        else:
+            self.FromDatabase()    
+    
     def BalanceReaction(self, sparse_reaction):
         """
             Checks whether a reaction is balanced.
