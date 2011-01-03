@@ -46,15 +46,18 @@ class NistRegression(object):
 
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
         p = self.cid2min_nH[cid]
-        pKa_list = self.cid2pKa_list[cid]
 
-        exponent_list = [1]
-        for n in xrange(1, len(pKa_list)+1):
-            exponent_list.append(pylab.log(10) * sum([pH - pKa_list[i] for i in xrange(n)]))
+        # it is very important that the order of the pKa will be according
+        # to increasing nH.
+        pKa_list = sorted(self.cid2pKa_list[cid], reverse=True) 
+
+        exponent_list = [0]
+        for n in xrange(len(pKa_list)):
+            exponent_list.append(pylab.log(10) * sum([pKa_list[i] - pH for i in xrange(n+1)]))
         lse = log_sum_exp(exponent_list)
 
-        logging.debug("C%05d, p=%d, pH=%.2f, pKa=[%s], exp=[%s], lse=%.2f, correction=%.2f" % \
-            (cid, p, pH, ','.join(['%.2f' % pKa for pKa in pKa_list]),
+        logging.debug("C%05d, p=%d, pH=%.2f, I=%.1f, pMg=%.2f, T=%.1f, pKa=[%s], exp=[%s], lse=%.2f, correction=%.2f" % \
+            (cid, p, pH, I, pMg, T, ','.join(['%.2f' % pKa for pKa in pKa_list]),
              ','.join(['%.2f' % pKa for pKa in exponent_list]),
              lse, R * T * (lse - p * pylab.log(10) * pH)))
         
