@@ -12,6 +12,37 @@ import logging
 import csv
 from toolbox.linear_regression import LinearRegression
 
+class NistAnchors(object):
+    
+    def __init__(self, db, html_writer):
+        self.db = db
+        self.html_writer = html_writer
+        self.cid2dG0_f = {}
+        self.cid2min_nH = {}
+    
+    def FromCsvFile(self, filename='../data/thermodynamics/nist_anchors.csv'):
+        self.db.CreateTable('nist_anchors', 'cid INT, charge INT, hydrogens INT, dG0 REAL')
+        for row in csv.DictReader(open(filename, 'r')):
+            cid = int(row['cid'])
+            dG0_f = float(row['dG0'])
+            z = int(row['charge'])
+            nH = int(row['hydrogens'])
+            self.db.Insert('nist_anchors', [cid, dG0_f, nH, z])
+        
+            self.cid2dG0_f[cid] = dG0_f
+            self.cid2min_nH[cid] = nH
+        
+    def FromDatabase(self):
+        for row in self.db.DictReader('nist_anchors'):
+            self.cid2dG0_f[row['cid']] = row['dG0']
+            self.cid2min_nH[row['cid']] = row['hydrogens']
+            
+    def Load(self):
+        if not self.db.DoesTableExist('nist_anchors'):
+            self.FromCsvFile()
+        else:
+            self.FromDatabase()
+
 class NistRegression(object):
     
     def __init__(self, db, html_writer, kegg):
@@ -20,12 +51,17 @@ class NistRegression(object):
         self.kegg = kegg
         self.nist = Nist(db, html_writer, self.kegg)
         self.nist.Load()
+        
+        self.nist_anchors = NistAnchors(self.db, self.html_writer)
+        self.nist_anchors.FromCsvFile()
+        
         dissociation = DissociationConstants(self.db, self.html_writer, self.kegg)
         dissociation.LoadValuesToDB()
         self.cid2pKa_list, self.cid2min_nH = dissociation.GetAllpKas()
         self.cid2min_charge = {}
         for cid, p in self.cid2min_nH.iteritems():
-            self.cid2min_charge[cid] = p - self.kegg.cid2num_hydrogens(cid, correctForPH=False)
+            self.cid2min_charge[cid] = self.kegg.cid2charge(cid, correctForPH=False) + \
+                p - self.kegg.cid2num_hydrogens(cid, correctForPH=False)
         
     def ReverseTransform(self):
         """
@@ -34,9 +70,20 @@ class NistRegression(object):
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
         
-        cids = self.nist.GetAllCids()
-        cids_with_pKa = set(self.cid2pKa_list.keys() + [80])
-        stoichiometric_matrix = pylab.zeros((0, len(cids)))
+        anchored_cids = sorted(self.nist_anchors.cid2dG0_f.keys())
+        anchored_dG0_f = pylab.matrix([[self.nist_anchors.cid2dG0_f[cid] for cid in anchored_cids]]).T
+        
+        unresolved_cids = sorted(set(self.nist.GetAllCids()).difference(anchored_cids))
+        all_cids = anchored_cids + unresolved_cids
+        cids_with_pKa = set(self.cid2pKa_list.keys())
+        
+        for cid in cids_with_pKa.intersection(anchored_cids):
+            if self.cid2min_nH[cid] != self.nist_anchors.cid2min_nH[cid]:
+                raise Exception("The anchored form of C%05d is different than "
+                    "the lowest form according to the pKa list %d != %d" % \
+                    (cid, self.cid2min_nH[cid], self.nist_anchors.cid2min_nH[cid]))
+        
+        stoichiometric_matrix = pylab.zeros((0, len(all_cids)))
         dG0_r_vector = pylab.zeros((0, 1))
         
         for nist_row_data in self.nist.data:
@@ -51,29 +98,35 @@ class NistRegression(object):
                     nist_row_data.T)
                 logging.debug('dG0_tag = %.1f -> dG0 = %.1f' % (nist_row_data.dG0_r, dG0_r))
                 
-                stoichiometric_row = pylab.zeros((1, len(cids)))
+                stoichiometric_row = pylab.zeros((1, len(all_cids)))
                 for cid, coeff in nist_row_data.sparse.iteritems():
-                    stoichiometric_row[0, cids.index(cid)] = coeff
+                    stoichiometric_row[0, all_cids.index(cid)] = coeff
                 
                 stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
                                                       stoichiometric_row])
                 dG0_r_vector = pylab.vstack([dG0_r_vector, dG0_r])
         
-        logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
-        dG0_f, kerA = LinearRegression.LeastSquares(stoichiometric_matrix, 
-                                                    dG0_r_vector)
         
-        for i, cid in enumerate(cids):
-            logging.debug("C%05d: %.2f" % (cid, dG0_f[i]))
+        anchored_S = stoichiometric_matrix[:, :len(anchored_cids)]
+        unresolved_S = stoichiometric_matrix[:, len(anchored_cids):]
+        
+        unresolved_dG0_r = dG0_r_vector - anchored_S * anchored_dG0_f
+        
+        logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
+        logging.info("%d anchored CIDs, %d unresolved CIDs" % (len(anchored_cids), len(unresolved_cids)))
+        dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, unresolved_dG0_r)
+        
+        for i, cid in enumerate(anchored_cids):
+            logging.debug("C%05d: %.2f" % (cid, anchored_dG0_f[0, i]))
+
+        for i, cid in enumerate(unresolved_cids):
+            logging.debug("C%05d: %.2f" % (cid, dG0_f[0, i]))
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
                     for cid, coeff in sparse.iteritems()])
 
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
-        if cid == 80:
-            return 0
-        
         p = self.cid2min_nH[cid]
         z = self.cid2min_charge[cid]
 
