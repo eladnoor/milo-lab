@@ -134,7 +134,7 @@ class NistRowData:
             sparse[cid] = coeff
         return sparse
       
-    def GetCIDs(self):
+    def GetAllCids(self):
         return self.sparse.keys()
     
     def PredictFormationEnergy(self, thermodynamics, cid):
@@ -184,7 +184,7 @@ class Nist(object):
                 continue
             
             self.data.append(nist_row_data)
-            for cid in nist_row_data.GetCIDs():
+            for cid in nist_row_data.GetAllCids():
                 self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
         
     def ToDatabase(self):
@@ -209,7 +209,7 @@ class Nist(object):
             nist_row_data = NistRowData()
             nist_row_data.ReadFromDatabase(row_dict)
             self.data.append(nist_row_data)
-            for cid in nist_row_data.GetCIDs():
+            for cid in nist_row_data.GetAllCids():
                 self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
         
     def Load(self):
@@ -262,6 +262,9 @@ class Nist(object):
 
         if atom_bag:
             raise NistReactionBalanceException("Reaction cannot be balanced: " + str(atom_bag))
+    
+    def GetAllCids(self):
+        return sorted(self.cid2count.keys())
     
     def AnalyzeStats(self):
         """

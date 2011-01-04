@@ -10,6 +10,7 @@ from thermodynamic_constants import R
 import pylab
 import logging
 import csv
+from toolbox.linear_regression import LinearRegression
 
 class NistRegression(object):
     
@@ -22,6 +23,9 @@ class NistRegression(object):
         dissociation = DissociationConstants(self.db, self.html_writer, self.kegg)
         dissociation.LoadValuesToDB()
         self.cid2pKa_list, self.cid2min_nH = dissociation.GetAllpKas()
+        self.cid2min_charge = {}
+        for cid, p in self.cid2min_nH.iteritems():
+            self.cid2min_charge[cid] = p - self.kegg.cid2num_hydrogens(cid, correctForPH=False)
         
     def ReverseTransform(self):
         """
@@ -29,35 +33,63 @@ class NistRegression(object):
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
+        
+        cids = self.nist.GetAllCids()
+        cids_with_pKa = set(self.cid2pKa_list.keys() + [80])
+        stoichiometric_matrix = pylab.zeros((0, len(cids)))
+        dG0_r_vector = pylab.zeros((0, 1))
+        
         for nist_row_data in self.nist.data:
-            required_cids = set(nist_row_data.sparse.keys())
-            if not required_cids.issubset(self.cid2pKa_list.keys()):
-                logging.info('reaction contains CIDs with unknown pKa values')
+            cids_in_reaction = set(nist_row_data.sparse.keys())
+            cids_without_pKa = cids_in_reaction.difference(cids_with_pKa)
+            if cids_without_pKa:
+                logging.info('reaction contains CIDs with unknown pKa values: %s' % str(cids_without_pKa))
             else:
                 dG0_r = nist_row_data.dG0_r + \
                     self.ReverseTransformReaction(nist_row_data.sparse, 
                     nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
                     nist_row_data.T)
-                logging.info('dG0_tag = %.1f -> dG0 = %.1f' % (nist_row_data.dG0_r, dG0_r))
+                logging.debug('dG0_tag = %.1f -> dG0 = %.1f' % (nist_row_data.dG0_r, dG0_r))
+                
+                stoichiometric_row = pylab.zeros((1, len(cids)))
+                for cid, coeff in nist_row_data.sparse.iteritems():
+                    stoichiometric_row[0, cids.index(cid)] = coeff
+                
+                stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
+                                                      stoichiometric_row])
+                dG0_r_vector = pylab.vstack([dG0_r_vector, dG0_r])
+        
+        logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
+        dG0_f, kerA = LinearRegression.LeastSquares(stoichiometric_matrix, 
+                                                    dG0_r_vector)
+        
+        for i, cid in enumerate(cids):
+            logging.debug("C%05d: %.2f" % (cid, dG0_f[i]))
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
                     for cid, coeff in sparse.iteritems()])
 
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
+        if cid == 80:
+            return 0
+        
         p = self.cid2min_nH[cid]
+        z = self.cid2min_charge[cid]
 
         # it is very important that the order of the pKa will be according
         # to increasing nH.
         pKa_list = sorted(self.cid2pKa_list[cid], reverse=True) 
 
-        exponent_list = [0]
-        for n in xrange(len(pKa_list)):
-            exponent_list.append(pylab.log(10) * sum([pKa_list[i] - pH for i in xrange(n+1)]))
+        exponent_list = []
+        for n in xrange(len(pKa_list)+1):
+            exponent = pylab.log(10) * sum([pKa_list[i] - pH for i in xrange(n)])
+            exponent += 2.91482 * ((z+n)**2 - n) * pylab.sqrt(I) / ((R * T) * (1 + 1.6 * pylab.sqrt(I)))
+            exponent_list.append(exponent)
         lse = log_sum_exp(exponent_list)
 
-        logging.debug("C%05d, p=%d, pH=%.2f, I=%.1f, pMg=%.2f, T=%.1f, pKa=[%s], exp=[%s], lse=%.2f, correction=%.2f" % \
-            (cid, p, pH, I, pMg, T, ','.join(['%.2f' % pKa for pKa in pKa_list]),
+        logging.debug("C%05d, p=%d, z=%d, pH=%.2f, I=%.1f, pMg=%.2f, T=%.1f, pKa=[%s], exp=[%s], lse=%.2f, correction=%.2f" % \
+            (cid, p, z, pH, I, pMg, T, ','.join(['%.2f' % pKa for pKa in pKa_list]),
              ','.join(['%.2f' % pKa for pKa in exponent_list]),
              lse, R * T * (lse - p * pylab.log(10) * pH)))
         
@@ -161,6 +193,7 @@ class NistRegression(object):
         self.self.html_writer.write('</table>\n')
 
 if (__name__ == "__main__"):
+    logging.getLogger('').setLevel(logging.DEBUG)
     _mkdir('../res/nist/png')
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')

@@ -85,7 +85,7 @@ class GradientAscent(Thermodynamics):
                 row_data.evaluation = 'B - D'
                 
             #evaluation = row[2]
-            reaction_cids = set(row_data.GetCIDs())
+            reaction_cids = set(row_data.GetAllCids())
             unknown_cids = reaction_cids.difference(known_cids)
             
             if unknown_cids:
@@ -170,7 +170,7 @@ class GradientAscent(Thermodynamics):
                 
             for cid in cid_list: 
                 self.cache_cid[(rowid, cid)] = row_data.PredictFormationEnergy(thermodynamics, cid) * row_data.sparse[cid]
-            dG0_pred = sum([self.cache_cid[(rowid,cid)] for cid in row_data.GetCIDs()])
+            dG0_pred = sum([self.cache_cid[(rowid,cid)] for cid in row_data.GetAllCids()])
             self.cache_error[rowid] = (dG0_pred - row_data.dG0_r)**2
 
     @staticmethod
@@ -219,11 +219,11 @@ class GradientAscent(Thermodynamics):
         
         cid2count = {}
         for row_data in self.data:
-            for cid in row_data.GetCIDs():
+            for cid in row_data.GetAllCids():
                 cid2count[cid] = cid2count.setdefault(cid, 0) + 1
         
         for row_data in self.data:
-            unknown_set = set(row_data.GetCIDs()).difference(known_cid_set)
+            unknown_set = set(row_data.GetAllCids()).difference(known_cid_set)
 
             if unknown_set:
                 logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
@@ -245,7 +245,7 @@ class GradientAscent(Thermodynamics):
             dG0_est_vec.append(dG0_pred)
             evaluation_map[label][0].append(row_data.dG0_r)
             evaluation_map[label][1].append(dG0_pred)
-            n_measurements = min([cid2count[cid] for cid in row_data.GetCIDs()])
+            n_measurements = min([cid2count[cid] for cid in row_data.GetAllCids()])
             error = abs(row_data.dG0_r - dG0_pred)
 
             total_list.append([error, row_data.dG0_r, dG0_pred, 
