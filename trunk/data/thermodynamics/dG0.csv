@@ -14,8 +14,8 @@
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])O",8,"ADP",-1971.98,-2638.54,-1,14,0,"train","Alberty (2003)",
 "OP(=O)([O-])[O-]",9,"Orthophosphate",-1096.1,-1299,-2,1,0,"test","Alberty (2003)",
 "OP(=O)([O-])O",9,"Orthophosphate",-1137.3,-1302.6,-1,2,0,"test","Alberty (2003)",
-,10,"CoA",0,,-1,35,0,"test","Alberty (2003)",
-,10,"CoA",-47.83,,0,36,0,"test","Alberty (2003)","CoA(-1) = 0"
+,10,"CoA",0,,-5,31,0,"test","Alberty (2003)",
+,10,"CoA",-47.83,,-4,32,0,"test","Alberty (2003)","CoA(-1) = 0"
 ,11,"CO2(g)",-394.36,-393.5,0,0,0,"test","Alberty (2003)",
 "[O-]P(=O)([O-])OP(=O)([O-])[O-]",13,"pyrophosphate",-1919.86,-2293.47,-4,0,0,"test","Alberty (2003)",
 "[O-]P(=O)([O-])OP(=O)([O-])O",13,"pyrophosphate",-1973.86,-2294.87,-3,1,0,"test","Alberty (2003)",
