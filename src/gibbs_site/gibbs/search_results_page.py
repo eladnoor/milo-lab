@@ -48,10 +48,13 @@ def ResultsPage(request):
 
         balance_with_water_link = rxn.GetBalanceWithWaterLink(
             ph, ionic_strength, cprofile.name, query)
+        balance_electrons_link = rxn.GetBalanceElectronsLink(
+            ph, ionic_strength, cprofile.name, query)
         template_data.update({'delta_g_estimate': delta_g_estimate,
                               'no_dg_explanation': rxn.NoDeltaGExplanation(),
                               'reaction': rxn,
-                              'balance_with_water_link': balance_with_water_link})
+                              'balance_with_water_link': balance_with_water_link,
+                              'balance_electrons_link': balance_electrons_link})
         return render_to_response('reaction_page.html', template_data)
 
     else:

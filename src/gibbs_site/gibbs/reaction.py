@@ -128,10 +128,35 @@ class Reaction(object):
         
         return atom_diff
     
+    @staticmethod
+    def _GetCollectionElectronDiff(collection):
+        """Get the net electron count from the collection.
+        
+        Args:
+            collection: an iterable of CompoundWithCoeff instances.
+        """
+        electron_diff = 0
+        for compound_w_coeff in collection:
+            c = compound_w_coeff.compound
+            coeff = compound_w_coeff.coeff
+            
+            electrons = c.GetNumElectrons()
+            if electrons == None:
+                logging.warning('Compound %s has unknown electron count', c.kegg_id)
+                return 0
+            
+            electron_diff += coeff * electrons
+        return electron_diff
+    
     def _GetAtomDiff(self):
         """Returns the net atom counts from this reaction."""
         minus_products = [c.Minus() for c in self.products]
         return self._GetCollectionAtomDiff(self.reactants + minus_products)
+    
+    def _GetElectronDiff(self):
+        """Returns the net electron count from this reaction."""
+        minus_products = [c.Minus() for c in self.products]
+        return self._GetCollectionElectronDiff(self.reactants + minus_products)
     
     @staticmethod
     def _IsBalanced(atom_diff):
@@ -151,10 +176,9 @@ class Reaction(object):
                         
         return max([abs(x) for x in atom_diff.values()]) < 0.01
     
-    def GetBalanceWithWaterLink(self, ph=None, ionic_strength=None,
-                                concentration_profile=None,
-                                query=None):
-        """Returns a link to balance this reaction with water."""
+    def _GetUrlParams(self, ph=None, ionic_strength=None,
+                      concentration_profile=None, query=None):
+        """Get the URL params for this reaction."""
         params = []
         for compound in self.reactants:
             params.append('reactantsId=%s' % compound.compound.kegg_id)
@@ -176,7 +200,26 @@ class Reaction(object):
             params.append('concentration_profile=%s' % concentration_profile)
         if query:
             params.append('query=%s' % urllib.quote(query))
+            
+        return params
+    
+    def GetBalanceWithWaterLink(self, ph=None, ionic_strength=None,
+                                concentration_profile=None,
+                                query=None):
+        """Returns a link to balance this reaction with water."""
+        params = self._GetUrlParams(ph, ionic_strength,
+                                    concentration_profile, query)
         params.append('balance_w_water=1')
+    
+        return '/reaction?%s' % '&'.join(params)
+
+    def GetBalanceElectronsLink(self, ph=None, ionic_strength=None,
+                                concentration_profile=None,
+                                query=None):
+        """Returns a link to balance this reaction with water."""
+        params = self._GetUrlParams(ph, ionic_strength,
+                                    concentration_profile, query)
+        params.append('balance_electrons=1')
     
         return '/reaction?%s' % '&'.join(params)
     
@@ -187,6 +230,14 @@ class Reaction(object):
             True if the collection is atom-wise balanced.
         """
         return self._IsBalanced(self._GetAtomDiff())
+    
+    def IsElectronBalanced(self):
+        """Checks if the collection is electron-wise balanced.
+        
+        Returns:
+            True if the collection is electron-wise balanced.
+        """
+        return self._GetElectronDiff() == 0
     
     def _ExtraWaters(self):
         atom_diff = self._GetAtomDiff()
@@ -205,19 +256,42 @@ class Reaction(object):
         return oxy_count
 
     @staticmethod
-    def _FindWater(side):
-        """Returns the index of water into the list.
+    def _FindCompoundIndex(side, id):
+        """Returns the index of the compound with the given id.
         
         Args:
             side: a list of CompoundWithCoeff objects.
         
         Returns:
-            The index of water or None if not present.
+            The index of the compound or None if not present.
         """
         for i, c in enumerate(side):
-            if c.compound.kegg_id == 'C00001':
+            if c.compound.kegg_id == id:
                 return i
         return None
+
+    @staticmethod
+    def _FindWater(side):
+        """Returns the index of water into the list."""
+        return Reaction._FindCompoundIndex(side, 'C00001')
+
+    @staticmethod
+    def _AddCompound(side, id, how_many):
+        """Adds "how_many" of the compound with the given id.
+        
+        Args:
+            side: a list of CompoundWithCoeff objects.
+            id: the KEGG id.
+            how_many: how many waters to add.
+        """
+        i = Reaction._FindCompoundIndex(side, id)        
+        if i:
+            side[i].coeff += how_many
+        else:
+            compound = models.Compound.objects.get(kegg_id=id)
+            c_w_coeff = CompoundWithCoeff(compound=compound, coeff=how_many,
+                                          name=compound.ShortestName())
+            side.append(c_w_coeff)
 
     @staticmethod
     def AddWater(side, how_many):
@@ -227,14 +301,7 @@ class Reaction(object):
             side: a list of CompoundWithCoeff objects.
             how_many: how many waters to add.
         """
-        i = Reaction._FindWater(side)        
-        if i:
-            side[i].coeff += how_many
-        else:
-            water = models.Compound.objects.get(kegg_id='C00001')
-            w_w_coeff = CompoundWithCoeff(compound=water, coeff=how_many,
-                                          name='Water')
-            side.append(w_w_coeff)
+        Reaction._AddCompound(side, 'C00001', how_many)
     
     @staticmethod
     def SubtractWater(side, how_many):
@@ -292,6 +359,35 @@ class Reaction(object):
         
         return True
 
+    def CanBalanceElectrons(self):
+        """Returns True if balanced with or extra electrons."""
+        net_electrons = self._GetElectronDiff()
+        if net_electrons % 2 == 0:
+            return True
+        return False
+
+    def BalanceElectrons(self,
+                         acceptor_id='C00003',           # NAD+
+                         reduced_acceptor_id='C00004'):  # NADH
+        """Try to balance the reaction electons."""        
+        net_electrons = self._GetElectronDiff()
+        if net_electrons == 0:
+            return
+        
+        acceptor = models.Compound.objects.get(kegg_id=acceptor_id)
+        reduced_acceptor = models.Compound.objects.get(kegg_id=reduced_acceptor_id)
+        
+        if net_electrons < 0:
+            # More product electrons. Need a donor on the left.
+            num = (-net_electrons) / 2
+            self._AddCompound(self.reactants, reduced_acceptor_id, num)
+            self._AddCompound(self.products, acceptor_id, num)
+        else:
+            # More reactant-side electrons. Need an acceptor on the left.
+            num = net_electrons / 2
+            self._AddCompound(self.reactants, acceptor_id, num)
+            self._AddCompound(self.products, reduced_acceptor_id, num)
+        
     @staticmethod
     def _FilterHydrogen(compounds_with_coeffs):
         """Removes Hydrogens from the list of compounds."""
@@ -415,6 +511,8 @@ class Reaction(object):
         return short
 
     is_balanced = property(IsBalanced)
+    can_balance_electrons = property(CanBalanceElectrons)
+    is_electron_balanced = property(IsElectronBalanced)
     balanced_with_water = property(CanBalanceWithWater)
     extra_atoms = property(ExtraAtoms)
     missing_atoms = property(MissingAtoms)

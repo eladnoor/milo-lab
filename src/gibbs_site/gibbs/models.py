@@ -1,5 +1,6 @@
 import logging
 import numpy
+import openbabel
 import re
 
 from django.db import models
@@ -153,6 +154,45 @@ class Compound(models.Model):
         """Custom save-time behavior."""
         if self.inchi:
             self.achiral_inchi = inchi.AchiralInchi(self.inchi)
+    
+    def ShortestName(self):
+        shortest_len = 10000
+        shortest_name = None
+        for name in self.common_names.all():
+            if len(name.name) < shortest_len:
+                shortest_name = name.name
+                shortest_len = len(name.name)
+                
+        return shortest_name
+    
+    def _GetObMol(self):
+        """Converts the InChI into an OpenBabel Mol."""
+        if not self.inchi:
+            return None
+        
+        obConversion = openbabel.OBConversion()
+        obConversion.SetInAndOutFormats("inchi", "mol")
+        obmol = openbabel.OBMol()
+        obConversion.ReadString(obmol, str(self.inchi))
+        if not obmol.NumAtoms():
+            return None
+        
+        polaronly = False
+        obmol.AddHydrogens(polaronly, False)
+        return obmol
+    
+    def GetNumElectrons(self):
+        """Returns the number of electrons."""
+        obmol = self._GetObMol()
+        if not obmol:
+            logging.warn('Couldn\'t get mol.')
+            return None
+            
+        n_protons = 0
+        for i in xrange(obmol.NumAtoms()):
+            atom = obmol.GetAtom(i+1)
+            n_protons += atom.GetAtomicNum()
+        return n_protons - obmol.GetTotalCharge()
     
     def DeltaG(self, pH=constants.DEFAULT_PH,
                ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
