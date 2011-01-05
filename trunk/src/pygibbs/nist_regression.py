@@ -42,6 +42,9 @@ class NistAnchors(object):
             self.FromCsvFile()
         else:
             self.FromDatabase()
+            
+    def GetAllCids(self):
+        return sorted(self.cid2dG0_f.keys())
 
 class NistRegression(object):
     
@@ -69,15 +72,19 @@ class NistRegression(object):
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
+        cids_with_pKa = set(self.cid2pKa_list.keys())
+        cids_with_pKa = set([212, 147, 9, 1, 2, 8, 13, 20])
+        cids_in_nist = set(self.nist.GetAllCids())
+        cids_in_nist_with_pKa = cids_with_pKa.intersection(cids_in_nist)
         
-        anchored_cids = sorted(self.nist_anchors.cid2dG0_f.keys())
+        anchored_cids = sorted(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
         anchored_dG0_f = pylab.matrix([[self.nist_anchors.cid2dG0_f[cid] for cid in anchored_cids]]).T
         
-        unresolved_cids = sorted(set(self.nist.GetAllCids()).difference(anchored_cids))
+        unresolved_cids = sorted(cids_in_nist_with_pKa.difference(anchored_cids))
         all_cids = anchored_cids + unresolved_cids
-        cids_with_pKa = set(self.cid2pKa_list.keys())
         
         for cid in cids_with_pKa.intersection(anchored_cids):
+            # TODO: Instead of raising an exception, fix the value using the pKa list
             if self.cid2min_nH[cid] != self.nist_anchors.cid2min_nH[cid]:
                 raise Exception("The anchored form of C%05d is different than "
                     "the lowest form according to the pKa list %d != %d" % \
@@ -116,11 +123,13 @@ class NistRegression(object):
         logging.info("%d anchored CIDs, %d unresolved CIDs" % (len(anchored_cids), len(unresolved_cids)))
         dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, unresolved_dG0_r)
         
+        logging.debug("Anchors:")
         for i, cid in enumerate(anchored_cids):
-            logging.debug("C%05d: %.2f" % (cid, anchored_dG0_f[0, i]))
+            logging.debug("C%05d: dG0=%.2f, nH=%d" % (cid, anchored_dG0_f[i, 0], self.cid2min_nH[cid]))
 
+        logging.debug("Estimations:")
         for i, cid in enumerate(unresolved_cids):
-            logging.debug("C%05d: %.2f" % (cid, dG0_f[0, i]))
+            logging.debug("C%05d: dG0=%.2f, nH=%d" % (cid, dG0_f[i, 0], self.cid2min_nH[cid]))
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
