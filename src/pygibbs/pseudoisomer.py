@@ -48,6 +48,9 @@ class PseudoisomerMap(object):
         """Transform this set of pseudoisomers to a dG value at
            the specified conditions.
         """
+        if not self.dgs:
+            raise ValueError("Cannot run Transform on an empty pseudoisomer map")
+        
         v_dG0 = []
         v_nH  = []
         v_z   = []

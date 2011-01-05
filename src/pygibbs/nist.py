@@ -1,8 +1,8 @@
 import pylab, re, logging
 from pygibbs.kegg import KeggParseException, Kegg
-from pygibbs.thermodynamics import default_T
+from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy
 from pygibbs.alberty import Alberty
-from toolbox.util import _mkdir
+from toolbox.util import _mkdir, calc_rmse, calc_r2
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import R, default_pMg
 from toolbox.database import SqliteDatabase
@@ -332,7 +332,126 @@ class Nist(object):
 
         self.html_writer.embed_matplotlib_figure(fig2)
         logging.info('Done analyzing stats.')
+
+    def verify_results(self, thermodynamics):
+        """Calculate all the dG0_r for the reaction from NIST and compare to
+           the measured data.
         
+        Write results to HTML.
+        
+        Args:
+            thermodynamics: a Thermodynamics object that provides dG estimates.
+            html_writer: to write HTML.
+            ignore_I: whether or not to ignore the ionic strength in NIST.
+        """
+        
+        known_cid_set = thermodynamics.get_all_cids()
+        dG0_obs_vec = []
+        dG0_est_vec = []
+       
+        # A mapping from each evaluation method (NIST calls separates them to
+        # A, B, C and D) to the results of the relevant measurements
+        evaluation_map = {}
+        total_list = []
+        
+        cid2count = {}
+        for row_data in self.data:
+            for cid in row_data.GetAllCids():
+                cid2count[cid] = cid2count.setdefault(cid, 0) + 1
+        
+        for row_data in self.data:
+            unknown_set = set(row_data.GetAllCids()).difference(known_cid_set)
+
+            if unknown_set:
+                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
+                continue
+            
+            #label = row_data.evaluation
+            label = row_data.K_type
+            
+            if label not in evaluation_map:
+                evaluation_map[label] = ([], [])
+            
+            try:
+                dG0_pred = row_data.PredictReactionEnergy(thermodynamics)
+            except MissingCompoundFormationEnergy:
+                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
+                continue
+                
+            dG0_obs_vec.append(row_data.dG0_r)
+            dG0_est_vec.append(dG0_pred)
+            evaluation_map[label][0].append(row_data.dG0_r)
+            evaluation_map[label][1].append(dG0_pred)
+            n_measurements = min([cid2count[cid] for cid in row_data.GetAllCids()])
+            error = abs(row_data.dG0_r - dG0_pred)
+
+            total_list.append([error, row_data.dG0_r, dG0_pred, 
+                               row_data.sparse, row_data.pH, row_data.pMg, 
+                               row_data.I, row_data.T, row_data.evaluation, 
+                               n_measurements])
+        
+        # plot the profile graph
+        pylab.rcParams['text.usetex'] = False
+        pylab.rcParams['legend.fontsize'] = 12
+        pylab.rcParams['font.family'] = 'sans-serif'
+        pylab.rcParams['font.size'] = 16
+        pylab.rcParams['lines.linewidth'] = 2
+        pylab.rcParams['lines.markersize'] = 3
+        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
+        pylab.rcParams['figure.dpi'] = 100
+        
+        fig1 = pylab.figure()
+        pylab.hold(True)
+        
+        colors = ['purple', 'orange', 'lightgreen', 'red', 'cyan']
+        for e in sorted(evaluation_map.keys()):
+            (measured, predicted) = evaluation_map[e]
+            label = '%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), calc_rmse(measured, predicted))
+            c = colors.pop(0)
+            pylab.plot(measured, predicted, marker='.', linestyle='None', markerfacecolor=c, markeredgecolor=c, markersize=5, label=label)
+        
+        pylab.legend(loc='upper left')
+        
+        r2 = calc_r2(dG0_obs_vec, dG0_est_vec)
+        rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
+        pylab.title(r'N = %d, RMSE = %.1f [kJ/mol], r$^2$ = %.2f' % (len(dG0_obs_vec), rmse, r2), fontsize=14)
+        pylab.xlabel(r'$\Delta_{obs} G^\circ$ [kJ/mol]', fontsize=14)
+        pylab.ylabel(r'$\Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
+        min_x = min(dG0_obs_vec)
+        max_x = max(dG0_obs_vec)
+        pylab.plot([min_x, max_x], [min_x, max_x], 'k--')
+        pylab.axis([-60, 60, -60, 60])
+        
+        fig2 = pylab.figure()
+        pylab.hist([(row[1] - row[2]) for row in total_list], bins=pylab.arange(-50, 50, 0.5))
+        pylab.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
+        pylab.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
+        pylab.ylabel(r'no. of measurements', fontsize=14)
+
+        fig3 = pylab.figure()
+        pylab.plot([row[9] for row in total_list], [abs(row[1] - row[2]) for row in total_list], '.')
+        pylab.title(r'Effect of no. of measurements on estimation error', fontsize=14)
+        pylab.xlabel(r'minimum no. of measurements among reaction compounds', fontsize=14)
+        pylab.ylabel(r'$|| \Delta_{obs} G^\circ - \Delta_{est} G^\circ ||$ [kJ/mol]', fontsize=14)
+        pylab.xscale('log')
+        
+        self.html_writer.embed_matplotlib_figure(fig1, width=400, height=300)
+        self.html_writer.embed_matplotlib_figure(fig2, width=400, height=300)
+        self.html_writer.embed_matplotlib_figure(fig3, width=400, height=300)
+
+        table_headers = ["|error|", "dG0(obs)", "dG0(pred)", "reaction", "pH", "pMg", "I", "T", "evaluation", "min_num_measurements"]
+        self.html_writer.write("<table>\n")
+        self.html_writer.write("<tr><td>" + "</td><td>".join(table_headers) + "</td></tr>\n")
+        
+        for row in sorted(total_list, reverse=True):
+            sparse_reaction = row[3]
+            row[3] = self.kegg.sparse_to_hypertext(sparse_reaction, show_cids=False)
+            self.html_writer.write("<tr><td>" + "</td><td>".join(["%.1f" % x for x in row[:3]] + [str(x) for x in row[3:]]) + "</td></tr>\n")
+        self.html_writer.write("</table>\n")
+        self.html_writer.write("</div><br>\n")
+        
+        return len(dG0_obs_vec), rmse
+
 if __name__ == '__main__':
     _mkdir("../res/nist")
     db = SqliteDatabase('../res/gibbs.sqlite')    

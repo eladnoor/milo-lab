@@ -11,6 +11,11 @@ import pylab
 import logging
 import csv
 from toolbox.linear_regression import LinearRegression
+from pygibbs.thermodynamic_constants import default_T
+from pygibbs.thermodynamics import Thermodynamics,\
+    MissingCompoundFormationEnergy
+from pygibbs.pseudoisomer import PseudoisomerMap
+from pygibbs.alberty import Alberty
 
 class NistAnchors(object):
     
@@ -19,7 +24,7 @@ class NistAnchors(object):
         self.html_writer = html_writer
         self.cid2dG0_f = {}
         self.cid2min_nH = {}
-    
+        
     def FromCsvFile(self, filename='../data/thermodynamics/nist_anchors.csv'):
         self.db.CreateTable('nist_anchors', 'cid INT, charge INT, hydrogens INT, dG0 REAL')
         for row in csv.DictReader(open(filename, 'r')):
@@ -46,9 +51,10 @@ class NistAnchors(object):
     def GetAllCids(self):
         return sorted(self.cid2dG0_f.keys())
 
-class NistRegression(object):
+class NistRegression(Thermodynamics):
     
     def __init__(self, db, html_writer, kegg):
+        Thermodynamics.__init__(self)
         self.db = db
         self.html_writer = html_writer
         self.kegg = kegg
@@ -65,35 +71,54 @@ class NistRegression(object):
         for cid, p in self.cid2min_nH.iteritems():
             self.cid2min_charge[cid] = self.kegg.cid2charge(cid, correctForPH=False) + \
                 p - self.kegg.cid2num_hydrogens(cid, correctForPH=False)
+                
+        self.cid2pmap_dict = {}
         
-    def ReverseTransform(self):
+    def cid2pmap(self, cid):
+        if (cid in self.cid2pmap_dict):
+            return self.cid2pmap_dict[cid]
+        else:
+            raise MissingCompoundFormationEnergy("The compound C%05d does not have a value for its formation energy of any of its pseudoisomers" % cid, cid)
+
+    def get_all_cids(self):
+        return sorted(self.cid2pmap_dict.keys())
+        
+    def ReverseTransform(self, T_range=None):
         """
             Performs the reverse Lagandre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
         cids_with_pKa = set(self.cid2pKa_list.keys())
-        cids_with_pKa = set([212, 147, 9, 1, 2, 8, 13, 20])
+        #cids_with_pKa = set([212, 147, 9, 1, 2, 8, 13, 20])
         cids_in_nist = set(self.nist.GetAllCids())
         cids_in_nist_with_pKa = cids_with_pKa.intersection(cids_in_nist)
         
         anchored_cids = sorted(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
-        anchored_dG0_f = pylab.matrix([[self.nist_anchors.cid2dG0_f[cid] for cid in anchored_cids]]).T
         
         unresolved_cids = sorted(cids_in_nist_with_pKa.difference(anchored_cids))
         all_cids = anchored_cids + unresolved_cids
         
-        for cid in cids_with_pKa.intersection(anchored_cids):
-            # TODO: Instead of raising an exception, fix the value using the pKa list
-            if self.cid2min_nH[cid] != self.nist_anchors.cid2min_nH[cid]:
-                raise Exception("The anchored form of C%05d is different than "
-                    "the lowest form according to the pKa list %d != %d" % \
-                    (cid, self.cid2min_nH[cid], self.nist_anchors.cid2min_nH[cid]))
+        # get a vector of anchored formation energies. one needs to be careful
+        # to always use the most basic pseudoisomer (the one with the lowest nH)
+        # because these are the forms used in the regression matrix
+        anchored_dG0_f = []
+        for i, cid in enumerate(anchored_cids):
+            dG0_f = self.nist_anchors.cid2dG0_f[cid]
+            nH = self.nist_anchors.cid2min_nH[cid]
+            dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
+            anchored_dG0_f.append(dG0_f_base)
+        anchored_dG0_f = pylab.matrix([anchored_dG0_f]).T
         
         stoichiometric_matrix = pylab.zeros((0, len(all_cids)))
-        dG0_r_vector = pylab.zeros((0, 1))
+        
+        reverse_transformed_dG0_r = pylab.zeros((0, 1))
         
         for nist_row_data in self.nist.data:
+            if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
+                logging.warning('Temperature %f not within allowed range.', nist_row_data.T)
+                continue # the temperature is outside the allowed range
+            
             cids_in_reaction = set(nist_row_data.sparse.keys())
             cids_without_pKa = cids_in_reaction.difference(cids_with_pKa)
             if cids_without_pKa:
@@ -111,25 +136,74 @@ class NistRegression(object):
                 
                 stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
                                                       stoichiometric_row])
-                dG0_r_vector = pylab.vstack([dG0_r_vector, dG0_r])
+                reverse_transformed_dG0_r = pylab.vstack([reverse_transformed_dG0_r, dG0_r])
         
         
         anchored_S = stoichiometric_matrix[:, :len(anchored_cids)]
         unresolved_S = stoichiometric_matrix[:, len(anchored_cids):]
         
-        unresolved_dG0_r = dG0_r_vector - anchored_S * anchored_dG0_f
+        unresolved_dG0_r = reverse_transformed_dG0_r - anchored_S * anchored_dG0_f
         
         logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
         logging.info("%d anchored CIDs, %d unresolved CIDs" % (len(anchored_cids), len(unresolved_cids)))
-        dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, unresolved_dG0_r)
-        
-        logging.debug("Anchors:")
-        for i, cid in enumerate(anchored_cids):
-            logging.debug("C%05d: dG0=%.2f, nH=%d" % (cid, anchored_dG0_f[i, 0], self.cid2min_nH[cid]))
+        estimated_dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, unresolved_dG0_r)
 
-        logging.debug("Estimations:")
-        for i, cid in enumerate(unresolved_cids):
-            logging.debug("C%05d: dG0=%.2f, nH=%d" % (cid, dG0_f[i, 0], self.cid2min_nH[cid]))
+        all_dG0_f = pylab.vstack([anchored_dG0_f, estimated_dG0_f])
+        estimated_dG0_r = stoichiometric_matrix * all_dG0_f
+
+        # insert the new data into pseudoisomer maps, according to the
+        # paradigm of the Thermodynamics class.
+                
+        self.anchors = set(anchored_cids)
+        for i, cid in enumerate(all_cids):
+            pmap = PseudoisomerMap()
+            
+            base_nH = self.cid2min_nH[cid]
+            base_z = self.cid2min_charge[cid]
+            base_dG0_f = all_dG0_f[i, 0]
+            for j in xrange(len(self.cid2pKa_list[cid])+1):
+                nH = base_nH + j
+                z = base_z + j
+                dG0_f_species = self.ConvertPseudoisomer(cid, base_dG0_f, base_nH, nH)
+                pmap.Add(nH, z, nMg=0, dG0=dG0_f_species)
+            self.cid2pmap_dict[cid] = pmap
+            
+        self.html_writer.write('<h3>Regression results:</h3>\n')
+        self.write_data_to_html(self.html_writer, self.kegg)
+        
+        fig1 = pylab.figure()
+        pylab.plot(reverse_transformed_dG0_r, estimated_dG0_r, '.')
+        pylab.xlabel('$\Delta G^\circ$ (NIST)')
+        pylab.ylabel('$\Delta G^\circ$ (estimated)')
+        self.html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
+        self.html_writer.write('</br>\n')
+
+        self.nist.verify_results(self)
+        
+    def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
+        """
+            Returns the dG0 of any pseudoisomer, given the dG0 of another pseudoisomer.
+            If no explicit request for a pseudoisomer is provided,
+            returns the most basic one (minimal nH).
+        """
+        pKa_list = self.cid2pKa_list[cid]
+        min_nH = self.cid2min_nH[cid]
+        if not nH_to:
+            nH_to = min_nH
+        
+        i_from = nH_from - min_nH
+        if not (0 <= i_from <= len(pKa_list)):
+            raise Exception("The provided pseudoisomer (C%05d, nH=%d) is outside the"
+                            " range of the pKa list" % (cid, nH_from))
+
+        i_to = nH_to - min_nH
+        if not (0 <= i_to <= len(pKa_list)):
+            raise Exception("The requested pseudoisomer (C%05d, nH=%d) is outside the"
+                            " range of the pKa list" % (cid, nH_to))
+        if i_to < i_from:
+            return dG0 + R*self.T*pylab.log(10)*sum(pKa_list[i_to:i_from])
+        else:
+            return dG0 - R*self.T*pylab.log(10)*sum(pKa_list[i_from:i_to])
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
@@ -141,7 +215,7 @@ class NistRegression(object):
 
         # it is very important that the order of the pKa will be according
         # to increasing nH.
-        pKa_list = sorted(self.cid2pKa_list[cid], reverse=True) 
+        pKa_list = self.cid2pKa_list[cid]
 
         exponent_list = []
         for n in xrange(len(pKa_list)+1):
@@ -261,10 +335,18 @@ if (__name__ == "__main__"):
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg()
 
+    html_writer.write("<h2>Alberty:</h2>")
+    html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % ('alberty'))
+    html_writer.write('<div id="%s" style="display:none">' % 'alberty')
+    alberty = Alberty()
+    alberty.write_data_to_html(html_writer, kegg)
+    html_writer.write('</div></br>\n')
+    
+    html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
     #nist_regression.Nist_pKas()
     #nist_regression.Calculate_pKa_and_pKMg()
     
-    nist_regression.ReverseTransform()
+    nist_regression.ReverseTransform(T_range=(298, 314))
     
     html_writer.close()
