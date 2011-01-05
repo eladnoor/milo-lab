@@ -56,6 +56,27 @@ class BaseHtmlWriter:
             self.write("  <li>%s</li>\n" % str(mem))
         self.write("</ul>\n")
         
+    def write_table(self, dict_list, headers=None, border=1):
+        def to_string(x):
+            if type(x) == types.StringType:
+                return x
+            else:
+                return str(x)
+        
+        if not headers:
+            headers = set()
+            for dict in dict_list:
+                for key in dict.keys():
+                    headers.add(to_string(key))
+            headers = sorted(headers)
+        
+        self.write('<table border=%d>\n' % border)
+        self.write('<tr><td><b>' + '</b></td><td><b>'.join(headers) + '</b></td></tr>\n')
+        for dict in dict_list:
+            values = [to_string(dict.get(key, "")) for key in headers]
+            self.write('<tr><td>' + '</td><td>'.join(values) + '</td></tr>\n')
+        self.write("</table>\n")
+        
     def insert_toggle(self, div_id=None):
         if not div_id:
             div_id = "DIV%05d" % self.div_counter

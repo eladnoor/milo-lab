@@ -13,6 +13,7 @@ from pygibbs import pseudoisomer
 from toolbox import util, database
 import logging
 from copy import deepcopy
+from pygibbs.nist_regression import NistAnchors
 
 class GradientAscent(Thermodynamics):
     def __init__(self, gc):
@@ -25,7 +26,6 @@ class GradientAscent(Thermodynamics):
         self.test_rowids = []   # the row indices in self.data to use for testing
         self.cid2rowids = {} # holds a list of indices to self.train_data where the CID is participating
         self.cid2pmap_dict = {}       # this is the solution vector (what we are trying to solve)
-        self.anchors = set()     # the CIDs of the anchor compounds (i.e. their pmap must be fixed)
         self.cache_error = {}    # for each rowid - holds the last calculated squared error (the difference between calc and measured)
         self.cache_cid = {}      # for each (rowid,cid) pair - holds the last calculated dG_f (multiplied by the stoichiometric coeff)
 
@@ -43,6 +43,7 @@ class GradientAscent(Thermodynamics):
             Read the training data from a CSV file, into the cid2pmap_dict.
             Returns a set containing the imported CIDs.
         """
+        nist_anchors = NistAnchors(self.gc.db, self.html_writer)
         cids = set()
         for row_dict in csv.DictReader(open(train_csv_fname)):
             if row_dict.get('use_for', 'skip') == 'skip':
@@ -298,8 +299,6 @@ class GradientAscent(Thermodynamics):
         xlabel(r'minimum no. of measurements among reaction compounds', fontsize=14)
         ylabel(r'$|| \Delta_{obs} G^\circ - \Delta_{est} G^\circ ||$ [kJ/mol]', fontsize=14)
         xscale('log')
-        
-        fig1.savefig('../res/nist/%s.svg' % key)
         
         html_writer.write("<h2>%s</h2>" % key)
         

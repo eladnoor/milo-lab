@@ -164,6 +164,11 @@ class DissociationConstants(object):
                 raise Exception("When a compound has no pKa, nH_below should be"
                                 " equal to nH_above, C%05d" % cid)
                 
+        # it is very important that the order of the pKa will be according
+        # to increasing nH, i.e. decreasing pKa values
+        for cid in cid2pKa_list.keys():
+            cid2pKa_list[cid].sort(reverse=True)
+            
         return cid2pKa_list, cid2minimal_nH
 
     @staticmethod

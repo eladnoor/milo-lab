@@ -21,6 +21,7 @@ class Thermodynamics(object):
         self.c_range = (1e-6, 1e-2)
         self.bounds = {}
         self.source_string = "Unknown"
+        self.anchors = set()
 
     def cid2pmap(self, cid):
         raise NotImplementedError
@@ -65,6 +66,25 @@ class Thermodynamics(object):
         for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
             print "C%05d | %2d | %2d | %6.2f" % (cid, nH, z, dG0)
     
+    def write_data_to_html(self, html_writer, kegg):
+        dict_list = []
+        for cid in self.get_all_cids():
+            for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
+                dict = {}
+                dict['CID'] = 'C%05d' % cid
+                dict['name'] = kegg.cid2name(cid)
+                dict['nH'] = '%d' % nH
+                dict['charge'] = '%d' % z
+                dict['nMg'] = '%d' % nMg
+                dict['dG0_f'] = '%.2f' % dG0
+                if cid in self.anchors:
+                    dict['anchor'] = 'yes'
+                else:
+                    dict['anchor'] = 'no'
+                dict_list.append(dict)
+        
+        html_writer.write_table(dict_list, ['CID', 'name', 'nH', 'charge', 'nMg', 'dG0_f', 'anchor'])
+    
     def write_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['CID', 'nH', 'charge', 'nMg', 'dG0'])
@@ -97,23 +117,21 @@ class Thermodynamics(object):
             writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
             
     def save_energies_to_db(self, db, table_name):
-        db.CreateTable(table_name, "cid INT, dG0_f REAL, nH INT, z INT, nMg INT, anchor BOOL")
+        db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, dG0_f REAL, anchor BOOL")
         for cid in self.get_all_cids():
             for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
-                db.Insert(table_name, [cid, dG0, nH, z, nMg, cid in self.anchors])
+                db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
         db.Commit()
 
     def load_energies(self, db, table_name):
         self.cid2pmap_dict = {}
         self.anchors = set()
-        for row in db.execute("SELECT * FROM %s" % table_name):
-            (cid, dG0, nH, z, nMg, anchor) = row
-            self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
-            self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
-            if (anchor):
-                self.anchors.add(cid)
-        self.update_cache(self)
-        
+        for row in db.DictReader(table_name):
+            self.cid2pmap_dict.setdefault(row['cid'], pseudoisomer.PseudoisomerMap())
+            self.cid2pmap_dict[row['cid']].Add(row['nH'], row['z'], row['nMg'], row['dG0_f'])
+            if (row['anchor']):
+                self.anchors.add(row['cid'])
+    
     def write_pseudoisomers_to_html(self, html_writer, kegg, cids):
         # calculate the dG0_f of each compound
         dG0_f = pylab.zeros((len(cids), 1))
