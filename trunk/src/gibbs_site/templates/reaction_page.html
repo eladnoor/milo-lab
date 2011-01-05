@@ -10,6 +10,14 @@
 		<a href="{{ balance_with_water_link }}">Balance with water?</a>
 		{% endif %}
 		</div>
+		{% else %}
+			{% if not reaction.is_electron_balanced %}
+			<div class="warning">Electrons are not balanced!
+			{% if balance_electrons_link and reaction.can_balance_electrons %}
+			<a href="{{ balance_electrons_link }}">Balance with NADH?</a>
+			{% endif %}
+			</div>
+			{% endif %}
 	{% endif %}
 
 	<form id="rxnForm" name="reactionForm" action="/reaction" method="get">
@@ -26,7 +34,12 @@
 			{% if reaction.missing_atoms %}
 				+
 				{% for atom, count in reaction.missing_atoms %}
-				<span class="missingCount">{{ count }}</span><span class="missingAtom">{{ atom }}</span>
+					<span class="missingCount">{{ count }}</span>
+					{% if reaction.balanced_with_water %}
+					<span class="missingAtom">Water</span>
+					{% else %}
+					<span class="missingAtom">{{ atom }}</span>
+					{% endif %}
 				{% endfor %}
 			{% endif %}
 			
@@ -42,7 +55,12 @@
 			{% if reaction.extra_atoms %}
 				+
 				{% for atom, count in reaction.extra_atoms %}
-				<span class="missingCount">{{ count }}</span><span class="missingAtom">{{ atom }}</span>
+					<span class="missingCount">{{ count }}</span>
+					{% if reaction.balanced_with_water %}
+					<span class="missingAtom">Water</span>
+					{% else %}
+					<span class="missingAtom">{{ atom }}</span>
+					{% endif %}
 				{% endfor %}
 			{% endif %}
 		</div>
