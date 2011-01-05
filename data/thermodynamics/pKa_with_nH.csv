@@ -143,8 +143,8 @@ cid,name,T,nH below,nH above,pKa,smiles below,smiles above,comment
 140,,,15,15
 144,,298.15,13,12,6.73
 144,,298.15,12,11,9.94
-147,,298.15,6,5,4.3,c1nc2c([NH2])[nH+]cnc2n1,c1nc2c([NH2])ncnc2n1
-147,,298.15,5,4,9.83,c1nc2c([NH2])ncnc2n1,c1nc2c([NH2])ncnc2[n-]1
+147,"Adenine",298.15,6,5,4.3,c1nc2c([NH2])[nH+]cnc2n1,c1nc2c([NH2])ncnc2n1
+147,"Adenine",298.15,5,4,9.83,c1nc2c([NH2])ncnc2n1,c1nc2c([NH2])ncnc2[n-]1
 148,,298.15,10,9,1.95,C1CC([NH2+]C1)C(=O)[OH],C1CC([NH2+]C1)C(=O)[O-]
 148,,298.15,9,8,10.64,C1CC([NH2+]C1)C(=O)[O-],C1CC([NH]C1)C(=O)[O-]
 149,,298.15,6,5,3.4,C(=O)(O)C(O)CC(=O)O,C(=O)([O-])C(O)CC(=O)O
@@ -185,8 +185,8 @@ cid,name,T,nH below,nH above,pKa,smiles below,smiles above,comment
 208,,,22,22
 209,,298.15,2,1,1.25,C(=O)(O)C(=O)O,C(=O)(O)C(=O)[O-]
 209,,298.15,1,0,3.81,C(=O)(O)C(=O)[O-],C(=O)([O-])C(=O)[O-]
-212,,298.15,14,13,3.6
-212,,298.15,13,12,12.4
+212,"Adenosine",298.15,14,13,3.6
+212,"Adenosine",298.15,13,12,12.4
 213,,298.15,8,7,2.21,C[NH2+]CC(=O)O,C[NH2+]CC(=O)[O-]
 213,,298.15,7,6,10.1,C[NH2+]CC(=O)[O-],CNCC(=O)[O-]
 214,,,14,14
