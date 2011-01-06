@@ -13,6 +13,7 @@ from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
 from toolbox import database
 import logging
+from pygibbs.nist_regression import NistRegression
 
 ################################################################################################################
 #                                                 MAIN                                                         #        
@@ -27,13 +28,18 @@ def main():
     nist.FromDatabase()
 
     estimators = {}
+    estimators['Alberty'] = Alberty()
+    estimators['Hatzimanikatis Group Contribution'] = Hatzi()
+
     gc = GroupContribution(db, html_writer, kegg)
     gc.override_gc_with_measurements = True
     gc.init()
     estimators['Milo Group Contribution'] = gc
-    estimators['Alberty'] = Alberty()
-    estimators['Hatzimanikatis Group Contribution'] = Hatzi()
 
+    regress = NistRegression(db, html_writer, kegg)
+    regress.FromDatabase()
+    estimators['NIST regression'] = regress
+    
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % key)
         html_writer.write('<p><b>%s </b>\n' % key)
