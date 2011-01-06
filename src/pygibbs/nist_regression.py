@@ -112,8 +112,10 @@ class NistRegression(Thermodynamics):
         
         stoichiometric_matrix = pylab.zeros((0, len(all_cids)))
         
-        reverse_transformed_dG0_r = pylab.zeros((0, 1))
+        dG0_r_tag = pylab.zeros((0, 1))
+        ddG0_r = pylab.zeros((0, 1)) # the difference between dG0_r and dG'0_r
         
+        nist_rows_used = []
         for nist_row_data in self.nist.data:
             if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
                 logging.warning('Temperature %f not within allowed range.', nist_row_data.T)
@@ -124,11 +126,12 @@ class NistRegression(Thermodynamics):
             if cids_without_pKa:
                 logging.info('reaction contains CIDs with unknown pKa values: %s' % str(cids_without_pKa))
             else:
-                dG0_r = nist_row_data.dG0_r + \
-                    self.ReverseTransformReaction(nist_row_data.sparse, 
+                nist_rows_used.append(nist_row_data)
+                dG0_r_tag = pylab.vstack([dG0_r_tag, nist_row_data.dG0_r])
+                ddG = self.ReverseTransformReaction(nist_row_data.sparse, 
                     nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
                     nist_row_data.T)
-                logging.debug('dG0_tag = %.1f -> dG0 = %.1f' % (nist_row_data.dG0_r, dG0_r))
+                ddG0_r = pylab.vstack([ddG0_r, ddG])
                 
                 stoichiometric_row = pylab.zeros((1, len(all_cids)))
                 for cid, coeff in nist_row_data.sparse.iteritems():
@@ -136,13 +139,12 @@ class NistRegression(Thermodynamics):
                 
                 stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
                                                       stoichiometric_row])
-                reverse_transformed_dG0_r = pylab.vstack([reverse_transformed_dG0_r, dG0_r])
-        
         
         anchored_S = stoichiometric_matrix[:, :len(anchored_cids)]
         unresolved_S = stoichiometric_matrix[:, len(anchored_cids):]
         
-        unresolved_dG0_r = reverse_transformed_dG0_r - anchored_S * anchored_dG0_f
+        dG0_r = dG0_r_tag + ddG0_r
+        unresolved_dG0_r = dG0_r - anchored_S * anchored_dG0_f
         
         logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
         logging.info("%d anchored CIDs, %d unresolved CIDs" % (len(anchored_cids), len(unresolved_cids)))
@@ -171,13 +173,34 @@ class NistRegression(Thermodynamics):
         self.html_writer.write('<h3>Regression results:</h3>\n')
         self.write_data_to_html(self.html_writer, self.kegg)
         
-        fig1 = pylab.figure()
-        pylab.plot(reverse_transformed_dG0_r, estimated_dG0_r, '.')
+        estimated_dG0_r_tag = pylab.zeros((0, 1)) 
+        for i, nist_row_data in enumerate(nist_rows_used):
+            nist_row_data.PredictReactionEnergy(self)
+            estimated_dG0_r_tag = pylab.vstack([estimated_dG0_r_tag, 
+                nist_row_data.PredictReactionEnergy(self)])
+            
+        fig = pylab.figure()
+        pylab.plot(dG0_r, estimated_dG0_r, '.')
+        pylab.title('Chemical Reaction Energies')
         pylab.xlabel('$\Delta G^\circ$ (NIST)')
         pylab.ylabel('$\Delta G^\circ$ (estimated)')
-        self.html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
-        self.html_writer.write('</br>\n')
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
+        fig = pylab.figure()
+        pylab.plot(dG0_r_tag, estimated_dG0_r_tag, '.')
+        pylab.title('Transformed Reaction Energies')
+        pylab.xlabel('$\Delta G^{\'\circ}$ (NIST)')
+        pylab.ylabel('$\Delta G^{\'\circ}$ (estimated)')
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+
+        fig = pylab.figure()
+        pylab.plot(dG0_r_tag - dG0_r, estimated_dG0_r_tag - estimated_dG0_r, '.')
+        pylab.title('Reverse Transform vs. Forward Transform')
+        pylab.xlabel('$\Delta\Delta G$ (reverse)')
+        pylab.ylabel('$\Delta\Delta G$ (forward)')
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+
+        self.html_writer.write('</br>\n')
         self.nist.verify_results(self)
         
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
