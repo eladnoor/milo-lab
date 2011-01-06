@@ -442,13 +442,13 @@ class Nist(object):
         pylab.xscale('log')
         self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
 
-        table_headers = ["|err|", "dG0 (obs)", "dG0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "min no. measure."]
+        table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "min no. measure.", "url"]
         dict_list = []
         for row in sorted(total_list, reverse=True):
             dict = {}
             dict['|err|'] = '%.1f' % row[0]
-            dict['dG0 (obs)'] = '%.1f' % row[1]
-            dict['dG0 (est)'] = '%.1f' % row[2]
+            dict['dG\'0 (obs)'] = '%.1f' % row[1]
+            dict['dG\'0 (est)'] = '%.1f' % row[2]
             dict['reaction'] = self.kegg.sparse_to_hypertext(row[3], show_cids=False)
             dict['pH'] = '%.1f' % row[4]
             dict['pMg'] = '%.1f' % row[5]
