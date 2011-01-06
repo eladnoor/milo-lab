@@ -43,6 +43,7 @@ class NistRowData:
         self.evaluation = row_dict['evaluation']
         self.comment = row_dict['comment']
         self.origin = row_dict['origin']
+        self.url = row_dict.get('url', None)
 
         if self.comment not in [None,
                                 "",
@@ -69,6 +70,7 @@ class NistRowData:
         self.comment = row_dict['comment']
         self.sparse = NistRowData.SetReactionFromString(row_dict['reaction'])
         self.origin = row_dict['origin']
+        self.url = row_dict['url']
     
     @staticmethod
     def none_float(x):
@@ -190,7 +192,8 @@ class Nist(object):
     def ToDatabase(self):
         columns = ['K REAL', 'pH REAL', 'I REAL', 'pMg REAL', 'T REAL',
                  'dG0 REAL', 'Ktype TEXT', 'evaluation TEXT', 
-                 'comment TEXT', 'reaction TEXT', 'origin TEXT']
+                 'comment TEXT', 'reaction TEXT', 'origin TEXT',
+                 'url TEXT']
         self.db.CreateTable('nist_data', ','.join(columns))
         for nist_row_data in self.data:
             row_list = [nist_row_data.K, nist_row_data.pH, nist_row_data.I,
@@ -198,7 +201,8 @@ class Nist(object):
                         nist_row_data.K_type, nist_row_data.evaluation,
                         nist_row_data.comment, 
                         nist_row_data.GetReactionString(nist_row_data.sparse),
-                        nist_row_data.origin]
+                        nist_row_data.origin,
+                        nist_row_data.url]
             self.db.Insert('nist_data', row_list)
             
     def FromDatabase(self):
@@ -388,7 +392,7 @@ class Nist(object):
             total_list.append([error, row_data.dG0_r, dG0_pred, 
                                row_data.sparse, row_data.pH, row_data.pMg, 
                                row_data.I, row_data.T, row_data.evaluation, 
-                               n_measurements])
+                               n_measurements, row_data.origin, row_data.url])
         
         # plot the profile graph
         pylab.rcParams['text.usetex'] = False
@@ -400,7 +404,7 @@ class Nist(object):
         pylab.rcParams['figure.figsize'] = [8.0, 6.0]
         pylab.rcParams['figure.dpi'] = 100
         
-        fig1 = pylab.figure()
+        fig = pylab.figure()
         pylab.hold(True)
         
         colors = ['purple', 'orange', 'lightgreen', 'red', 'cyan']
@@ -421,34 +425,43 @@ class Nist(object):
         max_x = max(dG0_obs_vec)
         pylab.plot([min_x, max_x], [min_x, max_x], 'k--')
         pylab.axis([-60, 60, -60, 60])
+        self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         
-        fig2 = pylab.figure()
+        fig = pylab.figure()
         pylab.hist([(row[1] - row[2]) for row in total_list], bins=pylab.arange(-50, 50, 0.5))
         pylab.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
         pylab.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
         pylab.ylabel(r'no. of measurements', fontsize=14)
+        self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
 
-        fig3 = pylab.figure()
+        fig = pylab.figure()
         pylab.plot([row[9] for row in total_list], [abs(row[1] - row[2]) for row in total_list], '.')
         pylab.title(r'Effect of no. of measurements on estimation error', fontsize=14)
         pylab.xlabel(r'minimum no. of measurements among reaction compounds', fontsize=14)
         pylab.ylabel(r'$|| \Delta_{obs} G^\circ - \Delta_{est} G^\circ ||$ [kJ/mol]', fontsize=14)
         pylab.xscale('log')
-        
-        self.html_writer.embed_matplotlib_figure(fig1, width=400, height=300)
-        self.html_writer.embed_matplotlib_figure(fig2, width=400, height=300)
-        self.html_writer.embed_matplotlib_figure(fig3, width=400, height=300)
+        self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
 
-        table_headers = ["|error|", "dG0(obs)", "dG0(pred)", "reaction", "pH", "pMg", "I", "T", "evaluation", "min_num_measurements"]
-        self.html_writer.write("<table>\n")
-        self.html_writer.write("<tr><td>" + "</td><td>".join(table_headers) + "</td></tr>\n")
-        
+        table_headers = ["|err|", "dG0 (obs)", "dG0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "min no. measure."]
+        dict_list = []
         for row in sorted(total_list, reverse=True):
-            sparse_reaction = row[3]
-            row[3] = self.kegg.sparse_to_hypertext(sparse_reaction, show_cids=False)
-            self.html_writer.write("<tr><td>" + "</td><td>".join(["%.1f" % x for x in row[:3]] + [str(x) for x in row[3:]]) + "</td></tr>\n")
-        self.html_writer.write("</table>\n")
-        self.html_writer.write("</div><br>\n")
+            dict = {}
+            dict['|err|'] = '%.1f' % row[0]
+            dict['dG0 (obs)'] = '%.1f' % row[1]
+            dict['dG0 (est)'] = '%.1f' % row[2]
+            dict['reaction'] = self.kegg.sparse_to_hypertext(row[3], show_cids=False)
+            dict['pH'] = '%.1f' % row[4]
+            dict['pMg'] = '%.1f' % row[5]
+            dict['I'] = '%.2f' % row[6]
+            dict['T'] = '%.1f' % row[7]
+            dict['eval.'] = row[8]
+            dict['min no. measure.'] = row[9]
+            if row[11]:
+                dict['url'] = '<a href="%s">link</a>' % row[11]
+            else:
+                dict['url'] = ''
+            dict_list.append(dict)
+        self.html_writer.write_table(dict_list, table_headers)
         
         return len(dG0_obs_vec), rmse
 

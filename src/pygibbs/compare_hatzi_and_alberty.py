@@ -14,7 +14,7 @@ gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
 gc.init()
 nist = Nist(gc.kegg())
 grad = GradientAscent(gc)
-grad.load_energies()
+grad.FromDatabase()
 
 def pH_dependence():
     

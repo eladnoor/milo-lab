@@ -86,6 +86,12 @@ class BaseHtmlWriter:
         self.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % div_id)
         return div_id
     
+    def start_div(self, div_id):
+        self.write('<div id="%s" style="display:none">' % div_id)
+        
+    def end_div(self):
+        self.write('</div>\n')
+    
     def embed_img(self, fig_fname, alternative_string=""):
         self.write('<img src="' + fig_fname + '" atl="' + alternative_string + '" />')
     
