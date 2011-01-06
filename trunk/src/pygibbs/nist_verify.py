@@ -37,10 +37,10 @@ def main():
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % key)
         html_writer.write('<p><b>%s </b>\n' % key)
-        html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (key))
-        html_writer.write('<div id="%s" style="display:none">' % key)
+        html_writer.insert_toggle(key)
+        html_writer.start_div(key)
         num_estimations, rmse = nist.verify_results(thermodynamics)
-        html_writer.write('</div>\n')
+        html_writer.end_div()
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
 
 if __name__ == '__main__':

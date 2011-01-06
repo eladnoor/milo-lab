@@ -66,7 +66,7 @@ class Thermodynamics(object):
         for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
             print "C%05d | %2d | %2d | %6.2f" % (cid, nH, z, dG0)
     
-    def write_data_to_html(self, html_writer, kegg):
+    def WriteDataToHtml(self, html_writer, kegg):
         dict_list = []
         for cid in self.get_all_cids():
             for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
@@ -116,20 +116,20 @@ class Thermodynamics(object):
             dG0_tag = self.cid_to_dG0(cid)
             writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
             
-    def save_energies_to_db(self, db, table_name):
+    def ToDatabase(self, db, table_name):
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, dG0_f REAL, anchor BOOL")
         for cid in self.get_all_cids():
             for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
                 db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
         db.Commit()
 
-    def load_energies(self, db, table_name):
+    def FromDatabase(self, db, table_name):
         self.cid2pmap_dict = {}
         self.anchors = set()
         for row in db.DictReader(table_name):
             self.cid2pmap_dict.setdefault(row['cid'], pseudoisomer.PseudoisomerMap())
             self.cid2pmap_dict[row['cid']].Add(row['nH'], row['z'], row['nMg'], row['dG0_f'])
-            if (row['anchor']):
+            if row['anchor']:
                 self.anchors.add(row['cid'])
     
     def write_pseudoisomers_to_html(self, html_writer, kegg, cids):

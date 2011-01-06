@@ -170,9 +170,6 @@ class NistRegression(Thermodynamics):
                 pmap.Add(nH, z, nMg=0, dG0=dG0_f_species)
             self.cid2pmap_dict[cid] = pmap
             
-        self.html_writer.write('<h3>Regression results:</h3>\n')
-        self.write_data_to_html(self.html_writer, self.kegg)
-        
         estimated_dG0_r_tag = pylab.zeros((0, 1)) 
         for i, nist_row_data in enumerate(nist_rows_used):
             nist_row_data.PredictReactionEnergy(self)
@@ -201,7 +198,6 @@ class NistRegression(Thermodynamics):
         self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
         self.html_writer.write('</br>\n')
-        self.nist.verify_results(self)
         
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
         """
@@ -351,6 +347,18 @@ class NistRegression(Thermodynamics):
                 self.self.html_writer.write('</td></tr>\n')
         self.self.html_writer.write('</table>\n')
 
+    def ToDatabase(self):
+        Thermodynamics.ToDatabase(self, self.db, 'nist_regression')
+
+    def FromDatabase(self):
+        Thermodynamics.FromDatabase(self, self.db, 'nist_regression')
+        
+    def WriteDataToHtml(self):
+        Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
+        
+    def VerifyResults(self):
+        self.nist.verify_results(self)
+
 if (__name__ == "__main__"):
     logging.getLogger('').setLevel(logging.DEBUG)
     _mkdir('../res/nist/png')
@@ -359,11 +367,11 @@ if (__name__ == "__main__"):
     kegg = Kegg()
 
     html_writer.write("<h2>Alberty:</h2>")
-    html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % ('alberty'))
-    html_writer.write('<div id="%s" style="display:none">' % 'alberty')
+    html_writer.insert_toggle('alberty')
+    html_writer.start_div('alberty')
     alberty = Alberty()
-    alberty.write_data_to_html(html_writer, kegg)
-    html_writer.write('</div></br>\n')
+    alberty.WriteDataToHtml(html_writer, kegg)
+    html_writer.end_div()
     
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
@@ -371,5 +379,17 @@ if (__name__ == "__main__"):
     #nist_regression.Calculate_pKa_and_pKMg()
     
     nist_regression.ReverseTransform(T_range=(298, 314))
+    nist_regression.ToDatabase()
+    html_writer.write('<h3>Regression results:</h3>\n')
+    html_writer.insert_toggle('regression')
+    html_writer.start_div('regression')
+    nist_regression.WriteDataToHtml()
+    html_writer.end_div()
+
+    html_writer.insert_toggle('verify')
+    html_writer.start_div('verify')
+    nist_regression.VerifyResults()
+    html_writer.end_div()
+    html_writer.write('</br>\n')
     
     html_writer.close()
