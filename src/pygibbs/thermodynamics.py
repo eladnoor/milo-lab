@@ -43,7 +43,8 @@ class Thermodynamics(object):
         """
             calculate the predicted dG0_r
         """
-        return sum([coeff * self.cid_to_dG0(cid, pH, pMg, I, T) for (cid, coeff) in sparse_reaction.iteritems()])
+        return sum([coeff * self.cid_to_dG0(cid, pH, pMg, I, T) for 
+                    (cid, coeff) in sparse_reaction.iteritems()])
     
     def cid_to_bounds(self, cid, use_default=True):
         (curr_c_min, curr_c_max) = self.bounds.get(cid, (None, None))
@@ -59,7 +60,8 @@ class Thermodynamics(object):
         s += "%2s | %2s | %7s | %7s\n" % ("nH", "z", "dG0_f", "dG0'_f")
         s += "-" * 35 + "\n"
         for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
-            s += "%2d | %2d | %7.1f | %7.1f\n" % (nH, z, dG0, Thermodynamics.transform(dG0, nH, z, pH, I, T))
+            s += "%2d | %2d | %7.1f | %7.1f\n" % (nH, z, dG0, 
+                Thermodynamics.transform(dG0, nH, z, pH, I, T))
         return s     
 
     def display_pmap(self, cid):
@@ -83,7 +85,8 @@ class Thermodynamics(object):
                     dict['anchor'] = 'no'
                 dict_list.append(dict)
         
-        html_writer.write_table(dict_list, ['CID', 'name', 'nH', 'charge', 'nMg', 'dG0_f', 'anchor'])
+        html_writer.write_table(dict_list, ['CID', 'name', 'nH', 'charge', 
+                                            'nMg', 'dG0_f', 'anchor'])
     
     def write_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
@@ -117,7 +120,8 @@ class Thermodynamics(object):
             writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
             
     def ToDatabase(self, db, table_name):
-        db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, dG0_f REAL, anchor BOOL")
+        db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
+                       "dG0_f REAL, anchor BOOL")
         for cid in self.get_all_cids():
             for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
                 db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
@@ -128,7 +132,8 @@ class Thermodynamics(object):
         self.anchors = set()
         for row in db.DictReader(table_name):
             self.cid2pmap_dict.setdefault(row['cid'], pseudoisomer.PseudoisomerMap())
-            self.cid2pmap_dict[row['cid']].Add(row['nH'], row['z'], row['nMg'], row['dG0_f'])
+            self.cid2pmap_dict[row['cid']].Add(row['nH'], row['z'], row['nMg'], 
+                                               row['dG0_f'])
             if row['anchor']:
                 self.anchors.add(row['cid'])
     
@@ -136,7 +141,9 @@ class Thermodynamics(object):
         # calculate the dG0_f of each compound
         dG0_f = pylab.zeros((len(cids), 1))
         html_writer.write('<table border="1">\n')
-        html_writer.write('  ' + '<td>%s</td>'*6 % ("KEGG CID", "Compound Name", "dG0_f [kJ/mol]", "nH", "z", "nMg") + '\n')
+        html_writer.write('  ' + '<td>%s</td>'*6 % ("KEGG CID", "Compound Name", 
+                                                    "dG0_f [kJ/mol]", "nH", "z", 
+                                                    "nMg") + '\n')
         for c, cid in enumerate(cids):
             name = kegg.cid2name(cid)
             try:
@@ -152,3 +159,58 @@ class Thermodynamics(object):
                                   (kegg.cid2link(cid), cid, name))
         html_writer.write('</table>\n')
         return dG0_f
+    
+class CsvFileThermodynamics(Thermodynamics):
+    def __init__(self, csv_filename):
+        Thermodynamics.__init__(self)
+        self.cid2pmap_dict = {}
+        self.FromCsvFile(csv_filename)
+        
+    def FromCsvFile(self, filename):
+        """
+            Imports the pseudoisomer maps from a CSV file, with these headers:
+            'CID', 'nH', 'charge', 'nMg', 'dG0'
+        """
+        for row in csv.DictReader(open(filename, 'r')):
+            cid = int(row['CID'])
+            nH = int(row['nH'])
+            z = int(row['charge'])
+            nMg = int(row['nMg'])
+            dG0 = float(row['dG0'])
+            self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
+
+    def cid2pmap(self, cid):
+        if (cid in self.cid2pmap_dict):
+            return self.cid2pmap_dict[cid]
+        else:
+            raise MissingCompoundFormationEnergy("The compound C%05d does not "
+                "have a value for its formation energy of any of its "
+                "pseudoisomers" % cid, cid)
+
+    def get_all_cids(self):
+        return sorted(self.cid2pmap_dict.keys())
+
+    def test(self):
+        pMg_vec = pylab.arange(0, 6, 0.1)
+        dG_vec = []
+        dG_f_mat = []
+        #sparse = {20:-1, 13:-1, 147:1, 119:1}
+        sparse = {2:-1, 1:-1, 20:1, 13:1}
+        for pMg in pMg_vec:
+            dG = 0
+            dG_f_vec = []
+            for cid, coeff in sparse.iteritems():
+                dG_f = self.cid2pmap(cid).Transform(pH=7.4, 
+                    pMg=pMg, I=0.0, T=303.1)
+                dG_f_vec.append(dG_f)
+                dG += coeff * dG_f
+            dG_f_mat.append(dG_f_vec)
+            dG_vec.append(dG)
+        #pylab.plot(pMg_vec, dG_vec)
+        pylab.plot(pMg_vec, dG_f_mat)
+        pylab.show()
+
+if __name__ == "__main__":
+    T = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    T.test()

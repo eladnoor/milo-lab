@@ -1,8 +1,8 @@
 import csv, re, sys
 from pylab import arange, NaN, isfinite
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
-from kegg import Kegg
 from pygibbs import pseudoisomer
+import pylab
 
 class Alberty(Thermodynamics):
     def read_alberty_mathematica(self, fname):
@@ -31,13 +31,13 @@ class Alberty(Thermodynamics):
                 nH = int(val_list[3])
                 if (alberty_name.find("coA") != -1):
                     nH += 35
-                mgs = 0
+                nMg = 0
                 
                 alberty_name_to_pmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
-                alberty_name_to_pmap[alberty_name].Add(nH, z, mgs, dG0)
+                alberty_name_to_pmap[alberty_name].Add(nH, z, nMg, dG0)
                 if isfinite(dH0):
                     alberty_name_to_hmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
-                    alberty_name_to_hmap[alberty_name].Add(nH, z, mgs, dH0)
+                    alberty_name_to_hmap[alberty_name].Add(nH, z, nMg, dH0)
             
         return (alberty_name_to_pmap, alberty_name_to_hmap)
         
@@ -76,11 +76,6 @@ class Alberty(Thermodynamics):
     
 if __name__ == '__main__':
     A = Alberty()
-    A.write_data_to_csv('../res/alberty.csv')
-    A.write_transformed_data_to_csv('../res/alberty_transformed.csv')
-    
-    kegg = Kegg()
-    A.write_data_to_json("../res/alberty.json", kegg)
     A.I = 0.25
     A.T = 300;
     sparse_reaction = {13:-1, 1:-1, 9:2}

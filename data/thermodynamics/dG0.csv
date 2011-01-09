@@ -162,8 +162,8 @@
 "C([C@@H]1[C@H]([C@H]([C@H](O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1612.67,,-1,10,0,"skip","Alberty (2003)","duplicate entry with big difference"
 "C([C@H](C(=O)[O-])OP(=O)([O-])[O-])O",631,"2-Phospho-D-glycerate",-1496.38,,-3,4,0,"train","Alberty (2003)",
 "C([C@H](C(=O)[O-])OP(=O)([O-])O)O",631,"2-Phospho-D-glycerate",-1539.99,,-2,5,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])[O-]",668,"Glucose-6-phosphate",-1763.94,-2276.44,-2,11,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])O",668,"Glucose-6-phosphate",-1800.59,-2274.64,-1,12,0,"train","Alberty (2003)",
+"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])[O-]",92,"Glucose-6-phosphate",-1763.94,-2276.44,-2,11,0,"train","Alberty (2003)",
+"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])O",92,"Glucose-6-phosphate",-1800.59,-2274.64,-1,12,0,"train","Alberty (2003)",
 ,697,"N2(aq)",18.7,-10.54,0,0,0,"test","Alberty (2003)",
 ,697,"N2(g)",0,0,0,0,0,"skip","Alberty (2003)","irrelevant for aquatic reactions"
 "Cn1cc(nc1N)O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)",
@@ -301,7 +301,7 @@
 ,655,"XMP",-1014.51,,-3,10,0,"test","Alberty (2003) beta","Guanosine0=0"
 ,655,"XMP",-1060.92,,-2,11,0,"test","Alberty (2003) beta","Guanosine0=0"
 ,655,"XMP",-1099.34,,-1,12,0,"test","Alberty (2003) beta","Guanosine0=0"
-"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])[O-].[Mg+2]",668,"Glucose-6-phosphate",-2234.08,-2732.04,0,11,1,"train","Alberty (2003) beta","Out of the relevant pH range - causes trouble since there is an uncharged PO3 group"
+"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])[O-].[Mg+2]",92,"Glucose-6-phosphate",-2234.08,-2732.04,0,11,1,"train","Alberty (2003) beta","Out of the relevant pH range - causes trouble since there is an uncharged PO3 group"
 "C1C(C(OC1O)COP(=O)([O-])[O-])O",673,"Deoxyribose-5P",-1447.92,,-2,9,0,"train","Alberty (2003) beta",
 "C1C(C(OC1O)COP(=O)([O-])O)O",673,"Deoxyribose-5P",-1486.11,,-1,10,0,"train","Alberty (2003) beta",
 ,700,"XTP",-2739.37,,-5,10,0,"test","Alberty (2003) beta","Guanosine0=0"
