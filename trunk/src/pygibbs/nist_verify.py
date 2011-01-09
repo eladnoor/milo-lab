@@ -3,7 +3,6 @@
     Alberty, Hatzimanikatis, and the Milo lab Group Contribution method
 """
 
-import csv
 from pylab import * #@UnusedWildImport
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups import GroupContribution
@@ -14,7 +13,7 @@ from pygibbs.nist import Nist
 from toolbox import database
 import logging
 from pygibbs.nist_regression import NistRegression
-import pylab
+from pygibbs.thermodynamics import CsvFileThermodynamics
 
 ################################################################################################################
 #                                                 MAIN                                                         #        
@@ -26,10 +25,13 @@ def main():
     kegg = Kegg()
 
     nist = Nist(db, html_writer, kegg)
-    nist.FromDatabase()
+    if True:
+        nist.FromCsvFile('../data/thermodynamics/nist.csv')
+    else:
+        nist.FromDatabase()
 
     estimators = {}
-    estimators['Alberty'] = Alberty()
+    estimators['Alberty'] = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
     estimators['Hatzimanikatis Group Contribution'] = Hatzi()
 
     regress = NistRegression(db, html_writer, kegg)

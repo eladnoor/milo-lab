@@ -192,11 +192,12 @@ class CsvFileThermodynamics(Thermodynamics):
         return sorted(self.cid2pmap_dict.keys())
 
     def test(self):
-        pMg_vec = pylab.arange(0, 6, 0.1)
+        pMg_vec = pylab.arange(0, 10, 0.1)
         dG_vec = []
         dG_f_mat = []
-        #sparse = {20:-1, 13:-1, 147:1, 119:1}
-        sparse = {2:-1, 1:-1, 20:1, 13:1}
+        sparse = {20:-1, 13:-1, 147:1, 119:1}
+        #sparse = {2:-1, 1:-1, 20:1, 13:1}
+        #sparse = {2:-1, 1:-1, 8:1, 9:1}
         for pMg in pMg_vec:
             dG = 0
             dG_f_vec = []
@@ -207,8 +208,8 @@ class CsvFileThermodynamics(Thermodynamics):
                 dG += coeff * dG_f
             dG_f_mat.append(dG_f_vec)
             dG_vec.append(dG)
-        #pylab.plot(pMg_vec, dG_vec)
-        pylab.plot(pMg_vec, dG_f_mat)
+        pylab.plot(pMg_vec, dG_vec)
+        #pylab.plot(pMg_vec, dG_f_mat)
         pylab.show()
 
 if __name__ == "__main__":

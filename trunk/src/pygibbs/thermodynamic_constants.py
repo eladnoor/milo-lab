@@ -8,7 +8,7 @@ default_T = 298.15 # K
 default_I = 0.1 # mM
 default_pH = 7.0
 default_c0 = 1 # M
-default_pMg = 3
+default_pMg = 10
 
 dG0_f_Mg = -455.3 # kJ/mol, formation energy of Mg2+
 
@@ -22,13 +22,13 @@ def correction_function(nH, nMg, z, pH, pMg, I, T):
         returns the correction element used in the transform function
         
     Returns:
-        The correction, in units of RT.
+        The correction, in units of kJ/mol.
     """
-    DH = debye_huckel(I) / (R*T)
-    return nMg * (log(10)*pMg - dG0_f_Mg) + nH * (log(10)*pH + DH) - (z**2) * DH
+    DH = debye_huckel(I)
+    return nMg * (R*T*log(10)*pMg - dG0_f_Mg) + nH * (R*T*log(10)*pH + DH) - (z**2) * DH
 
 def transform(dG0, nH, z, pH, I, T):
-    return dG0 + R*T*correction_function(nH, z, pH, I, T)
+    return dG0 + correction_function(nH, z, pH, I, T)
 
 def array_transform(dG0, nH, nMg, z, pH, pMg, I, T):
     """
@@ -36,7 +36,6 @@ def array_transform(dG0, nH, nMg, z, pH, pMg, I, T):
         pH and I - are the conditions, must be scalars
         returns the transformed gibbs energy: dG0'
     """
-    ddG0 = R*T*correction_function(nH, nMg, z, pH, pMg, I, T)
-    print pylab.vstack([dG0, ddG0, dG0 + ddG0])
+    ddG0 = correction_function(nH, nMg, z, pH, pMg, I, T)
     dG0_tag = dG0 + ddG0
     return -R * T * log_sum_exp(dG0_tag / (-R*T))

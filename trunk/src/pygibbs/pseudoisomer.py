@@ -70,7 +70,7 @@ class PseudoisomerMap(object):
         v_nMg  = pylab.array(v_nMg)
 
         if most_abundant:
-            return min(dG0 + R*T*correction_function(nH, nMg, z, pH, pMg, I, T))
+            return min(dG0 + correction_function(nH, nMg, z, pH, pMg, I, T))
         else:
             return array_transform(v_dG0, v_nH, v_nMg, v_z, pH, pMg, I, T)
     

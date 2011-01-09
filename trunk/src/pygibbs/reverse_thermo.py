@@ -44,7 +44,7 @@ def solve(measurements, nH, z):
     log_X = zeros((Nm, Ns))
     for i in range(Nm):
         (dG0_tag, pH, I, T) = measurements[i]
-        log_X[i,:] = correction_function(nH, z, pH, I, T) + dG0_tag / (R*T)
+        log_X[i,:] = (correction_function(nH, z, pH, I, T) + dG0_tag) / (R*T)
 
     log_C = log_dot(log_X.T, log_X) # C = (X'*X)
     
