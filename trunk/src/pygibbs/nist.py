@@ -337,7 +337,7 @@ class Nist(object):
         self.html_writer.embed_matplotlib_figure(fig2)
         logging.info('Done analyzing stats.')
 
-    def verify_results(self, thermodynamics):
+    def verify_results(self, thermodynamics, T_range=None):
         """Calculate all the dG0_r for the reaction from NIST and compare to
            the measured data.
         
@@ -368,6 +368,11 @@ class Nist(object):
 
             if unknown_set:
                 logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
+                continue
+            
+            if T_range and not (T_range[0] < row_data.T < T_range[1]):
+                logging.debug("The temperature of the measurement (%.1f) is out of range: %.1f - %.1f" %\
+                              (row_data.T, T_range[0], T_range[1]) )
                 continue
             
             #label = row_data.evaluation

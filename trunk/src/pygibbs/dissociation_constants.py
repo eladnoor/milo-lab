@@ -202,7 +202,7 @@ class DissociationConstants(object):
         self.html_writer.write('<h3>C%05d - %s</h3></br>\n' % (cid, self.kegg.cid2name(cid)))
         try:
             self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
-        except KeggParseException:
+        except (KeggParseException, ValueError):
             self.html_writer.write('<b>cannot draw molecule from KEGG</b>')
         self.html_writer.write('</br>')
 

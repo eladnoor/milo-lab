@@ -1,5 +1,6 @@
 from math import sqrt, log
 from toolbox.util import log_sum_exp
+import pylab
 
 R = 8.31e-3 # kJ/(K*mol)
 J_per_cal = 4.184
@@ -35,5 +36,7 @@ def array_transform(dG0, nH, nMg, z, pH, pMg, I, T):
         pH and I - are the conditions, must be scalars
         returns the transformed gibbs energy: dG0'
     """
-    dG0_tag = dG0 + R*T*correction_function(nH, nMg, z, pH, pMg, I, T)
+    ddG0 = R*T*correction_function(nH, nMg, z, pH, pMg, I, T)
+    print pylab.vstack([dG0, ddG0, dG0 + ddG0])
+    dG0_tag = dG0 + ddG0
     return -R * T * log_sum_exp(dG0_tag / (-R*T))

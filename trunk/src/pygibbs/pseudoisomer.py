@@ -54,7 +54,7 @@ class PseudoisomerMap(object):
         v_dG0 = []
         v_nH  = []
         v_z   = []
-        v_mg  = []
+        v_nMg  = []
         
         for key, dG0_list in self.dgs.iteritems():
             nH, z, nMg = key
@@ -62,17 +62,17 @@ class PseudoisomerMap(object):
                 v_dG0.append(dG0)
                 v_nH.append(nH)
                 v_z.append(z)
-                v_mg.append(nMg)
+                v_nMg.append(nMg)
 
         v_dG0 = pylab.array(v_dG0)
         v_nH  = pylab.array(v_nH)
         v_z   = pylab.array(v_z)
-        v_mg  = pylab.array(v_mg)
+        v_nMg  = pylab.array(v_nMg)
 
         if most_abundant:
             return min(dG0 + R*T*correction_function(nH, nMg, z, pH, pMg, I, T))
         else:
-            return array_transform(v_dG0, v_nH, v_mg, v_z, pH, pMg, I, T)
+            return array_transform(v_dG0, v_nH, v_nMg, v_z, pH, pMg, I, T)
     
     def TransformMatrix(self, pH, pMg, I, T):
         """Potentially return multiple results..."""
