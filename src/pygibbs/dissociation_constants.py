@@ -68,6 +68,9 @@ class DissociationConstants(object):
             return cid, kegg_name, distance
     
     def WriteCsvWithCids(self):
+        """
+            historical function used when importing the data from the CRC handbook
+        """
         data = self.ReadOriginalCSV()
         csv_writer = csv.writer(open('../res/pKa_with_cids.csv', 'w'))
         csv_writer.writerow(('cid', 'Kegg name', 'distance', 'original name', 'formula', 'step', 'T', 'pKa'))
@@ -78,6 +81,9 @@ class DissociationConstants(object):
         # ../data/thermodynamics/pKa_with_cids.csv
     
     def WriteCsvWithNumHydrogens(self):
+        """
+            historical function used when importing the data from the CRC handbook
+        """
         csv_writer = csv.writer(open('../res/pKa_with_nH.csv', 'w'))
         csv_writer.writerow(['cid', 'name', 'T', 'nH below', 'nH above', 'smiles below', 'smiles above', 'pKa'])
 
@@ -109,7 +115,7 @@ class DissociationConstants(object):
         csv_filename = '../data/thermodynamics/pKa_with_nH.csv'
         self.db.CreateTable('pKa', 'cid INT, name TEXT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
         for line_num, row in enumerate(csv.DictReader(open(csv_filename, 'r'))):
-            if int(row['cid']):
+            if row['cid']:
                 cid = int(row['cid'])
             else:
                 cid = None
@@ -124,10 +130,17 @@ class DissociationConstants(object):
             else:
                 pKa = None
 
+            if row['name']:
+                name = row['name']
+            elif cid:
+                name = self.kegg.cid2name(cid)
+            else:
+                name = None
+
             try:
-                self.db.Insert('pKa', [cid, row['name'], T, float(row['nH below']), 
-                               float(row['nH above']), 
-                               row['smiles below'], row['smiles above'], pKa])
+                self.db.Insert('pKa', [cid, name, T, float(row['nH_below']), 
+                               float(row['nH_above']), 
+                               row['smiles_below'], row['smiles_above'], pKa])
             except ValueError:
                 raise Exception('Error while processing line #%d in %s' %\
                                 (line_num, csv_filename))
@@ -238,10 +251,8 @@ if (__name__ == '__main__'):
     _mkdir('../res/dissociation_constants')
     
     dissociation = DissociationConstants(db, html_writer)
+    dissociation.LoadValuesToDB()
     if False:
-        dissociation.WriteCsvWithCids()
-    elif False:
-        dissociation.WriteCsvWithNumHydrogens()
+        db.Table2CSV('../res/pKa_with_nH.csv', 'pKa', write_titles=True)
     else:
-        dissociation.LoadValuesToDB()
         dissociation.AnalyseValues()
