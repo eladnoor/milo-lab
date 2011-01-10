@@ -43,6 +43,11 @@
 				{% endfor %}
 			{% endif %}
 			
+			{% if reaction.missing_electrons %}
+				+ <span class="missingCount">{{ reaction.missing_electrons }}</span>
+				  <span class="missingAtom">e<sup>-</sup></span>
+			{% endif %}
+			
 			&rarr;
 			{% for compound in reaction.products %}
 				{% with "products" as reaction_side %}
@@ -62,6 +67,11 @@
 					<span class="missingAtom">{{ atom }}</span>
 					{% endif %}
 				{% endfor %}
+			{% endif %}
+			
+			{% if reaction.extra_electrons %}
+				+ <span class="missingCount">{{ reaction.extra_electrons }}</span>
+				  <span class="missingAtom">e<sup>-</sup></span>
 			{% endif %}
 		</div>
 		

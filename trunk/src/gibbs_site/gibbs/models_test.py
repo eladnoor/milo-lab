@@ -13,8 +13,8 @@ class SpeciesFormationEnergyTest(unittest.TestCase):
     """Tests for SpeciesFormationEnergy"""
         
     def testTransform(self):
-        specie = models.Specie(number_of_hydrogens=2, net_charge=-1,
-                               formation_energy=-10.0)
+        specie = models.Specie(number_of_hydrogens=2, number_of_mgs=0,
+                               net_charge=-1, formation_energy=-10.0)
         
         # Test some hand-calculated numbers: (ph, ionic strength, result)
         test_data = (
@@ -84,9 +84,10 @@ class CompoundTest(unittest.TestCase):
                      (7.0, 0.2, 390.505))
 
         for ph, i_s, expected_dg in test_data:
-            self.assertAlmostEqual(expected_dg,
-                                   compound.DeltaG(pH=ph, ionic_strength=i_s),
-                                   3)
+            actual_dg = compound.DeltaG(pH=ph, ionic_strength=i_s)
+            self.assertAlmostEqual(expected_dg, actual_dg, 3,
+                                   'ph: %f, i_s: %f, expected dG: %f, actual dG: %f' %
+                                   (ph, i_s, expected_dg, actual_dg))
 
 
 if __name__ == '__main__':

@@ -1,6 +1,5 @@
 import logging
 import numpy
-import openbabel
 import re
 
 from django.db import models
@@ -71,8 +70,6 @@ class ValueSource(models.Model):
     @staticmethod
     def GroupContribution():
         return ValueSource._GetOrCreate('Estimated using group contribution')
-        
-    
 
 class Specie(models.Model):
     """A single specie of a compound."""
@@ -81,6 +78,9 @@ class Specie(models.Model):
     
     # The number of hydrogens in the species.
     number_of_hydrogens = models.IntegerField()
+    
+    # The number of Mg2+ ions bound to this species.
+    number_of_mgs = models.IntegerField(default=0)
     
     # The net charge (eV).
     net_charge = models.IntegerField()
@@ -93,19 +93,24 @@ class Specie(models.Model):
     
     def Transform(self,
                   pH=constants.DEFAULT_PH,
+                  pMg=constants.DEFAULT_PMG,
                   ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Transform this individual estimate to difference conditions."""
         # Short names are nice!
         _i_s = ionic_strength
         _r = constants.R
         _t = constants.DEFAULT_TEMP
+        _dgf_mg = constants.MG_FORMATION_ENERGY
         _n_h = self.number_of_hydrogens
+        _n_mg = self.number_of_mgs
         _n_c = self.net_charge
+        _dg = self.formation_energy
         
         chem_potential = _n_h * _r * _t * numpy.log(10) * pH
         ionic_potential = (2.91482 * (_n_c ** 2 - _n_h) * numpy.sqrt(_i_s) /
                            (1 + 1.6 * numpy.sqrt(_i_s)))
-        return self.formation_energy + chem_potential - ionic_potential
+        mg_potential = _n_mg * (_r * _t * numpy.log(10) * pMg - _dgf_mg)
+        return _dg + mg_potential + chem_potential - ionic_potential
     
     def __unicode__(self):
         return self.kegg_id
@@ -130,6 +135,9 @@ class Compound(models.Model):
     
     # The molecular mass.
     mass = models.FloatField(null=True)  # In Daltons.
+    
+    # The number of electrons.
+    num_electrons = models.IntegerField(null=True)
     
     # Estimates of Delta G for this compound.
     species = models.ManyToManyField(Specie)
@@ -165,36 +173,8 @@ class Compound(models.Model):
                 
         return shortest_name
     
-    def _GetObMol(self):
-        """Converts the InChI into an OpenBabel Mol."""
-        if not self.inchi:
-            return None
-        
-        obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("inchi", "mol")
-        obmol = openbabel.OBMol()
-        obConversion.ReadString(obmol, str(self.inchi))
-        if not obmol.NumAtoms():
-            return None
-        
-        polaronly = False
-        obmol.AddHydrogens(polaronly, False)
-        return obmol
-    
-    def GetNumElectrons(self):
-        """Returns the number of electrons."""
-        obmol = self._GetObMol()
-        if not obmol:
-            logging.warn('Couldn\'t get mol.')
-            return None
-            
-        n_protons = 0
-        for i in xrange(obmol.NumAtoms()):
-            atom = obmol.GetAtom(i+1)
-            n_protons += atom.GetAtomicNum()
-        return n_protons - obmol.GetTotalCharge()
-    
     def DeltaG(self, pH=constants.DEFAULT_PH,
+               pMg=constants.DEFAULT_PMG,
                ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Get a deltaG estimate for the given compound.
         
@@ -216,7 +196,7 @@ class Compound(models.Model):
         _t = constants.DEFAULT_TEMP
 
         # Compute per-species transforms, scaled down by R*T.
-        transform = lambda x: x.Transform(pH, _i_s)
+        transform = lambda x: x.Transform(pH=pH, pMg=pMg, ionic_strength=_i_s)
         scaled_transforms = [(-transform(s) / (_r * _t))
                              for s in self.all_species]
         
@@ -301,7 +281,7 @@ class Compound(models.Model):
         """Stash the transformed species formation energy in each one."""
         for species in self.all_species:
             species.transformed_energy = species.Transform(
-                ph, ionic_strength)
+                pH=ph, ionic_strength=ionic_strength)
     
     def __unicode__(self):
         """Return a single string identifier of this Compound."""

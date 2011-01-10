@@ -19,6 +19,7 @@ def AddAllSpeciesToCompound(compound, species_dicts, source):
     for sdict in species_dicts:
         specie = models.Specie(kegg_id=compound.kegg_id,
                                number_of_hydrogens=sdict['nH'],
+                               number_of_mgs=sdict['nMg'],
                                net_charge=sdict['z'],
                                formation_energy=sdict['dG0_f'],
                                formation_energy_source=source)
