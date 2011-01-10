@@ -1,4 +1,4 @@
-import pylab, cplex, sys
+import pylab, cplex
 from pygibbs.thermodynamic_constants import R
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 
@@ -49,10 +49,10 @@ class Stoichiometric_LP():
             for r in pylab.find(self.S[c,:] != 0):
                 self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name, self.S[c,r])
 
-        if (source != None):
+        if source:
             self.add_flux("SOURCE", source, lb=1, ub=1)
         
-        if (target != None):
+        if target:
             self.add_flux("TARGET", target, lb=-1, ub=-1)
 
     def add_flux(self, name, sparse, lb=1, ub=1):
@@ -64,7 +64,7 @@ class Stoichiometric_LP():
             Note that by changing lb and ub you can add flexibility to this flux.
         """
         self.cpl.variables.add(names=[name], lb=[lb], ub=[ub])
-        for (cid, coeff) in sparse.iteritems():
+        for cid, coeff in sparse.iteritems():
             self.cpl.linear_constraints.set_coefficients("C%05d_mass_balance" % cid, name, coeff)        
 
     def export(self, fname):
@@ -72,29 +72,30 @@ class Stoichiometric_LP():
 
     def add_flux_constraint(self, max_flux):
         self.cpl.linear_constraints.add(names=['flux'], senses='L', rhs=[max_flux])
-        for (r, weight) in self.weights:
+        for r, weight in self.weights:
             self.cpl.linear_constraints.set_coefficients('flux', self.reactions[r].name, weight)
 
     def add_milp_variables(self):
-        for r in range(len(self.reactions)):
+        for r in self.reactions:
             # add boolean indicator variables for each reaction, and minimize their sum
-            self.cpl.variables.add(names=[self.reactions[r].name + "_gamma"], types='B')
+            self.cpl.variables.add(names=[r.name + "_gamma"], types='B')
 
             # add a constrain for each integer variable, so that they will be indicators of the flux variables
             # using v_i - M*gamma_i <= 0
-            constraint_name = self.reactions[r].name + "_bound"
+            constraint_name = r.name + "_bound"
             self.cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[0])
-            self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name, 1)
-            self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", -self.flux_upper_bound)
+            self.cpl.linear_constraints.set_coefficients(constraint_name, r.name, 1)
+            self.cpl.linear_constraints.set_coefficients(constraint_name, 
+                r.name + "_gamma", -self.flux_upper_bound)
         
         self.milp = True
 
     def add_reaction_num_constraint(self, max_num_reactions):
-        if (self.milp == False):
+        if not self.milp:
             raise Exception("Cannot add reaction no. constraint without the MILP variables")
         self.cpl.linear_constraints.add(names=['num_reactions'], senses='L', rhs=[max_num_reactions])
-        for r in range(len(self.reactions)):
-            self.cpl.linear_constraints.set_coefficients('num_reactions', self.reactions[r].name + "_gamma", 1)
+        for r in self.reactions:
+            self.cpl.linear_constraints.set_coefficients('num_reactions', r.name + "_gamma", 1)
     
     def add_dGr_constraints(self, thermodynamics, pCr=False, MCMF=False, maximal_dG=0.0):
         """
@@ -105,34 +106,29 @@ class Stoichiometric_LP():
             or we use the pCr method to minimize the range needed for allowing the pathway thermodynamically.
         """
         
-        if (self.milp == False):
+        if not self.milp:
             raise Exception("Cannot add thermodynamic constraints without the MILP variables")
         
-        if (pCr and MCMF):
+        if pCr and MCMF:
             raise Exception("Cannot optimize both the pCr and the MCMF")
         
         self.use_dG_f = True
 
-        if (pCr):
+        if pCr:
             self.pCr = True        
             self.cpl.variables.add(names=["pCr"], lb=[0], ub=[1e6])
         
-        if (MCMF):
+        if MCMF:
             self.mcmf = True
             self.cpl.variables.add(names=["mcmf"], lb=[-1e6], ub=[1e6])
         
-        for r in range(len(self.reactions)):
-            self.cids_with_concentration = self.cids_with_concentration.union(self.reactions[r].sparse.keys())
+        for r in self.reactions:
+            self.cids_with_concentration = self.cids_with_concentration.union(r.sparse.keys())
         
-        cid2dG0 = {}
-        
-        # if the dG0_f is unknown, the concentration must remain unbound
-        # therefore we leave only the known compounds in the encountered_cids set
+        cids_with_dG0 = thermodynamics.get_all_cids()
         for cid in self.cids_with_concentration:
             self.cpl.variables.add(names=["C%05d_conc" % cid], lb=[-1e6], ub=[1e6])
-            try:
-                cid2dG0[cid] = thermodynamics.cid_to_dG0(cid)
-            except MissingCompoundFormationEnergy:
+            if cid not in cids_with_dG0:
                 # If the formation energy of this compound cannot be determined,
                 # it's concentration cannot be constrained. The value of C%05d_conc 
                 # will actually represent the dG_f (both dG0_f and the concentration)
@@ -141,45 +137,57 @@ class Stoichiometric_LP():
                 
             (c_min, c_max) = thermodynamics.cid_to_bounds(cid, use_default=False)
                 
-            if (c_min != None): # override any existing constraint with the specific one for this co-factor
+            if c_min: # override any existing constraint with the specific one for this co-factor
                 self.cpl.variables.set_lower_bounds("C%05d_conc" % cid, pylab.log(c_min))
             elif pCr: # use the pCr variable to define the constraint
-                self.cpl.linear_constraints.add(names=["C%05d_conc_minimum" % cid], senses='G', rhs=[pylab.log(thermodynamics.c_mid)])
-                self.cpl.linear_constraints.set_coefficients("C%05d_conc_minimum" % cid, "C%05d_conc" % cid, 1)
-                self.cpl.linear_constraints.set_coefficients("C%05d_conc_minimum" % cid, "pCr", 1)
+                self.cpl.linear_constraints.add(names=["C%05d_conc_minimum" % cid],
+                    senses='G', rhs=[pylab.log(thermodynamics.c_mid)])
+                self.cpl.linear_constraints.set_coefficients(
+                    "C%05d_conc_minimum" % cid, "C%05d_conc" % cid, 1)
+                self.cpl.linear_constraints.set_coefficients(
+                    "C%05d_conc_minimum" % cid, "pCr", 1)
             else: # otherwise, use the global concentration bounds
-                self.cpl.variables.set_lower_bounds("C%05d_conc" % cid, pylab.log(thermodynamics.c_range[0]))
+                self.cpl.variables.set_lower_bounds("C%05d_conc" % cid, 
+                    pylab.log(thermodynamics.c_range[0]))
             
-            if (c_max != None): # override any existing constraint with the specific one for this co-factor
+            if c_max: # override any existing constraint with the specific one for this co-factor
                 self.cpl.variables.set_upper_bounds("C%05d_conc" % cid, pylab.log(c_max))
             elif pCr: # use the pCr variable to define the constraint
-                self.cpl.linear_constraints.add(names=["C%05d_conc_maximum" % cid], senses='L', rhs=[pylab.log(thermodynamics.c_mid)])
-                self.cpl.linear_constraints.set_coefficients("C%05d_conc_maximum" % cid, "C%05d_conc" % cid, 1)
-                self.cpl.linear_constraints.set_coefficients("C%05d_conc_maximum" % cid, "pCr", -1)                
+                self.cpl.linear_constraints.add(names=["C%05d_conc_maximum" % cid],
+                    senses='L', rhs=[pylab.log(thermodynamics.c_mid)])
+                self.cpl.linear_constraints.set_coefficients(
+                    "C%05d_conc_maximum" % cid, "C%05d_conc" % cid, 1)
+                self.cpl.linear_constraints.set_coefficients(
+                    "C%05d_conc_maximum" % cid, "pCr", -1)                
             else: # otherwise, use the global concentration bounds
-                self.cpl.variables.set_upper_bounds("C%05d_conc" % cid, pylab.log(thermodynamics.c_range[1]))
+                self.cpl.variables.set_upper_bounds(
+                    "C%05d_conc" % cid, pylab.log(thermodynamics.c_range[1]))
 
-        for r in range(len(self.reactions)):
-            constraint_name = "%s_thermo" % self.reactions[r].name
+        for r in self.reactions:
+            constraint_name = "%s_thermo" % r.name
             dG0_r = 0
             self.cpl.linear_constraints.add(names=[constraint_name], senses='L')
-            for (cid, coeff) in self.reactions[r].sparse.iteritems():
+            for cid, coeff in r.sparse.iteritems():
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "C%05d_conc" % cid, coeff)
-                
-                # if this CID is not in cid2dG0, it means its formation energy is 
-                # part of its concentration variable, and therefore it doesn't contribute to dG0_r
-                if (cid in cid2dG0):
-                    dG0_r += coeff * cid2dG0[cid]
-                
-            self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1e6)
-            if (self.mcmf):
+                try:
+                    dG0_r += coeff * thermodynamics.cid_to_dG0(cid)
+                except MissingCompoundFormationEnergy:
+                    # if this CID is not in cid2dG0, it means its formation energy is 
+                    # part of its concentration variable, and therefore it doesn't contribute to dG0_r
+                    continue
+            
+            gamma_factor = 1e6
+            self.cpl.linear_constraints.set_coefficients(constraint_name, r.name + "_gamma", gamma_factor)
+            if self.mcmf:
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "mcmf", -1)
-            self.cpl.linear_constraints.set_rhs(constraint_name, 1e6 - (dG0_r - maximal_dG)/(R*thermodynamics.T))
+            
+            rhs = gamma_factor - (dG0_r - maximal_dG)/(R*thermodynamics.T) 
+            self.cpl.linear_constraints.set_rhs(constraint_name, rhs) 
 
     def add_localized_dGf_constraints(self, thermodynamics):
-        for r in range(len(self.reactions)):
+        for r in self.reactions:
             dG0_r = 0
-            for (cid, coeff) in self.reactions[r].sparse.iteritems():
+            for cid, coeff in r.sparse.iteritems():
                 try:
                     dG0_r += coeff * thermodynamics.cid_to_dG0(cid)
                 except MissingCompoundFormationEnergy:
@@ -195,9 +203,9 @@ class Stoichiometric_LP():
             
             if (dG0_r != None and dG0_r > 0):
                 # this reaction is a localized bottleneck, add a constraint that its flux = 0
-                constraint_name = self.reactions[r].name + "_irreversible"
+                constraint_name = r.name + "_irreversible"
                 self.cpl.linear_constraints.add(names=[constraint_name], senses='E', rhs=[0])
-                self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name, 1)
+                self.cpl.linear_constraints.set_coefficients(constraint_name, r.name, 1)
                 
                 # another option is to constrain gamma to be equal to 0, but it is equivalent, I think.
                 #self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1)
@@ -208,15 +216,20 @@ class Stoichiometric_LP():
             note that we use S here (not the full sparse reaction as in the thermodynamic constraints, because we want to avoid
             futile cycles in the general sense (i.e. even if one ignores the co-factors).
         """
-        for c in range(len(self.compounds)):
-            self.cpl.variables.add(names=["C%05d_potential" % self.compounds[c].cid], lb=[-1e6], ub=[1e6])
+        for c in self.compounds:
+            self.cpl.variables.add(names=["C%05d_potential" % c.cid], lb=[-1e6], ub=[1e6])
 
-        for r in range(len(self.reactions)):
-            constraint_name = "%s_futilecycles" % self.reactions[r].name
-            self.cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[1e6])
-            self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1e6)
+        for r, reaction in enumerate(self.reactions):
+            constraint_name = "%s_futilecycles" % reaction.name
+            
+            self.cpl.linear_constraints.add(names=[constraint_name], 
+                senses='L', rhs=[1e6])
+            self.cpl.linear_constraints.set_coefficients(constraint_name, 
+                reaction.name + "_gamma", 1e6)
+            
             for c in pylab.find(self.S[:,r] != 0):
-                self.cpl.linear_constraints.set_coefficients(constraint_name, "C%05d_potential" % self.compounds[c].cid, self.S[c,r])
+                self.cpl.linear_constraints.set_coefficients(constraint_name, 
+                    "C%05d_potential" % self.compounds[c].cid, self.S[c,r])
 
     def set_objective(self):
         if (self.milp == False): # minimize the total flux of reactions (weighted)
@@ -265,7 +278,7 @@ class Stoichiometric_LP():
                 return False
 
     def ban_current_solution(self):
-        if (self.milp == False):
+        if not self.milp:
             raise Exception("Cannot ban a solution without the MILP variables")
 
         constraint_name = "solution_%03d" % self.solution_index
@@ -313,7 +326,7 @@ class Stoichiometric_LP():
         return (cids, concentrations)
 
     def get_margin(self):
-        if (not self.pCr):
+        if not self.pCr:
             return None
         else:
             # the objective is (log_c_max - log_c_min)
