@@ -74,6 +74,11 @@ class GroupDecomposition(object):
             if node_sets:
                 yield group, node_sets
     
+    def UnassignedAtoms(self):
+        """Generator for unassigned atoms."""
+        for i in self.unassigned_nodes:
+            yield self.mol.atoms[i], i
+    
     def SparseRepresentation(self):
         """Returns a dictionary representation of the group.
         
@@ -138,6 +143,7 @@ class GroupDecomposition(object):
 
     # Various properties
     nonempty_groups = property(NonEmptyGroups)
+    unassigned_atoms = property(UnassignedAtoms)
     hydrogens = property(Hydrogens)
     net_charge = property(NetCharge)
     magnesiums = property(Magnesiums)

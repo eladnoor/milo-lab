@@ -21,6 +21,8 @@ from pygibbs.kegg import KeggParseException, Kegg, parse_bool_field
 from pygibbs.kegg import parse_float_field, parse_vfloat_field, parse_string_field, parse_kegg_file
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.groups_data import Group, GroupsData
+from pygibbs import templates
+from toolbox import util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
@@ -94,18 +96,26 @@ class GroupContribution(Thermodynamics):
         self.db.CreateTable('gc_cid2prm', 'cid INT, nH INT, z INT, nMg INT, dG0 REAL, estimated BOOL')
         self.db.CreateTable('gc_cid2error', 'id INT, error TEXT')
 
+        compounds = []
+
         for cid in self.kegg().get_all_cids():
+            cdict = {'cid': cid, 'measured_pmap': None,
+                     'estimated_pmap': None, 'compound': None}
+            
             if not cid % 1000:
                 logging.info('Saving KEGG Compound C%05d' % cid)
             
             # If the compound is measured:
             if (cid in self.cid2pmap_obs):
                 pmap = self.cid2pmap_obs[cid]
+                cdict['measured_pmap'] = pmap
                 for (nH, z, nMg, dG0) in pmap.ToMatrix():
                     self.db.Insert('gc_cid2prm', [cid, nH, z, nMg, dG0, False])
+                
 
             # Try to also estimate the dG0_f using Group Contribution:
             comp = self.kegg().cid2compound(cid)
+            cdict['compound'] = comp
             if (comp.inchi == None):
                 self.db.Insert('gc_cid2error', [cid, 'no InChI exists'])
                 continue
@@ -116,6 +126,7 @@ class GroupContribution(Thermodynamics):
                 continue
             try:
                 pmap = self.estimate_pmap(mol, ignore_protonations=True)
+                cdict['estimated_pmap'] = pmap
             except GroupDecompositionError:
                 self.db.Insert('gc_cid2error', [cid, 'cannot decompose into groups'])
                 continue
@@ -126,7 +137,11 @@ class GroupContribution(Thermodynamics):
             self.cid2pmap_dict[cid] = pmap
             for (nH, z, nMg, dG0) in pmap.ToMatrix():
                 self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
+                
+            compounds.append(cdict)
         
+        templates.render_to_file('kegg_pmaps.html', {'compounds': compounds},
+                                 '../res/kegg_pmaps.html')
         self.db.Commit()
         logging.info('Done writing KEGG compounds.')
 
@@ -565,7 +580,7 @@ class GroupContribution(Thermodynamics):
                                    "linearly independent example"))
                 continue
             
-            estimation = pylab.dot(self.group_matrix[i, :], group_contributions)
+            estimation = pylab.dot(self.group_matrix[i, :], group_contributions)[0]
             error = self.obs[i] - estimation
             
             val_names.append(self.mol_names[i])
@@ -582,7 +597,10 @@ class GroupContribution(Thermodynamics):
         div_id = self.html_writer.insert_toggle()
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
 
-        self.html_writer.write('<b>std(error) = %.2f kJ/mol</b>\n' % pylab.std(val_err))
+        self.html_writer.write('<div><b>std(error) = %.2f kJ/mol</b></div>\n' % pylab.std(val_err))
+    
+        self.html_writer.write('<div><b>rmse(pred) = %.2f kJ/mol</b></div>\n' % util.calc_rmse(val_obs, val_est))
+
         self.html_writer.write('<table border="1">')
         self.html_writer.write('  <tr><td>Compound Name</td>'
                         '<td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'

@@ -118,6 +118,25 @@
 					</tr>
 					{% endfor %}
 				{% endfor %}
+				{% if isomer.decomposition.unassigned_atoms %}
+				<tr>
+					<th>Unassigned Atom Index</th>
+					<th>Atomic Number</th>
+					<th>Heavy valence</th>
+					<th>Charge</th>
+					<th>Type</th>
+				</tr>
+				{% for atom, i in isomer.decomposition.unassigned_atoms %}
+					<tr>
+						<td>{{i}}</td>
+						<td>{{atom.atomicnum}}</td>
+						<td>{{atom.heavyvalence}}</td>
+						<td>{{atom.formalcharge}}</td>
+						<td>{{atom.type}}</td>
+					</tr>
+				{% endfor %}
+				{% endif %}
+				
 			</table>
 			{% else %}
 				<div class="decomposition">Unable to decompose.</div>
