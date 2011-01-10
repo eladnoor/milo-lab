@@ -1,8 +1,19 @@
-import csv, sqlite3, pybel, openbabel, os, urllib, re, pydot, pylab
-from toolbox import util
-from copy import deepcopy
+import csv
 import gzip
 import logging
+import openbabel
+import os
+import pydot
+import pylab
+import pybel
+import pygibbs      # For logging magic
+import re
+import sqlite3
+import urllib
+
+from toolbox import util
+from copy import deepcopy
+
 
 #########################################################################################
 
@@ -199,17 +210,18 @@ class KeggMissingModuleException(Exception):
 class Compound(object):
     free_cid = -1 # class static variable
     
-    def __init__(self, cid=None):
+    def __init__(self, cid=None, name=None, all_names=None, mass=None,
+                 formula=None, inchi=None):
         if (cid == None):
             self.cid = Compound.free_cid
             Compound.free_cid -= 1
         else:
             self.cid = cid
-        self.name = "?"
-        self.all_names = []
-        self.mass = None
-        self.formula = None
-        self.inchi = None
+        self.name = name or "?"
+        self.all_names = all_names or []
+        self.mass = mass
+        self.formula = formula
+        self.inchi = inchi
         self.from_kegg = True
         self.pubchem_id = None
         self.cas = ""
@@ -248,7 +260,7 @@ class Compound(object):
     def get_inchi(self):
         if (self.inchi == None):
             raise KeggParseException("C%05d doesn't have an 'inchi', so I can't get its molecular structure" % self.cid)
-        return self.inchi
+        return str(self.inchi)
     
     def get_smiles(self):
         obConversion = openbabel.OBConversion()
@@ -318,6 +330,27 @@ class Compound(object):
     def get_link(self):
         return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % self.cid
     
+    def get_json_dict(self):
+        d = {}
+        if self.cid:
+            d['CID'] = "C%05d" % self.cid
+        if self.inchi:
+            d['InChI'] = self.inchi
+        if self.mass is not None:
+            d['mass'] = self.mass
+        if self.formula:
+            d['formula'] = self.formula
+        if self.all_names:
+            d['names'] = self.all_names
+        
+        try:
+            n_electrons = self.get_num_electrons()
+            d['num_electrons'] = n_electrons
+        except Exception, e:
+            logging.error(e)
+            pass
+        
+        return d
     
 class Reaction(object):
     free_rid = -1 # class static variable
@@ -1563,9 +1596,11 @@ def export_json_file():
     compound_list = []
     for row in cursor.execute("SELECT * FROM kegg_compound"):
         (cid, unused_pubchem_id, mass, formula, inchi, unused_from_kegg, unused_cas, names) = row
-        compound_list.append({"CID": "C%05d" % cid, "InChI":inchi, "mass":mass, "formula":formula, "names":names.split(';')})
-        
-    json_file = gzip.open("../res/kegg_compounds.json.gz", 'w')
+        names = names.split(';')
+        compound = Compound(cid=cid, all_names=names, mass=mass, formula=formula, inchi=inchi)
+        compound_list.append(compound.get_json_dict())
+    
+    json_file = open('../res/kegg_compounds.json', 'w')
     json_file.write(json.dumps(compound_list))
     json_file.close()
 
@@ -1587,6 +1622,6 @@ def export_compound_connectivity():
                 
         csv_file.writerow((cid, len(rid_list)))
     
-if (__name__ == '__main__'):
+if __name__ == '__main__':
     export_json_file()
     #export_compound_connectivity()
