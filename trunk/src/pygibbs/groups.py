@@ -5,8 +5,6 @@ import logging
 import openbabel
 import os
 import pybel
-import re
-import sys
 import types
 
 from copy import deepcopy
@@ -14,11 +12,8 @@ import pylab
 from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_I, default_T, default_c0, dG0_f_Mg
 from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
-from pygibbs.feasibility import find_mcmf, LinProgNoSolutionException, find_pCr, thermodynamic_pathway_analysis, pC_to_range
-from pygibbs import groups_data
 from pygibbs.hatzimanikatis import Hatzi
-from pygibbs.kegg import KeggParseException, Kegg, parse_bool_field
-from pygibbs.kegg import parse_float_field, parse_vfloat_field, parse_string_field, parse_kegg_file
+from pygibbs.kegg import KeggParseException, Kegg
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.groups_data import Group, GroupsData
 from pygibbs import templates
