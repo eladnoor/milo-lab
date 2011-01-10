@@ -140,7 +140,7 @@ class Reaction(object):
             c = compound_w_coeff.compound
             coeff = compound_w_coeff.coeff
             
-            electrons = c.GetNumElectrons()
+            electrons = c.num_electrons
             if electrons == None:
                 logging.warning('Compound %s has unknown electron count', c.kegg_id)
                 return 0
@@ -410,7 +410,7 @@ class Reaction(object):
             c = compound_w_coeff.compound
             coeff = compound_w_coeff.coeff
             
-            est = c.DeltaG(pH, ionic_strength)
+            est = c.DeltaG(pH=pH, ionic_strength=ionic_strength)
             if not est:
                 logging.info('No estimate for compound %s', id)
                 return None
@@ -509,6 +509,18 @@ class Reaction(object):
         short = [(atom, -count) for atom, count in short]
         short.sort(key=lambda t: t[1], reverse=True)        
         return short
+    
+    def ExtraElectrons(self):
+        diff = self._GetElectronDiff()
+        if diff > 0:
+            return diff
+        return None
+    
+    def MissingElectrons(self):
+        diff = self._GetElectronDiff()
+        if diff < 0:
+            return -diff
+        return None
 
     is_balanced = property(IsBalanced)
     can_balance_electrons = property(CanBalanceElectrons)
@@ -516,4 +528,6 @@ class Reaction(object):
     balanced_with_water = property(CanBalanceWithWater)
     extra_atoms = property(ExtraAtoms)
     missing_atoms = property(MissingAtoms)
+    extra_electrons = property(ExtraElectrons)
+    missing_electrons = property(MissingElectrons)
     all_compounds = property(lambda self: self.reactants + self.products)
