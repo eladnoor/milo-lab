@@ -38,7 +38,10 @@ def calc_rmse(vec1, vec2):
         Calculates the RMSE (Root Mean Squared Error) between two vectors.
         Vectors can be given as lists.
     """
-    return sqrt( mean( (array(vec1) - array(vec2))**2 ) )
+    diff = array(vec1) - array(vec2)
+    square_diff = diff*diff.T
+    return sqrt( square_diff.mean() )
+    #return sqrt( mean( (array(vec1) - array(vec2))**2 ) )
 
 def calc_r2(vec1, vec2):
     """

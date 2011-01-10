@@ -71,13 +71,22 @@ class GroupMap(object):
 
     def GetCounts(self):
         return self.counts
+
+    def _NonZeroCounts(self):
+        return [v for v in self.counts.values() if v != 0]
     
     def AverageNumExamples(self):
         return pylab.mean(self.counts.values())
     
+    def AverageNonZeroExamples(self):
+        return pylab.mean(self._NonZeroCounts())
+    
     def MedianNumExamples(self):
         return pylab.median(self.counts.values())
-    
+
+    def MedianNonZeroExamples(self):
+        return pylab.median(self._NonZeroCounts())
+
     def StdDevNumExamples(self):
         return pylab.std(self.counts.values())
     
@@ -86,7 +95,9 @@ class GroupMap(object):
         return min(cts), max(cts)
     
     average_examples = property(AverageNumExamples)
+    average_non_zero = property(AverageNonZeroExamples)
     median_examples = property(MedianNumExamples)
+    median_non_zero = property(MedianNonZeroExamples)
     std_dev_examples = property(StdDevNumExamples)
     examples_range = property(NumExamplesRange)
 

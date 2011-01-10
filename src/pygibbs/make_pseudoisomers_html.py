@@ -6,6 +6,7 @@ from pygibbs import group_decomposition
 from pygibbs import pseudoisomers_data
 from pygibbs import templates
 
+
 def main():
     pdata = pseudoisomers_data.PseudoisomersData.FromFile(
         '../data/thermodynamics/dG0.csv')
@@ -20,6 +21,9 @@ def main():
         decomposition = None
         if mol:
             decomposition = decomposer.Decompose(pisomer.Mol())
+            
+            if decomposition.unassigned_nodes:
+                logging.warning('%s didn\'t decompose', pisomer)
             
         pisomer_dict = {'data': pisomer,
                         'decomposition': decomposition}

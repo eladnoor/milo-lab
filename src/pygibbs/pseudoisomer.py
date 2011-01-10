@@ -18,6 +18,16 @@ class PseudoisomerMap(object):
                 groupvector.NetCharge(),
                 groupvector.Magnesiums())
     
+    def GetAllPseudoisomers(self):
+        """Returns tuples of (key, dG0) where the key is
+           (nH, charge, nMgs)
+        """
+        for k, v in self.dgs.iteritems():
+            nh, z, mgs = k
+            yield nh, z, mgs, v
+    
+    all_pseudoisomers = property(GetAllPseudoisomers)
+    
     @staticmethod
     def _MakeKey(nH, z, nMg):
         return (nH, z, nMg)

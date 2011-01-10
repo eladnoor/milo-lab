@@ -1,0 +1,112 @@
+<html>
+	<head>
+		<title>Training and Testing Pseudoisomer Data</title>
+		<style type="text/css">
+		.fakeLink {
+			color: blue;
+			text-decoration: underline;
+		}
+		
+		.toc {
+			margin-top: 10px;
+			margin-bottom: 20px;
+			font-size: 20px;
+		}
+		
+		.toc ul {
+			font-size: 16px;
+		}
+		
+		.collection {
+			margin-bottom: 20px;
+		}
+		
+		.collection .title {
+			font-weight: bold;
+			font-size: 24px;
+		}
+		
+		.pisomer {
+			font-size: 20px;
+			margin-bottom: 10px;
+		}
+		
+		.pisomer div {
+			margin-left: 10px;
+		}
+		
+		.decomposition, .fullDecomposition, .property {
+			font-size: 14px;
+		}
+		
+		.fullDecomposition {
+			display: none;
+			margin-left: 30px;
+		}
+		</style>
+		<script type="text/javascript">
+		function showId(id, caller) {
+			var elt = document.getElementById(id);
+			elt.style.display = 'block';
+			caller.style.display = 'none';
+		}
+		</script>
+	</head>
+	<body>
+	
+	{% for c in compounds %}
+	<div class="compound">
+		{% if c.compound %}
+		<div class="property">{{c.compound.name}}</div>
+		<div class="property">Formula: {{c.compound.formula}}</div>
+		<div class="property">Inchi: {{c.compound.inchi}}</div>
+		{% endif %}
+		<div class="property">CID: {{c.cid}}</div>
+		
+		{% if c.measured_pmap %}
+		<div>Measured Pseudoisomers
+			<table class="pisomers">
+				<tr>
+					<th>Hydrogens</th>
+					<th>Net Charge</th>
+					<th>Magnesiums</th>
+					<th>&Delta;G&deg;</th>
+				</tr>
+				{% for nh, z, mgs, dg in c.measured_pmap.all_pseudoisomers %}
+				<tr>
+					<td>{{nh}}</td>
+					<td>{{z}}</td>
+					<td>{{mgs}}</td>
+					<td>{{dg}}</td>
+				</tr>
+				{% endfor %}
+			</table>
+		</div>
+		{% endif %}
+
+		{% if c.estimated_pmap %}
+		<div>Estimated Pseudoisomers
+			<table class="pisomers">
+				<tr>
+					<th>Hydrogens</th>
+					<th>Net Charge</th>
+					<th>Magnesiums</th>
+					<th>&Delta;G&deg;</th>
+				</tr>
+				{% for nh, z, mgs, dg in c.estimated_pmap.all_pseudoisomers %}
+				<tr>
+					<td>{{nh}}</td>
+					<td>{{z}}</td>
+					<td>{{mgs}}</td>
+					<td>{{dg}}</td>
+				</tr>
+				{% endfor %}
+			</table>
+		</div>
+		{% endif %}
+
+	</div>
+	{% endfor %}
+	
+	</body>
+</html>
