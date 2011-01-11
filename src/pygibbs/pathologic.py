@@ -11,9 +11,10 @@ from toolbox.database import SqliteDatabase
 #                               CONSTANTS & DEFAULTS                           #
 ################################################################################
 class Pathologic:
-    def __init__(self, db, html_writer):
+    def __init__(self, db, html_writer, update_file='../data/thermodynamics/database_updates.txt'):
         cplex.Cplex() # causes CPLEX to print its initialization message
         _mkdir('../res/pathologic')
+        self.html_writer = html_writer
         self.gc = GroupContribution(db, html_writer)
         self.gc.init()
         self.thermodynamic_method = "global" # options are: "none", "pCr", "MCMF", "global" or "localized"
@@ -22,11 +23,11 @@ class Pathologic:
         self.max_solutions = 100
         self.flux_relaxtion_factor = None
         self.kegg_patholotic = KeggPathologic(self.gc.kegg())
-        self.update_file = '../data/thermodynamics/database_updates.txt'
+        self.kegg_patholotic.update_database(update_file, self.html_writer)
 
     def find_path(self, experiment_name, source=None, target=None):
         _mkdir('../res/pathologic/' + experiment_name)
-        self.gc.html_writer.write('<a href="pathologic/' + experiment_name + '.html">' + experiment_name + '</a><br>\n')
+        self.html_writer.write('<a href="pathologic/' + experiment_name + '.html">' + experiment_name + '</a><br>\n')
         exp_html = HtmlWriter('../res/pathologic/' + experiment_name + '.html')
         exp_html.write("<p><h1>%s</h1>\n" % experiment_name)
 
@@ -56,7 +57,6 @@ class Pathologic:
             exp_html.write('<h2>Target (biomass) Reaction:</h2>\n')
             exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg_patholotic.cid2compound[cid].name, cid) for (cid, coeff) in target.iteritems()])
 
-        self.kegg_patholotic.update_database(self.update_file, exp_html)
         (f, S, compounds, reactions) = self.kegg_patholotic.get_unique_cids_and_reactions()
         exp_html.write('<h2>%d reactions with %d unique compounds</h2>\n' % (len(reactions), len(compounds)))
         
@@ -216,9 +216,8 @@ def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     db = SqliteDatabase('../res/gibbs.sqlite', 'r')
     html_writer = HtmlWriter('../res/pathologic.html')
-    pl = Pathologic(db, html_writer)
-    
-    pl.update_file = '../data/thermodynamics/database_updates_with_MOG_reactions.txt'
+    update_file = '../data/thermodynamics/database_updates_with_MOG_reactions.txt'
+    pl = Pathologic(db, html_writer, update_file)
     pl.thermodynamic_method = 'global'
     pl.gc.c_range = (1e-6, 1e-2)
     pl.max_solutions = 1

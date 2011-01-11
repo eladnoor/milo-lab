@@ -73,7 +73,7 @@ class Thermodynamics(object):
         for cid in self.get_all_cids():
             for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
                 dict = {}
-                dict['CID'] = 'C%05d' % cid
+                dict['cid'] = 'C%05d' % cid
                 dict['name'] = kegg.cid2name(cid)
                 dict['nH'] = '%d' % nH
                 dict['charge'] = '%d' % z
@@ -85,12 +85,12 @@ class Thermodynamics(object):
                     dict['anchor'] = 'no'
                 dict_list.append(dict)
         
-        html_writer.write_table(dict_list, ['CID', 'name', 'nH', 'charge', 
+        html_writer.write_table(dict_list, ['cid', 'name', 'nH', 'charge', 
                                             'nMg', 'dG0_f', 'anchor'])
     
     def write_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
-        writer.writerow(['CID', 'nH', 'charge', 'nMg', 'dG0'])
+        writer.writerow(['cid', 'nH', 'charge', 'nMg', 'dG0'])
         for cid in self.get_all_cids():
             for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
                 writer.writerow([cid, nH, z, nMg, dG0])
@@ -114,7 +114,7 @@ class Thermodynamics(object):
                 
     def write_transformed_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
-        writer.writerow(['CID', 'pH', 'pMg', 'I', 'T', 'dG0_tag'])
+        writer.writerow(['cid', 'pH', 'pMg', 'I', 'T', 'dG0_tag'])
         for cid in self.get_all_cids():
             dG0_tag = self.cid_to_dG0(cid)
             writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
@@ -169,10 +169,10 @@ class CsvFileThermodynamics(Thermodynamics):
     def FromCsvFile(self, filename):
         """
             Imports the pseudoisomer maps from a CSV file, with these headers:
-            'CID', 'nH', 'charge', 'nMg', 'dG0'
+            'cid', 'nH', 'charge', 'nMg', 'dG0'
         """
         for row in csv.DictReader(open(filename, 'r')):
-            cid = int(row['CID'])
+            cid = int(row['cid'])
             nH = int(row['nH'])
             z = int(row['charge'])
             nMg = int(row['nMg'])

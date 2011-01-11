@@ -881,7 +881,7 @@ class GroupContribution(Thermodynamics):
 
     def write_cid_group_matrix(self, fname):
         csv_file = csv.writer(open(fname, 'w'))
-        csv_file.writerow(["CID"] + self.all_group_names)
+        csv_file.writerow(['cid'] + self.all_group_names)
         for cid in self.kegg().get_all_cids_with_inchi():
             try:
                 groupvec = self.cid2groupvec(cid)
@@ -895,7 +895,7 @@ class GroupContribution(Thermodynamics):
             
     def write_rid_group_matrix(self, fname):
         csv_file = csv.writer(open(fname, 'w'))
-        csv_file.writerow(["RID"] + self.all_group_names)
+        csv_file.writerow(['rid'] + self.all_group_names)
         group_names = self.all_group_names
         
         groupstr_to_counter = {}

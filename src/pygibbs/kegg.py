@@ -952,7 +952,7 @@ class Kegg(object):
             Print a CSV file containing the CIDs of compounds that have CoA and/or Pi
         """
         csv_file = csv.writer(open('../res/compounds.csv', 'w'))
-        csv_file.writerow(["CID", "EXACT MASS"] + ELEMENTS.symbols)
+        csv_file.writerow(["cid", "EXACT MASS"] + ELEMENTS.symbols)
         for cid in self.get_all_cids():
             comp = self.cid2compound(cid)
             atom_vec = comp.get_atom_vector()
@@ -1609,7 +1609,7 @@ def export_compound_connectivity():
     
     entry2fields_map = parse_kegg_file(kegg.COMPOUND_FILE)
     csv_file = csv.writer(open("../res/cid_connectivity.csv", 'w'))
-    csv_file.writerow(("CID", "#reactions"))
+    csv_file.writerow(("cid", "#reactions"))
     for key in sorted(entry2fields_map.keys()):
         field_map = entry2fields_map[key]
         if (key[0] != 'C'):

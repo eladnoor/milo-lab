@@ -61,7 +61,7 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('<p><h2>Abundance</h2>\n')
         self.db.Query2HTML(self.html_writer,
                            "SELECT cid, media, 1000*concentration from compound_abundance ORDER BY cid, media",
-                           column_names=["CID", "Media", "concentration [mM]"])
+                           column_names=["cid", "media", "concentration [mM]"])
         self.html_writer.write('</p>\n')
         self.html_writer.write('</div><br>\n')
 
