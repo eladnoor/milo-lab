@@ -230,6 +230,9 @@ class PseudoisomersData(object):
                 dG0 = None
             else:
                 dG0 = float(dG0)
+                
+            if use_for == 'skip':
+                continue
             
             comp = PseudoisomerEntry(charge, hydrogens, nMg, smiles,
                                      dG0=dG0, name=name, cid=cid,
@@ -257,6 +260,7 @@ class PseudoisomersData(object):
             nH_above = int(row['nH_above'])
             nMg_below = int(row['nMg_below'])
             nMg_above = int(row['nMg_above'])
+            ref = row['ref']
             
             cid2pK.setdefault(cid, DissociationTable())
 
@@ -264,34 +268,48 @@ class PseudoisomersData(object):
                 if nMg_below != nMg_above:
                     raise Exception('C%05d has different nMg below and above '
                                     'the pKa = %.1f' % pK)
-                cid2pK[cid].AddpKa(pK, nH_below, nH_above, nMg_below)
+                cid2pK[cid].AddpKa(pK, nH_below, nH_above, nMg_below, ref)
 
             if row['type'] == 'Mg':
                 if nH_below != nH_above:
                     raise Exception('C%05d has different nH below and above '
                                     'the pK_Mg = %.1f' % pK)
-                cid2pK[cid].AddpKMg(pK, nMg_below, nMg_above, nH_below)
+                cid2pK[cid].AddpKMg(pK, nMg_below, nMg_above, nH_below,ref)
 
         new_pseudoisomers = {}
         for pdata in self.pseudoisomers:
             cid = pdata.cid
+            nH = pdata.hydrogens
+            nMg = pdata.magnesiums
+            ref = pdata.ref
+            if not cid or nH == None: # it is important not to use ("or not nH") since it can be a 0
+                continue
+            if nMg == None:
+                nMg = 0
+            new_pseudoisomers[cid, nMg, nH, ref] = pdata
             if cid not in cid2pK:
                 continue
-            if pdata.hydrogens == None:
-                continue
-            
-            logging.info('Generating all psueoisomers for %s (C%05d)' % (pdata, cid or -1))
             
             pK_table = cid2pK[cid]
-            for pdata in pK_table.GenerateAll(pdata):
-                cid = pdata.cid
-                nH = pdata.hydrogens
-                nMg = pdata.magnesiums
-                if (cid, nMg, nH) not in new_pseudoisomers:
-                    new_pseudoisomers[cid, nMg, nH] = pdata
-                
-        for (cid, nMg, nH), pdata in sorted(new_pseudoisomers.iteritems()):
-            print pdata
+            try:
+                for new_pdata in pK_table.GenerateAll(pdata):
+                    cid = new_pdata.cid
+                    nH = new_pdata.hydrogens
+                    nMg = new_pdata.magnesiums
+                    ref = new_pdata.ref
+                    if (cid, nMg, nH) not in new_pseudoisomers:
+                        new_pseudoisomers[cid, nMg, nH, ref] = new_pdata
+            except KeyError, msg:
+                logging.error(msg)
+                raise Exception('Cannot find the pK data for compound C%05d' % cid)
+
+        species_set = set()                
+        for (cid, nMg, nH, ref), pdata in sorted(new_pseudoisomers.iteritems()):
+            if (cid, nMg, nH) in species_set:
+                raise Exception("Conflict: " + str([cid, nMg, nH]))
+            else:
+                species_set.add((cid, nMg, nH))
+            print pdata, ref
 
 if __name__ == '__main__':
     pdata = PseudoisomersData.FromFile('../data/thermodynamics/dG0.csv')

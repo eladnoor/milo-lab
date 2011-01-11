@@ -112,9 +112,12 @@ class DissociationConstants(object):
             Load the data regarding pKa values according to KEGG compound IDs.
         """
         
-        csv_filename = '../data/thermodynamics/pKa_with_nH.csv'
+        csv_filename = '../data/thermodynamics/dissociation_constants.csv'
         self.db.CreateTable('pKa', 'cid INT, name TEXT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
         for line_num, row in enumerate(csv.DictReader(open(csv_filename, 'r'))):
+            if row['type'] and row['type'] != 'acid-base':
+                continue
+            
             if row['cid']:
                 cid = int(row['cid'])
             else:
@@ -125,8 +128,8 @@ class DissociationConstants(object):
             else:
                 T = default_T
             
-            if row['pKa']:
-                pKa = float(row['pKa'])
+            if row['pK']:
+                pKa = float(row['pK'])
             else:
                 pKa = None
 
@@ -138,8 +141,8 @@ class DissociationConstants(object):
                 name = None
 
             try:
-                self.db.Insert('pKa', [cid, name, T, float(row['nH_below']), 
-                               float(row['nH_above']), 
+                self.db.Insert('pKa', [cid, name, T, int(row['nH_below']), 
+                               int(row['nH_above']), 
                                row['smiles_below'], row['smiles_above'], pKa])
             except ValueError:
                 raise Exception('Error while processing line #%d in %s' %\
