@@ -27,7 +27,11 @@ class TestReactionParser(unittest.TestCase):
         # fractional coefficients
         'propane + 7/2 o2 => 3 co2 + water':
         query_parser.ParsedReactionQuery([(1, 'propane'), (3.5, 'o2')],
-                                         [(3, 'co2'), (1, 'water')])
+                                         [(3, 'co2'), (1, 'water')]),
+        # Names with parens at the beginning
+        '(S)-malate => (S)-lactate':
+        query_parser.ParsedReactionQuery([(1, '(S)-malate')],
+                                         [(1, '(S)-lactate')])
         }
     
     def setUp(self):

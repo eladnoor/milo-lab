@@ -163,6 +163,9 @@ class Compound(models.Model):
         if self.inchi:
             self.achiral_inchi = inchi.AchiralInchi(self.inchi)
     
+    def FirstName(self):
+        return self.common_names.all()[0]
+    
     def ShortestName(self):
         shortest_len = 10000
         shortest_name = None

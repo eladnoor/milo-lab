@@ -30,7 +30,8 @@ def _MakeReactionParser():
     
     compound_separator = pyparsing.Literal('+').suppress()
     
-    compound_name_component = pyparsing.Word(pyparsing.alphanums, pyparsing.alphanums + "-+,()'")
+    compound_name_component = pyparsing.Word(pyparsing.alphanums + "()",
+                                             pyparsing.alphanums + "-+,()'")
     compound_name = pyparsing.Forward()
     compound_name << (compound_name_component + pyparsing.ZeroOrMore(compound_name_component))
     compound_name.setParseAction(lambda s: ' '.join(s))

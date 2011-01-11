@@ -31,6 +31,11 @@ class CompoundWithCoeff(object):
         name = self.name or str(self.compound)
         return '%d %s' % (self.coeff, name)
     
+    def GetName(self):
+        """Gives a string name for this compound."""
+        if self.name:
+            return self.name
+        return str(self.compound.FirstName())
     
     def _MicromolarConcentration(self):
         return self.concentration * 1e6
@@ -222,6 +227,24 @@ class Reaction(object):
         params.append('balance_electrons=1')
     
         return '/reaction?%s' % '&'.join(params)
+    
+    @staticmethod
+    def _GetReactionSideString(side):
+        """Write a reaction side as a string."""
+        sdata = []
+        for c_w_coeff in side:
+            if c_w_coeff.coeff == 1:
+                sdata.append(c_w_coeff.GetName())
+            else:
+                sdata.append('%d %s' % (c_w_coeff.coeff,
+                                        c_w_coeff.GetName()))
+        return ' + '.join(sdata)
+    
+    def GetQueryString(self):
+        """Get a query string for this reaction."""
+        rq = self._GetReactionSideString(self.reactants)
+        pq = self._GetReactionSideString(self.products)
+        return '%s <=> %s' % (rq, pq)
     
     def IsBalanced(self):
         """Checks if the collection is atom-wise balanced.
