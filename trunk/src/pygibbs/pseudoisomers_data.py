@@ -155,7 +155,7 @@ class DissociationTable(object):
         comp.dG0 += total_ddG0
         comp.ref += ';' + total_ref
         comp.smiles = ''
-        comp.hydrogens = nMg_to
+        comp.hydrogens = nH_to
         comp.magnesiums = nMg_to
         comp.net_charge += (nH_to - nH_from) + 2 * (nMg_to - nMg_from)
         
@@ -272,7 +272,7 @@ class PseudoisomersData(object):
                                     'the pK_Mg = %.1f' % pK)
                 cid2pK[cid].AddpKMg(pK, nMg_below, nMg_above, nH_below)
 
-        new_pseudoisomers = []
+        new_pseudoisomers = {}
         for pdata in self.pseudoisomers:
             cid = pdata.cid
             if cid not in cid2pK:
@@ -283,14 +283,17 @@ class PseudoisomersData(object):
             logging.info('Generating all psueoisomers for %s (C%05d)' % (pdata, cid or -1))
             
             pK_table = cid2pK[cid]
-            new_pseudoisomers += pK_table.GenerateAll(pdata)
+            for pdata in pK_table.GenerateAll(pdata):
+                cid = pdata.cid
+                nH = pdata.hydrogens
+                nMg = pdata.magnesiums
+                if (cid, nMg, nH) not in new_pseudoisomers:
+                    new_pseudoisomers[cid, nMg, nH] = pdata
                 
-        for pdata in new_pseudoisomers:
+        for (cid, nMg, nH), pdata in sorted(new_pseudoisomers.iteritems()):
             print pdata
 
 if __name__ == '__main__':
     pdata = PseudoisomersData.FromFile('../data/thermodynamics/dG0.csv')
     pdata.ReadDissociationData('../data/thermodynamics/dissociation_constants.csv')
-    for pisomer in pdata:
-        print pisomer
     
