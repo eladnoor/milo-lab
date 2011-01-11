@@ -48,10 +48,13 @@ def ReactionPage(request):
     zipped_products = zip(form.cleaned_productCoeffs, clean_products, product_names)
     rxn = reaction.Reaction.FromIds(zipped_reactants, zipped_products,
                                     cprofile)
+    query = form.cleaned_query
     if form.cleaned_balance_w_water:
         rxn.TryBalanceWithWater()
+        query = rxn.GetQueryString()
     if form.cleaned_balance_electrons:
         rxn.BalanceElectrons()
+        query = rxn.GetQueryString()
     
     # Compute the dG estimate.
     delta_g_estimate = rxn.DeltaG(pH=ph, ionic_strength=i_s)
@@ -62,7 +65,7 @@ def ReactionPage(request):
     balance_electrons_link = rxn.GetBalanceElectronsLink(
             ph, i_s, cprofile_name, form.cleaned_query)
     template_data = {'reaction': rxn,
-                     'query': form.cleaned_query,
+                     'query': query,
                      'ph': form.cleaned_ph,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
