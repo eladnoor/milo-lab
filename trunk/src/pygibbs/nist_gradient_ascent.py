@@ -451,7 +451,7 @@ class GradientAscent(Thermodynamics):
         
     def write_pseudoisomers(self, csv_fname):
         csv_writer = csv.writer(open(csv_fname, 'w'))
-        csv_writer.writerow(('CID', 'dG0_f', 'nH', 'charge'))
+        csv_writer.writerow(('cid', 'dG0_f', 'nH', 'charge'))
         for cid in self.get_all_cids():
             for (nH, z, mgs, dG0) in self.cid2pmap(cid).ToMatrix:
                 csv_writer.writerow((cid, dG0, nH, z, mgs))

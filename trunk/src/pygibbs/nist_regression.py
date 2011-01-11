@@ -261,7 +261,7 @@ class NistRegression(Thermodynamics):
         
         self.html_writer.write('All CIDs in NIST: <br>\n')
         self.html_writer.write('<table border="1">\n')
-        self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td>' % ("CID", "NAME", "COUNT", "REMARK"))
+        self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td>' % ("cid", "name", "count", "remark"))
         for cid, count in sorted(self.nist.cid2count.iteritems()):
             if cid not in self.cid2pKa_list:
                 self.self.html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%d</td><td>' % (cid, self.kegg.cid2name(cid), count))
@@ -328,7 +328,7 @@ class NistRegression(Thermodynamics):
         #csv_writer = csv.writer(open('../res/pKa_from_dG0.csv', 'w'))
         
         self.self.html_writer.write('<table border="1">\n<tr><td>' + 
-                          '</td><td>'.join(['CID', 'name', 'formula', 'nH', 'charge', 'nMg', 'dG0_f', 'pKa', 'pK_Mg']) + 
+                          '</td><td>'.join(['cid', 'name', 'formula', 'nH', 'charge', 'nMg', 'dG0_f', 'pKa', 'pK_Mg']) + 
                           '</td></tr>\n')
         for cid in sorted(cid2pmap.keys()):
             #step = 1

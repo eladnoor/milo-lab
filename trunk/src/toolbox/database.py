@@ -120,6 +120,13 @@ class SQLDatabase(Database):
 class SqliteDatabase(SQLDatabase):
     
     def __init__(self, filename, flag='w'):
+        """
+            Connects to a Sqlite database.
+            filename - the name of the file containing the database
+            flag - can only be 'w' or 'r'.
+                   use 'r' to verify that the file already exists (throws IOError otherwise)
+                   use 'w' to create the file if it doesn't exist
+        """
         if flag == 'r':
             if not os.path.exists(filename):
                 raise IOError('No such file or directory: %s' % filename)
