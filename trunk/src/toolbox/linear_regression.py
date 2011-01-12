@@ -1,7 +1,8 @@
 import logging
 from numpy.linalg import svd, inv, norm
-from numpy import diag, matrix, hstack, vstack, zeros, array, dot, vstack
+from numpy import diag, matrix, hstack, zeros, dot, vstack, float64
 from pylab import find
+from sympy import Matrix
 import sys
 
 class LinearRegression(object):
@@ -53,9 +54,16 @@ class LinearRegression(object):
         kerA[0:(m_red-r), nonzero_columns] = V[r:m_red,:]
         for i, j in enumerate(zero_columns):
             kerA[m_red-r+i, j] = 1
-        LinearRegression.GaussJordan(kerA, eps)
+
+        #LinearRegression.GaussJordan(kerA, eps)
+        kerA = LinearRegression.ReducedRowEchelon(kerA)
 
         return weights, kerA
+    
+    @staticmethod
+    def ReducedRowEchelon(A):
+        R = Matrix(A).rref()
+        return float64(matrix(R[0]))
     
     @staticmethod
     def GaussJordan(A, eps=1e-10):
@@ -101,6 +109,7 @@ if __name__ == '__main__':
     w_pred, V = LinearRegression.LeastSquares(A, A*w)
     print w_pred
     print V
+    print dot(A, V.T)
 
     
     x1 = matrix([[0,0,0,1,0]]).T

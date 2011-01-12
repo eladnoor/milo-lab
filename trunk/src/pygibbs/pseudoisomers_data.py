@@ -9,7 +9,7 @@ from toolbox.util import log_sum_exp
 
 
 class PseudoisomerEntry(object):
-    def __init__(self, net_charge, hydrogens, magnesiums, smiles,
+    def __init__(self, net_charge, hydrogens, magnesiums, smiles="",
                  dG0=None, cid=None, name=None, ref='', use_for=None):
         """Initialize a compound."""
         self.cid = cid
@@ -82,8 +82,9 @@ class DissociationTable(object):
     def __init__(self, cid=None):
         self.ddGs = {}
         self.cid = cid
-        self.min_nH = None
-        self.min_charge = None
+        self.min_nH = None # the nH of the most basic pseudoisomer
+        self.min_charge = None # the charge of the most basic pseudoisomer
+        self.min_dG0 = 0 # the dG0 of the most basic pseudoisomer
 
     @staticmethod
     def ReadDissociationCsv(filename='../data/thermodynamics/dissociation_constants.csv',
@@ -219,7 +220,27 @@ class DissociationTable(object):
         
         return comp
     
-    def GenerateAll(self, pdata):
+    def CalculateCharge(self, kegg):
+        # get the charge and nH of the default pseudoisomer in KEGG:
+        z = kegg.cid2charge(self.cid, correctForPH=False)
+        nH = kegg.cid2num_hydrogens(self.cid, correctForPH=False)
+        
+        # calculate the charge for the most basic species
+        self.min_charge = z + (self.min_nH - nH)
+        
+    def GenerateAll(self):
+        if self.min_charge == None:
+            raise Exception('The minimal charge has to be set before generating'
+            ' all psuedoisomers')
+        if self.min_dG0 == None:
+            raise Exception('The base formation energy has to be set before generating'
+            ' all psuedoisomers')
+                
+        pdata = PseudoisomerEntry(net_charge=self.min_charge, hydrogens=self.min_nH,
+            magnesiums=0, smiles="", dG0=self.min_dG0)
+        return self.GenerateAllPseudoisomerEntries(pdata)
+    
+    def GenerateAllPseudoisomerEntries(self, pdata):
         pseudoisomers = {}
         pseudoisomers[pdata.hydrogens, pdata.magnesiums] = pdata.Clone()
 
@@ -235,23 +256,12 @@ class DissociationTable(object):
         
         return pseudoisomers.values()
     
-    def CalculateCharge(self, kegg):
-        # get the charge and nH of the default pseudoisomer in KEGG:
-        z = kegg.cid2charge(self.cid, correctForPH=False)
-        nH = kegg.cid2num_hydrogens(self.cid, correctForPH=False)
-        
-        # calculate the charge for the most basic species
-        self.min_charge = z + (self.min_nH - nH)
-        
     def Transform(self, pH, I, pMg, T):
         # assume that the dG0_f of the most basic psuedoisomer is 0, 
         # and calculate the transformed dG'0_f relative to it.
         
-        pdata = PseudoisomerEntry(net_charge=self.min_charge, 
-            hydrogens=self.min_nH, smiles="", magnesiums=0, dG0=0)
-        
         dG0_tag_vec = []
-        for pseudoisomer in self.GenerateAll(pdata):
+        for pseudoisomer in self.GenerateAll():
             nH = pseudoisomer.hydrogens
             nMg = pseudoisomer.magnesiums
             z = pseudoisomer.net_charge
@@ -352,7 +362,7 @@ class PseudoisomersData(object):
             
             pK_table = cid2pK[cid]
             try:
-                for new_pdata in pK_table.GenerateAll(pdata):
+                for new_pdata in pK_table.GenerateAllPseudoisomerEntries(pdata):
                     cid = new_pdata.cid
                     nH = new_pdata.hydrogens
                     nMg = new_pdata.magnesiums
