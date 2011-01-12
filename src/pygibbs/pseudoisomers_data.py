@@ -3,13 +3,14 @@
 import csv
 import logging
 import pybel
-from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg
+from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel
 import pylab
+from toolbox.util import log_sum_exp
 
 
 class PseudoisomerEntry(object):
     def __init__(self, net_charge, hydrogens, magnesiums, smiles,
-                 dG0=None, cid=None, name=None, ref=None, use_for=None):
+                 dG0=None, cid=None, name=None, ref='', use_for=None):
         """Initialize a compound."""
         self.cid = cid
         self.name = name
@@ -125,7 +126,7 @@ class DissociationTable(object):
         
         if kegg != None:
             for pK_table in cid2pK.values():
-                pK_table.CalculateCharges(kegg)
+                pK_table.CalculateCharge(kegg)
         
         return cid2pK
     
@@ -170,7 +171,16 @@ class DissociationTable(object):
         raise Exception('A dissociation constant can either represent a'
                 ' change in only one hydrogen or magnesium')
     
-    def ConvertPseudoisomer(self, pdata, nH_to, nMg_to):
+    def ConvertPseudoisomer(self, dG0, nH_from, nH_to=None, nMg_from=0, nMg_to=0):
+        if not nH_to:
+            nH_to = self.min_nH
+        
+        pdata = PseudoisomerEntry(net_charge=0, hydrogens=nH_from, 
+            magnesiums=nMg_from, smiles="", dG0=dG0)
+        comp = self.ConvertPseudoisomerEntry(pdata, nH_to, nMg_to)
+        return comp.dG0
+    
+    def ConvertPseudoisomerEntry(self, pdata, nH_to, nMg_to):
         """
             Returns the difference in dG0 between any two pseudoisomers.
         """
@@ -217,21 +227,45 @@ class DissociationTable(object):
             
             if (nH_above, nMg_above) not in pseudoisomers:
                 pseudoisomers[nH_above, nMg_above] = \
-                    self.ConvertPseudoisomer(pdata, nH_above, nMg_above)
+                    self.ConvertPseudoisomerEntry(pdata, nH_above, nMg_above)
 
             if (nH_below, nMg_below) not in pseudoisomers:
                 pseudoisomers[nH_below, nMg_below] = \
-                    self.ConvertPseudoisomer(pdata, nH_below, nMg_below)
+                    self.ConvertPseudoisomerEntry(pdata, nH_below, nMg_below)
         
         return pseudoisomers.values()
     
     def CalculateCharge(self, kegg):
         # get the charge and nH of the default pseudoisomer in KEGG:
         z = kegg.cid2charge(self.cid, correctForPH=False)
-        nH = self.kegg.cid2num_hydrogens(self.cid, correctForPH=False)
+        nH = kegg.cid2num_hydrogens(self.cid, correctForPH=False)
         
         # calculate the charge for the most basic species
-        self.min_charge = z + (self.min_nH - nH) 
+        self.min_charge = z + (self.min_nH - nH)
+        
+    def Transform(self, pH, I, pMg, T):
+        # assume that the dG0_f of the most basic psuedoisomer is 0, 
+        # and calculate the transformed dG'0_f relative to it.
+        
+        pdata = PseudoisomerEntry(net_charge=self.min_charge, 
+            hydrogens=self.min_nH, smiles="", magnesiums=0, dG0=0)
+        
+        dG0_tag_vec = []
+        for pseudoisomer in self.GenerateAll(pdata):
+            nH = pseudoisomer.hydrogens
+            nMg = pseudoisomer.magnesiums
+            z = pseudoisomer.net_charge
+            dG0 = pseudoisomer.dG0
+            
+            DH = debye_huckel(I)
+            dG0_tag = dG0 + \
+                      nMg * (R*T*pylab.log(10)*pMg - dG0_f_Mg) + \
+                      nH  * (R*T*pylab.log(10)*pH + DH) - (z**2) * DH
+            dG0_tag_vec.append(dG0_tag)
+        
+        dG0_tag_total = -R * T * log_sum_exp([g / (-R*T) for g in dG0_tag_vec])
+        
+        return dG0_tag_total
 
 class PseudoisomersData(object):
     

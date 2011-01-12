@@ -65,7 +65,7 @@ class NistRegression(Thermodynamics):
         self.nist_anchors = NistAnchors(self.db, self.html_writer)
         self.nist_anchors.FromCsvFile()
         
-        self.cid2pK = DissociationTable.ReadDissociationCsv(kegg=kegg)
+        self.cid2diss_table = DissociationTable.ReadDissociationCsv(kegg=kegg)
         self.cid2pmap_dict = {}
         
     def cid2pmap(self, cid):
@@ -83,7 +83,7 @@ class NistRegression(Thermodynamics):
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
-        cids_with_pKa = set(self.cid2pKa_list.keys())
+        cids_with_pKa = set(self.cid2diss_table.keys())
         #cids_with_pKa = set([212, 147, 9, 1, 2, 8, 13, 20])
         cids_in_nist = set(self.nist.GetAllCids())
         cids_in_nist_with_pKa = cids_with_pKa.intersection(cids_in_nist)
@@ -100,7 +100,8 @@ class NistRegression(Thermodynamics):
         for i, cid in enumerate(anchored_cids):
             dG0_f = self.nist_anchors.cid2dG0_f[cid]
             nH = self.nist_anchors.cid2min_nH[cid]
-            dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
+            #dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
+            dG0_f_base = self.cid2diss_table[cid].ConvertPseudoisomer(dG0_f, nH)
             anchored_dG0_f.append(dG0_f_base)
         anchored_dG0_f = pylab.matrix([anchored_dG0_f]).T
         
@@ -122,6 +123,7 @@ class NistRegression(Thermodynamics):
             else:
                 nist_rows_used.append(nist_row_data)
                 dG0_r_tag = pylab.vstack([dG0_r_tag, nist_row_data.dG0_r])
+                
                 ddG = self.ReverseTransformReaction(nist_row_data.sparse, 
                     nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
                     nist_row_data.T)
@@ -153,11 +155,11 @@ class NistRegression(Thermodynamics):
         self.anchors = set(anchored_cids)
         for i, cid in enumerate(all_cids):
             pmap = PseudoisomerMap()
-            
-            base_nH = self.cid2min_nH[cid]
-            base_z = self.cid2min_charge[cid]
+            diss_table = self.cid2diss_table[cid]
+            base_nH = diss_table.min_nH
+            base_z = diss_table.min_charge
             base_dG0_f = all_dG0_f[i, 0]
-            for j in xrange(len(self.cid2pKa_list[cid])+1):
+            for j in xrange(len(self.cid2diss_table[cid])+1):
                 nH = base_nH + j
                 z = base_z + j
                 dG0_f_species = self.ConvertPseudoisomer(cid, base_dG0_f, base_nH, nH)
@@ -199,7 +201,7 @@ class NistRegression(Thermodynamics):
             If no explicit request for a pseudoisomer is provided,
             returns the most basic one (minimal nH).
         """
-        pKa_list = self.cid2pKa_list[cid]
+        diss_table = self.cid2diss_table[cid]
         min_nH = self.cid2min_nH[cid]
         if not nH_to:
             nH_to = min_nH
@@ -222,7 +224,11 @@ class NistRegression(Thermodynamics):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
                     for cid, coeff in sparse.iteritems()])
 
+
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
+        return self.cid2diss_table[cid].Transform(pH, I, pMg, T)
+
+    def ReverseTransformCompound2(self, cid, pH, I, pMg, T):
         p = self.cid2min_nH[cid]
         z = self.cid2min_charge[cid]
 
