@@ -115,9 +115,6 @@ class DissociationConstants(object):
         csv_filename = '../data/thermodynamics/dissociation_constants.csv'
         self.db.CreateTable('pKa', 'cid INT, name TEXT, T REAL, nH_below INT, nH_above INT, smiles_below TEXT, smiles_above TEXT, pKa REAL')
         for line_num, row in enumerate(csv.DictReader(open(csv_filename, 'r'))):
-            if row['type'] and row['type'] != 'acid-base':
-                continue
-            
             if row['cid']:
                 cid = int(row['cid'])
             else:
@@ -140,6 +137,9 @@ class DissociationConstants(object):
             else:
                 name = None
 
+            if row['type'] and row['type'] != 'acid-base':
+                continue
+            
             try:
                 self.db.Insert('pKa', [cid, name, T, int(row['nH_below']), 
                                int(row['nH_above']), 

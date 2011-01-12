@@ -78,8 +78,56 @@ class PseudoisomerEntry(object):
     
 class DissociationTable(object):
     
-    def __init__(self):
+    def __init__(self, cid=None):
         self.ddGs = {}
+        self.cid = cid
+        self.min_nH = None
+        self.min_charge = None
+
+    @staticmethod
+    def ReadDissociationCsv(filename='../data/thermodynamics/dissociation_constants.csv',
+                            kegg=None):
+        """
+            Parses a CSV file that contains pKa and pKMg data for many compounds
+            and returns a dictionary of their DissociationTables, where the key
+            is the CID.
+        """
+        cid2pK = {}
+
+        csv_reader = csv.DictReader(open(filename, 'r'))
+        for row in csv_reader:
+            if not row['cid']:
+                continue # without a CID we cannot match this to the dG0 table
+            cid = int(row['cid'])
+
+            nH_below = int(row['nH_below'])
+            nH_above = int(row['nH_above'])
+            nMg_below = int(row['nMg_below'])
+            nMg_above = int(row['nMg_above'])
+            ref = row['ref']
+            T = float(row['T'] or default_T)
+            cid2pK.setdefault(cid, DissociationTable(cid))
+            cid2pK[cid].min_nH = min(nH_above, cid2pK[cid].min_nH or nH_above)
+
+            if row['type'] == 'acid-base':
+                pKa = float(row['pK'])
+                if nMg_below != nMg_above:
+                    raise Exception('C%05d has different nMg below and above '
+                                    'the pKa = %.1f' % pKa)
+                cid2pK[cid].AddpKa(pKa, nH_below, nH_above, nMg_below, ref, T)
+
+            if row['type'] == 'Mg':
+                pKMg = float(row['pK'])
+                if nH_below != nH_above:
+                    raise Exception('C%05d has different nH below and above '
+                                    'the pK_Mg = %.1f' % pKMg)
+                cid2pK[cid].AddpKMg(pKMg, nMg_below, nMg_above, nH_below, ref, T)
+        
+        if kegg != None:
+            for pK_table in cid2pK.values():
+                pK_table.CalculateCharges(kegg)
+        
+        return cid2pK
     
     def AddpKa(self, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T):
         if nH_below != nH_above+1:
@@ -107,13 +155,13 @@ class DissociationTable(object):
         
         try:
             if nMg_to == nMg_from+1 or nH_to == nH_from+1:
-                ddG0, ref = self.ddGs[(nH_from, nH_to, nMg_from, nMg_to)]
+                ddG0, ref = self.ddGs[nH_from, nH_to, nMg_from, nMg_to]
                 return (ddG0, ref)
             if nMg_from == nMg_to+1:
-                ddG0, ref = self.ddGs[(nH_from, nH_to, nMg_to, nMg_from)]
+                ddG0, ref = self.ddGs[nH_from, nH_to, nMg_to, nMg_from]
                 return (-ddG0, ref)
             if nH_from == nH_to+1:
-                ddG0, ref = self.ddGs[(nH_to, nH_from, nMg_from, nMg_to)]
+                ddG0, ref = self.ddGs[nH_to, nH_from, nMg_from, nMg_to]
                 return (-ddG0, ref)
         except KeyError:
             raise KeyError('The dissociation constant for (nH=%d,nMg=%d) -> '
@@ -176,6 +224,14 @@ class DissociationTable(object):
                     self.ConvertPseudoisomer(pdata, nH_below, nMg_below)
         
         return pseudoisomers.values()
+    
+    def CalculateCharge(self, kegg):
+        # get the charge and nH of the default pseudoisomer in KEGG:
+        z = kegg.cid2charge(self.cid, correctForPH=False)
+        nH = self.kegg.cid2num_hydrogens(self.cid, correctForPH=False)
+        
+        # calculate the charge for the most basic species
+        self.min_charge = z + (self.min_nH - nH) 
 
 class PseudoisomersData(object):
     
@@ -244,38 +300,8 @@ class PseudoisomersData(object):
         
         return PseudoisomersData(pseudoisomers)
 
-    def ReadDissociationData(self, filename, T=default_T):
-        cid2pK = {}
-
-        csv_reader = csv.DictReader(open(filename, 'r'))
-        for row in csv_reader:
-            if not row['cid']:
-                continue # without a CID we cannot match this to the dG0 table
-            if not row['type']:
-                continue # this compound has only one pseudoisomer, so there is nothing to do
-            
-            cid = int(row['cid'])
-            pK = float(row['pK'])
-            nH_below = int(row['nH_below'])
-            nH_above = int(row['nH_above'])
-            nMg_below = int(row['nMg_below'])
-            nMg_above = int(row['nMg_above'])
-            ref = row['ref']
-            
-            cid2pK.setdefault(cid, DissociationTable())
-
-            if row['type'] == 'acid-base':
-                if nMg_below != nMg_above:
-                    raise Exception('C%05d has different nMg below and above '
-                                    'the pKa = %.1f' % pK)
-                cid2pK[cid].AddpKa(pK, nH_below, nH_above, nMg_below, ref)
-
-            if row['type'] == 'Mg':
-                if nH_below != nH_above:
-                    raise Exception('C%05d has different nH below and above '
-                                    'the pK_Mg = %.1f' % pK)
-                cid2pK[cid].AddpKMg(pK, nMg_below, nMg_above, nH_below,ref)
-
+    def ReadDissociationData(self):
+        cid2pK = DissociationTable.ReadDissociationCsv()
         new_pseudoisomers = {}
         for pdata in self.pseudoisomers:
             cid = pdata.cid
@@ -313,5 +339,5 @@ class PseudoisomersData(object):
 
 if __name__ == '__main__':
     pdata = PseudoisomersData.FromFile('../data/thermodynamics/dG0.csv')
-    pdata.ReadDissociationData('../data/thermodynamics/dissociation_constants.csv')
+    pdata.ReadDissociationData()
     

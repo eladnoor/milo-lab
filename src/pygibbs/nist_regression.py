@@ -16,6 +16,7 @@ from pygibbs.thermodynamics import Thermodynamics,\
     MissingCompoundFormationEnergy
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.alberty import Alberty
+from pygibbs.pseudoisomers_data import DissociationTable
 
 class NistAnchors(object):
     
@@ -64,14 +65,7 @@ class NistRegression(Thermodynamics):
         self.nist_anchors = NistAnchors(self.db, self.html_writer)
         self.nist_anchors.FromCsvFile()
         
-        dissociation = DissociationConstants(self.db, self.html_writer, self.kegg)
-        dissociation.LoadValuesToDB()
-        self.cid2pKa_list, self.cid2min_nH = dissociation.GetAllpKas()
-        self.cid2min_charge = {}
-        for cid, p in self.cid2min_nH.iteritems():
-            self.cid2min_charge[cid] = self.kegg.cid2charge(cid, correctForPH=False) + \
-                p - self.kegg.cid2num_hydrogens(cid, correctForPH=False)
-                
+        self.cid2pK = DissociationTable.ReadDissociationCsv(kegg=kegg)
         self.cid2pmap_dict = {}
         
     def cid2pmap(self, cid):
@@ -360,8 +354,7 @@ class NistRegression(Thermodynamics):
         self.nist.verify_results(self)
 
 if (__name__ == "__main__"):
-    logging.getLogger('').setLevel(logging.DEBUG)
-    _mkdir('../res/nist/png')
+    #logging.getLogger('').setLevel(logging.DEBUG)
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg()
