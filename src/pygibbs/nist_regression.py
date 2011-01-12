@@ -100,8 +100,7 @@ class NistRegression(Thermodynamics):
         for i, cid in enumerate(anchored_cids):
             dG0_f = self.nist_anchors.cid2dG0_f[cid]
             nH = self.nist_anchors.cid2min_nH[cid]
-            #dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
-            dG0_f_base = self.cid2diss_table[cid].ConvertPseudoisomer(dG0_f, nH)
+            dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
             anchored_dG0_f.append(dG0_f_base)
         anchored_dG0_f = pylab.matrix([anchored_dG0_f]).T
         
@@ -144,28 +143,24 @@ class NistRegression(Thermodynamics):
         
         logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
         logging.info("%d anchored CIDs, %d unresolved CIDs" % (len(anchored_cids), len(unresolved_cids)))
+        self.anchors = set(anchored_cids)
         estimated_dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, unresolved_dG0_r)
 
         all_dG0_f = pylab.vstack([anchored_dG0_f, estimated_dG0_f])
-        estimated_dG0_r = stoichiometric_matrix * all_dG0_f
+
+        for i, cid in enumerate(all_cids):
+            self.cid2diss_table[cid].min_dG0 = all_dG0_f[i, 0]
 
         # insert the new data into pseudoisomer maps, according to the
         # paradigm of the Thermodynamics class.
-                
-        self.anchors = set(anchored_cids)
         for i, cid in enumerate(all_cids):
             pmap = PseudoisomerMap()
-            diss_table = self.cid2diss_table[cid]
-            base_nH = diss_table.min_nH
-            base_z = diss_table.min_charge
-            base_dG0_f = all_dG0_f[i, 0]
-            for j in xrange(len(self.cid2diss_table[cid])+1):
-                nH = base_nH + j
-                z = base_z + j
-                dG0_f_species = self.ConvertPseudoisomer(cid, base_dG0_f, base_nH, nH)
-                pmap.Add(nH, z, nMg=0, dG0=dG0_f_species)
+            for pdata in self.cid2diss_table[cid].GenerateAll():
+                pmap.Add(nH=pdata.hydrogens, z=pdata.net_charge, 
+                         nMg=pdata.magnesiums, dG0=pdata.dG0)
             self.cid2pmap_dict[cid] = pmap
             
+        estimated_dG0_r = stoichiometric_matrix * all_dG0_f
         estimated_dG0_r_tag = pylab.zeros((0, 1)) 
         for i, nist_row_data in enumerate(nist_rows_used):
             nist_row_data.PredictReactionEnergy(self)
@@ -195,61 +190,24 @@ class NistRegression(Thermodynamics):
 
         self.html_writer.write('</br>\n')
         
+        self.html_writer.write('<h3>Stoichiometric Null-Space</h3>\n')
+        self.html_writer.write('<ol>\n')
+        for i in xrange(kerA.shape[0]):
+            vec_str = ' + '.join(["%d x C%05d" % (kerA[i,j], all_cids[j]) 
+                for j in pylab.find(kerA[i, :])])
+            self.html_writer.write('<li>%s</li>\n' % vec_str)
+        self.html_writer.write('</ol>\n')
+                
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
-        """
-            Returns the dG0 of any pseudoisomer, given the dG0 of another pseudoisomer.
-            If no explicit request for a pseudoisomer is provided,
-            returns the most basic one (minimal nH).
-        """
-        diss_table = self.cid2diss_table[cid]
-        min_nH = self.cid2min_nH[cid]
-        if not nH_to:
-            nH_to = min_nH
-        
-        i_from = nH_from - min_nH
-        if not (0 <= i_from <= len(pKa_list)):
-            raise Exception("The provided pseudoisomer (C%05d, nH=%d) is outside the"
-                            " range of the pKa list" % (cid, nH_from))
-
-        i_to = nH_to - min_nH
-        if not (0 <= i_to <= len(pKa_list)):
-            raise Exception("The requested pseudoisomer (C%05d, nH=%d) is outside the"
-                            " range of the pKa list" % (cid, nH_to))
-        if i_to < i_from:
-            return dG0 + R*self.T*pylab.log(10)*sum(pKa_list[i_to:i_from])
-        else:
-            return dG0 - R*self.T*pylab.log(10)*sum(pKa_list[i_from:i_to])
+        return self.cid2diss_table[cid].ConvertPseudoisomer(dG0, nH_from, nH_to)
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
                     for cid, coeff in sparse.iteritems()])
 
-
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
-        return self.cid2diss_table[cid].Transform(pH, I, pMg, T)
+        return -self.cid2diss_table[cid].Transform(pH, I, pMg, T)
 
-    def ReverseTransformCompound2(self, cid, pH, I, pMg, T):
-        p = self.cid2min_nH[cid]
-        z = self.cid2min_charge[cid]
-
-        # it is very important that the order of the pKa will be according
-        # to increasing nH.
-        pKa_list = self.cid2pKa_list[cid]
-
-        exponent_list = []
-        for n in xrange(len(pKa_list)+1):
-            exponent = pylab.log(10) * sum([pKa_list[i] - pH for i in xrange(n)])
-            exponent += 2.91482 * ((z+n)**2 - n) * pylab.sqrt(I) / ((R * T) * (1 + 1.6 * pylab.sqrt(I)))
-            exponent_list.append(exponent)
-        lse = log_sum_exp(exponent_list)
-
-        logging.debug("C%05d, p=%d, z=%d, pH=%.2f, I=%.1f, pMg=%.2f, T=%.1f, pKa=[%s], exp=[%s], lse=%.2f, correction=%.2f" % \
-            (cid, p, z, pH, I, pMg, T, ','.join(['%.2f' % pKa for pKa in pKa_list]),
-             ','.join(['%.2f' % pKa for pKa in exponent_list]),
-             lse, R * T * (lse - p * pylab.log(10) * pH)))
-        
-        return R * T * (lse - p * pylab.log(10) * pH)
-    
     def Nist_pKas(self):
         group_decomposer = GroupDecomposer.FromDatabase(self.db)
         cids_in_nist = set(self.nist.cid2count.keys())
@@ -356,8 +314,8 @@ class NistRegression(Thermodynamics):
     def WriteDataToHtml(self):
         Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
         
-    def VerifyResults(self):
-        self.nist.verify_results(self)
+    def VerifyResults(self, T_range=None):
+        return self.nist.verify_results(self, T_range)
 
 if (__name__ == "__main__"):
     #logging.getLogger('').setLevel(logging.DEBUG)
@@ -377,7 +335,9 @@ if (__name__ == "__main__"):
     #nist_regression.Nist_pKas()
     #nist_regression.Calculate_pKa_and_pKMg()
     
-    nist_regression.ReverseTransform(T_range=(298, 314))
+    T_range = (298, 314)
+    
+    nist_regression.ReverseTransform(T_range)
     nist_regression.ToDatabase()
     html_writer.write('<h3>Regression results:</h3>\n')
     html_writer.insert_toggle('regression')
@@ -387,8 +347,9 @@ if (__name__ == "__main__"):
 
     html_writer.insert_toggle('verify')
     html_writer.start_div('verify')
-    nist_regression.VerifyResults()
+    N, rmse = nist_regression.VerifyResults(T_range)
     html_writer.end_div()
     html_writer.write('</br>\n')
     
+    logging.info("N = %d, RMSE = %.1f" % (N, rmse))
     html_writer.close()
