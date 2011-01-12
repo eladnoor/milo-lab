@@ -20,14 +20,15 @@ def main():
     group_decomposer = GroupDecomposer(groups_data)
     (pH, pMg, I, T) = (7, 3, 0.1, 298.15)
     
-    cids = []
-    smiles = ['C[NH2+]CC(=O)O']
+    cids = [8586]
+    #smiles = ['C[NH2+]CC(=O)O']
+    smiles = []
     smarts = pybel.Smarts("[N;H2;X4;R0;+1]")
     
     mols = []
     for cid in cids:
         try:
-            mols += [G.kegg.cid2mol(cid)]
+            mols += [G.kegg().cid2mol(cid)]
         except KeggParseException:
             continue
         except KeyError:
