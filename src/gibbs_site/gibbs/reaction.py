@@ -437,8 +437,8 @@ class Reaction(object):
             coeff = compound_w_coeff.coeff
             
             est = c.DeltaG(pH=pH, ionic_strength=ionic_strength)
-            if not est:
-                logging.info('No estimate for compound %s', id)
+            if est == None:
+                logging.info('No estimate for compound %s', c.kegg_id)
                 return None
             
             compound_w_coeff.transformed_energy = est 
@@ -502,6 +502,31 @@ class Reaction(object):
         correction = self._GetConcentrationCorrection()
         return dg_zero + correction
     
+    def DeltaG0(self):
+        reactants_sum = self.GetTotalFormationEnergy(
+            self.reactants, pH=0, ionic_strength=0)
+        products_sum = self.GetTotalFormationEnergy(
+            self.products, pH=0, ionic_strength=0)
+        if not products_sum:
+            logging.warning('Failed to get products formation energy.')
+            return None
+        if not reactants_sum:
+            logging.warning('Failed to get reactants formation energy.')
+            return None
+        dg0 = products_sum - reactants_sum
+        logging.info('Reactants %f', reactants_sum)
+        logging.info('Products %f', products_sum)
+        logging.info('DG0 = %f', dg0)
+        return dg0
+    
+    def Keq(self):
+        dg0 = self.DeltaG0()
+        rt = constants.R * constants.DEFAULT_TEMP
+        logging.info('dg0 = %f, rt = %f' % (dg0, rt))
+        keq = numpy.exp(-dg0 / rt)
+        logging.info(keq)
+        return keq
+    
     def NoDeltaGExplanation(self):
         """Get an explanation for why there's no delta G value.
         
@@ -557,3 +582,4 @@ class Reaction(object):
     extra_electrons = property(ExtraElectrons)
     missing_electrons = property(MissingElectrons)
     all_compounds = property(lambda self: self.reactants + self.products)
+    k_eq = property(Keq)
