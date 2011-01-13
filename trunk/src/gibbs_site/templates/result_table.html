@@ -12,6 +12,20 @@
 		</strong>
 		</td>
 	</tr>
+	{% if reaction %}
+	<tr>
+		<td width="150px"><strong>Estimated K<sub>eq</sub></strong></td>
+		<td colspan="2">
+		<strong>
+		{% if reaction.k_eq %}
+			{{ reaction.k_eq|stringformat:".2g" }}
+		{% else %}
+			<a href="/faq#notAvailable">Not available</a>
+		{% endif %}
+		</strong>
+		</td>
+	</tr>
+	{% endif %}
 	<tr>
 		<td width="150px">pH </td>
 		<td width="50px"><input type="text" name="ph" id="phField" value="{{ ph }}" size="5"/></td>
