@@ -211,34 +211,36 @@ class NistRegression(Thermodynamics):
     def Nist_pKas(self):
         group_decomposer = GroupDecomposer.FromDatabase(self.db)
         cids_in_nist = set(self.nist.cid2count.keys())
+        cids_with_pKa = set(self.cid2diss_table.keys())
         
-        self.html_writer.write('CIDs with pKa: %d<br>\n' % len(self.cid2pKa_list))
+        self.html_writer.write('CIDs with pKa: %d<br>\n' % len(cids_with_pKa))
         self.html_writer.write('CIDs in NIST: %d<br>\n' % len(cids_in_nist))
         self.html_writer.write('CIDs in NIST with pKas: %d<br>\n' % \
-                          len(cids_in_nist.intersection(self.cid2pKa_list.keys())))
+                          len(cids_in_nist.intersection(cids_with_pKa)))
         
         self.html_writer.write('All CIDs in NIST: <br>\n')
         self.html_writer.write('<table border="1">\n')
         self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td>' % ("cid", "name", "count", "remark"))
         for cid, count in sorted(self.nist.cid2count.iteritems()):
-            if cid not in self.cid2pKa_list:
-                self.self.html_writer.write('<tr><td>C%05d</td><td>%s</td><td>%d</td><td>' % (cid, self.kegg.cid2name(cid), count))
+            if cid not in cids_with_pKa:
+                self.html_writer.write('<tr><td><a href="%s">C%05d<a></td><td>%s</td><td>%d</td><td>' % \
+                    (self.kegg.cid2link(cid), cid, self.kegg.cid2name(cid), count))
                 try:
                     mol = self.kegg.cid2mol(cid)
                     decomposition = group_decomposer.Decompose(mol, ignore_protonations=True, strict=True)
         
                     if len(decomposition.PseudoisomerVectors()) > 1:
-                        self.self.html_writer.write('should have pKas')
+                        self.html_writer.write('should have pKas')
                     else:
-                        self.self.html_writer.write('doesn\'t have pKas')
-                    self.self.html_writer.embed_molecule_as_png(
+                        self.html_writer.write('doesn\'t have pKas')
+                    self.html_writer.embed_molecule_as_png(
                         self.kegg.cid2mol(cid), 'png/C%05d.png' % cid)
                 
                 except Exception:
-                    self.self.html_writer.write('cannot decompose')
-                self.self.html_writer.write('</td></tr>\n')
+                    self.html_writer.write('cannot decompose')
+                self.html_writer.write('</td></tr>\n')
         
-        self.self.html_writer.write('</table>\n')
+        self.html_writer.write('</table>\n')
 
     def Calculate_pKa_and_pKMg(self, filename="../data/thermodynamics/dG0.csv"):
         cid2pmap = {}
@@ -332,24 +334,26 @@ if (__name__ == "__main__"):
     
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
-    #nist_regression.Nist_pKas()
-    #nist_regression.Calculate_pKa_and_pKMg()
     
-    T_range = (298, 314)
+    if False:
+        nist_regression.Nist_pKas()
+        #nist_regression.Calculate_pKa_and_pKMg()
+    else:
+        T_range = (298, 314)
+        
+        nist_regression.ReverseTransform(T_range)
+        nist_regression.ToDatabase()
+        html_writer.write('<h3>Regression results:</h3>\n')
+        html_writer.insert_toggle('regression')
+        html_writer.start_div('regression')
+        nist_regression.WriteDataToHtml()
+        html_writer.end_div()
     
-    nist_regression.ReverseTransform(T_range)
-    nist_regression.ToDatabase()
-    html_writer.write('<h3>Regression results:</h3>\n')
-    html_writer.insert_toggle('regression')
-    html_writer.start_div('regression')
-    nist_regression.WriteDataToHtml()
-    html_writer.end_div()
-
-    html_writer.insert_toggle('verify')
-    html_writer.start_div('verify')
-    N, rmse = nist_regression.VerifyResults(T_range)
-    html_writer.end_div()
-    html_writer.write('</br>\n')
-    
-    logging.info("N = %d, RMSE = %.1f" % (N, rmse))
+        html_writer.insert_toggle('verify')
+        html_writer.start_div('verify')
+        N, rmse = nist_regression.VerifyResults(T_range)
+        html_writer.end_div()
+        html_writer.write('</br>\n')
+        
+        logging.info("N = %d, RMSE = %.1f" % (N, rmse))
     html_writer.close()
