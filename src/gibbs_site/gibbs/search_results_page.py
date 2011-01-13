@@ -18,7 +18,9 @@ def ResultsPage(request):
     reaction_matcher = service_config.Get().reaction_matcher
     matcher = service_config.Get().compound_matcher
     
-    query = str(form.cleaned_query)
+    query = form.cleaned_query
+    logging.info(query)
+    logging.info('Is reaction query: %s' % query_parser.IsReactionQuery(query))
     ph = form.cleaned_ph
     ionic_strength = form.cleaned_ionic_strength
     template_data = {'query': query,

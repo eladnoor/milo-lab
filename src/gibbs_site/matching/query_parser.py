@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging
 import pyparsing
 import re
@@ -50,7 +52,7 @@ def _MakeReactionParser():
     reaction_side.setParseAction(lambda l: [l])
     reaction_side.setResultsName("reaction_side")
     
-    side_separators = [pyparsing.Literal(s) for s in ("=", "->", "=>", "<=>")]
+    side_separators = [pyparsing.Literal(s) for s in ("=", "->", "=>", "<=>", u'→')]
     side_separator = pyparsing.Or(side_separators).suppress()
     
     reaction = pyparsing.Forward()
@@ -95,7 +97,7 @@ class ParsedReactionQuery(object):
 class QueryParser(object):
     """Parses search queries."""
     
-    REACTION_PATTERN = r'.*(=>|<=>|=|->|<->).*'
+    REACTION_PATTERN = u'.*(=>|<=>|=|->|<->|→).*'
     REACTION_MATCHER = re.compile(REACTION_PATTERN)
     
     def __init__(self):

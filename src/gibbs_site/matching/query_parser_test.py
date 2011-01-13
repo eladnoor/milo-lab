@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import query_parser
 import unittest
@@ -31,11 +32,19 @@ class TestReactionParser(unittest.TestCase):
         # Names with parens at the beginning
         '(S)-malate => (S)-lactate':
         query_parser.ParsedReactionQuery([(1, '(S)-malate')],
-                                         [(1, '(S)-lactate')])
+                                         [(1, '(S)-lactate')]),
+        # Unicode arrow thingy
+        'Oxaloacetate + Acetyl-CoA + H2O → Citrate + CoA-SH':
+        query_parser.ParsedReactionQuery([(1, 'Oxaloacetate'), (1, 'Acetyl-CoA'), (1, 'H2O')],
+                                         [(1, 'Citrate'), (1, 'CoA-SH')])
         }
     
     def setUp(self):
         self._parser = query_parser.QueryParser()
+    
+    def testIsReactionQuery(self):
+        for query in self.parsable_reactions:
+            self.assertTrue(self._parser.IsReactionQuery(query))
     
     def testParseReactions(self):
         for reaction_str, expected_results in self.parsable_reactions.iteritems():

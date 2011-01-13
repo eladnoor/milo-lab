@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging
 import numpy
 import urllib
@@ -204,7 +206,8 @@ class Reaction(object):
         if concentration_profile:
             params.append('concentration_profile=%s' % concentration_profile)
         if query:
-            params.append('query=%s' % urllib.quote(query))
+            tmp_query = query.replace(u'→', '=>')
+            params.append('query=%s' % urllib.quote(tmp_query))
             
         return params
     
