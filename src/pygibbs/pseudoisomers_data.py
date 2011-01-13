@@ -97,10 +97,11 @@ class DissociationTable(object):
         cid2pK = {}
 
         csv_reader = csv.DictReader(open(filename, 'r'))
-        for row in csv_reader:
+        for i, row in enumerate(csv_reader):
             if not row['cid']:
                 continue # without a CID we cannot match this to the dG0 table
             cid = int(row['cid'])
+            logging.debug("Parsing row #%d, compound C%05d" % (i, cid))
 
             nH_below = int(row['nH_below'])
             nH_above = int(row['nH_above'])
@@ -110,6 +111,7 @@ class DissociationTable(object):
             T = float(row['T'] or default_T)
             cid2pK.setdefault(cid, DissociationTable(cid))
             cid2pK[cid].min_nH = min(nH_above, cid2pK[cid].min_nH or nH_above)
+
 
             if row['type'] == 'acid-base':
                 pKa = float(row['pK'])
@@ -208,7 +210,7 @@ class DissociationTable(object):
         
         
         total_ddG0 = sum([ddG0 for ddG0, _ref in step_list])
-        total_ref = ';'.join([ref for _ddG0, ref in step_list])
+        total_ref = ';'.join([(ref or "") for _ddG0, ref in step_list])
         
         comp = pdata.Clone()
         comp.dG0 += total_ddG0
