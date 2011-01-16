@@ -108,13 +108,13 @@ class NistRegression(Thermodynamics):
         nist_rows_used = []
         for nist_row_data in self.nist.data:
             if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
-                logging.warning('Temperature %f not within allowed range.', nist_row_data.T)
+                logging.info('Temperature %.2f not within allowed range.', nist_row_data.T)
                 continue # the temperature is outside the allowed range
             
             cids_in_reaction = set(nist_row_data.sparse.keys())
             cids_without_pKa = cids_in_reaction.difference(cids_with_pKa)
             if cids_without_pKa:
-                logging.info('reaction contains CIDs with unknown pKa values: %s' % str(cids_without_pKa))
+                logging.info('reaction contains CIDs with unknown pKa values: %s' % str(list(cids_without_pKa)))
             else:
                 nist_rows_used.append(nist_row_data)
                 dG0_r_tag = pylab.vstack([dG0_r_tag, nist_row_data.dG0_r])
@@ -137,10 +137,14 @@ class NistRegression(Thermodynamics):
         dG0_r = dG0_r_tag + ddG0_r
         unresolved_dG0_r = dG0_r - anchored_S * anchored_dG0_f
         
+        logging.info("%d out of %d NIST measurements will be used" % \
+                     (stoichiometric_matrix.shape[0], len(self.nist.data)))
         logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
-        logging.info("%d anchored CIDs, %d unresolved CIDs" % (len(anchored_cids), len(unresolved_cids)))
+        logging.info("%d anchored CIDs, %d unresolved CIDs" % \
+                     (len(anchored_cids), len(unresolved_cids)))
         self.anchors = set(anchored_cids)
-        estimated_dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, unresolved_dG0_r)
+        estimated_dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, 
+            unresolved_dG0_r, reduced_row_echlon=False)
         logging.info("Regression Complete. The nullspace rank is %d" % (kerA.shape[0]))
 
         all_dG0_f = pylab.vstack([anchored_dG0_f, estimated_dG0_f])
@@ -187,13 +191,13 @@ class NistRegression(Thermodynamics):
 
         self.html_writer.write('</br>\n')
         
-        self.html_writer.write('<h3>Stoichiometric Null-Space</h3>\n')
-        self.html_writer.write('<ol>\n')
-        for i in xrange(kerA.shape[0]):
-            vec_str = ' + '.join(["%d x C%05d" % (kerA[i,j], all_cids[j]) 
-                for j in pylab.find(kerA[i, :])])
-            self.html_writer.write('<li>%s</li>\n' % vec_str)
-        self.html_writer.write('</ol>\n')
+        #self.html_writer.write('<h3>Stoichiometric Null-Space</h3>\n')
+        #self.html_writer.write('<ol>\n')
+        #for i in xrange(kerA.shape[0]):
+        #    vec_str = ' + '.join(["%d x C%05d" % (kerA[i,j], all_cids[j]) 
+        #        for j in pylab.find(kerA[i, :])])
+        #    self.html_writer.write('<li>%s</li>\n' % vec_str)
+        #self.html_writer.write('</ol>\n')
                 
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
         return self.cid2diss_table[cid].ConvertPseudoisomer(dG0, nH_from, nH_to)
@@ -320,14 +324,7 @@ if (__name__ == "__main__"):
     #logging.getLogger('').setLevel(logging.DEBUG)
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg()
-
-    html_writer.write("<h2>Alberty:</h2>")
-    html_writer.insert_toggle('alberty')
-    html_writer.start_div('alberty')
-    alberty = Alberty()
-    alberty.WriteDataToHtml(html_writer, kegg)
-    html_writer.end_div()
+    kegg = Kegg(db)
     
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
@@ -338,14 +335,21 @@ if (__name__ == "__main__"):
     else:
         T_range = (298, 314)
         
+        html_writer.write('<h3>Regression Figures:</h3>\n')
+        html_writer.insert_toggle('regression_figures')
+        html_writer.start_div('regression_figures')
         nist_regression.ReverseTransform(T_range)
+        html_writer.end_div()
+
         nist_regression.ToDatabase()
+        
         html_writer.write('<h3>Regression results:</h3>\n')
         html_writer.insert_toggle('regression')
         html_writer.start_div('regression')
         nist_regression.WriteDataToHtml()
         html_writer.end_div()
     
+        html_writer.write('<h3>Estimated vs. Observed:</h3>\n')
         html_writer.insert_toggle('verify')
         html_writer.start_div('verify')
         N, rmse = nist_regression.VerifyResults(T_range)
@@ -353,4 +357,15 @@ if (__name__ == "__main__"):
         html_writer.write('</br>\n')
         
         logging.info("N = %d, RMSE = %.1f" % (N, rmse))
+
+        alberty = Alberty()
+        alberty.ToDatabase(db, 'alberty')
+        query = 'SELECT k.cid, k.name, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
+            'FROM kegg_compound k, alberty a, nist_regression r ' + \
+            'WHERE k.cid=a.cid AND a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
+            'AND a.anchor=0 ORDER BY a.cid,a.nH'
+        column_names = ['CID', 'name', 'nH', 'charge', 'nMg', 'dG0_f(Alberty)',
+                        'dG0_f(Regression)']
+        db.Query2CSV('../res/nist/alberty_vs_regress.csv', query, column_names)
+   
     html_writer.close()

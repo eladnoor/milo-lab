@@ -5,6 +5,8 @@ from pygibbs.thermodynamic_constants import R, default_I, default_pH,\
     default_pMg, default_T
 import pylab
 from pygibbs.groups import GroupContribution
+import sys
+from pygibbs.kegg import Kegg
 
 def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH, 
                            pMg=default_pMg, I=default_I, T=default_T):
@@ -18,9 +20,13 @@ def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH,
 def main():
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/dG0_test.html')
-    G = GroupContribution(db, html_writer=html_writer)
+    kegg = Kegg(db)
+    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()
-    kegg = G.kegg()
+    #kegg = G.kegg()
+    #kegg.db = db
+    #kegg.ToDatabase()
+    #sys.exit(0)
     
     c_mid = 1e-3
     pH, pMg, I, T = (7, 3, 0.1, 298.15)

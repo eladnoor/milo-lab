@@ -1,5 +1,4 @@
 import csv
-import gzip
 import logging
 import openbabel
 import os
@@ -11,9 +10,9 @@ import re
 import sqlite3
 import urllib
 
-from toolbox import util
+from toolbox import util, database
 from copy import deepcopy
-
+from toolbox.database import SqliteDatabase
 
 #########################################################################################
 
@@ -367,7 +366,7 @@ class Reaction(object):
         self.direction = direction
         self.definition = None
         self.equation = None
-        self.ec_list = ['-.-.-.-']
+        self.ec_list = '-.-.-.-'
         
     def get_cids(self):
         return set(self.sparse.keys())
@@ -440,7 +439,9 @@ class Reaction(object):
         return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % self.rid
     
 class Kegg(object):
-    def __init__(self):
+
+    def __init__(self, db=None):
+        self.db = db
         util._mkdir('../kegg')
         
         # default colors for pydot (used to plot modules)
@@ -461,10 +462,21 @@ class Kegg(object):
         self.INCHI_FILE = '../kegg/inchi.txt'
         self.REACTION_FILE = '../kegg/reaction.txt'
         self.MODULE_FILE = '../kegg/module.txt'
+        
+        if self.db:
+            self.FromDatabase()
+        else:
+            self.FromFiles()
 
-        self.free_cid = -1
+    def FromFiles(self):
         self.name2cid_map = {}
         self.cid2compound_map = {}
+        self.rid2reaction_map = {}
+        self.inchi2cid_map = {}
+        self.mid2rid_map = {}
+        self.mid2name_map = {}
+        self.cofactors2names = {}
+        self.cid2bounds = {}
 
         logging.info("Retrieving COMPOUND file and parsing it")
         if (not os.path.exists(self.COMPOUND_FILE)):
@@ -501,7 +513,6 @@ class Kegg(object):
             urllib.urlretrieve(self.REACTION_URL, self.REACTION_FILE)
 
         entry2fields_map = parse_kegg_file(self.REACTION_FILE)
-        self.rid2reaction_map = {}
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
             if (key[0] != 'R'):
@@ -530,7 +541,6 @@ class Kegg(object):
             urllib.urlretrieve(self.INCHI_URL, self.INCHI_FILE)
 
         inchi_file = csv.reader(open(self.INCHI_FILE, 'r'), delimiter='\t')
-        self.inchi2cid_map = {}
         for row in inchi_file:
             if (len(row) != 2):
                 continue
@@ -555,8 +565,6 @@ class Kegg(object):
             urllib.urlretrieve(self.MODULE_URL, self.MODULE_FILE)
 
         entry2fields_map = parse_kegg_file(self.MODULE_FILE)
-        self.mid2rid_map = {}
-        self.mid2name_map = {}
         for key in sorted(entry2fields_map.keys()):
             try:
                 field_map = entry2fields_map[key]
@@ -574,8 +582,6 @@ class Kegg(object):
                 logging.debug("module M%05d contains a syntax error - %s" % (mid, str(e)))
         
         logging.info("Parsing the COFACTOR file")
-        self.cofactors2names = {}
-        self.cid2bounds = {}
         cofactor_csv = csv.reader(open('../data/thermodynamics/cofactors.csv', 'r'))
         cofactor_csv.next()
         for row in cofactor_csv:
@@ -592,6 +598,84 @@ class Kegg(object):
 
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
+    
+    def ToDatabase(self):
+        self.db.CreateTable('kegg_compound', 'cid INT, name TEXT, all_names TEXT, '
+           'mass REAL, formula TEXT, inchi TEXT, from_kegg BOOL, '
+           'pubchem_id INT, cas TEXT')
+        for cid, comp in self.cid2compound_map.iteritems():
+            self.db.Insert('kegg_compound', [cid, comp.name, ';'.join(comp.all_names),
+                comp.mass, comp.formula, comp.inchi, comp.from_kegg, 
+                comp.pubchem_id, comp.cas])
+        
+        self.db.CreateTable('kegg_reaction', 'rid INT, name TEXT, definition TEXT, '
+                       'ec_list TEXT, equation TEXT')
+        for rid, reaction in self.rid2reaction_map.iteritems():
+            self.db.Insert('kegg_reaction', [rid, reaction.name, reaction.definition,
+                reaction.ec_list, reaction.equation])
+
+        self.db.CreateTable('kegg_module', 'mid INT, name TEXT')
+        self.db.CreateTable('kegg_mid2rid', 'mid INT, position INT, rid INT, flux REAL')
+        for mid, rid_flux_list in self.mid2rid_map.iteritems():
+            self.db.Insert('kegg_module', [mid, self.mid2name_map[mid]])
+            if rid_flux_list:
+                for i, (rid, flux) in enumerate(rid_flux_list):
+                    self.db.Insert('kegg_mid2rid', [mid, i, rid, flux])
+
+        self.db.CreateTable('kegg_cofactors', 'cid INT, name TEXT')
+        for cid, name in self.cofactors2names.iteritems():
+            self.db.Insert('kegg_cofactors', [cid, name])
+
+        self.db.CreateTable('kegg_bounds', 'cid INT, c_min REAL, c_max REAL')
+        for cid, (c_min, c_max) in self.cid2bounds.iteritems():
+            self.db.Insert('kegg_bounds', [cid, c_min, c_max])
+        
+        self.db.Commit()
+
+    def FromDatabase(self):
+        logging.info('Reading KEGG from the database')
+        
+        self.name2cid_map = {}
+        self.cid2compound_map = {}
+        self.rid2reaction_map = {}
+        self.inchi2cid_map = {}
+        self.mid2rid_map = {}
+        self.mid2name_map = {}
+        self.cofactors2names = {}
+        self.cid2bounds = {}
+
+        for row in self.db.DictReader('kegg_compound'):
+            inchi = str(row['inchi'])
+            comp = Compound(row['cid'], row['name'], row['all_names'].split(';'), 
+                            row['mass'], row['formula'], inchi)
+            self.cid2compound_map[row['cid']] = comp
+            if row['name']:
+                self.name2cid_map[row['name']] = row['cid']
+            if inchi:
+                self.inchi2cid_map[inchi] = row['cid']
+        
+        for row in self.db.DictReader('kegg_reaction'):
+            (sparse, direction) = parse_reaction_formula(row['equation'])
+            reaction = Reaction(name=row['name'], sparse_reaction=sparse, 
+                                rid=row['rid'], direction=direction)
+            reaction.equation = row['equation']
+            reaction.definition = row['definition']
+            reaction.ec_list = row['ec_list']
+            self.rid2reaction_map[row['rid']] = reaction
+        
+        for row in self.db.DictReader('kegg_module'):
+            self.mid2name_map[row['mid']] = row['name']
+            
+        for row in self.db.Execute('SELECT mid, position, rid, flux FROM kegg_mid2rid '
+                              'ORDER BY mid,position'):
+            mid, _position, rid, flux = row
+            self.mid2rid_map.setdefault(mid, []).append((rid, flux))
+        
+        for row in self.db.DictReader('kegg_cofactors'):
+            self.cofactors2names[row['cid']] = row['name']
+
+        for row in self.db.DictReader('kegg_bounds'):
+            self.cid2bounds[row['cid']] = (row['c_min'], row['c_max'])
 
     def parse_explicit_module(self, field_map):
         """

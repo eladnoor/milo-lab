@@ -8,7 +8,7 @@ import sys
 class LinearRegression(object):
     
     @staticmethod
-    def LeastSquares(A, y, eps=1e-10):
+    def LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
         """
             Performs a safe LeastSquares.
             
@@ -55,8 +55,9 @@ class LinearRegression(object):
         for i, j in enumerate(zero_columns):
             kerA[m_red-r+i, j] = 1
 
-        #LinearRegression.GaussJordan(kerA, eps)
-        kerA = LinearRegression.ReducedRowEchelon(kerA)
+        if reduced_row_echlon:
+            #LinearRegression.GaussJordan(kerA, eps)
+            kerA = LinearRegression.ReducedRowEchelon(kerA)
 
         return weights, kerA
     
