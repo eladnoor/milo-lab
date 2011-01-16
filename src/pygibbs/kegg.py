@@ -634,7 +634,6 @@ class Kegg(object):
         
         return (S, rids, fluxes, cids)
             
-
     def parse_module(self, module_name, field_map):
         """
             Reads modules in the format provided in the KEGG database.

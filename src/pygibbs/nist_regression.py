@@ -1,17 +1,13 @@
 from pygibbs.nist import Nist
-from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
-from toolbox.util import _mkdir, log_sum_exp
 from toolbox.html_writer import HtmlWriter
 from pygibbs.group_decomposition import GroupDecomposer
 from pygibbs import pseudoisomer
-from thermodynamic_constants import R
 import pylab
 import logging
 import csv
 from toolbox.linear_regression import LinearRegression
-from pygibbs.thermodynamic_constants import default_T
 from pygibbs.thermodynamics import Thermodynamics,\
     MissingCompoundFormationEnergy
 from pygibbs.pseudoisomer import PseudoisomerMap
@@ -145,6 +141,7 @@ class NistRegression(Thermodynamics):
         logging.info("%d anchored CIDs, %d unresolved CIDs" % (len(anchored_cids), len(unresolved_cids)))
         self.anchors = set(anchored_cids)
         estimated_dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, unresolved_dG0_r)
+        logging.info("Regression Complete. The nullspace rank is %d" % (kerA.shape[0]))
 
         all_dG0_f = pylab.vstack([anchored_dG0_f, estimated_dG0_f])
 
