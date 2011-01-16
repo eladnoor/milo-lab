@@ -456,7 +456,7 @@ class Kegg(object):
         self.COMPOUND_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound'
         self.INCHI_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound.inchi'
         self.REACTION_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/reaction/reaction'
-        self.MODULE_URL = 'ftp://ftp.genome.jp/pub/kegg/pathway/module'
+        self.MODULE_URL = 'ftp://ftp.genome.jp/pub/kegg/module/module'
 
         self.COMPOUND_FILE = '../kegg/compound.txt'
         self.INCHI_FILE = '../kegg/inchi.txt'
