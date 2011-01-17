@@ -1,6 +1,7 @@
 <table class="results">
+	{% if delta_g_estimate %}
 	<tr>
-		<td width="150px"><strong>Estimated {{ delta_g_label }}</strong></td>
+		<td width="150px"><strong>Estimated {{ delta_g_label }}</td>
 		<td colspan="2">
 		<strong>
 		{% if delta_g_estimate %}
@@ -11,14 +12,46 @@
 		{% endif %}
 		</strong>
 		</td>
-	</tr>
+	</tr>	
+	{% endif %}
+
 	{% if reaction %}
 	<tr>
-		<td width="150px"><strong>Estimated K<sub>eq</sub></strong></td>
+		<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'</strong></td>
 		<td colspan="2">
 		<strong>
-		{% if reaction.k_eq %}
-			{{ reaction.k_eq|stringformat:".2g" }}
+		{% if reaction.dg_tag %}
+			{{ reaction.dg_tag|floatformat:1 }} kJ / mol
+		{% else %}
+			<a href="/faq#notAvailable">Not available</a>
+			{% if reaction.no_dg_explanation %} ({{ reaction.no_dg_explanation }}) {% endif %}
+		{% endif %}
+		</strong>
+		</td>
+	</tr>
+
+	{% if not reaction.standard_concentrations %}
+	<tr>
+		<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'&deg;</strong></td>
+		<td colspan="2">
+		<strong>
+		{% if reaction.dg0_tag %}
+			{{ reaction.dg0_tag|floatformat:1 }} kJ / mol
+		{% else %}
+			<a href="/faq#notAvailable">Not available</a>
+			{% if reaction.no_dg_explanation %} ({{ reaction.no_dg_explanation }}) {% endif %}
+		{% endif %}
+		</strong>
+		</td>
+	</tr>
+	{% endif %}
+	
+	<tr>
+		<td width="150px"><strong>Estimated K'<sub>eq</sub></strong></td>
+		<td colspan="2">
+		<strong>
+		{% if reaction.k_eq_tag %}
+			{{ reaction.k_eq_tag|stringformat:".2g" }}
 		{% else %}
 			<a href="/faq#notAvailable">Not available</a>
 		{% endif %}
@@ -26,6 +59,7 @@
 		</td>
 	</tr>
 	{% endif %}
+	
 	<tr>
 		<td width="150px">pH </td>
 		<td width="50px"><input type="text" name="ph" id="phField" value="{{ ph }}" size="5"/></td>

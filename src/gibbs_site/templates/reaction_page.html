@@ -75,10 +75,8 @@
 			{% endif %}
 		</div>
 		
-		{% with "&Delta;<sub>r</sub>G'&deg;" as delta_g_label %} 
-			{% include "result_table.html" %}
-		{% endwith %}
-		
+		{% include "result_table.html" %}
+
 		{% if reaction.all_compounds %}
 		<table class="compoundInfo">
 			<tr>
