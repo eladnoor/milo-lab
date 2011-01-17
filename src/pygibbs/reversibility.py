@@ -15,7 +15,7 @@ def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH,
     sum_s = sum(sparse.values())
     sum_abs_s = sum([abs(x) for x in sparse.values()])
     
-    return 2 * ((-dG0/(R*T) + pylab.log(c_mid)*sum_s) / sum_abs_s)
+    return 2 * pylab.log(10) * ((-dG0/(R*T) + pylab.log(c_mid)*sum_s) / sum_abs_s)
 
 def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -23,10 +23,6 @@ def main():
     kegg = Kegg(db)
     G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()
-    #kegg = G.kegg()
-    #kegg.db = db
-    #kegg.ToDatabase()
-    #sys.exit(0)
     
     c_mid = 1e-3
     pH, pMg, I, T = (7, 3, 0.1, 298.15)
@@ -52,23 +48,21 @@ def main():
     print "Reactions with known dG0", hits
     print "Reactions with unknown dG0", misses
     
+    max_pathway_length = 8
     medians = []
     for i in histogram.keys():
-        if i < 8:
+        if i < max_pathway_length:
             medians.append(pylab.median(histogram[i]))  
     
     pylab.figure()
-    pylab.bar(range(len(medians)), medians)
-    pylab.xlabel('Position in pathway')
-    pylab.ylabel('Median reversibility')
-
-    pylab.figure()
-    pylab.subplot(3,1,1)
-    cdf(histogram[0])
-    pylab.subplot(3,1,2)
-    cdf(histogram[1])
-    pylab.subplot(3,1,3)
-    cdf(total_hist)
+    pylab.hold(True)
+    cdf(histogram[0], '1', 'r', show_median=True)
+    cdf(histogram[1], '2', 'b', show_median=True)
+    cdf(total_hist, '3-%d' % max_pathway_length, 'g', show_median=True)
+    pylab.xlim(-100, 100)
+    pylab.xlabel('irreversability')
+    pylab.ylabel('cumulative distribution')
+    pylab.legend(loc='lower right')
     pylab.show()
 
 if __name__ == "__main__":
