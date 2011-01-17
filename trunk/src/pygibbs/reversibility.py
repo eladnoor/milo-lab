@@ -1,12 +1,12 @@
-from toolbox import database
+from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs import thermodynamics
 from pygibbs.thermodynamic_constants import R, default_I, default_pH,\
     default_pMg, default_T
 import pylab
 from pygibbs.groups import GroupContribution
-import sys
 from pygibbs.kegg import Kegg
+from toolbox.plotting import cdf
 
 def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH, 
                            pMg=default_pMg, I=default_I, T=default_T):
@@ -18,7 +18,7 @@ def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH,
     return 2 * ((-dG0/(R*T) + pylab.log(c_mid)*sum_s) / sum_abs_s)
 
 def main():
-    db = database.SqliteDatabase('../res/gibbs.sqlite')
+    db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/dG0_test.html')
     kegg = Kegg(db)
     G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
@@ -64,11 +64,11 @@ def main():
 
     pylab.figure()
     pylab.subplot(3,1,1)
-    pylab.hist(histogram[0], bins=50, range=(-60, 60))
+    cdf(histogram[0])
     pylab.subplot(3,1,2)
-    pylab.hist(histogram[1], bins=50, range=(-60, 60))
+    cdf(histogram[1])
     pylab.subplot(3,1,3)
-    pylab.hist(total_hist, bins=50, range=(-60, 60))
+    cdf(total_hist)
     pylab.show()
 
 if __name__ == "__main__":
