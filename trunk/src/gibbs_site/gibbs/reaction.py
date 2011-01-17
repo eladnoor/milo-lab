@@ -511,19 +511,12 @@ class Reaction(object):
         Returns:
             The DeltaG0' for this reaction, or None if data was missing.
         """
-        logging.error('DeltaG0Tag')
-        try:
-            reactants_sum = self.GetTotalFormationEnergy(
-                self.reactants, pH=self.ph,
-                pMg=self.pmg, ionic_strength=self.i_s)
-            products_sum = self.GetTotalFormationEnergy(
-                self.products, pH=self.ph,
-                pMg=self.pmg, ionic_strength=self.i_s)
-        except Exception, e:
-            logging.error('EEEEE %s' % e)
-            return
-            
-        logging.error('SAJNKJNSDKJN')
+        reactants_sum = self.GetTotalFormationEnergy(
+            self.reactants, pH=self.ph,
+            pMg=self.pmg, ionic_strength=self.i_s)
+        products_sum = self.GetTotalFormationEnergy(
+            self.products, pH=self.ph,
+            pMg=self.pmg, ionic_strength=self.i_s)
         if not products_sum:
             logging.warning('Failed to get products formation energy.')
             return None
@@ -542,7 +535,6 @@ class Reaction(object):
         """
         dg0_tag = self.DeltaG0Tag()
         correction = self._GetConcentrationCorrection()
-        logging.error(dg0_tag + correction)
         return dg0_tag + correction
     
     def KeqTag(self):
@@ -550,7 +542,6 @@ class Reaction(object):
         dg0_tag = self.DeltaG0Tag()
         rt = constants.R * constants.DEFAULT_TEMP
         keq = numpy.exp(-dg0_tag / rt)
-        logging.error(keq)
         return keq
     
     def NoDeltaGExplanation(self):
