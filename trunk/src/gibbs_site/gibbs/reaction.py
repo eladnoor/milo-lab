@@ -55,7 +55,10 @@ class CompoundWithCoeff(object):
 class Reaction(object):
     """A reaction."""
     
-    def __init__(self, reactants=None, products=None):
+    def __init__(self, reactants=None, products=None,
+                 pH=constants.DEFAULT_PH,
+                 pMg=constants.DEFAULT_PMG,
+                 ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Construction.
         
         Args:
@@ -64,6 +67,10 @@ class Reaction(object):
         """
         self.reactants = reactants or []
         self.products = products or []
+        self.ph = pH
+        self.pmg = pMg
+        self.i_s = ionic_strength
+        self.concentration_profile = None
     
     def ApplyConcentrationProfile(self, concentration_profile):
         """Apply this concentration profile to this reaction.
@@ -71,12 +78,19 @@ class Reaction(object):
         Args:
             concentration_profile: a ConcentrationProfile object.
         """
-        cp = concentration_profile
+        self.concentration_profile = concentration_profile
         for c in self.reactants + self.products:
-            c.concentration = cp.Concentration(c.compound.kegg_id)
+            c.concentration = self.concentration_profile.Concentration(c.compound.kegg_id)
+            
+    def StandardConcentrations(self):
+        """Returns True if using standard concentrations."""
+        return self.concentration_profile and self.concentration_profile.IsStandard()
         
     @staticmethod
-    def FromIds(reactants, products, concentration_profile=None):
+    def FromIds(reactants, products, concentration_profile=None,
+                pH=constants.DEFAULT_PH,
+                pMg=constants.DEFAULT_PMG,
+                ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Build a reaction object from lists of IDs.
         
         Args:
@@ -91,22 +105,24 @@ class Reaction(object):
         p_ids = [id for unused_coeff, id, unused_name in products]
         compounds = models.Compound.GetCompoundsByKeggId(r_ids + p_ids)
         
-        # Build the reaction object.
-        rxn = Reaction()        
+        # Get products and reactants.
+        rs, ps = [], []
         for coeff, id, name in reactants:
             if id not in compounds:
                 logging.error('Unknown reactant %s', id)
                 return None
             
-            rxn.reactants.append(CompoundWithCoeff(coeff, compounds[id], name))
+            rs.append(CompoundWithCoeff(coeff, compounds[id], name))
         
         for coeff, id, name in products:
             if id not in compounds:
                 logging.error('Unknown product %s', id)
                 return None
                 
-            rxn.products.append(CompoundWithCoeff(coeff, compounds[id], name))
+            ps.append(CompoundWithCoeff(coeff, compounds[id], name))
         
+        rxn = Reaction(rs, ps, pH=pH, pMg=pMg,
+                       ionic_strength=ionic_strength)
         if concentration_profile:
             rxn.ApplyConcentrationProfile(concentration_profile)
         
@@ -183,8 +199,7 @@ class Reaction(object):
                         
         return max([abs(x) for x in atom_diff.values()]) < 0.01
     
-    def _GetUrlParams(self, ph=None, ionic_strength=None,
-                      concentration_profile=None, query=None):
+    def _GetUrlParams(self, query=None):
         """Get the URL params for this reaction."""
         params = []
         for compound in self.reactants:
@@ -199,34 +214,28 @@ class Reaction(object):
             if compound.name:
                 params.append('productsName=%s' % compound.name)
         
-        if ph:
-            params.append('ph=%f' % ph)
-        if ionic_strength:
-            params.append('ionic_strength=%f' % ionic_strength)
-        if concentration_profile:
-            params.append('concentration_profile=%s' % concentration_profile)
+        if self.ph:
+            params.append('ph=%f' % self.ph)
+        if self.i_s:
+            params.append('ionic_strength=%f' % self.i_s)
+        if self.concentration_profile:
+            params.append('concentration_profile=%s' % self.concentration_profile)
         if query:
             tmp_query = query.replace(u'→', '=>')
             params.append('query=%s' % urllib.quote(tmp_query))
             
         return params
     
-    def GetBalanceWithWaterLink(self, ph=None, ionic_strength=None,
-                                concentration_profile=None,
-                                query=None):
+    def GetBalanceWithWaterLink(self, query=None):
         """Returns a link to balance this reaction with water."""
-        params = self._GetUrlParams(ph, ionic_strength,
-                                    concentration_profile, query)
+        params = self._GetUrlParams(query)
         params.append('balance_w_water=1')
     
         return '/reaction?%s' % '&'.join(params)
 
-    def GetBalanceElectronsLink(self, ph=None, ionic_strength=None,
-                                concentration_profile=None,
-                                query=None):
+    def GetBalanceElectronsLink(self, query=None):
         """Returns a link to balance this reaction with water."""
-        params = self._GetUrlParams(ph, ionic_strength,
-                                    concentration_profile, query)
+        params = self._GetUrlParams(query)
         params.append('balance_electrons=1')
     
         return '/reaction?%s' % '&'.join(params)
@@ -422,6 +431,7 @@ class Reaction(object):
     @staticmethod
     def GetTotalFormationEnergy(collection,
                                 pH=constants.DEFAULT_PH,
+                                pMg=constants.DEFAULT_PMG,
                                 ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Compute an estimate for a collection of compounds + coefficients.
         
@@ -430,19 +440,21 @@ class Reaction(object):
         
         Args:
             collection: an iterable of CompoundWithCoeff objects.
-        """        
+            pH: the pH.
+            pMg: the pMg.
+            ionic_strength: the ionic strength.
+        """ 
         sum = 0
         for compound_w_coeff in Reaction._FilterHydrogen(collection):
             c = compound_w_coeff.compound
             coeff = compound_w_coeff.coeff
             
-            est = c.DeltaG(pH=pH, ionic_strength=ionic_strength)
+            
+            est = c.DeltaG(pH=pH, pMg=pMg, ionic_strength=ionic_strength)
             if est == None:
                 logging.info('No estimate for compound %s', c.kegg_id)
                 return None
             
-            compound_w_coeff.transformed_energy = est 
-
             sum += coeff * est
         
         return sum
@@ -472,25 +484,17 @@ class Reaction(object):
         _r = constants.R
         _t = constants.DEFAULT_TEMP
         return _r * _t * (product_term - reactant_term)
-    
-    def DeltaG(self,
-               pH=constants.DEFAULT_PH,
-               ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
-        """Compute the DeltaG for a reaction.
-        
-        Args:
-            pH: the PH to estimate at.
-            ionic_strength: the ionic strength to estimate at.
-            temp: the temperature to estimate at.
-            concentrations: a dictionary mapping kegg IDs to concentrations.
+
+    def DeltaG0(self):
+        """Compute the DeltaG0 for a reaction.
         
         Returns:
-            The DeltaG for this reaction, or None if data was missing.
+            The DeltaG0 for this reaction, or None if data was missing.
         """
         reactants_sum = self.GetTotalFormationEnergy(
-            self.reactants, pH, ionic_strength)
+            self.reactants, pH=0, pMg=0, ionic_strength=0)
         products_sum = self.GetTotalFormationEnergy(
-            self.products, pH, ionic_strength)
+            self.products, pH=0, pMg=0, ionic_strength=0)
         if not products_sum:
             logging.warning('Failed to get products formation energy.')
             return None
@@ -498,33 +502,55 @@ class Reaction(object):
             logging.warning('Failed to get reactants formation energy.')
             return None
         
-        dg_zero = products_sum - reactants_sum
-        correction = self._GetConcentrationCorrection()
-        return dg_zero + correction
-    
-    def DeltaG0(self):
-        reactants_sum = self.GetTotalFormationEnergy(
-            self.reactants, pH=0, ionic_strength=0)
-        products_sum = self.GetTotalFormationEnergy(
-            self.products, pH=0, ionic_strength=0)
+        dg0 = products_sum - reactants_sum
+        return dg0  
+
+    def DeltaG0Tag(self):
+        """Compute the DeltaG0' for a reaction.
+        
+        Returns:
+            The DeltaG0' for this reaction, or None if data was missing.
+        """
+        logging.error('DeltaG0Tag')
+        try:
+            reactants_sum = self.GetTotalFormationEnergy(
+                self.reactants, pH=self.ph,
+                pMg=self.pmg, ionic_strength=self.i_s)
+            products_sum = self.GetTotalFormationEnergy(
+                self.products, pH=self.ph,
+                pMg=self.pmg, ionic_strength=self.i_s)
+        except Exception, e:
+            logging.error('EEEEE %s' % e)
+            return
+            
+        logging.error('SAJNKJNSDKJN')
         if not products_sum:
             logging.warning('Failed to get products formation energy.')
             return None
         if not reactants_sum:
             logging.warning('Failed to get reactants formation energy.')
             return None
-        dg0 = products_sum - reactants_sum
-        logging.info('Reactants %f', reactants_sum)
-        logging.info('Products %f', products_sum)
-        logging.info('DG0 = %f', dg0)
-        return dg0
+        
+        dg0_tag = products_sum - reactants_sum
+        return dg0_tag
+
+    def DeltaGTag(self):
+        """Compute the DeltaG' for a reaction.
+        
+        Returns:
+            The DeltaG' for this reaction, or None if data was missing.
+        """
+        dg0_tag = self.DeltaG0Tag()
+        correction = self._GetConcentrationCorrection()
+        logging.error(dg0_tag + correction)
+        return dg0_tag + correction
     
-    def Keq(self):
-        dg0 = self.DeltaG0()
+    def KeqTag(self):
+        """Returns K'eq for this reaction."""
+        dg0_tag = self.DeltaG0Tag()
         rt = constants.R * constants.DEFAULT_TEMP
-        logging.info('dg0 = %f, rt = %f' % (dg0, rt))
-        keq = numpy.exp(-dg0 / rt)
-        logging.info(keq)
+        keq = numpy.exp(-dg0_tag / rt)
+        logging.error(keq)
         return keq
     
     def NoDeltaGExplanation(self):
@@ -539,6 +565,14 @@ class Reaction(object):
                 return '%s %s' % (name,
                                   compound.compound.no_dg_explanation.lower())
         return None
+
+    def AllCompoundsWithTransformedEnergies(self):
+        for c_w_coeff in self.reactants + self.products:
+            dgt = c_w_coeff.compound.DeltaG(pH=self.ph,
+                                            pMg=self.pmg,
+                                            ionic_strength=self.i_s)
+            c_w_coeff.transformed_energy = dgt
+            yield c_w_coeff
 
     def ExtraAtoms(self):
         diff = self._GetAtomDiff()
@@ -581,5 +615,9 @@ class Reaction(object):
     missing_atoms = property(MissingAtoms)
     extra_electrons = property(ExtraElectrons)
     missing_electrons = property(MissingElectrons)
-    all_compounds = property(lambda self: self.reactants + self.products)
-    k_eq = property(Keq)
+    all_compounds = property(AllCompoundsWithTransformedEnergies)
+    dg0_tag = property(DeltaG0Tag)
+    dg_tag = property(DeltaGTag)
+    k_eq_tag = property(KeqTag)
+    no_dg_explanation = property(NoDeltaGExplanation)
+    standard_concentrations = property(StandardConcentrations)

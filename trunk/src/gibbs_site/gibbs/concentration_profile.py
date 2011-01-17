@@ -6,6 +6,9 @@ class _BaseConcentrationProfile(object):
     
     def Concentration(self, kegg_id):
         raise NotImplementedError
+    
+    def IsStandard(self):
+        return False
 
 
 class MolarProfile(_BaseConcentrationProfile):
@@ -14,6 +17,9 @@ class MolarProfile(_BaseConcentrationProfile):
     
     def Concentration(self, kegg_id):
         return 1.0
+    
+    def IsStandard(self):
+        return True
 
 
 class MilliMolarProfile(_BaseConcentrationProfile):
