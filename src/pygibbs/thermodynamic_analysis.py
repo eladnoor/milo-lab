@@ -162,9 +162,9 @@ class ThermodynamicAnalysis(object):
             dG_f[plot_key] = pylab.zeros((Nc, 1))
             for c in range(Nc):
                 if (method == "MILO"):
-                    dG0_f[plot_key][c] = self.thermo.cid_to_dG0(cids[c], pH=pH, I=I, T=T)
+                    dG0_f[plot_key][c] = self.thermo.cid2dG0_tag(cids[c], pH=pH, I=I, T=T)
                 elif (method == "HATZI"):
-                    dG0_f[plot_key][c] = self.thermo.hatzi.cid_to_dG0(cids[c], pH=pH, I=I, T=T)
+                    dG0_f[plot_key][c] = self.thermo.hatzi.cid2dG0_tag(cids[c], pH=pH, I=I, T=T)
                 else:
                     raise Exception("Unknown dG evaluation method: " + method)
                 # add the effect of the concentration on the dG_f (from dG0_f to dG_f)

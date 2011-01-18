@@ -475,10 +475,7 @@ if __name__ == '__main__':
     db = SqliteDatabase('../res/gibbs.sqlite')    
     html_writer = HtmlWriter("../res/nist/statistics.html")
     nist = Nist(db, html_writer)
-    if True:
-        nist.FromCsvFile('../data/thermodynamics/nist.csv')
-        nist.ToDatabase()
-    else:
-        nist.FromDatabase()
+    nist.FromCsvFile('../data/thermodynamics/nist.csv')
+    nist.ToDatabase()
     nist.AnalyzeStats()
     html_writer.close()

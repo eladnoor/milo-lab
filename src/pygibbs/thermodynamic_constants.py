@@ -27,8 +27,8 @@ def correction_function(nH, nMg, z, pH, pMg, I, T):
     DH = debye_huckel(I)
     return nMg * (R*T*log(10)*pMg - dG0_f_Mg) + nH * (R*T*log(10)*pH + DH) - (z**2) * DH
 
-def transform(dG0, nH, z, pH, I, T):
-    return dG0 + correction_function(nH, z, pH, I, T)
+def transform(dG0, nH, nMg, z, pH, pMg, I, T):
+    return dG0 + correction_function(nH, nMg, z, pH, pMg, I, T)
 
 def array_transform(dG0, nH, nMg, z, pH, pMg, I, T):
     """
