@@ -16,9 +16,7 @@
 		<form name="compoundForm" action="/compound" method="get">
 			<input type="hidden" name="compoundId" value="{{ compound.kegg_id }}" />
 	
-			{% with "&Delta;<sub>f</sub>G'&deg;" as delta_g_label %} 
-				{% include "result_table.html" %}
-			{% endwith %}
+			{% include "result_table.html" %}
 			
 			<input type="submit" value="Update" />
 		</form>
