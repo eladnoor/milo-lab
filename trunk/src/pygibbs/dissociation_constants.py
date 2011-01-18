@@ -1,12 +1,9 @@
-import csv, re, logging
+import csv, re, logging, pybel, sys, openbabel
 from kegg import Kegg, KeggParseException
 from toolbox.database import SqliteDatabase
 from toolbox.util import _mkdir
 from pygibbs.group_decomposition import GroupDecomposer
 from toolbox.html_writer import HtmlWriter
-import pybel
-import sys
-import openbabel
 from pygibbs.thermodynamic_constants import default_T
 
 class DissociationConstants(object):

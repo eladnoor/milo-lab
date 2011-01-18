@@ -9,8 +9,7 @@ import logging
 import csv
 from toolbox.linear_regression import LinearRegression
 from pygibbs.thermodynamics import Thermodynamics,\
-    MissingCompoundFormationEnergy
-from pygibbs.pseudoisomer import PseudoisomerMap
+    MissingCompoundFormationEnergy, CsvFileThermodynamics
 from pygibbs.alberty import Alberty
 from pygibbs.pseudoisomers_data import DissociationTable
 
@@ -50,13 +49,16 @@ class NistAnchors(object):
 
 class NistRegression(Thermodynamics):
     
-    def __init__(self, db, html_writer, kegg):
+    def __init__(self, db, html_writer, kegg=None, nist=None):
         Thermodynamics.__init__(self)
         self.db = db
         self.html_writer = html_writer
-        self.kegg = kegg
-        self.nist = Nist(db, html_writer, self.kegg)
-        self.nist.Load()
+        self.kegg = kegg or Kegg()
+        if nist:
+            self.nist = nist
+        else:
+            self.nist = Nist(db, html_writer, self.kegg)
+            self.nist.Load()
         
         self.nist_anchors = NistAnchors(self.db, self.html_writer)
         self.nist_anchors.FromCsvFile()
@@ -73,32 +75,38 @@ class NistRegression(Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
         
-    def ReverseTransform(self, T_range=None):
+    def ReverseTransform(self, prior_thermodynamics=None, T_range=None):
         """
             Performs the reverse Lagandre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
         cids_with_pKa = set(self.cid2diss_table.keys())
-        #cids_with_pKa = set([212, 147, 9, 1, 2, 8, 13, 20])
         cids_in_nist = set(self.nist.GetAllCids())
         cids_in_nist_with_pKa = cids_with_pKa.intersection(cids_in_nist)
+        logging.info('There are pKa values for %d out of the %d compounds in NIST' % \
+                     (len(cids_in_nist_with_pKa), len(cids_in_nist)))
         
         anchored_cids = sorted(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
+        self.anchors = set(anchored_cids)
         
         unresolved_cids = sorted(cids_in_nist_with_pKa.difference(anchored_cids))
         all_cids = anchored_cids + unresolved_cids
+
+        logging.info("%d compounds are anchored, and the %d others will be estimated" % \
+                     (len(anchored_cids), len(unresolved_cids)))
         
         # get a vector of anchored formation energies. one needs to be careful
         # to always use the most basic pseudoisomer (the one with the lowest nH)
         # because these are the forms used in the regression matrix
-        anchored_dG0_f = []
-        for i, cid in enumerate(anchored_cids):
+        anchored_dG0_f = pylab.zeros((0, 1))
+        for cid in anchored_cids:
             dG0_f = self.nist_anchors.cid2dG0_f[cid]
             nH = self.nist_anchors.cid2min_nH[cid]
             dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
-            anchored_dG0_f.append(dG0_f_base)
-        anchored_dG0_f = pylab.matrix([anchored_dG0_f]).T
+            anchored_dG0_f = pylab.vstack([anchored_dG0_f, dG0_f_base])
+            self.cid2diss_table[cid].min_dG0 = dG0_f_base
+            self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
         
         stoichiometric_matrix = pylab.zeros((0, len(all_cids)))
         
@@ -108,13 +116,13 @@ class NistRegression(Thermodynamics):
         nist_rows_used = []
         for nist_row_data in self.nist.data:
             if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
-                logging.info('Temperature %.2f not within allowed range.', nist_row_data.T)
+                logging.debug('Temperature %.2f not within allowed range', nist_row_data.T)
                 continue # the temperature is outside the allowed range
             
             cids_in_reaction = set(nist_row_data.sparse.keys())
             cids_without_pKa = cids_in_reaction.difference(cids_with_pKa)
             if cids_without_pKa:
-                logging.info('reaction contains CIDs with unknown pKa values: %s' % str(list(cids_without_pKa)))
+                logging.debug('reaction contains CIDs with unknown pKa values: %s' % str(list(cids_without_pKa)))
             else:
                 nist_rows_used.append(nist_row_data)
                 dG0_r_tag = pylab.vstack([dG0_r_tag, nist_row_data.dG0_r])
@@ -131,74 +139,68 @@ class NistRegression(Thermodynamics):
                 stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
                                                       stoichiometric_row])
         
-        anchored_S = stoichiometric_matrix[:, :len(anchored_cids)]
-        unresolved_S = stoichiometric_matrix[:, len(anchored_cids):]
-        
-        dG0_r = dG0_r_tag + ddG0_r
-        unresolved_dG0_r = dG0_r - anchored_S * anchored_dG0_f
-        
-        logging.info("%d out of %d NIST measurements will be used" % \
+        logging.info("%d out of %d NIST measurements can be used" % \
                      (stoichiometric_matrix.shape[0], len(self.nist.data)))
-        logging.info("Regression matrix is: %d x %d" % stoichiometric_matrix.shape)
-        logging.info("%d anchored CIDs, %d unresolved CIDs" % \
-                     (len(anchored_cids), len(unresolved_cids)))
-        self.anchors = set(anchored_cids)
-        estimated_dG0_f, kerA = LinearRegression.LeastSquares(unresolved_S, 
-            unresolved_dG0_r, reduced_row_echlon=False)
-        logging.info("Regression Complete. The nullspace rank is %d" % (kerA.shape[0]))
 
-        all_dG0_f = pylab.vstack([anchored_dG0_f, estimated_dG0_f])
-
-        for i, cid in enumerate(all_cids):
-            self.cid2diss_table[cid].min_dG0 = all_dG0_f[i, 0]
-
-        # insert the new data into pseudoisomer maps, according to the
-        # paradigm of the Thermodynamics class.
-        for i, cid in enumerate(all_cids):
-            pmap = PseudoisomerMap()
-            for pdata in self.cid2diss_table[cid].GenerateAll():
-                pmap.Add(nH=pdata.hydrogens, z=pdata.net_charge, 
-                         nMg=pdata.magnesiums, dG0=pdata.dG0)
-            self.cid2pmap_dict[cid] = pmap
-            
-        estimated_dG0_r = stoichiometric_matrix * all_dG0_f
-        estimated_dG0_r_tag = pylab.zeros((0, 1)) 
-        for i, nist_row_data in enumerate(nist_rows_used):
-            nist_row_data.PredictReactionEnergy(self)
-            estimated_dG0_r_tag = pylab.vstack([estimated_dG0_r_tag, 
-                nist_row_data.PredictReactionEnergy(self)])
-            
-        fig = pylab.figure()
-        pylab.plot(dG0_r, estimated_dG0_r, '.')
-        pylab.title('Chemical Reaction Energies')
-        pylab.xlabel('$\Delta G^\circ$ (NIST)')
-        pylab.ylabel('$\Delta G^\circ$ (estimated)')
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
-
-        fig = pylab.figure()
-        pylab.plot(dG0_r_tag, estimated_dG0_r_tag, '.')
-        pylab.title('Transformed Reaction Energies')
-        pylab.xlabel('$\Delta G^{\'\circ}$ (NIST)')
-        pylab.ylabel('$\Delta G^{\'\circ}$ (estimated)')
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
-
-        fig = pylab.figure()
-        pylab.plot(dG0_r_tag - dG0_r, estimated_dG0_r_tag - estimated_dG0_r, '.')
-        pylab.title('Reverse Transform vs. Forward Transform')
-        pylab.xlabel('$\Delta\Delta G$ (reverse)')
-        pylab.ylabel('$\Delta\Delta G$ (forward)')
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
-
-        self.html_writer.write('</br>\n')
+        # reverse transform the reaction energies
+        dG0_r = dG0_r_tag + ddG0_r
         
-        #self.html_writer.write('<h3>Stoichiometric Null-Space</h3>\n')
-        #self.html_writer.write('<ol>\n')
-        #for i in xrange(kerA.shape[0]):
-        #    vec_str = ' + '.join(["%d x C%05d" % (kerA[i,j], all_cids[j]) 
-        #        for j in pylab.find(kerA[i, :])])
-        #    self.html_writer.write('<li>%s</li>\n' % vec_str)
-        #self.html_writer.write('</ol>\n')
+        # subtract the dG that is accounted for by the anchored compounds
+        unresolved_dG0_r = dG0_r - pylab.dot(stoichiometric_matrix[:, :len(anchored_cids)],
+                                             anchored_dG0_f)
+        
+        # squeeze the regression matrix by leaving only unique rows
+        unique_rows_S = pylab.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
+                                      in xrange(stoichiometric_matrix.shape[0])])
+
+        logging.info("There are %d unique reactions" % \
+                     unique_rows_S.shape[0])
+        
+        # for every unique row, calculate the average dG0_r of all the rows that
+        # are the same reaction
+        unique_rows_dG0_r = pylab.zeros((0, 1))
+        #residuals = []
+        for i in xrange(unique_rows_S.shape[0]):
+            # find the list of indices which are equal to row i in unique_rows_S
+            row_indices = pylab.find([(tuple(unique_rows_S[i,:].flat) == tuple(stoichiometric_matrix[j,:].flat)) 
+                for j in xrange(stoichiometric_matrix.shape[0])])
+            
+            # take the average of the dG0_r of these rows
+            average_dG0_r = pylab.mean([unresolved_dG0_r[j, 0] for j in row_indices])
+            #residuals += [(unresolved_dG0_r[j, 0] - average_dG0_r) for j in row_indices]
+            unique_rows_dG0_r = pylab.vstack([unique_rows_dG0_r, average_dG0_r])
+        
+        #pylab.hist(residuals, bins=30, normed=True)
+        #pylab.show()
+
+        # throw the columns which correspond to the anchored compounds
+        unique_rows_S = unique_rows_S[:, len(anchored_cids):]
+        logging.info("Regression matrix is %d x %d" % unique_rows_S.shape)
+        estimated_dG0_f, kerA = LinearRegression.LeastSquares(unique_rows_S, 
+            unique_rows_dG0_r, reduced_row_echlon=False)
+        logging.info("Regression Complete")
+        logging.info("The dimension of the Kernel is %d" % (kerA.shape[0]))
+
+        if prior_thermodynamics:
+            # find the vector in the solution subspace which is closest to the 
+            # prior formation energies
+            delta_dG0_f = pylab.zeros((0, 1))
+            for i, cid in enumerate(unresolved_cids):
+                nH = self.cid2diss_table[cid].min_nH
+                try:
+                    difference = prior_thermodynamics.cid2dG0(cid, nH, nMg=0) - estimated_dG0_f[i, 0]
+                except MissingCompoundFormationEnergy:
+                    difference = 0
+                delta_dG0_f = pylab.vstack([delta_dG0_f, difference])
                 
+            estimated_dG0_f += pylab.dot(kerA.T, pylab.dot(kerA, delta_dG0_f))
+
+        # copy the solution into the diss_tables of all the compounds,
+        # and then generate their PseudoisomerMaps.
+        for i, cid in enumerate(unresolved_cids):
+            self.cid2diss_table[cid].min_dG0 = estimated_dG0_f[i, 0]
+            self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
+            
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
         return self.cid2diss_table[cid].ConvertPseudoisomer(dG0, nH_from, nH_to)
     
@@ -325,6 +327,7 @@ if (__name__ == "__main__"):
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg(db)
+    alberty = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
     
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
@@ -335,11 +338,8 @@ if (__name__ == "__main__"):
     else:
         T_range = (298, 314)
         
-        html_writer.write('<h3>Regression Figures:</h3>\n')
-        html_writer.insert_toggle('regression_figures')
-        html_writer.start_div('regression_figures')
-        nist_regression.ReverseTransform(T_range)
-        html_writer.end_div()
+        residuals = nist_regression.ReverseTransform(
+            prior_thermodynamics=alberty, T_range=T_range)
 
         nist_regression.ToDatabase()
         

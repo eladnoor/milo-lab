@@ -6,6 +6,7 @@ import pybel
 from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel
 import pylab
 from toolbox.util import log_sum_exp
+from pygibbs.pseudoisomer import PseudoisomerMap
 
 
 class PseudoisomerEntry(object):
@@ -278,6 +279,13 @@ class DissociationTable(object):
         dG0_tag_total = -R * T * log_sum_exp([g / (-R*T) for g in dG0_tag_vec])
         
         return dG0_tag_total
+        
+    def GetPseudoisomerMap(self):
+        pmap = PseudoisomerMap()
+        for pdata in self.GenerateAll():
+            pmap.Add(nH=pdata.hydrogens, z=pdata.net_charge, 
+                     nMg=pdata.magnesiums, dG0=pdata.dG0)
+        return pmap
 
 class PseudoisomersData(object):
     

@@ -22,35 +22,18 @@ from pygibbs.thermodynamics import CsvFileThermodynamics
 def main():
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/nist/report.html")
-    kegg = Kegg()
+    kegg = Kegg(db)
 
     nist = Nist(db, html_writer, kegg)
-    if True:
-        nist.FromCsvFile('../data/thermodynamics/nist.csv')
-    else:
-        nist.FromDatabase()
+    nist.Load()
 
     estimators = {}
     estimators['Alberty'] = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
     estimators['Hatzimanikatis Group Contribution'] = Hatzi()
 
-    regress = NistRegression(db, html_writer, kegg)
+    regress = NistRegression(db, html_writer, kegg, nist) 
     regress.FromDatabase()
     estimators['NIST regression'] = regress
-    
-    if False:
-        pmaps = {}
-        pmaps['succinyl-CoA'] = regress.cid2pmap(91)
-        pmaps['acetoacetate'] = regress.cid2pmap(164)
-        pmaps['acetoacetyl-CoA'] = regress.cid2pmap(332)
-        pmaps['succinate'] = regress.cid2pmap(42)
-        
-        for name, pmap in pmaps.iteritems():
-            print name + "\n", pmap,
-            print "dG'0 = ", pmap.Transform(pH=7, pMg=0, I=0.1, T=300)
-            print '-'*50
-    
-        sys.exit(0)
         
     gc = GroupContribution(db, html_writer, kegg)
     gc.override_gc_with_measurements = True

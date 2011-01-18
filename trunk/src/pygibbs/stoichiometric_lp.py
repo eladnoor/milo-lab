@@ -170,7 +170,7 @@ class Stoichiometric_LP():
             for cid, coeff in r.sparse.iteritems():
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "C%05d_conc" % cid, coeff)
                 try:
-                    dG0_r += coeff * thermodynamics.cid_to_dG0(cid)
+                    dG0_r += coeff * thermodynamics.cid2dG0_tag(cid)
                 except MissingCompoundFormationEnergy:
                     # if this CID is not in cid2dG0, it means its formation energy is 
                     # part of its concentration variable, and therefore it doesn't contribute to dG0_r
@@ -189,7 +189,7 @@ class Stoichiometric_LP():
             dG0_r = 0
             for cid, coeff in r.sparse.iteritems():
                 try:
-                    dG0_r += coeff * thermodynamics.cid_to_dG0(cid)
+                    dG0_r += coeff * thermodynamics.cid2dG0_tag(cid)
                 except MissingCompoundFormationEnergy:
                     dG0_r = None
                     break

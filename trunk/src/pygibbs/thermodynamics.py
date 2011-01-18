@@ -2,6 +2,7 @@ import csv
 from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 import pseudoisomer
 import pylab
+from pygibbs import thermodynamic_constants
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -31,8 +32,16 @@ class Thermodynamics(object):
 
     def get_all_cids(self):
         raise NotImplementedError
-        
-    def cid_to_dG0(self, cid, pH=None, pMg=None, I=None, T=None):
+
+    def cid2dG0(self, cid, nH, nMg=0):
+        pmap = self.cid2pmap(cid)
+        for p_nH, p_z, p_nMg, dG0 in pmap.ToMatrix():
+            if nH == p_nH and nMg == p_nMg:
+                return dG0
+        raise MissingCompoundFormationEnergy("C%05d doesn't have a formation "
+            "energy for the species (nH=%d, nMg=%d)" % (cid, nH, nMg))
+
+    def cid2dG0_tag(self, cid, pH=None, pMg=None, I=None, T=None):
         pH = pH or self.pH
         I = I or self.I
         T = T or self.T
@@ -43,7 +52,7 @@ class Thermodynamics(object):
         """
             calculate the predicted dG0_r
         """
-        return sum([coeff * self.cid_to_dG0(cid, pH, pMg, I, T) for 
+        return sum([coeff * self.cid2dG0_tag(cid, pH, pMg, I, T) for 
                     (cid, coeff) in sparse_reaction.iteritems()])
     
     def cid_to_bounds(self, cid, use_default=True):
@@ -55,23 +64,23 @@ class Thermodynamics(object):
         return (curr_c_min, curr_c_max)
 
     @staticmethod
-    def pmap_to_table(pmap, pH=default_pH, I=default_I, T=default_T):
+    def pmap_to_table(pmap, pH=default_pH, pMg=default_pMg, I=default_I, T=default_T):
         s = ""
-        s += "%2s | %2s | %7s | %7s\n" % ("nH", "z", "dG0_f", "dG0'_f")
+        s += "%2s | %2s | %3s | %7s | %7s\n" % ("nH", "z", "nMg", "dG0_f", "dG0'_f")
         s += "-" * 35 + "\n"
-        for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(pmap):
-            s += "%2d | %2d | %7.1f | %7.1f\n" % (nH, z, dG0, 
-                Thermodynamics.transform(dG0, nH, z, pH, I, T))
+        for nH, z, nMg, dG0 in pmap.ToMatrix():
+            dG0_tag = thermodynamic_constants.transform(dG0, nH, nMg, z, pH, pMg, I, T)
+            s += "%2d | %2d | %3d | %7.1f | %7.1f\n" % (nH, z, nMg, dG0, dG0_tag)
         return s     
 
     def display_pmap(self, cid):
-        for (nH, z, dG0) in Thermodynamics.pmap_to_matrix(self.cid2pmap(cid)):
-            print "C%05d | %2d | %2d | %6.2f" % (cid, nH, z, dG0)
+        for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
+            print "C%05d | %2d | %2d | %3d | %6.2f" % (cid, nH, z, nMg, dG0)
     
     def WriteDataToHtml(self, html_writer, kegg):
         dict_list = []
         for cid in self.get_all_cids():
-            for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
                 dict = {}
                 dict['cid'] = 'C%05d' % cid
                 dict['name'] = kegg.cid2name(cid)
@@ -92,7 +101,7 @@ class Thermodynamics(object):
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['cid', 'nH', 'charge', 'nMg', 'dG0'])
         for cid in self.get_all_cids():
-            for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
                 writer.writerow([cid, nH, z, nMg, dG0])
 
     def write_data_to_json(self, json_fname, kegg):
@@ -104,7 +113,7 @@ class Thermodynamics(object):
             h["inchi"] = kegg.cid2inchi(cid)
             h["source"] = self.source_string
             h["species"] = []
-            for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
                 h["species"].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
             formations.append(h)
 
@@ -116,14 +125,14 @@ class Thermodynamics(object):
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['cid', 'pH', 'pMg', 'I', 'T', 'dG0_tag'])
         for cid in self.get_all_cids():
-            dG0_tag = self.cid_to_dG0(cid)
+            dG0_tag = self.cid2dG0_tag(cid)
             writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
             
     def ToDatabase(self, db, table_name):
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
                        "dG0_f REAL, anchor BOOL")
         for cid in self.get_all_cids():
-            for (nH, z, nMg, dG0) in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
                 db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
         db.Commit()
 
@@ -150,7 +159,7 @@ class Thermodynamics(object):
                 for (nH, z, nMg, dG0) in self.cid2pmatrix(cid):
                     html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td><td>%d</td></tr>\n' % \
                                       (kegg.cid2link(cid), cid, name, dG0, nH, z, nMg))
-                dG0_f[c] = self.cid_to_dG0(cid)
+                dG0_f[c] = self.cid2dG0_tag(cid)
             
             except MissingCompoundFormationEnergy:
                 # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction

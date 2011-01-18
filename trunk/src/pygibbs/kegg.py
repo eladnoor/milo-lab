@@ -463,10 +463,13 @@ class Kegg(object):
         self.REACTION_FILE = '../kegg/reaction.txt'
         self.MODULE_FILE = '../kegg/module.txt'
         
-        if self.db:
-            self.FromDatabase()
-        else:
+        if not self.db:
             self.FromFiles()
+        elif not self.db.DoesTableExist('kegg_compound'):
+            self.FromFiles()
+            self.ToDatabase()
+        else:
+            self.FromDatabase()
 
     def FromFiles(self):
         self.name2cid_map = {}

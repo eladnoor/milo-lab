@@ -1,65 +1,70 @@
 import logging
-from numpy.linalg import svd, inv, norm
-from numpy import diag, matrix, hstack, zeros, dot, vstack, float64
+from numpy.linalg import svd, norm, inv
+from numpy import matrix, zeros, dot, float64, ones
 from pylab import find
 from sympy import Matrix
-import sys
 
 class LinearRegression(object):
     
     @staticmethod
-    def LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
+    def LeastSquares(A, y, prior=None, reduced_row_echlon=True, eps=1e-10):
         """
-            Performs a safe LeastSquares.
+            Input:
+                A - a regression matrix, of dimension n x m
+                y - the solution vector, of dimension n x 1 
+
+            Method:
+                Performs a safe LeastSquares, by using SVD to calculate the pseudoinverse of A:
+                A = U*D*V   =>   x = V' * D^-1 * U' * y
+                where U'*U = I and V'*V = I and D is diagonal (although doesn't have to be square).
             
             Returns (x, K):
-                If A is fully ranked, K = [] and x is the ordinary least squares solution for A*x = y.
+                x - the ordinary least squares solution, of dimension m x 1
                 
-                If A is not fully ranked, LeastSquares returns the best solution for A*x = y, using the pseudoinverse of cov(A).
-                K is the kernel of A, its dimension is: m - rank(A).
-                If one wants to interpolate the y-value for a new data point, it must be orthogonal to K (i.e. K*x = 0).
+                If rank(A) = m the return value is the unique LeastSquares solution
+                If rank(A) < m the return value is one of the LeastSquares solution, where
+                    the ker(A) dimensions are arbitrarily assigned a weight of 0.
+                
+                K = ker(A), where dim(K) = m - rank(A).
+            
+            Note:
+                If one wants to interpolate the y-value for a new data point,
+                    it must be orthogonal to K (i.e. K*x = 0).
         """
         n, m = A.shape
         if len(y.shape) > 1 and y.shape[1] != 1:
             raise Exception('y is not a column vector')
         if y.shape[0] != n:
             raise Exception('The length of y (%d) does not match the number of rows in A (%d)' % (y.shape[0], n))
-        y = matrix(y.reshape(n, 1))
-        if n < m:
-            raise Exception('Linear problem is under-determined (more variables than equations)')
+        if prior != None:
+            if prior.shape[0] != m and prior[1] != 1:
+                raise Exception('The shape of the prior does not match A: %s' % str(prior.shape))
+        else:
+            prior = zeros((m, 1))
         
-        zero_columns = find([norm(A[:,i])<=eps for i in xrange(m)])
-        nonzero_columns = find([norm(A[:,i])>eps for i in xrange(m)])
-        A_red = A[:, nonzero_columns]
-        m_red = len(nonzero_columns)
-        
-        U, s, V = svd(A_red, full_matrices=True)
+        U, s, V = svd(A, full_matrices=True)
 
         r = len(find(s > eps)) # the rank of A
         if r < m:
             logging.debug('The rank of A (%d) is lower than the number of columns'
                           ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
 
-        inv_V = inv(V)
-        inv_U = inv(U)
+        inv_S = zeros((A.shape[1], A.shape[0]))
+        for i in xrange(r):
+            inv_S[i,i] = 1/s[i]
         
-        D = diag([1/s[i] for i in xrange(r)] + [0] * (m_red-r))
-        inv_S = hstack([D, zeros((m_red, n-m_red))])
-        
-        x = dot(inv_V, dot(inv_S, dot(inv_U, y)))
-        weights = zeros((m, 1))
-        weights[nonzero_columns, :] = x
+        x = dot(V.T, dot(inv_S, dot(U.T, y)))
+        K = V[r:,:] # an orthonormal basis for ker(A)
 
-        kerA = zeros((m-r, m))
-        kerA[0:(m_red-r), nonzero_columns] = V[r:m_red,:]
-        for i, j in enumerate(zero_columns):
-            kerA[m_red-r+i, j] = 1
+        # A normalization that will ensure that zero-columns will have 0 values
+        # in the solution
+        x = x + dot(dot(K.T, K), -x)
 
         if reduced_row_echlon:
-            #LinearRegression.GaussJordan(kerA, eps)
-            kerA = LinearRegression.ReducedRowEchelon(kerA)
+            #LinearRegression.GaussJordan(K, eps)
+            K = LinearRegression.ReducedRowEchelon(K)
 
-        return weights, kerA
+        return x, K
     
     @staticmethod
     def ReducedRowEchelon(A):
@@ -98,20 +103,22 @@ class LinearRegression(object):
         return True
     
 if __name__ == '__main__':
-    #A = matrix([[1, 2, 3],[2, 3, 4],[-1, 8, 2],[2, 3, 1]])
-    #y = matrix([[1],[1],[1],[1]])
-    A = matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
+    A = matrix([[1, 0, -1],[2, 0, -2]])
+    y = matrix([[1],[1]])
+    w_pred, V = LinearRegression.LeastSquares(A, y)
+    print w_pred
+    print V
+    print "-"*100
     
+    A = matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
     w = matrix([[1],[1],[1],[2],[1]])
     
     #y = A*x
     #print A
     #print x
-    w_pred, V = LinearRegression.LeastSquares(A, A*w)
+    w_pred, V = LinearRegression.LeastSquares(A, A*w, reduced_row_echlon=False)
     print w_pred
     print V
-    print dot(A, V.T)
-
     
     x1 = matrix([[0,0,0,1,0]]).T
     x2 = matrix([[-1,0,0,-1,-2]]).T
