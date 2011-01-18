@@ -9,6 +9,9 @@ class _BaseConcentrationProfile(object):
     
     def IsStandard(self):
         return False
+    
+    def __str__(self):
+        return self.name
 
 
 class MolarProfile(_BaseConcentrationProfile):
