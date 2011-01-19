@@ -7,9 +7,9 @@
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",2,"ATP",-3287.5,-4063.01,-1,13,1,"skip","Alberty (2003) beta","with Mg"
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2].[Mg+2]",2,"ATP",-3729.3,-4519.51,0,12,2,"skip","Alberty (2003) beta","with Mg"
 ,3,"NAD+",0,0,-1,26,0,"test","Alberty (2003)",
-,3,"NAD+",-464.1,,-1,26,1,"skip","Mazzini (1995)","Based on pK_Mg of 1.55"
+,3,"NAD+",-464.1,,1,26,1,"skip","Mazzini (1995)","Based on pK_Mg of 1.55"
 ,4,"NADH",22.65,-31.94,-2,27,0,"test","Alberty (2003)",
-,4,"NADH",-441.7,,-2,27,1,"skip","Mazzini (1995)",
+,4,"NADH",-441.7,,0,27,1,"skip","Mazzini (1995)",
 ,5,"NADPH",-809.19,-29.18,-4,26,0,"test","Alberty (2003)",
 ,6,"NADP+",-835.18,0,-3,25,0,"test","Alberty (2003)",
 ,7,"O2(aq)",16.4,-11.7,0,0,0,"test","Alberty (2003)",
