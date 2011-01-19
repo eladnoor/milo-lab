@@ -12,6 +12,14 @@ def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH,
                            pMg=default_pMg, I=default_I, T=default_T):
     dG0 = G.estimate_dG_keggrid(rid, pH, pMg, I, T)
     sparse = G.kegg().rid2sparse_reaction(rid)
+    
+    # remove H2O and H+ from the list of reactants since their
+    # concentration is fixed
+    if 1 in sparse:
+        del sparse[1]
+    if 80 in sparse:
+        del sparse[80]
+
     sum_s = sum(sparse.values())
     sum_abs_s = sum([abs(x) for x in sparse.values()])
     
@@ -25,7 +33,7 @@ def main():
     G.init()
     
     c_mid = 1e-3
-    pH, pMg, I, T = (7, 3, 0.1, 298.15)
+    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
     
     histogram = {}
     total_hist = []
@@ -56,9 +64,10 @@ def main():
     
     pylab.figure()
     pylab.hold(True)
-    cdf(histogram[0], '1', 'r', show_median=True)
-    cdf(histogram[1], '2', 'b', show_median=True)
-    cdf(total_hist, '3-%d' % max_pathway_length, 'g', show_median=True)
+    cdf(histogram[0], '1 (median=%.1f)' % pylab.median(histogram[0]), 'r', show_median=True)
+    cdf(histogram[1], '2 (median=%.1f)' % pylab.median(histogram[1]), 'b', show_median=True)
+    cdf(total_hist, '3-%d  (median=%.1f)' % \
+        (max_pathway_length, pylab.median(total_hist)), 'g', show_median=True)
     pylab.xlim(-100, 100)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')

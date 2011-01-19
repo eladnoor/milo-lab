@@ -12,6 +12,7 @@ from pygibbs.thermodynamics import Thermodynamics,\
     MissingCompoundFormationEnergy, CsvFileThermodynamics
 from pygibbs.alberty import Alberty
 from pygibbs.pseudoisomers_data import DissociationTable
+from pygibbs.pseudoisomer import PseudoisomerMap
 
 class NistAnchors(object):
     
@@ -86,29 +87,26 @@ class NistRegression(Thermodynamics):
         cids_in_nist_with_pKa = cids_with_pKa.intersection(cids_in_nist)
         logging.info('There are pKa values for %d out of the %d compounds in NIST' % \
                      (len(cids_in_nist_with_pKa), len(cids_in_nist)))
-        
-        anchored_cids = sorted(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
-        self.anchors = set(anchored_cids)
-        
-        unresolved_cids = sorted(cids_in_nist_with_pKa.difference(anchored_cids))
-        all_cids = anchored_cids + unresolved_cids
 
+        self.anchors = set(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
+        cids_to_estimate = sorted(cids_in_nist_with_pKa.difference(self.anchors))
         logging.info("%d compounds are anchored, and the %d others will be estimated" % \
-                     (len(anchored_cids), len(unresolved_cids)))
+                     (len(self.anchors), len(cids_to_estimate)))
         
         # get a vector of anchored formation energies. one needs to be careful
         # to always use the most basic pseudoisomer (the one with the lowest nH)
         # because these are the forms used in the regression matrix
-        anchored_dG0_f = pylab.zeros((0, 1))
-        for cid in anchored_cids:
+        for cid in self.anchors:
             dG0_f = self.nist_anchors.cid2dG0_f[cid]
             nH = self.nist_anchors.cid2min_nH[cid]
             dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
-            anchored_dG0_f = pylab.vstack([anchored_dG0_f, dG0_f_base])
+
+            # by assigning a dG0_f to this compound, it will be subtracted out
+            # from the dG0_r when applying the reverse transform.
             self.cid2diss_table[cid].min_dG0 = dG0_f_base
             self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
-        
-        stoichiometric_matrix = pylab.zeros((0, len(all_cids)))
+
+        stoichiometric_matrix = pylab.zeros((0, len(cids_to_estimate)))
         
         dG0_r_tag = pylab.zeros((0, 1))
         ddG0_r = pylab.zeros((0, 1)) # the difference between dG0_r and dG'0_r
@@ -122,7 +120,8 @@ class NistRegression(Thermodynamics):
             cids_in_reaction = set(nist_row_data.sparse.keys())
             cids_without_pKa = cids_in_reaction.difference(cids_with_pKa)
             if cids_without_pKa:
-                logging.debug('reaction contains CIDs with unknown pKa values: %s' % str(list(cids_without_pKa)))
+                logging.debug('reaction contains CIDs with unknown pKa values: %s' % \
+                              ', '.join(['C%05d' % cid for cid in cids_without_pKa]))
             else:
                 nist_rows_used.append(nist_row_data)
                 dG0_r_tag = pylab.vstack([dG0_r_tag, nist_row_data.dG0_r])
@@ -132,9 +131,10 @@ class NistRegression(Thermodynamics):
                     nist_row_data.T)
                 ddG0_r = pylab.vstack([ddG0_r, ddG])
                 
-                stoichiometric_row = pylab.zeros((1, len(all_cids)))
+                stoichiometric_row = pylab.zeros((1, len(cids_to_estimate)))
                 for cid, coeff in nist_row_data.sparse.iteritems():
-                    stoichiometric_row[0, all_cids.index(cid)] = coeff
+                    if cid not in self.anchors:
+                        stoichiometric_row[0, cids_to_estimate.index(cid)] = coeff
                 
                 stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
                                                       stoichiometric_row])
@@ -142,13 +142,7 @@ class NistRegression(Thermodynamics):
         logging.info("%d out of %d NIST measurements can be used" % \
                      (stoichiometric_matrix.shape[0], len(self.nist.data)))
 
-        # reverse transform the reaction energies
         dG0_r = dG0_r_tag + ddG0_r
-        
-        # subtract the dG that is accounted for by the anchored compounds
-        unresolved_dG0_r = dG0_r - pylab.dot(stoichiometric_matrix[:, :len(anchored_cids)],
-                                             anchored_dG0_f)
-        
         # squeeze the regression matrix by leaving only unique rows
         unique_rows_S = pylab.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
                                       in xrange(stoichiometric_matrix.shape[0])])
@@ -159,36 +153,40 @@ class NistRegression(Thermodynamics):
         # for every unique row, calculate the average dG0_r of all the rows that
         # are the same reaction
         unique_rows_dG0_r = pylab.zeros((0, 1))
-        #residuals = []
+        dG0_r = pylab.hstack([pylab.zeros(dG0_r.shape), dG0_r])
         for i in xrange(unique_rows_S.shape[0]):
             # find the list of indices which are equal to row i in unique_rows_S
-            row_indices = pylab.find([(tuple(unique_rows_S[i,:].flat) == tuple(stoichiometric_matrix[j,:].flat)) 
-                for j in xrange(stoichiometric_matrix.shape[0])])
+            diff = abs(stoichiometric_matrix - unique_rows_S[i,:])
+            row_indices = pylab.find(pylab.sum(diff, 1)==0)
             
             # take the average of the dG0_r of these rows
-            average_dG0_r = pylab.mean([unresolved_dG0_r[j, 0] for j in row_indices])
-            #residuals += [(unresolved_dG0_r[j, 0] - average_dG0_r) for j in row_indices]
+            average_dG0_r = pylab.mean([dG0_r[j, 1] for j in row_indices])
             unique_rows_dG0_r = pylab.vstack([unique_rows_dG0_r, average_dG0_r])
+            dG0_r[row_indices, 0] = average_dG0_r
         
-        #pylab.hist(residuals, bins=30, normed=True)
-        #pylab.show()
+        fig = pylab.figure()
+        pylab.plot(dG0_r[:,0], dG0_r[:,1]-dG0_r[:,0], '.')
+        pylab.xlabel("$<\Delta_r G^\circ>$")
+        pylab.ylabel("$\Delta_r G^\circ - <\Delta_r G^\circ>$")
+        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
-        # throw the columns which correspond to the anchored compounds
-        unique_rows_S = unique_rows_S[:, len(anchored_cids):]
         logging.info("Regression matrix is %d x %d" % unique_rows_S.shape)
         estimated_dG0_f, kerA = LinearRegression.LeastSquares(unique_rows_S, 
             unique_rows_dG0_r, reduced_row_echlon=False)
-        logging.info("Regression Complete")
+        corr = pylab.corrcoef(pylab.dot(unique_rows_S, estimated_dG0_f), 
+                              unique_rows_dG0_r, rowvar=0)[0, 1]
+        logging.info("Regression Complete, r^2 = %.6f" % corr**2)
         logging.info("The dimension of the Kernel is %d" % (kerA.shape[0]))
 
         if prior_thermodynamics:
             # find the vector in the solution subspace which is closest to the 
             # prior formation energies
             delta_dG0_f = pylab.zeros((0, 1))
-            for i, cid in enumerate(unresolved_cids):
+            for i, cid in enumerate(cids_to_estimate):
                 nH = self.cid2diss_table[cid].min_nH
                 try:
-                    difference = prior_thermodynamics.cid2dG0(cid, nH, nMg=0) - estimated_dG0_f[i, 0]
+                    difference = prior_thermodynamics.cid2dG0(cid, nH, nMg=0) - \
+                                 estimated_dG0_f[i, 0]
                 except MissingCompoundFormationEnergy:
                     difference = 0
                 delta_dG0_f = pylab.vstack([delta_dG0_f, difference])
@@ -197,7 +195,7 @@ class NistRegression(Thermodynamics):
 
         # copy the solution into the diss_tables of all the compounds,
         # and then generate their PseudoisomerMaps.
-        for i, cid in enumerate(unresolved_cids):
+        for i, cid in enumerate(cids_to_estimate):
             self.cid2diss_table[cid].min_dG0 = estimated_dG0_f[i, 0]
             self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
             
