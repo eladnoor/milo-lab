@@ -23,7 +23,7 @@ def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH,
     sum_s = sum(sparse.values())
     sum_abs_s = sum([abs(x) for x in sparse.values()])
     
-    return 2 * pylab.log(10) * ((-dG0/(R*T) + pylab.log(c_mid)*sum_s) / sum_abs_s)
+    return 2 / pylab.log(10) * ((-dG0/(R*T) + pylab.log(c_mid)*sum_s) / sum_abs_s)
 
 def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -68,7 +68,7 @@ def main():
     cdf(histogram[1], '2 (median=%.1f)' % pylab.median(histogram[1]), 'b', show_median=True)
     cdf(total_hist, '3-%d  (median=%.1f)' % \
         (max_pathway_length, pylab.median(total_hist)), 'g', show_median=True)
-    pylab.xlim(-100, 100)
+    pylab.xlim(-200, 200)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
     pylab.legend(loc='lower right')
