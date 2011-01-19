@@ -14,6 +14,7 @@ class ReactionForm(form_utils.BaseForm):
     productsConcentration = form_utils.ListFormField(required=False)
 
     ph = forms.FloatField(required=False)
+    pmg = forms.FloatField(required=False)
     ionic_strength = forms.FloatField(required=False)
     concentration_profile = forms.ChoiceField(required=False,
                                               choices=[('1M', '1M'),
@@ -37,6 +38,7 @@ class ReactionForm(form_utils.BaseForm):
     cleaned_reactantConcentrations = property(lambda self: [float(c) for c in self.cleaned_data['reactantsConcentration']])
     cleaned_productConcentrations = property(lambda self: [float(c) for c in self.cleaned_data['productsConcentration']])
     cleaned_ph = property(lambda self: self._GetWithDefault('ph', constants.DEFAULT_PH))
+    cleaned_pmg = property(lambda self: self._GetWithDefault('pmg', constants.DEFAULT_PMG))
     cleaned_ionic_strength = property(lambda self: self._GetWithDefault('ionic_strength',
                                                                         constants.DEFAULT_IONIC_STRENGTH))
     cleaned_concentration_profile = property(lambda self: self.cleaned_data['concentration_profile'])

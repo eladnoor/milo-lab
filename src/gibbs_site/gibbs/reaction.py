@@ -216,6 +216,8 @@ class Reaction(object):
         
         if self.ph:
             params.append('ph=%f' % self.ph)
+        if self.pmg:
+            params.append('pmg=%f' % self.pmg)
         if self.i_s:
             params.append('ionic_strength=%f' % self.i_s)
         if self.concentration_profile:
