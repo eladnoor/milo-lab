@@ -3,6 +3,9 @@
 var updatePHField = function(event, ui) {
 	$("#phField").val(ui.value);
 };
+var updatePMgField = function(event, ui) {
+	$("#pmgField").val(ui.value);
+};
 var updateISField = function(event, ui) {
 	$("#ionStrengthField").val(ui.value);
 };
@@ -25,25 +28,35 @@ $(document).ready(function(){
 	
 	// Advanced settings sliders.
 	var phSlider = $("#phSlider");
+	var pmgSlider = $("#pmgSlider");
 	var ionStrengthSlider = $("#ionStrengthSlider");
 	
 	if (phSlider) {
 		phSlider.slider({
 			min: 0.0,
-	       	max: 14.0,
-	       	step: 0.25,
-	       	value: $("#phField").val(),
-	       	slide: updatePHField,
-	       	change: updatePHField});
+	       		max: 14.0,
+	       		step: 0.25,
+	       		value: $("#phField").val(),
+	       		slide: updatePHField,
+	       		change: updatePHField});
+	}
+	if (pmgSlider) {
+		pmgSlider.slider({
+			min: 0.0,
+		       	max: 14.0,
+		       	step: 0.25,
+		       	value: $("#pmgField").val(),
+		       	slide: updatePMgField,
+		       	change: updatePMgField});
 	}
 	if (ionStrengthSlider) {
 		ionStrengthSlider.slider({
 			min: 0.0,
-	       	max: 0.5,
-	       	step: 0.025,
-	       	value: $("#ionStrengthField").val(),
-	       	slide: updateISField,
-	       	change: updateISField});	
+		       	max: 0.5,
+		       	step: 0.025,
+		       	value: $("#ionStrengthField").val(),
+		       	slide: updateISField,
+		       	change: updateISField});	
 	}
 	
 	var customConcRadio = $("#customConcRadio");

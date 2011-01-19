@@ -20,9 +20,11 @@ def ResultsPage(request):
     
     query = form.cleaned_query
     ph = form.cleaned_ph
+    pmg = form.cleaned_pmg
     ionic_strength = form.cleaned_ionic_strength
     template_data = {'query': query,
                      'ph': ph,
+                     'pmg': pmg, 
                      'ionic_strength': ionic_strength}
         
     # Check if we should parse and process the input as a reaction.
@@ -43,7 +45,8 @@ def ResultsPage(request):
         cprofile = concentration_profile.GetProfile()
         rxn = reaction.Reaction.FromIds(reactants, products,
                                         concentration_profile=cprofile,
-                                        pH=ph, ionic_strength=ionic_strength)
+                                        pH=ph, pMg=pmg,
+                                        ionic_strength=ionic_strength)
         
         balance_with_water_link = rxn.GetBalanceWithWaterLink(query)
         balance_electrons_link = rxn.GetBalanceElectronsLink(query)

@@ -25,6 +25,7 @@ def ReactionPage(request):
     # Fetch parameters and compounds.
     i_s = form.cleaned_ionic_strength
     ph = form.cleaned_ph
+    pmg = form.cleaned_pmg
     
     clean_reactants = form.cleaned_reactantIds
     clean_products = form.cleaned_productIds
@@ -48,7 +49,8 @@ def ReactionPage(request):
     zipped_products = zip(form.cleaned_productCoeffs, clean_products, product_names)
     rxn = reaction.Reaction.FromIds(zipped_reactants, zipped_products,
                                     concentration_profile=cprofile,
-                                    pH=ph, ionic_strength=i_s)
+                                    pH=ph, pMg=pmg,
+                                    ionic_strength=i_s)
     query = form.cleaned_query
     if form.cleaned_balance_w_water:
         rxn.TryBalanceWithWater()
@@ -62,8 +64,9 @@ def ReactionPage(request):
     balance_electrons_link = rxn.GetBalanceElectronsLink(query)
     template_data = {'reaction': rxn,
                      'query': query,
-                     'ph': form.cleaned_ph,
-                     'ionic_strength': form.cleaned_ionic_strength,
+                     'ph': ph,
+                     'pmg': pmg,
+                     'ionic_strength': i_s,
                      'concentration_profile': cprofile_name,
                      'balance_with_water_link': balance_with_water_link,
                      'balance_electrons_link': balance_electrons_link}

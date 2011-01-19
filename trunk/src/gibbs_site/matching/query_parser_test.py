@@ -34,7 +34,7 @@ class TestReactionParser(unittest.TestCase):
         query_parser.ParsedReactionQuery([(1, '(S)-malate')],
                                          [(1, '(S)-lactate')]),
         # Unicode arrow thingy
-        'Oxaloacetate + Acetyl-CoA + H2O → Citrate + CoA-SH':
+        u'Oxaloacetate + Acetyl-CoA + H2O → Citrate + CoA-SH':
         query_parser.ParsedReactionQuery([(1, 'Oxaloacetate'), (1, 'Acetyl-CoA'), (1, 'H2O')],
                                          [(1, 'Citrate'), (1, 'CoA-SH')])
         }
@@ -44,7 +44,8 @@ class TestReactionParser(unittest.TestCase):
     
     def testIsReactionQuery(self):
         for query in self.parsable_reactions:
-            self.assertTrue(self._parser.IsReactionQuery(query))
+            self.assertTrue(self._parser.IsReactionQuery(query),
+                            msg='%s is not a reaction query' % query)
     
     def testParseReactions(self):
         for reaction_str, expected_results in self.parsable_reactions.iteritems():
