@@ -13,6 +13,7 @@ from pygibbs.thermodynamics import Thermodynamics,\
 from pygibbs.alberty import Alberty
 from pygibbs.pseudoisomers_data import DissociationTable
 from pygibbs.pseudoisomer import PseudoisomerMap
+from cvxmod.util import leastsquares
 
 class NistAnchors(object):
     
@@ -168,6 +169,7 @@ class NistRegression(Thermodynamics):
         pylab.plot(dG0_r[:,0], dG0_r[:,1]-dG0_r[:,0], '.')
         pylab.xlabel("$<\Delta_r G^\circ>$")
         pylab.ylabel("$\Delta_r G^\circ - <\Delta_r G^\circ>$")
+        pylab.title('$\sigma = %.1f$ kJ/mol' % (pylab.std(dG0_r[:,1]-dG0_r[:,0])))
         self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
         logging.info("Regression matrix is %d x %d" % unique_rows_S.shape)
@@ -182,16 +184,19 @@ class NistRegression(Thermodynamics):
             # find the vector in the solution subspace which is closest to the 
             # prior formation energies
             delta_dG0_f = pylab.zeros((0, 1))
+            indices_in_prior = []
             for i, cid in enumerate(cids_to_estimate):
                 nH = self.cid2diss_table[cid].min_nH
                 try:
                     difference = prior_thermodynamics.cid2dG0(cid, nH, nMg=0) - \
                                  estimated_dG0_f[i, 0]
+                    delta_dG0_f = pylab.vstack([delta_dG0_f, difference])
+                    indices_in_prior.append(i)
                 except MissingCompoundFormationEnergy:
-                    difference = 0
-                delta_dG0_f = pylab.vstack([delta_dG0_f, difference])
-                
-            estimated_dG0_f += pylab.dot(kerA.T, pylab.dot(kerA, delta_dG0_f))
+                    continue
+            
+            v, _ = LinearRegression.LeastSquares(kerA.T[indices_in_prior,:], delta_dG0_f, reduced_row_echlon=False)
+            estimated_dG0_f += pylab.dot(kerA.T, v)
 
         # copy the solution into the diss_tables of all the compounds,
         # and then generate their PseudoisomerMaps.
@@ -365,5 +370,6 @@ if (__name__ == "__main__"):
         column_names = ['CID', 'name', 'nH', 'charge', 'nMg', 'dG0_f(Alberty)',
                         'dG0_f(Regression)']
         db.Query2CSV('../res/nist/alberty_vs_regress.csv', query, column_names)
+        db.Query2HTML(html_writer, query, column_names)
    
     html_writer.close()
