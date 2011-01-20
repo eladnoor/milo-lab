@@ -43,8 +43,8 @@ def LoadFormationEnergies(json, source):
             
 
 def main():
-    alberty_json = json.load(open('alberty.json'))
-    gc_json = json.load(open('group_contribution.json'))
+    alberty_json = json.load(open('data/alberty.json'))
+    gc_json = json.load(open('data/group_contribution.json'))
     
     print 'Writing Alberty data'
     LoadFormationEnergies(alberty_json, models.ValueSource.Alberty())

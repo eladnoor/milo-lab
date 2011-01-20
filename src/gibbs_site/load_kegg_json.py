@@ -12,7 +12,7 @@ from gibbs import models
 
 
 def main():
-    parsed_json = json.load(open('kegg_compounds.json'))
+    parsed_json = json.load(open('data/kegg_compounds.json'))
     
     for cd in parsed_json:
         try:

@@ -71,6 +71,7 @@ class ValueSource(models.Model):
     def GroupContribution():
         return ValueSource._GetOrCreate('Estimated using group contribution')
 
+
 class Specie(models.Model):
     """A single specie of a compound."""
     # The ID of the compound in KEGG.

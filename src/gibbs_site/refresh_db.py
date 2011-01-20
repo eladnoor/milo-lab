@@ -25,7 +25,7 @@ from django.db.models import signals
 from django.dispatch import dispatcher
 
 print "Dumping Data... ",
-sys.stdout = open('dumped_data.json', 'w')
+sys.stdout = open('data/dumped_data.json', 'w')
 call_command('dumpdata', format='json', indent=4)
 sys.stdout.close()
 sys.stdout = sys.__stdout__
@@ -52,6 +52,6 @@ call_command('syncdb')
 print "Done"
 
 #print "Loading Back Data... "
-call_command('loaddata', 'dumped_data.json')
+call_command('loaddata', 'data/dumped_data.json')
 #os.remove('dumped_data.json')
 print "Done"
