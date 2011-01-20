@@ -40,11 +40,14 @@ def main():
     util._mkdir('../res/arren')
     s_writer = csv.writer(open('../res/arren/stoichiomety.csv', 'w'))
     r_writer = csv.writer(open('../res/arren/reactions.csv', 'w'))
-    r_writer.writerow(['rid', 'ec0', 'ec1', 'ec2', 'ec3', 'dG0_r'])
+    e_writer = csv.writer(open('../res/arren/ec_numbers.csv', 'w'))
+    r_writer.writerow(['rid', 'dG0_r'])
+    e_writer.writerow(['rid', 'ec0', 'ec1', 'ec2', 'ec3'])
     for i in xrange(S.shape[0]):
         s_writer.writerow(["%d" % x for x in S[i,:]])
-        ec = ec_numbers[i].split(';')[0].split('.')
-        r_writer.writerow(["%d" % rids[i], ec[0], ec[1], ec[2], ec[3], '%.1f' % dG0_r[i,0]])
+        for ec in ec_numbers[i].split(';'):
+            e_writer.writerow(['%d' % rids[i]] + ec.split('.'))
+        r_writer.writerow(["%d" % rids[i], '%.1f' % dG0_r[i,0]])
     
     c_writer = csv.writer(open('../res/arren/compounds.csv', 'w'))
     c_writer.writerow(['cid', 'dG0_f'])
