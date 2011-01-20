@@ -111,6 +111,7 @@
 79,"L-Phenylalanine","acid-base",298.15,12,11,0,0,"c1ccc(cc1)CC(C(=O)O)[NH3+]","c1ccc(cc1)CC(C(=O)[O-])[NH3+]",2.2,"CRC (88th edition)"
 80,"H+",,298.15,0,0,0,0,,,,
 81,"ITP","acid-base",298.15,12,11,0,0,,,7.6,"Alberty (2003)"
+81,"ITP","acid-base",298.15,11,10,0,0,,,10.1,"Alberty (2003)"
 82,"L-tyrosine","acid-base",298.15,10,9,0,0,"[NH2]C(Cc1ccc(O)cc1)C([O-])=O","NC(Cc1ccc([O-])cc1)C([O-])=O",10.1,"CRC (88th edition)"
 82,"L-tyrosine","acid-base",298.15,11,10,0,0,"[NH3+]C(Cc1ccc(O)cc1)C([O-])=O","NC(Cc1ccc(O)cc1)C([O-])=O",9.11,"CRC (88th edition)"
 82,"L-tyrosine","acid-base",298.15,12,11,0,0,"[NH3+]C(Cc1ccc(O)cc1)C(O)=O","[NH3+]C(Cc1ccc(O)cc1)C([O-])=O",2.2,"CRC (88th edition)"
@@ -147,6 +148,7 @@
 101,"Tetrahydrofolate","acid-base",298.15,21,20,0,0,,,10.5,"Poe (1977)"
 103,"D-Glucose 1-phosphate","acid-base",298.15,12,11,0,0,"C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])O)O)O)O)O","C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O",6.5,"Alberty (2003)"
 104,"IDP","acid-base",298.15,12,11,0,0,,,7.18,"Alberty (2003)"
+104,"IDP","acid-base",298.15,11,10,0,0,,,9.57,"Alberty (2003)"
 105,"UMP","acid-base",298.15,12,11,0,0,,,6.73,"Alberty (2003)"
 105,"UMP","acid-base",298.15,11,10,0,0,,,10.23,"Alberty (2003)"
 106,"uracil","acid-base",298.15,4,3,0,0,,,9.45,"Christensen (1970b)"
@@ -169,6 +171,7 @@
 123,"L-leucine","acid-base",298.15,14,13,0,0,"CC(C)CC(C(=O)[OH])[NH3+]","CC(C)CC(C(=O)[O-])[NH3+]",2.33,"CRC (88th edition)"
 124,"D-galactose",,298.15,12,12,0,0,,,,
 130,"IMP","acid-base",298.15,12,11,0,0,,,6.73,"Alberty (2003)"
+130,"IMP","acid-base",298.15,11,10,0,0,,,9.65,"Alberty (2003)"
 132,"methanol","acid-base",298.15,4,3,0,0,,,15.5,"CRC (88th edition)"
 134,"Putrescine","acid-base",298.15,14,13,0,0,"[NH3+]CCCC[NH3+]","[NH3+]CCCCN",10.8,"CRC (88th edition)"
 134,"Putrescine","acid-base",298.15,13,12,0,0,"[NH3+]CCCCN","NCCCCN",9.63,"CRC (88th edition)"
