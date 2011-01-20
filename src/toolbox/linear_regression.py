@@ -1,6 +1,6 @@
 import logging
 from numpy.linalg import svd, inv, norm
-from numpy import diag, matrix, hstack, zeros, dot, vstack, float64
+from numpy import diag, matrix, hstack, zeros, dot, vstack, float64, rank
 from pylab import find
 from sympy import Matrix
 import sys
@@ -92,6 +92,11 @@ class LinearRegression(object):
             for x in xrange(h, w):       # Normalize row y
                 A[y, x] /= c
         return True
+    
+    @staticmethod
+    def Rank(A, eps=1e-10):
+        _U, s, _V = svd(A, full_matrices=False)
+        return len(find(s > eps))
     
 if __name__ == '__main__':
     #A = matrix([[1, 2, 3],[2, 3, 4],[-1, 8, 2],[2, 3, 1]])

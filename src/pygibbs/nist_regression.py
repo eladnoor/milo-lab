@@ -13,7 +13,6 @@ from pygibbs.thermodynamics import Thermodynamics,\
 from pygibbs.alberty import Alberty
 from pygibbs.pseudoisomers_data import DissociationTable
 from pygibbs.pseudoisomer import PseudoisomerMap
-from cvxmod.util import leastsquares
 
 class NistAnchors(object):
     
@@ -89,7 +88,7 @@ class NistRegression(Thermodynamics):
         logging.info('There are pKa values for %d out of the %d compounds in NIST' % \
                      (len(cids_in_nist_with_pKa), len(cids_in_nist)))
 
-        self.anchors = set(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
+        #self.anchors = set(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
         cids_to_estimate = sorted(cids_in_nist_with_pKa.difference(self.anchors))
         logging.info("%d compounds are anchored, and the %d others will be estimated" % \
                      (len(self.anchors), len(cids_to_estimate)))
@@ -164,6 +163,7 @@ class NistRegression(Thermodynamics):
             average_dG0_r = pylab.mean([dG0_r[j, 1] for j in row_indices])
             unique_rows_dG0_r = pylab.vstack([unique_rows_dG0_r, average_dG0_r])
             dG0_r[row_indices, 0] = average_dG0_r
+            
         
         fig = pylab.figure()
         pylab.plot(dG0_r[:,0], dG0_r[:,1]-dG0_r[:,0], '.')
@@ -172,7 +172,9 @@ class NistRegression(Thermodynamics):
         pylab.title('$\sigma = %.1f$ kJ/mol' % (pylab.std(dG0_r[:,1]-dG0_r[:,0])))
         self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
-        logging.info("Regression matrix is %d x %d" % unique_rows_S.shape)
+        logging.info("Regression matrix is %d x %d, and it's rank is %d" % \
+                     (unique_rows_S.shape[0], unique_rows_S.shape[1],
+                      LinearRegression.Rank(unique_rows_S)))
         estimated_dG0_f, kerA = LinearRegression.LeastSquares(unique_rows_S, 
             unique_rows_dG0_r, reduced_row_echlon=False)
         corr = pylab.corrcoef(pylab.dot(unique_rows_S, estimated_dG0_f), 
@@ -186,12 +188,15 @@ class NistRegression(Thermodynamics):
             delta_dG0_f = pylab.zeros((0, 1))
             indices_in_prior = []
             for i, cid in enumerate(cids_to_estimate):
-                nH = self.cid2diss_table[cid].min_nH
                 try:
-                    difference = prior_thermodynamics.cid2dG0(cid, nH, nMg=0) - \
-                                 estimated_dG0_f[i, 0]
-                    delta_dG0_f = pylab.vstack([delta_dG0_f, difference])
-                    indices_in_prior.append(i)
+                    pmap = prior_thermodynamics.cid2pmap(cid)
+                    for p_nH, p_z, p_nMg, dG0 in sorted(pmap.ToMatrix()):
+                        if p_nMg == 0:
+                            dG0_base = self.ConvertPseudoisomer(cid, dG0, p_nH)
+                            difference = dG0_base - estimated_dG0_f[i, 0]
+                            delta_dG0_f = pylab.vstack([delta_dG0_f, difference])
+                            indices_in_prior.append(i)
+                            break
                 except MissingCompoundFormationEnergy:
                     continue
             
@@ -205,7 +210,10 @@ class NistRegression(Thermodynamics):
             self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
             
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
-        return self.cid2diss_table[cid].ConvertPseudoisomer(dG0, nH_from, nH_to)
+        try:
+            return self.cid2diss_table[cid].ConvertPseudoisomer(dG0, nH_from, nH_to)
+        except KeyError as e:
+            raise KeyError("In C%05d, %s" % (cid, str(e)))
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
