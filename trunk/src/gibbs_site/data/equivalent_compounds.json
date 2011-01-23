@@ -53,12 +53,14 @@
     }, 
     {
         "KEGG IDS": [
-            "C08351", 
-            "C01906"
+            "C00937", 
+            "C00424", 
+            "C05999"
         ], 
         "Names": [
-            "Hamamelose", 
-            "D-Hamamelose"
+            "D-Lactaldehyde", 
+            "L-Lactaldehyde", 
+            "Lactaldehyde"
         ]
     }, 
     {
@@ -210,16 +212,6 @@
     }, 
     {
         "KEGG IDS": [
-            "C00011", 
-            "C00288"
-        ], 
-        "Names": [
-            "CO2", 
-            "Bicarbonate"
-        ]
-    }, 
-    {
-        "KEGG IDS": [
             "C01040", 
             "C05410"
         ], 
@@ -321,14 +313,12 @@
     }, 
     {
         "KEGG IDS": [
-            "C00937", 
-            "C00424", 
-            "C05999"
+            "C08351", 
+            "C01906"
         ], 
         "Names": [
-            "D-Lactaldehyde", 
-            "L-Lactaldehyde", 
-            "Lactaldehyde"
+            "Hamamelose", 
+            "D-Hamamelose"
         ]
     }, 
     {
