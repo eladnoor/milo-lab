@@ -1,16 +1,14 @@
-from pygibbs.nist import Nist
-from pygibbs.kegg import Kegg
-from toolbox.database import SqliteDatabase
-from toolbox.html_writer import HtmlWriter
-from pygibbs.group_decomposition import GroupDecomposer
-from pygibbs import pseudoisomer
 import pylab
 import logging
 import csv
 from toolbox.linear_regression import LinearRegression
+from toolbox.database import SqliteDatabase
+from toolbox.html_writer import HtmlWriter
+from pygibbs.nist import Nist
+from pygibbs.kegg import Kegg
+from pygibbs.group_decomposition import GroupDecomposer
 from pygibbs.thermodynamics import Thermodynamics,\
     MissingCompoundFormationEnergy, CsvFileThermodynamics
-from pygibbs.alberty import Alberty
 from pygibbs.pseudoisomers_data import DissociationTable
 from pygibbs.pseudoisomer import PseudoisomerMap
 
@@ -291,7 +289,7 @@ class NistRegression(Thermodynamics):
                     nMg = int(row['Mg'])
                 except ValueError:
                     raise Exception("can't read the data about %s" % (row['compound name']))
-                cid2pmap.setdefault(cid, pseudoisomer.PseudoisomerMap())
+                cid2pmap.setdefault(cid, PseudoisomerMap())
                 cid2pmap[cid].Add(nH, z, nMg, dG0)
     
             if row['smiles']:
@@ -339,6 +337,7 @@ if (__name__ == "__main__"):
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg(db)
     alberty = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    alberty.ToDatabase(db, 'alberty')
     
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
@@ -360,7 +359,7 @@ if (__name__ == "__main__"):
         nist_regression.WriteDataToHtml()
         html_writer.end_div()
     
-        html_writer.write('<h3>Estimated vs. Observed:</h3>\n')
+        html_writer.write('<h3>Reaction energies - Estimated vs. Observed:</h3>\n')
         html_writer.insert_toggle('verify')
         html_writer.start_div('verify')
         N, rmse = nist_regression.VerifyResults(T_range)
@@ -369,15 +368,27 @@ if (__name__ == "__main__"):
         
         logging.info("N = %d, RMSE = %.1f" % (N, rmse))
 
-        alberty = Alberty()
-        alberty.ToDatabase(db, 'alberty')
+        html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
+
         query = 'SELECT k.cid, k.name, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
-            'FROM kegg_compound k, alberty a, nist_regression r ' + \
-            'WHERE k.cid=a.cid AND a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
-            'AND a.anchor=0 ORDER BY a.cid,a.nH'
+                'FROM kegg_compound k, alberty a, nist_regression r ' + \
+                'WHERE k.cid=a.cid AND a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
+                'AND a.anchor=0 ORDER BY a.cid,a.nH'
         column_names = ['CID', 'name', 'nH', 'charge', 'nMg', 'dG0_f(Alberty)',
                         'dG0_f(Regression)']
+        
+        data = pylab.zeros((0, 2))
+        fig = pylab.figure()
+        pylab.hold(True)
+        for row in db.Execute(query):
+            cid, name, nH, z, nMg, dG0_a, dG0_r = row
+            x = (dG0_a + dG0_r)/2
+            y = dG0_a - dG0_r
+            pylab.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
+            data = pylab.vstack([data, (x,y)])
+
+        pylab.plot(data[:,0], data[:,1], '.')
+        html_writer.embed_matplotlib_figure(fig, width=640, height=480)
         db.Query2CSV('../res/nist/alberty_vs_regress.csv', query, column_names)
-        db.Query2HTML(html_writer, query, column_names)
-   
+
     html_writer.close()
