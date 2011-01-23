@@ -42,9 +42,10 @@ def LoadFormationEnergies(json, source):
                 AddAllSpeciesToCompound(c, cdict['species'], source)
             
 
-def main():
-    alberty_json = json.load(open('data/alberty.json'))
-    gc_json = json.load(open('data/group_contribution.json'))
+def LoadAllFormationEnergies(alberty_json_filename='data/alberty.json',
+                             gc_json_filename='data/group_contribution.json'):
+    alberty_json = json.load(open(alberty_json_filename))
+    gc_json = json.load(open(gc_json_filename))
     
     print 'Writing Alberty data'
     LoadFormationEnergies(alberty_json, models.ValueSource.Alberty())

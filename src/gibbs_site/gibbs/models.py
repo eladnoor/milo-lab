@@ -143,6 +143,9 @@ class Compound(models.Model):
     # Estimates of Delta G for this compound.
     species = models.ManyToManyField(Specie)
     
+    # Replace this compound with another one.
+    replace_with = models.ForeignKey('self', null=True)
+    
     # An explanation for when no DeltaG estimate is available.
     no_dg_explanation = models.CharField(max_length=2048,
                                          blank=True,

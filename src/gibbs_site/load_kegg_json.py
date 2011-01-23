@@ -11,8 +11,8 @@ django_utils.SetupDjango()
 from gibbs import models
 
 
-def main():
-    parsed_json = json.load(open('data/kegg_compounds.json'))
+def LoadKeggJson(kegg_json_filename='data/kegg_compounds.json'):
+    parsed_json = json.load(open(kegg_json_filename))
     
     for cd in parsed_json:
         try:
@@ -41,7 +41,8 @@ def main():
             logging.error('Error parsing cid %s', cid)
             logging.debug(e)
             continue
-        
+
+
 if __name__ == '__main__':
-    main()
+    LoadKeggJson()
         
