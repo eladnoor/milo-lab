@@ -51,7 +51,8 @@ def LoadFormationEnergies(json, source):
         
         compounds = models.Compound.objects.filter(inchi__exact=inchi_str)
         for c in compounds:
-            if source == models.ValueSource.Alberty() or not len(c.species.all()):
+            if (my_source != models.ValueSource.GroupContribution() or
+                not len(c.species.all())):
                 AddAllSpeciesToCompound(c, cdict['species'], my_source)
             
 
