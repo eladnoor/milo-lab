@@ -62,7 +62,7 @@ def main():
         if i < max_pathway_length:
             medians.append(pylab.median(histogram[i]))  
     
-    pylab.figure()
+    fig = pylab.figure()
     pylab.hold(True)
     cdf(histogram[0], '1 (median=%.1f)' % pylab.median(histogram[0]), 'r', show_median=True)
     cdf(histogram[1], '2 (median=%.1f)' % pylab.median(histogram[1]), 'b', show_median=True)
@@ -72,7 +72,7 @@ def main():
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
     pylab.legend(loc='lower right')
-    pylab.show()
+    html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
 if __name__ == "__main__":
     main()

@@ -21,13 +21,14 @@ class NistAnchors(object):
         self.cid2min_nH = {}
         
     def FromCsvFile(self, filename='../data/thermodynamics/nist_anchors.csv'):
-        self.db.CreateTable('nist_anchors', 'cid INT, charge INT, hydrogens INT, dG0 REAL')
+        self.db.CreateTable('nist_anchors', 'cid INT, z INT, nH INT, nMg INT, dG0 REAL')
         for row in csv.DictReader(open(filename, 'r')):
             cid = int(row['cid'])
             dG0_f = float(row['dG0'])
-            z = int(row['charge'])
-            nH = int(row['hydrogens'])
-            self.db.Insert('nist_anchors', [cid, dG0_f, nH, z])
+            z = int(row['z'])
+            nH = int(row['nH'])
+            nMg = int(row['nMg'])
+            self.db.Insert('nist_anchors', [cid, dG0_f, nH, z, nMg])
         
             self.cid2dG0_f[cid] = dG0_f
             self.cid2min_nH[cid] = nH
@@ -35,7 +36,7 @@ class NistAnchors(object):
     def FromDatabase(self):
         for row in self.db.DictReader('nist_anchors'):
             self.cid2dG0_f[row['cid']] = row['dG0']
-            self.cid2min_nH[row['cid']] = row['hydrogens']
+            self.cid2min_nH[row['cid']] = row['nH']
             
     def Load(self):
         if not self.db.DoesTableExist('nist_anchors'):
@@ -260,7 +261,7 @@ class NistRegression(Thermodynamics):
         
         for row in csv.DictReader(open(filename, 'r')):
             #smiles, cid, compound_name, dG0, unused_dH0, charge, hydrogens, Mg, use_for, ref, unused_assumption 
-            name = "%s (z=%s, nH=%s, nMg=%s)" % (row['compound name'], row['charge'], row['hydrogens'], row['Mg'])
+            name = "%s (z=%s, nH=%s, nMg=%s)" % (row['compound name'], row['z'], row['nH'], row['nMg'])
             logging.info('reading data for ' + name)
     
             if not row['dG0']:
@@ -284,9 +285,9 @@ class NistRegression(Thermodynamics):
             if row['cid']:
                 cid = int(row['cid'])
                 try:
-                    nH = int(row['hydrogens'])
-                    z = int(row['charge'])
-                    nMg = int(row['Mg'])
+                    nH = int(row['nH'])
+                    z = int(row['z'])
+                    nMg = int(row['nMg'])
                 except ValueError:
                     raise Exception("can't read the data about %s" % (row['compound name']))
                 cid2pmap.setdefault(cid, PseudoisomerMap())
@@ -300,7 +301,7 @@ class NistRegression(Thermodynamics):
         #csv_writer = csv.writer(open('../res/pKa_from_dG0.csv', 'w'))
         
         self.self.html_writer.write('<table border="1">\n<tr><td>' + 
-                          '</td><td>'.join(['cid', 'name', 'formula', 'nH', 'charge', 'nMg', 'dG0_f', 'pKa', 'pK_Mg']) + 
+                          '</td><td>'.join(['cid', 'name', 'formula', 'nH', 'z', 'nMg', 'dG0_f', 'pKa', 'pK_Mg']) + 
                           '</td></tr>\n')
         for cid in sorted(cid2pmap.keys()):
             #step = 1
@@ -342,7 +343,7 @@ if (__name__ == "__main__"):
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
     
-    if False:
+    if True:
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
     else:
@@ -374,7 +375,7 @@ if (__name__ == "__main__"):
                 'FROM kegg_compound k, alberty a, nist_regression r ' + \
                 'WHERE k.cid=a.cid AND a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
                 'AND a.anchor=0 ORDER BY a.cid,a.nH'
-        column_names = ['CID', 'name', 'nH', 'charge', 'nMg', 'dG0_f(Alberty)',
+        column_names = ['CID', 'name', 'nH', 'z', 'nMg', 'dG0_f(Alberty)',
                         'dG0_f(Regression)']
         
         data = pylab.zeros((0, 2))

@@ -52,7 +52,6 @@ class Alberty(Thermodynamics):
     
     def __init__(self):
         Thermodynamics.__init__(self)
-        self.source_string = "Alberty"
         (alberty_name_to_pmap, alberty_name_to_hmap) = self.read_alberty_mathematica("../data/thermodynamics/alberty_mathematica.txt")
         alberty_name_to_cid = self.read_alberty_kegg_mapping("../data/thermodynamics/alberty_names.csv")
 
@@ -60,6 +59,7 @@ class Alberty(Thermodynamics):
         self.cid2hmap_dict = {}
         for name in sorted(alberty_name_to_cid.keys()):
             cid = alberty_name_to_cid[name]
+            self.cid2source_string[cid] = 'Alberty 2006'
             if (name in alberty_name_to_pmap):
                 self.cid2pmap_dict[cid] = alberty_name_to_pmap[name]
             if (name in alberty_name_to_hmap):

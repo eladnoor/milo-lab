@@ -7,12 +7,12 @@ import csv
 class Hatzi (Thermodynamics):
     def __init__(self):
         Thermodynamics.__init__(self)
-        self.source_string = "Hatzimanikatis"
         H_pmap = pseudoisomer.PseudoisomerMap()
         H_pmap.Add(0, 0, 0, 0)
         self.cid2pmap_dict = {80 : H_pmap} # for some reason, Hatzimanikatis doesn't indicate that H+ is zero
         for row in csv.DictReader(open("../data/thermodynamics/hatzimanikatis_cid.csv", 'r')):
             cid = int(row['ENTRY'][1:])
+            self.cid2source_string[cid] = 'Jankowski et al. 2008'
             if (row['DELTAG'] == "Not calculated"):
                 continue
             dG0_f = float(row['DELTAG']) * J_per_cal

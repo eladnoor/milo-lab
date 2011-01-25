@@ -8,7 +8,6 @@ import pylab
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
 
-
 class PseudoisomerEntry(object):
     def __init__(self, net_charge, hydrogens, magnesiums, smiles="",
                  dG0=None, cid=None, name=None, ref='', use_for=None):
@@ -305,9 +304,9 @@ class PseudoisomersData(object):
             ref = row_dict.get('ref')
             smiles = row_dict.get('smiles')
             use_for = row_dict.get('use for')
-            charge = row_dict.get('charge')
-            hydrogens = row_dict.get('hydrogens')
-            nMg = row_dict.get('Mg')
+            charge = row_dict.get('z')
+            hydrogens = row_dict.get('nH')
+            nMg = row_dict.get('nMg')
             cid = row_dict.get('cid')
             dG0 = row_dict.get('dG0')
             

@@ -1,4 +1,4 @@
-"smiles","cid","compound name","dG0","dH0","charge","hydrogens","Mg","use for","ref","remark"
+"smiles","cid","compound name","dG0","dH0","z","nH","nMg","use for","ref","remark"
 ,1,"H2O",-237.19,-285.83,0,2,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-]",2,"ATP",-2768.1,-3619.21,-4,12,0,"train","Alberty (2003)",
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",2,"ATP",-2811.48,-3612.91,-3,13,0,"skip","Alberty (2003)",
@@ -24,7 +24,9 @@
 "OP(=O)([O-])[O-].[Mg+2]",9,"Orthophosphate",-1566.87,-1753.8,0,1,1,"skip","Alberty (2003) beta","with Mg"
 "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCC[S-]",10,"CoA",0,,-5,31,0,"test","Alberty (2003)",
 "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS",10,"CoA",-47.83,,-4,32,0,"skip","Alberty (2003)","CoA(-1) = 0"
-,11,"CO2(g)",-394.36,-393.5,0,0,0,"test","Alberty (2003)",
+,11,"CO2(g)",-394.36,-393.5,0,0,0,"skip","Alberty (2003)",
+,11,"CO2(g)",-394.36,,0,0,0,"skip","Thauer (1977)",
+,11,"CO2(aq)",-386.02,,0,0,0,"test","Thauer (1977)",
 "[O-]P(=O)([O-])OP(=O)([O-])[O-]",13,"pyrophosphate",-1919.86,-2293.47,-4,0,0,"test","Alberty (2003)",
 "[O-]P(=O)([O-])OP(=O)([O-])O",13,"pyrophosphate",-1973.86,-2294.87,-3,1,0,"skip","Alberty (2003)",
 "[O-]P(=O)(O)OP(=O)([O-])O",13,"pyrophosphate",-2012.21,-2295.37,-2,2,0,"skip","Alberty (2003)",

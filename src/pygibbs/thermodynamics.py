@@ -3,6 +3,7 @@ from thermodynamic_constants import default_T, default_pH, default_I, default_pM
 import pseudoisomer
 import pylab
 from pygibbs import thermodynamic_constants
+import logging
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -21,7 +22,7 @@ class Thermodynamics(object):
         self.c_mid = 1e-3
         self.c_range = (1e-6, 1e-2)
         self.bounds = {}
-        self.source_string = "Unknown"
+        self.cid2source_string = {}
         self.anchors = set()
 
     def cid2pmap(self, cid):
@@ -85,7 +86,7 @@ class Thermodynamics(object):
                 dict['cid'] = 'C%05d' % cid
                 dict['name'] = kegg.cid2name(cid)
                 dict['nH'] = '%d' % nH
-                dict['charge'] = '%d' % z
+                dict['z'] = '%d' % z
                 dict['nMg'] = '%d' % nMg
                 dict['dG0_f'] = '%.2f' % dG0
                 if cid in self.anchors:
@@ -94,12 +95,12 @@ class Thermodynamics(object):
                     dict['anchor'] = 'no'
                 dict_list.append(dict)
         
-        html_writer.write_table(dict_list, ['cid', 'name', 'nH', 'charge', 
+        html_writer.write_table(dict_list, ['cid', 'name', 'nH', 'z', 
                                             'nMg', 'dG0_f', 'anchor'])
     
     def write_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
-        writer.writerow(['cid', 'nH', 'charge', 'nMg', 'dG0'])
+        writer.writerow(['cid', 'nH', 'z', 'nMg', 'dG0'])
         for cid in self.get_all_cids():
             for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
                 writer.writerow([cid, nH, z, nMg, dG0])
@@ -110,15 +111,16 @@ class Thermodynamics(object):
         formations = []
         for cid in self.get_all_cids():
             h = {}
-            h["inchi"] = kegg.cid2inchi(cid)
-            h["source"] = self.source_string
-            h["species"] = []
+            h['cid'] = cid
+            h['inchi'] = kegg.cid2inchi(cid)
+            h['source'] = self.cid2source_string.get(cid, 'unknown')
+            h['species'] = []
             for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
-                h["species"].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
+                h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
             formations.append(h)
 
         json_file = open(json_fname, 'w')
-        json_file.write(json.dumps(formations))
+        json_file.write(json.dumps(formations, indent=4))
         json_file.close()
                 
     def write_transformed_data_to_csv(self, csv_fname):
@@ -178,16 +180,28 @@ class CsvFileThermodynamics(Thermodynamics):
     def FromCsvFile(self, filename):
         """
             Imports the pseudoisomer maps from a CSV file, with these headers:
-            'cid', 'nH', 'charge', 'nMg', 'dG0'
+            'cid', 'nH', 'z', 'nMg', 'dG0'
         """
         for row in csv.DictReader(open(filename, 'r')):
+            if 'use for' in row and row['use for'] == 'skip':
+                continue
+            
             cid = int(row['cid'])
+            if not cid:
+                continue
+            
             nH = int(row['nH'])
-            z = int(row['charge'])
+            z = int(row['z'])
             nMg = int(row['nMg'])
             dG0 = float(row['dG0'])
             self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
             self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
+            
+            ref = row.get('ref', '')
+            if cid in self.cid2source_string and self.cid2source_string[cid] != ref:
+                logging.warning('There are conflicting references for C%05d in '
+                                '%s' % (cid, filename))
+            self.cid2source_string[cid] = ref
 
     def cid2pmap(self, cid):
         if (cid in self.cid2pmap_dict):

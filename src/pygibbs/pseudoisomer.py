@@ -20,11 +20,11 @@ class PseudoisomerMap(object):
     
     def GetAllPseudoisomers(self):
         """Returns tuples of (key, dG0) where the key is
-           (nH, charge, nMgs)
+           (nH, charge, nMg)
         """
         for k, v in self.dgs.iteritems():
-            nh, z, mgs = k
-            yield nh, z, mgs, v
+            nH, z, nMg = k
+            yield nH, z, nMg, v
     
     all_pseudoisomers = property(GetAllPseudoisomers)
     

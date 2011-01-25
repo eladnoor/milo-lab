@@ -18,7 +18,6 @@ from pygibbs.nist_regression import NistAnchors
 class GradientAscent(Thermodynamics):
     def __init__(self, gc):
         Thermodynamics.__init__(self)
-        self.source_string = "Gradient Ascent"
         self.gc = gc
         self.kegg = gc.kegg()
         self.data = []           # this will hold all the training data in one place, each row represents a measurement
@@ -51,14 +50,15 @@ class GradientAscent(Thermodynamics):
             
             cid = int(row_dict['cid'])
             dG0 = float(row_dict['dG0'])
-            z = int(row_dict['charge'])
-            nH = int(row_dict['hydrogens'])
-            nMg = int(row_dict.get('Mgs', 0))
+            z = int(row_dict['z'])
+            nH = int(row_dict['nH'])
+            nMg = int(row_dict.get('nMg', 0))
             
             if cid:
                 self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
                 self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
                 cids.add(cid)
+                self.cid2source_string = 'Gradient Ascent'
         return cids
 
     def load_nist_data(self, nist, thermodynamics, override_I=None, skip_missing_reactions=False, T_range=None):
@@ -451,7 +451,7 @@ class GradientAscent(Thermodynamics):
         
     def write_pseudoisomers(self, csv_fname):
         csv_writer = csv.writer(open(csv_fname, 'w'))
-        csv_writer.writerow(('cid', 'dG0_f', 'nH', 'charge'))
+        csv_writer.writerow(('cid', 'dG0_f', 'nH', 'z', 'nMg'))
         for cid in self.get_all_cids():
             for (nH, z, mgs, dG0) in self.cid2pmap(cid).ToMatrix:
                 csv_writer.writerow((cid, dG0, nH, z, mgs))
