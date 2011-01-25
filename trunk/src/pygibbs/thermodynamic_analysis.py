@@ -5,7 +5,6 @@ from pygibbs.kegg import parse_bool_field, parse_float_field, parse_string_field
     parse_kegg_file, parse_vfloat_field, Kegg
 import pylab
 import copy
-from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 from pygibbs.feasibility import pC_to_range, find_mcmf, find_pCr,\
     LinProgNoSolutionException, thermodynamic_pathway_analysis
 from pygibbs.thermodynamic_constants import transform
@@ -312,7 +311,7 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('</table><br>\n')
         
         self.html_writer.write('</p>\n')
-
+charge
     def analyze_margin(self, key, field_map):
         self.html_writer.write('<p>\n')
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
