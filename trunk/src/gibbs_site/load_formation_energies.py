@@ -28,6 +28,15 @@ def AddAllSpeciesToCompound(compound, species_dicts, source):
     compound.save()
 
 
+def GetSource(source_string):
+    lsource = source_string.lower()
+    if lsource.startswith('alberty'):
+        return models.ValueSource.Alberty()
+    elif lsource.startswith('thauer'):
+        return models.ValueSource.Thauer()
+    return None
+
+
 def LoadFormationEnergies(json, source):
     for cdict in json:
         inchi_str = cdict['inchi']
@@ -36,10 +45,14 @@ def LoadFormationEnergies(json, source):
             logging.error(cdict)
             continue
         
+        # Override the passed-in source if one is specified in JSON.
+        my_source = GetSource(cdict.get('source'))
+        my_source = my_source or source
+        
         compounds = models.Compound.objects.filter(inchi__exact=inchi_str)
         for c in compounds:
             if source == models.ValueSource.Alberty() or not len(c.species.all()):
-                AddAllSpeciesToCompound(c, cdict['species'], source)
+                AddAllSpeciesToCompound(c, cdict['species'], my_source)
             
 
 def LoadAllFormationEnergies(alberty_json_filename='data/alberty.json',
@@ -55,4 +68,4 @@ def LoadAllFormationEnergies(alberty_json_filename='data/alberty.json',
 
 
 if __name__ == '__main__':
-    main()
+    LoadAllFormationEnergies()

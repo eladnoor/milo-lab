@@ -49,6 +49,8 @@ class ValueSource(models.Model):
     def _GetOrCreate(name):
         """Gets or creates a ValueSource object with the given name from the DB.
         
+        TODO(flamholz): supply a link here?
+        
         Args:
             name: the name field.
         
@@ -66,6 +68,10 @@ class ValueSource(models.Model):
     @staticmethod
     def Alberty():
         return ValueSource._GetOrCreate('Alberty et al.')
+    
+    @staticmethod
+    def Thauer():
+        return ValueSource._GetOrCreate('Thauer et al.')
     
     @staticmethod
     def GroupContribution():
