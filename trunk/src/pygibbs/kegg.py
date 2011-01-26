@@ -925,13 +925,16 @@ class Kegg(object):
 
     def cid2obmol(self, cid, correctForPH=True, pH=7.4):
         comp = self.cid2compound(cid)
-        if (comp.inchi == None):
+        if not comp.inchi:
             return None
         obConversion = openbabel.OBConversion()
         obConversion.SetInAndOutFormats("inchi", "mol")
         obmol = openbabel.OBMol()
         obConversion.ReadString(obmol, comp.inchi)
-        if (obmol.NumAtoms() == 0):
+        if obmol.NumAtoms() == 0:
+            atom_bag = comp.get_atom_bag()
+            if not atom_bag:
+                return None
             return comp.get_atom_bag().get('H')
         polaronly = False        
         obmol.AddHydrogens(polaronly, correctForPH, pH)
@@ -948,8 +951,8 @@ class Kegg(object):
         
     def cid2charge(self, cid, correctForPH=True, pH=7.4):
         obmol = self.cid2obmol(cid, correctForPH, pH)
-        if (obmol == None):
-            return 0
+        if not obmol:
+            return None
         return obmol.GetTotalCharge()        
 
     def get_bounds(self, cid):
@@ -1709,5 +1712,8 @@ def export_compound_connectivity():
         csv_file.writerow((cid, len(rid_list)))
     
 if __name__ == '__main__':
-    export_json_file()
+    #export_json_file()
     #export_compound_connectivity()
+    kegg = Kegg()
+    print kegg.cid2num_hydrogens(332)
+    print kegg.cid2charge(332)
