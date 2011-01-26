@@ -17,6 +17,7 @@ def CompoundPage(request):
     kegg_id = form.cleaned_compoundId
     compound = models.Compound.objects.get(kegg_id=kegg_id)
     compound.StashTransformedSpeciesEnergies(form.cleaned_ph,
+                                             form.cleaned_pmg,
                                              form.cleaned_ionic_strength)
     delta_g_estimate = compound.DeltaG(
         pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength)
@@ -24,6 +25,7 @@ def CompoundPage(request):
     template_data = {'is_superuser': django_utils.IsSuperUser(request),
                      'compound': compound,
                      'ph': form.cleaned_ph,
+                     'pmg': form.cleaned_pmg,
                      'ionic_strength': form.cleaned_ionic_strength,
                      'delta_g_estimate': delta_g_estimate,
                      'no_dg_explanation': compound.no_dg_explanation,

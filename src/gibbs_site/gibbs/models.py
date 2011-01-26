@@ -290,11 +290,11 @@ class Compound(models.Model):
     standard_formation_energy = property(DeltaG)
     dg_source = property(_GetDGSource)
     
-    def StashTransformedSpeciesEnergies(self, ph, ionic_strength):
+    def StashTransformedSpeciesEnergies(self, ph, pmg, ionic_strength):
         """Stash the transformed species formation energy in each one."""
         for species in self.all_species:
             species.transformed_energy = species.Transform(
-                pH=ph, ionic_strength=ionic_strength)
+                pH=ph, pMg=pmg, ionic_strength=ionic_strength)
     
     def __unicode__(self):
         """Return a single string identifier of this Compound."""
