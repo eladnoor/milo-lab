@@ -1,29 +1,57 @@
+#!/usr/bin/python
+
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs import thermodynamics
-from pygibbs.thermodynamic_constants import R, default_I, default_pH,\
-    default_pMg, default_T
+from pygibbs.thermodynamic_constants import R, default_I, default_pH
+from pygibbs.thermodynamic_constants import default_pMg, default_T
 import pylab
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import Kegg
 from toolbox.plotting import cdf
 
+WATER = 1
+HPLUS = 80
+
+
+def GetConcentrationMap(kegg_handle):
+    cmap = {}    
+    for cid in kegg_handle.get_all_cids():
+        lower, upper = kegg_handle.get_bounds(cid)
+        if lower and upper:
+            cmap[cid] = lower
+    return cmap
+
+
+def ConcentrationFactor(sparse_reaction,
+                        concentration_map,
+                        c_mid):
+    factor = 0
+    for cid, stoic in sparse_reaction.iteritems():
+        concentration = concentration_map.get(cid, None) or c_mid
+        factor += pylab.log(concentration) * stoic
+    return factor
+
+
 def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH, 
-                           pMg=default_pMg, I=default_I, T=default_T):
+                           pMg=default_pMg, I=default_I, T=default_T,
+                           concentration_map=None):
+    cmap = concentration_map or {}
     dG0 = G.estimate_dG_keggrid(rid, pH, pMg, I, T)
     sparse = G.kegg().rid2sparse_reaction(rid)
     
     # remove H2O and H+ from the list of reactants since their
     # concentration is fixed
-    if 1 in sparse:
-        del sparse[1]
-    if 80 in sparse:
-        del sparse[80]
+    sparse.pop(WATER, None)
+    sparse.pop(HPLUS, None)
 
     sum_s = sum(sparse.values())
-    sum_abs_s = sum([abs(x) for x in sparse.values()])
+    sum_abs_s = sum([abs(x) for k, x in sparse.iteritems()
+                     if k not in cmap])
+    cfactor = ConcentrationFactor(sparse, cmap, c_mid)
     
-    return 2 / pylab.log(10) * ((-dG0/(R*T) + pylab.log(c_mid)*sum_s) / sum_abs_s)
+    return 2 / pylab.log(10) * ((-dG0/(R*T) + cfactor) / sum_abs_s)
+
 
 def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -31,6 +59,7 @@ def main():
     kegg = Kegg(db)
     G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()
+    cmap = GetConcentrationMap(kegg)
     
     c_mid = 1e-3
     pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
@@ -44,7 +73,8 @@ def main():
             continue
         for i, (rid, flux) in enumerate(rid_flux_list):
             try:
-                r = flux * CalculateReversability(rid, G, c_mid, pH, pMg, I, T)
+                r = flux * CalculateReversability(rid, G, c_mid, pH, pMg, I, T,
+                                                  concentration_map=cmap)
                 histogram.setdefault(i, []).append(r)
                 if i > 1:
                     total_hist.append(r)
