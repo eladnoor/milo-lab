@@ -46,6 +46,12 @@ class GroupVector(list):
             result.append(self[i] - other[i])
         return result
     
+    def __eq__(self, other):
+        for i in xrange(len(self.groups_data.all_group_names)):
+            if self[i] != other[i]:
+                return False
+        return True 
+    
     def NetCharge(self):
         """Returns the net charge."""
         return int(pylab.dot(self, self.groups_data.all_group_charges))

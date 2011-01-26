@@ -9,6 +9,52 @@ import pylab
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import Kegg
 from toolbox.plotting import cdf
+from SOAPpy import WSDL
+
+def try_kegg_api():
+    db = SqliteDatabase('../res/gibbs.sqlite')
+    html_writer = HtmlWriter('../res/dG0_test.html')
+    kegg = Kegg(db)
+    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
+    G.init()
+    
+    wsdl = 'http://soap.genome.jp/KEGG.wsdl'
+    serv = WSDL.Proxy(wsdl)
+    
+    
+    rid_file = open('../res/eco_rids.txt', 'w')
+    rids = set()
+    for x in serv.list_pathways('eco'):
+        pathway_id = x['entry_id']
+        for reaction_id in serv.get_reactions_by_pathway(pathway_id):
+            rid = int(reaction_id[4:])
+            if rid not in rids:
+                rids.add(rid)
+                rid_file.write('%d\n' % rid)
+    rid_file.close()
+            
+    c_mid = 1e-3
+    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
+    
+    rid2reversibility = {}
+    misses = 0
+    for rid in sorted(rids):
+        try:
+            r = CalculateReversability(rid, G, c_mid, pH, pMg, I, T)
+            rid2reversibility[rid] = r
+        except thermodynamics.MissingCompoundFormationEnergy:
+            misses += 1
+            continue
+    
+    print 'hits = %d, misses = %d' % len(rid2reversibility), misses
+    median = pylab.median(rid2reversibility.values())
+    print 'median = %.1f' % median
+
+    pylab.figure()
+    pylab.hold(True)
+    cdf(rid2reversibility.values(), 'all reactions', 'r', show_median=True)
+    pylab.show()
+    
 
 WATER = 1
 HPLUS = 80
@@ -31,7 +77,6 @@ def ConcentrationFactor(sparse_reaction,
         concentration = concentration_map.get(cid, None) or c_mid
         factor += pylab.log(concentration) * stoic
     return factor
-
 
 def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH, 
                            pMg=default_pMg, I=default_I, T=default_T,
@@ -105,4 +150,4 @@ def main():
     html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
 if __name__ == "__main__":
-    main()
+    try_kegg_api()

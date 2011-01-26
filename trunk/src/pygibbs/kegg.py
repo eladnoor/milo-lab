@@ -585,17 +585,17 @@ class Kegg(object):
                 logging.debug("module M%05d contains a syntax error - %s" % (mid, str(e)))
         
         logging.info("Parsing the COFACTOR file")
-        cofactor_csv = csv.reader(open('../data/thermodynamics/cofactors.csv', 'r'))
+        cofactor_csv = csv.DictReader(open('../data/thermodynamics/cofactors.csv', 'r'))
         cofactor_csv.next()
         for row in cofactor_csv:
-            cid = int(row[0])
-            name = row[1]
-            if (row[2] != ""):
-                min_c = float(row[2])
+            cid = int(row['cid'])
+            name = row['name']
+            if row['c_min']:
+                min_c = float(row['c_min'])
             else:
                 min_c = None
-            if (row[3] != ""):
-                max_c = float(row[3])
+            if row['c_max']:
+                max_c = float(row['c_max'])
             else:
                 max_c = None
 
