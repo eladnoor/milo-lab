@@ -7,7 +7,6 @@ from pylab import * #@UnusedWildImport
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import Kegg
-from pygibbs.alberty import Alberty
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
 from toolbox import database

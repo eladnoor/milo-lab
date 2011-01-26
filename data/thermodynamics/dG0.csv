@@ -1,107 +1,107 @@
 "smiles","cid","compound name","dG0","dH0","z","nH","nMg","use for","ref","remark"
 ,1,"H2O",-237.19,-285.83,0,2,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-]",2,"ATP",-2768.1,-3619.21,-4,12,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",2,"ATP",-2811.48,-3612.91,-3,13,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",2,"ATP",-2838.18,-3627.91,-2,14,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",2,"ATP",-3258.7,-4063.31,-2,12,1,"skip","Alberty (2003) beta","with Mg"
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",2,"ATP",-3287.5,-4063.01,-1,13,1,"skip","Alberty (2003) beta","with Mg"
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2].[Mg+2]",2,"ATP",-3729.3,-4519.51,0,12,2,"skip","Alberty (2003) beta","with Mg"
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",2,"ATP",-2811.48,-3612.91,-3,13,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",2,"ATP",-2838.18,-3627.91,-2,14,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",2,"ATP",-3258.7,-4063.31,-2,12,1,"test","Alberty (2006)","with Mg"
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",2,"ATP",-3287.5,-4063.01,-1,13,1,"test","Alberty (2006)","with Mg"
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2].[Mg+2]",2,"ATP",-3729.3,-4519.51,0,12,2,"test","Alberty (2006)","with Mg"
 ,3,"NAD+",0,0,-1,26,0,"test","Alberty (2003)",
-,3,"NAD+",-464.1,,1,26,1,"skip","Mazzini (1995)","Based on pK_Mg of 1.55"
+,3,"NAD+",-464.1,,1,26,1,"test","Mazzini (1995)","Based on pK_Mg of 1.55"
 ,4,"NADH",22.65,-31.94,-2,27,0,"test","Alberty (2003)",
-,4,"NADH",-441.7,,0,27,1,"skip","Mazzini (1995)",
+,4,"NADH",-441.7,,0,27,1,"test","Mazzini (1995)",
 ,5,"NADPH",-809.19,-29.18,-4,26,0,"test","Alberty (2003)",
 ,6,"NADP+",-835.18,0,-3,25,0,"test","Alberty (2003)",
 ,7,"O2(aq)",16.4,-11.7,0,0,0,"test","Alberty (2003)",
 ,7,"O2(g)",0,0,0,0,0,"skip","Alberty (2003)",
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])[O-]",8,"ADP",-1906.13,-2626.54,-3,12,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])O",8,"ADP",-1947.1,-2620.94,-2,13,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])O",8,"ADP",-1971.98,-2638.54,-1,14,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",8,"ADP",-2388,-3074.54,-1,12,1,"skip","Alberty (2003) beta","with Mg"
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",8,"ADP",-2416.7,-3075.44,0,13,1,"skip","Alberty (2003) beta","with Mg"
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])O",8,"ADP",-1947.1,-2620.94,-2,13,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])O",8,"ADP",-1971.98,-2638.54,-1,14,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",8,"ADP",-2388,-3074.54,-1,12,1,"test","Alberty (2006)","with Mg"
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",8,"ADP",-2416.7,-3075.44,0,13,1,"test","Alberty (2006)","with Mg"
 "OP(=O)([O-])[O-]",9,"Orthophosphate",-1096.1,-1299,-2,1,0,"test","Alberty (2003)",
-"OP(=O)([O-])O",9,"Orthophosphate",-1137.3,-1302.6,-1,2,0,"skip","Alberty (2003)",
-"OP(=O)([O-])[O-].[Mg+2]",9,"Orthophosphate",-1566.87,-1753.8,0,1,1,"skip","Alberty (2003) beta","with Mg"
+"OP(=O)([O-])O",9,"Orthophosphate",-1137.3,-1302.6,-1,2,0,"test","Alberty (2003)",
+"OP(=O)([O-])[O-].[Mg+2]",9,"Orthophosphate",-1566.87,-1753.8,0,1,1,"test","Alberty (2006)","with Mg"
 "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCC[S-]",10,"CoA",0,,-5,31,0,"test","Alberty (2003)",
-"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS",10,"CoA",-47.83,,-4,32,0,"skip","Alberty (2003)","CoA(-1) = 0"
+"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS",10,"CoA",-47.83,,-4,32,0,"test","Alberty (2003)","CoA(-1) = 0"
 ,11,"CO2(g)",-394.36,-393.5,0,0,0,"skip","Alberty (2003)",
 ,11,"CO2(g)",-394.36,,0,0,0,"skip","Thauer (1977)",
 ,11,"CO2(aq)",-386.02,,0,0,0,"test","Thauer (1977)",
 "[O-]P(=O)([O-])OP(=O)([O-])[O-]",13,"pyrophosphate",-1919.86,-2293.47,-4,0,0,"test","Alberty (2003)",
-"[O-]P(=O)([O-])OP(=O)([O-])O",13,"pyrophosphate",-1973.86,-2294.87,-3,1,0,"skip","Alberty (2003)",
-"[O-]P(=O)(O)OP(=O)([O-])O",13,"pyrophosphate",-2012.21,-2295.37,-2,2,0,"skip","Alberty (2003)",
-"[O-]P(=O)(O)OP(=O)(O)O",13,"pyrophosphate",-2025.11,-2290.37,-1,3,0,"skip","Alberty (2003)",
-"OP(=O)(O)OP(=O)(O)O",13,"pyrophosphate",-2029.85,-2281.17,0,4,0,"skip","Alberty (2003)",
+"[O-]P(=O)([O-])OP(=O)([O-])O",13,"pyrophosphate",-1973.86,-2294.87,-3,1,0,"test","Alberty (2003)",
+"[O-]P(=O)(O)OP(=O)([O-])O",13,"pyrophosphate",-2012.21,-2295.37,-2,2,0,"test","Alberty (2003)",
+"[O-]P(=O)(O)OP(=O)(O)O",13,"pyrophosphate",-2025.11,-2290.37,-1,3,0,"test","Alberty (2003)",
+"OP(=O)(O)OP(=O)(O)O",13,"pyrophosphate",-2029.85,-2281.17,0,4,0,"test","Alberty (2003)",
 ,14,"NH3",-79.31,-132.51,1,4,0,"test","Alberty (2003)",
-,14,"NH3",-26.5,-80.29,0,3,0,"skip","Alberty (2003)",
+,14,"NH3",-26.5,-80.29,0,3,0,"test","Alberty (2003)",
 ,16,"FAD(ox)",0,,-2,31,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])[O-]",20,"AMP",-1040.45,-1635.37,-2,12,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O",20,"AMP",-1078.86,-1629.79,-1,13,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])O",20,"AMP",-1101.63,-1648.07,0,14,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])[O-].[Mg+2]",20,"AMP",-1511.8,-2091.07,0,12,1,"skip","Alberty (2003) beta",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O",20,"AMP",-1078.86,-1629.79,-1,13,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])O",20,"AMP",-1101.63,-1648.07,0,14,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])[O-].[Mg+2]",20,"AMP",-1511.8,-2091.07,0,12,1,"test","Alberty (2006)",
 "CC(=O)C(=O)[O-]",22,"pyruvate",-472.27,-596.22,-1,3,0,"train","Alberty (2003)",
-"CC(=O)C(=O)O",22,"pyruvate",-485.8,,0,4,0,"skip","CRC (88th edition)","Based on pKa of 2.39"
-"CC(=O)C(=O)[O-].[Mg+2]",22,"Pyruvate",-936.2,,1,3,1,"skip","Smith (2004)","Based on pK_Mg of 1.53"
+"CC(=O)C(=O)O",22,"pyruvate",-485.8,,0,4,0,"test","CRC (88th edition)","Based on pKa of 2.39"
+"CC(=O)C(=O)[O-].[Mg+2]",22,"Pyruvate",-936.2,,1,3,1,"test","Smith (2004)","Based on pK_Mg of 1.53"
 "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C",24,"acetyl-CoA",-188.52,,-4,34,0,"train","Alberty (2003)","CoA(-1) = 0"
 "C(CC(=O)[O-])C(C(=O)[O-])[NH3+]",25,"L-Glutamate",-697.47,-979.89,-1,8,0,"train","Alberty (2003)",
 "C(CC(=O)[O-])C(=O)C(=O)[O-]",26,"2-Oxoglutarate",-793.41,-1044.06,-2,4,0,"train","Alberty (2003)",
 ,27,"H2O2(aq)",-134.03,-191.17,0,2,0,"test","Alberty (2003)",
 "OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)[C@@H](O)1",31,"D-Glucose",-915.9,-1262.19,0,12,0,"train","Alberty (2003)",
 "CC(=O)[O-]",33,"Acetate",-369.31,-486.01,-1,3,0,"train","Alberty (2003)",
-"CC(=O)O",33,"Acetate",-396.45,-485.76,0,4,0,"skip","Alberty (2003)",
+"CC(=O)O",33,"Acetate",-396.45,-485.76,0,4,0,"test","Alberty (2003)",
 "C(C(=O)C(=O)[O-])C(=O)[O-]",36,"Oxaloacetate",-793.29,,-2,2,0,"train","Alberty (2003)",
 "C(C(=O)[O-])[NH3+]",37,"Glycine",-379.91,-523,0,5,0,"train","Alberty (2003)",
 "C[C@@H](C(=O)[O-])[NH3+]",41,"Alanine",-371,-554.8,0,7,0,"train","Alberty (2003)",
 "C(CC(=O)[O-])C(=O)[O-]",42,"Succinate",-690.44,-908.68,-2,4,0,"train","Alberty (2003)",
-"C(CC(=O)O)C(=O)[O-]",42,"Succinate",-722.62,-908.84,-1,5,0,"skip","Alberty (2003)",
-"C(CC(=O)O)C(=O)O",42,"Succinate",-746.64,-912.2,0,6,0,"skip","Alberty (2003)",
+"C(CC(=O)O)C(=O)[O-]",42,"Succinate",-722.62,-908.84,-1,5,0,"test","Alberty (2003)",
+"C(CC(=O)O)C(=O)O",42,"Succinate",-746.64,-912.2,0,6,0,"test","Alberty (2003)",
 "C(=O)C(=O)[O-1]",48,"Glyoxylate",-468.6,,-1,1,0,"train","Alberty (2003)",
 "C([C@@H](C(=O)[O-])[NH3+])C(=O)[O-]",49,"L-Aspartate",-695.88,-934.41,-1,6,0,"train","Alberty (2003)",
 ,51,"Glutathione(red)",34.17,,-2,15,0,"test","Alberty (2003)",
-,51,"Glutathione(red)",-13.44,,-1,16,0,"skip","Alberty (2003)",
+,51,"Glutathione(red)",-13.44,,-1,16,0,"test","Alberty (2003)",
 "C(=O)[O-]",58,"Formate",-351,-425.55,-1,1,0,"test","Alberty (2003)",
 ,61,"FMN(ox)",0,,-2,19,0,"test","Alberty (2003)",
 "C(CC(=O)N)[C@@H](C(=O)[O-])[NH3+]",64,"L-Glutamine",-528.02,-805,0,10,0,"train","Alberty (2003)",
 "C([C@@H](C(=O)[O-])[NH3+])O",65,"L-Serine",-510.87,,0,7,0,"train","Alberty (2003)",
 "CSCC[C@@H](C(=O)[O-])[NH3+]",73,"L-Methionine",-502.92,,0,11,0,"train","Alberty (2003)",
 "C=C(C(=O)[O-])OP(=O)([O-])[O-]",74,"Phosphoenolpyruvate",-1263.65,-1621.38,-3,2,0,"train","Alberty (2003)",
-"C=C(C(=O)[O-])OP(=O)([O-])O",74,"Phosphoenolpyruvate",-1303.61,-1619.58,-2,3,0,"skip","Alberty (2003)",
-"C=C(C(=O)[O-])OP(=O)([O-])[O-].[Mg+2]",74,"Phosphoenolpyruvate",-1731.8,,-1,2,1,"skip","Smith (2004)","Based on pK_Mg of 2.26"
+"C=C(C(=O)[O-])OP(=O)([O-])O",74,"Phosphoenolpyruvate",-1303.61,-1619.58,-2,3,0,"test","Alberty (2003)",
+"C=C(C(=O)[O-])OP(=O)([O-])[O-].[Mg+2]",74,"Phosphoenolpyruvate",-1731.8,,-1,2,1,"test","Smith (2004)","Based on pK_Mg of 2.26"
 "c1ccc2c(c1)c(C[C@@H](C(=O)[O-])[NH3+])c[nH]2",78,"L-Tryptophan",-114.7,-405.2,0,12,0,"train","Alberty (2003)",
 "c1ccc(cc1)C[C@@H](C(=O)[O-])[NH3+]",79,"L-Phenylalanine",-207.1,,0,11,0,"train","Alberty (2003)",
 ,80,"H+",0,0,0,0,0,"test","Alberty (2003)",
 "c1cc(ccc1C[C@@H](C(=O)[O-])[NH3+])O",82,"L-Tyrosine",-370.7,,0,11,0,"train","Alberty (2003)",
 "CC=O",84,"Acetaldehyde",-139,-212.23,0,4,0,"train","Alberty (2003)",
 "O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O",85,"D-Fructose-6-phosphate",-1760.8,-2265.17,-2,11,0,"train","Alberty (2003)",
-"O1C(CO)(O)C(O)C(O)C1COP([O-])(O)=O",85,"D-Fructose-6-phosphate",-1796.6,-2263.37,-1,12,0,"skip","Alberty (2003)",
-"O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O.[Mg+2]",85,"D-Fructose-6-phosphate",-2235.0,,0,11,1,"skip","Garcia (1996)","Based on pK_Mg of 3.32"
+"O1C(CO)(O)C(O)C(O)C1COP([O-])(O)=O",85,"D-Fructose-6-phosphate",-1796.6,-2263.37,-1,12,0,"test","Alberty (2003)",
+"O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O.[Mg+2]",85,"D-Fructose-6-phosphate",-2235.0,,0,11,1,"test","Garcia (1996)","Based on pK_Mg of 3.32"
 "C(N)(N)=O",86,"Urea",-202.8,-317.65,0,4,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@]1(CO)[C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O",89,"Sucrose",-1564.7,-2199.87,0,22,0,"train","Alberty (2003)",
 "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CCC(=O)[O-]",91,"succinyl-CoA",-509.59,,-5,35,0,"train","Alberty (2003)","CoA(-1) = 0"
-"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CCC(=O)O",91,"succinyl-CoA",-533.76,,-4,36,0,"skip","Alberty (2003)","CoA(-1) = 0"
+"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CCC(=O)O",91,"succinyl-CoA",-533.76,,-4,36,0,"test","Alberty (2003)","CoA(-1) = 0"
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])[O-]",92,"Glucose-6-phosphate",-1763.94,-2276.44,-2,11,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])O",92,"Glucose-6-phosphate",-1800.59,-2274.64,-1,12,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])[O-].[Mg+2]",92,"Glucose-6-phosphate",-2234.08,-2732.04,0,11,1,"skip","Alberty (2003) beta","Out of the relevant pH range - causes trouble since there is an uncharged PO3 group"
+"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])O",92,"Glucose-6-phosphate",-1800.59,-2274.64,-1,12,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O)O1)O)O)O)OP(=O)([O-])[O-].[Mg+2]",92,"Glucose-6-phosphate",-2234.08,-2732.04,0,11,1,"test","Alberty (2006)","Out of the relevant pH range - causes trouble since there is an uncharged PO3 group"
 "C([C@H](COP(=O)([O-])[O-])O)O",93,"sn-Glycerol-3-phosphate",-1358.96,-1724.59,-2,7,0,"train","Alberty (2003)",
-"C([C@H](COP(=O)([O-])O)O)O",93,"sn-Glycerol-3-phosphate",-1397.04,-1722.79,-1,8,0,"skip","Alberty (2003)",
+"C([C@H](COP(=O)([O-])O)O)O",93,"sn-Glycerol-3-phosphate",-1397.04,-1722.79,-1,8,0,"test","Alberty (2003)",
 "C(C1C(C(C(O1)(CO)O)O)O)O",95,"D-Fructose",-915.51,-1259.38,0,12,0,"train","Alberty (2003)",
 "C([C@@H](C(=O)[O-])[NH3+])[SH0-]",97,"L-cysteine",-291,,-1,6,0,"train","Alberty (2003)",
-"C([C@@H](C(=O)[O-])[NH3+])S",97,"L-cysteine",-338.82,,0,7,0,"skip","Alberty (2003)",
+"C([C@@H](C(=O)[O-])[NH3+])S",97,"L-cysteine",-338.82,,0,7,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O",103,"D-Glucose-1-phosphate",-1756.87,,-2,11,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])O)O)O)O)O",103,"D-Glucose-1-phosphate",-1793.98,,-1,12,0,"skip","Alberty (2003)",
+"C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])O)O)O)O)O",103,"D-Glucose-1-phosphate",-1793.98,,-1,12,0,"test","Alberty (2003)",
 "C(C(=O)COP(=O)([O-])[O-])O",111,"Dihydroxyacetone-P",-1296.26,,-2,5,0,"train","Alberty (2003)",
-"C(C(=O)COP(=O)([O-])O)O",111,"Dihydroxyacetone-P",-1328.8,,-1,6,0,"skip","Alberty (2003)",
-"C(C(=O)COP(=O)([O-])[O-])O.[Mg+2]",111,"Dihydroxyacetone-P",-1763.0,,0,5,1,"skip","Smith (2004)","Based on pK_Mg of 2.00"
+"C(C(=O)COP(=O)([O-])O)O",111,"Dihydroxyacetone-P",-1328.8,,-1,6,0,"test","Alberty (2003)",
+"C(C(=O)COP(=O)([O-])[O-])O.[Mg+2]",111,"Dihydroxyacetone-P",-1763.0,,0,5,1,"test","Smith (2004)","Based on pK_Mg of 2.00"
 "C(C(CO)O)O",116,"Glycerol",-497.48,-676.55,0,8,0,"train","Alberty (2003)",
-"C([C@H]([C@H]([C@H](C=O)O)O)O)OP(=O)([O-])[O-]",117,"D-ribose 5-phosphate",-1582.57,-2041.48,-2,9,0,"train","Alberty (2003)",
-"C([C@H]([C@H]([C@H](C=O)O)O)O)OP(=O)([O-])O",117,"D-ribose 5-phosphate",-1620.75,-2030.18,-1,10,0,"skip","Alberty (2003)",
+"C([C@H]([C@H]([C@H](C=O)O)O)O)OP(=O)([O-])[O-]",117,"D-ribose 5-phosphate",-1582.57,-2041.48,-2,9,0,"skip","Alberty (2003)","Double entry"
+"C([C@H]([C@H]([C@H](C=O)O)O)O)OP(=O)([O-])O",117,"D-ribose 5-phosphate",-1620.75,-2030.18,-1,10,0,"skip","Alberty (2003)","Double entry"
 "C(=O)[C@@H](COP(=O)([O-])[O-])O",118,"glyceraldehyde-3-phosphate",-1288.6,,-2,5,0,"train","Alberty (2003)",
-"C(=O)[C@@H](COP(=O)([O-])O)O",118,"glyceraldehyde-3-phosphate",-1321.14,,-1,6,0,"skip","Alberty (2003)",
-"C(=O)[C@@H](COP(=O)([O-])[O-])O.[Mg+2]",118,"glyceraldehyde-3-phosphate",-1753.2,,0,5,1,"skip","Vojinovic (2009)","Based on pK_Mg of 1.63"
+"C(=O)[C@@H](COP(=O)([O-])O)O",118,"glyceraldehyde-3-phosphate",-1321.14,,-1,6,0,"test","Alberty (2003)",
+"C(=O)[C@@H](COP(=O)([O-])[O-])O.[Mg+2]",118,"glyceraldehyde-3-phosphate",-1753.2,,0,5,1,"test","Vojinovic (2009)","Based on pK_Mg of 1.63"
 "C([C@@H]1[C@H]([C@H](C(O1)O)O)O)O",121,"D-ribose",-738.79,-1034,0,10,0,"train","Alberty (2003)",
 "C(=CC(=O)[O-])C(=O)[O-]",122,"Fumarate",-601.87,-777.39,-2,2,0,"train","Alberty (2003)",
-"C(=CC(=O)[O-])C(=O)O",122,"Fumarate",-628.14,-774.46,-1,3,0,"skip","Alberty (2003)",
-"C(=CC(=O)O)C(=O)O",122,"Fumarate",-645.8,-774.88,0,4,0,"skip","Alberty (2003)",
+"C(=CC(=O)[O-])C(=O)O",122,"Fumarate",-628.14,-774.46,-1,3,0,"test","Alberty (2003)",
+"C(=CC(=O)O)C(=O)O",122,"Fumarate",-645.8,-774.88,0,4,0,"test","Alberty (2003)",
 "CC(C)C[C@@H](C(=O)[O-])[NH3+]",123,"L-Leucine",-352.25,-643.37,0,13,0,"train","Alberty (2003)",
 "C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)O)O)O)O)O",124,"D-Galactose",-908.93,-1255.2,0,12,0,"train","Alberty (2003)",
 ,125,"Cytochrome c(ox)",0,,3,0,0,"test","Alberty (2003)",
@@ -111,39 +111,39 @@
 ,138,"Ferredoxin(red)",38.07,,0,0,0,"test","Alberty (2003)",
 ,139,"Ferredoxin(ox)",0,,1,0,0,"test","Alberty (2003)",
 "c1nc2c(N)[nH+]c[nH]c2n1",147,"Adenine",286.7,,1,6,0,"train","Alberty (2003)",
-"c1nc2c(N)nc[nH]c2n1",147,"Adenine",310.67,,0,5,0,"skip","Alberty (2003)",
+"c1nc2c(N)nc[nH]c2n1",147,"Adenine",310.67,,0,5,0,"test","Alberty (2003)",
 "C([C@@H](C(=O)[O-])O)C(=O)[O-]",149,"L-Malate",-842.66,,-2,4,0,"train","Alberty (2003)",
-"C([C@@H](C(=O)[O-])O)C(=O)O",149,"L-Malate",-872.68,,-1,5,0,"skip","Alberty (2003)",
+"C([C@@H](C(=O)[O-])O)C(=O)O",149,"L-Malate",-872.68,,-1,5,0,"test","Alberty (2003)",
 "C([C@@H](C(=O)[O-])[NH3+])C(N)=O",152,"L-Asparagine",-525.93,-766.09,0,8,0,"train","Alberty (2003)",
 "C(C(=O)[O-])C(CC(=O)[O-])(C(=O)[O-])O",158,"Citrate",-1162.69,-1515.11,-3,5,0,"train","Alberty (2003)",
-"C(C(=O)[O-])C(CC(=O)[O-])(C(=O)O)O",158,"Citrate",-1199.18,-1518.46,-2,6,0,"skip","Alberty (2003)",
-"C(C(=O)[O-])C(CC(=O)O)(C(=O)O)O",158,"Citrate",-1226.33,-1520.88,-1,7,0,"skip","Alberty (2003)",
+"C(C(=O)[O-])C(CC(=O)[O-])(C(=O)O)O",158,"Citrate",-1199.18,-1518.46,-2,6,0,"test","Alberty (2003)",
+"C(C(=O)[O-])C(CC(=O)O)(C(=O)O)O",158,"Citrate",-1226.33,-1520.88,-1,7,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@@H](C(O1)O)O)O)O)O",159,"D-Mannose",-910,-1258.66,0,12,0,"train","Alberty (2003)",
 "C(C(=O)[O-])O",160,"Glycolate",-530.95,,-1,3,0,"train","Alberty (2003)",
 "OC[C@@H]1[C@@H]([C@H](C(O1)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"train","Alberty (2003)","five-membered C4O ring form (xylofuranose)"
-"C1[C@H]([C@@H]([C@H](C(O1)O)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"skip","Alberty (2003)","six-membered C5O ring form (xylopyranose)"
+"C1[C@H]([C@@H]([C@H](C(O1)O)O)O)O",181,"D-Xylose",-750.49,-1045.94,0,10,0,"test","Alberty (2003)","six-membered C5O ring form (xylopyranose)"
 "CC(C)[C@@H](C(=O)[O-])[NH3+]",183,"L-Valine",-358.65,-611.99,0,11,0,"train","Alberty (2003)",
 "C[C@@H](C(=O)[O-])O",186,"Lactate",-516.72,-686.64,-1,5,0,"train","Alberty (2003)",
-"C[C@@H](C(=O)[O-])O.[Mg+2]",186,"Lactate",-979.8,,1,5,1,"skip","Smith (2004)","Based on pK_Mg of 1.37"
+"C[C@@H](C(=O)[O-])O.[Mg+2]",186,"Lactate",-979.8,,1,5,1,"test","Smith (2004)","Based on pK_Mg of 1.37"
 "C([C@H](C(=O)[O-])O)OP(=O)([O-])[O-]",197,"3-Phospho-D-glycerate",-1502.54,,-3,4,0,"train","Alberty (2003)",
-"C([C@H](C(=O)[O-])O)OP(=O)([O-])O",197,"3-Phospho-D-glycerate",-1545.52,,-2,5,0,"skip","Alberty (2003)",
-"C([C@H](C(=O)[O-])O)OP(=O)([O-])[O-].[Mg+2]",197,"3-Phospho-D-glycerate",-1974.0,,-1,4,1,"skip","Larssonr (1972)","Based on pK_Mg of 2.84"
+"C([C@H](C(=O)[O-])O)OP(=O)([O-])O",197,"3-Phospho-D-glycerate",-1545.52,,-2,5,0,"test","Alberty (2003)",
+"C([C@H](C(=O)[O-])O)OP(=O)([O-])[O-].[Mg+2]",197,"3-Phospho-D-glycerate",-1974.0,,-1,4,1,"test","Larssonr (1972)","Based on pK_Mg of 2.84"
 "CC(=O)C",207,"Acetone",-159.7,-221.71,0,6,0,"train","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@H]2[C@H](O[C@H]([C@@H]([C@H]2O)O)O)CO)O)O)O)O",208,"Maltose",-1574.69,-2238.06,0,22,0,"train","Alberty (2003)",
 "C(=O)(C(=O)[O-])[O-]",209,"oxalate",-673.9,-825.1,-2,0,0,"train","Alberty (2003)",
-"C(=O)(C(=O)[O-])O",209,"oxalate",-698.33,,-1,1,0,"skip","Alberty (2003)",
+"C(=O)(C(=O)[O-])O",209,"oxalate",-698.33,,-1,1,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)O",212,"Adenosine",-214.28,-637.7,1,14,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)O",212,"Adenosine",-194.5,-612.3,0,13,0,"skip","Alberty (2003)",
+"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)O",212,"Adenosine",-194.5,-612.3,0,13,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)O",216,"D-Arabinose",-742.23,-1043.79,0,10,0,"train","Alberty (2003)","five-membered C4O ring form (arabinofuranose)"
-"C1[C@H]([C@H]([C@@H](C(O1)O)O)O)O",216,"D-Arabinose",-742.23,-1043.79,0,10,0,"skip","Alberty (2003)","six-membered C5O ring form (arabinopyranose)"
+"C1[C@H]([C@H]([C@@H](C(O1)O)O)O)O",216,"D-Arabinose",-742.23,-1043.79,0,10,0,"test","Alberty (2003)","six-membered C5O ring form (arabinopyranose)"
 "C[NH3+]",218,"Methylamine",-39.86,-124.93,1,6,0,"train","Alberty (2003)",
 "CC(=O)OP(=O)([O-])[O-]",227,"Acetyl-phosphate",-1219.39,,-2,3,0,"train","Alberty (2003)",
-"CC(=O)OP(=O)([O-])O",227,"Acetyl-phosphate",-1268.08,,-1,4,0,"skip","Alberty (2003)",
-"CC(=O)OP(=O)(O)O",227,"Acetyl-phosphate",-1298.26,,0,5,0,"skip","Alberty (2003)",
+"CC(=O)OP(=O)([O-])O",227,"Acetyl-phosphate",-1268.08,,-1,4,0,"test","Alberty (2003)",
+"CC(=O)OP(=O)(O)O",227,"Acetyl-phosphate",-1298.26,,0,5,0,"test","Alberty (2003)",
 "C([C@H](C(=O)OP(=O)([O-])[O-])O)OP(=O)([O-])[O-]",236,"1,3-bisphosphoglycerate",-2356.14,,-4,4,0,"train","Alberty (2003)",
-"C([C@H](C(=O)OP(=O)([O-])[O-])O)OP(=O)([O-])O",236,"1,3-bisphosphoglycerate",-2401.58,,-3,5,0,"skip","Alberty (2003)",
-"C([C@H](C(=O)OP(=O)([O-])O)O)OP(=O)([O-])O",236,"1,3-bisphosphoglycerate",-2440.16,,-2,6,0,"skip","Hatzimanikatis (2008)",
-"C([C@H](C(=O)OP(=O)([O-])[O-])O)OP(=O)([O-])[O-].[Mg+2]",236,"1,3-bisphosphoglycerate",-2832.8,,-2,4,1,"skip","Vojinovic (2009)","Based on pK_Mg of 3.75"
+"C([C@H](C(=O)OP(=O)([O-])[O-])O)OP(=O)([O-])O",236,"1,3-bisphosphoglycerate",-2401.58,,-3,5,0,"test","Alberty (2003)",
+"C([C@H](C(=O)OP(=O)([O-])O)O)OP(=O)([O-])O",236,"1,3-bisphosphoglycerate",-2440.16,,-2,6,0,"test","Hatzimanikatis (2008)",
+"C([C@H](C(=O)OP(=O)([O-])[O-])O)OP(=O)([O-])[O-].[Mg+2]",236,"1,3-bisphosphoglycerate",-2832.8,,-2,4,1,"test","Vojinovic (2009)","Based on pK_Mg of 3.75"
 "[C-]#[OH2+]",237,"CO(aq)",-119.9,-120.96,0,0,0,"test","Alberty (2003)",
 "[C-]#[OH2+]",237,"CO(g)",-137.17,-110.53,0,0,0,"skip","Alberty (2003)",
 "C([C@@H]1[C@@H]([C@@H]([C@H]([C@@H](O1)O[C@@H]1[C@@H](CO)O[C@@H]([C@@H]([C@H]1O)O)O)O)O)O)O",243,"Lactose",-1567.33,-2233.08,0,22,0,"train","Alberty (2003)",
@@ -154,24 +154,24 @@
 ,282,"H2(aq)",17.6,-4.2,0,2,0,"test","Alberty (2003)",
 ,282,"H2(g)",0,0,0,2,0,"skip","Alberty (2003)","irrelevant for aquatic reactions"
 "C(=O)([O-])[O-]",288,"CO2(tot)",-527.81,-677.14,-2,0,0,"test","Alberty (2003)",
-"C(=O)([O-])O",288,"CO2(tot)",-586.77,-691.99,-1,1,0,"skip","Alberty (2003)",
-"C(=O)(O)O",288,"CO2(tot)",-623.11,-699.63,0,2,0,"skip","Alberty (2003)",
+"C(=O)([O-])O",288,"CO2(tot)",-586.77,-691.99,-1,1,0,"test","Alberty (2003)",
+"C(=O)(O)O",288,"CO2(tot)",-623.11,-699.63,0,2,0,"test","Alberty (2003)",
 "C(=O)([O-])CN(C)C(=[NH2+])[NH2]",300,"Creatine",-259.2,,0,9,0,"train","Alberty (2003)",
 "C([C@H]([C@H](C(=O)CO)O)O)O",309,"D-Ribulose",-735.94,-1023.02,0,10,0,"train","Alberty (2003)",
 "C([C@@H]([C@H](C(=O)CO)O)O)O",310,"D-Xylulose",-746.15,-1029.65,0,10,0,"train","Alberty (2003)",
 "C(C(C(C(=O)[O-])O)C(=O)[O-])C(=O)[O-]",311,"Isocitrate",-1156.04,,-3,5,0,"train","Alberty (2003)",
-"C(C(C(C(=O)[O-])O)C(=O)[O-])C(=O)O",311,"Isocitrate",-1192.57,,-2,6,0,"skip","Alberty (2003)",
-"C(C(C(C(=O)[O-])O)C(=O)O)C(=O)O",311,"Isocitrate",-1219.47,,-1,7,0,"skip","Alberty (2003)",
+"C(C(C(C(=O)[O-])O)C(=O)[O-])C(=O)O",311,"Isocitrate",-1192.57,,-2,6,0,"test","Alberty (2003)",
+"C(C(C(C(=O)[O-])O)C(=O)O)C(=O)O",311,"Isocitrate",-1219.47,,-1,7,0,"test","Alberty (2003)",
 ,342,"Thioredoxin(red)",69.88,,-2,0,0,"test","Alberty (2003)",
 ,342,"Thioredoxin(red)",20.56,,-1,1,0,"test","Alberty (2003)",
 ,342,"Thioredoxin(red)",-25.37,,0,2,0,"test","Alberty (2003)",
 ,343,"Thioredoxin(ox)",0,,0,0,0,"test","Alberty (2003)",
 "C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])[O-])(O)O1)O)O)OP(=O)([O-])[O-]",354,"D-Fructose-1,6-bisphosphate",-2601.4,-3343.25,-4,10,0,"train","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])[O-])(O)O1)O)O)OP(=O)([O-])O",354,"D-Fructose-1,6-bisphosphate",-2639.36,-3341.45,-3,11,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])O)(O)O1)O)O)OP(=O)([O-])O",354,"D-Fructose-1,6-bisphosphate",-2673.89,-3339.65,-2,12,0,"skip","Alberty (2003)",
-"C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])[O-])(O)O1)O)O)OP(=O)([O-])[O-].[Mg+2]",354,"D-Fructose-1,6-bisphosphate",-3078.1,,-2,10,1,"skip","Garcia (1996)","Based on pK_Mg of 3.75"
+"C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])[O-])(O)O1)O)O)OP(=O)([O-])O",354,"D-Fructose-1,6-bisphosphate",-2639.36,-3341.45,-3,11,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])O)(O)O1)O)O)OP(=O)([O-])O",354,"D-Fructose-1,6-bisphosphate",-2673.89,-3339.65,-2,12,0,"test","Alberty (2003)",
+"C([C@@H]1[C@H]([C@@H](C(COP(=O)([O-])[O-])(O)O1)O)O)OP(=O)([O-])[O-].[Mg+2]",354,"D-Fructose-1,6-bisphosphate",-3078.1,,-2,10,1,"test","Garcia (1996)","Based on pK_Mg of 3.75"
 ,366,"Urate",-325.9,,-1,3,0,"test","Alberty (2003)",
-,366,"Urate",-356.9,,0,4,0,"skip","Alberty (2003)",
+,366,"Urate",-356.9,,0,4,0,"test","Alberty (2003)",
 "C1=C(C(CCC1)(C)C)C=CC(=CC=CC(=CC=O)C)C",376,"retinal",0,,0,28,0,"test","Alberty (2003)",
 ,390,"Ubiquinone(red)",-89.92,,0,92,0,"test","Alberty (2003)",
 "C(C(C(C(C(CO)O)O)O)O)O",392,"D-Mannitol",-942.61,,0,14,0,"train","Alberty (2003)",
@@ -186,8 +186,8 @@
 "C([C@@H]1[C@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1574.49,,-2,9,0,"skip","Alberty (2003)","duplicate entry with big difference"
 "C([C@@H]1[C@H]([C@H]([C@H](O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1612.67,,-1,10,0,"skip","Alberty (2003)","duplicate entry with big difference"
 "C([C@H](C(=O)[O-])OP(=O)([O-])[O-])O",631,"2-Phospho-D-glycerate",-1496.38,,-3,4,0,"train","Alberty (2003)",
-"C([C@H](C(=O)[O-])OP(=O)([O-])O)O",631,"2-Phospho-D-glycerate",-1539.99,,-2,5,0,"skip","Alberty (2003)",
-"C([C@H](C(=O)[O-])OP(=O)([O-])[O-])O.[Mg+2]",631,"2-Phospho-D-glycerate",-1970.5,,-1,4,1,"skip","Smith (2004)","Based on pK_Mg of 3.31"
+"C([C@H](C(=O)[O-])OP(=O)([O-])O)O",631,"2-Phospho-D-glycerate",-1539.99,,-2,5,0,"test","Alberty (2003)",
+"C([C@H](C(=O)[O-])OP(=O)([O-])[O-])O.[Mg+2]",631,"2-Phospho-D-glycerate",-1970.5,,-1,4,1,"test","Smith (2004)","Based on pK_Mg of 3.31"
 ,697,"N2(aq)",18.7,-10.54,0,0,0,"test","Alberty (2003)",
 ,697,"N2(g)",0,0,0,0,0,"skip","Alberty (2003)","irrelevant for aquatic reactions"
 "Cn1cc(nc1N)O",791,"Creatinine",-23.14,,0,7,0,"train","Alberty (2003)",
@@ -201,183 +201,183 @@
 ,1847,"FMNH2(red)",-38.88,,-2,21,0,"test","Alberty (2003)",
 "C(C(=O)NCC(=O)[O-])[NH3+]",2037,"glycylglycine",-520.2,-734.25,0,8,0,"train","Alberty (2003)",
 "C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)OP(=O)([O-])[O-])O)O)O)O",3384,"D-Galactose-1-phosphate",-1756.59,,-2,11,0,"train","Alberty (2003)",
-"C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)OP(=O)([O-])O)O)O)O)O",3384,"D-Galactose-1-phosphate",-1791.77,,-1,12,0,"skip","Alberty (2003)",
+"C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)OP(=O)([O-])O)O)O)O)O",3384,"D-Galactose-1-phosphate",-1791.77,,-1,12,0,"test","Alberty (2003)",
 "C(C(C(=O)C(=O)[O-])C(=O)[O-])C(=O)O",5379,"Oxalosuccinate",-1138.88,,-2,4,0,"train","Alberty (2003)",
 "CCCO",5979,"n-propanol",-175.81,,0,8,0,"train","Alberty (2003)",
 "CCCCO",6142,"n-Butanol",-171.84,,0,10,0,"train","Alberty (2003)",
 ,,"FAD-enz(ox)",0,,-2,31,0,"skip","Alberty (2003)",
 ,,"FAD-enz(red)",-88.6,,-2,33,0,"skip","Alberty (2003)",
-,15,"UDP",-1868.29,,-4,10,0,"test","Alberty (2003) beta","Cytidine0=0"
-,15,"UDP",-1926.28,,-3,11,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,15,"UDP",-1967.25,,-2,12,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,24,"Acetyl-CoA",-180.36,,-4,34,0,"skip","Alberty (2003) beta","CoA(-1) = 0, double entry (dG = 188)"
-,35,"GDP",-1655.41,,-4,11,0,"test","Alberty (2003) beta","Guanosine0=0"
-,35,"GDP",-1711.86,,-3,12,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,35,"GDP",-1752.84,,-2,13,0,"skip","Alberty (2003) beta","Guanosine0=0"
-"C(C(=O)C(=O)O)C(=O)[O-]",36,"Oxaloacetate",-698.33,,-1,3,0,"skip","Alberty (2003) beta","probably a mistake done by Alberty"
-,44,"GTP",-2514.24,,-5,11,0,"test","Alberty (2003) beta","Guanosine0=0"
-,44,"GTP",-2573.75,,-4,12,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,44,"GTP",-2617.13,,-3,13,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,55,"CMP",-845.95,,-2,12,0,"test","Alberty (2003) beta","Cytidine0=0"
-,55,"CMP",-884.36,,-1,13,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,55,"CMP",-909.45,,0,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-"[O-]S(=O)(=O)[O-]",59,"Sulfate",-744.53,-909.27,-2,0,0,"test","Alberty (2003) beta",
-"OS(=O)(=O)[O-]",59,"Sulfate",-755.91,-887.34,-1,1,0,"skip","Alberty (2003) beta",
-,63,"CTP",-2573.6,,-4,12,0,"test","Alberty (2003) beta","Cytidine0=0"
-,63,"CTP",-2616.98,,-3,13,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,63,"CTP",-2645.98,,-2,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,75,"UTP",-2727.23,,-5,10,0,"test","Alberty (2003) beta","Cytidine0=0"
-,75,"UTP",-2788.25,,-4,11,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,75,"UTP",-2831.63,,-3,12,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,81,"ITP",-2982.9,,-4,11,0,"test","Alberty (2003) beta",
-,81,"ITP",-3026.28,,-3,12,0,"skip","Alberty (2003) beta",
-"N(=O)[O-]",88,"Nitrite",-32.2,-104.6,-1,0,0,"test","Alberty (2003) beta",
-"N(=O)O",88,"Nitrite",-50.6,-119.2,0,1,0,"skip","Alberty (2003) beta",
-"[O-]S(=O)[O-]",94,"Sulfite",-486.5,-635.5,-2,0,0,"test","Alberty (2003) beta",
-"OS(=O)[O-]",94,"Sulfite",-527.78,-626.22,-1,1,0,"skip","Alberty (2003) beta",
+,15,"UDP",-1868.29,,-4,10,0,"skip","Alberty (2006)","Cytidine0=0"
+,15,"UDP",-1926.28,,-3,11,0,"skip","Alberty (2006)","Cytidine0=0"
+,15,"UDP",-1967.25,,-2,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,24,"Acetyl-CoA",-180.36,,-4,34,0,"skip","Alberty (2006)","CoA(-1) = 0, double entry (dG = 188)"
+,35,"GDP",-1655.41,,-4,11,0,"skip","Alberty (2006)","Guanosine0=0"
+,35,"GDP",-1711.86,,-3,12,0,"skip","Alberty (2006)","Guanosine0=0"
+,35,"GDP",-1752.84,,-2,13,0,"skip","Alberty (2006)","Guanosine0=0"
+"C(C(=O)C(=O)O)C(=O)[O-]",36,"Oxaloacetate",-698.33,,-1,3,0,"skip","Alberty (2006)","probably a mistake done by Alberty"
+,44,"GTP",-2514.24,,-5,11,0,"skip","Alberty (2006)","Guanosine0=0"
+,44,"GTP",-2573.75,,-4,12,0,"skip","Alberty (2006)","Guanosine0=0"
+,44,"GTP",-2617.13,,-3,13,0,"skip","Alberty (2006)","Guanosine0=0"
+,55,"CMP",-845.95,,-2,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,55,"CMP",-884.36,,-1,13,0,"skip","Alberty (2006)","Cytidine0=0"
+,55,"CMP",-909.45,,0,14,0,"skip","Alberty (2006)","Cytidine0=0"
+"[O-]S(=O)(=O)[O-]",59,"Sulfate",-744.53,-909.27,-2,0,0,"test","Alberty (2006)",
+"OS(=O)(=O)[O-]",59,"Sulfate",-755.91,-887.34,-1,1,0,"test","Alberty (2006)",
+,63,"CTP",-2573.6,,-4,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,63,"CTP",-2616.98,,-3,13,0,"skip","Alberty (2006)","Cytidine0=0"
+,63,"CTP",-2645.98,,-2,14,0,"skip","Alberty (2006)","Cytidine0=0"
+,75,"UTP",-2727.23,,-5,10,0,"skip","Alberty (2006)","Cytidine0=0"
+,75,"UTP",-2788.25,,-4,11,0,"skip","Alberty (2006)","Cytidine0=0"
+,75,"UTP",-2831.63,,-3,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,81,"ITP",-2982.9,,-4,11,0,"skip","Alberty (2006)",
+,81,"ITP",-3026.28,,-3,12,0,"skip","Alberty (2006)",
+"N(=O)[O-]",88,"Nitrite",-32.2,-104.6,-1,0,0,"test","Alberty (2006)",
+"N(=O)O",88,"Nitrite",-50.6,-119.2,0,1,0,"test","Alberty (2006)",
+"[O-]S(=O)[O-]",94,"Sulfite",-486.5,-635.5,-2,0,0,"test","Alberty (2006)",
+"OS(=O)[O-]",94,"Sulfite",-527.78,-626.22,-1,1,0,"test","Alberty (2006)",
 "[O-]S(=O)[O-]",94,"Sulfite",-486.6,,-2,0,0,"skip","Thauer (1977)",
 "[O-]S(=O)O",94,"Sulfite",-527.81,,-1,1,0,"skip","Thauer (1977)",
 "OS(=O)O",94,"Sulfite",-537.895,,0,2,0,"skip","Thauer (1977)",
-"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC",100,"Propanoyl-CoA",-179.14,,-4,36,0,"train","Alberty (2003) beta","CoA-1=0"
-,104,"IDP",-2121.01,,-3,11,0,"test","Alberty (2003) beta",
-,104,"IDP",-2161.99,,-2,12,0,"skip","Alberty (2003) beta",
-,105,"UMP",-1002.21,,-3,10,0,"test","Alberty (2003) beta","Cytidine0=0"
-,105,"UMP",-1060.6,,-2,11,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,105,"UMP",-1099.01,,-1,12,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,106,"Uracil",347.48,,-1,3,0,"test","Alberty (2003) beta","Cytidine0=0"
-,106,"Uracil",293.25,,0,4,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,112,"CDP",-1711.63,,-3,12,0,"test","Alberty (2003) beta","Cytidine0=0"
-,112,"CDP",-1752.6,,-2,13,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,112,"CDP",-1779.77,,-1,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,117,"D-Ribose 5-phosphate",-1595.78,,-2,9,0,"skip","Alberty (2003) beta","double entry"
-,117,"D-Ribose 5-phosphate",-1633.96,,-1,10,0,"skip","Alberty (2003) beta","double entry"
-"C(C1C(C(C(O1)OP(=O)([O-])OP(=O)([O-])[O-])O)O)OP(=O)([O-])[O-]",119,"D-Ribose 5-phospho 1-diphosphate",-3284.25,,-5,8,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(O1)OP(=O)([O-])OP(=O)([O-])O)O)O)OP(=O)([O-])[O-]",119,"D-Ribose 5-phospho 1-diphosphate",-3325.23,,-4,9,0,"skip","Alberty (2003) beta",
-"C(C1C(C(C(O1)OP(=O)([O-])OP(=O)([O-])O)O)O)OP(=O)([O-])O",119,"D-Ribose 5-phospho 1-diphosphate",-3363.42,,-3,10,0,"skip","Alberty (2003) beta",
-,121,"D-Ribose",-752,,0,10,0,"skip","Alberty (2003) beta","double entry"
-,130,"IMP",-1255.42,,-2,11,0,"test","Alberty (2003) beta",
-,130,"IMP",-1293.84,,-1,12,0,"skip","Alberty (2003) beta",
-,144,"GMP",-789.59,,-3,11,0,"test","Alberty (2003) beta","Guanosine0=0"
-,144,"GMP",-846.27,,-2,12,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,144,"GMP",-884.69,,-1,13,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,147,"Adenine",313.4,,0,5,0,"skip","Alberty (2003) beta","double entry (also measured as dG=310.67)"
-"CC(=O)CC(=O)[O-]",164,"Acetoacetate",-482.49,,-1,5,0,"train","Alberty (2003) beta",
-"C(C(=O)C(=O)[O-])O",168,"Hydroxypyruvate",-608.55,,-1,3,0,"test","Alberty (2003) beta",
-"C(=O)(N)OP(=O)([O-])[O-]",169,"Carbamoyl-P",-1231.95,,-2,2,0,"test","Alberty (2003) beta",
-"C(=O)(N)OP(=O)(O)[O-]",169,"Carbamoyl-P",-1281.5,,-1,3,0,"skip","Alberty (2003) beta",
-"C(=O)(N)OP(=O)(O)O",169,"Carbamoyl-P",-1310.73,,0,4,0,"skip","Alberty (2003) beta","Pi is fully protonated - ASSUMPTION"
-,178,"Thymine",349.99,,-1,5,0,"test","Alberty (2003) beta","Cytidine0=0"
-,178,"Thymine",293.25,,0,6,0,"skip","Alberty (2003) beta","Cytidine0=0"
-"C(C(=O)CO)O",184,"Glycerone",-451,,0,6,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(C(O1)OC2C(OC(C(C2O)O)O)CO)O)O)O)O",185,"Cellobiose",-1585.94,,0,22,0,"test","Alberty (2003) beta",
-"C[C@H]([C@@H](C(=O)[O-])[NH3+])O",188,"L-Threonine",-528.89,,0,9,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(C(=O)O1)O)O)O)O",198,"D-Glucono-1,5-lactone",-903.5,,0,10,0,"train","Alberty (2003) beta",
-"C(C(C(C(=O)CO)O)O)OP(=O)([O-])[O-]",199,"D-Ribulose-5P",-1595.32,,-2,9,0,"train","Alberty (2003) beta",
-"C(C(C(C(=O)CO)O)O)OP(=O)([O-])O",199,"D-Ribulose-5P",-1633.5,,-1,10,0,"skip","Alberty (2003) beta",
-,214,"thymidine",-157.59,,-1,13,0,"test","Alberty (2003) beta","Cytidine0=0"
-,214,"thymidine",-214.65,,0,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,224,"adenosine-5P-Sulfate",-1541.98,,-2,12,0,"test","Alberty (2003) beta",
-"CC(C)CC(=O)C(=O)[O-]",233,"oxoisocaproate",-445.14,,-1,9,0,"train","Alberty (2003) beta",
-,242,"guanine",560.41,,-1,4,0,"test","Alberty (2003) beta","Guanosine0=0"
-,242,"guanine",507.9,,0,5,0,"skip","Alberty (2003) beta","Guanosine0=0"
-"N(=O)(=O)[O-]",244,"nitrate",-108.74,-205,-1,0,0,"test","Alberty (2003) beta",
-"N(=O)(=O)O",244,"nitrate",-111.25,-207.36,0,1,0,"skip","Alberty (2003) beta",
-"C(C1C(C(C(C(O1)OCC2C(C(C(C(O2)O)O)O)O)O)O)O)O",252,"Isomaltose",-1587.71,-2244.48,0,22,0,"train","Alberty (2003) beta",
-"C([C@H](C(=O)[O-])O)O",258,"D-Glycerate",-661.01,,-1,5,0,"train","Alberty (2003) beta",
-,262,"Hypoxanthine",98.75,,0,4,0,"skip","Alberty (2003) beta","duplicate entry"
-"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])[O-]",275,"D-Mannose-6P",-1759.87,-2273.71,-2,11,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])O",275,"D-Mannose-6P",-1796.63,-2271.9,-1,12,0,"skip","Alberty (2003) beta",
-"[S-2]",283,"Sulfide",85.8,33.1,-2,0,0,"test","Alberty (2003) beta",
-"[SH-1]",283,"Sulfide",12.08,-17.6,-1,1,0,"skip","Alberty (2003) beta",
-"[SH2]",283,"Sulfide",-27.83,-39.7,0,2,0,"skip","Alberty (2003) beta",
-"C1=NC(=O)C2=C(N1)N(C=N2)C3C(C(C(O3)CO)O)O",294,"Inosine",-409.15,,0,12,0,"train","Alberty (2003) beta",
-,299,"Uridine",-160.08,,-1,11,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,299,"Uridine",-214.65,,0,12,0,"test","Alberty (2003) beta","Cytidine0=0"
-,305,"Mg",-455.3,-467,2,0,1,"test","Alberty (2003) beta",
-CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(=O)[O-],313,"oxalyl-CoA",-509.96,,-5,31,0,"train","Alberty (2003) beta","CoA-1=0 ?"
-CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(=O)C,332,"acetoacetyl-CoA",-285.32,,-4,36,0,"train","Alberty (2003) beta","CoA-1=0"
-"C(C(C(C(CO)O)O)O)O",379,"Xylitol",-784.09,,0,12,0,"train","Alberty (2003) beta",
-,380,"Cytosine",507.9,,0,5,0,"test","Alberty (2003) beta","Cytidine0=0"
-,380,"Cytosine",481.64,,1,6,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,385,"Xanthine",335.49,,-1,3,0,"test","Alberty (2003) beta","Guanosine0=0"
-,385,"Xanthine",293.25,,0,4,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,387,"Guanosine",52.86,,-1,12,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,387,"Guanosine",0,,0,13,0,"test","Alberty (2003) beta",
-"C1=CC=C(C=C1)C=CC(=O)[O-]",423,"trans-Cinnamate",-128.75,,-1,7,0,"test","Alberty (2003) beta",
-,455,"Nicotinamide-ribonucleotide",840.08,,-2,14,0,"test","Alberty (2003) beta","protonation levels don't make sense"
-,455,"Nicotinamide-ribonucleotide",803.32,,-1,15,0,"skip","Alberty (2003) beta","protonation levels don't make sense"
-"C(C(C(C(CO)O)O)O)O",474,"Ribitol",-774.8,,0,12,0,"test","Alberty (2003) beta",
-,475,"Cytidine",0,,0,13,0,"test","Alberty (2003) beta","Cytidine0=0"
-,475,"Cytidine",-22.09,,1,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,533,"NO_g",86.55,90.25,0,0,0,"test","Alberty (2003) beta",
-"C1[C@@H]2[C@H]([C@H]([C@H](n3cnc4c(N)ncnc34)O2)O)OP(=O)([O-])O1",575,"Cyclic-AMP",-629.68,,-1,11,0,"test","Alberty (2003) beta","decomposition scheme doesn't support this kind of P-ring"
-"C(C(C=O)O)O",577,"D-Glyceraldehyde",-440.02,,0,6,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1587.7,,-2,9,0,"skip","Alberty (2003) beta",
-"C(C1C(C(C(O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1625.88,,-1,10,0,"skip","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@@H]([C@@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O",636,"D-Mannose-1P",-1754.56,,-2,11,0,"train","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@@H]([C@@H]([C@H](O1)OP(=O)([O-])O)O)O)O)O",636,"D-Mannose-1P",-1791.32,,-1,12,0,"skip","Alberty (2003) beta",
-"C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",644,"D-Mannitol-1P",-1793.58,,-2,13,0,"train","Alberty (2003) beta",
-"C(C(C(C(C(COP(=O)([O-])O)O)O)O)O)O",644,"D-Mannitol-1P",-1830.68,,-1,14,0,"skip","Alberty (2003) beta",
-,655,"XMP",-1014.51,,-3,10,0,"test","Alberty (2003) beta","Guanosine0=0"
-,655,"XMP",-1060.92,,-2,11,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,655,"XMP",-1099.34,,-1,12,0,"skip","Alberty (2003) beta","Guanosine0=0"
-"C1C(C(OC1O)COP(=O)([O-])[O-])O",673,"Deoxyribose-5P",-1447.92,,-2,9,0,"train","Alberty (2003) beta",
-"C1C(C(OC1O)COP(=O)([O-])O)O",673,"Deoxyribose-5P",-1486.11,,-1,10,0,"skip","Alberty (2003) beta",
-,700,"XTP",-2739.37,,-5,10,0,"test","Alberty (2003) beta","Guanosine0=0"
-,700,"XTP",-2788.4,,-4,11,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,700,"XTP",-2831.78,,-3,12,0,"skip","Alberty (2003) beta","Guanosine0=0"
-"C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-948.31,,0,14,0,"train","Alberty (2003) beta",
-"C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-946.36,,0,14,0,"skip","Alberty (2003) beta","duplicate entry"
-,887,"N2O_q",104.2,82.05,0,0,0,"test","Alberty (2003) beta",
-"C([C@@H](C(=O)[O-])[NH3+])OP(=O)([O-])[O-]",1005,"O-Phospho-L-serine",-1360.75,,-2,6,0,"train","Alberty (2003) beta",
-"C([C@@H](C(=O)[O-])[NH3+])OP(=O)([O-])O",1005,"O-Phospho-L-serine",-1397.51,,-1,7,0,"skip","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@H]1[C@@H]([C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O)O",1083,"Trehalose",-1582.76,,0,22,0,"train","Alberty (2003) beta",
-"C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",1096,"D-Sorbitol-6P",-1790.86,,-2,13,0,"train","Alberty (2003) beta",
-"C(C(C(C(C(COP(=O)([O-])O)O)O)O)O)O",1096,"D-Sorbitol-6P",-1827.51,,-1,14,0,"skip","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)OP(=O)([O-])[O-]",1112,"D-arabinose-5P",-1598.34,,-2,9,0,"train","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)OP(=O)([O-])O",1112,"D-arabinose-5P",-1636.53,,-1,10,0,"skip","Alberty (2003) beta",
-"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])[O-]",1113,"D-galactose-6P",-1756.81,,-2,11,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])O",1113,"D-galactose-6P",-1793.57,,-1,12,0,"skip","Alberty (2003) beta",
-"C(C(C(=O)[O-])O)C(=O)C(=O)[O-]",1127,"4-hydroxy-2-oxoglutarate",-971.78,,-2,4,0,"train","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@@H]([C@H](C(=O)O1)O)O)O)OP(=O)([O-])[O-]",1236,"D-Glucono-1,5-lactone 6-phosphate",-1746.08,,-2,9,0,"train","Alberty (2003) beta",
-"C([C@@H]1[C@H]([C@@H]([C@H](C(=O)O1)O)O)O)OP(=O)([O-])O",1236,"D-Glucono-1,5-lactone 6-phosphate",-1782.73,,-1,10,0,"skip","Alberty (2003) beta",
-,1337,"XDP",-1880.5,,-4,10,0,"test","Alberty (2003) beta","Guanosine0=0"
-,1337,"XDP",-1926.51,,-3,11,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,1337,"XDP",-1967.49,,-2,12,0,"skip","Alberty (2003) beta","Guanosine0=0"
-"C(=CC(=O)[O-])C(=O)[O-]",1384,"Maleate",-592.09,,-2,2,0,"train","Alberty (2003) beta",
-"CCCC=O",1412,"Butanal",-129.87,,0,8,0,"train","Alberty (2003) beta",
-"C(#N)[O-]",1417,"Cyanate",-97.4,,-1,0,0,"test","Alberty (2003) beta","too small to decompose"
-"C(C(C(C(C(CO)O)O)O)O)O",1507,"L-Iditol",-944.73,,0,14,0,"train","Alberty (2003) beta",
-"NC(=O)[O-]",1563,"Carbamate",-377.65,,-1,2,0,"test","Alberty (2003) beta","too small to decompose"
-,1762,"xanthosine",-172.07,,-1,11,0,"skip","Alberty (2003) beta","Guanosine0=0"
-,1762,"xanthosine",-214.65,,0,12,0,"test","Alberty (2003) beta","Guanosine0=0"
-"C1CC(=O)NC1C(=O)[O-]",1879,"5-oxoproline",-469.15,,-1,6,0,"test","Alberty (2003) beta",
-"CC(=CC(=O)[O-])C(=O)[O-]",2226,"methylmaleate",-600.7,,-2,4,0,"train","Alberty (2003) beta",
-,2226,"methylmaleate",-636.49,,-1,5,0,"skip","Alberty (2003) beta","unknown protonation"
-"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)[O-]",2557,"methylmalonyl-CoA",-502.48,,-5,35,0,"train","Alberty (2003) beta","CoA-1=0"
-"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)O",2557,"methylmalonyl-CoA",-526.51,,-4,36,0,"skip","Alberty (2003) beta","CoA-1=0"
-"CC(CC(=O)[O-])(C(=O)[O-])O",2612,"(R)-2-Methylmalate",-843.9,,-2,6,0,"train","Alberty (2003) beta",
-"C(CC(=O)[O-])C(C(=O)[O-])O",3196,"(S)-2-Hydroxyglutarate",-840.18,,-2,6,0,"train","Alberty (2003) beta",
-"C(C(=O)C(=O)[O-])OP(=O)([O-])[O-]",3232,"Phosphohydroxypyruvate",-1448.67,,-3,2,0,"train","Alberty (2003) beta",
-"C(C(C1C(C(C(=O)O1)O)O)O)O",3383,"D-Galactono-1,4-lactone",-905.34,,0,10,0,"train","Alberty (2003) beta",
-"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(O)C(=O)[O-]",4348,"malyl-CoA",-663.44,,-5,35,0,"train","Alberty (2003) beta","CoA-1=0"
-"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(O)C(=O)O",4348,"malyl-CoA",-687.47,,-4,36,0,"skip","Alberty (2003) beta","CoA-1=0"
-"C(CC(=O)[O-])C(=O)C(=O)N",5572,"Ketoglutaramate",-595.88,,-1,6,0,"train","Alberty (2003) beta",
-"C(C1C(C(C(C(O1)OC2C(OC(C2O)(CO)O)CO)O)O)O)O",7064,"Lactulose",-1575.22,,0,22,0,"test","Alberty (2003) beta",
-,,"TMP",-999.67,,-3,12,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TMP",-1060.6,,-2,13,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TMP",-1099.01,,-1,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TDP",-1865.77,,-4,12,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TDP",-1926.28,,-3,13,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TDP",-1967.25,,-2,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TTP",-2724.87,,-5,12,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TTP",-2788.25,,-4,13,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"TTP",-2831.63,,-3,14,0,"skip","Alberty (2003) beta","Cytidine0=0"
-,,"Ethane",-170.1,,0,6,0,"skip","Alberty (2003) beta","conflicts with wagman..."
-,,"FAD_enz_ox",0,,-2,31,0,"skip","Alberty (2003) beta",
-,,"FAD_enz_red",-88.6,,-2,33,0,"skip","Alberty (2003) beta",
-,,"L_Sorbitol_6_p",-1793.1,,-2,13,0,"skip","Alberty (2003) beta",
-,,"L_Sorbitol_6_p",-1829.75,,-1,14,0,"skip","Alberty (2003) beta",
+"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC",100,"Propanoyl-CoA",-179.14,,-4,36,0,"train","Alberty (2006)","CoA-1=0"
+,104,"IDP",-2121.01,,-3,11,0,"test","Alberty (2006)",
+,104,"IDP",-2161.99,,-2,12,0,"test","Alberty (2006)",
+,105,"UMP",-1002.21,,-3,10,0,"skip","Alberty (2006)","Cytidine0=0"
+,105,"UMP",-1060.6,,-2,11,0,"skip","Alberty (2006)","Cytidine0=0"
+,105,"UMP",-1099.01,,-1,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,106,"Uracil",347.48,,-1,3,0,"skip","Alberty (2006)","Cytidine0=0"
+,106,"Uracil",293.25,,0,4,0,"skip","Alberty (2006)","Cytidine0=0"
+,112,"CDP",-1711.63,,-3,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,112,"CDP",-1752.6,,-2,13,0,"skip","Alberty (2006)","Cytidine0=0"
+,112,"CDP",-1779.77,,-1,14,0,"skip","Alberty (2006)","Cytidine0=0"
+"C([C@H]([C@H]([C@H](C=O)O)O)O)OP(=O)([O-])[O-]",117,"D-Ribose 5-phosphate",-1595.78,,-2,9,0,"train","Alberty (2006)",
+"C([C@H]([C@H]([C@H](C=O)O)O)O)OP(=O)([O-])O",117,"D-Ribose 5-phosphate",-1633.96,,-1,10,0,"test","Alberty (2006)",
+"C(C1C(C(C(O1)OP(=O)([O-])OP(=O)([O-])[O-])O)O)OP(=O)([O-])[O-]",119,"D-Ribose 5-phospho 1-diphosphate",-3284.25,,-5,8,0,"train","Alberty (2006)",
+"C(C1C(C(C(O1)OP(=O)([O-])OP(=O)([O-])O)O)O)OP(=O)([O-])[O-]",119,"D-Ribose 5-phospho 1-diphosphate",-3325.23,,-4,9,0,"test","Alberty (2006)",
+"C(C1C(C(C(O1)OP(=O)([O-])OP(=O)([O-])O)O)O)OP(=O)([O-])O",119,"D-Ribose 5-phospho 1-diphosphate",-3363.42,,-3,10,0,"test","Alberty (2006)",
+,121,"D-Ribose",-752,,0,10,0,"skip","Alberty (2006)","double entry"
+,130,"IMP",-1255.42,,-2,11,0,"test","Alberty (2006)",
+,130,"IMP",-1293.84,,-1,12,0,"test","Alberty (2006)",
+,144,"GMP",-789.59,,-3,11,0,"skip","Alberty (2006)","Guanosine0=0"
+,144,"GMP",-846.27,,-2,12,0,"skip","Alberty (2006)","Guanosine0=0"
+,144,"GMP",-884.69,,-1,13,0,"skip","Alberty (2006)","Guanosine0=0"
+,147,"Adenine",313.4,,0,5,0,"skip","Alberty (2006)","double entry (also measured as dG=310.67)"
+"CC(=O)CC(=O)[O-]",164,"Acetoacetate",-482.49,,-1,5,0,"train","Alberty (2006)",
+"C(C(=O)C(=O)[O-])O",168,"Hydroxypyruvate",-608.55,,-1,3,0,"test","Alberty (2006)",
+"C(=O)(N)OP(=O)([O-])[O-]",169,"Carbamoyl-P",-1231.95,,-2,2,0,"test","Alberty (2006)",
+"C(=O)(N)OP(=O)(O)[O-]",169,"Carbamoyl-P",-1281.5,,-1,3,0,"test","Alberty (2006)",
+"C(=O)(N)OP(=O)(O)O",169,"Carbamoyl-P",-1310.73,,0,4,0,"test","Alberty (2006)","Pi is fully protonated - ASSUMPTION"
+,178,"Thymine",349.99,,-1,5,0,"skip","Alberty (2006)","Cytidine0=0"
+,178,"Thymine",293.25,,0,6,0,"skip","Alberty (2006)","Cytidine0=0"
+"C(C(=O)CO)O",184,"Glycerone",-451,,0,6,0,"train","Alberty (2006)",
+"C(C1C(C(C(C(O1)OC2C(OC(C(C2O)O)O)CO)O)O)O)O",185,"Cellobiose",-1585.94,,0,22,0,"test","Alberty (2006)",
+"C[C@H]([C@@H](C(=O)[O-])[NH3+])O",188,"L-Threonine",-528.89,,0,9,0,"train","Alberty (2006)",
+"C(C1C(C(C(C(=O)O1)O)O)O)O",198,"D-Glucono-1,5-lactone",-903.5,,0,10,0,"train","Alberty (2006)",
+"C(C(C(C(=O)CO)O)O)OP(=O)([O-])[O-]",199,"D-Ribulose-5P",-1595.32,,-2,9,0,"train","Alberty (2006)",
+"C(C(C(C(=O)CO)O)O)OP(=O)([O-])O",199,"D-Ribulose-5P",-1633.5,,-1,10,0,"test","Alberty (2006)",
+,214,"thymidine",-157.59,,-1,13,0,"test","Alberty (2006)","Cytidine0=0"
+,214,"thymidine",-214.65,,0,14,0,"test","Alberty (2006)","Cytidine0=0"
+,224,"adenosine-5P-Sulfate",-1541.98,,-2,12,0,"test","Alberty (2006)",
+"CC(C)CC(=O)C(=O)[O-]",233,"oxoisocaproate",-445.14,,-1,9,0,"train","Alberty (2006)",
+,242,"guanine",560.41,,-1,4,0,"skip","Alberty (2006)","Guanosine0=0"
+,242,"guanine",507.9,,0,5,0,"skip","Alberty (2006)","Guanosine0=0"
+"N(=O)(=O)[O-]",244,"nitrate",-108.74,-205,-1,0,0,"test","Alberty (2006)",
+"N(=O)(=O)O",244,"nitrate",-111.25,-207.36,0,1,0,"test","Alberty (2006)",
+"C(C1C(C(C(C(O1)OCC2C(C(C(C(O2)O)O)O)O)O)O)O)O",252,"Isomaltose",-1587.71,-2244.48,0,22,0,"train","Alberty (2006)",
+"C([C@H](C(=O)[O-])O)O",258,"D-Glycerate",-661.01,,-1,5,0,"train","Alberty (2006)",
+,262,"Hypoxanthine",98.75,,0,4,0,"skip","Alberty (2006)","duplicate entry"
+"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])[O-]",275,"D-Mannose-6P",-1759.87,-2273.71,-2,11,0,"train","Alberty (2006)",
+"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])O",275,"D-Mannose-6P",-1796.63,-2271.9,-1,12,0,"test","Alberty (2006)",
+"[S-2]",283,"Sulfide",85.8,33.1,-2,0,0,"test","Alberty (2006)",
+"[SH-1]",283,"Sulfide",12.08,-17.6,-1,1,0,"test","Alberty (2006)",
+"[SH2]",283,"Sulfide",-27.83,-39.7,0,2,0,"test","Alberty (2006)",
+"C1=NC(=O)C2=C(N1)N(C=N2)C3C(C(C(O3)CO)O)O",294,"Inosine",-409.15,,0,12,0,"train","Alberty (2006)",
+,299,"Uridine",-160.08,,-1,11,0,"skip","Alberty (2006)","Cytidine0=0"
+,299,"Uridine",-214.65,,0,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,305,"Mg",-455.3,-467,2,0,1,"test","Alberty (2006)",
+CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(=O)[O-],313,"oxalyl-CoA",-509.96,,-5,31,0,"train","Alberty (2006)","CoA-1=0 ?"
+CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(=O)C,332,"acetoacetyl-CoA",-285.32,,-4,36,0,"train","Alberty (2006)","CoA-1=0"
+"C(C(C(C(CO)O)O)O)O",379,"Xylitol",-784.09,,0,12,0,"train","Alberty (2006)",
+,380,"Cytosine",507.9,,0,5,0,"skip","Alberty (2006)","Cytidine0=0"
+,380,"Cytosine",481.64,,1,6,0,"skip","Alberty (2006)","Cytidine0=0"
+,385,"Xanthine",335.49,,-1,3,0,"skip","Alberty (2006)","Guanosine0=0"
+,385,"Xanthine",293.25,,0,4,0,"skip","Alberty (2006)","Guanosine0=0"
+,387,"Guanosine",52.86,,-1,12,0,"skip","Alberty (2006)","Guanosine0=0"
+,387,"Guanosine",0,,0,13,0,"test","Alberty (2006)",
+"C1=CC=C(C=C1)C=CC(=O)[O-]",423,"trans-Cinnamate",-128.75,,-1,7,0,"test","Alberty (2006)",
+,455,"Nicotinamide-ribonucleotide",840.08,,-2,14,0,"test","Alberty (2006)","protonation levels don't make sense"
+,455,"Nicotinamide-ribonucleotide",803.32,,-1,15,0,"test","Alberty (2006)","protonation levels don't make sense"
+"C(C(C(C(CO)O)O)O)O",474,"Ribitol",-774.8,,0,12,0,"test","Alberty (2006)",
+,475,"Cytidine",0,,0,13,0,"skip","Alberty (2006)","Cytidine0=0"
+,475,"Cytidine",-22.09,,1,14,0,"skip","Alberty (2006)","Cytidine0=0"
+,533,"NO_g",86.55,90.25,0,0,0,"test","Alberty (2006)",
+"C1[C@@H]2[C@H]([C@H]([C@H](n3cnc4c(N)ncnc34)O2)O)OP(=O)([O-])O1",575,"Cyclic-AMP",-629.68,,-1,11,0,"test","Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
+"C(C(C=O)O)O",577,"D-Glyceraldehyde",-440.02,,0,6,0,"train","Alberty (2006)",
+"C(C1C(C(C(O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1587.7,,-2,9,0,"train","Alberty (2006)",
+"C(C1C(C(C(O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1625.88,,-1,10,0,"test","Alberty (2006)",
+"C([C@@H]1[C@H]([C@@H]([C@@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O",636,"D-Mannose-1P",-1754.56,,-2,11,0,"train","Alberty (2006)",
+"C([C@@H]1[C@H]([C@@H]([C@@H]([C@H](O1)OP(=O)([O-])O)O)O)O)O",636,"D-Mannose-1P",-1791.32,,-1,12,0,"test","Alberty (2006)",
+"C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",644,"D-Mannitol-1P",-1793.58,,-2,13,0,"train","Alberty (2006)",
+"C(C(C(C(C(COP(=O)([O-])O)O)O)O)O)O",644,"D-Mannitol-1P",-1830.68,,-1,14,0,"test","Alberty (2006)",
+,655,"XMP",-1014.51,,-3,10,0,"skip","Alberty (2006)","Guanosine0=0"
+,655,"XMP",-1060.92,,-2,11,0,"skip","Alberty (2006)","Guanosine0=0"
+,655,"XMP",-1099.34,,-1,12,0,"skip","Alberty (2006)","Guanosine0=0"
+"C1C(C(OC1O)COP(=O)([O-])[O-])O",673,"Deoxyribose-5P",-1447.92,,-2,9,0,"train","Alberty (2006)",
+"C1C(C(OC1O)COP(=O)([O-])O)O",673,"Deoxyribose-5P",-1486.11,,-1,10,0,"test","Alberty (2006)",
+,700,"XTP",-2739.37,,-5,10,0,"skip","Alberty (2006)","Guanosine0=0"
+,700,"XTP",-2788.4,,-4,11,0,"skip","Alberty (2006)","Guanosine0=0"
+,700,"XTP",-2831.78,,-3,12,0,"skip","Alberty (2006)","Guanosine0=0"
+"C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-948.31,,0,14,0,"skip","Alberty (2006)","duplicate entry"
+"C(C(C(C(C(CO)O)O)O)O)O",794,"D-Sorbitol",-946.36,,0,14,0,"train","Alberty (2006)",
+,887,"N2O_q",104.2,82.05,0,0,0,"test","Alberty (2006)",
+"C([C@@H](C(=O)[O-])[NH3+])OP(=O)([O-])[O-]",1005,"O-Phospho-L-serine",-1360.75,,-2,6,0,"train","Alberty (2006)",
+"C([C@@H](C(=O)[O-])[NH3+])OP(=O)([O-])O",1005,"O-Phospho-L-serine",-1397.51,,-1,7,0,"test","Alberty (2006)",
+"C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@H]1[C@@H]([C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O)O",1083,"Trehalose",-1582.76,,0,22,0,"train","Alberty (2006)",
+"C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",1096,"D-Sorbitol-6P",-1790.86,,-2,13,0,"skip","Alberty (2006)","duplicate entry"
+"C(C(C(C(C(COP(=O)([O-])O)O)O)O)O)O",1096,"D-Sorbitol-6P",-1827.51,,-1,14,0,"skip","Alberty (2006)","duplicate entry"
+"C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)OP(=O)([O-])[O-]",1112,"D-arabinose-5P",-1598.34,,-2,9,0,"train","Alberty (2006)",
+"C([C@@H]1[C@H]([C@@H]([C@@H](O1)O)O)O)OP(=O)([O-])O",1112,"D-arabinose-5P",-1636.53,,-1,10,0,"test","Alberty (2006)",
+"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])[O-]",1113,"D-galactose-6P",-1756.81,,-2,11,0,"train","Alberty (2006)",
+"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])O",1113,"D-galactose-6P",-1793.57,,-1,12,0,"test","Alberty (2006)",
+"C(C(C(=O)[O-])O)C(=O)C(=O)[O-]",1127,"4-hydroxy-2-oxoglutarate",-971.78,,-2,4,0,"train","Alberty (2006)",
+"C([C@@H]1[C@H]([C@@H]([C@H](C(=O)O1)O)O)O)OP(=O)([O-])[O-]",1236,"D-Glucono-1,5-lactone 6-phosphate",-1746.08,,-2,9,0,"train","Alberty (2006)",
+"C([C@@H]1[C@H]([C@@H]([C@H](C(=O)O1)O)O)O)OP(=O)([O-])O",1236,"D-Glucono-1,5-lactone 6-phosphate",-1782.73,,-1,10,0,"test","Alberty (2006)",
+,1337,"XDP",-1880.5,,-4,10,0,"skip","Alberty (2006)","Guanosine0=0"
+,1337,"XDP",-1926.51,,-3,11,0,"skip","Alberty (2006)","Guanosine0=0"
+,1337,"XDP",-1967.49,,-2,12,0,"skip","Alberty (2006)","Guanosine0=0"
+"C(=CC(=O)[O-])C(=O)[O-]",1384,"Maleate",-592.09,,-2,2,0,"train","Alberty (2006)",
+"CCCC=O",1412,"Butanal",-129.87,,0,8,0,"train","Alberty (2006)",
+"C(#N)[O-]",1417,"Cyanate",-97.4,,-1,0,0,"test","Alberty (2006)","too small to decompose"
+"C(C(C(C(C(CO)O)O)O)O)O",1507,"L-Iditol",-944.73,,0,14,0,"train","Alberty (2006)",
+"NC(=O)[O-]",1563,"Carbamate",-377.65,,-1,2,0,"test","Alberty (2006)","too small to decompose"
+,1762,"xanthosine",-172.07,,-1,11,0,"skip","Alberty (2006)","Guanosine0=0"
+,1762,"xanthosine",-214.65,,0,12,0,"skip","Alberty (2006)","Guanosine0=0"
+"C1CC(=O)NC1C(=O)[O-]",1879,"5-oxoproline",-469.15,,-1,6,0,"test","Alberty (2006)",
+"CC(=CC(=O)[O-])C(=O)[O-]",2226,"methylmaleate",-600.7,,-2,4,0,"train","Alberty (2006)",
+,2226,"methylmaleate",-636.49,,-1,5,0,"test","Alberty (2006)","unknown protonation"
+"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)[O-]",2557,"methylmalonyl-CoA",-502.48,,-5,35,0,"train","Alberty (2006)","CoA-1=0"
+"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)O",2557,"methylmalonyl-CoA",-526.51,,-4,36,0,"test","Alberty (2006)","CoA-1=0"
+"CC(CC(=O)[O-])(C(=O)[O-])O",2612,"(R)-2-Methylmalate",-843.9,,-2,6,0,"train","Alberty (2006)",
+"C(CC(=O)[O-])C(C(=O)[O-])O",3196,"(S)-2-Hydroxyglutarate",-840.18,,-2,6,0,"train","Alberty (2006)",
+"C(C(=O)C(=O)[O-])OP(=O)([O-])[O-]",3232,"Phosphohydroxypyruvate",-1448.67,,-3,2,0,"train","Alberty (2006)",
+"C(C(C1C(C(C(=O)O1)O)O)O)O",3383,"D-Galactono-1,4-lactone",-905.34,,0,10,0,"train","Alberty (2006)",
+"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(O)C(=O)[O-]",4348,"malyl-CoA",-663.44,,-5,35,0,"train","Alberty (2006)","CoA-1=0"
+"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(O)C(=O)O",4348,"malyl-CoA",-687.47,,-4,36,0,"test","Alberty (2006)","CoA-1=0"
+"C(CC(=O)[O-])C(=O)C(=O)N",5572,"Ketoglutaramate",-595.88,,-1,6,0,"train","Alberty (2006)",
+"C(C1C(C(C(C(O1)OC2C(OC(C2O)(CO)O)CO)O)O)O)O",7064,"Lactulose",-1575.22,,0,22,0,"test","Alberty (2006)",
+,,"TMP",-999.67,,-3,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TMP",-1060.6,,-2,13,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TMP",-1099.01,,-1,14,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TDP",-1865.77,,-4,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TDP",-1926.28,,-3,13,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TDP",-1967.25,,-2,14,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TTP",-2724.87,,-5,12,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TTP",-2788.25,,-4,13,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"TTP",-2831.63,,-3,14,0,"skip","Alberty (2006)","Cytidine0=0"
+,,"Ethane",-170.1,,0,6,0,"skip","Alberty (2006)","conflicts with wagman..."
+,,"FAD_enz_ox",0,,-2,31,0,"skip","Alberty (2006)",
+,,"FAD_enz_red",-88.6,,-2,33,0,"skip","Alberty (2006)",
+"C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",1096,"D-sorbitol-6P",-1793.1,,-2,13,0,"train","Alberty (2006)",
+"C(C(C(C(C(COP(=O)([O-])O)O)O)O)O)O",1096,"D-sorbitol-6P",-1829.75,,-1,14,0,"test","Alberty (2006)",
 "c1=c(Cl)c(Cl)=c(Cl)c(Cl)=c1Cl",0,"Pentachlorobenzene",45.58,,,,0,"skip","Dolfing (1992)",
 ,0,"1,2,3,4-tetrachlorobenzene|",55.62,,,,0,"skip","Dolfing (1992)",
 ,0,"1,2,3,5-tetrachlorobenzene|",49.35,,,,0,"skip","Dolfing (1992)",

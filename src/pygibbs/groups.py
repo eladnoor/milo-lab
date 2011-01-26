@@ -437,12 +437,18 @@ class GroupContribution(Thermodynamics):
             if not decomposition_below or not decomposition_above:
                 continue
             groupvec = decomposition_above.AsVector() - decomposition_below.AsVector()
-            obs_name = self.kegg().cid2name(cid) + " [%d -> %d]" % \
-                (decomposition_below.NetCharge(), decomposition_above.NetCharge())
             self.html_writer.write('<br>\nDecomposition = %s<br>\n' % str(groupvec))
-            l_groupvec.append(groupvec)
-            l_deltaG.append(dG0)
-            l_names.append(obs_name)
+
+            try:
+                i = l_groupvec.index(groupvec)
+                l_deltaG[i].append(dG0)
+            except ValueError:
+                l_groupvec.append(groupvec)
+                l_deltaG.append([dG0])
+                l_names.append(str(groupvec))
+        
+        for i in xrange(len(l_groupvec)):
+            l_deltaG[i] = pylab.mean(l_deltaG[i])
         
         self.html_writer.write('</div>')
         return (l_groupvec, l_deltaG, l_names)        
@@ -490,6 +496,7 @@ class GroupContribution(Thermodynamics):
 
     def linear_regression_train(self):
         self.load_training_data()
+        
         group_contributions, nullspace = LinearRegression.LeastSquares(
             self.group_matrix, self.obs)
         return list(group_contributions.flat), nullspace
@@ -562,6 +569,14 @@ class GroupContribution(Thermodynamics):
         deviations = []
         
         for i in xrange(n_obs):
+            # skip the cross-validation of pKa values (this is reasonable
+            # since the current version of Group Contribution will always
+            # give the same value for any pKa of a specific group, and
+            # therefore the error depends only on the standard deviation of
+            # the pKas in the training data
+            if self.mol_names[i][0:3] == 'pKa':
+                continue
+            
             # leave out the row corresponding with observation 'i'
             subset = range(n_obs)
             subset.pop(i)
@@ -1040,6 +1055,14 @@ if __name__ == '__main__':
         G = GroupContribution(db, html_writer)
         G.init()
         G.load_groups("../data/thermodynamics/groups_species.csv")
+        T = default_T
+        ppi = G.estimate_dG0_keggcid(13, pH=7, pMg=0, I=0, T=T)
+        atp = G.estimate_dG0_keggcid(2, pH=7, pMg=0, I=0, T=T)
+        camp = -R*T*pylab.log(0.065) + atp - ppi
+        camp_untransformed = camp - R*T*pylab.log(10)*7*11
+        
+        print ppi + camp - atp
+        print camp_untransformed
         
         mols = {}
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
