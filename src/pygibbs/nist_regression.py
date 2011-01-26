@@ -75,7 +75,7 @@ class NistRegression(Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
         
-    def ReverseTransform(self, prior_thermodynamics=None, T_range=None):
+    def ReverseTransform(self, prior_thermodynamics=None, T_range=None, assume_no_pKa_by_default=False):
         """
             Performs the reverse Lagandre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
@@ -83,6 +83,19 @@ class NistRegression(Thermodynamics):
         """
         cids_with_pKa = set(self.cid2diss_table.keys())
         cids_in_nist = set(self.nist.GetAllCids())
+        
+        if assume_no_pKa_by_default:
+            for cid in cids_in_nist.difference(cids_with_pKa):
+                diss = DissociationTable(cid)
+                diss.min_nH = self.kegg.cid2num_hydrogens(cid)
+                diss.min_charge = self.kegg.cid2charge(cid)
+                if diss.min_nH == None or diss.min_charge == None:
+                    logging.warning('cannot add C%05d since nH or charge '
+                                    'cannot be determined' % cid) 
+                else:
+                    self.cid2diss_table[cid] = diss
+                    cids_with_pKa.add(cid)
+        
         cids_in_nist_with_pKa = cids_with_pKa.intersection(cids_in_nist)
         logging.info('There are pKa values for %d out of the %d compounds in NIST' % \
                      (len(cids_in_nist_with_pKa), len(cids_in_nist)))
@@ -343,14 +356,15 @@ if (__name__ == "__main__"):
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer, kegg)
     
-    if True:
+    if False:
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
     else:
         T_range = (298, 314)
         
         residuals = nist_regression.ReverseTransform(
-            prior_thermodynamics=alberty, T_range=T_range)
+            prior_thermodynamics=alberty, T_range=T_range, 
+            assume_no_pKa_by_default=True)
 
         nist_regression.ToDatabase()
         
