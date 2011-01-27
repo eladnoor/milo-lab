@@ -17,24 +17,25 @@ def ReactionGraph(request):
 
     rxn = reaction.Reaction.FromForm(form)
     
+    figure = pylab.figure()
     xvals = None
     dgs = None
     if form.cleaned_vary_pmg:
         xvals = pylab.arange(0.001, 14.0, 0.1)
         dgs = [rxn.DeltaGTag(pMg=x) for x in xvals]
-        pylab.xlabel('pMg')
-    if form.cleaned_vary_is:
+        pylab.xlabel('pMg', figure=figure)
+    elif form.cleaned_vary_is:
         xvals = pylab.arange(0.001, 0.35, 0.01)
         dgs = [rxn.DeltaGTag(ionic_strength=x) for x in xvals]
-        pylab.xlabel('ionic strength')
+        pylab.xlabel('Ionic Strength', figure=figure)
     else:
         xvals = pylab.arange(0.001, 14.0, 0.1)
         dgs = [rxn.DeltaGTag(pH=x) for x in xvals]
-        pylab.xlabel('pH')
+        pylab.xlabel('pH', figure=figure)
         
-    pylab.ylabel('dG\'')
-    pylab.plot(xvals, dgs, '.')
+    pylab.ylabel('dG\'', figure=figure)
+    pylab.plot(xvals, dgs, '-', figure=figure)
 
     response = HttpResponse(mimetype="image/png")
-    pylab.savefig(response, format="png")
+    pylab.savefig(response, format="png", figure=figure)
     return response

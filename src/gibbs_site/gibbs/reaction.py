@@ -282,6 +282,21 @@ class Reaction(object):
     
         return '/reaction?%s' % '&'.join(params)
     
+    def GetPhGraphLink(self):
+        params = self._GetUrlParams()
+        params.append('vary_ph=1')
+        return '/graph_reaction?%s' % '&'.join(params)
+
+    def GetPMgGraphLink(self):
+        params = self._GetUrlParams()
+        params.append('vary_pmg=1')
+        return '/graph_reaction?%s' % '&'.join(params)
+    
+    def GetIonicStrengthGraphLink(self):
+        params = self._GetUrlParams()
+        params.append('vary_is=1')
+        return '/graph_reaction?%s' % '&'.join(params)
+    
     @staticmethod
     def _GetReactionSideString(side):
         """Write a reaction side as a string."""
@@ -655,3 +670,7 @@ class Reaction(object):
     k_eq_tag = property(KeqTag)
     no_dg_explanation = property(NoDeltaGExplanation)
     standard_concentrations = property(StandardConcentrations)
+    ph_graph_link = property(GetPhGraphLink)
+    pmg_graph_link = property(GetPMgGraphLink)
+    is_graph_link = property(GetIonicStrengthGraphLink)
+    

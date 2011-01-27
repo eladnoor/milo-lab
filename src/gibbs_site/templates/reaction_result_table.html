@@ -1,0 +1,123 @@
+	<table class="results">
+		
+		{% if not reaction.standard_concentrations %}
+		<tr>
+			<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'</strong></td>
+			<td colspan="2">
+			<strong>
+			{% if reaction.dg_tag %}
+				{{ reaction.dg_tag|floatformat:1 }} kJ / mol
+			{% else %}
+				<a href="/faq#notAvailable">Not available</a>
+				{% if reaction.no_dg_explanation %} ({{ reaction.no_dg_explanation }}) {% endif %}
+			{% endif %}
+			</strong>
+			</td>
+		</tr>
+		{% endif %}
+	
+		<tr>
+			<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'&deg;</strong></td>
+			<td colspan="2">
+			{% if reaction.dg0_tag %}
+			  <strong>
+				{{ reaction.dg0_tag|floatformat:1 }} kJ / mol
+				</strong>
+				&nbsp;&nbsp;&nbsp; [K'<sub>eq</sub> = {{ reaction.k_eq_tag|stringformat:".2g" }}]
+			{% else %}
+			  <strong>
+				<a href="/faq#notAvailable">Not available</a>
+				{% if reaction.no_dg_explanation %} ({{ reaction.no_dg_explanation }}) {% endif %}
+	      </strong>
+			{% endif %}
+			</td>
+		</tr>
+		
+		<tr>
+			<td width="150px">
+				<a href="{{ reaction.ph_graph_link }}" target="_blank" alt="Graph energy as a function of pH">pH</a>
+			</td>
+			<td width="50px"><input type="text" name="ph" id="phField" value="{{ ph }}" size="5"/></td>
+			<td><div id="phSlider"></div></td>
+		</tr>
+		<tr>
+			<td width="150px">
+				<a href="{{ reaction.pmg_graph_link }}" target="_blank" alt="Graph energy as a function of pMg">pMg</a>
+			</td>
+			<td width="50px"><input type="text" name="pmg" id="pmgField" value="{{ pmg }}" size="5"/></td>
+			<td><div id="pmgSlider"></div></td>
+		</tr>
+		<tr>
+			<td width="150px">
+			<a href="{{ reaction.is_graph_link }}" target="_blank" alt="Graph energy as a function of ionic_strength">Ionic strength (M)</a>
+			</td>
+			<td width="50px"><input type="text" name="ionic_strength" id="ionStrengthField" value="{{ ionic_strength }}" size="5"/></td>
+			<td><div id="ionStrengthSlider"></div></td>
+		</tr>
+		<tr>
+			<td width="150px">Concentrations </td>
+			<td colspan="2">
+				{% if not concentration_profile or concentration_profile == "1M" %}
+				<input type="radio" name="concentration_profile" value="1M" checked><a href="/faq#stdConditions">Standard conditions</a> (1 M)
+				  {% else %}
+				  <input type="radio" name="concentration_profile" value="1M" checked><a href="/faq#stdConditions">Standard conditions</a> (1 M)
+				{% endif %}
+				
+				{% ifequal concentration_profile "1mM" %}
+				<input type="radio" name="concentration_profile" value="1mM" checked>1 mM
+				  {% else %}
+				  <input type="radio" name="concentration_profile" value="1mM">1 mM
+				{% endifequal %}
+				
+				{% ifequal concentration_profile "custom" %}
+				<input type="radio" name="concentration_profile" id="customConcRadio" value="custom" checked>Custom
+				  {% else %}
+				  <input type="radio" name="concentration_profile" id="customConcRadio" value="custom">Custom
+				{% endifequal %}
+			</td>
+		</tr>
+		<tr class="customConcentrations"><th colspan="3">Reactant Concentrations</th></tr>
+		{% for reactant in reaction.reactants %}
+			<tr class="customConcentrations">
+				<td width="150px">
+				  {{ reactant.name }}:
+				</td>
+				<td colspan="2">
+				  {% with reactant.compound.kegg_id as kegg_id %}
+					  {% if kegg_id == 'C00001' or kegg_id == 'C00080' %}
+					  <input type="hidden" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" />
+					  	{% if kegg_id == 'C00001' %}
+					  		<a href="<a href="/faq#waterConcentration">55 M</a>
+					  	{% else %}
+					  		N/A
+					  	{% endif %}
+					  {% else %}
+					  	<input type="text" size="10" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" /> &mu;M
+					  {% endif %}
+				  {% endwith %}
+				</td>
+			</tr>
+		{% endfor %}
+		<tr class="customConcentrations"><th colspan="3">Product Concentrations</th></tr>
+		{% for product in reaction.products %}
+			<tr class="customConcentrations">
+				<td width="150px">
+				  {{ product.name }}:
+				</td>
+				<td colspan="2">
+				  {% with product.compound.kegg_id as kegg_id %}
+					  {% if kegg_id == 'C00001' or kegg_id == 'C00080' %}
+					  <input type="hidden" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" />
+					  	{% if kegg_id == 'C00001' %}
+					  		<a href="<a href="/faq#waterConcentration">55 M</a>
+					  	{% else %}
+					  		N/A (<a href="/faq#hConcentration">Why?</a>)
+					  	{% endif %}
+					  {% else %}
+					  	<input type="text" size="10" value="{{ product.micromolar_concentration_string }}" name="productsConcentration" /> &mu;M
+					  {% endif %}
+				  {% endwith %}
+				</td>
+			</tr>
+		{% endfor %}
+	</table>
