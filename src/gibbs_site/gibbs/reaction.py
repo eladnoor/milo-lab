@@ -4,6 +4,7 @@ import logging
 import numpy
 import urllib
 
+from gibbs import concentration_profile
 from gibbs import constants
 from gibbs import models
 
@@ -85,7 +86,46 @@ class Reaction(object):
     def StandardConcentrations(self):
         """Returns True if using standard concentrations."""
         return self.concentration_profile and self.concentration_profile.IsStandard()
+    
+    @staticmethod
+    def FromForm(form):
+        """Build a reaction object from a ReactionForm.
         
+        Args:
+            form: a ReactionForm object.
+        
+        Returns:
+            A Reaction object or None if there's an error.
+        """
+        i_s = form.cleaned_ionic_strength
+        ph = form.cleaned_ph
+        pmg = form.cleaned_pmg
+        
+        clean_reactants = form.cleaned_reactantIds
+        clean_products = form.cleaned_productIds
+        all_ids = clean_reactants + clean_products
+        
+        # Fetch custom concentrations if any.
+        reactant_concentrations = form.cleaned_reactantConcentrations
+        product_concentrations = form.cleaned_productConcentrations
+        all_concentrations = reactant_concentrations + product_concentrations
+        
+        # Build the appropriate concentration profile.
+        cprofile_name = form.cleaned_concentration_profile
+        cprofile = concentration_profile.GetProfile(
+            cprofile_name, all_ids, all_concentrations)
+        
+        reactant_names = form.cleaned_reactantNames
+        product_names = form.cleaned_productNames
+        
+        # Return the built reaction object.
+        zipped_reactants = zip(form.cleaned_reactantCoeffs, clean_reactants, reactant_names)
+        zipped_products = zip(form.cleaned_productCoeffs, clean_products, product_names)
+        return Reaction.FromIds(zipped_reactants, zipped_products,
+                                concentration_profile=cprofile,
+                                pH=ph, pMg=pmg,
+                                ionic_strength=i_s)
+    
     @staticmethod
     def FromIds(reactants, products, concentration_profile=None,
                 pH=constants.DEFAULT_PH,
@@ -507,18 +547,19 @@ class Reaction(object):
         dg0 = products_sum - reactants_sum
         return dg0  
 
-    def DeltaG0Tag(self):
+    def DeltaG0Tag(self, pH=None, pMg=None, ionic_strength=None):
         """Compute the DeltaG0' for a reaction.
         
         Returns:
             The DeltaG0' for this reaction, or None if data was missing.
         """
+        ph = pH or self.ph
+        pmg = pMg or self.pmg
+        i_s = ionic_strength or self.i_s
         reactants_sum = self.GetTotalFormationEnergy(
-            self.reactants, pH=self.ph,
-            pMg=self.pmg, ionic_strength=self.i_s)
+            self.reactants, pH=ph, pMg=pmg, ionic_strength=i_s)
         products_sum = self.GetTotalFormationEnergy(
-            self.products, pH=self.ph,
-            pMg=self.pmg, ionic_strength=self.i_s)
+            self.products, pH=ph, pMg=pmg, ionic_strength=i_s)
         if not products_sum:
             logging.warning('Failed to get products formation energy.')
             return None
@@ -529,13 +570,13 @@ class Reaction(object):
         dg0_tag = products_sum - reactants_sum
         return dg0_tag
 
-    def DeltaGTag(self):
+    def DeltaGTag(self, pH=None, pMg=None, ionic_strength=None):
         """Compute the DeltaG' for a reaction.
         
         Returns:
             The DeltaG' for this reaction, or None if data was missing.
         """
-        dg0_tag = self.DeltaG0Tag()
+        dg0_tag = self.DeltaG0Tag(pH=pH, pMg=pMg, ionic_strength=ionic_strength)
         correction = self._GetConcentrationCorrection()
         return dg0_tag + correction
     

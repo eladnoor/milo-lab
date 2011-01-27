@@ -12,6 +12,7 @@ urlpatterns = patterns('',
     (r'^faq', 'gibbs_site.gibbs.info_pages.FAQPage'),
     (r'^compound', 'gibbs_site.gibbs.compound_page.CompoundPage'),
     (r'^reaction', 'gibbs_site.gibbs.reaction_page.ReactionPage'),
+    (r'^graph_reaction', 'gibbs_site.gibbs.reaction_graph.ReactionGraph'),
     (r'^search', 'gibbs_site.gibbs.search_results_page.ResultsPage'),
     (r'^suggest', 'gibbs_site.gibbs.suggest.SuggestJson'),
     # Example:
