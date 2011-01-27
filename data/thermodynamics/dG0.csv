@@ -294,7 +294,7 @@
 ,299,"Uridine",-160.08,,-1,11,0,"skip","Alberty (2006)","Cytidine0=0"
 ,299,"Uridine",-214.65,,0,12,0,"skip","Alberty (2006)","Cytidine0=0"
 ,305,"Mg",-455.3,-467,2,0,1,"test","Alberty (2006)",
-CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(=O)[O-],313,"oxalyl-CoA",-509.96,,-5,31,0,"train","Alberty (2006)","CoA-1=0 ?"
+CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(=O)[O-],313,"oxalyl-CoA",-509.96,,-5,31,0,"train","Alberty (2006)","CoA-1=0"
 CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(=O)C,332,"acetoacetyl-CoA",-285.32,,-4,36,0,"train","Alberty (2006)","CoA-1=0"
 "C(C(C(C(CO)O)O)O)O",379,"Xylitol",-784.09,,0,12,0,"train","Alberty (2006)",
 ,380,"Cytosine",507.9,,0,5,0,"skip","Alberty (2006)","Cytidine0=0"
@@ -310,7 +310,7 @@ CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2
 ,475,"Cytidine",0,,0,13,0,"skip","Alberty (2006)","Cytidine0=0"
 ,475,"Cytidine",-22.09,,1,14,0,"skip","Alberty (2006)","Cytidine0=0"
 ,533,"NO_g",86.55,90.25,0,0,0,"test","Alberty (2006)",
-"C1[C@@H]2[C@H]([C@H]([C@H](n3cnc4c(N)ncnc34)O2)O)OP(=O)([O-])O1",575,"Cyclic-AMP",-629.68,,-1,11,0,"test","Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
+"C1[C@@H]2[C@H]([C@H]([C@H](n3cnc4c(N)ncnc34)O2)O)OP(=O)([O-])O1",575,"Cyclic-AMP",-790.86,,-1,11,0,"test","Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
 "C(C(C=O)O)O",577,"D-Glyceraldehyde",-440.02,,0,6,0,"train","Alberty (2006)",
 "C(C1C(C(C(O1)OP(=O)([O-])[O-])O)O)O",620,"D-Ribose 1-phosphate",-1587.7,,-2,9,0,"train","Alberty (2006)",
 "C(C1C(C(C(O1)OP(=O)([O-])O)O)O)O",620,"D-Ribose 1-phosphate",-1625.88,,-1,10,0,"test","Alberty (2006)",
