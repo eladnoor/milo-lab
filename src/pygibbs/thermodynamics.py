@@ -1,9 +1,11 @@
 import csv
-from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 import pseudoisomer
 import pylab
-from pygibbs import thermodynamic_constants
 import logging
+import json
+
+from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
+from pygibbs import thermodynamic_constants
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -106,8 +108,6 @@ class Thermodynamics(object):
                 writer.writerow([cid, nH, z, nMg, dG0])
 
     def write_data_to_json(self, json_fname, kegg):
-        import json
-
         formations = []
         for cid in self.get_all_cids():
             h = {}
