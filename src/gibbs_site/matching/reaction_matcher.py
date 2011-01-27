@@ -39,14 +39,15 @@ class ReactionMatches(object):
         self.products = products or []
     
     def GetBestMatch(self):
-        """Returns the product and reactant lists for the best match.
+        """Returns a 2-tuple of product and reactant lists for the
+        best match.
         
         Each list is of 3 tuples (coeff, kegg_id, name).
         """
         reactants = []
         for c in self.reactants:
             if not c.matches:
-                return None, None, None
+                return None
             reactants.append((c.parsed_coeff,
                               c.matches[0].value.kegg_id,
                               c.matches[0].key))
@@ -54,7 +55,7 @@ class ReactionMatches(object):
         products = []
         for c in self.products:
             if not c.matches:
-                return None, None, None
+                return None
             products.append((c.parsed_coeff,
                              c.matches[0].value.kegg_id,
                              c.matches[0].key))
