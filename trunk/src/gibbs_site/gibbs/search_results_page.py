@@ -32,14 +32,13 @@ def ResultsPage(request):
         try:
             parsed_reaction = query_parser.ParseReactionQuery(query)
         except Exception:
-            return render_to_response('error_page.html', template_data)
+            return render_to_response('parse_error_page.html', template_data)
 
         reaction_matches = reaction_matcher.MatchReaction(parsed_reaction)
         best_reaction = reaction_matches.GetBestMatch()
         
         if not best_reaction:
-            logging.error('Failed to match reaction query.')
-            raise Http404
+            return render_to_response('search_error_page.html', template_data)
         
         reactants, products = best_reaction
         cprofile = concentration_profile.GetProfile()

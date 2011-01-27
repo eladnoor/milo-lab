@@ -4,9 +4,9 @@ from gibbs import constants
 from gibbs import reaction_form
 
 class ReactionGraphForm(reaction_form.ReactionForm):
-    vary_ph = forms.BooleanField()
-    vary_is = forms.BooleanField()
-    vary_pmg = forms.BooleanField()
+    vary_ph = forms.BooleanField(required=False)
+    vary_is = forms.BooleanField(required=False)
+    vary_pmg = forms.BooleanField(required=False)
     
     # Convenience accessors for clean data with defaults.
     cleaned_vary_ph  = property(lambda self: self._GetWithDefault('vary_ph', False))
