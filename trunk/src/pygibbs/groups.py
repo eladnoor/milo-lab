@@ -442,10 +442,12 @@ class GroupContribution(Thermodynamics):
             try:
                 i = l_groupvec.index(groupvec)
                 l_deltaG[i].append(dG0)
+                l_names[i] += ', C%05d [%d->%d]' % (cid, nH_above, nH_below)
             except ValueError:
                 l_groupvec.append(groupvec)
                 l_deltaG.append([dG0])
-                l_names.append(str(groupvec))
+                l_names.append('pKa (%s): C%05d [%d->%d]' % \
+                               (str(groupvec), cid, nH_above, nH_below))
         
         for i in xrange(len(l_groupvec)):
             l_deltaG[i] = pylab.mean(l_deltaG[i])
@@ -569,13 +571,12 @@ class GroupContribution(Thermodynamics):
         deviations = []
         
         for i in xrange(n_obs):
-            # skip the cross-validation of pKa values (this is reasonable
-            # since the current version of Group Contribution will always
-            # give the same value for any pKa of a specific group, and
-            # therefore the error depends only on the standard deviation of
-            # the pKas in the training data
+            # skip the cross-validation of the pKa values since group
+            # contribution is not meant to give any real prediction for pKas
+            # except the mean of the class of pKas.
             if self.mol_names[i][0:3] == 'pKa':
                 continue
+            logging.info('Cross validation, leaving-one-out: ' + self.mol_names[i])
             
             # leave out the row corresponding with observation 'i'
             subset = range(n_obs)
@@ -597,6 +598,7 @@ class GroupContribution(Thermodynamics):
             val_obs.append(self.obs[i])
             val_est.append(estimation)
             val_err.append(error)
+            logging.info('Error = %.1f' % error)
             deviations.append((abs(error), self.mol_names[i], 
                                "%.1f" % self.obs[i], 
                                "%.1f" % estimation,
@@ -1056,22 +1058,23 @@ if __name__ == '__main__':
         G.init()
         G.load_groups("../data/thermodynamics/groups_species.csv")
         T = default_T
-        ppi = G.estimate_dG0_keggcid(13, pH=7, pMg=0, I=0, T=T)
-        atp = G.estimate_dG0_keggcid(2, pH=7, pMg=0, I=0, T=T)
-        camp = -R*T*pylab.log(0.065) + atp - ppi
-        camp_untransformed = camp - R*T*pylab.log(10)*7*11
-        
-        print ppi + camp - atp
-        print camp_untransformed
         
         mols = {}
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
         #mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
         #mols['Glutamate'] = pybel.readstring('smiles', 'C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O')
-        mols['Tryptophan [0]'] = pybel.readstring('smiles', 'c1ccc2c(c1)c(CC(C(=O)[O-])[NH3+])c[nH]2')
-        mols['Tryptophan [-1]'] = pybel.readstring('smiles', 'c1ccc2c(c1)c(CC(C(=O)[O-])N)c[nH]2')
+        #mols['Acetyl-CoA [nH=36]'] = pybel.readstring('smiles', 'CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
+        #mols['Acetyl-CoA [nH=35]'] = pybel.readstring('smiles', 'CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
+        #mols['Acetyl-CoA [nH=34]'] = pybel.readstring('smiles', 'CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
+
+        #mols['acetamide [nH=5]'] = pybel.readstring('smiles', 'CC(=O)N')
+        #mols['acetamide [nH=4]'] = pybel.readstring('smiles', 'CC(=O)[NH-]')
         
+        mols['sparteine [nH=27]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2C[NH+]2CCCC[C@]12[H]')
+        mols['sparteine [nH=28]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
+        mols['sparteine [nH=26]'] = pybel.readstring('smiles', '[H][C@@]12CCCCN1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
+
         smarts = pybel.Smarts("[n;H1;X3;+1]")
         
         for key, mol in mols.iteritems():
