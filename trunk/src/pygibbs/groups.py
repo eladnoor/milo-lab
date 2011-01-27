@@ -6,6 +6,7 @@ import openbabel
 import os
 import pybel
 import types
+import json
 
 from copy import deepcopy
 import pylab
@@ -89,7 +90,7 @@ class GroupContribution(Thermodynamics):
         self.cid2pmap_dict = {}
         logging.info('Calculating the table of chemical formation energies for all KEGG compounds.')
         self.db.CreateTable('gc_cid2prm', 'cid INT, nH INT, z INT, nMg INT, dG0 REAL, estimated BOOL')
-        self.db.CreateTable('gc_cid2error', 'id INT, error TEXT')
+        self.db.CreateTable('gc_cid2error', 'cid INT, error TEXT')
 
         compounds = []
 
@@ -128,7 +129,7 @@ class GroupContribution(Thermodynamics):
             except GroupMissingTrainDataError:
                 self.db.Insert('gc_cid2error', [cid, 'contains groups lacking training data'])
                 continue
-            self.db.Insert('gc_cid2error', [cid, 'OK'])
+            self.db.Insert('gc_cid2error', [cid, None])
             self.cid2pmap_dict[cid] = pmap
             for (nH, z, nMg, dG0) in pmap.ToMatrix():
                 self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
@@ -159,6 +160,26 @@ class GroupContribution(Thermodynamics):
         for cid in cid2pmap_obs.keys():
             if (self.override_gc_with_measurements or cid not in self.cid2pmap_dict):
                 self.cid2pmap_dict[cid] = cid2pmap_obs[cid]
+        
+    def write_data_to_json(self, json_fname, kegg):
+        formations = []
+        for row in self.db.DictReader('gc_cid2error'):
+            h = {}
+            h['cid'] = row['cid']
+            h['inchi'] = kegg.cid2inchi(row['cid'])
+            h['source'] = self.cid2source_string.get(row['cid'], 'unknown')
+            h['species'] = []
+            if row['error']:
+                h['error'] = row['error']
+            else:
+                h['error'] = None
+                for nH, z, nMg, dG0 in self.cid2pmap(row['cid']).ToMatrix():
+                    h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
+            formations.append(h)
+
+        json_file = open(json_fname, 'w')
+        json_file.write(json.dumps(formations, indent=4))
+        json_file.close()
         
     def train(self, obs_fname, use_dG0_format=False):
         l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = self.read_training_data_pKa()
@@ -1038,7 +1059,7 @@ class GroupContribution(Thermodynamics):
             return None
         pK_Mg = (dG0_gr_without_Mg + dG0_f_Mg - dG0_gr_with_Mg)/(R*default_T*pylab.log(10))
         return pK_Mg
-    
+
 #################################################################################################################
 #                                                   MAIN                                                        #
 #################################################################################################################
@@ -1057,6 +1078,7 @@ if __name__ == '__main__':
         G = GroupContribution(db, html_writer)
         G.init()
         G.load_groups("../data/thermodynamics/groups_species.csv")
+        G.save_cid2pmap()
         T = default_T
         
         mols = {}
