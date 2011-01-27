@@ -22,35 +22,7 @@ def ReactionPage(request):
     template_name = _REACTION_TEMPLATES_BY_SUBMIT.get(form.cleaned_submit,
                                                       'reaction_page.html')
 
-    # Fetch parameters and compounds.
-    i_s = form.cleaned_ionic_strength
-    ph = form.cleaned_ph
-    pmg = form.cleaned_pmg
-    
-    clean_reactants = form.cleaned_reactantIds
-    clean_products = form.cleaned_productIds
-    all_ids = clean_reactants + clean_products
-    
-    # Fetch custom concentrations if any.
-    reactant_concentrations = form.cleaned_reactantConcentrations
-    product_concentrations = form.cleaned_productConcentrations
-    all_concentrations = reactant_concentrations + product_concentrations
-    
-    # Build the appropriate concentration profile.
-    cprofile_name = form.cleaned_concentration_profile
-    cprofile = concentration_profile.GetProfile(
-        cprofile_name, all_ids, all_concentrations)
-    
-    reactant_names = form.cleaned_reactantNames
-    product_names = form.cleaned_productNames
-    
-    # Build the Reaction object and potentially balance it.
-    zipped_reactants = zip(form.cleaned_reactantCoeffs, clean_reactants, reactant_names)
-    zipped_products = zip(form.cleaned_productCoeffs, clean_products, product_names)
-    rxn = reaction.Reaction.FromIds(zipped_reactants, zipped_products,
-                                    concentration_profile=cprofile,
-                                    pH=ph, pMg=pmg,
-                                    ionic_strength=i_s)
+    rxn = reaction.Reaction.FromForm(form)
     query = form.cleaned_query
     if form.cleaned_balance_w_water:
         rxn.TryBalanceWithWater()
@@ -64,10 +36,10 @@ def ReactionPage(request):
     balance_electrons_link = rxn.GetBalanceElectronsLink(query)
     template_data = {'reaction': rxn,
                      'query': query,
-                     'ph': ph,
-                     'pmg': pmg,
-                     'ionic_strength': i_s,
-                     'concentration_profile': cprofile_name,
+                     'ph': rxn.ph,
+                     'pmg': rxn.pmg,
+                     'ionic_strength': rxn.i_s,
+                     'concentration_profile': str(rxn.concentration_profile),
                      'balance_with_water_link': balance_with_water_link,
                      'balance_electrons_link': balance_electrons_link}
     return render_to_response(template_name, template_data)
