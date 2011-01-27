@@ -16,7 +16,7 @@
 		<form name="compoundForm" action="/compound" method="get">
 			<input type="hidden" name="compoundId" value="{{ compound.kegg_id }}" />
 	
-			{% include "result_table.html" %}
+			{% include "compound_result_table.html" %}
 			
 			<input type="submit" value="Update" />
 		</form>

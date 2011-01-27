@@ -20,7 +20,8 @@ def CompoundPage(request):
                                              form.cleaned_pmg,
                                              form.cleaned_ionic_strength)
     delta_g_estimate = compound.DeltaG(
-        pH=form.cleaned_ph, ionic_strength=form.cleaned_ionic_strength)
+        pH=form.cleaned_ph, pMg=form.cleaned_pmg,
+        ionic_strength=form.cleaned_ionic_strength)
     
     template_data = {'is_superuser': django_utils.IsSuperUser(request),
                      'compound': compound,
