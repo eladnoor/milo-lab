@@ -64,9 +64,6 @@ class GroupContribution(Thermodynamics):
         self.group_nullspace = None
         self.group_contributions = None
             
-    def __del__(self):
-        self.html_writer.close()
-    
     def write_gc_tables(self):
         table_names = ["groups", "contribution", "observation"]
         self.html_writer.write('<ul>\n')
@@ -98,7 +95,7 @@ class GroupContribution(Thermodynamics):
             cdict = {'cid': cid, 'measured_pmap': None,
                      'estimated_pmap': None, 'compound': None}
             
-            if not cid % 1000:
+            if cid % 100 == 1:
                 logging.info('Saving KEGG Compound C%05d' % cid)
             
             # If the compound is measured:
@@ -1078,7 +1075,7 @@ class GroupContribution(Thermodynamics):
     
 if __name__ == '__main__':
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg()
+    kegg = Kegg(db)
     html_writer = HtmlWriter('../res/groups.html')
     G = GroupContribution(db=db, html_writer=html_writer, kegg=kegg)
     G.load_groups("../data/thermodynamics/groups_species.csv")
@@ -1086,32 +1083,35 @@ if __name__ == '__main__':
         G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
         G.analyze_training_set()
         G.save_cid2pmap()
-    elif True:
+    elif False:
         G.init()
         G.save_cid2pmap()
-    else:
+    elif False:
         G.load_training_data()
         G.init()
         pH, pMg, I, T = (default_pH, default_pMg, default_I, default_T)
         print pylab.norm(pylab.dot(G.group_matrix, G.group_nullspace.T))
         
         mols = []
-        mols += [kegg.cid2mol(24)] # glycerone
+        mols += [kegg.cid2mol(24)] # acetyl-CoA
         #mols += [pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')] # ATP (-2)
-        mols += [pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")] # acetyl-CoA (-4)
+        #mols += [pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")] # acetyl-CoA (-4)
         
         for mol in mols:
+            smarts = pybel.Smarts("CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([OH])=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC=O")
+            print smarts.findall(mol)
+            
             all_groupvecs = G.group_decomposer.Decompose(
-                mol, ignore_protonations=False, strict=True).PseudoisomerVectors()
+                mol, ignore_protonations=True, strict=True).PseudoisomerVectors()
             for groupvec in all_groupvecs:
                 print groupvec
-                k = pylab.dot(G.group_nullspace, pylab.array(groupvec))
-                print groupvec.Hydrogens(), groupvec.NetCharge(), groupvec.Magnesiums(), pylab.norm(k)
-                print k
+                #k = pylab.dot(G.group_nullspace, pylab.array(groupvec))
+                #print groupvec.Hydrogens(), groupvec.NetCharge(), groupvec.Magnesiums(), pylab.norm(k)
+                #print k
                 #print G.estimate_pmap(mol, ignore_protonations=True)
         
-        sys.exit(0)
-        
+    else:
+        G.init()
         mols = {}
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
@@ -1124,11 +1124,14 @@ if __name__ == '__main__':
         #mols['acetamide [nH=5]'] = pybel.readstring('smiles', 'CC(=O)N')
         #mols['acetamide [nH=4]'] = pybel.readstring('smiles', 'CC(=O)[NH-]')
         
-        mols['sparteine [nH=27]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2C[NH+]2CCCC[C@]12[H]')
-        mols['sparteine [nH=28]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
-        mols['sparteine [nH=26]'] = pybel.readstring('smiles', '[H][C@@]12CCCCN1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
-
-        smarts = pybel.Smarts("[n;H1;X3;+1]")
+        #mols['sparteine [nH=27]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2C[NH+]2CCCC[C@]12[H]')
+        #mols['sparteine [nH=28]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
+        #mols['sparteine [nH=26]'] = pybel.readstring('smiles', '[H][C@@]12CCCCN1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
+        mols['acetyl-CoA a'] = kegg.cid2mol(24)
+        #mols['acetyl-CoA b'] = pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")
+        #mols['acetyl-CoA c'] = pybel.readstring('smiles', "CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12")
+        
+        smarts = pybel.Smarts("CC(C)(COP([OH])(=O)OP([OH])(=O)OCC1OC(C(O)C1OP([OH])([OH])=O)n2cnc3c(N)[nH0]cnc23)C(O)C(~O)~NCCC(~O)~NCCSC=O") # CoA
         
         for key, mol in mols.iteritems():
             mol.title = key
@@ -1136,8 +1139,6 @@ if __name__ == '__main__':
             print '-'*100
             print key
             print smarts.findall(mol)
-            print G.analyze_decomposition(mol)
+            print G.analyze_decomposition(mol, ignore_protonations=True)
             #pmap = G.estimate_pmap(mol, ignore_protonations=False)
             #print pmap
-    
-    html_writer.close()

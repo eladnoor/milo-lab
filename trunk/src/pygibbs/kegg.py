@@ -257,16 +257,25 @@ class Compound(object):
         return atom_vector
     
     def get_inchi(self):
-        if (self.inchi == None):
-            raise KeggParseException("C%05d doesn't have an 'inchi', so I can't get its molecular structure" % self.cid)
+        if not self.inchi:
+            raise KeggParseException("C%05d doesn't have an 'inchi', so it is "
+                "impossible get its molecular structure" % self.cid)
         return str(self.inchi)
     
     def get_smiles(self):
         obConversion = openbabel.OBConversion()
         obConversion.SetInAndOutFormats("inchi", "smi")
         obmol = openbabel.OBMol()
-        obConversion.ReadString(obmol, self.get_inchi())
-        return obConversion.WriteString(obmol).split()[0]
+        if not self.inchi:
+            raise KeggParseException("C%05d doesn't have an 'inchi', so it "
+                "cannot be converted it to SMILES" % self.cid)
+        obConversion.ReadString(obmol, str(self.inchi))
+        smiles_list = obConversion.WriteString(obmol).split()
+        if smiles_list:
+            return smiles_list[0]
+        else:
+            raise KeggParseException("C%05d cannot be convert to SMILES, because "
+                "the InChI is %s" % str(self.inchi))
 
     def get_mol(self, remove_hydrogens=True):
         """
@@ -275,12 +284,12 @@ class Compound(object):
         """
         smiles = self.get_smiles()
         try:
-            mol = pybel.readstring('smiles', self.get_smiles())
-            if (remove_hydrogens):
+            mol = pybel.readstring('smiles', smiles)
+            if remove_hydrogens:
                 mol.removeh()
         except IOError:
             raise KeggParseException("Cannot interpret the SMILES string for compound C%05d: %s" % (self.cid, smiles))
-        mol.title = self.name
+        mol.title = str(self.name)
         return mol
     
     def get_obmol(self, correctForPH=True, pH=7.4):
@@ -648,7 +657,10 @@ class Kegg(object):
         self.cid2bounds = {}
 
         for row in self.db.DictReader('kegg_compound'):
-            inchi = str(row['inchi'])
+            if row['inchi']:
+                inchi = str(row['inchi'])
+            else:
+                inchi = None
             comp = Compound(row['cid'], row['name'], row['all_names'].split(';'), 
                             row['mass'], row['formula'], inchi)
             self.cid2compound_map[row['cid']] = comp
