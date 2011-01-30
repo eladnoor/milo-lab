@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """
     This script analyses the predictions of all the different estimation methods:
     Alberty, Hatzimanikatis, and the Milo lab Group Contribution method
