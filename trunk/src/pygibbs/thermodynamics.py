@@ -112,8 +112,15 @@ class Thermodynamics(object):
         for cid in self.get_all_cids():
             h = {}
             h['cid'] = cid
-            h['inchi'] = kegg.cid2inchi(cid)
-            h['source'] = self.cid2source_string.get(cid, 'unknown')
+            try:
+                h['name'] = kegg.cid2name(h['cid'])
+            except KeyError:
+                h['name'] = None
+            try:
+                h['inchi'] = kegg.cid2inchi(h['cid'])
+            except KeyError:
+                h['inchi'] = None
+            h['source'] = self.cid2source_string.get(cid, None)
             h['species'] = []
             for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
                 h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
