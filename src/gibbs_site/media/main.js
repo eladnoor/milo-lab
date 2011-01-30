@@ -68,4 +68,7 @@ $(document).ready(function(){
 	if (rxnForm) {
 		rxnForm.change(toggleCustomConcentrations);		
 	}
+
+	// Enable lightbox where desired.
+	$('a.lightBox').lightBox();
 });
