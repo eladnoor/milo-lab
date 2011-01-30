@@ -1082,7 +1082,7 @@ if __name__ == '__main__':
     html_writer = HtmlWriter('../res/groups.html')
     G = GroupContribution(db=db, html_writer=html_writer, kegg=kegg)
     G.load_groups("../data/thermodynamics/groups_species.csv")
-    if False:
+    if True:
         G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
         G.analyze_training_set()
         G.save_cid2pmap()

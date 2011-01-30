@@ -10,7 +10,8 @@ import pylab
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import Kegg
 from toolbox.plotting import cdf
-#from SOAPpy import WSDL
+from SOAPpy import WSDL
+import logging
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -91,27 +92,14 @@ def CalculateReversability(rid, G, c_mid=1e-3, pH=default_pH,
     sparse.pop(WATER, None)
     sparse.pop(HPLUS, None)
 
-    sum_s = sum(sparse.values())
+    cfactor = ConcentrationFactor(sparse, cmap, c_mid)
     sum_abs_s = sum([abs(x) for k, x in sparse.iteritems()
                      if k not in cmap])
-    cfactor = ConcentrationFactor(sparse, cmap, c_mid)
-    
     return 2 / pylab.log(10) * ((-dG0/(R*T) + cfactor) / sum_abs_s)
 
-
-def main():
-    db = SqliteDatabase('../res/gibbs.sqlite')
-    html_writer = HtmlWriter('../res/dG0_test.html')
-    kegg = Kegg(db)
-    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
-    G.init()
-    cmap = GetConcentrationMap(kegg)
-    
-    c_mid = 1e-3
-    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
-    
+def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap):
     histogram = {}
-    total_hist = []
+    histogram['total'] = []
     hits = 0
     misses = 0
     for rid_flux_list in kegg.mid2rid_map.itervalues():
@@ -123,32 +111,48 @@ def main():
                                                   concentration_map=cmap)
                 histogram.setdefault(i, []).append(r)
                 if i > 1:
-                    total_hist.append(r)
+                    histogram['total'].append(r)
                 hits += 1
             except thermodynamics.MissingCompoundFormationEnergy:
                 misses += 1
                 continue
-    
-    print "Reactions with known dG0", hits
-    print "Reactions with unknown dG0", misses
-    
-    max_pathway_length = 8
-    medians = []
-    for i in histogram.keys():
-        if i < max_pathway_length:
-            medians.append(pylab.median(histogram[i]))  
-    
+
+    logging.info("Reactions with known dG0: %d" % hits)
+    logging.info("Reactions with unknown dG0: %d" % misses)
+    return histogram
+
+def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
     fig = pylab.figure()
     pylab.hold(True)
-    cdf(histogram[0], '1 (median=%.1f)' % pylab.median(histogram[0]), 'r', show_median=True)
-    cdf(histogram[1], '2 (median=%.1f)' % pylab.median(histogram[1]), 'b', show_median=True)
-    cdf(total_hist, '3-%d  (median=%.1f)' % \
-        (max_pathway_length, pylab.median(total_hist)), 'g', show_median=True)
-    pylab.xlim(-200, 200)
+    cdf(histogram[0], '1 (median=%.1f)' % pylab.median(histogram[0]), 'r')
+    cdf(histogram[1], '2 (median=%.1f)' % pylab.median(histogram[1]), 'b')
+    cdf(histogram['total'], '3-%d  (median=%.1f)' % \
+        (max_pathway_length, pylab.median(histogram['total'])), 'g')
+    pylab.xlim(-20, 20)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
     pylab.legend(loc='lower right')
+    pylab.title(title)
+    pylab.hold(False)
     html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+
+def main():
+    db = SqliteDatabase('../res/gibbs.sqlite')
+    html_writer = HtmlWriter('../res/reversibility.html')
+    kegg = Kegg(db)
+    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
+    G.init()
+    c_mid = 1e-3
+    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
+    
+    histogram = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
+                                                  cmap=GetConcentrationMap(kegg))
+    plot_histogram(histogram, html_writer, title='With constraints on co-factors')
+    
+    
+    histogram = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
+                                                  cmap={})
+    plot_histogram(histogram, html_writer, title='No constraints on co-factors')
 
 if __name__ == "__main__":
     #try_kegg_api()

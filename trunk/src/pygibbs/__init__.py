@@ -8,4 +8,4 @@ stdout_handler.setFormatter(formatter)
 
 logger = logging.getLogger('')
 logger.addHandler(stdout_handler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
