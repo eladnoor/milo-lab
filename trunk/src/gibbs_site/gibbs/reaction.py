@@ -66,8 +66,8 @@ class Reaction(object):
             reactants: a list of CompoundWithCoeff objects.
             products: a list of CompoundWithCoeff objects.
         """
-        self.reactants = reactants or []
-        self.products = products or []
+        self.reactants = self._FilterZeroes(reactants or [])
+        self.products = self._FilterZeroes(products or [])
         self.ph = pH
         self.pmg = pMg
         self.i_s = ionic_strength
@@ -427,6 +427,15 @@ class Reaction(object):
             return False
         return True
 
+    @staticmethod
+    def _FilterZeroes(side):
+        """Removes compounds with coefficients equal to zero.
+        
+        Args:
+            side: the reaction side to filter.
+        """
+        return filter(lambda x: x.coeff != 0, side)
+
     def TryBalanceWithWater(self):
         """Try to balance the reaction with water.
         
@@ -448,6 +457,9 @@ class Reaction(object):
         else:
             waters_left = self.SubtractWater(self.products, abs_waters)
             self.AddWater(self.reactants, waters_left)
+        
+        self.reactants = self._FilterZeroes(self.reactants)
+        self.products  = self._FilterZeroes(self.products)
         
         return True
 
