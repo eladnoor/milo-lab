@@ -50,6 +50,14 @@ class PseudoisomerMap(object):
         key = self._MakeGroupVectorKey(groupvector)
         self.dgs.setdefault(key, []).append(dG0)
     
+    def Squeeze(self, T=default_T):
+        """Groups together all pseudoisomers that have the same key"""
+        squeezed_dgs = {}
+        for k, dG0_list in self.dgs.iteritems():
+            squeezed_dG0 = -(R*T) * log_sum_exp([x/(-R*T) for x in dG0_list])
+            squeezed_dgs[k] = [squeezed_dG0] 
+        self.dgs = squeezed_dgs
+    
     def Empty(self):
         """Return true if there are no entries in the map."""
         return len(self.dgs) == 0

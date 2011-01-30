@@ -24,7 +24,7 @@ from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 from pygibbs.pseudoisomers_data import PseudoisomersData
 from pygibbs.pseudoisomer import PseudoisomerMap
-
+import sys
 
 class GroupContributionError(Exception):
     pass
@@ -107,7 +107,6 @@ class GroupContribution(Thermodynamics):
                 cdict['measured_pmap'] = pmap
                 for (nH, z, nMg, dG0) in pmap.ToMatrix():
                     self.db.Insert('gc_cid2prm', [cid, nH, z, nMg, dG0, False])
-                
 
             # Try to also estimate the dG0_f using Group Contribution:
             comp = self.kegg().cid2compound(cid)
@@ -143,12 +142,14 @@ class GroupContribution(Thermodynamics):
 
     def load_cid2pmap(self):
         self.cid2pmap_dict = {}
+        self.cid2source_string = {}
 
         # Now load the data into the cid2pmap_dict:
         for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 1;"):
             cid, nH, z, nMg, dG0 = row
             self.cid2pmap_dict.setdefault(cid, PseudoisomerMap())
             self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
+            self.cid2source_string[cid] = 'Group Contribution'
 
         cid2pmap_obs = {} # observed formation energies
         for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 0;"):
@@ -160,21 +161,30 @@ class GroupContribution(Thermodynamics):
         for cid in cid2pmap_obs.keys():
             if (self.override_gc_with_measurements or cid not in self.cid2pmap_dict):
                 self.cid2pmap_dict[cid] = cid2pmap_obs[cid]
+                self.cid2source_string[cid] = 'Observed'
         
     def write_data_to_json(self, json_fname, kegg):
         formations = []
         for row in self.db.DictReader('gc_cid2error'):
             h = {}
             h['cid'] = row['cid']
-            h['inchi'] = kegg.cid2inchi(row['cid'])
-            h['source'] = self.cid2source_string.get(row['cid'], 'unknown')
+            try:
+                h['name'] = kegg.cid2name(h['cid'])
+            except KeyError:
+                h['name'] = None
+            try:
+                h['inchi'] = kegg.cid2inchi(h['cid'])
+            except KeyError:
+                h['inchi'] = None
+            h['source'] = self.cid2source_string.get(row['cid'], None)
+            h['error'] = row['error']
             h['species'] = []
-            if row['error']:
-                h['error'] = row['error']
-            else:
-                h['error'] = None
+            try:
                 for nH, z, nMg, dG0 in self.cid2pmap(row['cid']).ToMatrix():
                     h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
+            except MissingCompoundFormationEnergy:
+                pass
+
             formations.append(h)
 
         json_file = open(json_fname, 'w')
@@ -199,6 +209,13 @@ class GroupContribution(Thermodynamics):
             self.linear_regression_train()
         self.SaveContributionsToDB()
             
+    def linear_regression_train(self):
+        self.load_training_data()
+        
+        group_contributions, nullspace = LinearRegression.LeastSquares(
+            self.group_matrix, self.obs)
+        return list(group_contributions.flat), nullspace
+    
     def load_groups(self, group_fname=None):
         if group_fname:
             self.groups_data = GroupsData.FromGroupsFile(group_fname)
@@ -517,18 +534,12 @@ class GroupContribution(Thermodynamics):
         for row in self.db.Execute("SELECT name FROM train_molecules"):
             self.mol_names.append(row[0])
 
-    def linear_regression_train(self):
-        self.load_training_data()
-        
-        group_contributions, nullspace = LinearRegression.LeastSquares(
-            self.group_matrix, self.obs)
-        return list(group_contributions.flat), nullspace
-    
     def groupvec2val(self, groupvec):
         if self.group_contributions == None or self.group_nullspace == None:
             raise Exception("You need to first Train the system before using it to estimate values")
 
-        if pylab.norm(pylab.dot(self.group_nullspace, pylab.array(groupvec))) > 1e-3:
+        k = pylab.norm(pylab.dot(self.group_nullspace, pylab.array(groupvec)))
+        if k > 0.1:
             raise GroupMissingTrainDataError("can't estimate because some groups have no training data")
         return pylab.dot(groupvec, self.group_contributions)
     
@@ -712,6 +723,7 @@ class GroupContribution(Thermodynamics):
         if pmap.Empty():
             raise GroupMissingTrainDataError("All species of %s have missing groups:" % mol.title, all_missing_groups)            
 
+        pmap.Squeeze()
         return pmap
 
     def cid2pmap(self, cid, use_cache=True):
@@ -1066,20 +1078,39 @@ class GroupContribution(Thermodynamics):
     
 if __name__ == '__main__':
     db = SqliteDatabase('../res/gibbs.sqlite')
-    if True:
-        html_writer = HtmlWriter('../res/dG0_train.html')
-        G = GroupContribution(db, html_writer)
-        G.load_groups("../data/thermodynamics/groups_species.csv")
+    kegg = Kegg()
+    html_writer = HtmlWriter('../res/groups.html')
+    G = GroupContribution(db=db, html_writer=html_writer, kegg=kegg)
+    G.load_groups("../data/thermodynamics/groups_species.csv")
+    if False:
         G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
         G.analyze_training_set()
         G.save_cid2pmap()
-    else:
-        html_writer = HtmlWriter('../res/dG0_test.html')
-        G = GroupContribution(db, html_writer)
+    elif True:
         G.init()
-        G.load_groups("../data/thermodynamics/groups_species.csv")
         G.save_cid2pmap()
-        T = default_T
+    else:
+        G.load_training_data()
+        G.init()
+        pH, pMg, I, T = (default_pH, default_pMg, default_I, default_T)
+        print pylab.norm(pylab.dot(G.group_matrix, G.group_nullspace.T))
+        
+        mols = []
+        mols += [kegg.cid2mol(24)] # glycerone
+        #mols += [pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')] # ATP (-2)
+        mols += [pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")] # acetyl-CoA (-4)
+        
+        for mol in mols:
+            all_groupvecs = G.group_decomposer.Decompose(
+                mol, ignore_protonations=False, strict=True).PseudoisomerVectors()
+            for groupvec in all_groupvecs:
+                print groupvec
+                k = pylab.dot(G.group_nullspace, pylab.array(groupvec))
+                print groupvec.Hydrogens(), groupvec.NetCharge(), groupvec.Magnesiums(), pylab.norm(k)
+                print k
+                #print G.estimate_pmap(mol, ignore_protonations=True)
+        
+        sys.exit(0)
         
         mols = {}
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
@@ -1108,4 +1139,5 @@ if __name__ == '__main__':
             print G.analyze_decomposition(mol)
             #pmap = G.estimate_pmap(mol, ignore_protonations=False)
             #print pmap
-
+    
+    html_writer.close()

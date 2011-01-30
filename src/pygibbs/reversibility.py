@@ -10,7 +10,7 @@ import pylab
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg import Kegg
 from toolbox.plotting import cdf
-from SOAPpy import WSDL
+#from SOAPpy import WSDL
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -151,4 +151,5 @@ def main():
     html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
 if __name__ == "__main__":
-    try_kegg_api()
+    #try_kegg_api()
+    main()

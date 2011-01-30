@@ -15,7 +15,6 @@ def main():
     
     G = GroupContribution(db)
     G.init()
-    G.load_groups("../data/thermodynamics/groups_species.csv")
     G.write_data_to_json('../res/group_contribution.json', kegg)
     
 if __name__ == "__main__":

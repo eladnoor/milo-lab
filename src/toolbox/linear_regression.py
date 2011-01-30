@@ -52,8 +52,8 @@ class LinearRegression(object):
             kerA[m_red-r+i, j] = 1
 
         if reduced_row_echlon:
-            #LinearRegression.GaussJordan(kerA, eps)
-            kerA = LinearRegression.ReducedRowEchelon(kerA)
+            LinearRegression.GaussJordan(kerA, eps)
+            #kerA = LinearRegression.ReducedRowEchelon(kerA)
 
         return weights, kerA
     
