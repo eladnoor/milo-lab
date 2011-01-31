@@ -29,6 +29,9 @@ def AddAllSpeciesToCompound(compound, species_dicts, source):
 
 
 def GetSource(source_string):
+    if not source_string:
+        return None
+    
     lsource = source_string.lower()
     if lsource.startswith('alberty'):
         return models.ValueSource.Alberty()
@@ -46,7 +49,7 @@ def LoadFormationEnergies(json, source):
             continue
         
         # Override the passed-in source if one is specified in JSON.
-        my_source = GetSource(cdict.get('source'))
+        my_source = GetSource(cdict.get('source', None))
         my_source = my_source or source
         
         compounds = models.Compound.objects.filter(inchi__exact=inchi_str)

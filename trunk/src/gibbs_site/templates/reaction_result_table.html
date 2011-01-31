@@ -33,6 +33,7 @@
 			</td>
 		</tr>
 		
+		{% if reaction.dg0_tag %}
 		<tr>
 			<td width="150px">
 				<a class="lightBox" href="{{ reaction.ph_graph_link }}" target="_blank" title="Reaction energy as a function of pH">pH</a>
@@ -120,4 +121,5 @@
 				</td>
 			</tr>
 		{% endfor %}
+		{% endif %}
 	</table>
