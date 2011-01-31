@@ -1,4 +1,6 @@
 import logging
+import matplotlib
+matplotlib.use('Agg')
 import pylab
 import PIL, PIL.Image, StringIO
 
