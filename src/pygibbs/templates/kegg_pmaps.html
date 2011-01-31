@@ -43,6 +43,15 @@
 			display: none;
 			margin-left: 30px;
 		}
+		
+		.compound {
+			margin-bottom: 100px;
+		}
+		
+		.compound .name {
+			font-weight: bold;
+			font-size: 16px;
+		}
 		</style>
 		<script type="text/javascript">
 		function showId(id, caller) {
@@ -57,12 +66,69 @@
 	{% for c in compounds %}
 	<div class="compound">
 		{% if c.compound %}
-		<div class="property">{{c.compound.name}}</div>
+		<a name="{{c.compound.cid}}" />
+		<div class="name"><a href="{{c.compound.kegg_link}}">{{c.compound.name}}</a></div>
 		<div class="property">Formula: {{c.compound.formula}}</div>
 		<div class="property">Inchi: {{c.compound.inchi}}</div>
 		{% endif %}
 		<div class="property">CID: {{c.cid}}</div>
+
+			{% if c.decomposition %}
+			<div class="decomposition">Decomposition
+				<div class="property">Number of Groups: {{c.decomposition.group_count}}</div>
+				<div class="property">Net Charge: {{c.decomposition.net_charge}}</div>
+				<div class="property">Protons: {{c.decomposition.hydrogens}}</div>
+				<div class="property">Magnesiums: {{c.decomposition.magnesiums}}</div>
+				<div class="property">
+					<a class="fakeLink" onclick="showId('{{c.compound.cid}}', this)">
+						Show Full Decomposition
+					</a>
+				</div>
+			</div>
 		
+			<table class="fullDecomposition" id="{{c.compound.cid}}">
+				<tr>
+					<th>Group Name</th>
+					<th>Net Charge</th>
+					<th>Hydrogens</th>
+					<th>Magnesiums</th>
+					<th>Atoms</th>
+				</tr>
+				{% for group, node_sets in c.decomposition.nonempty_groups %}
+					{% for node_set in node_sets %}
+					<tr>
+						<td>{{group.name}}</td>
+						<td>{{group.charge}}</td>
+						<td>{{group.hydrogens}}</td>
+						<td>{{group.nMg}}</td>
+						<td>{{node_set|join:", "}}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				{% if c.decomposition.unassigned_atoms %}
+				<tr>
+					<th>Unassigned Atom Index</th>
+					<th>Atomic Number</th>
+					<th>Heavy valence</th>
+					<th>Charge</th>
+					<th>Type</th>
+				</tr>
+				{% for atom, i in c.decomposition.unassigned_atoms %}
+					<tr>
+						<td>{{i}}</td>
+						<td>{{atom.atomicnum}}</td>
+						<td>{{atom.heavyvalence}}</td>
+						<td>{{atom.formalcharge}}</td>
+						<td>{{atom.type}}</td>
+					</tr>
+				{% endfor %}
+				{% endif %}
+				
+			</table>
+			{% else %}
+				<div class="decomposition">Unable to decompose.</div>
+			{% endif %}
+
 		{% if c.measured_pmap %}
 		<div>Measured Pseudoisomers
 			<table class="pisomers">

@@ -117,18 +117,20 @@ class GroupContribution(Thermodynamics):
                 self.db.Insert('gc_cid2error', [cid, 'cannot determine molecular structure'])
                 continue
             try:
+                decomposition = self.group_decomposer.Decompose(
+                    mol, ignore_protonations=True)
+                cdict['decomposition'] = decomposition
+                
                 pmap = self.estimate_pmap(mol, ignore_protonations=True)
                 cdict['estimated_pmap'] = pmap
+                self.db.Insert('gc_cid2error', [cid, None])
+                self.cid2pmap_dict[cid] = pmap
+                for (nH, z, nMg, dG0) in pmap.ToMatrix():
+                    self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
             except GroupDecompositionError:
                 self.db.Insert('gc_cid2error', [cid, 'cannot decompose into groups'])
-                continue
             except GroupMissingTrainDataError:
                 self.db.Insert('gc_cid2error', [cid, 'contains groups lacking training data'])
-                continue
-            self.db.Insert('gc_cid2error', [cid, None])
-            self.cid2pmap_dict[cid] = pmap
-            for (nH, z, nMg, dG0) in pmap.ToMatrix():
-                self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
                 
             compounds.append(cdict)
         

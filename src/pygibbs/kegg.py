@@ -225,6 +225,10 @@ class Compound(object):
         self.pubchem_id = None
         self.cas = ""
     
+    def get_kegg_link(self):
+        return Kegg.cid2link(self.cid)
+    kegg_link = property(get_kegg_link)
+    
     def get_atom_bag(self):
         if (self.formula == None or self.formula.find("(") != -1 or self.formula.find(")") != -1):
             return None
@@ -851,7 +855,8 @@ class Kegg(object):
     def cid2mol(self, cid):
         return self.cid2compound(cid).get_mol()
 
-    def cid2link(self, cid):
+    @staticmethod
+    def cid2link(cid):
         return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % cid
         
     def cid2formula(self, cid):
