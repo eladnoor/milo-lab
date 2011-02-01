@@ -595,6 +595,7 @@ class GroupContribution(Thermodynamics):
         self.write_regression_report()
         
         n_obs = self.group_matrix.shape[0]
+        orig_est = []
         val_names = []
         val_obs = []
         val_est = []
@@ -619,13 +620,15 @@ class GroupContribution(Thermodynamics):
             if nullspace.shape[0] > self.group_nullspace.shape[0]:
                 logging.warning('# example %d is not linearly dependent in the other examples' % i)
                 deviations.append((None, self.mol_names[i], "%.1f" % self.obs[i], "-", "-", 
-                                   "linearly independent example"))
+                                   "linearly independent example", "-"))
                 continue
             
+            orig_estimation = pylab.dot(self.group_matrix[i, :], self.group_contributions)
             estimation = pylab.dot(self.group_matrix[i, :], group_contributions)[0]
             error = self.obs[i] - estimation
             
             val_names.append(self.mol_names[i])
+            orig_est.append(orig_estimation)
             val_obs.append(self.obs[i])
             val_est.append(estimation)
             val_err.append(error)
@@ -633,7 +636,8 @@ class GroupContribution(Thermodynamics):
             deviations.append((abs(error), self.mol_names[i], 
                                "%.1f" % self.obs[i], 
                                "%.1f" % estimation,
-                               "%.1f" % error, ""))
+                               "%.1f" % error, "",
+                               "%.1f" % orig_estimation))
         
         logging.info("writing the table of estimation errors for each compound")
         self.html_writer.write('<h2><a name=compounds>Cross Validation Table</a>')
@@ -649,10 +653,10 @@ class GroupContribution(Thermodynamics):
                         '<td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
                         '<td>&#x394;<sub>f</sub>G<sub>est</sub> [kJ/mol]</td>'
                         '<td>Error [kJ/mol]</td>'
-                        '<td>Remark</td></tr>\n')
+                        '<td>Remark</td><td>&#x394;<sub>f</sub>G<sub>orig est</sub> [kJ/mol]</td></tr>\n')
         deviations.sort(reverse=True)
-        for _, name, obs, est, err, remark in deviations:
-            self.html_writer.write('  <tr><td>' + '</td><td>'.join([name, obs, est, err, remark]) + '</td></tr>\n')
+        for _, name, obs, est, err, remark, orig in deviations:
+            self.html_writer.write('  <tr><td>' + '</td><td>'.join([name, obs, est, err, remark, orig]) + '</td></tr>\n')
         self.html_writer.write('</table>\n')
         self.html_writer.write('</div>\n')
         
