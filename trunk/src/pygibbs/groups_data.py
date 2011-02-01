@@ -117,7 +117,7 @@ class Group(object):
         for smarts_str in expressions:
             for match in smarts_util.FindSmarts(mol, smarts_str):
                 atoms = set([mol.atoms[i].atomicnum for i in match])
-                atoms.discard(8)  # Ditch carbons
+                atoms.discard(6)  # Ditch carbons
                 if atoms:
                     count += 1
         return count
