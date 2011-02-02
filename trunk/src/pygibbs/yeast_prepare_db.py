@@ -146,7 +146,7 @@ def add_thermodynamics(cursor):
     for inchi in inchi_list:
         try:
             mol = readstring("inchi", str(inchi))
-            pmap = gc.estimate_pmap(mol)
+            pmap = gc.Mol2PseudoisomerMap(mol)
             for ((z, nH), dG0) in pmap.iteritems():
                 cursor.execute("INSERT INTO yeast_inchi2thermo VALUES(?,?,?,?)", [inchi, z, nH, dG0])
         except (IOError, GroupMissingTrainDataError, GroupDecompositionError):

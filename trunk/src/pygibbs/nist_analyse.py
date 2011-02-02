@@ -1,12 +1,12 @@
 import csv
 from toolbox import util
 from nist import Nist
-import kegg
 import pydot
 import gtk
 from toolbox import xdot
-
-KEGG = kegg.Kegg()
+from toolbox.database import SqliteDatabase
+from pygibbs.kegg import Kegg
+from toolbox.html_writer import HtmlWriter
 
 def cid2name(cid, KEGG):
     return "\"" + KEGG.cid2name(cid) + "\""
@@ -29,7 +29,11 @@ def load_cid_set(train_csv_fname):
         
 #############################################################################################################
 
-nist = Nist(KEGG)
+db = SqliteDatabase('../res/gibbs.sqlite')
+html_writer = HtmlWriter('../res/nist/test.html')
+kegg = Kegg(db)
+nist = Nist(db, html_writer, kegg)
+nist.FromDatabase()
 known_cids = load_cid_set('../data/thermodynamics/dG0_seed.csv')
 
 one_step_cids = set()
@@ -37,9 +41,8 @@ coupled_cids = set()
 
 Gdot = pydot.Dot()
 
-for row in nist.data:
-    sparse_reaction = row[6]
-    unknown_cids = list(set(sparse_reaction.keys()).difference(known_cids))
+for nist_row_data in nist.data:
+    unknown_cids = list(set(nist_row_data.sparse.keys()).difference(known_cids))
     if (len(unknown_cids) == 1):
         one_step_cids.add(unknown_cids[0])
     elif (len(unknown_cids) == 2):
@@ -60,4 +63,4 @@ util._mkdir('../res/nist')
 dot_fname = '../res/nist/connectivity.dot'
 Gdot.write(dot_fname, format='dot')
 win.open_file(dot_fname)
-gtk.test_decomposition()
+gtk.main()

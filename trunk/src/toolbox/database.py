@@ -30,6 +30,8 @@ class SQLDatabase(Database):
     def CreateTable(self, table_name, columns, drop_if_exists=True):
         if drop_if_exists:
             self.Execute("DROP TABLE IF EXISTS %s" % table_name)
+        elif self.DoesTableExist(table_name):
+            return
         
         if type(columns) == types.ListType:
             columns = ','.join(['%s TEXT' % col for col in columns])    

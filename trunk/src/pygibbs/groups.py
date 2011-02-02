@@ -24,7 +24,6 @@ from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 from pygibbs.pseudoisomers_data import PseudoisomersData
 from pygibbs.pseudoisomer import PseudoisomerMap
-import sys
 
 class GroupContributionError(Exception):
     pass
@@ -81,8 +80,56 @@ class GroupContribution(Thermodynamics):
         self.load_concentrations()
         self.load_training_data()
         self.load_cid2pmap()
-        self.kegg()
+        
+    def quick_init(self, cid_list=None, html_fname=None):
+        self.load_groups()
+        self.LoadContributionsFromDB()
+        self.load_concentrations()
+        self.load_training_data()
+        self.quick_calculate_pmaps(cid_list, html_fname)
 
+    def quick_calculate_pmaps(self, cid_list=None, html_fname=None):
+        """
+            Use this method only if you want a quick recalculation of some
+            of the CIDs. Note that it does not generate any logs or reports,
+            or write the results to the database.
+            Please use 'save_cid2pmap' in most cases, and then load the pmaps
+            from the database using 'load_cid2pmap'.
+        """
+        data = {}
+        data['compounds'] = []
+        self.cid2pmap_dict = {}
+        
+        cid_list = cid_list or self.kegg().get_all_cids()
+        logging.info('Recalculating formation energies for %d compounds' % len(cid_list))
+        for cid in cid_list:
+            comp = self.kegg().cid2compound(cid)
+
+            cdict = {}
+            cdict['cid'] = cid
+            cdict['compound'] = comp
+            cdict['measured_pmap'] = self.cid2pmap_obs.get(cid, None)
+            cdict['estimated_pmap'] = None
+            
+            if comp.inchi:
+                try:
+                    decomposition = self.Mol2Decomposition(comp.get_mol(),
+                                                           ignore_protonations=True)
+                    cdict['decomposition'] = decomposition
+                    pmap = self.GroupDecomposition2PseudoisomerMap(decomposition)
+                    cdict['estimated_pmap'] = pmap
+                except (KeggParseException, GroupDecompositionError, 
+                        GroupMissingTrainDataError):
+                    pass
+            
+            pmap = cdict['measured_pmap'] or cdict['estimated_pmap']
+            if pmap:
+                self.cid2pmap_dict[cid] = pmap
+            data['compounds'].append(cdict)
+
+        if html_fname:
+            templates.render_to_file('kegg_pmaps.html', data, html_fname)
+                
     def save_cid2pmap(self):
         self.cid2pmap_dict = {}
         logging.info('Calculating the table of chemical formation energies for all KEGG compounds.')
@@ -108,7 +155,7 @@ class GroupContribution(Thermodynamics):
             # Try to also estimate the dG0_f using Group Contribution:
             comp = self.kegg().cid2compound(cid)
             cdict['compound'] = comp
-            if (comp.inchi == None):
+            if not comp.inchi:
                 self.db.Insert('gc_cid2error', [cid, 'no InChI exists'])
                 continue
             try:
@@ -121,10 +168,9 @@ class GroupContribution(Thermodynamics):
                     mol, ignore_protonations=True)
                 cdict['decomposition'] = decomposition
                 
-                pmap = self.estimate_pmap(mol, ignore_protonations=True)
+                pmap = self.Mol2PseudoisomerMap(mol, ignore_protonations=True)
                 cdict['estimated_pmap'] = pmap
                 self.db.Insert('gc_cid2error', [cid, None])
-                self.cid2pmap_dict[cid] = pmap
                 for (nH, z, nMg, dG0) in pmap.ToMatrix():
                     self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
             except GroupDecompositionError:
@@ -136,8 +182,9 @@ class GroupContribution(Thermodynamics):
         
         templates.render_to_file('kegg_pmaps.html', {'compounds': compounds},
                                  '../res/kegg_pmaps.html')
+        logging.info('Writing the formation energies to the database')
         self.db.Commit()
-        logging.info('Done writing KEGG compounds.')
+        logging.info('DONE!')
 
     def load_cid2pmap(self):
         self.cid2pmap_dict = {}
@@ -179,7 +226,7 @@ class GroupContribution(Thermodynamics):
             h['error'] = row['error']
             h['species'] = []
             try:
-                for nH, z, nMg, dG0 in self.cid2pmap(row['cid']).ToMatrix():
+                for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(row['cid']).ToMatrix():
                     h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
             except MissingCompoundFormationEnergy:
                 pass
@@ -697,13 +744,19 @@ class GroupContribution(Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
 
-    def estimate_pmap(self, mol, ignore_protonations=False):
+    def Mol2Decomposition(self, mol, ignore_protonations=False):
         try:
-            all_groupvecs = self.group_decomposer.Decompose(
-                mol, ignore_protonations, strict=True).PseudoisomerVectors()
+            return self.group_decomposer.Decompose(
+                mol, ignore_protonations, strict=True)
         except GroupDecompositionError as e:
             raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
 
+    def Mol2PseudoisomerMap(self, mol, ignore_protonations=False):
+        decomposition = self.Mol2Decomposition(mol, ignore_protonations)
+        return self.GroupDecomposition2PseudoisomerMap(decomposition)
+    
+    def GroupDecomposition2PseudoisomerMap(self, decomposition):
+        all_groupvecs = decomposition.PseudoisomerVectors()
         if not all_groupvecs:
             raise GroupDecompositionError('Found no pseudoisomers for %s'
                                           % mol.title)
@@ -724,12 +777,13 @@ class GroupContribution(Thermodynamics):
                 all_missing_groups.append(s)
         
         if pmap.Empty():
-            raise GroupMissingTrainDataError("All species of %s have missing groups:" % mol.title, all_missing_groups)            
+            raise GroupMissingTrainDataError("All species of %s have missing groups:" % 
+                                             decomposition.mol.title, all_missing_groups)            
 
         pmap.Squeeze()
         return pmap
 
-    def cid2pmap(self, cid, use_cache=True):
+    def cid2PseudoisomerMap(self, cid, use_cache=True):
         """
             returns a list of 3-tuples of dG0 (untransformed), nH and z.
             Each tuple represents one of the pseudoisomers.
@@ -758,7 +812,7 @@ class GroupContribution(Thermodynamics):
             
             mol.title = "C%05d" % cid
             try:
-                return self.estimate_pmap(mol)
+                return self.Mol2PseudoisomerMap(mol)
             except GroupContributionError as e:
                 if cid in self.cid2pmap_obs:
                     return self.cid2pmap_obs[cid]
@@ -773,7 +827,7 @@ class GroupContribution(Thermodynamics):
         """
         dG0_p0 = None
         dG0_p1 = None
-        for (dG0, unused_nH, z, unused_nMg) in self.cid2pmap(cid).ToMatrix():
+        for (dG0, unused_nH, z, unused_nMg) in self.cid2PseudoisomerMap(cid).ToMatrix():
             if (z == charge):
                 dG0_p0 = dG0
             elif (z == charge + 1):
@@ -794,7 +848,7 @@ class GroupContribution(Thermodynamics):
             
             T in Kelvin
         """
-        pmap = self.estimate_pmap(mol)
+        pmap = self.Mol2PseudoisomerMap(mol)
         return pmap.TransformMatrix(pH, pMg, I, T)
             
     def estimate_dG0_keggcid(self, cid, pH=default_pH, pMg=default_pMg,
@@ -803,7 +857,7 @@ class GroupContribution(Thermodynamics):
             Calculates the standard transformed Gibbs energy of formation of the pseudoisomer group
             (according to Alberty).            
         """
-        pmap = self.cid2pmap(cid)
+        pmap = self.cid2PseudoisomerMap(cid)
         return pmap.TransformMatrix(pH, pMg, I, T)
     
     def estimate_dG0_reaction(self, sparse_reaction, pH=default_pH, pMg=default_pMg, I=default_I, T=default_T, most_abundant=False):
@@ -819,7 +873,7 @@ class GroupContribution(Thermodynamics):
             [C_i] - concentration of compound C_i
         """
         
-        pmaps = [self.cid2pmap(cid) for cid in sparse_reaction.keys()]
+        pmaps = [self.cid2PseudoisomerMap(cid) for cid in sparse_reaction.keys()]
         stoichiometry_vector = sparse_reaction.values()
 
         if type(pH) != types.ListType and type(I) != types.ListType:
@@ -1090,9 +1144,6 @@ if __name__ == '__main__':
         G.analyze_training_set()
         G.save_cid2pmap()
     elif False:
-        G.init()
-        G.save_cid2pmap()
-    elif False:
         G.load_training_data()
         G.init()
         pH, pMg, I, T = (default_pH, default_pMg, default_I, default_T)
@@ -1114,7 +1165,6 @@ if __name__ == '__main__':
                 #k = pylab.dot(G.group_nullspace, pylab.array(groupvec))
                 #print groupvec.Hydrogens(), groupvec.NetCharge(), groupvec.Magnesiums(), pylab.norm(k)
                 #print k
-                #print G.estimate_pmap(mol, ignore_protonations=True)
         
     else:
         G.init()
@@ -1133,11 +1183,12 @@ if __name__ == '__main__':
         #mols['sparteine [nH=27]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2C[NH+]2CCCC[C@]12[H]')
         #mols['sparteine [nH=28]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
         #mols['sparteine [nH=26]'] = pybel.readstring('smiles', '[H][C@@]12CCCCN1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
-        mols['acetyl-CoA a'] = kegg.cid2mol(24)
+        #mols['acetyl-CoA a'] = kegg.cid2mol(24)
         #mols['acetyl-CoA b'] = pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")
         #mols['acetyl-CoA c'] = pybel.readstring('smiles', "CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12")
+        mols['glycylglycine'] = pybel.readstring('smiles', 'C(C(=O)NCC(=O)[O-])[NH3+]')
         
-        smarts = pybel.Smarts("CC(C)(COP([OH])(=O)OP([OH])(=O)OCC1OC(C(O)C1OP([OH])([OH])=O)n2cnc3c(N)[nH0]cnc23)C(O)C(~O)~NCCC(~O)~NCCSC=O") # CoA
+        smarts = pybel.Smarts('C(=O)[N;H1;0]C') # CoA
         
         for key, mol in mols.iteritems():
             mol.title = key
@@ -1146,5 +1197,3 @@ if __name__ == '__main__':
             print key
             print smarts.findall(mol)
             print G.analyze_decomposition(mol, ignore_protonations=True)
-            #pmap = G.estimate_pmap(mol, ignore_protonations=False)
-            #print pmap
