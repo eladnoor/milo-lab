@@ -339,7 +339,11 @@ class NistRegression(Thermodynamics):
         Thermodynamics.ToDatabase(self, self.db, 'nist_regression')
 
     def FromDatabase(self):
-        Thermodynamics.FromDatabase(self, self.db, 'nist_regression')
+        if self.db.DoesTableExist('nist_regression'):
+            Thermodynamics.FromDatabase(self, self.db, 'nist_regression')
+        else:
+            logging.warning('You should run nist_regression.py before trying to'
+                            ' load the data from the database')
         
     def WriteDataToHtml(self):
         Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
@@ -348,7 +352,6 @@ class NistRegression(Thermodynamics):
         return self.nist.verify_results(self, T_range)
 
 if (__name__ == "__main__"):
-    #logging.getLogger('').setLevel(logging.DEBUG)
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg(db)

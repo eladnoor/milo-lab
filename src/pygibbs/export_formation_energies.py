@@ -1,4 +1,4 @@
-from pygibbs.thermodynamics import Thermodynamics, CsvFileThermodynamics
+from pygibbs.thermodynamics import CsvFileThermodynamics
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.groups import GroupContribution

@@ -140,7 +140,7 @@ class NistRowData:
         return self.sparse.keys()
     
     def PredictFormationEnergy(self, thermodynamics, cid):
-        return thermodynamics.cid2pmap(cid).Transform(pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
+        return thermodynamics.cid2PseudoisomerMap(cid).Transform(pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
     
     def PredictReactionEnergy(self, thermodynamics):
         return sum([self.PredictFormationEnergy(thermodynamics, cid)*coeff 
@@ -398,6 +398,9 @@ class Nist(object):
                                row_data.sparse, row_data.pH, row_data.pMg, 
                                row_data.I, row_data.T, row_data.evaluation, 
                                n_measurements, row_data.origin, row_data.url])
+        
+        if not dG0_obs_vec:
+            return 0, 0
         
         # plot the profile graph
         pylab.rcParams['text.usetex'] = False

@@ -458,7 +458,7 @@ def test_all_modules():
                 for c in range(Nc):
                     cid = map_cid.get(cids[c], cids[c])
                     try:
-                        pmap = gc.cid2pmap(cid)
+                        pmap = gc.cid2PseudoisomerMap(cid)
                         dG0_f[c] = gc.pmap_to_dG0(pmap, pH, I, T)
                     except MissingCompoundFormationEnergy as e:
                         if (cid not in cids_with_missing_dG_f):
