@@ -28,7 +28,7 @@ class GradientAscent(Thermodynamics):
         self.cache_error = {}    # for each rowid - holds the last calculated squared error (the difference between calc and measured)
         self.cache_cid = {}      # for each (rowid,cid) pair - holds the last calculated dG_f (multiplied by the stoichiometric coeff)
 
-    def cid2pmap(self, cid):
+    def cid2PseudoisomerMap(self, cid):
         if cid in self.cid2pmap_dict:
             return self.cid2pmap_dict[cid]
         else:
@@ -351,7 +351,7 @@ class GradientAscent(Thermodynamics):
                 raise Exception("Internal Error: " + str((sparse_reaction, dG0_r, pH, I, T)))
             measurements.append((dG0_unknown, pH, I, T))
 
-        old_pmap = self.cid2pmap(cid_to_reevaluate)
+        old_pmap = self.cid2PseudoisomerMap(cid_to_reevaluate)
         num_pseudoisomers = len(old_pmap)
         nH_list = [nH for (nH, _z) in old_pmap.keys()]
         z_list = [z for (_nH, z) in old_pmap.keys()]
@@ -382,7 +382,7 @@ class GradientAscent(Thermodynamics):
             cid = cid_list[random_integers(0, len(cid_list)-1)]
             new_pmap = self.leave_one_out(cid)
             if (new_pmap != None):
-                old_pmap = self.cid2pmap(cid)
+                old_pmap = self.cid2PseudoisomerMap(cid)
                 self.cid2pmap_dict[cid] = new_pmap
                 self.update_cache(self, cid)
                 curr_MSE = self.evaluate_MSE()
@@ -426,7 +426,7 @@ class GradientAscent(Thermodynamics):
                 curr_pmap = self.leave_one_out(cid)
                 if (curr_pmap == None):
                     continue
-                old_pmap = self.cid2pmap(cid)
+                old_pmap = self.cid2PseudoisomerMap(cid)
                 self.cid2pmap_dict[cid] = curr_pmap
                 self.update_cache(self, cid)
                 curr_MSE = self.evaluate_MSE()
@@ -453,7 +453,7 @@ class GradientAscent(Thermodynamics):
         csv_writer = csv.writer(open(csv_fname, 'w'))
         csv_writer.writerow(('cid', 'dG0_f', 'nH', 'z', 'nMg'))
         for cid in self.get_all_cids():
-            for (nH, z, mgs, dG0) in self.cid2pmap(cid).ToMatrix:
+            for (nH, z, mgs, dG0) in self.cid2PseudoisomerMap(cid).ToMatrix:
                 csv_writer.writerow((cid, dG0, nH, z, mgs))
                 
     def analyse_reaction(self, reaction_to_analyze):

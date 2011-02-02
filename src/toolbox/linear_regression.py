@@ -1,9 +1,7 @@
 import logging
-from numpy.linalg import svd, inv, norm
-from numpy import diag, matrix, hstack, zeros, dot, vstack, float64, rank
+from numpy.linalg import svd, norm
+from numpy import matrix, zeros, dot
 from pylab import find
-from sympy import Matrix
-import sys
 
 class LinearRegression(object):
     
@@ -53,14 +51,42 @@ class LinearRegression(object):
 
         if reduced_row_echlon:
             LinearRegression.GaussJordan(kerA, eps)
-            #kerA = LinearRegression.ReducedRowEchelon(kerA)
+            #LinearRegression.ToReducedRowEchelonForm(kerA)
 
         return weights, kerA
     
     @staticmethod
-    def ReducedRowEchelon(A):
-        R = Matrix(A).rref()
-        return float64(matrix(R[0]))
+    def ToReducedRowEchelonForm(M, reduce_last_column=True):
+        """
+            Copied from:
+            http://rosettacode.org/wiki/Reduced_row_echelon_form
+            
+            Slightly changed to fit numpy arrays and an option not to
+            reduce the last column (used for solving linear systems)
+        """
+        lead = 0
+        rowCount = M.shape[0]
+        columnCount = M.shape[1]
+        if not reduce_last_column:
+            columnCount -= 1
+        
+        for r in xrange(rowCount):
+            if lead >= columnCount:
+                return
+            i = r
+            while M[i, lead] == 0:
+                i += 1
+                if i == rowCount:
+                    i = r
+                    lead += 1
+                    if columnCount == lead:
+                        return
+            M[[i,r], :] = A[[r,i], :]  # Replace rows i and r
+            M[r, :] /= M[r, lead]      # Divide row r by M[r, lead]
+            for i in xrange(rowCount):
+                if i != r and M[i, lead]:
+                    M[i, :] -= M[i, lead] * M[r, :] # Subtract for r from row i
+            lead += 1
     
     @staticmethod
     def GaussJordan(A, eps=1e-10):
@@ -99,7 +125,9 @@ class LinearRegression(object):
         return len(find(s > eps))
     
 if __name__ == '__main__':
-    #A = matrix([[1, 2, 3],[2, 3, 4],[-1, 8, 2],[2, 3, 1]])
+    #A = matrix([[1, 2, 3, 9],[2, -1, 1, 8],[2, 4, 6, 3]])
+    #LinearRegression.ToReducedRowEchelonForm(A, reduce_last_column=False)
+    #print A
     #y = matrix([[1],[1],[1],[1]])
     A = matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
     

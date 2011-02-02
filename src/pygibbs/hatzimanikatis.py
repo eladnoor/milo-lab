@@ -25,7 +25,7 @@ class Hatzi (Thermodynamics):
             self.cid2pmap_dict[cid] = pseudoisomer.PseudoisomerMap()
             self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0_f)
    
-    def cid2pmap(self, cid):
+    def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
             return self.cid2pmap_dict[cid]
         else:
