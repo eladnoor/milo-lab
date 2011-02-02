@@ -157,26 +157,23 @@ class GroupContribution(Thermodynamics):
             cdict['compound'] = comp
             if not comp.inchi:
                 self.db.Insert('gc_cid2error', [cid, 'no InChI exists'])
-                continue
-            try:
-                mol = comp.get_mol() 
-            except KeggParseException:
-                self.db.Insert('gc_cid2error', [cid, 'cannot determine molecular structure'])
-                continue
-            try:
-                decomposition = self.group_decomposer.Decompose(
-                    mol, ignore_protonations=True)
-                cdict['decomposition'] = decomposition
-                
-                pmap = self.Mol2PseudoisomerMap(mol, ignore_protonations=True)
-                cdict['estimated_pmap'] = pmap
-                self.db.Insert('gc_cid2error', [cid, None])
-                for (nH, z, nMg, dG0) in pmap.ToMatrix():
-                    self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
-            except GroupDecompositionError:
-                self.db.Insert('gc_cid2error', [cid, 'cannot decompose into groups'])
-            except GroupMissingTrainDataError:
-                self.db.Insert('gc_cid2error', [cid, 'contains groups lacking training data'])
+            else:
+                try:
+                    decomposition = self.Mol2Decomposition(comp.get_mol(),
+                                                           ignore_protonations=True)
+                    cdict['decomposition'] = decomposition
+                    pmap = self.GroupDecomposition2PseudoisomerMap(decomposition)
+                    cdict['estimated_pmap'] = pmap
+                    
+                    self.db.Insert('gc_cid2error', [cid, None])
+                    for (nH, z, nMg, dG0) in pmap.ToMatrix():
+                        self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
+                except KeggParseException:
+                    self.db.Insert('gc_cid2error', [cid, 'cannot determine molecular structure'])
+                except GroupDecompositionError:
+                    self.db.Insert('gc_cid2error', [cid, 'cannot decompose into groups'])
+                except GroupMissingTrainDataError:
+                    self.db.Insert('gc_cid2error', [cid, 'contains groups lacking training data'])
                 
             compounds.append(cdict)
         

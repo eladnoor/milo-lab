@@ -68,7 +68,7 @@ class NistRegression(Thermodynamics):
         self.cid2diss_table = DissociationTable.ReadDissociationCsv(kegg=kegg)
         self.cid2pmap_dict = {}
         
-    def cid2pmap(self, cid):
+    def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
             return self.cid2pmap_dict[cid]
         else:
@@ -178,7 +178,6 @@ class NistRegression(Thermodynamics):
             unique_rows_dG0_r = pylab.vstack([unique_rows_dG0_r, average_dG0_r])
             dG0_r[row_indices, 0] = average_dG0_r
             
-        
         fig = pylab.figure()
         pylab.plot(dG0_r[:,0], dG0_r[:,1]-dG0_r[:,0], '.')
         pylab.xlabel("$<\Delta_r G^\circ>$")
@@ -186,6 +185,10 @@ class NistRegression(Thermodynamics):
         pylab.title('$\sigma = %.1f$ kJ/mol' % (pylab.std(dG0_r[:,1]-dG0_r[:,0])))
         self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
+        pylab.np.savetxt('../res/nist/regress_CID.txt', pylab.array(cids_to_estimate), fmt='%d')
+        pylab.np.savetxt('../res/nist/regress_S.txt', unique_rows_S, fmt='%g')
+        pylab.np.savetxt('../res/nist/regress_dG0.txt', unique_rows_dG0_r, fmt='%.2f')
+        
         logging.info("Regression matrix is %d x %d, and it's rank is %d" % \
                      (unique_rows_S.shape[0], unique_rows_S.shape[1],
                       LinearRegression.Rank(unique_rows_S)))
@@ -203,8 +206,8 @@ class NistRegression(Thermodynamics):
             indices_in_prior = []
             for i, cid in enumerate(cids_to_estimate):
                 try:
-                    pmap = prior_thermodynamics.cid2pmap(cid)
-                    for p_nH, p_z, p_nMg, dG0 in sorted(pmap.ToMatrix()):
+                    pmap = prior_thermodynamics.cid2PseudoisomerMap(cid)
+                    for p_nH, unused_z, p_nMg, dG0 in sorted(pmap.ToMatrix()):
                         if p_nMg == 0:
                             dG0_base = self.ConvertPseudoisomer(cid, dG0, p_nH)
                             difference = dG0_base - estimated_dG0_f[i, 0]
@@ -214,7 +217,8 @@ class NistRegression(Thermodynamics):
                 except MissingCompoundFormationEnergy:
                     continue
             
-            v, _ = LinearRegression.LeastSquares(kerA.T[indices_in_prior,:], delta_dG0_f, reduced_row_echlon=False)
+            v, _ = LinearRegression.LeastSquares(kerA.T[indices_in_prior,:], 
+                        delta_dG0_f, reduced_row_echlon=False)
             estimated_dG0_f += pylab.dot(kerA.T, v)
 
         # copy the solution into the diss_tables of all the compounds,
@@ -351,7 +355,8 @@ class NistRegression(Thermodynamics):
     def VerifyResults(self, T_range=None):
         return self.nist.verify_results(self, T_range)
 
-if (__name__ == "__main__"):
+
+def main():
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg(db)
@@ -367,9 +372,9 @@ if (__name__ == "__main__"):
     else:
         T_range = (298, 314)
         
-        residuals = nist_regression.ReverseTransform(
-            prior_thermodynamics=alberty, T_range=T_range, 
-            assume_no_pKa_by_default=True)
+        nist_regression.ReverseTransform(prior_thermodynamics=alberty,
+                                         T_range=T_range,
+                                         assume_no_pKa_by_default=True)
 
         nist_regression.ToDatabase()
         
@@ -401,7 +406,7 @@ if (__name__ == "__main__"):
         fig = pylab.figure()
         pylab.hold(True)
         for row in db.Execute(query):
-            cid, name, nH, z, nMg, dG0_a, dG0_r = row
+            unused_cid, name, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
             x = (dG0_a + dG0_r)/2
             y = dG0_a - dG0_r
             pylab.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
@@ -412,3 +417,6 @@ if (__name__ == "__main__"):
         db.Query2CSV('../res/nist/alberty_vs_regress.csv', query, column_names)
 
     html_writer.close()
+    
+if (__name__ == "__main__"):
+    main()

@@ -27,17 +27,17 @@ class Thermodynamics(object):
         self.cid2source_string = {}
         self.anchors = set()
 
-    def cid2pmap(self, cid):
+    def cid2PseudoisomerMap(self, cid):
         raise NotImplementedError
 
     def cid2pmatrix(self, cid):
-        return self.cid2pmap(cid).ToMatrix()
+        return self.cid2PseudoisomerMap(cid).ToMatrix()
 
     def get_all_cids(self):
         raise NotImplementedError
 
     def cid2dG0(self, cid, nH, nMg=0):
-        pmap = self.cid2pmap(cid)
+        pmap = self.cid2PseudoisomerMap(cid)
         for p_nH, p_z, p_nMg, dG0 in pmap.ToMatrix():
             if nH == p_nH and nMg == p_nMg:
                 return dG0
@@ -49,7 +49,7 @@ class Thermodynamics(object):
         I = I or self.I
         T = T or self.T
         pMg = pMg or self.pMg
-        return self.cid2pmap(cid).Transform(pH, pMg, I, T, most_abundant=False)
+        return self.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T, most_abundant=False)
     
     def reaction_to_dG0(self, sparse_reaction, pH=None, pMg=None, I=None, T=None):
         """
@@ -77,13 +77,13 @@ class Thermodynamics(object):
         return s     
 
     def display_pmap(self, cid):
-        for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
+        for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
             print "C%05d | %2d | %2d | %3d | %6.2f" % (cid, nH, z, nMg, dG0)
     
     def WriteDataToHtml(self, html_writer, kegg):
         dict_list = []
         for cid in self.get_all_cids():
-            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 dict = {}
                 dict['cid'] = 'C%05d' % cid
                 dict['name'] = kegg.cid2name(cid)
@@ -104,7 +104,7 @@ class Thermodynamics(object):
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['cid', 'nH', 'z', 'nMg', 'dG0'])
         for cid in self.get_all_cids():
-            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 writer.writerow([cid, nH, z, nMg, dG0])
 
     def write_data_to_json(self, json_fname, kegg):
@@ -122,7 +122,7 @@ class Thermodynamics(object):
                 h['inchi'] = None
             h['source'] = self.cid2source_string.get(cid, None)
             h['species'] = []
-            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
             formations.append(h)
 
@@ -141,7 +141,7 @@ class Thermodynamics(object):
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
                        "dG0_f REAL, anchor BOOL")
         for cid in self.get_all_cids():
-            for nH, z, nMg, dG0 in self.cid2pmap(cid).ToMatrix():
+            for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
         db.Commit()
 
@@ -210,7 +210,7 @@ class CsvFileThermodynamics(Thermodynamics):
                                 '%s' % (cid, filename))
             self.cid2source_string[cid] = ref
 
-    def cid2pmap(self, cid):
+    def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
             return self.cid2pmap_dict[cid]
         else:
@@ -232,7 +232,7 @@ class CsvFileThermodynamics(Thermodynamics):
             dG = 0
             dG_f_vec = []
             for cid, coeff in sparse.iteritems():
-                dG_f = self.cid2pmap(cid).Transform(pH=7.4, 
+                dG_f = self.cid2PseudoisomerMap(cid).Transform(pH=7.4, 
                     pMg=pMg, I=0.0, T=303.1)
                 dG_f_vec.append(dG_f)
                 dG += coeff * dG_f
