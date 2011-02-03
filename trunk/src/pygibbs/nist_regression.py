@@ -83,11 +83,11 @@ class NistRegression(Thermodynamics):
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
-        cids_with_pKa = set(self.cid2diss_table.keys())
-        cids_in_nist = set(self.nist.GetAllCids())
+        all_cids_with_pKa = set(self.cid2diss_table.keys())
+        all_cids_in_nist = set(self.nist.GetAllCids())
         
         if assume_no_pKa_by_default:
-            for cid in cids_in_nist.difference(cids_with_pKa):
+            for cid in all_cids_in_nist.difference(all_cids_with_pKa):
                 diss = DissociationTable(cid)
                 diss.min_nH = self.kegg.cid2num_hydrogens(cid)
                 diss.min_charge = self.kegg.cid2charge(cid)
@@ -96,16 +96,14 @@ class NistRegression(Thermodynamics):
                                     'cannot be determined' % cid) 
                 else:
                     self.cid2diss_table[cid] = diss
-                    cids_with_pKa.add(cid)
+                    all_cids_with_pKa.add(cid)
         
-        cids_in_nist_with_pKa = cids_with_pKa.intersection(cids_in_nist)
+        cids_in_nist_with_pKa = all_cids_with_pKa.intersection(all_cids_in_nist)
         logging.info('There are pKa values for %d out of the %d compounds in NIST' % \
-                     (len(cids_in_nist_with_pKa), len(cids_in_nist)))
+                     (len(cids_in_nist_with_pKa), len(all_cids_in_nist)))
 
-        #self.anchors = set(cids_in_nist_with_pKa.intersection(self.nist_anchors.GetAllCids()))
-        cids_to_estimate = sorted(cids_in_nist_with_pKa.difference(self.anchors))
-        logging.info("%d compounds are anchored, and the %d others will be estimated" % \
-                     (len(self.anchors), len(cids_to_estimate)))
+        #self.anchors = set(all_cids_with_pKa.intersection(self.nist_anchors.GetAllCids()))
+        cids_to_estimate = sorted(all_cids_with_pKa.difference(self.anchors))
         
         # get a vector of anchored formation energies. one needs to be careful
         # to always use the most basic pseudoisomer (the one with the lowest nH)
@@ -132,7 +130,7 @@ class NistRegression(Thermodynamics):
                 continue # the temperature is outside the allowed range
             
             cids_in_reaction = set(nist_row_data.sparse.keys())
-            cids_without_pKa = cids_in_reaction.difference(cids_with_pKa)
+            cids_without_pKa = cids_in_reaction.difference(all_cids_with_pKa)
             if cids_without_pKa:
                 logging.debug('reaction contains CIDs with unknown pKa values: %s' % \
                               ', '.join(['C%05d' % cid for cid in cids_without_pKa]))
@@ -153,6 +151,14 @@ class NistRegression(Thermodynamics):
                 stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
                                                       stoichiometric_row])
         
+        # remove compounds that do no appear in S (since all the reactions
+        # that they are in were discarded).
+        nonzero_columns = pylab.find(pylab.sum(abs(stoichiometric_matrix), 0))
+        stoichiometric_matrix = stoichiometric_matrix[:, nonzero_columns]
+        cids_to_estimate = [cids_to_estimate[i] for i in nonzero_columns]
+        
+        logging.info("%d compounds are anchored, and the %d others will be estimated" % \
+                     (len(self.anchors), len(cids_to_estimate)))
         logging.info("%d out of %d NIST measurements can be used" % \
                      (stoichiometric_matrix.shape[0], len(self.nist.data)))
 

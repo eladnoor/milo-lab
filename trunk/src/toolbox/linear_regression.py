@@ -1,7 +1,5 @@
 import logging
-from numpy.linalg import svd, norm, lstsq
-from numpy import matrix, zeros, dot
-from pylab import find
+from pylab import np, find
 
 class LinearRegression(object):
     
@@ -22,29 +20,29 @@ class LinearRegression(object):
             raise Exception('y is not a column vector')
         if y.shape[0] != n:
             raise Exception('The length of y (%d) does not match the number of rows in A (%d)' % (y.shape[0], n))
-        y = matrix(y.reshape(n, 1))
+        y = np.matrix(y.reshape(n, 1))
         
-        zero_columns = find([norm(A[:,i])<=eps for i in xrange(m)])
-        nonzero_columns = find([norm(A[:,i])>eps for i in xrange(m)])
+        zero_columns = find([np.linalg.norm(A[:,i])<=eps for i in xrange(m)])
+        nonzero_columns = find([np.linalg.norm(A[:,i])>eps for i in xrange(m)])
         A_red = A[:, nonzero_columns]
         m_red = len(nonzero_columns)
         
-        U, s, V = svd(A_red, full_matrices=True)
+        U, s, V = np.linalg.svd(A_red, full_matrices=True)
 
         r = len(find(s > eps)) # the rank of A
         if r < m:
             logging.debug('The rank of A (%d) is lower than the number of columns'
                           ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
 
-        inv_S = zeros((m_red, n))
+        inv_S = np.zeros((m_red, n))
         for i in xrange(r):
             inv_S[i, i] = 1/s[i]
         
-        x = dot(V.T, dot(inv_S, dot(U.T, y)))
-        weights = zeros((m, 1))
+        x = np.dot(V.T, np.dot(inv_S, np.dot(U.T, y)))
+        weights = np.zeros((m, 1))
         weights[nonzero_columns, :] = x
 
-        kerA = zeros((m-r, m))
+        kerA = np.zeros((m-r, m))
         kerA[0:(m_red-r), nonzero_columns] = V[r:m_red,:]
         for i, j in enumerate(zero_columns):
             kerA[m_red-r+i, j] = 1
@@ -96,40 +94,42 @@ class LinearRegression(object):
  
     @staticmethod
     def Rank(A, eps=1e-10):
-        _U, s, _V = svd(A, full_matrices=False)
+        _U, s, _V = np.linalg.svd(A, full_matrices=False)
         return len(find(s > eps))
 
-    @staticmethod    
+    @staticmethod
     def SolveLinearSystem(A, b):
-        x, residues, rank, s = lstsq(A, b, rcond=1e-10)
+        x, _residues, _rank, _s = np.linalg.lstsq(A, b, rcond=1e-10)
+        new_b = np.dot(A, x)
         
-        new_b = b + residues
-        
-        
-        
-        M = pylab.hstack([A, b])
+        M = np.hstack([A, new_b])
         leads, nonleads = LinearRegression.ToReducedRowEchelonForm(M, reduce_last_column=False)
         
-        print "There are %d free variables: " % len(nonleads)
+        # since we know the linear system is achievable, all the last rows should be filled with only zeros
+        # including the last column (observations).
     
-        # let all non-leads have a value of 0
-        A_nonsingular = A[:, leads]
-        x_nonsingular, K = LinearRegression.LeastSquares(A_nonsingular, b)
+        x = np.zeros((A.shape[1], 1))
+        for i, col in enumerate(leads):
+            x[col, 0] = M[i, -1]
         
-        x = pylab.zeros((A.shape[1], 1))
-        for i in xrange(len(leads)):
-            x[leads[i], 0] = x_nonsingular[i, 0]
-        return x, nonleads
+        K = np.zeros((len(nonleads), A.shape[1]))
+        row = 0
+        for col in xrange(A.shape[1]):
+            if col in leads:
+                row += 1
+            else:
+                K[col-row, 0:row] = M[0:row, col].T
+                K[col-row, col] = 1
+        return x, K
 
-    
 if __name__ == '__main__':
-    A = matrix([[1, 2, 3, 9],[2, -1, 1, 8],[2, 4, 6, 3]])
+    A = np.matrix([[1, 2, 3, 9],[2, -1, 1, 8],[2, 4, 6, 3]])
     LinearRegression.ToReducedRowEchelonForm(A, reduce_last_column=False)
     print A
     
     #y = matrix([[1],[1],[1],[1]])
-    A = matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
-    w = matrix([[1],[1],[1],[2],[1]])
+    A = np.matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
+    w = np.matrix([[1],[1],[1],[2],[1]])
     
     #y = A*x
     #print A
@@ -137,11 +137,11 @@ if __name__ == '__main__':
     w_pred, V = LinearRegression.LeastSquares(A, A*w)
     print w_pred
     print V
-    print dot(A, V.T)
+    print np.dot(A, V.T)
 
     
-    x1 = matrix([[0,0,0,1,0]]).T
-    x2 = matrix([[-1,0,0,-1,-2]]).T
+    x1 = np.matrix([[0,0,0,1,0]]).T
+    x2 = np.matrix([[-1,0,0,-1,-2]]).T
     
-    print norm(V*x1)<1e-10, dot(x1.T, w_pred)[0,0], dot(x1.T, w)[0,0]
-    print norm(V*x2)<1e-10, dot(x2.T, w_pred)[0,0], dot(x2.T, w)[0,0]
+    print np.linalg.norm(V*x1)<1e-10, np.dot(x1.T, w_pred)[0,0], np.dot(x1.T, w)[0,0]
+    print np.linalg.norm(V*x2)<1e-10, np.dot(x2.T, w_pred)[0,0], np.dot(x2.T, w)[0,0]
