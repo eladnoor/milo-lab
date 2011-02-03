@@ -185,9 +185,12 @@ class NistRegression(Thermodynamics):
         pylab.title('$\sigma = %.1f$ kJ/mol' % (pylab.std(dG0_r[:,1]-dG0_r[:,0])))
         self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
-        pylab.np.savetxt('../res/nist/regress_CID.txt', pylab.array(cids_to_estimate), fmt='%d')
-        pylab.np.savetxt('../res/nist/regress_S.txt', unique_rows_S, fmt='%g')
-        pylab.np.savetxt('../res/nist/regress_dG0.txt', unique_rows_dG0_r, fmt='%.2f')
+        pylab.np.savetxt('../res/nist/regress_CID.txt', 
+            pylab.array(cids_to_estimate), fmt='%d', delimiter=',')
+        pylab.np.savetxt('../res/nist/regress_S.txt', 
+            unique_rows_S, fmt='%g', delimiter=',')
+        pylab.np.savetxt('../res/nist/regress_dG0.txt',
+            unique_rows_dG0_r, fmt='%.2f', delimiter=',')
         
         logging.info("Regression matrix is %d x %d, and it's rank is %d" % \
                      (unique_rows_S.shape[0], unique_rows_S.shape[1],
