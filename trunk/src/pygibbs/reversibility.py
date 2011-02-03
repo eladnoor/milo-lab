@@ -124,17 +124,19 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap):
 def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
     fig = pylab.figure()
     pylab.hold(True)
-    cdf(histogram[0], '1 (median=%.1f)' % pylab.median(histogram[0]), 'r')
-    cdf(histogram[1], '2 (median=%.1f)' % pylab.median(histogram[1]), 'b')
-    cdf(histogram['total'], '3-%d  (median=%.1f)' % \
-        (max_pathway_length, pylab.median(histogram['total'])), 'g')
+    cdf(histogram[0], '1 (median=%.1f, N=%d)' % \
+        (pylab.median(histogram[0]), len(histogram[0])), 'r')
+    cdf(histogram[1], '2 (median=%.1f, N=%d)' % \
+        (pylab.median(histogram[1]), len(histogram[1])), 'b')
+    cdf(histogram['total'], '3-%d  (median=%.1f, N=%d)' % \
+        (max_pathway_length, pylab.median(histogram['total']), len(histogram['total'])), 'g')
     pylab.xlim(-20, 20)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
     pylab.legend(loc='lower right')
     pylab.title(title)
     pylab.hold(False)
-    html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+    return fig
 
 def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -147,13 +149,16 @@ def main():
     
     histogram = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
                                                   cmap=GetConcentrationMap(kegg))
-    plot_histogram(histogram, html_writer, title='With constraints on co-factors')
-    
+    fig1 = plot_histogram(histogram, html_writer, title='With constraints on co-factors')
+    html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
+    pylab.savefig('../res/reversibility1.pdf', figure=fig1, format='pdf')
     
     histogram = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
                                                   cmap={})
-    plot_histogram(histogram, html_writer, title='No constraints on co-factors')
-
+    fig2 = plot_histogram(histogram, html_writer, title='No constraints on co-factors')
+    html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
+    pylab.savefig('../res/reversibility2.pdf', figure=fig1, format='pdf')
+    
 if __name__ == "__main__":
     #try_kegg_api()
     main()

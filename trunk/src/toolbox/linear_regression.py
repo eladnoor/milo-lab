@@ -50,13 +50,14 @@ class LinearRegression(object):
             kerA[m_red-r+i, j] = 1
 
         if reduced_row_echlon:
-            LinearRegression.GaussJordan(kerA, eps)
-            #LinearRegression.ToReducedRowEchelonForm(kerA)
+            #if not LinearRegression.GaussJordan(kerA, eps):
+            #    raise Exception('internal error: the kernel of A is singular')
+            LinearRegression.ToReducedRowEchelonForm(kerA)
 
         return weights, kerA
     
     @staticmethod
-    def ToReducedRowEchelonForm(M, reduce_last_column=True):
+    def ToReducedRowEchelonForm(A, eps=1e-10, reduce_last_column=True):
         """
             Copied from:
             http://rosettacode.org/wiki/Reduced_row_echelon_form
@@ -65,58 +66,69 @@ class LinearRegression(object):
             reduce the last column (used for solving linear systems)
         """
         lead = 0
-        rowCount = M.shape[0]
-        columnCount = M.shape[1]
+        rowCount = A.shape[0]
+        columnCount = A.shape[1]
         if not reduce_last_column:
             columnCount -= 1
         
+        leads = []
+        
         for r in xrange(rowCount):
             if lead >= columnCount:
-                return
+                return leads
             i = r
-            while M[i, lead] == 0:
+            while abs(A[i, lead]) < eps:
                 i += 1
                 if i == rowCount:
                     i = r
                     lead += 1
                     if columnCount == lead:
-                        return
-            M[[i,r], :] = A[[r,i], :]  # Replace rows i and r
-            M[r, :] /= M[r, lead]      # Divide row r by M[r, lead]
+                        return leads
+            A[[i,r], :] = A[[r,i], :]  # Replace rows i and r
+            A[r, :] /= A[r, lead]      # Divide row r by A[r, lead]
+            leads.append(lead)
             for i in xrange(rowCount):
-                if i != r and M[i, lead]:
-                    M[i, :] -= M[i, lead] * M[r, :] # Subtract for r from row i
+                if i != r and A[i, lead]:
+                    A[i, :] -= A[i, lead] * A[r, :] # Subtract for r from row i
             lead += 1
-    
+        
+        return leads
+ 
     @staticmethod
-    def GaussJordan(A, eps=1e-10):
+    def GaussJordan(A, eps=1e-10, reduce_last_column=True):
         """
             Puts given matrix (2D array) into the Reduced Row Echelon Form.
             Returns True if successful, False if 'm' is singular.
             NOTE: make sure all the matrix items support fractions! Int matrix will NOT work!
             Written by Jarno Elonen in April 2005, released into Public Domain
         """
-        h, w = A.shape
+        h = A.shape[0]
+        
+        # Row Echelon
         for y in xrange(0, h):
-            maxrow = y
-            for y2 in xrange(y+1, h):    # Find max pivot
-                if abs(A[y2, y]) > abs(A[maxrow, y]):
-                    maxrow = y2
-            A[[y,maxrow], :] = A[[maxrow,y], :]
-            if abs(A[y, y]) <= eps:     # Singular?
+            # Find max pivot
+            maxrow = (y + A[y:, y].argmax())
+            
+            # is A singular
+            if abs(A[maxrow, y]) < eps:
                 return False
-            for y2 in xrange(y+1, h):    # Eliminate column y
-                c = A[y2, y] / A[y, y]
-                for x in xrange(y, w):
-                    A[y2, x] -= A[y, x] * c
-        for y in xrange(h-1, 0-1, -1): # Backsubstitute
-            c  = A[y, y]
+            
+            # move the max pivot to the diagonal
+            A[[y,maxrow], :] = A[[maxrow,y], :]
+
+            # Eliminate column y below pivot
+            for y2 in xrange(y+1, h):
+                A[y2, :] -= A[y, :] * (A[y2, y] / A[y, y])
+
+        # Back-substitute
+        for y in xrange(h-1, -1, -1):
+            # Eliminate column y above pivot
             for y2 in xrange(0, y):
-                for x in xrange(w-1, y-1, -1):
-                    A[y2, x] -=  A[y, x] * A[y2, y] / c
-            A[y, y] /= c
-            for x in xrange(h, w):       # Normalize row y
-                A[y, x] /= c
+                A[y2, :] -=  A[y, :] * (A[y2, y] / A[y, y])
+            
+            # divide the pivot row so that the pivot will be equal to 1
+            A[y, :] /= A[y, y]
+
         return True
     
     @staticmethod
@@ -125,12 +137,12 @@ class LinearRegression(object):
         return len(find(s > eps))
     
 if __name__ == '__main__':
-    #A = matrix([[1, 2, 3, 9],[2, -1, 1, 8],[2, 4, 6, 3]])
-    #LinearRegression.ToReducedRowEchelonForm(A, reduce_last_column=False)
-    #print A
+    A = matrix([[1, 2, 3, 9],[2, -1, 1, 8],[2, 4, 6, 3]])
+    LinearRegression.ToReducedRowEchelonForm(A, reduce_last_column=False)
+    print A
+    
     #y = matrix([[1],[1],[1],[1]])
     A = matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
-    
     w = matrix([[1],[1],[1],[2],[1]])
     
     #y = A*x
