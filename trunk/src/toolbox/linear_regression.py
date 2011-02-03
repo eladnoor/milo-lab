@@ -1,5 +1,5 @@
 import logging
-from numpy.linalg import svd, norm
+from numpy.linalg import svd, norm, lstsq
 from numpy import matrix, zeros, dot
 from pylab import find
 
@@ -50,8 +50,6 @@ class LinearRegression(object):
             kerA[m_red-r+i, j] = 1
 
         if reduced_row_echlon:
-            #if not LinearRegression.GaussJordan(kerA, eps):
-            #    raise Exception('internal error: the kernel of A is singular')
             LinearRegression.ToReducedRowEchelonForm(kerA)
 
         return weights, kerA
@@ -72,18 +70,20 @@ class LinearRegression(object):
             columnCount -= 1
         
         leads = []
+        non_leads = []
         
         for r in xrange(rowCount):
             if lead >= columnCount:
-                return leads
+                return leads, non_leads
             i = r
             while abs(A[i, lead]) < eps:
                 i += 1
                 if i == rowCount:
                     i = r
+                    non_leads.append(lead)
                     lead += 1
                     if columnCount == lead:
-                        return leads
+                        return leads, non_leads
             A[[i,r], :] = A[[r,i], :]  # Replace rows i and r
             A[r, :] /= A[r, lead]      # Divide row r by A[r, lead]
             leads.append(lead)
@@ -92,49 +92,35 @@ class LinearRegression(object):
                     A[i, :] -= A[i, lead] * A[r, :] # Subtract for r from row i
             lead += 1
         
-        return leads
+        return leads, non_leads
  
-    @staticmethod
-    def GaussJordan(A, eps=1e-10, reduce_last_column=True):
-        """
-            Puts given matrix (2D array) into the Reduced Row Echelon Form.
-            Returns True if successful, False if 'm' is singular.
-            NOTE: make sure all the matrix items support fractions! Int matrix will NOT work!
-            Written by Jarno Elonen in April 2005, released into Public Domain
-        """
-        h = A.shape[0]
-        
-        # Row Echelon
-        for y in xrange(0, h):
-            # Find max pivot
-            maxrow = (y + A[y:, y].argmax())
-            
-            # is A singular
-            if abs(A[maxrow, y]) < eps:
-                return False
-            
-            # move the max pivot to the diagonal
-            A[[y,maxrow], :] = A[[maxrow,y], :]
-
-            # Eliminate column y below pivot
-            for y2 in xrange(y+1, h):
-                A[y2, :] -= A[y, :] * (A[y2, y] / A[y, y])
-
-        # Back-substitute
-        for y in xrange(h-1, -1, -1):
-            # Eliminate column y above pivot
-            for y2 in xrange(0, y):
-                A[y2, :] -=  A[y, :] * (A[y2, y] / A[y, y])
-            
-            # divide the pivot row so that the pivot will be equal to 1
-            A[y, :] /= A[y, y]
-
-        return True
-    
     @staticmethod
     def Rank(A, eps=1e-10):
         _U, s, _V = svd(A, full_matrices=False)
         return len(find(s > eps))
+
+    @staticmethod    
+    def SolveLinearSystem(A, b):
+        x, residues, rank, s = lstsq(A, b, rcond=1e-10)
+        
+        new_b = b + residues
+        
+        
+        
+        M = pylab.hstack([A, b])
+        leads, nonleads = LinearRegression.ToReducedRowEchelonForm(M, reduce_last_column=False)
+        
+        print "There are %d free variables: " % len(nonleads)
+    
+        # let all non-leads have a value of 0
+        A_nonsingular = A[:, leads]
+        x_nonsingular, K = LinearRegression.LeastSquares(A_nonsingular, b)
+        
+        x = pylab.zeros((A.shape[1], 1))
+        for i in xrange(len(leads)):
+            x[leads[i], 0] = x_nonsingular[i, 0]
+        return x, nonleads
+
     
 if __name__ == '__main__':
     A = matrix([[1, 2, 3, 9],[2, -1, 1, 8],[2, 4, 6, 3]])
