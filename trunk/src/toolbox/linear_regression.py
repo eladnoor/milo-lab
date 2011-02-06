@@ -100,6 +100,7 @@ class LinearRegression(object):
     @staticmethod
     def SolveLinearSystem(A, b):
         x, _residues, _rank, _s = np.linalg.lstsq(A, b, rcond=1e-10)
+        x = x.reshape((A.shape[1], 1)) 
         new_b = np.dot(A, x)
         
         M = np.hstack([A, new_b])
@@ -118,8 +119,10 @@ class LinearRegression(object):
             if col in leads:
                 row += 1
             else:
-                K[col-row, 0:row] = M[0:row, col].T
+                for i in xrange(row):
+                    K[col-row, leads[i]] = -M[i, col].T
                 K[col-row, col] = 1
+                
         return x, K
 
 if __name__ == '__main__':
@@ -134,7 +137,8 @@ if __name__ == '__main__':
     #y = A*x
     #print A
     #print x
-    w_pred, V = LinearRegression.LeastSquares(A, A*w)
+    #w_pred, V = LinearRegression.LeastSquares(A, A*w)
+    w_pred, V = LinearRegression.SolveLinearSystem(A, A*w)
     print w_pred
     print V
     print np.dot(A, V.T)

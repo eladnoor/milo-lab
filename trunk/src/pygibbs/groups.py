@@ -255,7 +255,9 @@ class GroupContribution(Thermodynamics):
     def linear_regression_train(self):
         self.load_training_data()
         
-        group_contributions, nullspace = LinearRegression.LeastSquares(
+        #group_contributions, nullspace = LinearRegression.LeastSquares(
+        #    self.group_matrix, self.obs)
+        group_contributions, nullspace = LinearRegression.SolveLinearSystem(
             self.group_matrix, self.obs)
         return list(group_contributions.flat), nullspace
     
@@ -581,9 +583,12 @@ class GroupContribution(Thermodynamics):
         if self.group_contributions == None or self.group_nullspace == None:
             raise Exception("You need to first Train the system before using it to estimate values")
 
-        k = pylab.norm(pylab.dot(self.group_nullspace, pylab.array(groupvec)))
-        if k > 0.1:
-            raise GroupMissingTrainDataError("can't estimate because some groups have no training data")
+        v = abs(pylab.dot(self.group_nullspace, pylab.array(groupvec)))
+        k = v.max()
+        if k > 1e-10:
+            i = v.argmax()
+            raise GroupMissingTrainDataError("can't estimate because the input "
+                "is not orthogonal to the kernel, at row %d" % i)
         return pylab.dot(groupvec, self.group_contributions)
     
     def estimate_val(self, mol):
@@ -610,7 +615,7 @@ class GroupContribution(Thermodynamics):
             self.db.Table2HTML(self.html_writer, 'train_group_matrix')
             self.db.Table2HTML(self.html_writer, 'train_observations')
             self.db.Table2HTML(self.html_writer, 'train_molecules')
-            self.db.Table2HTML(self.html_writer, 'contribution')
+            self.db.Table2HTML(self.html_writer, 'gc_contribution')
             
         self.html_writer.write('<table border="1">\n<tr>'
                         '<td>Name</td>'
@@ -633,11 +638,13 @@ class GroupContribution(Thermodynamics):
                              group.charge, group.nMg,
                              dG0_gr, dG0_gr_tag, compound_list_str))
         self.html_writer.write('</table>\n')
+
+        self.html_writer.write('<h2><a name="nullspace">Nullspace of regression matrix</a></h2>\n')
+        self.db.Table2HTML(self.html_writer, 'gc_nullspace')
+        
         self.html_writer.write('</div>\n')
 
     def analyze_training_set(self):
-        self.write_regression_report()
-        
         n_obs = self.group_matrix.shape[0]
         orig_est = []
         val_names = []
@@ -1037,21 +1044,22 @@ class GroupContribution(Thermodynamics):
                 self.db.Insert('observation', [cid, self.kegg().cid2name(cid), nH, z, nMg, dG0, use_for])
         
         logging.info("storing the group contribution data in the database")
-        self.db.CreateTable('contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL, nullspace TEXT')
+        self.db.CreateTable('gc_contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL, nullspace TEXT')
         
         for j, dG0_gr in enumerate(self.group_contributions):
             group = self.groups_data.all_groups[j]
             nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
-            self.db.Insert('contribution', [j, group.name, group.hydrogens,
+            self.db.Insert('gc_contribution', [j, group.name, group.hydrogens,
                                             group.charge, group.nMg, dG0_gr,
                                             nullspace_str])
             
-        self.db.CreateTable('nullspace', 'group_vector')
+        self.db.CreateTable('gc_nullspace', 'group_vector')
         for i in xrange(self.group_nullspace.shape[0]):
             nonzero_columns = pylab.find(abs(self.group_nullspace[i, :]) > 1e-10)
             gv = ",".join(["%g x %s" % (self.group_nullspace[i, j], 
-                                        self.groups_data.all_groups[j].name) for j in nonzero_columns])
-            self.db.Insert('nullspace', [gv])
+                                        self.groups_data.all_groups[j].name) 
+                                        for j in nonzero_columns])
+            self.db.Insert('gc_nullspace', [gv])
 
         self.db.Commit()
             
@@ -1069,7 +1077,7 @@ class GroupContribution(Thermodynamics):
                 self.cid_test_set.add(cid)
         
         nullspace_mat = []
-        for row in self.db.Execute("SELECT * FROM contribution ORDER BY gid"):
+        for row in self.db.Execute("SELECT * FROM gc_contribution ORDER BY gid"):
             (unused_gid, unused_name, unused_protons, unused_charge, unused_mg, dG0_gr, nullspace) = row
             self.group_contributions.append(dG0_gr)
             nullspace_mat.append([float(x) for x in nullspace.split(',')])
@@ -1138,6 +1146,7 @@ if __name__ == '__main__':
     G.load_groups("../data/thermodynamics/groups_species.csv")
     if True:
         G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
+        G.write_regression_report()
         G.analyze_training_set()
         G.save_cid2pmap()
     elif False:
