@@ -20,13 +20,13 @@ def main():
     x1, K1 = LinearRegression.LeastSquares(S, dG0)
     x2, K2 = LinearRegression.SolveLinearSystem(S, dG0)
 
-    for row in xrange(K2.shape[0]):
-        print row, ":",
-        for col in xrange(K2.shape[1]):
-            cid = int(cids[col])
-            if abs(K2[row, col]) > 1e-10:
-                print 'C%05d (%s) x %g,' % (cid, kegg.cid2name(cid), K2[row, col]),
-        print ''
+    print pylab.norm(pylab.dot(S, K1.T))
+    print pylab.norm(pylab.dot(S, K2.T))
+        
+    for i in xrange(K2.shape[0]):
+        nonzero_columns = pylab.find(abs(K2[i, :]) > 1e-10)
+        gv = " + ".join(["%g %s (C%05d)" % (K2[i, j], kegg.cid2name(int(cids[j])), cids[j]) for j in nonzero_columns])
+        print i, ":", gv
                 
 if __name__ == "__main__":
     main()

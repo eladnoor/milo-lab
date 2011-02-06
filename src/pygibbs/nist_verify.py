@@ -26,7 +26,9 @@ def main():
     kegg = Kegg(db)
 
     nist = Nist(db, html_writer, kegg)
-    nist.Load()
+    # TODO: check why there are still unbalanced reactions in NIST:
+    nist.FromCsvFile('../data/thermodynamics/nist.csv')
+    #nist.Load()
 
     estimators = {}
     estimators['Alberty'] = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
