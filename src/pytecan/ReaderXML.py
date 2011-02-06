@@ -1,64 +1,63 @@
 import time, calendar, os, csv
 from xml.etree.ElementTree import ElementTree
+import tarfile
 
 fmt = "%Y-%m-%dT%H:%M:%S"
 
-def GetPlateFiles(dir, number_of_plates):
+def GetPlateFiles(tar_fname, number_of_plates):
     PL = {}
-    plate_id = 1
-    for i in range(1, number_of_plates+1):
-        PL[i] = []
     L = []
     
-    for f in os.listdir(dir):
+    tar = tarfile.open(tar_fname)
+    
+    for f in tar.getnames():
         if f[-3:] == 'xml':
-            ts = f[-23:]
-            ff = os.path.join(dir, f)
+            ts = f[-23:-3] # take only the postfix of the filename - a timestamp
+            ff = tar.extractfile(f)
             L.append((ts, ff))
     
-    for _t, f in sorted(L):    
-        PL[plate_id].append(f)
-        plate_id += 1
-        if plate_id > number_of_plates:
-            plate_id = 1
+    for i, (_t, f) in enumerate(sorted(L)):    
+        PL.setdefault(i % number_of_plates, []).append(f)
     
     return PL    
 
 def ParseReaderFile(fname):
-    T = ElementTree()
-    T.parse(fname)
-    W = ""
-    M = ""
-    V = ""
-    TIME = ""
+    xml_reader = ElementTree()
+    xml_reader.parse(fname)
+    well = (0, 0)
+    reading_label = ""
+    measurement = ""
     TSEC = None
     DATA = {}
-    for e in T.getiterator():
+    for e in xml_reader.getiterator():
         if e.tag == 'Section':
-            M = e.attrib['Name']
+            reading_label = e.attrib['Name']
             TIME = e.attrib['Time_Start']
             TIME = TIME[:19]
-            TS = time.strptime(TIME   ,fmt)
+            TS = time.strptime(TIME, fmt)
             if not TSEC:
                 TSEC = calendar.timegm(TS)
-            DATA[M] = {}
+            DATA[reading_label] = {}
             
         if e.tag == 'Well':
             W = e.attrib['Pos']
+            well_row = ord(W[0]) - ord('A')
+            well_col = int(W[1:]) - 1
+            well = (well_row, well_col)
 
         if e.tag == 'Multiple':
             if e.attrib['MRW_Position'] == 'Mean':
-                V = e.text
-                DATA[M][W] = float(V)
+                measurement = e.text
+                DATA[reading_label][well] = float(measurement)
 
         if e.tag == 'Single':
-            V = e.text
-            DATA[M][W] = float(V)
+            measurement = e.text
+            DATA[reading_label][well] = float(measurement)
 
     return DATA, TSEC
 
-def CollectData(dir, number_of_plates):
-    PL = GetPlateFiles(dir, 4)
+def CollectData(tar_fname, number_of_plates):
+    PL = GetPlateFiles(tar_fname, number_of_plates)
     TVEC = {}
     MES = {}
     
@@ -73,23 +72,27 @@ def CollectData(dir, number_of_plates):
                     MES[m][plate_id].setdefault(w, {})[TSEC] = DATA[m][w]
     return MES
 
-def WriteCSV(MES, dir):
+def WriteCSV(MES, csv_fname):
     """
         Write the data into a directory, each reading-label in its own CSV file.
         The columns of the CSV file are: reading-label, plate, well, time, measurement.
         The rows is ordered according to these columns.
     """
-    for m in sorted(MES.keys()):
-        csv_writer = csv.writer(open(os.path.join(dir, m + ".csv"), 'w'))
-        csv_writer.writerow(['reading label', 'plate', 'well', 'time', 'measurement'])
-        for p in sorted(MES[m].keys()):
-            for w in sorted(MES[m][p].keys()):
-                for t in sorted(MES[m][p][w].keys()):
-                    csv_writer.writerow([m, p, w, t, MES[m][p][w][t]])
+    for reading_label in sorted(MES.keys()):
+        csv_writer = csv.writer(open(csv_fname, 'well'))
+        csv_writer.writerow(['reading label', 'plate', 'row', 'col', 
+                             'time', 'measurement'])
+        for plate_id in sorted(MES[reading_label].keys()):
+            for well in sorted(MES[reading_label][plate_id].keys()):
+                for time in sorted(MES[reading_label][plate_id][well].keys()):
+                    csv_writer.writerow([reading_label, plate_id, well[0], 
+                                         well[1], time, 
+                                         MES[reading_label][plate_id][well][time]])
 
 if __name__ == "__main__":
-    dir = "../data/tecan/PL6-96"
-    MES = CollectData(dir, number_of_plates=4)
-    WriteCSV(MES, dir)
+    tar_fname = "../data/tecan/PL6-96.tar.gz"
+    csv_fname = "../data/tecan/PL6-96.csv"
+    MES = CollectData(tar_fname, number_of_plates=4)
+    WriteCSV(MES, csv_fname)
     
     
