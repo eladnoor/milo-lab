@@ -2,12 +2,11 @@
     This program requires the xlrd package, which can be found at: http://pypi.python.org/pypi/xlrd
 """
 from xlrd import open_workbook
-from pylab import *
-import types, sys, os
-
-from Tkinter import *
+from pylab import matrix, array, figure, show, subplot, plot, find, arange, \
+                  log, exp, hstack, zeros, ones, lstsq, hold, mean, yscale, \
+                  legend
+import types, os
 from tkFileDialog import askopenfilename      
-from twisted.web import static
 
 class VictorParser():
     
@@ -35,7 +34,7 @@ class VictorParser():
             
         for r in range(1, sheet.nrows):
             row = sheet.row_values(r)
-            [plate, repeat, well, type] = row[0:4]
+            unused_plate, unused_repeat, well, type = row[0:4]
             
             well_row = ord(well[0]) - ord('A')
             well_col = int(well[1:]) - 1
