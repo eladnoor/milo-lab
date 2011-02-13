@@ -152,7 +152,7 @@ class Nist(object):
         self.db = db
         self.html_writer = html_writer
         if (kegg == None):
-            self.kegg = Kegg()
+            self.kegg = Kegg(self.db)
         else:
             self.kegg = kegg
 

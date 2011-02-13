@@ -1056,10 +1056,11 @@ class GroupContribution(Thermodynamics):
         self.db.CreateTable('gc_nullspace', 'group_vector')
         for i in xrange(self.group_nullspace.shape[0]):
             nonzero_columns = pylab.find(abs(self.group_nullspace[i, :]) > 1e-10)
-            gv = ",".join(["%g x %s" % (self.group_nullspace[i, j], 
-                                        self.groups_data.all_groups[j].name) 
-                                        for j in nonzero_columns])
-            self.db.Insert('gc_nullspace', [gv])
+            if len(nonzero_columns) > 1:
+                gv = ",".join(["%g x %s" % (self.group_nullspace[i, j], 
+                                            str(self.groups_data.all_groups[j])) 
+                                            for j in nonzero_columns])
+                self.db.Insert('gc_nullspace', [gv])
 
         self.db.Commit()
             

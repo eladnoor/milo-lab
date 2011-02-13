@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-
+from scipy import stats
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs import thermodynamics
 from pygibbs.thermodynamic_constants import R, default_I, default_pH
 from pygibbs.thermodynamic_constants import default_pMg, default_T
-import pylab
 from pygibbs.groups import GroupContribution
+import pylab
 from pygibbs.kegg import Kegg
 from toolbox.plotting import cdf
 from SOAPpy import WSDL
@@ -22,7 +22,6 @@ def try_kegg_api():
     
     wsdl = 'http://soap.genome.jp/KEGG.wsdl'
     serv = WSDL.Proxy(wsdl)
-    
     
     rid_file = open('../res/eco_rids.txt', 'w')
     rids = set()
@@ -124,18 +123,20 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap):
 def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
     fig = pylab.figure()
     pylab.hold(True)
-    cdf(histogram[0], '1 (median=%.1f, N=%d)' % \
-        (pylab.median(histogram[0]), len(histogram[0])), 'r')
-    cdf(histogram[1], '2 (median=%.1f, N=%d)' % \
-        (pylab.median(histogram[1]), len(histogram[1])), 'b')
-    cdf(histogram['total'], '3-%d  (median=%.1f, N=%d)' % \
-        (max_pathway_length, pylab.median(histogram['total']), len(histogram['total'])), 'g')
+    for key, value in histogram.iteritems():
+        cdf(value, '%s (median=%.1f, N=%d)' % \
+            (key, stats.cmedian(value), len(value)))
     pylab.xlim(-20, 20)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
     pylab.legend(loc='lower right')
     pylab.title(title)
     pylab.hold(False)
+    
+    for k1, h1 in histogram.iteritems():
+        for k2, h2 in histogram.iteritems():
+            print k1, k2, stats.ranksums(h1, h2)
+    
     return fig
 
 def main():
