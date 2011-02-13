@@ -383,7 +383,7 @@ def main():
         
         nist_regression.ReverseTransform(prior_thermodynamics=alberty,
                                          T_range=T_range,
-                                         assume_no_pKa_by_default=True)
+                                         assume_no_pKa_by_default=False)
 
         nist_regression.ToDatabase()
         

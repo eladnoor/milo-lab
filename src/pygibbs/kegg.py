@@ -333,10 +333,12 @@ class Compound(object):
         
     def get_num_electrons(self):
         obmol = self.get_obmol(correctForPH=False)
-        n_protons = 0
+        atom_bag = {}
         for i in xrange(obmol.NumAtoms()):
             atom = obmol.GetAtom(i+1)
-            n_protons += atom.GetAtomicNum()
+            atom_bag.setdefault(atom.GetAtomicNum(), 0)
+            atom_bag[atom.GetAtomicNum()] += 1
+        n_protons = sum([an*cnt for (an, cnt) in atom_bag.iteritems()])
         return n_protons - obmol.GetTotalCharge()
 
     def get_link(self):
@@ -1045,7 +1047,7 @@ class Kegg(object):
         cursor.execute("DROP INDEX IF EXISTS kegg_compound_names_idx")
         cursor.execute("CREATE INDEX kegg_compound_names_idx ON kegg_compound_names (name)")
         
-        for (cid, compound) in self.cid2compound_map.iteritems():
+        for cid, compound in self.cid2compound_map.iteritems():
             cursor.execute("INSERT INTO kegg_compound VALUES(?,?,?,?,?,?,?,?)", \
                            (cid, compound.pubchem_id, compound.mass, compound.formula, \
                             compound.inchi, compound.from_kegg, compound.cas, ";".join(compound.all_names)))
