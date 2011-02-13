@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from scipy import stats
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
@@ -12,6 +10,7 @@ from pygibbs.kegg import Kegg
 from toolbox.plotting import cdf
 from SOAPpy import WSDL
 import logging
+import matplotlib
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -123,13 +122,18 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap):
 def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
     fig = pylab.figure()
     pylab.hold(True)
+
+    colors = ['r', 'g', 'b', 'k', 'm', 'c', 'orange', 'pink', 'r--', 'g--', 'b--', 'm--', 'k--']
     for key, value in histogram.iteritems():
-        cdf(value, '%s (median=%.1f, N=%d)' % \
-            (key, stats.cmedian(value), len(value)))
+        if len(value) > 20:
+            cdf(value, label='%s (median=%.1f, N=%d)' % \
+                (key, stats.cmedian(value), len(value)),
+                style=colors.pop(0))
     pylab.xlim(-20, 20)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
-    pylab.legend(loc='lower right')
+    legendfont = matplotlib.font_manager.FontProperties(size=7)
+    pylab.legend(loc='lower right', prop=legendfont)
     pylab.title(title)
     pylab.hold(False)
     
