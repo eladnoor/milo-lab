@@ -319,10 +319,15 @@ class GroupsData(object):
         """
         logging.info('Reading the list of groups from the database.')
         
-        if not db.DoesTableExist('groups') and filename:
-            groups_data = GroupsData.FromGroupsFile(filename)
-            groups_data.ToDatabase(db)
-            return groups_data
+        if not db.DoesTableExist('groups'):
+            if filename:
+                groups_data = GroupsData.FromGroupsFile(filename)
+                groups_data.ToDatabase(db)
+                return groups_data
+            else:
+                raise Exception('Cannot initialize GroupsData, no file was '
+                                'provided and the database does not contain '
+                                'the information either')
         
         # Table should exist.
         list_of_groups = []

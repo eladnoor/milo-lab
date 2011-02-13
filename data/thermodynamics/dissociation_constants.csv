@@ -597,7 +597,7 @@
 2267,"deoxycoformycin","acid-base",298.15,17,16,0,0,,,5.2,"CRC (88th edition)"
 2299,"N-methylbenzenamine","acid-base",298.15,10,9,0,0,,,4.85,"CRC (88th edition)"
 2304,"hydrazinobenzene","acid-base",288.15,9,8,0,0,,,8.79,"CRC (88th edition)"
-2305,"phopho-creatine","acid-base",298.15,8,7,0,0,,,2.67,"Taken as is from creatine"
+2305,"phopho-creatine","acid-base",298.15,10,9,0,0,,,2.67,"Taken as is from creatine"
 2305,"phopho-creatine","acid-base",298.15,9,8,0,0,,,4.3,"Reaxys"
 2357,"2-chlorobenzoate","acid-base",298.15,5,4,0,0,"OC(=O)c1ccccc1Cl","[O-]C(=O)c1ccccc1Cl",2.9,"CRC (88th edition)"
 2359,"2-fluorobenzoate","acid-base",298.15,5,4,0,0,"OC(=O)c1ccccc1F","[O-]C(=O)c1ccccc1F",3.27,"CRC (88th edition)"
