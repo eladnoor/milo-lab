@@ -235,6 +235,37 @@ class NistRegression(Thermodynamics):
         for i, cid in enumerate(cids_to_estimate):
             self.cid2diss_table[cid].min_dG0 = estimated_dG0_f[i, 0]
             self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
+
+    def AnalyzeSingleReaction(self, sparse, T_range=None):
+        all_cids_with_pKa = set(self.cid2diss_table.keys())
+        if not all_cids_with_pKa.issuperset(sparse.keys()):
+            raise Exception('Cannot analyze this reaction since some of its '
+                            'reactants do not have pKa data: ' + str(sparse))
+        
+        dG0_r_tag = pylab.zeros((0, 1))
+        ddG0_r = pylab.zeros((0, 1)) # the difference between dG0_r and dG'0_r
+        
+        conditions = pylab.zeros((0, 4))
+        
+        for nist_row_data in self.nist.data:
+            if nist_row_data.sparse != sparse:
+                continue
+            if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
+                logging.debug('Temperature %.2f not within allowed range', nist_row_data.T)
+                continue # the temperature is outside the allowed range
+            
+            dG0_r_tag = pylab.vstack([dG0_r_tag, nist_row_data.dG0_r])
+            conditions = pylab.vstack([conditions, pylab.array([nist_row_data.pH, 
+                nist_row_data.I, nist_row_data.pMg, nist_row_data.T])])
+            
+            ddG = self.ReverseTransformReaction(nist_row_data.sparse, 
+                nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
+                nist_row_data.T)
+            ddG0_r = pylab.vstack([ddG0_r, ddG])
+            
+        dG0_r = dG0_r_tag + ddG0_r
+        pylab.plot(conditions[:, 0], dG0_r, '.')
+        pylab.show()
             
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
         try:
@@ -378,9 +409,13 @@ def main():
     if False:
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
+    elif False:
+        sparse = {2: -1, 300: -1, 8: 1, 2305: 1}
+        #sparse = {1: -1, 588: -1, 114: 1, 9: 1}
+        #sparse = {1: -1, 13: -1, 9: 2}
+        nist_regression.AnalyzeSingleReaction(sparse)
     else:
         T_range = (298, 314)
-        
         nist_regression.ReverseTransform(prior_thermodynamics=alberty,
                                          T_range=T_range,
                                          assume_no_pKa_by_default=False)
