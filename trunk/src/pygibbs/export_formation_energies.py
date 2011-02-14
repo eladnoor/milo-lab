@@ -11,11 +11,11 @@ def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg(db)
     alberty = CsvFileThermodynamics('../data/thermodynamics/dG0.csv')
-    alberty.write_data_to_json('../res/alberty.json', kegg)
     
-    G = GroupContribution(db)
+    G = GroupContribution(db=db, kegg=kegg)
     G.init()
-    G.write_data_to_json('../res/group_contribution.json', kegg)
+    G.override_data(alberty)
+    G.write_data_to_json('../res/pseudoisomers.json', kegg)
     
 if __name__ == "__main__":
     main()

@@ -129,7 +129,12 @@ class Thermodynamics(object):
         json_file = open(json_fname, 'w')
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
-                
+        
+    def override_data(self, other):
+        for cid in other.get_all_cids():
+            self.cid2source_string[cid] = other.cid2source_string.get(cid, None)
+            self.cid2pmap_dict[cid] = other.cid2pmap_dict[cid]
+            
     def write_transformed_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['cid', 'pH', 'pMg', 'I', 'T', 'dG0_tag'])
@@ -208,7 +213,8 @@ class CsvFileThermodynamics(Thermodynamics):
             if cid in self.cid2source_string and self.cid2source_string[cid] != ref:
                 logging.warning('There are conflicting references for C%05d in '
                                 '%s' % (cid, filename))
-            self.cid2source_string[cid] = ref
+            else:
+                self.cid2source_string[cid] = ref
 
     def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
