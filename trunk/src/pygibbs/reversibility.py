@@ -100,7 +100,7 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap):
     histogram['total'] = []
     hits = 0
     misses = 0
-    for rid_flux_list in kegg.mid2rid_map.itervalues():
+    for mid, rid_flux_list in kegg.mid2rid_map.iteritems():
         if not rid_flux_list or len(rid_flux_list) < 2:
             continue
         for i, (rid, flux) in enumerate(rid_flux_list):
@@ -123,12 +123,13 @@ def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
     fig = pylab.figure()
     pylab.hold(True)
 
-    colors = ['r', 'g', 'b', 'k', 'm', 'c', 'orange', 'pink', 'r--', 'g--', 'b--', 'm--', 'k--']
+    colors = {0:'r', 1:'orange', 2:'green', 3:'cyan', 4:'blue', 5:'violet', 
+              6:'pink', 'total':'k--'}
     for key, value in histogram.iteritems():
         if len(value) > 20:
             cdf(value, label='%s (median=%.1f, N=%d)' % \
                 (key, stats.cmedian(value), len(value)),
-                style=colors.pop(0))
+                style=colors.get(key, 'grey'))
     pylab.xlim(-20, 20)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
@@ -137,9 +138,10 @@ def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
     pylab.title(title)
     pylab.hold(False)
     
-    for k1, h1 in histogram.iteritems():
-        for k2, h2 in histogram.iteritems():
-            print k1, k2, stats.ranksums(h1, h2)
+    print stats.ranksums(histogram[0], histogram['total'])
+    #for k1, h1 in histogram.iteritems():
+    #    for k2, h2 in histogram.iteritems():
+    #        print k1, k2, stats.ranksums(h1, h2)
     
     return fig
 
@@ -156,13 +158,11 @@ def main():
                                                   cmap=GetConcentrationMap(kegg))
     fig1 = plot_histogram(histogram, html_writer, title='With constraints on co-factors')
     html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
-    pylab.savefig('../res/reversibility1.pdf', figure=fig1, format='pdf')
     
     histogram = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
                                                   cmap={})
     fig2 = plot_histogram(histogram, html_writer, title='No constraints on co-factors')
     html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
-    pylab.savefig('../res/reversibility2.pdf', figure=fig1, format='pdf')
     
 if __name__ == "__main__":
     #try_kegg_api()
