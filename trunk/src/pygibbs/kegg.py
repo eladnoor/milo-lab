@@ -747,7 +747,7 @@ class Kegg(object):
             returns a list of pairs of rids and fluxes.
         """
         rid_flux_list = []
-        for (rid_clause, left_clause, right_clause) in re.findall('([R,0-9]+)  ([C\s\+\d]+) -> ([C\s\+\d]+)', field_map["REACTION"]):
+        for (rid_clause, left_clause, right_clause) in re.findall('([R,0-9]+)  ([C\s\+\d]+) <?-> ([C\s\+\d]+)', field_map["REACTION"]):
             # @@@ we take only the first RID from the list of options in this line in the module!
             # @@@ there must be a better way to choose it!
             
