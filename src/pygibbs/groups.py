@@ -24,20 +24,32 @@ from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 from pygibbs.pseudoisomers_data import PseudoisomersData
 from pygibbs.pseudoisomer import PseudoisomerMap
-from pybel import Molecule
+import sys
 
 class GroupContributionError(Exception):
     pass
     
-class GroupMissingTrainDataError(GroupContributionError):
-    def __init__(self, value, missing_groups=[]):
+class GroupMissingTrainDataError(Exception):
+    def __init__(self, value, kernel_rows=[]):
         self.value = value
-        self.missing_groups = missing_groups
+        self.kernel_rows = kernel_rows
     def __str__(self):
         if (type(self.value) == types.StringType):
             return self.value
         else:
             return repr(self.value)
+    def Explain(self, gc):
+        missing_single_groups = []
+        for i in self.kernel_rows:
+            nonzero_columns = pylab.find(abs(gc.group_nullspace[i, :]) > 1e-10)
+            if len(nonzero_columns) == 1:
+                missing_single_groups.append(nonzero_columns[0])
+            else:
+                return 'contains group combinations that are not covered by ' + \
+                    'training data'
+                
+        return 'contains missing groups: ' + ", ".join(
+            [str(gc.groups_data.all_groups[j]) for j in missing_single_groups])
 
 class GroupContribution(Thermodynamics):    
     def __init__(self, db, html_writer=None, kegg=None):
@@ -54,7 +66,7 @@ class GroupContribution(Thermodynamics):
         if kegg:
             self._kegg = kegg
         else:
-            self._kegg = Kegg()
+            self._kegg = Kegg(self.db)
         self.bounds = deepcopy(self._kegg.cid2bounds)
         self.hatzi = Hatzi()
         self.hatzi.bounds = self.bounds
@@ -156,8 +168,9 @@ class GroupContribution(Thermodynamics):
             # Try to also estimate the dG0_f using Group Contribution:
             comp = self.kegg().cid2compound(cid)
             cdict['compound'] = comp
+            error_str = None
             if not comp.inchi:
-                self.db.Insert('gc_cid2error', [cid, 'no InChI exists'])
+                error_str = 'no InChI exists'
             else:
                 try:
                     decomposition = self.Mol2Decomposition(comp.get_mol(),
@@ -165,18 +178,16 @@ class GroupContribution(Thermodynamics):
                     cdict['decomposition'] = decomposition
                     pmap = self.GroupDecomposition2PseudoisomerMap(decomposition)
                     cdict['estimated_pmap'] = pmap
-                    
-                    self.db.Insert('gc_cid2error', [cid, None])
                     for (nH, z, nMg, dG0) in pmap.ToMatrix():
                         self.db.Insert('gc_cid2prm', [cid, int(nH), int(z), int(nMg), dG0, True])
                 except KeggParseException:
-                    self.db.Insert('gc_cid2error', [cid, 'cannot determine molecular structure'])
+                    error_str = 'cannot determine molecular structure'
                 except GroupDecompositionError:
-                    self.db.Insert('gc_cid2error', [cid, 'cannot decompose into groups'])
-                except GroupMissingTrainDataError:
-                    self.db.Insert('gc_cid2error', [cid, 'contains groups lacking training data'])
-                
+                    error_str = 'cannot decompose into groups'
+                except GroupMissingTrainDataError as e:
+                    error_str = e.Explain(self)
             compounds.append(cdict)
+            self.db.Insert('gc_cid2error', [cid, error_str])
         
         templates.render_to_file('kegg_pmaps.html', {'compounds': compounds},
                                  '../res/kegg_pmaps.html')
@@ -585,11 +596,10 @@ class GroupContribution(Thermodynamics):
             raise Exception("You need to first Train the system before using it to estimate values")
 
         v = abs(pylab.dot(self.group_nullspace, pylab.array(groupvec)))
-        k = v.max()
-        if k > 1e-10:
-            i = v.argmax()
+        k_list = [i for i in pylab.find(v > 1e-10)]
+        if k_list:
             raise GroupMissingTrainDataError("can't estimate because the input "
-                "is not orthogonal to the kernel, at row %d" % i)
+                "is not orthogonal to the kernel", k_list)
         return pylab.dot(groupvec, self.group_contributions)
     
     def estimate_val(self, mol):
@@ -639,10 +649,12 @@ class GroupContribution(Thermodynamics):
                              group.charge, group.nMg,
                              dG0_gr, dG0_gr_tag, compound_list_str))
         self.html_writer.write('</table>\n')
+        self.html_writer.write('</div>\n')
 
         self.html_writer.write('<h2><a name="nullspace">Nullspace of regression matrix</a></h2>\n')
+        div_id = self.html_writer.insert_toggle()
+        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
         self.db.Table2HTML(self.html_writer, 'gc_nullspace')
-        
         self.html_writer.write('</div>\n')
 
     def analyze_training_set(self):
@@ -766,24 +778,17 @@ class GroupContribution(Thermodynamics):
             raise GroupDecompositionError('Found no pseudoisomers for %s'
                                           % mol.title)
 
-        all_missing_groups = []
+        kernel_rows = set()
         pmap = PseudoisomerMap()
         for groupvec in all_groupvecs:
             try:
                 dG0 = self.groupvec2val(groupvec)
                 pmap.AddGroupVector(groupvec, dG0)
             except GroupMissingTrainDataError as e:
-                gp_str = ", ".join([self.groups_data.all_group_names[g]
-                                    for g in e.missing_groups])
-                s = "Species nH = %d, z = %d mg = %d: %s" % (groupvec.Hydrogens(),
-                                                             groupvec.NetCharge(),
-                                                             groupvec.Magnesiums(),
-                                                             gp_str) 
-                all_missing_groups.append(s)
-        
+                kernel_rows.update(e.kernel_rows)
         if pmap.Empty():
-            raise GroupMissingTrainDataError("All species of %s have missing groups:" % 
-                                             decomposition.mol.title, all_missing_groups)            
+            raise GroupMissingTrainDataError("All species of %s have missing groups: " % 
+                                             decomposition.mol.title, kernel_rows)            
 
         pmap.Squeeze()
         return pmap
@@ -1054,16 +1059,16 @@ class GroupContribution(Thermodynamics):
                                             group.charge, group.nMg, dG0_gr,
                                             nullspace_str])
             
-        self.db.CreateTable('gc_nullspace', 'group_vector')
+        self.db.CreateTable('gc_nullspace', 'dimension INT, group_vector TEXT')
         for i in xrange(self.group_nullspace.shape[0]):
-            nonzero_columns = pylab.find(abs(self.group_nullspace[i, :]) > 1e-10)
-            if len(nonzero_columns) > 1:
-                gv = ",".join(["%g x %s" % (self.group_nullspace[i, j], 
-                                            str(self.groups_data.all_groups[j])) 
-                                            for j in nonzero_columns])
-                self.db.Insert('gc_nullspace', [gv])
+                self.db.Insert('gc_nullspace', [i, self.NullspaceRowToString(i)])
 
         self.db.Commit()
+
+    def NullspaceRowToString(self, i):
+        nonzero_columns = pylab.find(abs(self.group_nullspace[i, :]) > 1e-10)
+        return ",".join(["%g x %s" % (self.group_nullspace[i, j], 
+            str(self.groups_data.all_groups[j])) for j in nonzero_columns])
             
     def LoadContributionsFromDB(self):
         logging.info("loading the group contribution data from the database")
@@ -1143,40 +1148,23 @@ class GroupContribution(Thermodynamics):
 if __name__ == '__main__':
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg(db)
-    html_writer = HtmlWriter('../res/groups.html')
-    G = GroupContribution(db=db, html_writer=html_writer, kegg=kegg)
-    G.load_groups("../data/thermodynamics/groups_species.csv")
-    if True:
+
+    if len(sys.argv) < 2:
+        html_writer = HtmlWriter('../res/groups.html')
+        G = GroupContribution(db=db, html_writer=html_writer, kegg=kegg)
+        G.load_groups("../data/thermodynamics/groups_species.csv")
         G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
         G.write_regression_report()
         G.analyze_training_set()
         G.save_cid2pmap()
-    elif False:
-        G.load_training_data()
-        G.init()
-        pH, pMg, I, T = (default_pH, default_pMg, default_I, default_T)
-        print pylab.norm(pylab.dot(G.group_matrix, G.group_nullspace.T))
-        
-        mols = []
-        mols += [kegg.cid2mol(24)] # acetyl-CoA
-        #mols += [pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')] # ATP (-2)
-        #mols += [pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")] # acetyl-CoA (-4)
-        
-        for mol in mols:
-            smarts = pybel.Smarts("CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([OH])=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC=O")
-            print smarts.findall(mol)
-            
-            all_groupvecs = G.group_decomposer.Decompose(
-                mol, ignore_protonations=True, strict=True).PseudoisomerVectors()
-            for groupvec in all_groupvecs:
-                print groupvec
-                #k = pylab.dot(G.group_nullspace, pylab.array(groupvec))
-                #print groupvec.Hydrogens(), groupvec.NetCharge(), groupvec.Magnesiums(), pylab.norm(k)
-                #print k
-        
     else:
-        G.init()
         mols = {}
+        cid = int(sys.argv[1])
+        mols[kegg.cid2name(cid)] = kegg.cid2mol(cid)
+        
+        G = GroupContribution(db=db, kegg=kegg)
+        G.load_groups("../data/thermodynamics/groups_species.csv")
+        G.init()
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
         #mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
@@ -1195,25 +1183,34 @@ if __name__ == '__main__':
         #mols['acetyl-CoA b'] = pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")
         #mols['acetyl-CoA c'] = pybel.readstring('smiles', "CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12")
         #mols['glycylglycine'] = pybel.readstring('smiles', 'C(C(=O)NCC(=O)[O-])[NH3+]')
-        mols['N-Acetylornithine'] = kegg.cid2mol(437)
+        #mols['N-Acetylornithine'] = kegg.cid2mol(437)
+        #mols['Sinapoyl-CoA'] = kegg.cid2mol(411)
         
-        smarts = pybel.Smarts('C(=O)[N;H1;0]C') # CoA
-        compounds = []
+        #smarts = pybel.Smarts('C(=O)[N;H1;0]C')
+        smarts = None
+        
         for key, mol in mols.iteritems():
-            mol.title = key
-            #mol.draw()
+            #mol.title = key
             print '-'*100
             print key
-            print smarts.findall(mol)
+            if smarts:
+                print smarts.findall(mol)
             try:
                 decomposition = G.Mol2Decomposition(mol, ignore_protonations=True)
                 print decomposition.ToTableString()
+                #for groupvec in decomposition.PseudoisomerVectors():
+                #    print groupvec
+                #    try:
+                #        print G.groupvec2val(groupvec)
+                #    except GroupMissingTrainDataError as e:
+                #        print e.Explain(G)
                 pmap = G.GroupDecomposition2PseudoisomerMap(decomposition)
                 print pmap
                 dG0 = pmap.Transform()
                 print dG0
             except GroupDecompositionError:
                 print "Cannot decompose compound to groups"
-            except GroupMissingTrainDataError:
-                print "Cannot calculate dG0 because of lack of training data"
+            except GroupMissingTrainDataError as e:
+                print e.Explain(G)
+            mol.draw()
                 
