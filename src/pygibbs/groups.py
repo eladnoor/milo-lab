@@ -24,6 +24,7 @@ from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 from pygibbs.pseudoisomers_data import PseudoisomersData
 from pygibbs.pseudoisomer import PseudoisomerMap
+from pybel import Molecule
 
 class GroupContributionError(Exception):
     pass
@@ -1193,14 +1194,26 @@ if __name__ == '__main__':
         #mols['acetyl-CoA a'] = kegg.cid2mol(24)
         #mols['acetyl-CoA b'] = pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")
         #mols['acetyl-CoA c'] = pybel.readstring('smiles', "CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12")
-        mols['glycylglycine'] = pybel.readstring('smiles', 'C(C(=O)NCC(=O)[O-])[NH3+]')
+        #mols['glycylglycine'] = pybel.readstring('smiles', 'C(C(=O)NCC(=O)[O-])[NH3+]')
+        mols['N-Acetylornithine'] = kegg.cid2mol(437)
         
         smarts = pybel.Smarts('C(=O)[N;H1;0]C') # CoA
-        
+        compounds = []
         for key, mol in mols.iteritems():
             mol.title = key
             #mol.draw()
             print '-'*100
             print key
             print smarts.findall(mol)
-            print G.analyze_decomposition(mol, ignore_protonations=True)
+            try:
+                decomposition = G.Mol2Decomposition(mol, ignore_protonations=True)
+                print decomposition.ToTableString()
+                pmap = G.GroupDecomposition2PseudoisomerMap(decomposition)
+                print pmap
+                dG0 = pmap.Transform()
+                print dG0
+            except GroupDecompositionError:
+                print "Cannot decompose compound to groups"
+            except GroupMissingTrainDataError:
+                print "Cannot calculate dG0 because of lack of training data"
+                
