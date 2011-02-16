@@ -7,6 +7,7 @@ from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import R, default_pMg
 from toolbox.database import SqliteDatabase
 import csv
+from toolbox.ods import ODSDictReader
 
 class NistMissingCrucialDataException(Exception):
     pass
@@ -18,7 +19,7 @@ class NistRowData:
     def __init__(self):
         pass
     
-    def ReadFromCsv(self, row_dict):
+    def ReadFromDict(self, row_dict):
         reaction = row_dict['kegg_reaction']
         if not reaction:
             raise NistMissingCrucialDataException(
@@ -54,7 +55,7 @@ class NistRowData:
             raise NistMissingCrucialDataException(
                 "cannot use this NIST reaction because of an unknown solvent: " + self.comment)
             
-        if self.K_type not in ["K'", "Kc'", "Km'"]:
+        if self.K_type not in ["K'", "Kc'", "Km'", u"K&apos;", u"Km&apos;", u"Kc&apos;"]:
             raise NistMissingCrucialDataException(
                 "cannot use this NIST reaction because of the Keq is not transformed: " + self.K_type)
     
@@ -74,6 +75,8 @@ class NistRowData:
     
     @staticmethod
     def none_float(x):
+        if not x:
+            return None
         try:
             return float(x)
         except ValueError:
@@ -156,10 +159,15 @@ class Nist(object):
         else:
             self.kegg = kegg
 
-    def FromCsvFile(self, filename):
+    def FromFile(self, filename):
         """
             Reads the contents of the CSV file into the database for faster
         """
+        if filename.find('.ods') != -1:
+            reader = ODSDictReader
+        else:
+            reader = csv.DictReader
+            
         ###
         # read the NIST data from the CSV file, complete the missing conditions with the default values
         # replace the textual reaction with a "sparse_reaction" vector representation of the formula
@@ -168,13 +176,13 @@ class Nist(object):
         self.data = []
         self.cid2count = {}
         row_number = 1
-        for row_dict in csv.DictReader(open(filename, 'r')):
+        for row_dict in reader(open(filename, 'r')):
             row_number += 1
             origin = '%s - row %d' % (filename, row_number)
             row_dict['origin'] = origin
             try:
                 nist_row_data = NistRowData()
-                nist_row_data.ReadFromCsv(row_dict)
+                nist_row_data.ReadFromDict(row_dict)
             except NistMissingCrucialDataException as e:
                 logging.debug("%s - %s" % (origin, str(e)))
                 continue
@@ -218,7 +226,7 @@ class Nist(object):
         
     def Load(self):
         if not self.db.DoesTableExist('nist_data'):
-            self.FromCsvFile('../data/thermodynamics/nist.csv')
+            self.FromFile('../data/thermodynamics/nist.ods')
             self.ToDatabase()
         else:
             self.FromDatabase()    
@@ -472,13 +480,21 @@ class Nist(object):
         self.html_writer.write_table(dict_list, table_headers)
         
         return len(dG0_obs_vec), rmse
+    
+    def FindRowsAccordingToReaction(self, sparse):
+        rows = []
+        for nist_row_data in self.data:
+            if nist_row_data.sparse == sparse:
+                rows.append(nist_row_data)
+        return rows
 
 if __name__ == '__main__':
+    logging.getLogger('').setLevel(logging.DEBUG)
     _mkdir("../res/nist")
     db = SqliteDatabase('../res/gibbs.sqlite')    
     html_writer = HtmlWriter("../res/nist/statistics.html")
     nist = Nist(db, html_writer)
-    nist.FromCsvFile('../data/thermodynamics/nist.csv')
+    nist.FromFile('../data/thermodynamics/nist.ods')
     nist.ToDatabase()
     nist.AnalyzeStats()
     html_writer.close()
