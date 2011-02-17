@@ -5,11 +5,11 @@ import os
 import pydot
 import pylab
 import pybel
-import pygibbs      # For logging magic
 import re
 import sqlite3
 import urllib
 
+from pygibbs import kegg_parser
 from toolbox import util, database
 from copy import deepcopy
 from toolbox.database import SqliteDatabase
@@ -46,68 +46,8 @@ def remove_atoms_from_mol(mol, atoms):
     for i in sorted(atoms, reverse=True):
         obmol.DeleteAtom(obmol.GetAtom(i))
     obmol.EndModify()
-        
-def parse_kegg_file(filename):
-    kegg_file = open(filename, 'r')
-    curr_field = ""
-    field_map = {}
-    line = kegg_file.readline()
-    line_counter = 0
-    entry2fields_map = {}
-    while (line):
-        field = line[0:12].rstrip()
-        value = line[12:].strip()
 
-        if (field == "///"):
-            entry = field_map["ENTRY"].split()[0]
-            entry2fields_map[entry] = field_map
-            field_map = {}
-        else:
-            if (field != ""):
-                curr_field = field
-            if (curr_field in field_map):
-                field_map[curr_field] = field_map[curr_field] + "\t" + value
-            else:
-                field_map[curr_field] = value
 
-        line = kegg_file.readline()
-        line_counter += 1
-    
-    kegg_file.close()
-    return entry2fields_map
-
-def parse_string_field(field_map, field_name, default_value=None):
-    if (field_name in field_map):
-        return field_map[field_name]
-    elif (default_value != None):
-        return default_value
-    else:
-        raise Exception("Missing obligatory field: " + field_name)
-
-def parse_bool_field(field_map, field_name, default_value=True):
-    if (field_name in field_map):
-        if (field_map[field_name].upper() == "TRUE"):
-            return True
-        elif (field_map[field_name].upper() == "FALSE"):
-            return False
-        else:
-            raise Exception(field_name + " parameter must have one of these values: TRUE / FALSE")
-    else:
-        return default_value
-
-def parse_float_field(field_map, field_name, default_value=None):
-    if (field_name in field_map):
-        return float(field_map[field_name])
-    elif (default_value != None):
-        return default_value
-    else:
-        raise Exception("Missing obligatory field: " + field_name)
-
-def parse_vfloat_field(field_map, field_name, default_value=[]):
-    if (field_name in field_map):
-        return [float(x) for x in field_map[field_name].split()]
-    else:
-        return default_value
 
 def parse_reaction_formula_side(s):
     """ parse the side formula, e.g. '2 C00001 + C00002 + 3 C00003'
@@ -453,7 +393,31 @@ class Reaction(object):
     def get_link(self):
         return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % self.rid
     
+    
+class Enzyme(object):
+    
+    def __init__(self, ec_class, names, reactions):
+        self.ec = ec_class
+        self.names = names
+        self.reactions = reactions
+        
+    def __str__(self):
+        return '%s, %s, %s' % (self.ec, ', '.join(self.names), ' & '.join(self.reactions))
+        
+    
 class Kegg(object):
+
+    COMPOUND_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound'
+    INCHI_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound.inchi'
+    ENZYME_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/enzyme/enzyme'
+    REACTION_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/reaction/reaction'
+    MODULE_URL = 'ftp://ftp.genome.jp/pub/kegg/module/module'
+
+    COMPOUND_FILE = '../kegg/compound.txt'
+    INCHI_FILE = '../kegg/inchi.txt'
+    ENZYME_FILE = '../kegg/enzyme.txt'
+    REACTION_FILE = '../kegg/reaction.txt'
+    MODULE_FILE = '../kegg/module.txt'
 
     def __init__(self, db=None):
         self.db = db
@@ -468,16 +432,6 @@ class Kegg(object):
         self.node_fillcolor = "dodgerblue"
         self.font = "verdana"
         
-        self.COMPOUND_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound'
-        self.INCHI_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound.inchi'
-        self.REACTION_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/reaction/reaction'
-        self.MODULE_URL = 'ftp://ftp.genome.jp/pub/kegg/module/module'
-
-        self.COMPOUND_FILE = '../kegg/compound.txt'
-        self.INCHI_FILE = '../kegg/inchi.txt'
-        self.REACTION_FILE = '../kegg/reaction.txt'
-        self.MODULE_FILE = '../kegg/module.txt'
-        
         if not self.db:
             self.FromFiles()
         elif not self.db.DoesTableExist('kegg_compound'):
@@ -490,6 +444,7 @@ class Kegg(object):
         self.name2cid_map = {}
         self.cid2compound_map = {}
         self.rid2reaction_map = {}
+        self.rid2enzyme_map = {}
         self.inchi2cid_map = {}
         self.mid2rid_map = {}
         self.mid2name_map = {}
@@ -500,28 +455,30 @@ class Kegg(object):
         if (not os.path.exists(self.COMPOUND_FILE)):
             urllib.urlretrieve(self.COMPOUND_URL, self.COMPOUND_FILE)
 
-        entry2fields_map = parse_kegg_file(self.COMPOUND_FILE)
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.COMPOUND_FILE)
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
-            if (key[0] != 'C'):
+            if not key.startswith('C'):
                 continue
+            
             cid = int(key[1:])
             comp = Compound(cid)
-            if ("NAME" in field_map):
-                all_names = field_map["NAME"].replace('\t', '').split(';')
+            if "NAME" in field_map:
+                all_names = kegg_parser.NormalizeNames(field_map.GetStringField("NAME"))
+                
                 for name in all_names:
-                    name = name.strip()
                     self.name2cid_map[name] = cid
+                    
                 comp.name = all_names[0]
                 comp.all_names = all_names
-            if ("MASS" in field_map):
-                comp.mass = float(field_map["MASS"])
-            if ("FORMULA" in field_map):    
-                comp.formula = field_map["FORMULA"]
-            if ("DBLINKS" in field_map):
-                for sid in re.findall("PubChem: (\d+)", field_map["DBLINKS"]):
+            if "MASS" in field_map:
+                comp.mass = field_map.GetFloatField('MASS')
+            if "FORMULA" in field_map:    
+                comp.formula = field_map.GetStringField('FORMULA')
+            if "DBLINKS" in field_map:
+                for sid in re.findall("PubChem: (\d+)", field_map.GetStringField("DBLINKS")):
                     comp.pubchem_id = int(sid)
-                for cas in re.findall("CAS: ([\d\-]+)", field_map["DBLINKS"]):
+                for cas in re.findall("CAS: ([\d\-]+)", field_map.GetStringField("DBLINKS")):
                     comp.cas = cas
             
             self.cid2compound_map[cid] = comp
@@ -530,25 +487,25 @@ class Kegg(object):
         if (not os.path.exists(self.REACTION_FILE)):
             urllib.urlretrieve(self.REACTION_URL, self.REACTION_FILE)
 
-        entry2fields_map = parse_kegg_file(self.REACTION_FILE)
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.REACTION_FILE)
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
-            if (key[0] != 'R'):
+            if not key.startswith('R'):
                 continue
             
-            equation_value = field_map.get("EQUATION", "<=>")
+            equation_value = field_map.GetStringField("EQUATION", default_value="<=>")
             try:
                 (sparse, direction) = parse_reaction_formula(equation_value)
                 r = Reaction(key, sparse, rid=int(key[1:]), direction=direction)
                 self.rid2reaction_map[r.rid] = r
 
-                if ("ENZYME" in field_map):
-                    r.ec_list = ";".join(field_map["ENZYME"].split())
-                if ("NAME" in field_map):
+                if "ENZYME" in field_map:
+                    r.ec_list = ";".join(field_map.GetStringListField('ENZYME'))
+                if "NAME" in field_map:
                     r.name = field_map["NAME"]
-                if ("DEFINITION" in field_map):
+                if "DEFINITION" in field_map:
                     r.definition = field_map["DEFINITION"]
-                if ("EQUATION" in field_map):
+                if "EQUATION" in field_map:
                     r.equation = field_map["EQUATION"]
             except (KeggParseException, KeggNonCompoundException, ValueError):
                 logging.debug("cannot parse reaction formula: " + equation_value)
@@ -582,7 +539,7 @@ class Kegg(object):
         if (not os.path.exists(self.MODULE_FILE)):
             urllib.urlretrieve(self.MODULE_URL, self.MODULE_FILE)
 
-        entry2fields_map = parse_kegg_file(self.MODULE_FILE)
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.MODULE_FILE)
         for key in sorted(entry2fields_map.keys()):
             try:
                 field_map = entry2fields_map[key]
@@ -616,6 +573,35 @@ class Kegg(object):
 
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
+
+        # TODO(flamholz): write enzyme data to the database so we don't parse it every time.            
+        logging.info("Retrieving ENZYME file and parsing it")
+        if (not os.path.exists(self.ENZYME_FILE)):
+            urllib.urlretrieve(self.ENZYME_URL, self.ENZYME_FILE)
+
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.ENZYME_FILE,
+                                                                   verbose=True)
+        for key in sorted(entry2fields_map.keys()):
+            field_map = entry2fields_map[key]
+        
+            # TODO(flamholz): Parse more enzyme data.
+            ec = key
+            all_names = []
+            reactions = []
+            if 'NAME' in field_map:
+                all_names = kegg_parser.NormalizeNames(field_map.GetStringField("NAME"))
+            if 'ALL_REAC' in field_map:
+                reactions = field_map.GetStringListField('ALL_REAC')
+            enz = Enzyme(ec, all_names, reactions)
+            
+            for reaction_id in reactions:
+                try:
+                    rid = int(reaction_id[1:].rstrip(';'))
+                    self.rid2enzyme_map[rid] = enz
+                except Exception, e:
+                    # TODO(flamholz): This happens! We should figure out
+                    # what's happening here.
+                    pass
     
     def ToDatabase(self):
         self.db.CreateTable('kegg_compound', 'cid INT, name TEXT, all_names TEXT, '
