@@ -49,8 +49,7 @@ class NistRowData:
         if self.comment not in [None,
                                 "",
                                 "cosolvent => none", 
-                                "cosolvent => none",
-                                "addded solute => none", 
+                                "added solute => none", 
                                 "solvent => none"]:
             raise NistMissingCrucialDataException(
                 "cannot use this NIST reaction because of an unknown solvent: " + self.comment)
@@ -489,7 +488,7 @@ class Nist(object):
         return rows
 
 if __name__ == '__main__':
-    logging.getLogger('').setLevel(logging.DEBUG)
+    #logging.getLogger('').setLevel(logging.DEBUG)
     _mkdir("../res/nist")
     db = SqliteDatabase('../res/gibbs.sqlite')    
     html_writer = HtmlWriter("../res/nist/statistics.html")
