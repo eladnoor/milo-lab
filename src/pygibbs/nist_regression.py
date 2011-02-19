@@ -87,7 +87,7 @@ class NistRegression(Thermodynamics):
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
         nist_rows = self.nist.data
-        dG0_r_tag, ddG0_r, _, cids_to_estimate, stoichiometric_matrix = self.ReverseTranformNistRows(nist_rows)
+        data = self.ReverseTranformNistRows(nist_rows)
         
         # get a vector of anchored formation energies. one needs to be careful
         # to always use the most basic pseudoisomer (the one with the lowest nH)
@@ -104,16 +104,15 @@ class NistRegression(Thermodynamics):
 
         # remove compounds that do no appear in S (since all the reactions
         # that they are in were discarded).
-        nonzero_columns = pylab.find(pylab.sum(abs(stoichiometric_matrix), 0))
-        stoichiometric_matrix = stoichiometric_matrix[:, nonzero_columns]
-        cids_to_estimate = [cids_to_estimate[i] for i in nonzero_columns]
+        nonzero_columns = pylab.find(pylab.sum(abs(data['S']), 0))
+        stoichiometric_matrix = data['S'][:, nonzero_columns]
+        cids_to_estimate = [data['cids_to_estimate'][i] for i in nonzero_columns]
         
         logging.info("%d compounds are anchored, and the %d others will be estimated" % \
                      (len(self.anchors), len(cids_to_estimate)))
         logging.info("%d out of %d NIST measurements can be used" % \
                      (stoichiometric_matrix.shape[0], len(self.nist.data)))
 
-        dG0_r = dG0_r_tag + ddG0_r
         # squeeze the regression matrix by leaving only unique rows
         unique_rows_S = pylab.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
                                       in xrange(stoichiometric_matrix.shape[0])])
@@ -124,7 +123,7 @@ class NistRegression(Thermodynamics):
         # for every unique row, calculate the average dG0_r of all the rows that
         # are the same reaction
         unique_rows_dG0_r = pylab.zeros((0, 1))
-        dG0_r = pylab.hstack([pylab.zeros(dG0_r.shape), dG0_r])
+        dG0_r = pylab.hstack([pylab.zeros(data['dG0_r'].shape), data['dG0_r']])
         for i in xrange(unique_rows_S.shape[0]):
             # find the list of indices which are equal to row i in unique_rows_S
             diff = abs(stoichiometric_matrix - unique_rows_S[i,:])
@@ -203,15 +202,21 @@ class NistRegression(Thermodynamics):
                     self.cid2diss_table[cid] = diss
                     all_cids_with_pKa.add(cid)
         
-        cids_to_estimate = sorted(all_cids_with_pKa.difference(self.anchors))
 
+        data = {}
+        data['cids_to_estimate'] = sorted(all_cids_with_pKa.difference(self.anchors))
+        
         # the transformed (observed) free energy of the reactions dG'0_r
-        dG0_r_tag = pylab.zeros((0, 1))
+        data['dG0_r_tag'] = pylab.zeros((0, 1))
         
         # dG0_r - dG'0_r  (which is only a function of the conditions and pKas)
-        ddG0_r = pylab.zeros((0, 1))
-        conditions = pylab.zeros((0, 4))
-        stoichiometric_matrix = pylab.zeros((0, len(cids_to_estimate)))
+        data['ddG0_r'] = pylab.zeros((0, 1))
+        
+        data['pH'] = pylab.zeros((0, 1))
+        data['I'] = pylab.zeros((0, 1))
+        data['pMg'] = pylab.zeros((0, 1))
+        data['T'] = pylab.zeros((0, 1))
+        data['S'] = pylab.zeros((0, len(data['cids_to_estimate']))) # stoichiometric matrix
         
         for nist_row_data in nist_rows:
             # check that the temperature is inside the allowed range
@@ -228,30 +233,31 @@ class NistRegression(Thermodynamics):
                               ', '.join(['C%05d' % cid for cid in cids_without_pKa]))
                 continue
             
-            dG0_r_tag = pylab.vstack([dG0_r_tag, nist_row_data.dG0_r])
-            conditions = pylab.vstack([conditions, pylab.array([nist_row_data.pH, 
-                nist_row_data.I, nist_row_data.pMg, nist_row_data.T])])
+            data['dG0_r_tag'] = pylab.vstack([data['dG0_r_tag'], nist_row_data.dG0_r])
+            data['pH'] = pylab.vstack([data['pH'], nist_row_data.pH])
+            data['I'] = pylab.vstack([data['I'], nist_row_data.I])
+            data['pMg'] = pylab.vstack([data['pMg'], nist_row_data.pMg])
+            data['T'] = pylab.vstack([data['T'], nist_row_data.T])
             ddG = self.ReverseTransformReaction(nist_row_data.sparse, 
                 nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
                 nist_row_data.T)
-            ddG0_r = pylab.vstack([ddG0_r, ddG])
+            data['ddG0_r'] = pylab.vstack([data['ddG0_r'], ddG])
             
-            stoichiometric_row = pylab.zeros((1, len(cids_to_estimate)))
+            stoichiometric_row = pylab.zeros((1, len(data['cids_to_estimate'])))
             for cid, coeff in nist_row_data.sparse.iteritems():
                 if cid not in self.anchors:
-                    stoichiometric_row[0, cids_to_estimate.index(cid)] = coeff
+                    stoichiometric_row[0, data['cids_to_estimate'].index(cid)] = coeff
             
-            stoichiometric_matrix = pylab.vstack([stoichiometric_matrix, 
-                                                  stoichiometric_row])
-
-        return (dG0_r_tag, ddG0_r, conditions, cids_to_estimate, 
-                stoichiometric_matrix)            
+            data['S'] = pylab.vstack([data['S'], stoichiometric_row])
+        
+        data['dG0_r'] = data['dG0_r_tag'] + data['ddG0_r']
+        return data
         
     def AnalyzeSingleReaction(self, sparse):
         nist_rows = self.nist.FindRowsAccordingToReaction(sparse)
-        dG0_r_tag, ddG0_r, conditions, _, _ = self.ReverseTranformNistRows(nist_rows)
-        dG0_r = dG0_r_tag + ddG0_r
-        pylab.plot(conditions[:, 0], dG0_r, '.')
+        data = self.ReverseTranformNistRows(nist_rows)
+        dG0_r = data['dG0_r_tag'] + data['ddG0_r']
+        pylab.plot(data['pH'], dG0_r, '.')
         pylab.show()
             
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
