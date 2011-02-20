@@ -229,7 +229,8 @@ class Nist(object):
         
     def Load(self):
         if not self.db.DoesTableExist('nist_data'):
-            self.FromFile('../data/thermodynamics/nist.ods')
+            #self.FromFile('../data/thermodynamics/nist.ods')
+            self.FromFile('../data/thermodynamics/nist.csv')
             self.ToDatabase()
         else:
             self.FromDatabase()    
@@ -497,7 +498,8 @@ if __name__ == '__main__':
     db = SqliteDatabase('../res/gibbs.sqlite')    
     html_writer = HtmlWriter("../res/nist/statistics.html")
     nist = Nist(db, html_writer)
-    nist.FromFile('../data/thermodynamics/nist.ods')
+    #nist.FromFile('../data/thermodynamics/nist.ods')
+    nist.FromFile('../data/thermodynamics/nist.csv')
     nist.ToDatabase()
     nist.AnalyzeStats()
     html_writer.close()

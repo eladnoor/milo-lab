@@ -5,9 +5,6 @@ from pygibbs.nist_regression import NistRegression
 import pylab
 import logging
 
-def CompareStdev(nist_regression):
-    
-
 def SingleReaction(nist_regression, sparse):
     logging.info("Analyzing this reaction: " + kegg.sparse_reaction_to_string(sparse))
     nist_rows = nist_regression.nist.FindRowsAccordingToReaction(sparse)

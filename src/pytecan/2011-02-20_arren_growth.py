@@ -22,9 +22,12 @@ def get_data(reading_label, plate_id, row, col, MES):
         time_array = (time_array - time_list[0])/3600 
     return time_array, array(value_list)
 
-MES = CollectData("../data/tecan/PL6-96.tar.gz", number_of_plates=4)
-_mkdir('../res/tecan')
-pp = PdfPages('../res/tecan/2011-02-06_PL6-96.pdf')
+input_name = 'Arren_growth_comp'
+output_name = '2011-02-20_arren_growth_comp'
+
+
+MES = CollectData("../res/tecan/%s.tar.gz" % input_name, number_of_plates=4)
+pp = PdfPages('../res/tecan/%s.pdf' % output_name)
 
 #rcParams['text.usetex'] = True
 rcParams['legend.fontsize'] = 12
@@ -41,19 +44,18 @@ fit_window_size = 1.5 # hours
 fit_start_threshold = 0.01
 
 plots = [] # (title, victor_index, (t_min, t_max), (y_min, y_max), y_label, 
-t_max = 42
-OD_min = 0.036
+t_max = 60
+OD_min = 0
 
-#for r in [0, 1, 2, 3, 4, 5, 6, 7]:
-colors = ['gray', 'red', 'magenta', 'blue', 'cyan', 'green', 'pink', 'orange', 'black', 'r:', 'g:', 'b:', 'c:']
-plate_id = 0
-for r in [0, 1, 2, 3, 4, 5]:
-    vlegend = []
-    for c in [0, 1, 2, 3, 4, 5, 6, 7]:
-        vlegend += [('%s%d' % (chr(ord('A') + r), c+1), colors[c], [(plate_id, r, c)])]
-    plots.append(('Serine Growth row %s' % chr(ord('A') + r), (0, t_max), (1e-3, 3e-1), 'OD600', vlegend))
+colors = ['gray', 'red', 'magenta', 'blue', 'cyan', 'green', 'pink', 'orange', 'black']
+vlegend = []
+for c in xrange(9):
+    vlegend += [('c%d_up' % c, colors[c], 'solid', [(0, r, c) for r in xrange(4)])]
+    vlegend += [('c%d_down' % c, colors[c], 'dashed', [(0, r, c) for r in xrange(4, 8)])]
+plots.append(('OD', (0, t_max), (1e-4, 3e-1), 'OD600', vlegend))
+plots.append(('mCherry', (0, t_max), (1e1, 1e5), 'MCHERRY', vlegend))
 
-for (plot_title, t_range, y_range, y_label, data_series) in plots:
+for plot_title, t_range, y_range, y_label, data_series in plots:
     sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
     fig = figure()
     title(plot_title)
@@ -62,12 +64,12 @@ for (plot_title, t_range, y_range, y_label, data_series) in plots:
     
     label2legend = {}
     label2line = []
-    for (label, color, cells) in data_series:
+    for label, color, linestyle, cells in data_series:
         for (plate_id, row, col) in cells:
             (time, values) = get_data(y_label, plate_id, row, col, MES)
             if OD_min:
                 values -= OD_min
-            line = plot(time, values, color)
+            line = plot(time, values, color, linestyle=linestyle)
             if (label not in label2legend):
                 label2line.append((line, label))
                 label2legend[label] = label
