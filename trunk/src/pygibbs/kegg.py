@@ -35,10 +35,7 @@ class Kegg(object):
     REACTION_FILE = '../kegg/reaction.txt'
     MODULE_FILE = '../kegg/module.txt'
 
-    def __init__(self, db=None):
-        self.db = db
-        util._mkdir('../kegg')
-        
+    def __init__(self):
         # default colors for pydot (used to plot modules)
         self.edge_color = "cadetblue"
         self.edge_fontcolor = "indigo"
@@ -59,16 +56,13 @@ class Kegg(object):
         self.cofactors2names = {}
         self.cid2bounds = {}
         
-        if not self.db:
-            self.FromFiles()
-        elif not self.db.DoesTableExist('kegg_compound'):
-            self.FromFiles()
-            self.ToDatabase()
-        else:
+        self.db = SqliteDatabase('../data/public_data.sqlite')
+        if self.db.DoesTableExist('kegg_compound'):
             self.FromDatabase()
 
     def FromFiles(self):
         logging.info("Retrieving COMPOUND file and parsing it")
+        util._mkdir('../kegg')
         if (not os.path.exists(self.COMPOUND_FILE)):
             urllib.urlretrieve(self.COMPOUND_URL, self.COMPOUND_FILE)
 
@@ -1344,6 +1338,7 @@ def export_compound_connectivity():
         csv_file.writerow((cid, len(rid_list)))
     
 if __name__ == '__main__':
-    #export_json_file()
-    #export_compound_connectivity()
+    db = SqliteDatabase('../data/public_data.sqlite')
     kegg = Kegg()
+    kegg.FromFiles()
+    kegg.ToDatabase()
