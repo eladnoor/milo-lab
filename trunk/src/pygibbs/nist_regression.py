@@ -122,23 +122,44 @@ class NistRegression(Thermodynamics):
         
         # for every unique row, calculate the average dG0_r of all the rows that
         # are the same reaction
-        unique_rows_dG0_r = pylab.zeros((0, 1))
-        dG0_r = pylab.hstack([pylab.zeros(data['dG0_r'].shape), data['dG0_r']])
-        for i in xrange(unique_rows_S.shape[0]):
+        n_rows = data['dG0_r'].shape[0]
+        n_unique_rows = unique_rows_S.shape[0]
+        
+        # full_data_mat will contain these columns: dG0, dG0_tag, dG0 - E[dG0], 
+        # dG0_tag - E[dG0_tag], N
+        # the averages are over the equivalence set of each reaction (i.e. the 
+        # average dG of all the rows in NIST with that same reaction).
+        # 'N' is the unique row number (i.e. the ID of the equivalence set)
+        full_data_mat = pylab.zeros((n_rows, 5))
+        full_data_mat[:, 0] = data['dG0_r'][:, 0]
+        full_data_mat[:, 1] = data['dG0_r_tag'][:, 0]
+        
+        # full_data_mat will contain these columns: E[dG0], E[dG0_tag],
+        # std(dG0), std(dG0_tag), 
+        # there is exactly one row for each equivalence set
+        unique_data_mat = pylab.zeros((n_unique_rows, 4))
+        
+        for i in xrange(n_unique_rows):
             # find the list of indices which are equal to row i in unique_rows_S
             diff = abs(stoichiometric_matrix - unique_rows_S[i,:])
-            row_indices = pylab.find(pylab.sum(diff, 1)==0)
+            row_indices = pylab.find(pylab.sum(diff, 1) == 0)
             
-            # take the average of the dG0_r of these rows
-            average_dG0_r = pylab.mean([dG0_r[j, 1] for j in row_indices])
-            unique_rows_dG0_r = pylab.vstack([unique_rows_dG0_r, average_dG0_r])
-            dG0_r[row_indices, 0] = average_dG0_r
-            
+            # take the mean and std of the dG0_r of these rows
+            unique_data_mat[i, 0:2] = pylab.mean(full_data_mat[row_indices, 0:2], 0)
+            unique_data_mat[i, 2:4] = pylab.std(full_data_mat[row_indices, 0:2], 0)
+            for j in row_indices:
+                    full_data_mat[j, 2:4] = full_data_mat[j, 0:2] - unique_data_mat[i, 0:2]
+                    full_data_mat[j, 4] = i
+        
+        total_std = pylab.std(full_data_mat[:, 2:4], 0)
+        
         fig = pylab.figure()
-        pylab.plot(dG0_r[:,0], dG0_r[:,1]-dG0_r[:,0], '.')
-        pylab.xlabel("$<\Delta_r G^\circ>$")
-        pylab.ylabel("$\Delta_r G^\circ - <\Delta_r G^\circ>$")
-        pylab.title('$\sigma = %.1f$ kJ/mol' % (pylab.std(dG0_r[:,1]-dG0_r[:,0])))
+        pylab.plot(unique_data_mat[:, 2], unique_data_mat[:, 3], '.')
+        pylab.xlabel("$\sigma(\Delta_r G^\circ)$")
+        pylab.ylabel("$\sigma(\Delta_r G^{\'\circ})$")
+        pylab.title('$\sigma_{total}(\Delta_r G^\circ) = %.1f$ kJ/mol, '
+                    '$\sigma_{total}(\Delta_r G^{\'\circ}) = %.1f$ kJ/mol' % 
+                    (total_std[0], total_std[1]))
         self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
         pylab.np.savetxt('../res/nist/regress_CID.txt', 
@@ -146,16 +167,17 @@ class NistRegression(Thermodynamics):
         pylab.np.savetxt('../res/nist/regress_S.txt', 
             unique_rows_S, fmt='%g', delimiter=',')
         pylab.np.savetxt('../res/nist/regress_dG0.txt',
-            unique_rows_dG0_r, fmt='%.2f', delimiter=',')
+            unique_data_mat[:, 0], fmt='%.2f', delimiter=',')
         
         logging.info("Regression matrix is %d x %d, and it's rank is %d" % \
                      (unique_rows_S.shape[0], unique_rows_S.shape[1],
                       LinearRegression.Rank(unique_rows_S)))
         estimated_dG0_f, kerA = LinearRegression.LeastSquares(unique_rows_S, 
-            unique_rows_dG0_r, reduced_row_echlon=False)
-        corr = pylab.corrcoef(pylab.dot(unique_rows_S, estimated_dG0_f), 
-                              unique_rows_dG0_r, rowvar=0)[0, 1]
-        logging.info("Regression Complete, r^2 = %.6f" % corr**2)
+            unique_data_mat[:, 0], reduced_row_echlon=False)
+        
+        estimated_dG0_r = pylab.dot(unique_rows_S, estimated_dG0_f)        
+        rmse = pylab.sqrt(pylab.sum((estimated_dG0_r - unique_data_mat[:, 0])**2))
+        logging.info("Regression Complete, RMSE = %.6f" % rmse)
         logging.info("The dimension of the Kernel is %d" % (kerA.shape[0]))
 
         if prior_thermodynamics:
