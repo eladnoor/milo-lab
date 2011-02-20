@@ -30,8 +30,9 @@ def smiles2inchi(smiles):
     obConversion = openbabel.OBConversion()
     obConversion.SetInAndOutFormats("smi", "inchi")
     obmol = openbabel.OBMol()
-    obConversion.ReadString(obmol, smiles)
+    obConversion.ReadString(obmol, str(smiles))
     return obConversion.WriteString(obmol).strip()
+
 
 def inchi2smiles(inchi):
     obConversion = openbabel.OBConversion()
@@ -77,7 +78,8 @@ def parse_reaction_formula_side(s):
             raise KeggParseException("Non-specific reaction: " + s)
     
     return compound_bag
-  
+
+
 def parse_reaction_formula(formula):
     """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
         return the set of substrates, products and the direction of the reaction
@@ -872,6 +874,9 @@ class Kegg(object):
     def get_all_rids(self):
         return sorted(self.rid2reaction_map.keys())
     
+    def inchi2cid(self, inchi):
+        return self.inchi2cid_map.get(inchi, None)
+    
     def name2cid(self, compound_name, cutoff=None):
         if compound_name in self.name2cid_map:
             return self.name2cid_map[compound_name], compound_name, 0
@@ -883,7 +888,7 @@ class Kegg(object):
                 match, distance = matches[0]
                 return self.name2cid_map[match], match, distance
             
-            return None, None, None
+        return None, None, None
 
     def add_smiles(self, name, smiles):
         comp = Compound()
