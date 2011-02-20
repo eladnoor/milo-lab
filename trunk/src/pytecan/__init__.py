@@ -1,5 +1,9 @@
 import logging
 import sys
+import os
+
+if not os.getcwd()[-4:] == '/src':
+    os.chdir('..')
 
 formatter = logging.Formatter('%(asctime)s %(filename)s %(lineno)s %(levelname)s  %(message)s')
 

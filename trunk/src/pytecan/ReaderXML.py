@@ -1,6 +1,7 @@
 import time, calendar, os, csv
 from xml.etree.ElementTree import ElementTree
 import tarfile
+import pylab
 
 fmt = "%Y-%m-%dT%H:%M:%S"
 
@@ -52,7 +53,10 @@ def ParseReaderFile(fname):
 
         if e.tag == 'Single':
             measurement = e.text
-            DATA[reading_label][well] = float(measurement)
+            if measurement == "OVER":
+                DATA[reading_label][well] = pylab.nan
+            else:
+                DATA[reading_label][well] = float(measurement)
 
     return DATA, TSEC
 

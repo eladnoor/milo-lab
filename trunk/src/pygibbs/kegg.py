@@ -171,7 +171,7 @@ class Kegg(object):
                 if ("REACTION" in field_map):
                     try:
                         self.mid2rid_map[mid] = self.parse_module("M%05d" % mid, field_map)
-                    except KeggParseException as e:
+                    except kegg_errors.KeggParseException as e:
                         logging.debug("M%05d cannot be parsed %s" % (mid, str(e)))
             except ValueError as e:
                 logging.debug("module M%05d contains a syntax error - %s" % (mid, str(e)))
@@ -1347,5 +1347,3 @@ if __name__ == '__main__':
     #export_json_file()
     #export_compound_connectivity()
     kegg = Kegg()
-    print kegg.cid2num_hydrogens(332)
-    print kegg.cid2charge(332)
