@@ -1,5 +1,6 @@
 import pylab, re, logging
-from pygibbs.kegg import KeggParseException, Kegg
+from pygibbs.kegg import Kegg
+from pygibbs.kegg_errors import KeggParseException
 from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy
 from pygibbs.alberty import Alberty
 from toolbox.util import _mkdir, calc_rmse, calc_r2
@@ -9,11 +10,14 @@ from toolbox.database import SqliteDatabase
 import csv
 from toolbox.ods import ODSDictReader
 
+
 class NistMissingCrucialDataException(Exception):
     pass
 
+
 class NistReactionBalanceException(Exception):
     pass
+
 
 class NistRowData:
     def __init__(self):

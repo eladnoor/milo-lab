@@ -41,6 +41,12 @@ class Enzyme(object):
 
     @staticmethod
     def ProcessEC(ec_str):
+        """Format EC strings properly.
+        
+        Args:
+            ec_str: the raw EC string from the KEGG file. May include
+              the "EC " prefix.
+        """
         if ec_str.startswith('EC '):
             return ec_str[3:]
         return ec_str

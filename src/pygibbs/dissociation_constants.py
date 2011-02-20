@@ -1,5 +1,6 @@
 import csv, re, logging, pybel, sys, openbabel
-from kegg import Kegg, KeggParseException
+from kegg import Kegg
+from kegg_errors import KeggParseException
 from toolbox.database import SqliteDatabase
 from toolbox.util import _mkdir
 from pygibbs.group_decomposition import GroupDecomposer

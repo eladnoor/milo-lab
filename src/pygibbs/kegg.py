@@ -9,391 +9,16 @@ import re
 import sqlite3
 import urllib
 
-from pygibbs import kegg_parser
+from pygibbs import elements
+from pygibbs import kegg_compound
 from pygibbs import kegg_enzyme
+from pygibbs import kegg_errors
+from pygibbs import kegg_parser
+from pygibbs import kegg_reaction
+from pygibbs import kegg_utils
 from toolbox import util, database
 from copy import deepcopy
 from toolbox.database import SqliteDatabase
-
-#########################################################################################
-
-def mol2inchi(mol):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("smi", "inchi")
-    return obConversion.WriteString(mol.OBMol).strip()
-
-def mol2smiles(mol):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("inchi", "smi")
-    return obConversion.WriteString(mol.OBMol).split()[0]
-
-def smiles2inchi(smiles):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("smi", "inchi")
-    obmol = openbabel.OBMol()
-    obConversion.ReadString(obmol, str(smiles))
-    return obConversion.WriteString(obmol).strip()
-
-
-def inchi2smiles(inchi):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("inchi", "smi")
-    obmol = openbabel.OBMol()
-    obConversion.ReadString(obmol, inchi)
-    return obConversion.WriteString(obmol).split()[0]
-
-def remove_atoms_from_mol(mol, atoms):
-    obmol = mol.OBMol
-    obmol.BeginModify()
-    for i in sorted(atoms, reverse=True):
-        obmol.DeleteAtom(obmol.GetAtom(i))
-    obmol.EndModify()
-
-
-def parse_reaction_formula_side(s):
-    """ parse the side formula, e.g. '2 C00001 + C00002 + 3 C00003'
-        return the set of CIDs, ignore stoichiometry
-    """
-    if (s.strip() == "null"):
-        return {}
-    compound_bag = {}
-    for member in re.split('\s+\+\s+', s):
-        tokens = member.split(None, 1)
-        if (len(tokens) == 1):
-            amount = 1
-            key = member
-        else:
-            try:
-                amount = float(tokens[0])
-            except ValueError:
-                raise KeggParseException("Non-specific reaction: " + s)
-            key = tokens[1]
-            
-        if (key[0] != 'C'):
-            raise KeggNonCompoundException("Compound ID doesn't start with C: " + key)
-        try:
-            cid = int(key[1:])
-            compound_bag[cid] = compound_bag.get(cid, 0) + amount
-        except ValueError:
-            raise KeggParseException("Non-specific reaction: " + s)
-    
-    return compound_bag
-
-
-def parse_reaction_formula(formula):
-    """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
-        return the set of substrates, products and the direction of the reaction
-    """
-    tokens = re.findall("([^=^<]+) (<*=>*) ([^=^>]+)", formula)
-    if (len(tokens) != 1):
-        raise KeggParseException("Cannot parse this formula: " + formula)
-    
-    (left, direction, right) = tokens[0] # the direction: <=, => or <=>
-    
-    sparse_reaction = {}
-    for (cid, count) in parse_reaction_formula_side(left).iteritems():
-        sparse_reaction[cid] = sparse_reaction.get(cid, 0) - count 
-
-    for (cid, count) in parse_reaction_formula_side(right).iteritems():
-        sparse_reaction[cid] = sparse_reaction.get(cid, 0) + count 
-
-    return (sparse_reaction, direction)
-
-def unparse_reaction_formula(sparse, direction='=>'):
-    s_left = []
-    s_right = []
-    for (cid, count) in sparse.iteritems():
-        show_string = "C%05d" % cid
-        
-        if (count > 0):
-            if (count == 1):
-                s_right.append(show_string)
-            else:
-                s_right.append('%d %s' % (count, show_string))
-        elif (count < 0):
-            if (count == -1):
-                s_left.append(show_string)
-            else:
-                s_left.append('%d %s' % (-count, show_string))
-    return ' + '.join(s_left) + ' ' + direction + ' ' + ' + '.join(s_right)
-
-#########################################################################################
-
-class Elements:
-    def __init__(self):
-        csv_file = csv.reader(open('../data/thermodynamics/elements.csv', 'r'))
-        csv_file.next()
-        self.symbol_to_an = {}
-        self.an_to_symbol = {}
-        self.symbols = []
-        for row in csv_file:
-            # an = Atomic Number, mp = Melting Point, bp = Boiling Point, 
-            # ec = Electron Configuration, ie = Ionization Energy
-            an, unused_weight, unused_name, symbol, unused_mp, unused_bp, \
-                unused_density, unused_earthcrust, unused_discovery, unused_ec, unused_ie = row
-            self.symbol_to_an[symbol] = int(an)
-            self.an_to_symbol[int(an)] = symbol
-    
-global ELEMENTS; ELEMENTS = Elements()
-
-class KeggParseException(Exception):
-    pass
-        
-class KeggNonCompoundException(Exception):
-    pass
-
-class KeggReactionNotBalancedException(Exception):
-    pass
-    
-class KeggMissingModuleException(Exception):
-    pass
-
-class Compound(object):
-    free_cid = -1 # class static variable
-    
-    def __init__(self, cid=None, name=None, all_names=None, mass=None,
-                 formula=None, inchi=None):
-        if (cid == None):
-            self.cid = Compound.free_cid
-            Compound.free_cid -= 1
-        else:
-            self.cid = cid
-        self.name = name or "?"
-        self.all_names = all_names or []
-        self.mass = mass
-        self.formula = formula
-        self.inchi = inchi
-        self.from_kegg = True
-        self.pubchem_id = None
-        self.cas = ""
-    
-    def get_kegg_link(self):
-        return Kegg.cid2link(self.cid)
-    kegg_link = property(get_kegg_link)
-    
-    def get_atom_bag(self):
-        if (self.formula == None or self.formula.find("(") != -1 or self.formula.find(")") != -1):
-            return None
-        
-        atom_bag = {}
-        for (atom, count) in re.findall("([A-Z][a-z]*)([0-9]*)", self.formula):
-            if (count == ''):
-                count = 1
-            else:
-                count = int(count)
-            atom_bag[atom] = count
-
-        if ("R" in atom_bag): # this formula is not full ('R' is a wildcard not an atom)
-            return None
-        
-        return atom_bag
-    
-    def get_atom_vector(self):
-        atom_bag = self.get_atom_bag()
-        atom_vector = [0] * len(ELEMENTS.symbols)
-        for (elem, count) in atom_bag.iteritems():
-            if (elem in ['R', 'X']):
-                return None # wildcard compound!
-            try:
-                an = ELEMENTS.symbol_to_an[elem]
-                atom_vector[an-1] = count
-            except KeyError:
-                logging.warning("unsupported element in (C%05d): %s" % (self.cid, elem))
-                return None
-        return atom_vector
-    
-    def get_inchi(self):
-        if not self.inchi:
-            raise KeggParseException("C%05d doesn't have an 'inchi', so it is "
-                "impossible get its molecular structure" % self.cid)
-        return str(self.inchi)
-    
-    def get_smiles(self):
-        obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("inchi", "smi")
-        obmol = openbabel.OBMol()
-        if not self.inchi:
-            raise KeggParseException("C%05d doesn't have an 'inchi', so it "
-                "cannot be converted it to SMILES" % self.cid)
-        obConversion.ReadString(obmol, str(self.inchi))
-        smiles_list = obConversion.WriteString(obmol).split()
-        if smiles_list:
-            return smiles_list[0]
-        else:
-            raise KeggParseException("C%05d cannot be convert to SMILES, because "
-                "the InChI is %s" % str(self.inchi))
-
-    def get_mol(self, remove_hydrogens=True):
-        """
-            I don't remember why it was necessary to first convert the string to SMILES and then
-            create the Molecule object, but there must have been some kind of reason for it.
-        """
-        smiles = self.get_smiles()
-        try:
-            mol = pybel.readstring('smiles', smiles)
-            if remove_hydrogens:
-                mol.removeh()
-        except IOError:
-            raise KeggParseException("Cannot interpret the SMILES string for compound C%05d: %s" % (self.cid, smiles))
-        mol.title = str(self.name)
-        return mol
-    
-    def get_obmol(self, correctForPH=True, pH=7.4):
-        if (self.inchi == None):
-            raise KeggParseException("C%05d doesn't have an 'inchi', so I can't get its molecular structure" % self.cid)
-        obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("inchi", "mol")
-        obmol = openbabel.OBMol()
-        obConversion.ReadString(obmol, self.get_inchi())
-        if (obmol.NumAtoms() == 0):
-            raise KeggParseException("Cannot interpret the inchi string for compound C%05d: %s" % (self.cid, self.inchi))
-        polaronly = False
-        obmol.AddHydrogens(polaronly, correctForPH, pH)
-        return obmol
-
-    def get_nH(self, correctForPH=True, pH=7.4):
-        """
-            Returns the number of hydrogen atoms in a compound.
-            It is calculated by subtracting the number of heavy atoms (anything bigger than H)
-            from the total number of atoms.
-        """
-        try:
-            obmol = self.get_obmol(correctForPH, pH)
-            return (obmol.NumAtoms() - obmol.NumHvyAtoms()) # HvyAtoms are all the non-hydrogen atoms
-        except KeggParseException:
-            atom_bag = self.get_atom_bag()
-            if (atom_bag == None):
-                return None
-            else: 
-                return atom_bag.get('H')
-        
-    def get_charge(self, correctForPH=True, pH=7.4):
-        try:
-            return self.get_obmol(correctForPH, pH).GetTotalCharge()
-        except KeggParseException:
-            return 0
-        
-    def get_num_electrons(self):
-        obmol = self.get_obmol(correctForPH=False)
-        atom_bag = {}
-        for i in xrange(obmol.NumAtoms()):
-            atom = obmol.GetAtom(i+1)
-            atom_bag.setdefault(atom.GetAtomicNum(), 0)
-            atom_bag[atom.GetAtomicNum()] += 1
-        n_protons = sum([an*cnt for (an, cnt) in atom_bag.iteritems()])
-        return n_protons - obmol.GetTotalCharge()
-
-    def get_link(self):
-        return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % self.cid
-    
-    def get_json_dict(self):
-        d = {}
-        if self.cid:
-            d['CID'] = "C%05d" % self.cid
-        if self.inchi:
-            d['InChI'] = self.inchi
-        if self.mass is not None:
-            d['mass'] = self.mass
-        if self.formula:
-            d['formula'] = self.formula
-        if self.all_names:
-            d['names'] = self.all_names
-        
-        try:
-            n_electrons = self.get_num_electrons()
-            d['num_electrons'] = n_electrons
-        except Exception, e:
-            logging.error(e)
-            pass
-        
-        return d
-    
-class Reaction(object):
-    free_rid = -1 # class static variable
-    
-    def __init__(self, name, sparse_reaction, rid=None, direction='<=>', weight=1):
-        self.name = name
-        self.sparse = sparse_reaction
-        if (rid == None):
-            self.rid = Reaction.free_rid
-            Reaction.free_rid -= 1
-        else:
-            self.rid = rid
-        self.weight = weight
-        self.direction = direction
-        self.definition = None
-        self.equation = None
-        self.ec_list = '-.-.-.-'
-        
-    def get_cids(self):
-        return set(self.sparse.keys())
-    
-    def unique_string(self):
-        return " + ".join([("%d C%05d") % (coeff, cid) for (cid, coeff) in sorted(self.sparse.iteritems())])
-
-    def __str__(self):
-        
-        def write_compound_and_coeff(cid, coeff):
-            if (coeff == 1):
-                return "C%05d" % cid
-            else:
-                return "%g C%05d" % (coeff, cid)
-
-        left = []
-        right = []
-        for (cid, coeff) in sorted(self.sparse.iteritems()):
-            if (coeff < 0):
-                left.append(write_compound_and_coeff(cid, -coeff))
-            elif (coeff > 0):
-                right.append(write_compound_and_coeff(cid, coeff))
-        return "%s -> %s" % (' + '.join(left), ' + '.join(right))
-    
-    def is_not_futile(self):
-        return max([abs(x) for x in self.sparse.values()]) > 0.01
-    
-    def is_specific(self, cid2atom_bag):
-        for cid in self.sparse.keys():
-            atom_bag = cid2atom_bag.get(cid, None)
-            if (atom_bag == None or 'R' in atom_bag):
-                # this reaction cannot be checked since there is an unspecific compound
-                return False
-        return True
-    
-    def is_balanced(self, cid2atom_bag, balance_water=True):
-        """
-            Checks if the reaction is balanced: i.e. the sum of elements is conserved (not including hydrogen atoms).
-            If oxygen is not balanced, the method adds water molecules in the right amount to fix it.
-        """
-        atom_diff = {}
-        for (cid, coeff) in self.sparse.iteritems():
-            atom_bag = cid2atom_bag.get(cid, None)
-            for (atomic_number, atom_count) in atom_bag.iteritems():
-                atom_diff[atomic_number] = atom_diff.get(atomic_number, 0) + coeff * atom_count
-
-        # ignore H and O inconsistencies
-        if ('H' in atom_diff):
-            del atom_diff['H']
-        if (balance_water):
-            if ('O' in atom_diff and atom_diff['O'] != 0):
-                self.sparse[1] = self.sparse.get(1, 0) - atom_diff['O']
-                del atom_diff['O']
-        
-        return max([abs(x) for x in atom_diff.values()]) < 0.01
-    
-    def verify(self, cid2atom_bag):
-        if not self.is_specific(cid2atom_bag):
-            # unspecific reactions cannot be automatically checked for chemical balance
-            # therefore we cannot use them here.
-            return "unspecific"
-        elif not self.is_balanced(cid2atom_bag):
-            return "unbalanced"
-        elif not self.is_not_futile():
-            return "futile"
-        else:
-            return None
-    
-    def get_link(self):
-        return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % self.rid
 
     
 class Kegg(object):
@@ -454,7 +79,7 @@ class Kegg(object):
                 continue
             
             cid = int(key[1:])
-            comp = Compound(cid)
+            comp = kegg_compound.Compound(cid)
             if "NAME" in field_map:
                 all_names = kegg_parser.NormalizeNames(field_map.GetStringField("NAME"))
                 
@@ -487,8 +112,9 @@ class Kegg(object):
             
             equation_value = field_map.GetStringField("EQUATION", default_value="<=>")
             try:
-                (sparse, direction) = parse_reaction_formula(equation_value)
-                r = Reaction(key, sparse, rid=int(key[1:]), direction=direction)
+                (sparse, direction) = kegg_utils.parse_reaction_formula(equation_value)
+                r = kegg_reaction.Reaction(key, sparse, rid=int(key[1:]),
+                                           direction=direction)
                 self.rid2reaction_map[r.rid] = r
 
                 if "ENZYME" in field_map:
@@ -499,8 +125,10 @@ class Kegg(object):
                     r.definition = field_map["DEFINITION"]
                 if "EQUATION" in field_map:
                     r.equation = field_map["EQUATION"]
-            except (KeggParseException, KeggNonCompoundException, ValueError):
-                logging.debug("cannot parse reaction formula: " + equation_value)
+            except (kegg_errors.KeggParseException,
+                    kegg_errors.KeggNonCompoundException,
+                    ValueError):
+                logging.debug("Cannot parse reaction formula: " + equation_value)
                 pass
 
         logging.info("Retrieving INCHI file and parsing it")
@@ -627,8 +255,9 @@ class Kegg(object):
                 inchi = str(row['inchi'])
             else:
                 inchi = None
-            comp = Compound(row['cid'], row['name'], row['all_names'].split(';'), 
-                            row['mass'], row['formula'], inchi)
+            comp = kegg_compound.Compound(row['cid'], row['name'],
+                                          row['all_names'].split(';'), 
+                                          row['mass'], row['formula'], inchi)
             self.cid2compound_map[row['cid']] = comp
             if row['name']:
                 self.name2cid_map[row['name']] = row['cid']
@@ -636,9 +265,10 @@ class Kegg(object):
                 self.inchi2cid_map[inchi] = row['cid']
         
         for row in self.db.DictReader('kegg_reaction'):
-            (sparse, direction) = parse_reaction_formula(row['equation'])
-            reaction = Reaction(name=row['name'], sparse_reaction=sparse, 
-                                rid=row['rid'], direction=direction)
+            (sparse, direction) = kegg_utils.parse_reaction_formula(row['equation'])
+            reaction = kegg_reaction.Reaction(
+                name=row['name'], sparse_reaction=sparse, 
+                rid=row['rid'], direction=direction)
             reaction.equation = row['equation']
             reaction.definition = row['definition']
             reaction.ec_list = row['ec_list']
@@ -688,7 +318,7 @@ class Kegg(object):
                     for (f) in re.findall('\(x([0-9\.]+)\)', remainder):
                         flux = float(f)
                 
-                (spr, unused_direction) = parse_reaction_formula(left_clause + " => " + right_clause)
+                (spr, unused_direction) = kegg_utils.parse_reaction_formula(left_clause + " => " + right_clause)
                 
                 for cid in (spr.keys()):
                     if (cid not in cids and cid != 80): # don't include H+ as a compound
@@ -726,7 +356,7 @@ class Kegg(object):
                 logging.debug("module %s contains an unknown RID (R%05d)" % (module_name, rid))
                 continue
             
-            (spr_module, unused_direction_module) = parse_reaction_formula(left_clause + " => " + right_clause)
+            (spr_module, unused_direction_module) = kegg_utils.parse_reaction_formula(left_clause + " => " + right_clause)
             spr_rid = self.rid2reaction(rid).sparse
             
             directions = []
@@ -773,14 +403,17 @@ class Kegg(object):
         return (S, rids, fluxes, cids)
     
     def get_module(self, mid):               
-        if (mid not in self.mid2rid_map):
-            raise KeggMissingModuleException("M%05d does not exist in KEGG" % mid)
+        if mid not in self.mid2rid_map:
+            raise kegg_errors.KeggMissingModuleException(
+                "M%05d does not exist in KEGG" % mid)
         
         rid_flux_list = self.mid2rid_map[mid]
-        if (rid_flux_list == None): # this module has no reactions
-            raise KeggMissingModuleException("M%05d doesn't have any reactions in KEGG" % mid)
-        if (len(rid_flux_list) == 0):
-            raise KeggMissingModuleException("M%05d doesn't have any reactions in KEGG" % mid)
+        if rid_flux_list == None: # this module has no reactions
+            raise kegg_errors.KeggMissingModuleException(
+                "M%05d doesn't have any reactions in KEGG" % mid)
+        if len(rid_flux_list) == 0:
+            raise kegg_errors.KeggMissingModuleException(
+                "M%05d doesn't have any reactions in KEGG" % mid)
         return self.rid_flux_list_to_matrix(rid_flux_list)
 
     def cid2compound(self, cid):
@@ -828,7 +461,7 @@ class Kegg(object):
 
     @staticmethod
     def cid2link(cid):
-        return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % cid
+        return kegg_utils.cid2link(cid)
         
     def cid2formula(self, cid):
         return self.cid2compound(cid).formula
@@ -872,11 +505,11 @@ class Kegg(object):
         return None, None, None
 
     def add_smiles(self, name, smiles):
-        comp = Compound()
+        comp = kegg_compound.Compound()
         comp.name = name
         comp.all_names = [name]
-        comp.inchi = smiles2inchi(smiles)
-        if (comp.inchi == ""):
+        comp.inchi = kegg_utils.smiles2inchi(smiles)
+        if comp.inchi == "":
             raise Exception("The smiles notation for compound %s could not be interpreted: %s" % (name, smiles))
         
         comp.from_kegg = False
@@ -975,12 +608,13 @@ class Kegg(object):
         """
             translates a formula to a sparse-reaction
         """
-        (sparse_reaction, direction) = parse_reaction_formula(formula)
+        (sparse_reaction, direction) = kegg_utils.parse_reaction_formula(formula)
         
         try:
             self.check_reaction_balance(sparse_reaction)
-        except KeggReactionNotBalancedException as e:
-            raise KeggReactionNotBalancedException("Unbalanced reaction (" + formula + "): " + str(e))
+        except kegg_errors.KeggReactionNotBalancedException as e:
+            raise kegg_errors.KeggReactionNotBalancedException(
+                "Unbalanced reaction (" + formula + "): " + str(e))
         
         if direction in ['<-', '<=']:
             for cid in sparse_reaction.keys():
@@ -999,14 +633,15 @@ class Kegg(object):
                 atom_diff[anum] = atom_diff.get(anum, 0) + count * a_count
                 
         if (ignore_hydrogens):
-            atom_diff[ELEMENTS.an_to_symbol[1]] = 0
+            atom_diff[elements.ELEMENTS.an_to_symbol[1]] = 0
         
         for anum in atom_diff.keys():
             if (atom_diff[anum] == 0):
                 del atom_diff[anum]
         
         if (len(atom_diff) > 0):
-            raise KeggReactionNotBalancedException("diff = %s" % str(atom_diff))
+            raise kegg_errors.KeggReactionNotBalancedException(
+                "diff = %s" % str(atom_diff))
     
     def insert_data_to_db(self, cursor):
         cursor.execute("DROP TABLE IF EXISTS kegg_compound")
@@ -1032,7 +667,7 @@ class Kegg(object):
             Print a CSV file containing the CIDs of compounds that have CoA and/or Pi
         """
         csv_file = csv.writer(open('../res/compounds.csv', 'w'))
-        csv_file.writerow(["cid", "EXACT MASS"] + ELEMENTS.symbols)
+        csv_file.writerow(["cid", "EXACT MASS"] + elements.ELEMENTS.symbols)
         for cid in self.get_all_cids():
             comp = self.cid2compound(cid)
             atom_vec = comp.get_atom_vector()
@@ -1051,23 +686,23 @@ class Kegg(object):
             logging.debug("Converting INCHI of compound %s (C%05d)" % (self.cid2name(cid), cid))
             smiles = self.cid2smiles(cid)
             smiles2cid_map[smiles] = cid
-            inchi2cid_map[smiles2inchi(smiles)] = cid
+            inchi2cid_map[kegg_utils.smiles2inchi(smiles)] = cid
     
         csv_file = csv.writer(open('../res/coa_pi_pairs.csv', 'w'))
         csv_file.writerow(["CID +", "CID -", "Pi(1) or CoA(2)"])
         for cid in list_of_cids:
             try:
                 mol = self.cid2mol(cid)
-            except KeggParseException:
+            except kegg_errors.KeggParseException:
                 continue
             if (len(mol.atoms) <= 5):
                 continue # ignore compounds which are too small (e.g. orthophosphate)
             smiles_pi = "P(=O)([OH,O-])[OH,O-]"
             for pgroup in pybel.Smarts(smiles_pi).findall(mol):
                 tmp_mol = self.cid2mol(cid)
-                remove_atoms_from_mol(tmp_mol, pgroup)
-                new_smiles = mol2smiles(tmp_mol)
-                new_inchi = smiles2inchi(new_smiles)
+                kegg_utils.remove_atoms_from_mol(tmp_mol, pgroup)
+                new_smiles = kegg_utils.mol2smiles(tmp_mol)
+                new_inchi = kegg_utils.smiles2inchi(new_smiles)
                 if (new_inchi in inchi2cid_map):
                     new_cid = inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 1])
@@ -1079,10 +714,10 @@ class Kegg(object):
                 cgroup = list(cgroup)
                 sulfur_atom = cgroup.pop(0)
                 tmp_mol.OBMol.GetAtom(sulfur_atom).SetAtomicNum(8)
-                remove_atoms_from_mol(tmp_mol, cgroup)
+                kegg_utils.remove_atoms_from_mol(tmp_mol, cgroup)
                 tmp_mol.removeh()
-                new_smiles = mol2smiles(tmp_mol)
-                new_inchi = smiles2inchi(new_smiles)
+                new_smiles = kegg_utils.mol2smiles(tmp_mol)
+                new_inchi = kegg_utils.smiles2inchi(new_smiles)
                 if (new_inchi in inchi2cid_map):
                     new_cid = inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 2])
@@ -1334,8 +969,8 @@ class KeggPathologic(object):
                 (reaction_id, formula) = line.split(':')
                 rid = int(reaction_id.strip()[1:])
                 try:
-                    (spr, direction) = parse_reaction_formula(formula.strip())
-                except KeggParseException:
+                    (spr, direction) = kegg_utils.parse_reaction_formula(formula.strip())
+                except kegg_errors.KeggParseException:
                     raise Exception("Syntax error in update file: " + line)
                 rxns = self.create_reactions("R%05d" % rid, direction, spr, rid, weight=1)
                 html_writer.write("<li><b>Set Reaction,</b> R%05d : %s" % (rid, self.sparse_to_hypertext(spr, show_cids=True, direction=direction)))
@@ -1353,8 +988,8 @@ class KeggPathologic(object):
                 html_writer.write("<li><b>Ban Compound,</b> C%05d" % (cid))
             elif (command == 'COFR'): # cofactor
                 try:
-                    (spr, direction) = parse_reaction_formula(line.strip())
-                except KeggParseException:
+                    spr, direction = kegg_utils.parse_reaction_formula(line.strip())
+                except kegg_errors.KeggParseException:
                     raise Exception("Syntax error in update file: " + line)
                 self.cofactor_reaction_list.append((spr, direction))
                 self.cofactors = self.cofactors.union(spr.keys())
@@ -1385,15 +1020,19 @@ class KeggPathologic(object):
         res = []
         
         if (direction not in ["<=", "=>", "<=>"]):
-            raise KeggParseException("Direction must be either =>, <= or <=>")
+            raise kegg_errors.KeggParseException(
+                "Direction must be either =>, <= or <=>")
         if (direction in ["=>", "<=>"]):
-            res.append(Reaction(name + "_F", spr, rid=rid, weight=weight))
+            res.append(kegg_reaction.Reaction(name + "_F", spr,
+                                              rid=rid, weight=weight))
         if (direction in ["<=", "<=>"]):
-            res.append(Reaction(name + "_R", KeggPathologic.reverse_sparse_reaction(spr), rid=rid, weight=weight))
+            res.append(kegg_reaction.Reaction(
+                name + "_R", KeggPathologic.reverse_sparse_reaction(spr),
+                rid=rid, weight=weight))
         return res
     
     def add_compound(self, name, cid=None, formula=None, inchi=None):
-        comp = Compound()
+        comp = kegg_compound.Compound()
         comp.name = name
         comp.formula = formula
         comp.inchi = inchi
@@ -1677,7 +1316,9 @@ def export_json_file():
     for row in cursor.execute("SELECT * FROM kegg_compound"):
         (cid, unused_pubchem_id, mass, formula, inchi, unused_from_kegg, unused_cas, names) = row
         names = names.split(';')
-        compound = Compound(cid=cid, all_names=names, mass=mass, formula=formula, inchi=inchi)
+        compound = kegg_compound.Compound(cid=cid, all_names=names,
+                                          mass=mass, formula=formula,
+                                          inchi=inchi)
         compound_list.append(compound.get_json_dict())
     
     json_file = open('../res/kegg_compounds.json', 'w')
