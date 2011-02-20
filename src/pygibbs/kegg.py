@@ -10,6 +10,7 @@ import sqlite3
 import urllib
 
 from pygibbs import kegg_parser
+from pygibbs import kegg_enzyme
 from toolbox import util, database
 from copy import deepcopy
 from toolbox.database import SqliteDatabase
@@ -47,7 +48,6 @@ def remove_atoms_from_mol(mol, atoms):
     for i in sorted(atoms, reverse=True):
         obmol.DeleteAtom(obmol.GetAtom(i))
     obmol.EndModify()
-
 
 
 def parse_reaction_formula_side(s):
@@ -394,18 +394,7 @@ class Reaction(object):
     
     def get_link(self):
         return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % self.rid
-    
-    
-class Enzyme(object):
-    
-    def __init__(self, ec_class, names, reactions):
-        self.ec = ec_class
-        self.names = names
-        self.reactions = reactions
-        
-    def __str__(self):
-        return '%s, %s, %s' % (self.ec, ', '.join(self.names), ' & '.join(self.reactions))
-        
+
     
 class Kegg(object):
 
@@ -434,6 +423,17 @@ class Kegg(object):
         self.node_fillcolor = "dodgerblue"
         self.font = "verdana"
         
+        self.name2cid_map = {}
+        self.cid2compound_map = {}
+        self.rid2reaction_map = {}
+        self.rid2enzyme_map = {}
+        self.ec2enzyme_map = {}
+        self.inchi2cid_map = {}
+        self.mid2rid_map = {}
+        self.mid2name_map = {}
+        self.cofactors2names = {}
+        self.cid2bounds = {}
+        
         if not self.db:
             self.FromFiles()
         elif not self.db.DoesTableExist('kegg_compound'):
@@ -443,16 +443,6 @@ class Kegg(object):
             self.FromDatabase()
 
     def FromFiles(self):
-        self.name2cid_map = {}
-        self.cid2compound_map = {}
-        self.rid2reaction_map = {}
-        self.rid2enzyme_map = {}
-        self.inchi2cid_map = {}
-        self.mid2rid_map = {}
-        self.mid2name_map = {}
-        self.cofactors2names = {}
-        self.cid2bounds = {}
-
         logging.info("Retrieving COMPOUND file and parsing it")
         if (not os.path.exists(self.COMPOUND_FILE)):
             urllib.urlretrieve(self.COMPOUND_URL, self.COMPOUND_FILE)
@@ -576,34 +566,20 @@ class Kegg(object):
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
 
-        # TODO(flamholz): write enzyme data to the database so we don't parse it every time.            
         logging.info("Retrieving ENZYME file and parsing it")
         if (not os.path.exists(self.ENZYME_FILE)):
             urllib.urlretrieve(self.ENZYME_URL, self.ENZYME_FILE)
 
-        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.ENZYME_FILE,
-                                                                   verbose=True)
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.ENZYME_FILE)
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
-        
-            # TODO(flamholz): Parse more enzyme data.
-            ec = key
-            all_names = []
-            reactions = []
-            if 'NAME' in field_map:
-                all_names = kegg_parser.NormalizeNames(field_map.GetStringField("NAME"))
-            if 'ALL_REAC' in field_map:
-                reactions = field_map.GetStringListField('ALL_REAC')
-            enz = Enzyme(ec, all_names, reactions)
-            
-            for reaction_id in reactions:
-                try:
-                    rid = int(reaction_id[1:].rstrip(';'))
-                    self.rid2enzyme_map[rid] = enz
-                except Exception, e:
-                    # TODO(flamholz): This happens! We should figure out
-                    # what's happening here.
-                    pass
+            enz = kegg_enzyme.Enzyme.FromEntryDict(key, field_map)
+            for reaction_id in enz.reactions:
+                self.rid2enzyme_map[reaction_id] = enz
+            if enz.ec in self.ec2enzyme_map:
+                logging.error('Duplicate EC class %s' % enz.ec)
+            else:
+                self.ec2enzyme_map[enz.ec] = enz
     
     def ToDatabase(self):
         self.db.CreateTable('kegg_compound', 'cid INT, name TEXT, all_names TEXT, '
@@ -615,10 +591,15 @@ class Kegg(object):
                 comp.pubchem_id, comp.cas])
         
         self.db.CreateTable('kegg_reaction', 'rid INT, name TEXT, definition TEXT, '
-                       'ec_list TEXT, equation TEXT')
+                            'ec_list TEXT, equation TEXT')
         for rid, reaction in self.rid2reaction_map.iteritems():
             self.db.Insert('kegg_reaction', [rid, reaction.name, reaction.definition,
                 reaction.ec_list, reaction.equation])
+         
+        self.db.CreateTable('kegg_enzyme', 'ec TEXT, all_names TEXT, title TEXT, rid_list TEXT, '
+                            'substrate TEXT, product TEXT, cofactor TEXT, organism TEXT')
+        for enz in self.ec2enzyme_map.values():
+            self.db.Insert('kegg_enzyme', enz.ToDBRow())
 
         self.db.CreateTable('kegg_module', 'mid INT, name TEXT')
         self.db.CreateTable('kegg_mid2rid', 'mid INT, position INT, rid INT, flux REAL')
@@ -640,15 +621,6 @@ class Kegg(object):
 
     def FromDatabase(self):
         logging.info('Reading KEGG from the database')
-        
-        self.name2cid_map = {}
-        self.cid2compound_map = {}
-        self.rid2reaction_map = {}
-        self.inchi2cid_map = {}
-        self.mid2rid_map = {}
-        self.mid2name_map = {}
-        self.cofactors2names = {}
-        self.cid2bounds = {}
 
         for row in self.db.DictReader('kegg_compound'):
             if row['inchi']:
@@ -671,7 +643,16 @@ class Kegg(object):
             reaction.definition = row['definition']
             reaction.ec_list = row['ec_list']
             self.rid2reaction_map[row['rid']] = reaction
-        
+            
+        for row in self.db.DictReader('kegg_enzyme'):
+            enz = kegg_enzyme.Enzyme.FromDBRow(row)
+            for reaction_id in enz.reactions:
+                self.rid2enzyme_map[reaction_id] = enz
+            if enz.ec in self.ec2enzyme_map:
+                logging.error('Duplicate EC class %s' % enz.ec)
+            else:
+                self.ec2enzyme_map[enz.ec] = enz
+            
         for row in self.db.DictReader('kegg_module'):
             self.mid2name_map[row['mid']] = row['name']
             

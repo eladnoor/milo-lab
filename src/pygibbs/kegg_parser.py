@@ -10,6 +10,41 @@ def NormalizeNames(name_str):
     return [n.strip() for n in all_names]
 
 
+def NormalizeReactions(reactions_str, verbose=False):
+    """Normalize a KEGG-style list of reaction IDs.
+    
+    
+    NOTE(flamholz): Some enzymes have lists of reactions as such:
+        "RXXXXX > RXXXXY RYYYZZ"
+    where RXXXXX is a general reaction and the others have specific
+    substrates. We may want special parsing for this, but for now 
+    we don't have it. 
+    
+    Args:
+        reactions_str: the string containing a list of reactions.
+        verbose: whether to log lots of warnings.
+        
+    Returns:
+        A list of KEGG reaction IDs parsed as integers.
+    """
+    if not reactions_str:
+        return []
+    
+    l = []
+    pattern = re.compile('.*(R\d{5}).*')
+    for r in reactions_str.split():
+        m = pattern.match(r)
+        if m:
+            r_str = m.groups()[0]
+            r_int = int(r_str[1:])
+            l.append(r_int)
+        elif verbose:
+            logging.warning('Failed to parse reaction ID %s', r)
+            logging.info('Full reaction string: %s', reactions_str)
+            
+    return l
+
+
 class EntryDictWrapper(dict):
     
     def GetStringField(self, field_name, default_value=None):
@@ -80,7 +115,7 @@ class ParsedKeggFile(dict):
 
 
     @staticmethod
-    def FromKeggFile(filename, verbose=False):
+    def FromKeggFile(filename):
         """Parses a file from KEGG.
     
         Args:
