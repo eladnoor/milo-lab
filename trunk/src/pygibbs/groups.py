@@ -14,7 +14,8 @@ from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_
 from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from pygibbs.hatzimanikatis import Hatzi
-from pygibbs.kegg import KeggParseException, Kegg
+from pygibbs.kegg import Kegg
+from pygibbs.kegg_errors import KeggParseException
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.groups_data import Group, GroupsData
 from pygibbs import templates

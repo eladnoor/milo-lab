@@ -2,7 +2,7 @@ import csv
 from pylab import * #@UnusedWildImport
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups import GroupContribution
-from pygibbs.kegg import KeggParseException
+from pygibbs.kegg_errors import KeggParseException
 from pygibbs.thermodynamic_constants import R
 from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.alberty import Alberty
