@@ -183,17 +183,43 @@ class Thermodynamics(object):
         html_writer.write('</table>\n')
         return dG0_f
     
-class CsvFileThermodynamics(Thermodynamics):
-    def __init__(self, csv_filename):
+class PsuedoisomerTableThermodynamics(Thermodynamics):
+    def __init__(self):
         Thermodynamics.__init__(self)
         self.cid2pmap_dict = {}
-        self.FromCsvFile(csv_filename)
         
-    def FromCsvFile(self, filename):
+    @staticmethod
+    def FromDatabase(db, table_name):
         """
             Imports the pseudoisomer maps from a CSV file, with these headers:
             'cid', 'nH', 'z', 'nMg', 'dG0'
         """
+        thermo = PsuedoisomerTableThermodynamics()
+        for row in db.DictReader(table_name):
+            if row.get('use for', None) == 'skip':
+                continue
+            if not row['cid']:
+                continue
+            thermo.cid2pmap_dict.setdefault(row['cid'], pseudoisomer.PseudoisomerMap())
+            thermo.cid2pmap_dict[row['cid']].Add(row['nH'], row['z'], 
+                                                 row['nMg'], row['dG0'])
+            ref = row.get('ref', '')
+            if row['cid'] in thermo.cid2source_string and \
+                    thermo.cid2source_string[row['cid']] != ref:
+                logging.warning('There are conflicting references for C%05d in '
+                                'table %s' % (row['cid'], table_name))
+            else:
+                thermo.cid2source_string[row['cid']] = ref
+            
+        return thermo
+        
+    @staticmethod
+    def FromCsvFile(filename):
+        """
+            Imports the pseudoisomer maps from a CSV file, with these headers:
+            'cid', 'nH', 'z', 'nMg', 'dG0'
+        """
+        thermo = PsuedoisomerTableThermodynamics()
         for row in csv.DictReader(open(filename, 'r')):
             if 'use for' in row and row['use for'] == 'skip':
                 continue
@@ -206,15 +232,17 @@ class CsvFileThermodynamics(Thermodynamics):
             z = int(row['z'])
             nMg = int(row['nMg'])
             dG0 = float(row['dG0'])
-            self.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
-            self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
+            thermo.cid2pmap_dict.setdefault(cid, pseudoisomer.PseudoisomerMap())
+            thermo.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
             
             ref = row.get('ref', '')
-            if cid in self.cid2source_string and self.cid2source_string[cid] != ref:
+            if cid in thermo.cid2source_string and thermo.cid2source_string[cid] != ref:
                 logging.warning('There are conflicting references for C%05d in '
                                 '%s' % (cid, filename))
             else:
-                self.cid2source_string[cid] = ref
+                thermo.cid2source_string[cid] = ref
+            
+            return thermo
 
     def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
@@ -249,5 +277,5 @@ class CsvFileThermodynamics(Thermodynamics):
         pylab.show()
 
 if __name__ == "__main__":
-    T = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    T = PsuedoisomerTableThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
     T.test()

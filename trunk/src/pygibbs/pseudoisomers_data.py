@@ -7,6 +7,7 @@ from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel
 import pylab
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
+from pygibbs.kegg import Kegg
 
 class PseudoisomerEntry(object):
     def __init__(self, net_charge, hydrogens, magnesiums, smiles="",
@@ -85,10 +86,10 @@ class DissociationTable(object):
         self.min_nH = None # the nH of the most basic pseudoisomer
         self.min_charge = None # the charge of the most basic pseudoisomer
         self.min_dG0 = 0 # the dG0 of the most basic pseudoisomer
+        self.kegg = Kegg.getInstance()
 
     @staticmethod
-    def ReadDissociationCsv(filename='../data/thermodynamics/dissociation_constants.csv',
-                            kegg=None):
+    def ReadDissociationCsv(filename='../data/thermodynamics/dissociation_constants.csv'):
         """
             Parses a CSV file that contains pKa and pKMg data for many compounds
             and returns a dictionary of their DissociationTables, where the key
@@ -127,9 +128,8 @@ class DissociationTable(object):
                                     'the pK_Mg = %.1f' % pKMg)
                 cid2pK[cid].AddpKMg(pKMg, nMg_below, nMg_above, nH_below, ref, T)
         
-        if kegg != None:
-            for pK_table in cid2pK.values():
-                pK_table.CalculateCharge(kegg)
+        for pK_table in cid2pK.values():
+            pK_table.CalculateCharge()
         
         return cid2pK
     
@@ -222,10 +222,10 @@ class DissociationTable(object):
         
         return comp
     
-    def CalculateCharge(self, kegg):
+    def CalculateCharge(self):
         # get the charge and nH of the default pseudoisomer in KEGG:
-        z = kegg.cid2charge(self.cid, correctForPH=False)
-        nH = kegg.cid2num_hydrogens(self.cid, correctForPH=False)
+        z = self.kegg.cid2charge(self.cid, correctForPH=False)
+        nH = self.kegg.cid2num_hydrogens(self.cid, correctForPH=False)
         
         # calculate the charge for the most basic species
         self.min_charge = z + (self.min_nH - nH)

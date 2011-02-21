@@ -11,7 +11,7 @@ from pygibbs.group_decomposition import GroupDecomposer
 def main():
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/group_test.html')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()
 

@@ -16,7 +16,7 @@ import matplotlib
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/dG0_test.html')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()
     
@@ -217,7 +217,7 @@ def calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, met
 def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/reversibility.html')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()
     c_mid = 1e-3
@@ -236,7 +236,7 @@ def main():
 def metacyc_data(org):
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/' + org + '_reversibility.html')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     metacyc_inst = MetaCyc(org, db)
     G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
     G.init()

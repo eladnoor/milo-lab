@@ -10,7 +10,7 @@ from pygibbs.nist import Nist
 from pygibbs.kegg import Kegg
 from pygibbs.group_decomposition import GroupDecomposer
 from pygibbs.thermodynamics import Thermodynamics,\
-    MissingCompoundFormationEnergy, CsvFileThermodynamics
+    MissingCompoundFormationEnergy, PsuedoisomerTableThermodynamics
 from pygibbs.pseudoisomers_data import DissociationTable
 from pygibbs.pseudoisomer import PseudoisomerMap
 
@@ -51,21 +51,21 @@ class NistAnchors(object):
 
 class NistRegression(Thermodynamics):
     
-    def __init__(self, db, html_writer, kegg=None, nist=None):
+    def __init__(self, db, html_writer, nist=None):
         Thermodynamics.__init__(self)
         self.db = db
         self.html_writer = html_writer
-        self.kegg = kegg or Kegg()
+        self.kegg = Kegg.getInstance()
         if nist:
             self.nist = nist
         else:
-            self.nist = Nist(db, html_writer, self.kegg)
+            self.nist = Nist(db, html_writer)
             self.nist.Load()
         
         self.nist_anchors = NistAnchors(self.db, self.html_writer)
         self.nist_anchors.FromCsvFile()
         
-        self.cid2diss_table = DissociationTable.ReadDissociationCsv(kegg=kegg)
+        self.cid2diss_table = DissociationTable.ReadDissociationCsv()
         self.cid2pmap_dict = {}
         
         self.T_range = None
@@ -175,10 +175,12 @@ class NistRegression(Thermodynamics):
         estimated_dG0_f, kerA = LinearRegression.LeastSquares(unique_rows_S, 
             unique_data_mat[:, 0], reduced_row_echlon=False)
         
-        estimated_dG0_r = pylab.dot(unique_rows_S, estimated_dG0_f)        
-        rmse = pylab.sqrt(pylab.sum((estimated_dG0_r - unique_data_mat[:, 0])**2))
-        logging.info("Regression Complete, RMSE = %.6f" % rmse)
-        logging.info("The dimension of the Kernel is %d" % (kerA.shape[0]))
+        estimated_dG0_r = pylab.dot(unique_rows_S, estimated_dG0_f)
+        residuals = estimated_dG0_r - unique_data_mat[:, 0:1]
+        rmse = pylab.sqrt(pylab.mean(residuals**2))
+        logging.info("Regression results for reverse transformed data:")
+        logging.info("N = %d, RMSE = %.1f" % (n_unique_rows, rmse))
+        logging.info("Kernel rank = %d" % (kerA.shape[0]))
 
         if prior_thermodynamics:
             # find the vector in the solution subspace which is closest to the 
@@ -414,12 +416,11 @@ class NistRegression(Thermodynamics):
 def main():
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
-    alberty = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    alberty = PsuedoisomerTableThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
     alberty.ToDatabase(db, 'alberty')
     
     html_writer.write("<h2>NIST regression:</h2>")
-    nist_regression = NistRegression(db, html_writer, kegg)
+    nist_regression = NistRegression(db, html_writer)
     
     if False:
         nist_regression.Nist_pKas()
@@ -442,22 +443,22 @@ def main():
         html_writer.end_div()
         html_writer.write('</br>\n')
         
+        logging.info("Regression results for observed data:")
         logging.info("N = %d, RMSE = %.1f" % (N, rmse))
 
         html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
 
-        query = 'SELECT k.cid, k.name, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
-                'FROM kegg_compound k, alberty a, nist_regression r ' + \
-                'WHERE k.cid=a.cid AND a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
+        query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
+                'FROM alberty a, nist_regression r ' + \
+                'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
                 'AND a.anchor=0 ORDER BY a.cid,a.nH'
-        column_names = ['CID', 'name', 'nH', 'z', 'nMg', 'dG0_f(Alberty)',
-                        'dG0_f(Regression)']
         
         data = pylab.zeros((0, 2))
         fig = pylab.figure()
         pylab.hold(True)
         for row in db.Execute(query):
-            unused_cid, name, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
+            cid, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
+            name = nist_regression.kegg.cid2name(cid)
             x = (dG0_a + dG0_r)/2
             y = dG0_a - dG0_r
             pylab.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
@@ -465,7 +466,6 @@ def main():
 
         pylab.plot(data[:,0], data[:,1], '.')
         html_writer.embed_matplotlib_figure(fig, width=640, height=480)
-        db.Query2CSV('../res/nist/alberty_vs_regress.csv', query, column_names)
 
     html_writer.close()
     

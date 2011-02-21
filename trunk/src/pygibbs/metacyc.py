@@ -526,7 +526,7 @@ class Pathway(object):
 def test():
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     #db = database.SqliteDatabase('../MetaCyc/yanivtest.sqlite')
-    kg = kegg.Kegg(db)
+    kg = kegg.Kegg.getInstance()
     ecocyc = MetaCyc('ecoli', db)
     comps = ecocyc.uid2compound_map
     rxns = ecocyc.uid2reaction_map

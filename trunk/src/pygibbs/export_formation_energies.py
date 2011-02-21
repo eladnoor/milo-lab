@@ -1,4 +1,4 @@
-from pygibbs.thermodynamics import CsvFileThermodynamics
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.groups import GroupContribution
@@ -9,8 +9,8 @@ def main():
     # 
     
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
-    alberty = CsvFileThermodynamics('../data/thermodynamics/dG0.csv')
+    kegg = Kegg.getInstance()
+    alberty = PsuedoisomerTableThermodynamics('../data/thermodynamics/dG0.csv')
     
     G = GroupContribution(db=db, kegg=kegg)
     G.init()

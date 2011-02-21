@@ -19,9 +19,9 @@ from pygibbs import kegg_utils
 from toolbox import util, database
 from copy import deepcopy
 from toolbox.database import SqliteDatabase
-
+from toolbox.singletonmixin import Singleton
     
-class Kegg(object):
+class Kegg(Singleton):
 
     COMPOUND_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound'
     INCHI_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound.inchi'
@@ -35,7 +35,7 @@ class Kegg(object):
     REACTION_FILE = '../kegg/reaction.txt'
     MODULE_FILE = '../kegg/module.txt'
 
-    def __init__(self):
+    def __init__(self, loadFromFiles=False):
         # default colors for pydot (used to plot modules)
         self.edge_color = "cadetblue"
         self.edge_fontcolor = "indigo"
@@ -57,7 +57,9 @@ class Kegg(object):
         self.cid2bounds = {}
         
         self.db = SqliteDatabase('../data/public_data.sqlite')
-        if self.db.DoesTableExist('kegg_compound'):
+        if loadFromFiles:
+            self.FromFiles()
+        else:
             self.FromDatabase()
 
     def FromFiles(self):
@@ -880,7 +882,7 @@ class Kegg(object):
         html_writer.write("</ul></li>\n")
         
 class KeggPathologic(object):
-    def __init__(self, kegg=None): # CO2, HCO3-
+    def __init__(self): # CO2, HCO3-
 
         self.edge_color = "cadetblue"
         self.edge_fontcolor = "indigo"
@@ -901,8 +903,7 @@ class KeggPathologic(object):
         self.cofactor_reaction_list = []
         self.cofactors = set()
 
-        if (kegg == None):
-            kegg = Kegg()
+        kegg = Kegg.getInstance()
 
         inchi2compound = {}
         self.cid2compound = {}
@@ -1302,7 +1303,7 @@ def export_json_file():
     comm = sqlite3.connect("../res/" + sqlite_name)
     cursor = comm.cursor()
 
-    kegg = Kegg()
+    kegg = Kegg.getInstance()
     kegg.insert_data_to_db(cursor)
     comm.commit()
 
@@ -1320,7 +1321,7 @@ def export_json_file():
     json_file.close()
 
 def export_compound_connectivity():
-    kegg = Kegg()
+    kegg = Kegg.getInstance()
     
     entry2fields_map = parse_kegg_file(kegg.COMPOUND_FILE)
     csv_file = csv.writer(open("../res/cid_connectivity.csv", 'w'))
@@ -1339,6 +1340,5 @@ def export_compound_connectivity():
     
 if __name__ == '__main__':
     db = SqliteDatabase('../data/public_data.sqlite')
-    kegg = Kegg()
-    kegg.FromFiles()
+    kegg = Kegg.getInstance(loadFromFiles=True)
     kegg.ToDatabase()

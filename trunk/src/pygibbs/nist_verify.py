@@ -14,29 +14,29 @@ from pygibbs.nist import Nist
 from toolbox import database
 import logging
 from pygibbs.nist_regression import NistRegression
-from pygibbs.thermodynamics import CsvFileThermodynamics
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 ################################################################################################################
 #                                                 MAIN                                                         #        
 ################################################################################################################
 
 def main():
+    db_public = database.SqliteDatabase('../data/public_data.sqlite')
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/nist/report.html")
-    kegg = Kegg(db)
-
-    nist = Nist(db, html_writer, kegg)
+    nist = Nist(db, html_writer)
     nist.Load()
 
     estimators = {}
-    estimators['Alberty'] = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    estimators['Alberty'] = PsuedoisomerTableThermodynamics.FromDatabase(
+                                db_public, 'alberty_pseudoisomers')
     estimators['Hatzimanikatis Group Contribution'] = Hatzi()
 
-    regress = NistRegression(db, html_writer, kegg, nist) 
+    regress = NistRegression(db, html_writer, nist) 
     regress.FromDatabase()
     estimators['NIST regression'] = regress
         
-    gc = GroupContribution(db, html_writer, kegg)
+    gc = GroupContribution(db, html_writer)
     gc.override_gc_with_measurements = True
     gc.init()
     estimators['Milo Group Contribution'] = gc

@@ -154,13 +154,10 @@ class NistRowData:
             
     
 class Nist(object):
-    def __init__(self, db, html_writer, kegg=None):
+    def __init__(self, db, html_writer):
         self.db = db
         self.html_writer = html_writer
-        if (kegg == None):
-            self.kegg = Kegg(self.db)
-        else:
-            self.kegg = kegg
+        self.kegg = Kegg.getInstance()
 
     def FromFile(self, filename):
         """
