@@ -7,7 +7,7 @@ class Enzyme(object):
     
     def __init__(self, ec_class, title=None, names=None,
                  reactions=None, substrate=None, product=None,
-                 cofactor=None, organism=None):
+                 cofactor=None, organisms=None):
         """Initialize the enzyme class.
         
         Args:
@@ -18,7 +18,7 @@ class Enzyme(object):
             substrate: the substrate of the reaction, if defined.
             product: the product of the enzyme, if defined.
             cofactor: cofactors used by the enzyme.
-            organism: the organism this entry is found in, if defined.
+            organisms: the organisms this enzyme is found in, if defined.
             
         Attributes:
             ec
@@ -28,7 +28,7 @@ class Enzyme(object):
             substrate
             product
             cofactor
-            organism
+            organisms
         """
         self.ec = ec_class
         self.title = title
@@ -37,7 +37,7 @@ class Enzyme(object):
         self.substrate = substrate
         self.product = product
         self.cofactor = cofactor
-        self.organism = organism
+        self.organisms = organisms or []
 
     @staticmethod
     def ProcessEC(ec_str):
@@ -68,11 +68,17 @@ class Enzyme(object):
         if 'ALL_REAC' in entry_dict:
             enz.reactions = kegg_parser.NormalizeReactions(
                 entry_dict.get('ALL_REAC'))
+        if 'ORGANISM' in entry_dict:
+            enz.organisms = kegg_parser.NormalizeOrganisms(
+                entry_dict.get('ORGANISM'))
         enz.substrate = entry_dict.get('SUBSTRATE', None)
         enz.product = entry_dict.get('PRODUCT', None)
         enz.title = entry_dict.get('TITLE', None)
         enz.cofactor = entry_dict.get('COFACTOR', None)
-        enz.organism = entry_dict.get('ORGANISM', None)
+        
+        if enz.title:
+            enz.title = enz.title.replace('\t', ' ')
+
         return enz
 
     @staticmethod
@@ -99,11 +105,14 @@ class Enzyme(object):
             rid_list = row['rid_list']
             if rid_list:
                 enz.reactions = [int(r) for r in row['rid_list'].split(', ')]
+        if 'organism_list' in row:
+            org_list = row['organism_list']
+            if rid_list:
+                enz.organisms = org_list.split(', ')        
         enz.substrate = row.get('substrate', None)
         enz.product = row.get('product', None)
         enz.title = row.get('title', None)
         enz.cofactor = row.get('cofactor', None)
-        enz.organism = row.get('organism', None)
         return enz
 
     def ToDBRow(self):
@@ -115,7 +124,19 @@ class Enzyme(object):
                 self.substrate,
                 self.product,
                 self.cofactor,
-                self.organism]
+                ', '.join(self.organisms)]
+
+    def ToJSONDict(self):
+        """Format the enzyme as a JSON dictionary."""
+        rids = ['R%05d' % r for r in self.reactions]
+        return {'EC': self.ec,
+                'title': self.title,
+                'names': self.names,
+                'reaction_ids': rids,
+                'substrate': self.substrate,
+                'product': self.product,
+                'cofactor': self.cofactor,
+                'organism': self.organisms}
 
     def __str__(self):
         """String representation of the enzyme."""
