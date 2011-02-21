@@ -15,6 +15,9 @@ from SOAPpy import WSDL
 from pygibbs.metacyc import MetaCyc,MetaCycNonCompoundException
 import logging
 import matplotlib
+import pygibbs.kegg_utils
+import re
+import math
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -106,6 +109,13 @@ def CalculateReversability(sparse, G, c_mid=1e-3, pH=default_pH,
 def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap):
     histogram = {}
     histogram['total'] = []
+    
+    rel_histogram = {}
+    rel_histogram['total'] = []
+    
+    n_first_max = 0
+    n_valid = 0
+    
     hits = 0
     misses = 0
     debug_file = open('../res/kegg_' + ('constrained_' if len(cmap) > 0 else 'non_constrained_') + 'rev.txt', 'w')
@@ -114,26 +124,61 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap):
     for mid, rid_flux_list in kegg.mid2rid_map.iteritems():
         if not rid_flux_list or len(rid_flux_list) < 2:
             continue
+        
+        pw_r_map = {}
+        pw_r_sum = 0
+        pw_n_r = 0
+        
         for i, (rid, flux) in enumerate(rid_flux_list):
             try:
-                r = flux * CalculateReversability(G.kegg().rid2sparse_reaction(rid), G, c_mid, pH, pMg, I, T,
+                r = flux * CalculateReversability(kegg.rid2sparse_reaction(rid), G, c_mid, pH, pMg, I, T,
                                                   concentration_map=cmap)
                 rxn = kegg.rid2reaction_map[rid]
-                debug_file.write("%s\t%d\t%s\t%s\t%s\t%s\t%f\n" % (kegg.mid2name_map[mid], i+1, rxn.name, rxn.definition, rxn.ec_list, rxn.equation, r))
+                dbg = "%s__DEL__%d__DEL__%s__DEL__%s__DEL__%s__DEL__%s__DEL__%f\n" % (kegg.mid2name_map[mid], i+1, rxn.name, rxn.definition, rxn.ec_list, rxn.equation, r)
+                dbg = re.sub ('\t', ' ', dbg)
+                debug_file.write(re.sub('__DEL__', '\t', dbg))
                 histogram.setdefault(i, []).append(r)
                 if i > 1:
                     histogram['total'].append(r)
                 hits += 1
+                
+                pw_n_r += 1
+                pw_r_sum += abs(r)
+                if (i in pw_r_map):
+                    pw_r_map[i] = pw_r_map[i] + ';' + str(r)
+                else:
+                    pw_r_map[i] = str(r)
+                            
             except thermodynamics.MissingCompoundFormationEnergy:
                 misses += 1
                 continue
+            
+        if (pw_n_r >= 1):
+            avg_abs_r = pw_r_sum / pw_n_r
+            if (len(pw_r_map) > 1 and 0 in pw_r_map):
+                first_r = -1000
+                curr_max = -1000
+                n_valid += 1
+                for pos,r_list in pw_r_map.iteritems():
+                    for r in r_list.split(';'):
+                        r = float(r)
+                        if (pos == 0):
+                            first_r = r
+                        curr_max = r if r > curr_max else curr_max
+                        r = float(r) / avg_abs_r
+                        rel_histogram.setdefault(pos, []).append(r)
+                        if pos > 0:
+                            rel_histogram['total'].append(r)
+                if (first_r == curr_max):
+                        n_first_max += 1
+                                    
     debug_file.close()
     
     logging.info("Reactions with known dG0: %d" % hits)
     logging.info("Reactions with unknown dG0: %d" % misses)
-    return histogram
+    return histogram,rel_histogram,(float(n_first_max)/n_valid)
 
-def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
+def plot_histogram(histogram, html_writer, title='', max_pathway_length=8, xlim=20):
     fig = pylab.figure()
     pylab.hold(True)
 
@@ -144,7 +189,7 @@ def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
             cdf(value, label='%s (median=%.1f, N=%d)' % \
                 (key, stats.cmedian(value), len(value)),
                 style=colors.get(key, 'grey'))
-    pylab.xlim(-20, 20)
+    pylab.xlim(-1 * xlim, xlim)
     pylab.xlabel('irreversability')
     pylab.ylabel('cumulative distribution')
     legendfont = matplotlib.font_manager.FontProperties(size=7)
@@ -159,9 +204,16 @@ def plot_histogram(histogram, html_writer, title='', max_pathway_length=8):
     
     return fig
 
-def calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, metacyc, cmap):
+def calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, metacyc, cmap, org):
     histogram = {}
     histogram['total'] = []
+    
+    rel_histogram = {}
+    rel_histogram['total'] = []
+    
+    n_first_max = 0
+    n_valid = 0
+    
     hits = 0
     misses = 0
     comp_translation_misses = 0
@@ -169,12 +221,18 @@ def calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, met
     rxn_map_misses = 0
     meta_compound_misses = 0
     
-    debug_file = open('../res/metacyc_' + ('constrained_' if len(cmap) > 0 else 'non_constrained_') + 'rev.txt', 'w')
+    debug_file = open('../res/metacyc_' + org + ('_constrained_' if len(cmap) > 0 else '_non_constrained_') + 'rev.txt', 'w')
     debug_file.write("Pathway\tPosition\tReaction Name\tEC list\tEquation\tRev IND\n")
     
     for pathway in metacyc.uid2pathway_map.itervalues():
         rxns_dict = pathway.GetRxnsOrder()
         rxn_dirs = pathway.GetRxnsDirs()
+        
+        curr_max = -1000
+        
+        pw_r_map = {}
+        pw_r_sum = 0
+        pw_n_r = 0
         
         if (len(rxns_dict) >= 2):
             for rxn,pos in rxns_dict.iteritems():
@@ -193,6 +251,14 @@ def calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, met
                                                       concentration_map=cmap)
                     if (r != None):
                         r *= flux
+                                                
+                        pw_n_r += 1
+                        pw_r_sum += abs(r)
+                        if ((pos - 1) in pw_r_map):
+                            pw_r_map[pos - 1] = pw_r_map[pos - 1] + ';' + str(r)
+                        else:
+                            pw_r_map[pos - 1] = str(r)
+                            
                         debug_file.write("%s\t%d\t%s\t%s\t%s\t%f\n" % (str(pathway.name), pos, metacyc.uid2reaction_map[rxn].name, metacyc.uid2reaction_map[rxn].ec_number, metacyc.uid2reaction_map[rxn].equation, r))
                         histogram.setdefault(pos - 1, []).append(r)
                         if pos >= 1:
@@ -206,6 +272,26 @@ def calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, met
                 except MetaCycNonCompoundException:
                     meta_compound_misses += 1
                     continue
+            
+            if (pw_n_r >= 1):
+                avg_abs_r = pw_r_sum / pw_n_r
+                if (len(pw_r_map) > 1 and 0 in pw_r_map):
+                    first_r = -1000
+                    curr_max = -1000
+                    n_valid += 1
+                    for pos,r_list in pw_r_map.iteritems():
+                        for r in r_list.split(';'):
+                            r = float(r)
+                            if (pos == 0):
+                                first_r = r
+                            curr_max = r if r > curr_max else curr_max
+                             
+                            r = float(r) / avg_abs_r
+                            rel_histogram.setdefault(pos, []).append(r)
+                            if pos > 0:
+                                rel_histogram['total'].append(r)
+                    if (first_r == curr_max):
+                        n_first_max += 1
                 
     debug_file.close()
     logging.info("Reactions with known dG0: %d" % hits)
@@ -215,51 +301,77 @@ def calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, met
     logging.info("Reactions not in MetaCyc reactions file: %d" % rxn_map_misses)
     logging.info("Reactions with compounds not in compounds file: %d" % meta_compound_misses)
 
-    return histogram
+    return histogram,rel_histogram,(float(n_first_max)/n_valid)
 
 def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/reversibility.html')
     kegg = Kegg.getInstance()
-    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
+    G = GroupContribution(db, html_writer=html_writer)
     G.init()
     c_mid = 1e-3
     pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
     
-    histogram = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
+    (histogram,rel_histogram,perc_first_max) = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
                                                   cmap=GetConcentrationMap(kegg))
+    
+    html_writer.write('<h1>Constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     fig1 = plot_histogram(histogram, html_writer, title='With constraints on co-factors')
     html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
+    pylab.savefig('../res/kegg_reversibility1.pdf', figure=fig1, format='pdf')
     
-    histogram = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
+    fig1_rel = plot_histogram(rel_histogram, html_writer, title='Normed per module with constraints on co-factors', xlim=5)
+    html_writer.embed_matplotlib_figure(fig1_rel, width=640, height=480)
+    pylab.savefig('../res/kegg_reversibility1_rel.pdf', figure=fig1_rel, format='pdf')
+    
+    (histogram,rel_histogram, perc_first_max) = calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg,
                                                   cmap={})
+
+    html_writer.write('<h1>Non constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     fig2 = plot_histogram(histogram, html_writer, title='No constraints on co-factors')
     html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
-
+    pylab.savefig('../res/kegg_reversibility2.pdf', figure=fig2, format='pdf')
+    
+    fig2_rel = plot_histogram(rel_histogram, html_writer, title='Normed per module, no constraints on co-factors', xlim=5)
+    html_writer.embed_matplotlib_figure(fig2_rel, width=640, height=480)
+    pylab.savefig('../res/kegg_reversibility2_rel.pdf', figure=fig2_rel, format='pdf')
+    
 def metacyc_data(org):
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/' + org + '_reversibility.html')
     kegg = Kegg.getInstance()
     metacyc_inst = MetaCyc(org, db)
-    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
+    G = GroupContribution(db, html_writer=html_writer)
     G.init()
     c_mid = 1e-3
     pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
     
-    histogram = calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, metacyc_inst,
-                                                  cmap=GetConcentrationMap(kegg))
+    (histogram,rel_histogram,perc_first_max) = calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, metacyc_inst,
+                                                  cmap=GetConcentrationMap(kegg), org=org)
+    
+    html_writer.write('<h1>Constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     fig1 = plot_histogram(histogram, html_writer, title=('%s pathways: With constraints on co-factors' % org))
     html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
     pylab.savefig('../res/' + org + '_reversibility1.pdf', figure=fig1, format='pdf')
+
+    fig1_rel = plot_histogram(rel_histogram, html_writer, title=('%s pathways: Normed per pathway with constraints on co-factors' % org), xlim=5)
+    html_writer.embed_matplotlib_figure(fig1_rel, width=640, height=480)
+    pylab.savefig('../res/' + org + '_reversibility1_rel.pdf', figure=fig1_rel, format='pdf')
     
-    histogram = calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, metacyc_inst,
-                                                  cmap={})
+    (histogram,rel_histogram,perc_first_max) = calculate_metacyc_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, metacyc_inst,
+                                                  cmap={}, org=org)
+    
+    html_writer.write('<h1>Non constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     fig2 = plot_histogram(histogram, html_writer, title=('%s pathways: No constraints on co-factors' % org ))
     html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
     pylab.savefig('../res/' + org + '_reversibility2.pdf', figure=fig1, format='pdf')
+
+    fig2_rel = plot_histogram(rel_histogram, html_writer, title=('%s pathways: Normed per pathway no constraints on co-factors' % org), xlim=5)
+    html_writer.embed_matplotlib_figure(fig2_rel, width=640, height=480)
+    pylab.savefig('../res/' + org + '_reversibility2_rel.pdf', figure=fig2_rel, format='pdf')
     
 if __name__ == "__main__":
     #try_kegg_api()
     main()
     metacyc_data('meta')
-    #metacyc_data('ecoli')
+    metacyc_data('ecoli')
