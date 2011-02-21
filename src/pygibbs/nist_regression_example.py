@@ -30,7 +30,7 @@ def SingleReaction(nist_regression, sparse):
 if __name__ == "__main__":
     html_writer = HtmlWriter("../res/nist/example_reaction.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     
     pylab.rcParams['text.usetex'] = False
     pylab.rcParams['legend.fontsize'] = 8

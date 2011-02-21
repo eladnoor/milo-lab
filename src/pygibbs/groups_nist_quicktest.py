@@ -7,7 +7,7 @@ import logging
 
 def main():    
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     html_writer = HtmlWriter('../res/groups_quicktest.html')
     
     nist = Nist(db, html_writer, kegg)

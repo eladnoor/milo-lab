@@ -403,10 +403,9 @@ charge
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/thermodynamic_pathway_analysis.html')
-    kegg = Kegg()
-    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
+    G = GroupContribution(db, html_writer=html_writer)
     G.init()
     G.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
-    thermo_analyze = ThermodynamicAnalysis(db, html_writer, kegg=kegg, thermodynamics=G)
+    thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=G)
     thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
     

@@ -5,7 +5,7 @@ from toolbox.database import SqliteDatabase
 
 def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     cids = pylab.np.loadtxt('../res/nist/regress_CID.txt', delimiter=',')
     S = pylab.np.loadtxt('../res/nist/regress_S.txt', delimiter=',')
     dG0 = pylab.np.loadtxt('../res/nist/regress_dG0.txt', delimiter=',')

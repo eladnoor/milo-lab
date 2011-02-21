@@ -13,7 +13,7 @@ def find_cid_in_kegg(kegg, name_list):
     return None
 
 ###########################################################################################
-kegg = kegg.Kegg()
+kegg = kegg.Kegg.getInstance()
 
 sys.stderr.write("Parsing dG0_hatzi.csv file and adding the KEGG cids to the compounds that match by name")
 

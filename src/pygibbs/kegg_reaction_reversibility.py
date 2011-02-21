@@ -32,7 +32,7 @@ def main():
     T = default_T
 
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
+    kegg = Kegg.getInstance()
     G = GroupContribution(db, kegg=kegg)
     G.init()
     

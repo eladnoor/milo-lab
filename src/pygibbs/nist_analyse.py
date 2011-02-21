@@ -31,7 +31,7 @@ def load_cid_set(train_csv_fname):
 
 db = SqliteDatabase('../res/gibbs.sqlite')
 html_writer = HtmlWriter('../res/nist/test.html')
-kegg = Kegg(db)
+kegg = Kegg.getInstance()
 nist = Nist(db, html_writer, kegg)
 nist.FromDatabase()
 known_cids = load_cid_set('../data/thermodynamics/dG0_seed.csv')

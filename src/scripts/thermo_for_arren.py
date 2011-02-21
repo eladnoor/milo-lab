@@ -1,4 +1,4 @@
-from pygibbs.thermodynamics import CsvFileThermodynamics
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.database import SqliteDatabase
 from pygibbs.kegg import Kegg
 import pylab
@@ -10,8 +10,8 @@ def main():
     pH, pMg, I, T = (7.0, 3, 0.1, 298.15)
     
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
-    alberty = CsvFileThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    kegg = Kegg.getInstance()
+    alberty = PsuedoisomerTableThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
     
     cids = alberty.get_all_cids()
     dG0_f = pylab.zeros((len(cids), 1))

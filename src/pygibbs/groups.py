@@ -53,7 +53,7 @@ class GroupMissingTrainDataError(Exception):
             [str(gc.groups_data.all_groups[j]) for j in missing_single_groups])
 
 class GroupContribution(Thermodynamics):    
-    def __init__(self, db, html_writer=None, kegg=None):
+    def __init__(self, db, html_writer=None):
         Thermodynamics.__init__(self)
         self.db = db
 
@@ -64,11 +64,8 @@ class GroupContribution(Thermodynamics):
             self.FIG_DIR = ''
             self.html_writer = NullHtmlWriter()
 
-        if kegg:
-            self._kegg = kegg
-        else:
-            self._kegg = Kegg(self.db)
-        self.bounds = deepcopy(self._kegg.cid2bounds)
+        self.kegg = Kegg.getInstance()
+        self.bounds = deepcopy(self.kegg.cid2bounds)
         self.hatzi = Hatzi()
         self.hatzi.bounds = self.bounds
             
@@ -114,10 +111,10 @@ class GroupContribution(Thermodynamics):
         data['compounds'] = []
         self.cid2pmap_dict = {}
         
-        cid_list = cid_list or self.kegg().get_all_cids()
+        cid_list = cid_list or self.kegg.get_all_cids()
         logging.info('Recalculating formation energies for %d compounds' % len(cid_list))
         for cid in cid_list:
-            comp = self.kegg().cid2compound(cid)
+            comp = self.kegg.cid2compound(cid)
 
             cdict = {}
             cdict['cid'] = cid
@@ -152,7 +149,7 @@ class GroupContribution(Thermodynamics):
 
         compounds = []
 
-        for cid in self.kegg().get_all_cids():
+        for cid in self.kegg.get_all_cids():
             cdict = {'cid': cid, 'measured_pmap': None,
                      'estimated_pmap': None, 'compound': None}
             
@@ -167,7 +164,7 @@ class GroupContribution(Thermodynamics):
                     self.db.Insert('gc_cid2prm', [cid, nH, z, nMg, dG0, False])
 
             # Try to also estimate the dG0_f using Group Contribution:
-            comp = self.kegg().cid2compound(cid)
+            comp = self.kegg.cid2compound(cid)
             cdict['compound'] = comp
             error_str = None
             if not comp.inchi:
@@ -281,8 +278,8 @@ class GroupContribution(Thermodynamics):
         else:
             self.groups_data = GroupsData.FromDatabase(self.db)
         self.group_decomposer = GroupDecomposer(self.groups_data)
-        self.dissociation = DissociationConstants(self.db, self.html_writer,
-                                                  self.kegg(), self.group_decomposer)
+        self.dissociation = DissociationConstants(self.db, self.html_writer, 
+                                                  self.group_decomposer)
 
     def does_table_exist(self, table_name):
         for unused_ in self.db.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
@@ -330,10 +327,10 @@ class GroupContribution(Thermodynamics):
         
     def cid2pseudoisomers(self, cid):
         try:
-            comp = self.kegg().cid2compound(cid)
+            comp = self.kegg.cid2compound(cid)
             return self.get_pseudoisomers(comp.get_mol())
         except GroupDecompositionError:
-            return [(self.kegg().cid2num_hydrogens(cid), self.kegg().cid2charge(cid), 0)]
+            return [(self.kegg.cid2num_hydrogens(cid), self.kegg.cid2charge(cid), 0)]
         except KeggParseException:
             return [(0, 0, 0)]
     
@@ -470,8 +467,8 @@ class GroupContribution(Thermodynamics):
             obs_val = float(obs_val)
             self.cid2pmap_obs[cid].Add(0, 0, 0, obs_val)
             try:
-                mol = self.kegg().cid2mol(cid)
-                self.html_writer.write('<h3><a href="%s">C%05d - %s</a></h3>\n' % (self.kegg().cid2link(cid), cid, self.kegg().cid2name(cid)))
+                mol = self.kegg.cid2mol(cid)
+                self.html_writer.write('<h3><a href="%s">C%05d - %s</a></h3>\n' % (self.kegg.cid2link(cid), cid, self.kegg.cid2name(cid)))
                 self.html_writer.write('Observed value = %f <br>\n' % obs_val)
                 
                 inchi = self.mol2inchi(mol)
@@ -519,9 +516,9 @@ class GroupContribution(Thermodynamics):
                 continue
             
             logging.info("Reading pKa data for C%05d, %s, nH=%d -> nH=%d" % \
-                         (cid, self.kegg().cid2name(cid), nH_below, nH_above))
+                         (cid, self.kegg.cid2name(cid), nH_below, nH_above))
             self.html_writer.write('<h3>C%05d - %s - nH=%d -> nH=%d</h3>\n' % \
-                                   (cid, self.kegg().cid2name(cid), nH_below, nH_above))
+                                   (cid, self.kegg.cid2name(cid), nH_below, nH_above))
             
             dG0 = R*T*pylab.log(10)*pKa
             self.html_writer.write('pKa = %.2f, T = %.2f \n</br>' % (pKa, T))
@@ -756,9 +753,6 @@ class GroupContribution(Thermodynamics):
         self.html_writer.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
         self.html_writer.write('</div>\n')
 
-    def kegg(self):
-        return self._kegg        
-
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
 
@@ -817,7 +811,7 @@ class GroupContribution(Thermodynamics):
             return pmap
         else:
             try:
-                mol = self.kegg().cid2mol(cid)
+                mol = self.kegg.cid2mol(cid)
             except KeggParseException as e:
                 raise MissingCompoundFormationEnergy("Cannot determine molecular structure: " + str(e), cid)
             
@@ -923,28 +917,28 @@ class GroupContribution(Thermodynamics):
             When media == None, it means we should use standard conditions (i.e. dG0).
             When media == 'glucose' (for example), it uses the concentrations measured for growth on glucose media.
         """
-        sparse_reaction = self.kegg().rid2sparse_reaction(rid) 
+        sparse_reaction = self.kegg.rid2sparse_reaction(rid) 
         try:
             return self.estimate_dG_reaction(sparse_reaction, pH, pMg, I, T, c0, media, most_abundant)
         except KeyError as e:
             raise KeyError("R%05d contains a compound which cannot be used\n" % rid + str(e))
 
     def estimate_dG0_reaction_formula(self, formula, pH=default_pH, pMg=default_pMg, I=default_I, T=default_T, most_abundant=False):
-        sparse_reaction = self.kegg().formula_to_sparse(formula)
+        sparse_reaction = self.kegg.formula_to_sparse(formula)
         return self.estimate_dG0_reaction(sparse_reaction, pH, pMg, I, T, most_abundant)
 
     def estimate_dG_reaction_formula(self, formula, pH=default_pH, pMg=default_pMg, I=default_I, T=default_T, media=None, most_abundant=False):
-        sparse_reaction = self.kegg().formula_to_sparse(formula)
+        sparse_reaction = self.kegg.formula_to_sparse(formula)
         return self.estimate_dG_reaction(sparse_reaction, pH, pMg, I, T, media, most_abundant)
         
     def cid2groupvec(self, cid):
         try:
-            return self.get_groupvec(self.kegg().cid2mol(cid))
+            return self.get_groupvec(self.kegg.cid2mol(cid))
         except GroupDecompositionError:
-            raise GroupDecompositionError("Unable to decompose %s (C%05d) into groups" % (self.kegg().cid2name(cid), cid))
+            raise GroupDecompositionError("Unable to decompose %s (C%05d) into groups" % (self.kegg.cid2name(cid), cid))
             
     def rid2groupvec(self, rid):
-        sparse_reaction = self.kegg().rid2sparse_reaction(rid) 
+        sparse_reaction = self.kegg.rid2sparse_reaction(rid) 
         group_matrix = pylab.matrix([self.cid2groupvec(cid) for cid in sparse_reaction.keys()])
         stoichiometry_vector = pylab.matrix(sparse_reaction.values())
         total_groupvec = pylab.dot(stoichiometry_vector, group_matrix)
@@ -957,9 +951,9 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('<h2><a name=kegg_compounds>&#x394;G<sub>f</sub> of KEGG compounds:</a></h2>')
         for cid in self.cid2pmap_dict.keys():
             self.html_writer.write('<p>\n')
-            self.html_writer.write('<h3>C%05d <a href="%s">[KEGG]</a></h3>\n' % (cid, self.kegg().cid2link(cid)))
-            self.html_writer.write('Name: %s<br>\n' % self.kegg().cid2name(cid))
-            self.html_writer.write('Formula: %s<br>\n' % self.kegg().cid2formula(cid))
+            self.html_writer.write('<h3>C%05d <a href="%s">[KEGG]</a></h3>\n' % (cid, self.kegg.cid2link(cid)))
+            self.html_writer.write('Name: %s<br>\n' % self.kegg.cid2name(cid))
+            self.html_writer.write('Formula: %s<br>\n' % self.kegg.cid2formula(cid))
             
             pmap = self.cid2pmap_dict[cid]
             for i in range(len(pH)):
@@ -975,12 +969,12 @@ class GroupContribution(Thermodynamics):
         self.db.CreateIndex('dG0_r_idx', 'dG0_r', 'rid, pH, I, T', unique=True)
 
         self.html_writer.write('<h2><a name=kegg_compounds>&#x394;G<sub>r</sub> of KEGG reactions:</a></h2>')
-        for rid in self.kegg().get_all_rids():
+        for rid in self.kegg.get_all_rids():
             self.html_writer.write('<p>\n')
-            self.html_writer.write('<h3>R%05d <a href="%s">[KEGG]</a></h3>\n' % (rid, self.kegg().rid2link(rid)))
+            self.html_writer.write('<h3>R%05d <a href="%s">[KEGG]</a></h3>\n' % (rid, self.kegg.rid2link(rid)))
             try:
-                self.html_writer.write('Definition: %s<br>\n' % self.kegg().rid2reaction(rid).definition)
-                self.html_writer.write('Equation:   %s<br>\n' % self.kegg().rid2reaction(rid).equation)
+                self.html_writer.write('Definition: %s<br>\n' % self.kegg.rid2reaction(rid).definition)
+                self.html_writer.write('Equation:   %s<br>\n' % self.kegg.rid2reaction(rid).equation)
                 dG0 = self.estimate_dG_keggrid(rid, pH=pH, I=I, T=T, media=None, most_abundant=most_abundant)
                 for i in range(len(pH)):
                     for j in range(len(I)):
@@ -1000,7 +994,7 @@ class GroupContribution(Thermodynamics):
     def write_cid_group_matrix(self, fname):
         csv_file = csv.writer(open(fname, 'w'))
         csv_file.writerow(['cid'] + self.all_group_names)
-        for cid in self.kegg().get_all_cids_with_inchi():
+        for cid in self.kegg.get_all_cids_with_inchi():
             try:
                 groupvec = self.cid2groupvec(cid)
                 csv_file.writerow([cid] + groupvec)
@@ -1017,7 +1011,7 @@ class GroupContribution(Thermodynamics):
         group_names = self.all_group_names
         
         groupstr_to_counter = {}
-        for rid in self.kegg().get_all_rids():
+        for rid in self.kegg.get_all_rids():
             try:
                 groupvec = self.rid2groupvec(rid)
                 csv_file.writerow([rid] + groupvec)
@@ -1048,7 +1042,7 @@ class GroupContribution(Thermodynamics):
             else:
                 use_for = 'train'
             for (nH, z, nMg, dG0) in self.cid2pmap_obs[cid].ToMatrix():
-                self.db.Insert('observation', [cid, self.kegg().cid2name(cid), nH, z, nMg, dG0, use_for])
+                self.db.Insert('observation', [cid, self.kegg.cid2name(cid), nH, z, nMg, dG0, use_for])
         
         logging.info("storing the group contribution data in the database")
         self.db.CreateTable('gc_contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL, nullspace TEXT')
@@ -1115,7 +1109,7 @@ class GroupContribution(Thermodynamics):
         self.load_concentrations()
 
     def analyze_decomposition_cid(self, cid):
-        return self.analyze_decomposition(self.kegg().cid2mol(cid))
+        return self.analyze_decomposition(self.kegg.cid2mol(cid))
 
     def analyze_decomposition(self, mol, ignore_protonations=False, strict=False):
         return self.group_decomposer.Decompose(mol, ignore_protonations, strict).ToTableString()
@@ -1148,24 +1142,22 @@ class GroupContribution(Thermodynamics):
     
 if __name__ == '__main__':
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg(db)
-
     if len(sys.argv) < 2:
         html_writer = HtmlWriter('../res/groups.html')
-        G = GroupContribution(db=db, html_writer=html_writer, kegg=kegg)
+        G = GroupContribution(db=db, html_writer=html_writer)
         G.load_groups("../data/thermodynamics/groups_species.csv")
         G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
         G.write_regression_report()
         G.analyze_training_set()
         G.save_cid2pmap()
     else:
-        mols = {}
-        cid = int(sys.argv[1])
-        mols[kegg.cid2name(cid)] = kegg.cid2mol(cid)
-        
-        G = GroupContribution(db=db, kegg=kegg)
+        G = GroupContribution(db=db)
         G.load_groups("../data/thermodynamics/groups_species.csv")
         G.init()
+
+        mols = {}
+        cid = int(sys.argv[1])
+        mols[G.kegg.cid2name(cid)] = G.kegg.cid2mol(cid)
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
         #mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')

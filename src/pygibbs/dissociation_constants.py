@@ -8,10 +8,10 @@ from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import default_T
 
 class DissociationConstants(object):
-    def __init__(self, db, html_writer, kegg=None, group_decomposer=None):
+    def __init__(self, db, html_writer, group_decomposer=None):
         self.db = db
         self.html_writer = html_writer
-        self.kegg = kegg or Kegg()
+        self.kegg = Kegg.getInstance()
         self.group_decomposer = group_decomposer or GroupDecomposer.FromDatabase(db)
     
     def ReadOriginalCSV(self):
