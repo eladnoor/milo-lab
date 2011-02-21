@@ -416,7 +416,8 @@ class NistRegression(Thermodynamics):
 def main():
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
-    alberty = PsuedoisomerTableThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    db_public = SqliteDatabase('../data/public_data.sqlite')
+    alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
     alberty.ToDatabase(db, 'alberty')
     
     html_writer.write("<h2>NIST regression:</h2>")
