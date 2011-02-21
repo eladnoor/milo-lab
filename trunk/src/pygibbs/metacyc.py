@@ -6,6 +6,8 @@ from toolbox import util, database
 import kegg
 import json
 from collections import deque
+import kegg_utils
+from kegg_errors import KeggNonCompoundException
 
 def parse_metacyc_file(filename):
     metacyc_file = open(filename, 'r')
@@ -405,7 +407,7 @@ class MetaCyc(object):
                 logging.info('Ambigious mapping of MetaCyc compound %s to Kegg, matches cid %s by name and cid %s by inchi, selecting inchi...' % (uid, name_cand_cid, inchi_cand))
                 kegg_dict[inchi_cand] = value 
             elif (not name_cand_cid and not inchi_cand):
-                raise kegg.KeggNonCompoundException('No mapping of MetaCyc compound %s to Kegg' % uid)
+                raise KeggNonCompoundException('No mapping of MetaCyc compound %s to Kegg' % uid)
             else:
                 kegg_dict[name_cand_cid or inchi_cand] = value
                 
@@ -434,7 +436,7 @@ class Compound(object):
             self.types = types if types != None else []                     # TYPES
             self.smiles = smiles if smiles != None else ""                 # SMILES
             if (smiles and not inchi):
-                self.inchi = kegg.smiles2inchi(smiles)
+                self.inchi = kegg_utils.smiles2inchi(smiles)
             
     def Print(self):
         print 'uid=',self.uid,'\nname=',self.name,'\nall_names=',self.all_names,'\nmass=',self.mass,'\nformula=',self.formula,'\ninchi=',self.inchi,'\npubchem_id=',self.pubchem_id,'ncas=',self.cas,'\nregs=',self.regulates,'\ntypes=',self.types,'\nsmiles=',self.smiles,'\n' 
