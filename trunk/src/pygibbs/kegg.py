@@ -1337,7 +1337,7 @@ def export_json_file():
 def export_compound_connectivity():
     kegg = Kegg.getInstance()
     
-    entry2fields_map = parse_kegg_file(kegg.COMPOUND_FILE)
+    entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(kegg.COMPOUND_FILE)
     csv_file = csv.writer(open("../res/cid_connectivity.csv", 'w'))
     csv_file.writerow(("cid", "#reactions"))
     for key in sorted(entry2fields_map.keys()):
@@ -1353,6 +1353,5 @@ def export_compound_connectivity():
         csv_file.writerow((cid, len(rid_list)))
     
 if __name__ == '__main__':
-    db = SqliteDatabase('../data/public_data.sqlite')
     kegg = Kegg.getInstance(loadFromFiles=True)
     kegg.ToDatabase()

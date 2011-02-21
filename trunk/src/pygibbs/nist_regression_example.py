@@ -41,7 +41,7 @@ if __name__ == "__main__":
     pylab.rcParams['figure.figsize'] = [8.0, 6.0]
     pylab.rcParams['figure.dpi'] = 100
     
-    nist_regression = NistRegression(db, html_writer, kegg)
+    nist_regression = NistRegression(db, html_writer)
     SingleReaction(nist_regression, {2:-1, 300:-1, 8:1, 2305:1}) # creatine kinase
     SingleReaction(nist_regression, {1:-1, 13:-1, 9:2}) # pyrophosphatase
     SingleReaction(nist_regression, {1:-1, 354:-1, 9:1, 85:1}) # fructose-bisphosphatase
