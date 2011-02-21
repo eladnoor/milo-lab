@@ -5,10 +5,11 @@ class Reaction(object):
     """A reaction from KEGG."""
     free_rid = -1 # class static variable
     
-    def __init__(self, name, sparse_reaction,
+    def __init__(self, names, sparse_reaction,
                  rid=None, direction='<=>', weight=1):
         """Initialize the reaction."""
-        self.name = name
+        self.names = names
+        self.name = names[0]
         self.sparse = sparse_reaction
         if rid == None:
             self.rid = Reaction.free_rid
@@ -99,3 +100,12 @@ class Reaction(object):
     def get_link(self):
         return ('http://www.genome.jp/dbget-bin/www_bget?rn:R%05d'
                 % self.rid)
+        
+    def ToJSONDict(self):
+        """Format the reaction as a JSON dictionary."""
+        reaction = [(coeff, 'C%05d' % cid) for cid, coeff
+                    in sorted(self.sparse.iteritems())]
+        return {'RID': 'R%05d' % self.rid,
+                'names': self.names,
+                'ECS': self.ec_list,
+                'reaction': reaction}

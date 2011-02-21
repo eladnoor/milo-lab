@@ -6,7 +6,7 @@ import re
 
 def NormalizeNames(name_str):
     """Normalize a KEGG-style list of names."""
-    all_names = name_str.replace('\t', '').split(';')
+    all_names = name_str.replace('\t', ' ').split(';')
     return [n.strip() for n in all_names]
 
 
@@ -43,6 +43,11 @@ def NormalizeReactions(reactions_str, verbose=False):
             logging.info('Full reaction string: %s', reactions_str)
             
     return l
+
+
+def NormalizeOrganisms(organisms_str):
+    """Normalize a KEGG-style list of organism names."""
+    return organisms_str.split('\t')
 
 
 class EntryDictWrapper(dict):

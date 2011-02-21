@@ -55,7 +55,7 @@ class Kegg(Singleton):
         self.mid2name_map = {}
         self.cofactors2names = {}
         self.cid2bounds = {}
-        
+
         self.db = SqliteDatabase('../data/public_data.sqlite')
         if loadFromFiles:
             self.FromFiles()
@@ -116,7 +116,8 @@ class Kegg(Singleton):
                 if "ENZYME" in field_map:
                     r.ec_list = ";".join(field_map.GetStringListField('ENZYME'))
                 if "NAME" in field_map:
-                    r.name = field_map["NAME"]
+                    r.names = kegg_parser.NormalizeNames(field_map["NAME"])
+                    r.name = r.names[0]
                 if "DEFINITION" in field_map:
                     r.definition = field_map["DEFINITION"]
                 if "EQUATION" in field_map:
@@ -214,14 +215,14 @@ class Kegg(Singleton):
                 comp.mass, comp.formula, comp.inchi, comp.from_kegg, 
                 comp.pubchem_id, comp.cas])
         
-        self.db.CreateTable('kegg_reaction', 'rid INT, name TEXT, definition TEXT, '
+        self.db.CreateTable('kegg_reaction', 'rid INT, all_names TEXT, definition TEXT, '
                             'ec_list TEXT, equation TEXT')
         for rid, reaction in self.rid2reaction_map.iteritems():
-            self.db.Insert('kegg_reaction', [rid, reaction.name, reaction.definition,
+            self.db.Insert('kegg_reaction', [rid, ';'.join(reaction.names), reaction.definition,
                 reaction.ec_list, reaction.equation])
          
         self.db.CreateTable('kegg_enzyme', 'ec TEXT, all_names TEXT, title TEXT, rid_list TEXT, '
-                            'substrate TEXT, product TEXT, cofactor TEXT, organism TEXT')
+                            'substrate TEXT, product TEXT, cofactor TEXT, organism_list TEXT')
         for enz in self.ec2enzyme_map.values():
             self.db.Insert('kegg_enzyme', enz.ToDBRow())
 
@@ -263,7 +264,8 @@ class Kegg(Singleton):
         for row in self.db.DictReader('kegg_reaction'):
             (sparse, direction) = kegg_utils.parse_reaction_formula(row['equation'])
             reaction = kegg_reaction.Reaction(
-                name=row['name'], sparse_reaction=sparse, 
+                names=row['all_names'].split(';'),
+                sparse_reaction=sparse, 
                 rid=row['rid'], direction=direction)
             reaction.equation = row['equation']
             reaction.definition = row['definition']
@@ -292,6 +294,18 @@ class Kegg(Singleton):
 
         for row in self.db.DictReader('kegg_bounds'):
             self.cid2bounds[row['cid']] = (row['c_min'], row['c_max'])
+
+    def AllCompounds(self):
+        """Returns all the compounds."""
+        return self.cid2compound_map.values()
+    
+    def AllReactions(self):
+        """Return all the reactions."""
+        return self.rid2reaction_map.values()
+    
+    def AllEnzymes(self):
+        """Return all the enzymes."""
+        return self.ec2enzyme_map.values()
 
     def parse_explicit_module(self, field_map):
         """

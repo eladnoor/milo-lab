@@ -52,6 +52,17 @@ class Compound(object):
         self.pubchem_id = None
         self.cas = ""
     
+    @staticmethod
+    def FromDBRow(row):
+        """Build a Compound from a database row."""
+        (cid, unused_pubchem_id, mass, formula, inchi, unused_from_kegg, unused_cas, names) = row
+        names = names.split(';')
+        compound = kegg_compound.Compound(cid=cid, all_names=names,
+                                          mass=mass, formula=formula,
+                                          inchi=inchi)
+        return compound
+        
+    
     def get_atom_bag(self):
         """Returns a dict containing the count for
            each atom in the compound.
@@ -189,7 +200,7 @@ class Compound(object):
         return kegg_utils.cid2link(self.cid)
     kegg_link = property(get_link)
 
-    def get_json_dict(self):
+    def ToJSONDict(self, verbose=False):
         d = {}
         if self.cid:
             d['CID'] = "C%05d" % self.cid
@@ -206,6 +217,19 @@ class Compound(object):
             n_electrons = self.get_num_electrons()
             d['num_electrons'] = n_electrons
         except Exception, e:
-            logging.error(e)
+            if verbose:
+                logging.warning(e)
         
         return d
+
+
+def GetAllCompoundsFromDB(db):
+    """Fetch all the compounds from the database."""
+    compound_list = []
+    for row in cursor.execute("SELECT * FROM kegg_compound"):
+        compound = Compound.FromDBRow(row)
+        compound_list.append(compound)
+    return compound_list
+
+    
+    

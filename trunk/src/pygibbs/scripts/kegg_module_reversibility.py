@@ -31,7 +31,7 @@ def main():
 
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg.getInstance()
-    G = GroupContribution(db, kegg=kegg)
+    G = GroupContribution(db)
     G.init()
 
     print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
@@ -49,7 +49,6 @@ def main():
         mid = GetModuleIdInput()
             
         rid_flux_list = kegg.mid2rid_map[mid]
-        print rid_flux_list
 
         for rid, flux in rid_flux_list:
             try:
@@ -57,7 +56,8 @@ def main():
                 print 'Reaction Name', reaction.name
                 print '\tKegg Id', reaction.rid
                 print '\tEC', reaction.ec_list
-                rev = reversibility.CalculateReversability(rid, G, pH=pH, I=I, pMg=pMg,
+                rev = reversibility.CalculateReversability(reaction.sparse,
+                                                           G, pH=pH, I=I, pMg=pMg,
                                                            T=T, concentration_map=cmap)
                 corrected_reversibility = flux * rev
         

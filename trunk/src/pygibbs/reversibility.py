@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from scipy import stats
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
@@ -6,7 +8,8 @@ from pygibbs.thermodynamic_constants import R, default_I, default_pH
 from pygibbs.thermodynamic_constants import default_pMg, default_T
 from pygibbs.groups import GroupContribution
 import pylab
-from pygibbs.kegg import Kegg,KeggNonCompoundException
+from pygibbs.kegg import Kegg
+from pygibbs.kegg_errors import KeggNonCompoundException
 from toolbox.plotting import cdf
 from SOAPpy import WSDL 
 from pygibbs.metacyc import MetaCyc,MetaCycNonCompoundException
