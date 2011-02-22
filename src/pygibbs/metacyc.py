@@ -295,7 +295,7 @@ class MetaCyc(object):
                 try:
                     pw.UpdateRxnsDict()
                 except MetaCycParseException, e:
-                    print e
+                    logging.debug(str(e))
                     continue
             if ("REACTION-LAYOUT" in field_map):
                 items = field_map["REACTION-LAYOUT"].split('\t')
@@ -363,7 +363,7 @@ class MetaCyc(object):
                                  direction=direction, types=row['types'].split(';'), ec_number=row['ec_number'])
                 self.uid2reaction_map[row['uid']] = reaction
             except MetaCycParseException, e:
-                print "Cannot parse equation: (%s) for reaction: %s: %s" % (row['equation'], row['uid'], e)
+                logging.debug("Cannot parse equation: (%s) for reaction: %s: %s" % (row['equation'], row['uid'], e))
 
         for row in self.db.DictReader('metacyc_' + self.org + '_pathway'):
             try:
@@ -371,7 +371,7 @@ class MetaCyc(object):
                                   preds=row['preds'].split(';'), rxn_dirs=json.loads(row['rxn_dirs']))
                 self.uid2pathway_map[row['uid']] = pathway
             except MetaCycParseException, e:
-                print e
+                logging.debug(str(e))
     
     def rxn_uid2sparse_reaction(self, uid):
         if (uid in self.uid2reaction_map):
@@ -404,7 +404,7 @@ class MetaCyc(object):
                 inchi_cand = kegg_inst.inchi2cid(inchi) 
             
             if (name_cand_cid and inchi_cand and name_cand_cid != inchi_cand):
-                logging.info('Ambigious mapping of MetaCyc compound %s to Kegg, matches cid %s by name and cid %s by inchi, selecting inchi...' % (uid, name_cand_cid, inchi_cand))
+                logging.debug('Ambigious mapping of MetaCyc compound %s to Kegg, matches cid %s by name and cid %s by inchi, selecting inchi...' % (uid, name_cand_cid, inchi_cand))
                 kegg_dict[inchi_cand] = value 
             elif (not name_cand_cid and not inchi_cand):
                 raise KeggNonCompoundException('No mapping of MetaCyc compound %s to Kegg' % uid)
@@ -512,7 +512,7 @@ class Pathway(object):
                 if (curr_parent in pairs_map):
                     for child in pairs_map[curr_parent].split(';'):
                         if (child in rxn2position):
-                            logging.info("Circular pathway: " + self.name)
+                            logging.debug("Circular pathway: " + self.name)
                         else:
                             rxn2position[child] = rxn2position[curr_parent] + 1
                             parents_q.append(child)
