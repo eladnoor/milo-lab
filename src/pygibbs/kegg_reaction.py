@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from pygibbs import kegg_utils
 
 
 class Reaction(object):
@@ -22,6 +23,18 @@ class Reaction(object):
         self.equation = None
         self.ec_list = '-.-.-.-'
         
+    @staticmethod
+    def FromDBRow(row_dict):
+        """Build a Reaction from a database row."""
+        (sparse, direction) = kegg_utils.parse_reaction_formula(row_dict['equation'])
+        names = row_dict['all_names'].split(';')
+        reaction = Reaction(names=names, sparse_reaction=sparse, 
+                            rid=row_dict['rid'], direction=direction)
+        reaction.equation = row_dict['equation']
+        reaction.definition = row_dict['definition']
+        reaction.ec_list = row_dict['ec_list']
+        return reaction
+
     def get_cids(self):
         """Returns the KEGG IDs of the products and reactants."""
         return set(self.sparse.keys())
@@ -65,3 +78,10 @@ class Reaction(object):
                 'names': self.names,
                 'ECS': self.ec_list,
                 'reaction': reaction}
+        
+def GetAllReactionsFromDB(db):
+    """Fetch all the compounds from the database."""
+    reaction_list = []
+    for row_dict in db.DictReader('kegg_reaction'):
+        reaction_list.append(Reaction.FromDBRow(row_dict))
+    return reaction_list

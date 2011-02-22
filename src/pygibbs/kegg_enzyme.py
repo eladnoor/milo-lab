@@ -82,37 +82,37 @@ class Enzyme(object):
         return enz
 
     @staticmethod
-    def FromDBRow(row):
-        """Initialize from a dictionary representing a DB row.
+    def FromDBRow(row_dict):
+        """Initialize from a dictionary representing a DB row_dict.
         
-        The row was (hopefully) created by calling ToDBRow on an Enzyme instance.
+        The row_dict was (hopefully) created by calling ToDBRow on an Enzyme instance.
         
         Args:
-            row: The row read from the DB (as a dictionary).
+            row_dict: The row_dict read from the DB (as a dictionary).
             
         Returns:
             A new Enzyme object with appropriately initialized parameters.
         """
-        if not 'ec' in row:
+        if not 'ec' in row_dict:
             return None
         
-        enz = Enzyme(Enzyme.ProcessEC(row['ec']))
-        if 'all_names' in row:
-            names = row['all_names']
+        enz = Enzyme(Enzyme.ProcessEC(row_dict['ec']))
+        if 'all_names' in row_dict:
+            names = row_dict['all_names']
             if names:
                 enz.names = names.split(', ')
-        if 'rid_list' in row:
-            rid_list = row['rid_list']
+        if 'rid_list' in row_dict:
+            rid_list = row_dict['rid_list']
             if rid_list:
-                enz.reactions = [int(r) for r in row['rid_list'].split(', ')]
-        if 'organism_list' in row:
-            org_list = row['organism_list']
+                enz.reactions = [int(r) for r in row_dict['rid_list'].split(', ')]
+        if 'organism_list' in row_dict:
+            org_list = row_dict['organism_list']
             if rid_list:
                 enz.organisms = org_list.split(', ')        
-        enz.substrate = row.get('substrate', None)
-        enz.product = row.get('product', None)
-        enz.title = row.get('title', None)
-        enz.cofactor = row.get('cofactor', None)
+        enz.substrate = row_dict.get('substrate', None)
+        enz.product = row_dict.get('product', None)
+        enz.title = row_dict.get('title', None)
+        enz.cofactor = row_dict.get('cofactor', None)
         return enz
 
     def ToDBRow(self):

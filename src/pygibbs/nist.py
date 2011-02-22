@@ -418,22 +418,22 @@ class Nist(object):
         table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "min no. measure.", "url"]
         dict_list = []
         for row in sorted(total_list, reverse=True):
-            dict = {}
-            dict['|err|'] = '%.1f' % row[0]
-            dict['dG\'0 (obs)'] = '%.1f' % row[1]
-            dict['dG\'0 (est)'] = '%.1f' % row[2]
-            dict['reaction'] = self.kegg.sparse_to_hypertext(row[3], show_cids=False)
-            dict['pH'] = '%.1f' % row[4]
-            dict['pMg'] = '%.1f' % row[5]
-            dict['I'] = '%.2f' % row[6]
-            dict['T'] = '%.1f' % row[7]
-            dict['eval.'] = row[8]
-            dict['min no. measure.'] = row[9]
+            d = {}
+            d['|err|'] = '%.1f' % row[0]
+            d['dG\'0 (obs)'] = '%.1f' % row[1]
+            d['dG\'0 (est)'] = '%.1f' % row[2]
+            d['reaction'] = self.kegg.sparse_to_hypertext(row[3], show_cids=False)
+            d['pH'] = '%.1f' % row[4]
+            d['pMg'] = '%.1f' % row[5]
+            d['I'] = '%.2f' % row[6]
+            d['T'] = '%.1f' % row[7]
+            d['eval.'] = row[8]
+            d['min no. measure.'] = row[9]
             if row[11]:
-                dict['url'] = '<a href="%s">link</a>' % row[11]
+                d['url'] = '<a href="%s">link</a>' % row[11]
             else:
-                dict['url'] = ''
-            dict_list.append(dict)
+                d['url'] = ''
+            dict_list.append(d)
         self.html_writer.write_table(dict_list, table_headers)
         
         return len(dG0_obs_vec), rmse
