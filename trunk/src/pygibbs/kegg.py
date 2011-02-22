@@ -153,6 +153,12 @@ class Kegg(Singleton):
                 inchi = re.sub(r'(\d)u', r'\1?', inchi)
                 self.cid2compound_map[cid].inchi = inchi
                 self.inchi2cid_map[inchi] = cid
+                try:
+                    obmol = self.cid2compound_map[cid].get_obmol(False)
+                    n_e = kegg_compound.Compound.CalculateNumElectrons(obmol)
+                    self.cid2compound_map[cid].num_electrons = n_e
+                except kegg_errors.KeggParseException:
+                    pass
 
         logging.info("Retrieving MODULE file and parsing it")
         if (not os.path.exists(self.MODULE_FILE)):
@@ -210,11 +216,11 @@ class Kegg(Singleton):
     
     def ToDatabase(self):
         self.db.CreateTable('kegg_compound', 'cid INT, name TEXT, all_names TEXT, '
-           'mass REAL, formula TEXT, inchi TEXT, from_kegg BOOL, '
+           'mass REAL, formula TEXT, inchi TEXT, num_electrons INT, from_kegg BOOL, '
            'pubchem_id INT, cas TEXT')
         for cid, comp in self.cid2compound_map.iteritems():
             self.db.Insert('kegg_compound', [cid, comp.name, ';'.join(comp.all_names),
-                comp.mass, comp.formula, comp.inchi, comp.from_kegg, 
+                comp.mass, comp.formula, comp.inchi, comp.num_electrons, comp.from_kegg, 
                 comp.pubchem_id, comp.cas])
         
         self.db.CreateTable('kegg_reaction', 'rid INT, all_names TEXT, definition TEXT, '
@@ -249,53 +255,41 @@ class Kegg(Singleton):
     def FromDatabase(self):
         logging.info('Reading KEGG from the database')
 
-        for row in self.db.DictReader('kegg_compound'):
-            if row['inchi']:
-                inchi = str(row['inchi'])
-            else:
-                inchi = None
-            comp = kegg_compound.Compound(row['cid'], row['name'],
-                                          row['all_names'].split(';'), 
-                                          row['mass'], row['formula'], inchi)
-            self.cid2compound_map[row['cid']] = comp
-            if row['name']:
-                self.name2cid_map[row['name']] = row['cid']
-            if inchi:
-                self.inchi2cid_map[inchi] = row['cid']
+        for row_dict in self.db.DictReader('kegg_compound'):
+            compound = kegg_compound.Compound.FromDBRow(row_dict)
+            self.cid2compound_map[compound.cid] = compound
+            if compound.name:
+                self.name2cid_map[compound.name] = compound.cid
+            if compound.inchi:
+                self.inchi2cid_map[compound.inchi] = compound.cid
         
-        for row in self.db.DictReader('kegg_reaction'):
-            (sparse, direction) = kegg_utils.parse_reaction_formula(row['equation'])
-            reaction = kegg_reaction.Reaction(
-                names=row['all_names'].split(';'),
-                sparse_reaction=sparse, 
-                rid=row['rid'], direction=direction)
-            reaction.equation = row['equation']
-            reaction.definition = row['definition']
-            reaction.ec_list = row['ec_list']
-            self.rid2reaction_map[row['rid']] = reaction
+        for row_dict in self.db.DictReader('kegg_reaction'):
+            reaction = kegg_reaction.Reaction.FromDBRow(row_dict)
+            self.rid2reaction_map[reaction.rid] = reaction
             
-        for row in self.db.DictReader('kegg_enzyme'):
-            enz = kegg_enzyme.Enzyme.FromDBRow(row)
-            for reaction_id in enz.reactions:
-                self.rid2enzyme_map[reaction_id] = enz
-            if enz.ec in self.ec2enzyme_map:
-                logging.error('Duplicate EC class %s' % enz.ec)
+        for row_dict in self.db.DictReader('kegg_enzyme'):
+            enzyme = kegg_enzyme.Enzyme.FromDBRow(row_dict)
+            for reaction_id in enzyme.reactions:
+                self.rid2enzyme_map[reaction_id] = enzyme
+            if enzyme.ec in self.ec2enzyme_map:
+                logging.error('Duplicate EC class %s' % enzyme.ec)
             else:
-                self.ec2enzyme_map[enz.ec] = enz
+                self.ec2enzyme_map[enzyme.ec] = enzyme
             
-        for row in self.db.DictReader('kegg_module'):
-            self.mid2name_map[row['mid']] = row['name']
+        for row_dict in self.db.DictReader('kegg_module'):
+            self.mid2name_map[row_dict['mid']] = row_dict['name']
             
         for row in self.db.Execute('SELECT mid, position, rid, flux FROM kegg_mid2rid '
                               'ORDER BY mid,position'):
             mid, _position, rid, flux = row
             self.mid2rid_map.setdefault(mid, []).append((rid, flux))
         
-        for row in self.db.DictReader('kegg_cofactors'):
-            self.cofactors2names[row['cid']] = row['name']
+        for row_dict in self.db.DictReader('kegg_cofactors'):
+            self.cofactors2names[row_dict['cid']] = row_dict['name']
 
-        for row in self.db.DictReader('kegg_bounds'):
-            self.cid2bounds[row['cid']] = (row['c_min'], row['c_max'])
+        for row_dict in self.db.DictReader('kegg_bounds'):
+            self.cid2bounds[row_dict['cid']] = (row_dict['c_min'], 
+                                                row_dict['c_max'])
 
     def AllCompounds(self):
         """Returns all the compounds."""

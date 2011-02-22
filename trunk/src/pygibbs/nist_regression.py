@@ -117,8 +117,7 @@ class NistRegression(Thermodynamics):
         unique_rows_S = pylab.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
                                       in xrange(stoichiometric_matrix.shape[0])])
 
-        logging.info("There are %d unique reactions" % \
-                     unique_rows_S.shape[0])
+        logging.info("There are %d unique reactions" % unique_rows_S.shape[0])
         
         # for every unique row, calculate the average dG0_r of all the rows that
         # are the same reaction
@@ -138,8 +137,13 @@ class NistRegression(Thermodynamics):
         # std(dG0), std(dG0_tag), 
         # there is exactly one row for each equivalence set
         unique_data_mat = pylab.zeros((n_unique_rows, 4))
-        
+        unique_sparse_reactions = []
         for i in xrange(n_unique_rows):
+            # convert the rows of unique_rows_S to a list of sparse reactions
+            sparse = dict([(cids_to_estimate[j], unique_rows_S[i, j]) 
+                           for j in pylab.find(unique_rows_S[i, :])])
+            unique_sparse_reactions.append(sparse)
+
             # find the list of indices which are equal to row i in unique_rows_S
             diff = abs(stoichiometric_matrix - unique_rows_S[i,:])
             row_indices = pylab.find(pylab.sum(diff, 1) == 0)
@@ -161,6 +165,23 @@ class NistRegression(Thermodynamics):
                     '$\sigma_{total}(\Delta_r G^{\'\circ}) = %.1f$ kJ/mol' % 
                     (total_std[0], total_std[1]))
         self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+        
+        table_headers = ["Reaction", "#observations", "std(dG0)", "std(dG'0)"]
+        dict_list = []
+        for i in xrange(n_unique_rows):
+            d = {}
+            d["Reaction"] = self.kegg.sparse_to_hypertext(
+                                unique_sparse_reactions[i], show_cids=False)
+            d["std(dG0)"] = unique_data_mat[i, 2]
+            d["std(dG'0)"] = unique_data_mat[i, 3]
+            if unique_data_mat[i, 3]:
+                d["ratio"] = unique_data_mat[i, 2] / unique_data_mat[i, 3]
+            else:
+                d["ratio"] = 0
+            d["#observations"] = pylab.sum(full_data_mat[:, 4] == i)
+            dict_list.append(d)
+        dict_list.sort(key=lambda x:x["ratio"])
+        self.html_writer.write_table(dict_list, table_headers)
 
         pylab.np.savetxt('../res/nist/regress_CID.txt', 
             pylab.array(cids_to_estimate), fmt='%d', delimiter=',')
@@ -277,13 +298,27 @@ class NistRegression(Thermodynamics):
         data['dG0_r'] = data['dG0_r_tag'] + data['ddG0_r']
         return data
         
-    def AnalyzeSingleReaction(self, sparse):
+    def AnalyseSingleReaction(self, sparse):
         nist_rows = self.nist.FindRowsAccordingToReaction(sparse)
         data = self.ReverseTranformNistRows(nist_rows)
-        dG0_r = data['dG0_r_tag'] + data['ddG0_r']
-        pylab.plot(data['pH'], dG0_r, '.')
-        pylab.show()
-            
+        
+        hyper = self.kegg.sparse_to_hypertext(sparse, show_cids=False)
+        self.html_writer.write('Reaction: %s</br>\n' % hyper)
+        fig = pylab.figure()
+        self.html_writer.write('Standard deviations:</br>\n<ul>\n')
+        for j, y_axis in enumerate(['dG0_r_tag', 'dG0_r']):
+            sigma = pylab.std(data[y_axis])
+            self.html_writer.write("  <li>stdev(%s) = %.2g</li>" % (y_axis, sigma))
+            for i, x_axis in enumerate(['pH', 'I', 'pMg']):
+                pylab.subplot(2,3,i+3*j+1)
+                pylab.plot(data[x_axis], data[y_axis], 'x')
+                if j == 1:
+                    pylab.xlabel(x_axis)
+                if i == 0:
+                    pylab.ylabel(y_axis)
+        self.html_writer.write('</ul>\n')
+        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
         try:
             return self.cid2diss_table[cid].ConvertPseudoisomer(dG0, nH_from, nH_to)

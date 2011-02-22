@@ -47,21 +47,24 @@ class Compound(object):
         self.all_names = all_names or []
         self.mass = mass
         self.formula = formula
+        self.num_electrons = None
         self.inchi = inchi
         self.from_kegg = True
         self.pubchem_id = None
         self.cas = ""
     
     @staticmethod
-    def FromDBRow(row):
+    def FromDBRow(row_dict):
         """Build a Compound from a database row."""
-        (cid, unused_pubchem_id, mass, formula, inchi, unused_from_kegg, unused_cas, names) = row
-        names = names.split(';')
-        compound = kegg_compound.Compound(cid=cid, all_names=names,
-                                          mass=mass, formula=formula,
-                                          inchi=inchi)
-        return compound
-        
+        comp = Compound(cid=row_dict['cid'])
+        comp.name = row_dict['name']
+        comp.all_names = row_dict['all_names'].split(';')
+        comp.mass = row_dict['mass']
+        comp.formula = row_dict['formula']
+        comp.num_electrons = row_dict['num_electrons']
+        if row_dict['inchi']:
+            comp.inchi = str(row_dict['inchi'])
+        return comp
     
     def get_atom_bag(self):
         """Returns a dict containing the count for
@@ -168,7 +171,7 @@ class Compound(object):
         """
         try:
             obmol = self.get_obmol(correctForPH, pH)
-             # HvyAtoms are all the non-hydrogen atoms
+            # HvyAtoms are all the non-hydrogen atoms
             return obmol.NumAtoms() - obmol.NumHvyAtoms()
         except kegg_errors.KeggParseException:
             atom_bag = self.get_atom_bag()
@@ -183,10 +186,10 @@ class Compound(object):
             return self.get_obmol(correctForPH, pH).GetTotalCharge()
         except kegg_errors.KeggParseException:
             return 0
-        
-    def get_num_electrons(self):
-        """Returns the number of electrons in this compound."""
-        obmol = self.get_obmol(correctForPH=False)
+    
+    @staticmethod
+    def CalculateNumElectrons(obmol):
+        """Calculates the number of electrons in a given molecule."""
         atom_bag = {}
         for i in xrange(obmol.NumAtoms()):
             atom = obmol.GetAtom(i+1)
@@ -194,6 +197,9 @@ class Compound(object):
             atom_bag[atom.GetAtomicNum()] += 1
         n_protons = sum([an*cnt for (an, cnt) in atom_bag.iteritems()])
         return n_protons - obmol.GetTotalCharge()
+    
+    def get_num_electrons(self):
+        return self.num_electrons
 
     def get_link(self):
         """Returns a link to KEGG for this compound."""
@@ -222,14 +228,9 @@ class Compound(object):
         
         return d
 
-
 def GetAllCompoundsFromDB(db):
     """Fetch all the compounds from the database."""
     compound_list = []
-    for row in cursor.execute("SELECT * FROM kegg_compound"):
-        compound = Compound.FromDBRow(row)
-        compound_list.append(compound)
+    for row_dict in db.DictReader('kegg_compound'):
+        compound_list.append(Compound.FromDBRow(row_dict))
     return compound_list
-
-    
-    
