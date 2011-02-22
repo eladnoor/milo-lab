@@ -20,6 +20,8 @@ from toolbox import util, database
 from copy import deepcopy
 from toolbox.database import SqliteDatabase
 from toolbox.singletonmixin import Singleton
+from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
+    KeggParseException
     
 class Kegg(Singleton):
 
@@ -621,7 +623,7 @@ class Kegg(Singleton):
         (sparse_reaction, direction) = kegg_utils.parse_reaction_formula(formula)
         
         try:
-            self.check_reaction_balance(sparse_reaction)
+            sparse_reaction = self.BalanceReaction(sparse_reaction, balance_water=True)
         except kegg_errors.KeggReactionNotBalancedException as e:
             raise kegg_errors.KeggReactionNotBalancedException(
                 "Unbalanced reaction (" + formula + "): " + str(e))
@@ -632,26 +634,58 @@ class Kegg(Singleton):
                 
         return sparse_reaction
     
-    def check_reaction_balance(self, sparse_reaction, ignore_hydrogens=True):
-        atom_diff = {}
-        for (cid, count) in sparse_reaction.iteritems():
-            atom_bag = self.cid2atom_bag(cid)
-            if (atom_bag == None):
-                # this reaction cannot be checked since there is an unspecific compound
-                return
-            for (anum, a_count) in atom_bag.iteritems():
-                atom_diff[anum] = atom_diff.get(anum, 0) + count * a_count
+    def BalanceReaction(self, sparse_reaction, balance_water=False):
+        """
+            Checks whether a reaction is balanced.
+            If balance_water=True and there is an imbalance of oxygen or hydrogen atoms, BalanceReaction
+            changes the sparse_reaction by adding H2O and H+ until it is balanced.
+            
+            If the reaction cannot be balanced, raises KeggReactionNotBalancedException
+            
+            Returns:
+                The balanced reaction in case it is possible or the original
+                reaction in case it cannot be checked
+        """
+        new_sparse = dict(sparse_reaction)
+        
+        atom_bag = {}
+        try:
+            for cid, coeff in new_sparse.iteritems():
+                comp = self.cid2compound(cid)
+                cid_atom_bag = comp.get_atom_bag()
+                if cid_atom_bag == None:
+                    logging.debug("C%05d has no explicit formula, cannot check if this reaction is balanced" % cid)
+                    return new_sparse
+                try:
+                    cid_atom_bag['e-'] = comp.get_num_electrons()
+                except KeggParseException:
+                    return new_sparse
                 
-        if (ignore_hydrogens):
-            atom_diff[elements.ELEMENTS.an_to_symbol[1]] = 0
+                for atomicnum, count in cid_atom_bag.iteritems():
+                    atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
+                    
+        except KeyError as e:
+            logging.warning(str(e) + ", cannot check if this reaction is balanced")
+            return new_sparse
+    
+        if balance_water and atom_bag.get('O', 0) != 0:
+            new_sparse[1] = new_sparse.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)
+            atom_bag['H'] = atom_bag.get('H', 0) - 2 * atom_bag['O'] # account for the 2 hydrogens in each added water molecule
+            atom_bag['e-'] = atom_bag.get('e-', 0) - 10 * atom_bag['O'] # account for the 10 electrons in each added water molecule
+            atom_bag['O'] = 0
         
-        for anum in atom_diff.keys():
-            if (atom_diff[anum] == 0):
-                del atom_diff[anum]
+        if atom_bag.get('H', 0) != 0:
+            new_sparse[80] = new_sparse.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
+            atom_bag['H'] = 0
         
-        if (len(atom_diff) > 0):
-            raise kegg_errors.KeggReactionNotBalancedException(
-                "diff = %s" % str(atom_diff))
+        for atomtype in atom_bag.keys():
+            if atom_bag[atomtype] == 0:
+                del atom_bag[atomtype]
+
+        if atom_bag:
+            raise KeggReactionNotBalancedException("Reaction cannot be balanced: " + str(atom_bag))
+        
+        return new_sparse
     
     def insert_data_to_db(self, cursor):
         cursor.execute("DROP TABLE IF EXISTS kegg_compound")
@@ -936,12 +970,56 @@ class KeggPathologic(object):
         
         for rid in kegg.get_all_rids():
             reaction = kegg.rid2reaction(rid)
-            ver = reaction.verify(self.cid2atom_bag)
+            ver = self.verify(reaction)
             if (ver != None):
                 logging.debug("R%05d is %s, not adding it to Pathologic" % (rid, ver))
             else:
                 self.reactions += self.create_reactions("R%05d" % rid, reaction.direction, reaction.sparse, rid=rid)
 
+    def is_specific(self, reaction):
+        for cid in reaction.sparse.keys():
+            atom_bag = self.cid2atom_bag.get(cid, None)
+            if atom_bag == None or 'R' in atom_bag:
+                # This reaction cannot be checked since there is an
+                # unspecific compound
+                return False
+        return True
+    
+    def is_balanced(self, reaction, balance_water=True):
+        """
+            Checks if the reaction is balanced: i.e. the sum of elements is conserved (not including hydrogen atoms).
+            If oxygen is not balanced, the method adds water molecules in the right amount to fix it.
+        """
+        atom_diff = {}
+        for cid, coeff in reaction.sparse.iteritems():
+            atom_bag = self.cid2atom_bag.get(cid, None)
+            for atomic_number, atom_count in atom_bag.iteritems():
+                new_count = atom_diff.get(atomic_number, 0)
+                new_count += coeff * atom_count
+                atom_diff[atomic_number] = new_count
+
+        # ignore H and O inconsistencies
+        if 'H' in atom_diff:
+            del atom_diff['H']
+        if balance_water:
+            if 'O' in atom_diff and atom_diff['O'] != 0:
+                reaction.sparse[1] = reaction.sparse.get(1, 0) - atom_diff['O']
+                del atom_diff['O']
+        
+        return max([abs(x) for x in atom_diff.values()]) < 0.01
+    
+    def verify(self, reaction):
+        if not self.is_specific(reaction):
+            # unspecific reactions cannot be automatically checked for
+            # chemical balance therefore we cannot use them here.
+            return "unspecific"
+        elif not self.is_balanced(reaction):
+            return "unbalanced"
+        elif not reaction.is_not_futile():
+            return "futile"
+        else:
+            return None
+    
     def get_compound(self, cid):
         if (cid in self.cid2compound):
             return self.cid2compound[cid]

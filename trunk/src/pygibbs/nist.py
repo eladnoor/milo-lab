@@ -187,7 +187,7 @@ class Nist(object):
                 logging.debug("%s - %s" % (origin, str(e)))
                 continue
             try:
-                self.BalanceReaction(nist_row_data.sparse)
+                nist_row_data.sparse = self.kegg.BalanceReaction(nist_row_data.sparse, balance_water=True)
             except NistReactionBalanceException as e:
                 logging.warning("%s - %s" % (origin, str(e)))
                 logging.debug(str(nist_row_data.sparse))
@@ -231,51 +231,7 @@ class Nist(object):
             self.ToDatabase()
         else:
             self.FromDatabase()    
-    
-    def BalanceReaction(self, sparse_reaction):
-        """
-            Checks whether a reaction is balanced.
-            If there is an imbalance of oxygen or hydrogen atoms, BalanceReaction
-            changes the sparse_reaction by adding H2O and H+ until it is balanced.
-            
-            Returns:
-                True - if the reaction is balanced or if it cannot be tested at all
-                False - otherwise
-        """
-        atom_bag = {}
-        try:
-            for (cid, coeff) in sparse_reaction.iteritems():
-                cid_atom_bag = self.kegg.cid2atom_bag(cid)
-                if (cid_atom_bag == None):
-                    logging.debug("C%05d has no explicit formula, cannot check if this reaction is balanced" % cid)
-                    return
-                cid_atom_bag['e-'] = self.kegg.cid2compound(cid).get_num_electrons()
-                
-                for atomicnum, count in cid_atom_bag.iteritems():
-                    atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
-                    
-        except KeyError as e:
-            logging.warning(str(e) + ", cannot check if this reaction is balanced")
-            return
-    
-        if (atom_bag.get('O', 0) != 0):
-            #sys.stderr.write("WARNING: Need to add H2O to balance this reaction: " + str(sparse_reaction) + "\n")
-            sparse_reaction[1] = sparse_reaction.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)
-            atom_bag['H'] = atom_bag.get('H', 0) - 2 * atom_bag['O'] # account for the 2 hydrogens in each added water molecule
-            atom_bag['e-'] = atom_bag.get('e-', 0) - 10 * atom_bag['O'] # account for the 10 electrons in each added water molecule
-            atom_bag['O'] = 0
         
-        if (atom_bag.get('H', 0) != 0):
-            sparse_reaction[80] = sparse_reaction.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
-            atom_bag['H'] = 0
-        
-        for atomtype in atom_bag.keys():
-            if atom_bag[atomtype] == 0:
-                del atom_bag[atomtype]
-
-        if atom_bag:
-            raise NistReactionBalanceException("Reaction cannot be balanced: " + str(atom_bag))
-    
     def GetAllCids(self):
         return sorted(self.cid2count.keys())
     
