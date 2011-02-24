@@ -260,7 +260,7 @@ class Nist(object):
         pylab.xlabel("Temperature (C)")
         pylab.ylabel("No. of measurements")
         pylab.subplot(2,2,2)
-        pylab.hist(pMg_list, pylab.arange(0, 6, 0.1))
+        pylab.hist(pMg_list, pylab.arange(0, 10.1, 0.1))
         pylab.xlabel("pMg")
         pylab.ylabel("No. of measurements")
         pylab.subplot(2,2,4)
@@ -272,7 +272,7 @@ class Nist(object):
         pylab.xlabel("Ionic Strength [mM]")
         pylab.ylabel("No. of measurements")
 
-        self.html_writer.embed_matplotlib_figure(fig1)
+        self.html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
 
         alberty = Alberty()
         alberty_cids = set(alberty.cid2pmap_dict.keys())
@@ -299,7 +299,7 @@ class Nist(object):
         pylab.ylabel("no. of compounds measured in N reactions")
         pylab.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
 
-        self.html_writer.embed_matplotlib_figure(fig2)
+        self.html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
         logging.info('Done analyzing stats.')
 
     def verify_results(self, thermodynamics, T_range=None):
@@ -323,12 +323,7 @@ class Nist(object):
         evaluation_map = {}
         total_list = []
         
-        cid2count = {}
-        for row_data in self.data:
-            for cid in row_data.GetAllCids():
-                cid2count[cid] = cid2count.setdefault(cid, 0) + 1
-        
-        for row_data in self.data:
+        for row_data in self.SelectRowsFromNist(sparse=None, T_range=T_range):
             unknown_set = set(row_data.GetAllCids()).difference(known_cid_set)
 
             if unknown_set:
@@ -356,13 +351,12 @@ class Nist(object):
             dG0_est_vec.append(dG0_pred)
             evaluation_map[label][0].append(row_data.dG0_r)
             evaluation_map[label][1].append(dG0_pred)
-            n_measurements = min([cid2count[cid] for cid in row_data.GetAllCids()])
             error = abs(row_data.dG0_r - dG0_pred)
 
             total_list.append([error, row_data.dG0_r, dG0_pred, 
                                row_data.sparse, row_data.pH, row_data.pMg, 
                                row_data.I, row_data.T, row_data.evaluation, 
-                               n_measurements, row_data.origin, row_data.url])
+                               row_data.origin, row_data.url])
         
         if not dG0_obs_vec:
             return 0, 0
@@ -407,15 +401,7 @@ class Nist(object):
         pylab.ylabel(r'no. of measurements', fontsize=14)
         self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
 
-        fig = pylab.figure()
-        pylab.plot([row[9] for row in total_list], [abs(row[1] - row[2]) for row in total_list], '.')
-        pylab.title(r'Effect of no. of measurements on estimation error', fontsize=14)
-        pylab.xlabel(r'minimum no. of measurements among reaction compounds', fontsize=14)
-        pylab.ylabel(r'$|| \Delta_{obs} G^\circ - \Delta_{est} G^\circ ||$ [kJ/mol]', fontsize=14)
-        pylab.xscale('log')
-        self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
-
-        table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "min no. measure.", "url"]
+        table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "url"]
         dict_list = []
         for row in sorted(total_list, reverse=True):
             d = {}
@@ -428,9 +414,8 @@ class Nist(object):
             d['I'] = '%.2f' % row[6]
             d['T'] = '%.1f' % row[7]
             d['eval.'] = row[8]
-            d['min no. measure.'] = row[9]
-            if row[11]:
-                d['url'] = '<a href="%s">link</a>' % row[11]
+            if row[10]:
+                d['url'] = '<a href="%s">link</a>' % row[10]
             else:
                 d['url'] = ''
             dict_list.append(d)
@@ -438,11 +423,16 @@ class Nist(object):
         
         return len(dG0_obs_vec), rmse
     
-    def FindRowsAccordingToReaction(self, sparse):
+    def SelectRowsFromNist(self, sparse=None, T_range=None):
         rows = []
+        if sparse:
+            sparse = self.kegg.BalanceReaction(sparse)
         for nist_row_data in self.data:
-            if nist_row_data.sparse == sparse:
-                rows.append(nist_row_data)
+            if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
+                continue 
+            if sparse and nist_row_data.sparse != sparse:
+                continue
+            rows.append(nist_row_data)
         return rows
 
 if __name__ == '__main__':
