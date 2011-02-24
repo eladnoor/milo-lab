@@ -246,14 +246,10 @@ class DissociationConstants(object):
         self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id, height=height, width=width)
 
 if (__name__ == '__main__'):
-    logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     db = SqliteDatabase("../res/gibbs.sqlite")
     html_writer = HtmlWriter("../res/dissociation_constants.html")
     _mkdir('../res/dissociation_constants')
     
     dissociation = DissociationConstants(db, html_writer)
     dissociation.LoadValuesToDB()
-    if False:
-        db.Table2CSV('../res/pKa_with_nH.csv', 'pKa', write_titles=True)
-    else:
-        dissociation.AnalyseValues()
+    dissociation.AnalyseValues()
