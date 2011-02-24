@@ -1,80 +1,66 @@
 #!/usr/bin/python
 
-import getopt
+import logging
 import sys
 
+from Bio.Seq import MutableSeq
+from Bio.Seq import Seq
+from Bio.Alphabet import DNAAlphabet
+from optparse import OptionParser
+import sequence_utils
 
+
+ALPHABET = DNAAlphabet()
 DEFAULT_SEQ_BASES = 20
-START_HIS = 'ATGCATCATCACCATCACCAC'
-INV_CAP_LINKER = 'GCTAGCGTTGATCGGGCACGTAAGAG'
-
-INVERSES = {'A': 'T',
-            'T': 'A',
-            'G': 'C',
-            'C': 'G'}
+START_HIS = Seq('ATGCATCATCACCATCACCAC', ALPHABET)
+INV_CAP_LINKER = Seq('GCTAGCGTTGATCGGGCACGTAAGAG', ALPHABET)
 
 
-def InvertAndReverse(seq):
-    f = lambda b: INVERSES[b]
-    l = map(f, seq)
-    l.reverse()
-    return ''.join(l)
-
-
-def DropStartCodon(seq):
-    if seq.startswith('ATG'):
-        return seq[3:]
-    return seq
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-i", "--input_filename", dest="input_filename",
+                          help="The filename of the sequence to make primers for.")
+    opt_parser.add_option("-o", "--overlap_length", type="int",
+                          dest="overlap_length", default=20,
+                          help="The amount of overlap between the primer and sequence (BP).")    
+    return opt_parser
 
 
 def MakeForwardPrimer(seq, extension,
-                      drop_start_codon=True,
                       seq_bases=DEFAULT_SEQ_BASES):
-    if drop_start_codon:
-        seq = DropStartCodon(seq)
-        
-    return '%s%s' % (extension, seq[:seq_bases])
+    """Assumes the extension contains a start-codon."""
+    my_seq = sequence_utils.DropStartCodon(seq)    
+    return extension + my_seq[:seq_bases]
 
 
 def MakeReversePrimer(seq, extension,
                       seq_bases=DEFAULT_SEQ_BASES):
     primer = seq[-seq_bases:] + extension
-    return InvertAndReverse(primer)
+    primer.reverse_complement()
+    return primer
     
 
-def PrintPrimers(seq, forward_extension, reverse_extension,
-                 seq_bases=DEFAULT_SEQ_BASES, drop_start_codon=True):
-    s = seq.upper()
-    print 'Forward primer:', MakeForwardPrimer(s, forward_extension,
-                                               drop_start_codon, seq_bases)
-    print 'Reverse primer:', MakeReversePrimer(s, reverse_extension,
-                                               seq_bases)
-    
+def main():
+    options, _ = MakeOpts().parse_args(sys.argv)
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-        
-    try:
-        opts, unused_args = getopt.getopt(argv[1:], 'i:',
-                                          ['input='])
-    except getopt.error:
-        print 'Failed to parse opt'
-        sys.exit()
-    
-    # option processing
-    input_filename = None
-    for option, value in opts:
-        if option in ('-i', '--input'):
-            input_filename = value
-
-    if not input_filename:
+    if not options.input_filename:
         print 'Paste sequence you want to cut:',
-        seq = raw_input()
+        seq = MutableSeq(raw_input(), ALPHABET)
     else:
-        seq = open(input_filename).read().strip()
+        seq = sequence_utils.MutableSeqFromFile(options.input_filename,
+                                                ALPHABET)
     
-    PrintPrimers(seq, START_HIS, INV_CAP_LINKER)
+    print 'Making primers with %d base-pairs sequence overlap' % options.overlap_length    
+    fp = MakeForwardPrimer(seq, START_HIS, options.overlap_length)    
+    print 'Forward primer (%d BP) with start codon & His-tag:' % len(fp)
+    print fp
+    
+
+    rp = MakeReversePrimer(seq, INV_CAP_LINKER,
+                           options.overlap_length)
+    print 'Reverse primer (%d BP) with CAP linker:' % len(rp)
+    print rp
     
     
 if __name__ == '__main__':
