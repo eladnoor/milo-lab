@@ -52,16 +52,21 @@ class Reaction(object):
         else:
             return "%g C%05d" % (coeff, cid)
 
-    def __str__(self):
+    @staticmethod
+    def write_full_reaction(sparse):
         """String representation."""
         left = []
         right = []
-        for (cid, coeff) in sorted(self.sparse.iteritems()):
+        for (cid, coeff) in sorted(sparse.iteritems()):
             if (coeff < 0):
-                left.append(self.write_compound_and_coeff(cid, -coeff))
+                left.append(Reaction.write_compound_and_coeff(cid, -coeff))
             elif (coeff > 0):
-                right.append(self.write_compound_and_coeff(cid, coeff))
+                right.append(Reaction.write_compound_and_coeff(cid, coeff))
         return "%s -> %s" % (' + '.join(left), ' + '.join(right))
+        
+
+    def __str__(self):
+        return Reaction.write_full_reaction(self.sparse)
     
     def is_not_futile(self):
         return max([abs(x) for x in self.sparse.values()]) > 0.01

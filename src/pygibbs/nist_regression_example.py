@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     kegg = Kegg.getInstance()
     nist_regression = NistRegression(db, html_writer)
-    T_range = (298, 314)
+    nist_regression.T_range = (298, 314)
     
     reactions = {}
     #reactions['creatine kinase'] = {2:-1, 300:-1, 8:1, 2305:1}
@@ -29,20 +29,8 @@ if __name__ == "__main__":
         logging.info("Analyzing reaction: " + name)
         html_writer.write('<h2>%s</h2>\n' % name)
         
-        nist_rows = nist_regression.nist.SelectRowsFromNist(sparse, T_range)
-        dict_list = []
-        for nist_row_data in nist_rows:
-            d = {}
-            d['pH'] = nist_row_data.pH
-            d['I'] = nist_row_data.I
-            d['pMg'] = nist_row_data.pMg
-            d['dG\'0_r'] = "%.2f" % nist_row_data.dG0_r
-            d['T(K)'] = nist_row_data.T
-            dict_list.append(d)
-        html_writer.write_table(dict_list, headers=['T(K)', 'pH', 'I', 'pMg', 'dG\'0_r'])
-        html_writer.write('</br>\n')
-        
-        nist_regression.AnalyseSingleReaction(sparse, T_range) 
+        nist_rows = nist_regression.SelectRowsFromNist(sparse)
+        nist_regression.AnalyseSingleReaction(sparse) 
         for cid, coeff in sparse.iteritems():
             for pseudoisomer in nist_regression.cid2diss_table[cid].GenerateAll():
                 print "C%05d" % cid, pseudoisomer
