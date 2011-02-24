@@ -15,6 +15,9 @@ from pygibbs.pseudoisomers_data import DissociationTable
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.thermodynamic_constants import default_I, default_pMg, default_T,\
     default_pH
+import os
+from toolbox.util import _mkdir
+from pygibbs import kegg_reaction
 
 class NistAnchors(object):
     
@@ -72,6 +75,7 @@ class NistRegression(Thermodynamics):
         
         self.T_range = None
         self.assume_no_pKa_by_default = False
+        self.std_diff_threshold = pylab.inf
         
     def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
@@ -82,7 +86,7 @@ class NistRegression(Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
         
-    def ReverseTransform(self, T_range=None, prior_thermodynamics=None):
+    def ReverseTransform(self, prior_thermodynamics=None):
         """
             Performs the reverse Lagandre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
@@ -90,7 +94,7 @@ class NistRegression(Thermodynamics):
         """
         logging.info("Reverse transforming the NIST data")
         
-        nist_rows = self.nist.SelectRowsFromNist(sparse=None, T_range=T_range)
+        nist_rows = self.nist.SelectRowsFromNist(sparse=None)
         data = self.ReverseTranformNistRows(nist_rows)
         
         # get a vector of anchored formation energies. one needs to be careful
@@ -176,8 +180,7 @@ class NistRegression(Thermodynamics):
         # write a table that lists the variances of each unique reaction
         # before and after the reverse transform
         self.WriteUniqueReactionReport(unique_sparse_reactions, 
-                                       unique_data_mat,
-                                       plot_distribution=False)
+                                       unique_data_mat)
 
         # export the raw data matrices to text files
         pylab.np.savetxt('../res/nist/regress_CID.txt', 
@@ -228,17 +231,16 @@ class NistRegression(Thermodynamics):
             self.cid2diss_table[cid].min_dG0 = estimated_dG0_f[i, 0]
             self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
 
-    def WriteUniqueReactionReport(self, unique_sparse_reactions, unique_data_mat, plot_distribution=False):
-        if plot_distribution:
-            table_headers = ["Reaction", "#observations", "std(dG0)", "std(dG'0)", "analysis"]
-        else:
-            table_headers = ["Reaction", "#observations", "std(dG0)", "std(dG'0)"]
+    def WriteUniqueReactionReport(self, unique_sparse_reactions, 
+                                  unique_data_mat):
+        _mkdir('../res/nist/reactions')
+
+        table_headers = ["Reaction", "#observations", "std(dG0)", "std(dG'0)", "analysis"]
         dict_list = []
         
-        if plot_distribution:
-            reaction_html_writer = HtmlWriter('../res/nist/regression_per_reaction.html')
-        
         for i in xrange(len(unique_sparse_reactions)):
+            logging.info('Analysing unique reaction %03d: %s' %
+                         (i, kegg_reaction.Reaction.write_full_reaction(unique_sparse_reactions[i])) )
             d = {}
             d["Reaction"] = self.kegg.sparse_to_hypertext(
                                 unique_sparse_reactions[i], show_cids=False)
@@ -246,12 +248,15 @@ class NistRegression(Thermodynamics):
             d["std(dG'0)"] = "%.1f" % unique_data_mat[i, 3]
             d["diff"] = unique_data_mat[i, 2] - unique_data_mat[i, 3]
             d["#observations"] = "%d" % unique_data_mat[i, 4]
-            d["analysis"] = '<a href="regression_per_reaction.html#reaction%d">link</a>' % i
-            if plot_distribution:
-                reaction_html_writer.write('<div id="reaction%d">\n' % i)
+
+            if d["diff"] > self.std_diff_threshold:
+                link = "reactions/nist_reaction%03d.html" % i
+                d["analysis"] = '<a href="%s">link</a>' % link
+                reaction_html_writer = HtmlWriter(os.path.join('../res/nist', link))
                 self.AnalyseSingleReaction(unique_sparse_reactions[i],
-                                           reaction_html_writer)
-                reaction_html_writer.write('</div>\n')
+                                           html_writer=reaction_html_writer)
+            else:
+                d["analysis"] = ''
             dict_list.append(d)
         
         dict_list.sort(key=lambda x:x["diff"])
@@ -324,7 +329,10 @@ class NistRegression(Thermodynamics):
         data['dG0_r'] = data['dG0_r_tag'] + data['ddG0_r']
         return data
         
-    def AnalyseSingleReaction(self, sparse, T_range=None, html_writer=None):
+    def SelectRowsFromNist(self, sparse):
+        return self.nist.SelectRowsFromNist(sparse, self.T_range)
+    
+    def AnalyseSingleReaction(self, sparse, html_writer=None):
         pylab.rcParams['text.usetex'] = False
         pylab.rcParams['legend.fontsize'] = 6
         pylab.rcParams['font.family'] = 'sans-serif'
@@ -338,8 +346,28 @@ class NistRegression(Thermodynamics):
             html_writer = self.html_writer
 
         # gather all the measurements from NIST that correspond to this reaction
-        nist_rows = self.nist.SelectRowsFromNist(sparse, T_range)
+        nist_rows = self.SelectRowsFromNist(sparse)
         
+        html_writer.write('<p>\nShow observation table: ')
+        div_id = html_writer.insert_toggle()
+        html_writer.start_div(div_id)
+        dict_list = []
+        for nist_row_data in nist_rows:
+            d = {}
+            d['pH'] = nist_row_data.pH
+            d['I'] = nist_row_data.I
+            d['pMg'] = nist_row_data.pMg
+            d['dG\'0_r'] = "%.2f" % nist_row_data.dG0_r
+            d['T(K)'] = nist_row_data.T
+            if nist_row_data.url:
+                d['URL'] = '<a href="%s">link</a>' % nist_row_data.url
+            else:
+                d['URL'] = ''
+            dict_list.append(d)
+        html_writer.write_table(dict_list, headers=['T(K)', 'pH', 'I', 'pMg', 'dG\'0_r', 'URL'])
+        html_writer.end_div()
+        html_writer.write('</p>\n')
+
         # reverse transform the data
         data = self.ReverseTranformNistRows(nist_rows)
         
@@ -523,8 +551,8 @@ class NistRegression(Thermodynamics):
     def WriteDataToHtml(self):
         Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
         
-    def VerifyResults(self, T_range=None):
-        return self.nist.verify_results(self, T_range)
+    def VerifyResults(self):
+        return self.nist.verify_results(self, self.T_range)
 
 
 def main():
@@ -536,13 +564,14 @@ def main():
     
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer)
+    nist_regression.T_range = (298, 314)
+    nist_regression.std_diff_threshold = 1.0
     
     if False:
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
     else:
-        T_range = (298, 314)
-        nist_regression.ReverseTransform(T_range, prior_thermodynamics=alberty)
+        nist_regression.ReverseTransform(prior_thermodynamics=alberty)
         nist_regression.ToDatabase()
         
         html_writer.write('<h3>Regression results:</h3>\n')
@@ -554,7 +583,7 @@ def main():
         html_writer.write('<h3>Reaction energies - Estimated vs. Observed:</h3>\n')
         html_writer.insert_toggle('verify')
         html_writer.start_div('verify')
-        N, rmse = nist_regression.VerifyResults(T_range)
+        N, rmse = nist_regression.VerifyResults()
         html_writer.end_div()
         html_writer.write('</br>\n')
         
