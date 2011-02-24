@@ -59,6 +59,7 @@ class Kegg(Singleton):
         self.cid2bounds = {}
 
         self.db = SqliteDatabase('../data/public_data.sqlite')
+        
         if loadFromFiles:
             self.FromFiles()
         else:
@@ -266,7 +267,7 @@ class Kegg(Singleton):
         for row_dict in self.db.DictReader('kegg_reaction'):
             reaction = kegg_reaction.Reaction.FromDBRow(row_dict)
             self.rid2reaction_map[reaction.rid] = reaction
-            
+           
         for row_dict in self.db.DictReader('kegg_enzyme'):
             enzyme = kegg_enzyme.Enzyme.FromDBRow(row_dict)
             for reaction_id in enzyme.reactions:
@@ -653,6 +654,9 @@ class Kegg(Singleton):
                 try:
                     cid_atom_bag['e-'] = comp.get_num_electrons()
                 except KeggParseException:
+                    return new_sparse
+                
+                if not cid_atom_bag['e-']:
                     return new_sparse
                 
                 for atomicnum, count in cid_atom_bag.iteritems():
