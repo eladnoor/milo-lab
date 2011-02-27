@@ -26,7 +26,7 @@
 "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS",10,"CoA",-47.83,,-4,32,0,"test","Alberty (2003)","CoA(-1) = 0"
 ,11,"CO2(g)",-394.36,-393.5,0,0,0,"skip","Alberty (2003)",
 ,11,"CO2(g)",-394.36,,0,0,0,"skip","Thauer (1977)",
-,11,"CO2(aq)",-386.02,,0,0,0,"test","Thauer (1977)",
+,11,"CO2(aq)",-386.02,,0,0,0,"skip","Thauer (1977)",
 "[O-]P(=O)([O-])OP(=O)([O-])[O-]",13,"pyrophosphate",-1919.86,-2293.47,-4,0,0,"test","Alberty (2003)",
 "[O-]P(=O)([O-])OP(=O)([O-])O",13,"pyrophosphate",-1973.86,-2294.87,-3,1,0,"test","Alberty (2003)",
 "[O-]P(=O)(O)OP(=O)([O-])O",13,"pyrophosphate",-2012.21,-2295.37,-2,2,0,"test","Alberty (2003)",
