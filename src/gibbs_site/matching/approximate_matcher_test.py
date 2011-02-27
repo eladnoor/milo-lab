@@ -19,7 +19,8 @@ class TestMatcher(unittest.TestCase):
                   'glucosamine',
                   'alanine',
                   'phenylalanine',
-                  'l-glucosamine')
+                  'l-glucosamine',
+                  'lactate dehydrogenase')
     
     def _CheckIsSortedByScore(self, results):
         prev_score = 10.0 # Scores are all <= 1.0
@@ -51,9 +52,10 @@ class TestMatcher(unittest.TestCase):
 
     def testPrepareExpression(self):
         m = approximate_matcher.RegexApproxMatcher({})
-        examples = (('  teSt    tEsT ', '.*test[-+\\s\\d,]+test.*'),
+        examples = (('  teSt    tEsT ', '.*test[-+,[:digit:][:blank:]]+test.*'),
                     ('gluco', '.*gluco.*'),
-                    ('D Fructo', '.*d[-+\\s\\d,]+fructo.*'))
+                    ('D Fructo', '.*d[-+,[:digit:][:blank:]]+fructo.*'),
+                    ('aspartyl-phosphate', '.*aspartyl[-+,[:digit:][:blank:]]+phosphate.*'))
         for query, expression in examples:
             self.assertEqual(expression, m._PrepareExpression(query))
 

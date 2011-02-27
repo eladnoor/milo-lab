@@ -24,8 +24,11 @@ class RegexApproxMatcher(matcher.Matcher):
     
         # Escape regex special characters in the input (search for them
         # literally). Also, we allow '-', ',', '+' and digits in addition to spaces.
+        # NOTE(flamholz): We are using MySQL regex syntax here. Might not be 
+        # compatible with other databases. See reference:
+        #   http://dev.mysql.com/doc/refman/5.1/en/regexp.html
         query = re.escape(query.strip().lower())
-        query = re.sub('(\\\?\s)+', '[-+\s\d,]+', query)
+        query = re.sub('(\\\?[\s-])+', '[-+,[:digit:][:blank:]]+', query)
         # We allow leading and trailing junk.
         return '.*%s.*' % query
 
