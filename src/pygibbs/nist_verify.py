@@ -49,6 +49,7 @@ def main():
         num_estimations, rmse = nist.verify_results(thermodynamics, T_range=(298, 314))
         html_writer.end_div()
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
+        logging.info('N = %d, RMSE = %.1f' % (num_estimations, rmse))
 
 if __name__ == '__main__':
     main()

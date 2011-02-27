@@ -166,21 +166,10 @@ class NistRegression(Thermodynamics):
             for j in row_indices:
                 full_data_mat[j, 2:4] -= unique_data_mat[i, 0:2]
                     
-        total_std = pylab.std(full_data_mat[:, 2:4], 0)
-        
-        fig = pylab.figure()
-        pylab.plot(unique_data_mat[:, 2], unique_data_mat[:, 3], '.')
-        pylab.xlabel("$\sigma(\Delta_r G^\circ)$")
-        pylab.ylabel("$\sigma(\Delta_r G^{\'\circ})$")
-        pylab.title('$\sigma_{total}(\Delta_r G^\circ) = %.1f$ kJ/mol, '
-                    '$\sigma_{total}(\Delta_r G^{\'\circ}) = %.1f$ kJ/mol' % 
-                    (total_std[0], total_std[1]))
-        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
-        
         # write a table that lists the variances of each unique reaction
         # before and after the reverse transform
         self.WriteUniqueReactionReport(unique_sparse_reactions, 
-                                       unique_data_mat)
+                                       unique_data_mat, full_data_mat)
 
         # export the raw data matrices to text files
         pylab.np.savetxt('../res/nist/regress_CID.txt', 
@@ -232,15 +221,29 @@ class NistRegression(Thermodynamics):
             self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
 
     def WriteUniqueReactionReport(self, unique_sparse_reactions, 
-                                  unique_data_mat):
+                                  unique_data_mat, full_data_mat):
+        
+        total_std = pylab.std(full_data_mat[:, 2:4], 0)
+        
+        fig = pylab.figure()
+        pylab.plot(unique_data_mat[:, 2], unique_data_mat[:, 3], '.')
+        pylab.xlabel("$\sigma(\Delta_r G^\circ)$")
+        pylab.ylabel("$\sigma(\Delta_r G^{\'\circ})$")
+        pylab.title('$\sigma_{total}(\Delta_r G^\circ) = %.1f$ kJ/mol, '
+                    '$\sigma_{total}(\Delta_r G^{\'\circ}) = %.1f$ kJ/mol' % 
+                    (total_std[0], total_std[1]))
+        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+        logging.info('std(dG0_r) = %.1f' % total_std[0])
+        logging.info('std(dG\'0_r) = %.1f' % total_std[1])
+        
         _mkdir('../res/nist/reactions')
 
         table_headers = ["Reaction", "#observations", "std(dG0)", "std(dG'0)", "analysis"]
         dict_list = []
         
         for i in xrange(len(unique_sparse_reactions)):
-            logging.info('Analysing unique reaction %03d: %s' %
-                         (i, kegg_reaction.Reaction.write_full_reaction(unique_sparse_reactions[i])) )
+            logging.debug('Analysing unique reaction %03d: %s' %
+                          (i, kegg_reaction.Reaction.write_full_reaction(unique_sparse_reactions[i])) )
             d = {}
             d["Reaction"] = self.kegg.sparse_to_hypertext(
                                 unique_sparse_reactions[i], show_cids=False)
@@ -259,7 +262,7 @@ class NistRegression(Thermodynamics):
                 d["analysis"] = ''
             dict_list.append(d)
         
-        dict_list.sort(key=lambda x:x["diff"])
+        dict_list.sort(key=lambda x:x["diff"], reverse=True)
         self.html_writer.write_table(dict_list, table_headers)
 
     def ReverseTranformNistRows(self, nist_rows):
@@ -285,7 +288,7 @@ class NistRegression(Thermodynamics):
         # the transformed (observed) free energy of the reactions dG'0_r
         data['dG0_r_tag'] = pylab.zeros((0, 1))
         
-        # dG0_r - dG'0_r  (which is only a function of the conditions and pKas)
+        # dG'0_r - dG0_r  (which is only a function of the conditions and pKas)
         data['ddG0_r'] = pylab.zeros((0, 1))
         
         data['pH'] = pylab.zeros((0, 1))
@@ -326,7 +329,7 @@ class NistRegression(Thermodynamics):
             
             data['S'] = pylab.vstack([data['S'], stoichiometric_row])
         
-        data['dG0_r'] = data['dG0_r_tag'] + data['ddG0_r']
+        data['dG0_r'] = data['dG0_r_tag'] - data['ddG0_r']
         return data
         
     def SelectRowsFromNist(self, sparse):
@@ -375,16 +378,21 @@ class NistRegression(Thermodynamics):
         html_writer.write('Reaction: %s</br>\n' % hyper)
         fig1 = pylab.figure()
         html_writer.write('Standard deviations:</br>\n<ul>\n')
+        
+        y_labels = ['$\Delta_r G^{\'\circ}$', '$\Delta_r G^{\circ}$']
+        x_limits = {'pH' : (3, 12), 'I' : (0, 1), 'pMg' : (0, 10)}
+        
         for j, y_axis in enumerate(['dG0_r_tag', 'dG0_r']):
             sigma = pylab.std(data[y_axis])
             html_writer.write("  <li>stdev(%s) = %.2g</li>" % (y_axis, sigma))
             for i, x_axis in enumerate(['pH', 'I', 'pMg']):
                 pylab.subplot(2,3,i+3*j+1)
                 pylab.plot(data[x_axis], data[y_axis], 'x')
+                pylab.xlim(x_limits[x_axis])
                 if j == 1:
                     pylab.xlabel(x_axis)
                 if i == 0:
-                    pylab.ylabel(y_axis)
+                    pylab.ylabel(y_labels[j])
         html_writer.write('</ul>\n')
         html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
         
@@ -433,11 +441,17 @@ class NistRegression(Thermodynamics):
             raise KeyError("In C%05d, %s" % (cid, str(e)))
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
+        """
+            Calculates the difference between dG'0_r and dG0_r
+        """
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
                     for cid, coeff in sparse.iteritems()])
 
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
-        return -self.cid2diss_table[cid].Transform(pH, I, pMg, T)
+        """
+            Calculates the difference between dG'0_f and dG0_f
+        """
+        return self.cid2diss_table[cid].Transform(pH, I, pMg, T)
 
     def Nist_pKas(self):
         group_decomposer = GroupDecomposer.FromDatabase(self.db)
@@ -565,7 +579,7 @@ def main():
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer)
     nist_regression.T_range = (298, 314)
-    nist_regression.std_diff_threshold = 1.0
+    nist_regression.std_diff_threshold = 100.0
     
     if False:
         nist_regression.Nist_pKas()
