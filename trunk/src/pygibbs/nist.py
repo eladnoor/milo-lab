@@ -65,9 +65,9 @@ class NistRowData:
     def ReadFromDatabase(self, row_dict):
         self.K = row_dict['K']
         self.pH = row_dict['pH']
-        self.I = row_dict['I']
+        self.I = 0.4#row_dict['I']
+        self.pMg = 10#row_dict['pMg']
         self.T = row_dict['T']
-        self.pMg = row_dict['pMg']
         self.K_type = row_dict['Ktype']
         self.dG0_r = row_dict['dG0']
         self.evaluation = row_dict['evaluation']
