@@ -14,7 +14,9 @@ if __name__ == "__main__":
 
     kegg = Kegg.getInstance()
     nist_regression = NistRegression(db, html_writer)
-    nist_regression.T_range = (298, 314)
+    nist_regression.nist.T_range = (298, 314)
+    #nist_regression.nist.override_I = 0.25
+    nist_regression.nist.override_pMg = 10.0
     
     reactions = {}
     #reactions['creatine kinase'] = {2:-1, 300:-1, 8:1, 2305:1}
@@ -29,7 +31,7 @@ if __name__ == "__main__":
         logging.info("Analyzing reaction: " + name)
         html_writer.write('<h2>%s</h2>\n' % name)
         
-        nist_rows = nist_regression.SelectRowsFromNist(sparse)
+        nist_rows = nist_regression.nist.SelectRowsFromNist(sparse)
         nist_regression.AnalyseSingleReaction(sparse) 
         for cid, coeff in sparse.iteritems():
             for pseudoisomer in nist_regression.cid2diss_table[cid].GenerateAll():

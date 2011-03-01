@@ -73,7 +73,6 @@ class NistRegression(Thermodynamics):
         self.cid2diss_table = DissociationTable.ReadDissociationCsv()
         self.cid2pmap_dict = {}
         
-        self.T_range = None
         self.assume_no_pKa_by_default = False
         self.std_diff_threshold = pylab.inf
         
@@ -94,7 +93,7 @@ class NistRegression(Thermodynamics):
         """
         logging.info("Reverse transforming the NIST data")
         
-        nist_rows = self.nist.SelectRowsFromNist(sparse=None)
+        nist_rows = self.nist.SelectRowsFromNist()
         data = self.ReverseTranformNistRows(nist_rows)
         
         # get a vector of anchored formation energies. one needs to be careful
@@ -298,12 +297,6 @@ class NistRegression(Thermodynamics):
         data['S'] = pylab.zeros((0, len(data['cids_to_estimate']))) # stoichiometric matrix
         
         for nist_row_data in nist_rows:
-            # check that the temperature is inside the allowed range
-            if self.T_range and not (self.T_range[0] < 
-                                     nist_row_data.T < self.T_range[1]):
-                logging.debug('Temperature %.2f not within allowed range', nist_row_data.T)
-                continue
-            
             # check that all participating compounds have a known pKa
             cids_in_reaction = set(nist_row_data.sparse.keys())
             cids_without_pKa = cids_in_reaction.difference(all_cids_with_pKa)
@@ -331,10 +324,7 @@ class NistRegression(Thermodynamics):
         
         data['dG0_r'] = data['dG0_r_tag'] - data['ddG0_r']
         return data
-        
-    def SelectRowsFromNist(self, sparse):
-        return self.nist.SelectRowsFromNist(sparse, self.T_range)
-    
+
     def AnalyseSingleReaction(self, sparse, html_writer=None):
         pylab.rcParams['text.usetex'] = False
         pylab.rcParams['legend.fontsize'] = 6
@@ -349,7 +339,7 @@ class NistRegression(Thermodynamics):
             html_writer = self.html_writer
 
         # gather all the measurements from NIST that correspond to this reaction
-        nist_rows = self.SelectRowsFromNist(sparse)
+        nist_rows = self.nist.SelectRowsFromNist(sparse)
         
         html_writer.write('<p>\nShow observation table: ')
         div_id = html_writer.insert_toggle()
@@ -566,7 +556,7 @@ class NistRegression(Thermodynamics):
         Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
         
     def VerifyResults(self):
-        return self.nist.verify_results(self, self.T_range)
+        return self.nist.verify_results(self)
 
 
 def main():
@@ -578,8 +568,10 @@ def main():
     
     html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer)
-    nist_regression.T_range = (298, 314)
     nist_regression.std_diff_threshold = 100.0
+    nist_regression.nist.T_range = (298, 314)
+    #nist_regression.nist.override_I = 0.25
+    nist_regression.nist.override_pMg = 10.0
     
     if False:
         nist_regression.Nist_pKas()

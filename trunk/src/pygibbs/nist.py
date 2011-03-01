@@ -9,6 +9,7 @@ from pygibbs.thermodynamic_constants import R, default_pMg
 from toolbox.database import SqliteDatabase
 import csv
 from toolbox.ods import ODSDictReader
+import copy
 
 
 class NistMissingCrucialDataException(Exception):
@@ -65,8 +66,8 @@ class NistRowData:
     def ReadFromDatabase(self, row_dict):
         self.K = row_dict['K']
         self.pH = row_dict['pH']
-        self.I = 0.4#row_dict['I']
-        self.pMg = 10#row_dict['pMg']
+        self.I = row_dict['I']
+        self.pMg = row_dict['pMg']
         self.T = row_dict['T']
         self.K_type = row_dict['Ktype']
         self.dG0_r = row_dict['dG0']
@@ -158,6 +159,9 @@ class Nist(object):
         self.db = db
         self.html_writer = html_writer
         self.kegg = Kegg.getInstance()
+        self.T_range = (298, 314)
+        self.override_I = None
+        self.override_pMg = None
 
     def FromFile(self, filename):
         """
@@ -302,7 +306,7 @@ class Nist(object):
         self.html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
         logging.info('Done analyzing stats.')
 
-    def verify_results(self, thermodynamics, T_range=None):
+    def verify_results(self, thermodynamics):
         """Calculate all the dG0_r for the reaction from NIST and compare to
            the measured data.
         
@@ -323,16 +327,10 @@ class Nist(object):
         evaluation_map = {}
         total_list = []
         
-        for row_data in self.SelectRowsFromNist(sparse=None, T_range=T_range):
+        for row_data in self.SelectRowsFromNist():
             unknown_set = set(row_data.GetAllCids()).difference(known_cid_set)
-
             if unknown_set:
                 logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
-                continue
-            
-            if T_range and not (T_range[0] < row_data.T < T_range[1]):
-                logging.debug("The temperature of the measurement (%.1f) is out of range: %.1f - %.1f" %\
-                              (row_data.T, T_range[0], T_range[1]) )
                 continue
             
             #label = row_data.evaluation
@@ -423,17 +421,25 @@ class Nist(object):
         
         return len(dG0_obs_vec), rmse
     
-    def SelectRowsFromNist(self, sparse=None, T_range=None):
+    def SelectRowsFromNist(self, sparse=None):
         rows = []
         if sparse:
             sparse = self.kegg.BalanceReaction(sparse)
         for nist_row_data in self.data:
-            if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
+            if self.T_range and not (self.T_range[0] < nist_row_data.T < self.T_range[1]):
                 continue 
             if sparse and nist_row_data.sparse != sparse:
                 continue
-            rows.append(nist_row_data)
-        return rows
+            if self.override_pMg or self.override_I:
+                nist_row_copy = copy.deepcopy(nist_row_data)
+                if self.override_pMg:
+                    nist_row_copy.pMg = self.override_pMg
+                if self.override_I:
+                    nist_row_copy.I = self.override_I
+                rows.append(nist_row_copy)
+            else:
+                rows.append(nist_row_data)
+        return rows   
 
 if __name__ == '__main__':
     #logging.getLogger('').setLevel(logging.DEBUG)
