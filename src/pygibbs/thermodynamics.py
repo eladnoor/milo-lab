@@ -28,15 +28,24 @@ class Thermodynamics(object):
         self.anchors = set()
 
     def cid2PseudoisomerMap(self, cid):
+        """
+            Given a CID, returns the entire set of pseudoisomers (using class
+            PseudoisomerMap).
+        """
         raise NotImplementedError
-
-    def cid2pmatrix(self, cid):
-        return self.cid2PseudoisomerMap(cid).ToMatrix()
 
     def get_all_cids(self):
         raise NotImplementedError
 
     def cid2dG0(self, cid, nH, nMg=0):
+        """
+            Given a CID and protonation state (number of hydrogens),
+            returns the chemical dG0_f (i.e. untransformed Gibbs free energy
+            of formation)
+            
+            One can also provide nMg (number of bound Mg2+ ions),
+            but the default is 0
+        """
         pmap = self.cid2PseudoisomerMap(cid)
         for p_nH, p_z, p_nMg, dG0 in pmap.ToMatrix():
             if nH == p_nH and nMg == p_nMg:
@@ -45,6 +54,15 @@ class Thermodynamics(object):
             "energy for the species (nH=%d, nMg=%d)" % (cid, nH, nMg))
 
     def cid2dG0_tag(self, cid, pH=None, pMg=None, I=None, T=None):
+        """
+            Input:
+                A CID of a compound and the aqueous conditions 
+                (pH, I, pMg)
+            
+            Returns:
+                The biochemical dG'0_f (i.e. transformed Gibbs free energy
+                of formation)
+        """
         pH = pH or self.pH
         I = I or self.I
         T = T or self.T
@@ -53,7 +71,13 @@ class Thermodynamics(object):
     
     def reaction_to_dG0(self, sparse_reaction, pH=None, pMg=None, I=None, T=None):
         """
-            calculate the predicted dG0_r
+            Input:
+                A reaction in sparse representation and the aqueous conditions 
+                (pH, I, pMg)
+            
+            Returns:
+                The biochemical dG'0_r (i.e. transformed changed in Gibbs free 
+                energy of reaction)
         """
         return sum([coeff * self.cid2dG0_tag(cid, pH, pMg, I, T) for 
                     (cid, coeff) in sparse_reaction.iteritems()])
@@ -170,7 +194,7 @@ class Thermodynamics(object):
         for c, cid in enumerate(cids):
             name = kegg.cid2name(cid)
             try:
-                for (nH, z, nMg, dG0) in self.cid2pmatrix(cid):
+                for (nH, z, nMg, dG0) in self.cid2PseudoisomerMap(cid).ToMatrix():
                     html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td><td>%d</td></tr>\n' % \
                                       (kegg.cid2link(cid), cid, name, dG0, nH, z, nMg))
                 dG0_f[c] = self.cid2dG0_tag(cid)

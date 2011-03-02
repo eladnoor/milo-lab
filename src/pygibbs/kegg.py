@@ -16,7 +16,7 @@ from pygibbs import kegg_errors
 from pygibbs import kegg_parser
 from pygibbs import kegg_reaction
 from pygibbs import kegg_utils
-from toolbox import util, database
+from toolbox import util
 from copy import deepcopy
 from toolbox.database import SqliteDatabase
 from toolbox.singletonmixin import Singleton

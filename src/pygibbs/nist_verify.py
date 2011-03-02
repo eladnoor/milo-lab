@@ -8,7 +8,6 @@
 from pylab import * #@UnusedWildImport
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups import GroupContribution
-from pygibbs.kegg import Kegg
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
 from toolbox import database
@@ -40,6 +39,7 @@ def main():
     estimators['NIST regression'] = regress
         
     gc = GroupContribution(db, html_writer)
+    gc.override_gc_with_measurements = True
     gc.init()
     estimators['Milo Group Contribution'] = gc
     
