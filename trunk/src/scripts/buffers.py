@@ -4,13 +4,17 @@ from math import log10
 import pylab
 from pygibbs.thermodynamic_constants import default_pH
 
-missing_compounds = {}
-missing_buffers = {}
-
 BUFFERS_CSV_FNAME = '../data/thermodynamics/pKa_of_buffers.csv'
 NIST_CSV_FNAME = '../data/thermodynamics/nist_equilibrium_raw.csv'
 KEGG_COMPOUND_FNAME = '../data/thermodynamics/nist_compounds_to_kegg.csv'
 OUTPUT_FNAME = '../data/thermodynamics/nist.csv'
+
+class MissingCompoundsFromKeggException(Exception):
+    def __init__(self, names):
+        self.names = names
+    def __str__(self):
+        return "Could not find this reactant in the list: " + \
+            ', '.join(self.names)
 
 def remove_superfluous_chars(s):
     to_remove = ['(g)', '(l)', '(aq)', '(liq)', '(s)', '(sln)', '"']
@@ -36,12 +40,40 @@ def parse_single_reactant(s, compound_aliases):
         if name in compound_aliases:
             return count + " " + compound_aliases[name]
     
-    missing_compounds[s] = missing_compounds.get(s, 0) + 1
-    raise Exception("Could not find this reactant in the list: " + s)                
+    raise MissingCompoundsFromKeggException([s])                
 
 def parse_reaction_side(s, compound_aliases):
-    return [parse_single_reactant(r, compound_aliases) for r in s.split(' + ')]
+    res = []
+    missing_names = []
+    for r in s.split(' + '):
+        try:
+            res.append(parse_single_reactant(r, compound_aliases))
+        except MissingCompoundsFromKeggException as e:
+            missing_names += e.names
+    if missing_names:
+        raise MissingCompoundsFromKeggException(missing_names)
+    else:
+        return " + ".join(res)
 
+def parse_reaction(s, compound_aliases):
+    subs, prods = s.split('=', 1)
+    missing_names = []
+    try:
+        subs = parse_reaction_side(subs, compound_aliases)
+    except MissingCompoundsFromKeggException as e:
+        missing_names += e.names
+
+    try:
+        prods = parse_reaction_side(prods, compound_aliases)
+    except MissingCompoundsFromKeggException as e:
+        missing_names += e.names
+
+    if missing_names:
+        raise MissingCompoundsFromKeggException(missing_names)
+    else:
+        return subs + ' = ' + prods
+
+    
 def make_sure_it_is_float(s):
     if not s or s == 'not given':
         return None
@@ -107,7 +139,7 @@ def get_buffer_charges2(base_charge, pKa_list, conc, pH):
         charge -= 1
     return [(charge, conc)]
 
-def buffer_match(buffer_name, buffer_dict, pH):
+def buffer_match(buffer_name, buffer_dict, pH, missing_buffers):
     if not buffer_name:
         return []
     
@@ -117,13 +149,13 @@ def buffer_match(buffer_name, buffer_dict, pH):
 
     if buffer_name.find(' or ') != -1:
         for b in re.split(' or ', buffer_name):
-            return buffer_match(b, buffer_dict, pH)
+            return buffer_match(b, buffer_dict, pH, missing_buffers)
 
     sub_buffer_names = re.split(' and |\s?\+ |, |\/| and\/or ', buffer_name)
     if len(sub_buffer_names) > 1:
         res = []
         for b in sub_buffer_names:
-            res += buffer_match(b, buffer_dict, pH)
+            res += buffer_match(b, buffer_dict, pH, missing_buffers)
         return res
     
     tmp = re.findall('^(\w+)\s?.?(\d+\.\d+)( m)*(\))?$', buffer_name)
@@ -159,7 +191,7 @@ def buffer_match(buffer_name, buffer_dict, pH):
             charge_conc_pairs.append((-1, conc))
 
         b = "%s (%s mol dm-3)" % (tmp[0][1], tmp[0][2])
-        return charge_conc_pairs + buffer_match(b, buffer_dict, pH)
+        return charge_conc_pairs + buffer_match(b, buffer_dict, pH, missing_buffers)
     
     b = "<" + buffer_name + ">"
     missing_buffers[b] = missing_buffers.get(b, 0) + 1
@@ -274,6 +306,11 @@ def load_compound_aliases():
     compound_aliases["heptanoate"] = "C17714"
     compound_aliases["propanonyl-coa"] = "C00100"
     compound_aliases["(r)-glyceraldehyde"] = "C00577"
+    compound_aliases["ammonium carbamate"] = "C01563" # AKA carbamate
+    compound_aliases["tributyrylglycerol"] = "C13870" # AKA Glyceryl tributyrate
+    compound_aliases["3-oxobutanoyl-coa"] = "C00332" # AKA acetoacetyl-CoA
+    compound_aliases["ap-nadh"] = "C90001" # 3-acetyl NADH
+    compound_aliases["ap-nad"] = "C90002" # 3-acetyl NAD+
     
     return compound_aliases
 
@@ -304,7 +341,10 @@ def rewrite_nist(buffer_dict, compound_aliases):
         each compound from both classes is matched to aliases and recieve its 
         representative name
     """
-    
+    successful_row_counter = 0
+    missing_compounds = {}
+    missing_buffers = {}
+
     nist_reader = csv.reader(open(NIST_CSV_FNAME, 'r'))
     titles = nist_reader.next()
     salt_titles = []
@@ -354,6 +394,11 @@ def rewrite_nist(buffer_dict, compound_aliases):
             continue
         if url_id == "T1=74UEB/BLA_161" and row[titles.index('Temp')] == '203.15': # typo in NIST, verified using original paper
             row[titles.index('Temp')] = '303.15'
+        if url_id == "T1=62GOL/WAG_1116": # possible huge mistake in NIST
+            continue
+        if url_id == "T1=80TER/RAB_994": # type on NIST, where it's written 2 ammonia instead of only 1
+            row[titles.index('Reaction')] = \
+                "ammonium carbamate(aq) + H2O(l) = ammonia(aq) + carbon dioxide(aq)"
         
         row_dict = dict([(titles[i], row[i]) for i in xrange(len(titles))])
         row_dict['URL'] = "http://xpdb.nist.gov/enzyme_thermodynamics/" + row_dict['URL']
@@ -369,15 +414,13 @@ def rewrite_nist(buffer_dict, compound_aliases):
             # specific corrections to NIST
             row_dict['Reaction'] = row_dict['Reaction'].replace(' +-D-', ' + D-')
             row_dict['Reaction'] = row_dict['Reaction'].replace(' +-lipoate', ' + lipoate')
-            subs, prods = row_dict['Reaction'].split('=', 1)
-            
             try:
-                subs = parse_reaction_side(subs, compound_aliases)
-                prods = parse_reaction_side(prods, compound_aliases)
-                row_dict['KEGG Reaction'] = ' + '.join(subs) + ' = ' + ' + '.join(prods)
-            except Exception:
-                #print "Warning at row %d: %s" % (row_counter, str(e))
-                pass
+                row_dict['KEGG Reaction'] = parse_reaction(row_dict['Reaction'],
+                                                           compound_aliases)
+            except MissingCompoundsFromKeggException as e:
+                if row_dict['K']: # count missing compounds only if the reaction has an observed Keq
+                    for s in e.names:
+                        missing_compounds[s] = missing_compounds.get(s, 0) + 1
         
         for key in ['Temp', 'Ionic strength', 'pH']:
             row_dict[key] = make_sure_it_is_float(row_dict[key])
@@ -427,7 +470,7 @@ def rewrite_nist(buffer_dict, compound_aliases):
         ### Buffers ###
         row_dict['buffer'] = choose_buffer(row_dict)
         charge_conc_pairs += buffer_match(row_dict['buffer'], 
-                                          buffer_dict, row_dict['pH'])
+                                          buffer_dict, row_dict['pH'], missing_buffers)
         
         if row_dict['pH']:
             row_dict['pH'] = '%.3g' % row_dict['pH']
@@ -437,18 +480,22 @@ def rewrite_nist(buffer_dict, compound_aliases):
             row_dict['pMg'] = "%.3g" % -log10(Mg_conc)
             
         nist_writer.writerow([row_dict[k] for k in new_titles])
-    
+        if row_dict['K'] and row_dict['KEGG Reaction'] and not row_dict['comment']:
+            successful_row_counter += 1
+    return missing_compounds, missing_buffers, successful_row_counter
 
 def main():
     buffer_dict = load_buffer_dict()
     compound_aliases = load_compound_aliases()
-    rewrite_nist(buffer_dict, compound_aliases)
+    missing_compounds, missing_buffers, successful_row_counter = rewrite_nist(buffer_dict, compound_aliases)
     
-    for name, count in sorted(missing_buffers.iteritems()):
+    for name, count in sorted(missing_buffers.iteritems(), key=lambda x:x[1]):
         print "Missing buffer: %s (%d times)" % (name, count) 
 
-    for name, count in sorted(missing_compounds.iteritems()):
-        print "Missing compound: %s (%d times)" % (name, count) 
+    for name, count in sorted(missing_compounds.iteritems(), key=lambda x:x[1]):
+        print "Missing compound: %s (%d times)" % (name, count)
+        
+    print "Deciphered %d reactions!" % successful_row_counter
 
 def test_buffer_methods():
     pH_range = pylab.arange(3, 12.01, 0.1)
@@ -466,5 +513,5 @@ def test_buffer_methods():
     pylab.show()
 
 if __name__ == "__main__":
-    #main()
-    test_buffer_methods()
+    main()
+    #test_buffer_methods()

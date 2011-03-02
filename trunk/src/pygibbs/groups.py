@@ -832,7 +832,7 @@ class GroupContribution(Thermodynamics):
         """
         dG0_p0 = None
         dG0_p1 = None
-        for (dG0, unused_nH, z, unused_nMg) in self.cid2PseudoisomerMap(cid).ToMatrix():
+        for dG0, unused_nH, z, unused_nMg in self.cid2PseudoisomerMap(cid).ToMatrix():
             if (z == charge):
                 dG0_p0 = dG0
             elif (z == charge + 1):

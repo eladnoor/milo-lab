@@ -243,7 +243,10 @@ class Nist(object):
         """
             Produces a set of plots that show some statistics about the NIST database
         """
-        logging.info('Analyzing stats against NIST database.')
+        logging.info('Analyzing stats against NIST database (%d rows).' % len(self.data))
+        
+        if not self.data:
+            raise Exception("The database has no rows in it")
         
         T_list = []
         I_list = []

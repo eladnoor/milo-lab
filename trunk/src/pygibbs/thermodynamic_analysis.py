@@ -374,7 +374,7 @@ charge
         T = parse_float_field(field_map, "T", default_T)
         cid = parse_string_field(field_map, "COMPOUND")
         cid = int(cid[1:])
-        pmatrix = self.thermo.cid2pmatrix(cid)
+        pmatrix = self.thermo.cid2PseudoisomerMap(cid).ToMatrix()
         data = pylab.zeros((len(self.cid), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
