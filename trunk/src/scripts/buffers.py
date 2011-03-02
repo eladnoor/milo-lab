@@ -118,17 +118,23 @@ def get_buffer_charges(base_charge, pKa_list, conc, pH):
     if not pH:
         pH = default_pH
     
-    species_proportions = [1]
-    for n in xrange(len(pKa_list)):
-        p = pylab.prod([10**(pH - pKa) for pKa in pKa_list[:n]])
+    pKa_list = sorted(pKa_list, reverse=True)
+    
+    species_proportions = []
+    for n in xrange(len(pKa_list) + 1):
+        p = pylab.prod([10**(pKa - pH) for pKa in pKa_list[:n]])
         species_proportions.append(p)
     
     total = sum(species_proportions)
-    species_proportions = [p/total for p in species_proportions]
+    species_concentration = [(conc * p / total) for p in reversed(species_proportions)]
+    # Note that the calculation of the species lists them in order of increasing
+    # charges. Since we are given the base-charge (i.e. the highest charge) we
+    # need to reverse the order to so that the first value will correspond to
+    # the bast_charge 
     
     charge_conc_pairs = []
-    for i, p in enumerate(species_proportions):
-        charge_conc_pairs.append((base_charge-i, p*conc))
+    for i, c in enumerate(species_concentration):
+        charge_conc_pairs.append((base_charge - i, c))
     return charge_conc_pairs
 
 def get_buffer_charges2(base_charge, pKa_list, conc, pH):
@@ -498,18 +504,18 @@ def main():
     print "Deciphered %d reactions!" % successful_row_counter
 
 def test_buffer_methods():
-    pH_range = pylab.arange(3, 12.01, 0.1)
+    pH_range = pylab.arange(1, 14.01, 0.1)
     N = len(pH_range)
-    base_charge = 0
+    base_charge = 10
     pKa_list = [5, 8, 11]
-    c_total = 1.0
+    c_total = 0.1
     charge = pylab.zeros((N, 2))
     for i in xrange(N):
-        charge[i, 0] = sum([(ch * conc) for (ch, conc) in get_buffer_charges(base_charge, pKa_list, c_total, pH_range[i])])
-        charge[i, 1] = sum([(ch * conc) for (ch, conc) in get_buffer_charges2(base_charge, pKa_list, c_total, pH_range[i])])
+        charge[i, 0] = 0.5 * sum([(ch**2 * conc) for (ch, conc) in get_buffer_charges(base_charge, pKa_list, c_total, pH_range[i])])
+        charge[i, 1] = 0.5 * sum([(ch**2 * conc) for (ch, conc) in get_buffer_charges2(base_charge, pKa_list, c_total, pH_range[i])])
     pylab.plot(pH_range, charge)
     pylab.xlabel('pH')
-    pylab.ylabel('mean charge')
+    pylab.ylabel('Ionic strength')
     pylab.show()
 
 if __name__ == "__main__":

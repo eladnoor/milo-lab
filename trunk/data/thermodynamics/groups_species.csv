@@ -1,8 +1,4 @@
 "NAME","PROTONS","CHARGE","SMARTS","FOCAL_ATOMS","REMARK","SKIP"
-"CoA-S-C(=O)",31,-4,"CC(C)(COP([O-])(=O)OP([O-])(=O)OCC1OC(C(O)C1OP([O-])([O-])=O)n2cnc3c(N)[nH0]cnc23)C(O)C(=O)NCCC(=O)NCCSC=O","All","CoA",
-"CoA-S-C(=O)",32,-3,"CC(C)(COP([O-])(=O)OP([O-])(=O)OCC1OC(C(O)C1OP([O-])([OH])=O)n2cnc3c(N)[nH0]cnc23)C(O)C(=O)NCCC(=O)NCCSC=O","All","CoA",
-"CoA-S-C(=O)",33,-2,"CC(C)(COP([O-])(=O)OP([O-])(=O)OCC1OC(C(O)C1OP([O-])([OH])=O)n2cnc3c(N)[nH+]cnc23)C(O)C(=O)NCCC(=O)NCCSC=O","All","CoA",
-"CoA-S-C(=O)",35,0,"CC(C)(COP([OH])(=O)OP([OH])(=O)OCC1OC(C(O)C1OP([OH])([OH])=O)n2cnc3c(N)[nH0]cnc23)C(O)C(~O)~NCCC(~O)~NCCSC=O","All","CoA - this should not exist but is what is found in KEGG",
 "primary -Cl3",0,0,"Cl[CH0](Cl)Cl",0,"chlorine (attached to a primary carbon with 2 other chlorine atoms attached)",
 "primary -Cl2",0,0,"Cl[CH1]Cl",0,"chlorine (attached to a primary carbon with 1 other chlorine atom attached)",
 "secondary -Cl2",0,0,"Cl[CH0]Cl",0,"chlorine (attached to a secondary carbon with 1 other chlorine atom attached)",
@@ -25,6 +21,7 @@
 "-S",0,-1,"C[S;H0;X1;-1]","1","thiol",
 "-S-S-",0,0,"C[SH0X2R0][SH0X2R0]C","1|2","dithionine",
 "ring -S-S-",0,0,"C[SH0X2R1][SH0X2R1]C","1|2","dithionine",
+"-C(=O)S-",0,0,"CC(=O)[SH0X2]C","1|2|3","thioester",
 "-S-",0,0,"C[SH0X2]C","1","thioether",
 "CO-OPO3",0,-2,"C(=O)OP(=O)([O-])[O-]","All","phospho-carboxylic acid",
 "CO-OPO3",1,-1,"C(=O)OP(=O)([O-])O","All","phospho-carboxylic acid",
@@ -108,3 +105,4 @@
 "*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)",
 "*Ar",0,0,"c1cccc1","None","aromatic ring correction (expanded in code)",
 "*Har",0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)",
+"CoA-S",0,0,"CC(C)(COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n2cnc3c(N)ncnc23)C(O)C(~O)~NCCC(~O)~NCCS","None","CoA group (since it is defined as a 0)"

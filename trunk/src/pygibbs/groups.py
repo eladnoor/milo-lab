@@ -757,11 +757,8 @@ class GroupContribution(Thermodynamics):
         return sorted(self.cid2pmap_dict.keys())
 
     def Mol2Decomposition(self, mol, ignore_protonations=False):
-        try:
-            return self.group_decomposer.Decompose(
-                mol, ignore_protonations, strict=True)
-        except GroupDecompositionError as e:
-            raise GroupDecompositionError(str(e) + "\n" + mol.title + "\n")
+        return self.group_decomposer.Decompose(mol, ignore_protonations, 
+                                               strict=True)
 
     def Mol2PseudoisomerMap(self, mol, ignore_protonations=False):
         decomposition = self.Mol2Decomposition(mol, ignore_protonations)
@@ -1157,7 +1154,7 @@ if __name__ == '__main__':
 
         mols = {}
         cid = int(sys.argv[1])
-        mols[G.kegg.cid2name(cid)] = G.kegg.cid2mol(cid)
+        mols[G.kegg.cid2smiles(cid)] = G.kegg.cid2mol(cid)
         #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
         #mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
@@ -1201,8 +1198,8 @@ if __name__ == '__main__':
                 print pmap
                 dG0 = pmap.Transform()
                 print dG0
-            except GroupDecompositionError:
-                print "Cannot decompose compound to groups"
+            except GroupDecompositionError as e:
+                print "Cannot decompose compound to groups: " + str(e)
             except GroupMissingTrainDataError as e:
                 print e.Explain(G)
             mol.draw()
