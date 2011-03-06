@@ -7,7 +7,7 @@ html_writer.py - Construct HTML pages
 
 import os, math, types, openbabel, oasa
 import xml.dom.minidom
-from toolbox.util import _mkdir
+from toolbox.util import _mkdir, get_current_svn_revision
 
 class BaseHtmlWriter:
     def __init__(self):
@@ -26,6 +26,8 @@ class BaseHtmlWriter:
         self.write('<script type="text/javascript" src="expandCollapse.js"></script>\n')
         self.write('</head>\n')
         self.write('<html>\n<body>\n')
+        r = get_current_svn_revision()
+        self.write('<a href=https://code.google.com/p/milo-lab/source/browse/trunk/?r=%d>milo-lab SVN r%d</a></br>' % (r,r))
 
     def write_js(self, path):
         if (os.path.exists(path + '/expandCollapse.js')):
@@ -307,4 +309,5 @@ def test():
     pylab.plot([1, 2, 3, 4], [4, 3, 2, 1], 'g--')
     html_write.embed_matplotlib_figure(fig, 1000, 1000)
 
-if __name__ == '__main__': test()
+if __name__ == '__main__':
+    test()
