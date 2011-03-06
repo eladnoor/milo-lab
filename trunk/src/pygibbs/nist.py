@@ -50,6 +50,7 @@ class NistRowData:
         self.comment = row_dict['comment']
         self.origin = row_dict['origin']
         self.url = row_dict.get('url', None)
+        self.ref_id = row_dict.get('reference_id', None)
 
         if self.comment not in [None,
                                 "",
@@ -63,6 +64,16 @@ class NistRowData:
             raise NistMissingCrucialDataException(
                 "cannot use this NIST reaction because of the Keq is not transformed: " + self.K_type)
     
+    def GetYear(self):
+        try:
+            year = int(self.ref_id[0:2])
+            if year < 11:
+                return year + 2000
+            else:
+                return year + 1900
+        except ValueError:
+            return None
+                
     def ReadFromDatabase(self, row_dict):
         self.K = row_dict['K']
         self.pH = row_dict['pH']
@@ -252,34 +263,47 @@ class Nist(object):
         I_list = []
         pH_list = []
         pMg_list = []
+        year_list = []
         for nist_row_data in self.data:
             T_list.append(nist_row_data.T - 273.15)
             I_list.append(nist_row_data.I)
             pH_list.append(nist_row_data.pH)
             pMg_list.append(nist_row_data.pMg)
+            year = nist_row_data.GetYear()
+            if year:
+                year_list.append(year)
         
-        fig1 = pylab.figure()
-        pylab.rc('text', usetex=False)
-        pylab.rc('font', family='serif', size=7)
+        fig = pylab.figure()
         pylab.title("NIST database statistics")
-        pylab.subplot(2,2,1)
         pylab.hist(T_list, pylab.arange(int(min(T_list)), int(max(T_list)+1), 2.5))
         pylab.xlabel("Temperature (C)")
         pylab.ylabel("No. of measurements")
-        pylab.subplot(2,2,2)
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+
+        fig = pylab.figure()
         pylab.hist(pMg_list, pylab.arange(0, 10.1, 0.1))
         pylab.xlabel("pMg")
         pylab.ylabel("No. of measurements")
-        pylab.subplot(2,2,4)
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+
+        fig = pylab.figure()
         pylab.hist(pH_list, pylab.arange(4, 11, 0.1))
         pylab.xlabel("pH")
         pylab.ylabel("No. of measurements")
-        pylab.subplot(2,2,3)
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+
+        fig = pylab.figure()
         pylab.hist(I_list, pylab.arange(0, 1, 0.025))
         pylab.xlabel("Ionic Strength [mM]")
         pylab.ylabel("No. of measurements")
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
-        self.html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
+        # histogram of publication years
+        fig = pylab.figure()
+        pylab.hist(year_list, pylab.arange(1930, 2010, 5))
+        pylab.xlabel("Year of publication")
+        pylab.ylabel("No. of measurements")
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
         alberty = Alberty()
         alberty_cids = set(alberty.cid2pmap_dict.keys())
@@ -296,7 +320,7 @@ class Nist(object):
                 hist_b[cnt] += 1
         hist_a[0] = len(alberty_cids.difference(self.cid2count.keys()))
         
-        fig2 = pylab.figure()
+        fig = pylab.figure()
         pylab.rc('font', size=10)
         pylab.hold(True)
         p1 = pylab.bar(range(N), hist_a, color='b')
@@ -306,7 +330,7 @@ class Nist(object):
         pylab.ylabel("no. of compounds measured in N reactions")
         pylab.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
 
-        self.html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
+        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
         logging.info('Done analyzing stats.')
 
     def verify_results(self, thermodynamics):

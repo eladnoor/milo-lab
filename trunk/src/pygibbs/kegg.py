@@ -36,6 +36,7 @@ class Kegg(Singleton):
     ENZYME_FILE = '../kegg/enzyme.txt'
     REACTION_FILE = '../kegg/reaction.txt'
     MODULE_FILE = '../kegg/module.txt'
+    COMPOUND_ADDITIONS_FILE = '../data/kegg_additions.csv'
 
     def __init__(self, loadFromFiles=False):
         # default colors for pydot (used to plot modules)
@@ -98,7 +99,7 @@ class Kegg(Singleton):
                     comp.cas = cas
             
             self.cid2compound_map[cid] = comp
-
+            
         logging.info("Retrieving REACTION file and parsing it")
         if (not os.path.exists(self.REACTION_FILE)):
             urllib.urlretrieve(self.REACTION_URL, self.REACTION_FILE)
@@ -214,7 +215,7 @@ class Kegg(Singleton):
                 logging.error('Duplicate EC class %s' % enz.ec)
             else:
                 self.ec2enzyme_map[enz.ec] = enz
-    
+
     def ToDatabase(self):
         self.db.CreateTable('kegg_compound', 'cid INT, name TEXT, all_names TEXT, '
            'mass REAL, formula TEXT, inchi TEXT, num_electrons INT, from_kegg BOOL, '
@@ -291,7 +292,35 @@ class Kegg(Singleton):
         for row_dict in self.db.DictReader('kegg_bounds'):
             self.cid2bounds[row_dict['cid']] = (row_dict['c_min'], 
                                                 row_dict['c_max'])
+            
+        self.ReadAdditionsFile()
 
+    def ReadAdditionsFile(self):
+        logging.info("Adding compound data from %s" % self.COMPOUND_ADDITIONS_FILE)
+        for row_dict in csv.DictReader(open(self.COMPOUND_ADDITIONS_FILE)):
+            if row_dict['cid'] and row_dict['inchi']:
+                raise Exception("One must provide either a CID or InChI but "
+                                "not both - fix compound %s" % row_dict['name'])
+            if row_dict['cid']:
+                cid = int(row_dict['cid'])
+                self.name2cid_map[row_dict['name']] = cid
+                self.cid2compound(cid).all_names.append(row_dict['name'])
+            elif row_dict['inchi']:
+                if row_dict['inchi'] in self.inchi2cid_map:
+                    raise Exception("The InChI for compound %s already exists "
+                                    "in KEGG at C%05d" % (row_dict['name'],
+                                    self.inchi2cid_map[row_dict['inchi']]))
+                new_cid = max(self.cid2compound_map.keys() + [90000]) + 1
+                comp = kegg_compound.Compound(new_cid)
+                comp.inchi = row_dict['inchi']
+                self.inchi2cid_map[comp.inchi] = new_cid
+                comp.name = row_dict['name']
+                comp.all_names = [row_dict['name']]
+                mol = pybel.readstring('inchi', comp.inchi)
+                comp.mass = mol.exactmass
+                comp.formula = mol.formula
+                self.cid2compound_map[new_cid] = comp
+    
     def AllCompounds(self):
         """Returns all the compounds."""
         return self.cid2compound_map.values()
