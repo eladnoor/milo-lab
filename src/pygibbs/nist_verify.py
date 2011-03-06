@@ -5,13 +5,12 @@
     Alberty, Hatzimanikatis, and the Milo lab Group Contribution method
 """
 
-from pylab import * #@UnusedWildImport
+import logging
 from toolbox.html_writer import HtmlWriter
+from toolbox.database import SqliteDatabase
 from pygibbs.groups import GroupContribution
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
-from toolbox import database
-import logging
 from pygibbs.nist_regression import NistRegression
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
@@ -20,8 +19,8 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 ################################################################################################################
 
 def main():
-    db_public = database.SqliteDatabase('../data/public_data.sqlite')
-    db = database.SqliteDatabase('../res/gibbs.sqlite')
+    db_public = SqliteDatabase('../data/public_data.sqlite')
+    db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/nist/report.html")
     nist = Nist(db, html_writer)
     nist.Load()

@@ -187,6 +187,7 @@ class GroupContribution(Thermodynamics):
             compounds.append(cdict)
             self.db.Insert('gc_cid2error', [cid, error_str])
         
+        logging.info('Rendering the kegg_pmaps.html file')
         templates.render_to_file('kegg_pmaps.html', {'compounds': compounds},
                                  '../res/kegg_pmaps.html')
         logging.info('Writing the formation energies to the database')

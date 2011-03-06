@@ -3,6 +3,7 @@ import csv
 from math import log10
 import pylab
 from pygibbs.thermodynamic_constants import default_pH
+from pygibbs.kegg import Kegg
 
 BUFFERS_CSV_FNAME = '../data/thermodynamics/pKa_of_buffers.csv'
 NIST_CSV_FNAME = '../data/thermodynamics/nist_equilibrium_raw.csv'
@@ -27,12 +28,13 @@ def remove_superfluous_chars(s):
 
 def parse_single_reactant(s, compound_aliases):
     s = remove_superfluous_chars(s)
-    if s in compound_aliases:
-        if s == "carbon dioxide":
-            # change carbon dioxide changed to HCO3
-            return "C00288"
-        else:
-            return compound_aliases[s]
+
+    if s == "carbon dioxide": # change carbon dioxide changed to carbonate
+        return "C00288"
+    elif s == "1/2 o2": # special case that confuses the regular expression
+        return "0.5 C00007"
+    elif s in compound_aliases:
+        return compound_aliases[s]
 
     tmp = re.findall('^(\d+) (.*)', s)
     if tmp:
@@ -223,100 +225,11 @@ def load_compound_aliases():
         (array of all known aliases for each representative name)
     """
     compound_aliases = {}
-    for row in csv.reader(open(KEGG_COMPOUND_FNAME, 'r')):
-        cid = int(row[0])
-        for alias in row[2].split(';'):
+    kegg = Kegg.getInstance()
+    for cid, comp in kegg.cid2compound_map.iteritems():
+        for alias in comp.all_names:
             alias = remove_superfluous_chars(alias)
             compound_aliases[alias] = "C%05d" % cid
-    
-    #manually added compounds
-    compound_aliases["1-dodecanoic acid"] = "C02679"
-    compound_aliases[",-trehalose 6-phosphate"] = "C00689"
-    compound_aliases["nad(ox)"] = "C00003"
-    compound_aliases["nad(red)"] = "C00004"
-    compound_aliases["nadp(ox)"] = "C00006"
-    compound_aliases["1/2 o2"] = "0.5 C00007"
-    compound_aliases["gdpglucose"] = "C00394"
-    compound_aliases["adpglucose"] = "C00498"
-    compound_aliases["dadp"] = "C00206"
-    compound_aliases["3-oxobutanoate"] = "C00109"
-    compound_aliases["pyrophosphate  this is an approximate result."] = "C00013"
-    compound_aliases["vitamin a alcohol"] = "C00473"
-    compound_aliases["n-decanoic acid"] = "C01571"
-    compound_aliases["2'-deoxyinosine"] = "C05512"
-    compound_aliases["n-octonic acid"] = "C06423"
-    compound_aliases["orotidine 5 '-phosphate"] = "C01103"
-    compound_aliases["5-pregnane-17,21-diol-3,11,20-trione"] = "C05469"
-    compound_aliases["5-pregnane-3,17,21-triol-11,20-dione"] = "C05471"
-    compound_aliases["5-phospho--d-ribose 1-diphosphate"] = "C00119"
-    compound_aliases["nadp(red)"] = "C00005"
-    compound_aliases["n-w-phospho-l-arginine"] = "C05945"
-    compound_aliases["6-amino-d-glucose 6-phosphate"] = "C00352"
-    compound_aliases["cis-cis-hexadienedioate"] = "C02480"
-    compound_aliases["n-octanoic acid"] = "C06423"
-    compound_aliases["glycinamide"] = "C03838"
-    compound_aliases["lyxose"] = "C01508"
-    compound_aliases["adenosine 3':5'-(cyclic)phosphate"] = "C00575"
-    compound_aliases["l-arginyl-trna-arg"] = "C02163"
-    compound_aliases["/-)-1-phenyl-1-ethanol"] = "C07112"
-    compound_aliases["udpgalactose"] = "C00052"
-    compound_aliases["d-1-piperidine-2-carboxylate"] = "C04092"
-    compound_aliases["gdpmannose"] = "C00096"
-    compound_aliases["benzyloxycarbonylglycine"] = "C03710"  
-    compound_aliases["l-tyrosyl-trna-tyr"] = "C02839"
-    compound_aliases["guanosine 5 '-phosphate"] = "C00144"
-    compound_aliases["nomega-phospho-l-arginine"] = "C05945"
-    compound_aliases["adp--s"] = "C01469"
-    compound_aliases["\)-1-phenyl-1-propyl acetate"] = "C17666"
-    compound_aliases["adenylyl-[l-glutamate:ammonia ligase(adp-forming)]"] = "C01299"
-    compound_aliases[")-1-phenyl ethanol"] = "C07112"
-    compound_aliases["dihydro--lipoate"] = "C02147"
-    compound_aliases["trna-tyr"] = "C00787"
-    compound_aliases["phosphotaurocyamine"] = "C03149"
-    compound_aliases["trna-arg"] = "C01636"
-    compound_aliases["d-glucose 6-phosphate-2-"] = "C00092"
-    compound_aliases["1-phenyl-1-ethanone"] = "C07113"
-    compound_aliases[",-trehalose"] = "C01083"
-    compound_aliases["(r)-3-phosphoglycerate"] = "C00197"
-    compound_aliases["[l-glutamate:ammonia ligase(adp-forming)]"] = "C01281"
-    compound_aliases["1,2,3-trioctanoyl glycerol"] = "C013044" #trioctanoylglycerol
-    compound_aliases["trna-phe"] = "C01648"
-    compound_aliases["trna-lys"] = "C01646"
-    compound_aliases["trna-his"] = "C01643"
-    compound_aliases["trna-ser"] = "C01650"
-    compound_aliases["trna-ile"] = "C01644"
-    compound_aliases["l-isoleusine"] = "C00407"
-    compound_aliases["(n-1) h2o"] = "(n-1) C00001"
-    compound_aliases["estradiol-17"] = "C00951"
-    compound_aliases["trna-thr"] = "C01651"
-    compound_aliases["trna-val"] = "C01653"
-    compound_aliases["h2o(1)"] = "C00001"
-    compound_aliases["l-arginosuccinate"] = "C03406"
-    compound_aliases["glucose 1-phosphate"] = "C00103"
-    compound_aliases["pyruvate-"] = "C00022"
-    compound_aliases["l-lysyl-trna-lys"] = "C01931"
-    compound_aliases["l-histidyl-trna-his"] = "C02988"
-    compound_aliases["l-seryl-trna-ser"] = "C02553"
-    compound_aliases["l-isoleucyl-trna-ile"] = "C03127"
-    compound_aliases["5-amino-1--d-ribosyl-4-imidazolecarboxamide 5'-phosphate"] = "C04677"
-    compound_aliases["3'-phosphoadenylylsulfate"] = "C00053"
-    compound_aliases["5-androstane-3,17-dione"] = "C00674"
-    compound_aliases["L--glycerophosphate(aq)"] = "C00093"
-    compound_aliases["glutathione (reduced)"] = "C00051"
-    compound_aliases["glutathoine(red)"] = "C00051"
-    compound_aliases["dimethylmaleate"] = "C00922"
-    compound_aliases["(s)-proline"] = "C00148"
-    compound_aliases["octanal"] = "C01545"
-    compound_aliases["orthophospate"] = "C00009"
-    compound_aliases["d-ribulose 1,5-biphosphate"] = "C01182"
-    compound_aliases["heptanoate"] = "C17714"
-    compound_aliases["propanonyl-coa"] = "C00100"
-    compound_aliases["(r)-glyceraldehyde"] = "C00577"
-    compound_aliases["ammonium carbamate"] = "C01563" # AKA carbamate
-    compound_aliases["tributyrylglycerol"] = "C13870" # AKA Glyceryl tributyrate
-    compound_aliases["3-oxobutanoyl-coa"] = "C00332" # AKA acetoacetyl-CoA
-    compound_aliases["ap-nadh"] = "C90001" # 3-acetyl NADH
-    compound_aliases["ap-nad"] = "C90002" # 3-acetyl NAD+
     
     return compound_aliases
 
