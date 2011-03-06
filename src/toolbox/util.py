@@ -1,7 +1,8 @@
-import os, types, pylab, csv
+import os, types, pylab, sys
 from toolbox.cartesian_product import cartesian_product
-from pylab import svd, find, exp, log, pi, nan, mean, sqrt, array, dot
+from pylab import svd, find, exp, log, pi, nan, sqrt, array, dot
 import Levenshtein
+import re
 
 def read_simple_mapfile(filename, default_value=""):
     map = {}
@@ -341,6 +342,18 @@ def get_close_matches(word, possibilities, n=3, cutoff=None, case_sensitive=Fals
             hits.append((possibility, d))
 
     return sorted(hits, cmp=lambda x,y: cmp(x[1], y[1]))
+
+def get_main_module_filename():
+    return sys.modules['__main__'].__file__
+
+def get_current_svn_revision():
+    x = os.popen('svn info %s' % get_main_module_filename())
+    for r in re.findall('\nRevision: (\d+)\n', x.read()):
+        try:
+            return int(r)
+        except ValueError:
+            return None
+    return None
 
 ###############################################################
 def test():
