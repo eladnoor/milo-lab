@@ -39,11 +39,11 @@ class Stoichiometric_LP():
         self.reactions = reactions
         
         # reaction fluxes are the continuous variables
-        for r in range(len(self.reactions)):
+        for r in xrange(len(self.reactions)):
             self.cpl.variables.add(names=[self.reactions[r].name], lb=[0], ub=[self.flux_upper_bound])
         
         # add a linear constraint on the fluxes for each compound (mass balance)
-        for c in range(len(self.compounds)):
+        for c in xrange(len(self.compounds)):
             constraint_name = "C%05d_mass_balance" % self.compounds[c].cid
             self.cpl.linear_constraints.add(names=[constraint_name], senses='E', rhs=[0])
             for r in pylab.find(self.S[c,:] != 0):
