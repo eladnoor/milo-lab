@@ -1,10 +1,8 @@
 from HTMLParser import HTMLParser, HTMLParseError
 from urllib2 import urlopen
-import re
-import sys
-import csv
 from copy import deepcopy
-import sqlite3
+from toolbox.database import SqliteDatabase
+import logging
 
 class ShowAll(HTMLParser):
     def __init__(self, url):
@@ -94,41 +92,36 @@ class EnzymeData(HTMLParser):
     def handle_data(self, data):
         self._table_cell += data.replace('\n','').strip()
 
-def fetch_nist_data(db_fname="../res/nist.sqlite"):
+def fetch_nist_data(db):
     domain = "http://xpdb.nist.gov/enzyme_thermodynamics"
     LOG = open('../res/nist.log', 'w')
-    
     
     # First, gather all the links and reactions from the 'enzyme_show_all_data.pl' page
     url2reaction_map = {}
     col = 0
-    print "Parsing enzyme_show_all_data.pl", "col =",
-    while (True):
+    logging.info("Parsing enzyme_show_all_data.pl")
+    while True:
         col += 1
         print col,
         url = domain + "/enzyme_show_all_data.pl?col=%d.&R1=V2" % col
         spider = ShowAll(url)
-        if (len(spider._data) == 0):
+        if len(spider._data) == 0:
             break
-        for (url, values) in spider._data.iteritems():
+        for url, values in spider._data.iteritems():
             url2reaction_map[url] = values[1]
-    print "[DONE]"
         
     # Then, for each URL, download the table of data and store in all_values
     all_field_names = set()
     all_values = []
-    for (url, reaction) in url2reaction_map.iteritems():
-        last_html_column = False
+    for url, reaction in url2reaction_map.iteritems():
         col = 0
-        print "Parsing: ", url, "col =",
-        while (not last_html_column):
+        logging.info("Parsing URL: %s" % url)
+        while True:
             col += 1
-            print col,
             url_curr = url.replace('enzyme_data1.pl?T1=','enzyme_data1.pl?col=%d.&T1=' % col)
             try:
                 edata = EnzymeData(domain + "/" + url_curr)
                 if (edata._tables == []):
-                    print "[DONE]"
                     break
                     
                 data_map = {'Reaction' : reaction, 'URL' : url_curr}
@@ -150,58 +143,27 @@ def fetch_nist_data(db_fname="../res/nist.sqlite"):
                 LOG.write(url_curr + ": OK\n")
             except HTMLParseError:
                 LOG.write(url_curr + ": HTML Parse ERROR\n")
-                print "HTML Parse ERROR"
+                logging.warning("HTML Parsing failed")
                 break
 
     # Now, insert all the data into one big table in the DB (TABLE raw)
-    comm = sqlite3.connect(db_fname)
     n = len(all_field_names)
-    comm.execute("DROP TABLE IF EXISTS fields")
-    comm.execute("CREATE TABLE fields (id INT, name TEXT)")
+    db.CreateTable('nist_fields', ['col_number INT', 'name TEXT'])
     all_field_names = list(all_field_names)
-    for i in range(n):
-        comm.execute("INSERT INTO fields VALUES(?,?)", (i, all_field_names[i]))
-    comm.execute("DROP TABLE IF EXISTS raw")
-    comm.execute("CREATE TABLE raw (" + ','.join(["field%d TEXT" % i for i in range(n)]) + ")")
-    for (row_map) in all_values:
-        comm.execute("INSERT INTO raw VALUES(" + ','.join(["?"] * n) + ")", [row_map.get(key, None) for key in all_field_names])
-    comm.commit()
+    for i in xrange(n):
+        db.Insert('nist_fields', [i, all_field_names[i]])
+    db.CreateTable('nist_values', ['id INT'] + ["field%d TEXT" % i for i in xrange(n)])
+    
+    row_id = 0
+    for row_map in all_values:
+        db.Insert('nist_values', [row_id] + [row_map.get(key, None) for key in all_field_names])
+        row_id += 1
+    db.Commit()
     LOG.close()
-    
-def copy_data_to_gibbs_db(cursor, nist_db_fname="../res/nist.sqlite"):
-    comm_nist = sqlite3.connect(nist_db_fname)
-    cursor.execute("DROP TABLE IF EXISTS nist_fields")
-    cursor.execute("CREATE TABLE nist_fields (id INT, name TEXT)")
-    n = 0
-    for row in comm_nist.execute("SELECT * FROM fields"):
-        cursor.execute("INSERT INTO nist_fields VALUES(?,?)", row)
-        n += 1
-    
-    cursor.execute("DROP TABLE IF EXISTS nist_raw")
-    cursor.execute("CREATE TABLE nist_raw (" + ','.join(["field%d TEXT" % i for i in range(n)]) + ")")
-    for row in comm_nist.execute("SELECT * FROM raw"):
-        cursor.execute("INSERT INTO nist_raw VALUES(" + ','.join(["?"] * n) + ")", row)
-    
-def compile_database(cursor):
-    cursor.execute("DROP TABLE IF EXISTS nist_equilibrium")
-    cursor.execute("CREATE TABLE nist_equilibrium (evaluation TEXT, K REAL, ec TEXT, T REAL, pH REAL, reaction TEXT, enzyme TEXT, url TEXT);")
-
-    for index in [1, 35]:
-        cursor.execute("INSERT INTO nist_equilibrium " + \
-                 "   SELECT field7,field%d,field43,field54,field6,field20,field45,field24" % index + \
-                 "   FROM nist_raw" + \
-                 "   WHERE field%d IS NOT NULL;" % index)
     
 ################################################################################################################
 #                                                 MAIN                                                         #        
 ################################################################################################################
-gibbs_db_fname = "../res/gibbs.sqlite"
-comm_gibbs = sqlite3.connect(gibbs_db_fname)
-cursor = comm_gibbs.cursor()
-
-if (False):
-    fetch_nist_data()
-    copy_data_to_gibbs_db(cursor)
-
-compile_database(cursor)
-comm_gibbs.commit()
+if __name__ == "__main__":
+    db = SqliteDatabase('../res/nist_raw.sqlite')
+    fetch_nist_data(db)

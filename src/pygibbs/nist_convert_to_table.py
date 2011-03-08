@@ -4,6 +4,7 @@ from math import log10
 import pylab
 from pygibbs.thermodynamic_constants import default_pH
 from pygibbs.kegg import Kegg
+from toolbox.database import SqliteDatabase
 
 BUFFERS_CSV_FNAME = '../data/thermodynamics/pKa_of_buffers.csv'
 NIST_CSV_FNAME = '../data/thermodynamics/nist_equilibrium_raw.csv'
@@ -74,7 +75,6 @@ def parse_reaction(s, compound_aliases):
         raise MissingCompoundsFromKeggException(missing_names)
     else:
         return subs + ' = ' + prods
-
     
 def make_sure_it_is_float(s):
     if not s or s == 'not given':
@@ -138,14 +138,6 @@ def get_buffer_charges(base_charge, pKa_list, conc, pH):
     for i, c in enumerate(species_concentration):
         charge_conc_pairs.append((base_charge - i, c))
     return charge_conc_pairs
-
-def get_buffer_charges2(base_charge, pKa_list, conc, pH):
-    i = 0
-    charge = base_charge
-    while i < len(pKa_list) and pH > pKa_list[i]:
-        i += 1
-        charge -= 1
-    return [(charge, conc)]
 
 def buffer_match(buffer_name, buffer_dict, pH, missing_buffers):
     if not buffer_name:
@@ -254,18 +246,22 @@ reverse_transformed_rows = \
 
 ################################################################################
 
-def rewrite_nist(buffer_dict, compound_aliases):
+def WriteDataToDB(db):
     """
         each reaction is composed of 'substrates' and 'products'.
         each compound from both classes is matched to aliases and recieve its 
         representative name
     """
+    buffer_dict = load_buffer_dict()
+    compound_aliases = load_compound_aliases()
+
     successful_row_counter = 0
     missing_compounds = {}
     missing_buffers = {}
 
     nist_reader = csv.reader(open(NIST_CSV_FNAME, 'r'))
     titles = nist_reader.next()
+    
     salt_titles = []
     for t in titles[14:46]:
         tmp = re.findall('[cm]\(([\w\d\+\-]+),mol[\s\.][dk][mg]-[13]\)', t)
@@ -282,10 +278,10 @@ def rewrite_nist(buffer_dict, compound_aliases):
         'Evaluation', 'EC value', 'Enzyme', 'KEGG Reaction', 'Reaction',
         'K', 'Temp', 'Ionic strength', 'pH', 'pMg', 'comment', 'Ktype']
     
-    nist_writer = csv.writer(open(OUTPUT_FNAME, 'w'))
-    nist_writer.writerow(['url', 'reference_id', 'method', 'evaluation', 'ec',
-        'enzyme', 'kegg_reaction', 'reaction', 'K', 'T', 'I', 'pH', 'pMg', 
-        'comment', 'Ktype'])
+    db.CreateTable('nist_equilibrium', ['url TEXT', 'reference_id TEXT', 
+        'method TEXT', 'evaluation TEXT', 'ec TEXT', 'enzyme TEXT',
+        'kegg_reaction TEXT', 'reaction TEXT', 'K REAL', 'T REAL', 'I REAL', 
+        'pH REAL', 'pMg REAL', 'comment TEXT', 'Ktype TEXT'])
     
     row_counter = 0
     for row in nist_reader:
@@ -397,17 +393,13 @@ def rewrite_nist(buffer_dict, compound_aliases):
             row_dict['Ionic strength'] = "%.3g" % (0.5 * sum([(conc * ch**2) for (ch, conc) in charge_conc_pairs]))
         if Mg_conc > 0:
             row_dict['pMg'] = "%.3g" % -log10(Mg_conc)
-            
-        nist_writer.writerow([row_dict[k] for k in new_titles])
+        
+        db.Insert('nist_equilibrium', [row_dict[k] for k in new_titles]) 
         if row_dict['K'] and row_dict['KEGG Reaction'] and not row_dict['comment']:
             successful_row_counter += 1
-    return missing_compounds, missing_buffers, successful_row_counter
 
-def main():
-    buffer_dict = load_buffer_dict()
-    compound_aliases = load_compound_aliases()
-    missing_compounds, missing_buffers, successful_row_counter = rewrite_nist(buffer_dict, compound_aliases)
-    
+    db.Commit()
+
     for name, count in sorted(missing_buffers.iteritems(), key=lambda x:x[1]):
         print "Missing buffer: %s (%d times)" % (name, count) 
 
@@ -416,21 +408,7 @@ def main():
         
     print "Deciphered %d reactions!" % successful_row_counter
 
-def test_buffer_methods():
-    pH_range = pylab.arange(1, 14.01, 0.1)
-    N = len(pH_range)
-    base_charge = 10
-    pKa_list = [5, 8, 11]
-    c_total = 0.1
-    charge = pylab.zeros((N, 2))
-    for i in xrange(N):
-        charge[i, 0] = 0.5 * sum([(ch**2 * conc) for (ch, conc) in get_buffer_charges(base_charge, pKa_list, c_total, pH_range[i])])
-        charge[i, 1] = 0.5 * sum([(ch**2 * conc) for (ch, conc) in get_buffer_charges2(base_charge, pKa_list, c_total, pH_range[i])])
-    pylab.plot(pH_range, charge)
-    pylab.xlabel('pH')
-    pylab.ylabel('Ionic strength')
-    pylab.show()
-
 if __name__ == "__main__":
-    main()
+    db = SqliteDatabase('../data/public_data.sqlite')
+    WriteDataToDB(db)
     #test_buffer_methods()
