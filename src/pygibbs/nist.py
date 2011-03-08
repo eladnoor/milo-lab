@@ -5,12 +5,9 @@ from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy
 from pygibbs.alberty import Alberty
 from toolbox.util import _mkdir, calc_rmse, calc_r2
 from toolbox.html_writer import HtmlWriter
-from pygibbs.thermodynamic_constants import R, default_pMg
+from pygibbs.thermodynamic_constants import R, default_I, default_pMg
 from toolbox.database import SqliteDatabase
-import csv
-from toolbox.ods import ODSDictReader
 import copy
-
 
 class NistMissingCrucialDataException(Exception):
     pass
@@ -24,46 +21,40 @@ class NistRowData:
     def __init__(self):
         pass
     
-    def ReadFromDict(self, row_dict):
+    @staticmethod
+    def none_float(x):
+        if x:
+            return float(x)
+        else:
+            return None
+    
+    def ReadFromDatabase(self, row_dict):
+        self.K_tag = NistRowData.none_float(row_dict['K_tag'])
+        self.pH = NistRowData.none_float(row_dict['pH'])
+        if not (self.K_tag and self.pH): # missing Keq or pH makes the data unusable
+            raise NistMissingCrucialDataException(
+                "cannot use this NIST reaction because it is missing information about K', pH or I")
+        
+        self.T = NistRowData.none_float(row_dict['T']) or default_T
+        
+        # if there is no imformation about Ionic strength of pMg, assume by
+        # default that the concentration of ions is 0 (note that pMg = 14 
+        # is effectively [Mg] = 0).
+        self.I = NistRowData.none_float(row_dict['I']) or 0.0
+        self.pMg = NistRowData.none_float(row_dict['pMg']) or 14.0 
+        self.dG0_r = -R*self.T*pylab.log(self.K_tag)
+        self.evaluation = row_dict['evaluation']
+        self.url = row_dict['url']
+        self.ref_id = row_dict['reference_id']
         reaction = row_dict['kegg_reaction']
         if not reaction:
             raise NistMissingCrucialDataException(
                 "cannot use this NIST reaction because it couldn't be mapped to KEGG IDs")
-
         try:
             self.sparse = NistRowData.ParseReactionFormula(reaction)
         except KeggParseException as e:
             raise NistMissingCrucialDataException("cannot use reaction \"%s\", because: %s" % (reaction, str(e)))
 
-        if not (row_dict['K'] and row_dict['pH'] and row_dict['I']): # missing Keq, pH or I makes the data unusable
-            raise NistMissingCrucialDataException(
-                "cannot use this NIST reaction because it is missing information about K, pH or I")
-        
-        self.K = float(row_dict['K'])
-        self.pH = float(row_dict['pH'])
-        self.I = float(row_dict['I'])
-        self.T = NistRowData.none_float(row_dict['T']) or default_T
-        self.pMg = NistRowData.none_float(row_dict['pMg']) or default_pMg
-        self.K_type = row_dict['Ktype']
-        self.dG0_r = -R*self.T*pylab.log(self.K)
-        self.evaluation = row_dict['evaluation']
-        self.comment = row_dict['comment']
-        self.origin = row_dict['origin']
-        self.url = row_dict.get('url', None)
-        self.ref_id = row_dict.get('reference_id', None)
-
-        if self.comment not in [None,
-                                "",
-                                "cosolvent => none", 
-                                "added solute => none", 
-                                "solvent => none"]:
-            raise NistMissingCrucialDataException(
-                "cannot use this NIST reaction because of an unknown solvent: " + self.comment)
-            
-        if self.K_type not in ["K'", "Kc'", "Km'", u"K&apos;", u"Km&apos;", u"Kc&apos;"]:
-            raise NistMissingCrucialDataException(
-                "cannot use this NIST reaction because of the Keq is not transformed: " + self.K_type)
-    
     def GetYear(self):
         try:
             year = int(self.ref_id[0:2])
@@ -71,29 +62,6 @@ class NistRowData:
                 return year + 2000
             else:
                 return year + 1900
-        except ValueError:
-            return None
-                
-    def ReadFromDatabase(self, row_dict):
-        self.K = row_dict['K']
-        self.pH = row_dict['pH']
-        self.I = row_dict['I']
-        self.pMg = row_dict['pMg']
-        self.T = row_dict['T']
-        self.K_type = row_dict['Ktype']
-        self.dG0_r = row_dict['dG0']
-        self.evaluation = row_dict['evaluation']
-        self.comment = row_dict['comment']
-        self.sparse = NistRowData.SetReactionFromString(row_dict['reaction'])
-        self.origin = row_dict['origin']
-        self.url = row_dict['url']
-    
-    @staticmethod
-    def none_float(x):
-        if not x:
-            return None
-        try:
-            return float(x)
         except ValueError:
             return None
     
@@ -166,86 +134,28 @@ class NistRowData:
             
     
 class Nist(object):
-    def __init__(self, db, html_writer):
-        self.db = db
+    def __init__(self, html_writer):
+        self.db = SqliteDatabase('../data/public_data.sqlite')
         self.html_writer = html_writer
         self.kegg = Kegg.getInstance()
         self.T_range = (298, 314)
         self.override_I = None
         self.override_pMg = None
+        self.FromDatabase()
 
-    def FromFile(self, filename):
-        """
-            Reads the contents of the CSV file into the database for faster
-        """
-        if filename.find('.ods') != -1:
-            reader = ODSDictReader
-        else:
-            reader = csv.DictReader
-            
-        ###
-        # read the NIST data from the CSV file, complete the missing conditions with the default values
-        # replace the textual reaction with a "sparse_reaction" vector representation of the formula
-        # and calculate the delta-G0 (instead of the Keq)
-        logging.info('Reading NIST reaction data from: ' + filename)
-        self.data = []
-        self.cid2count = {}
-        row_number = 1
-        for row_dict in reader(open(filename, 'r')):
-            row_number += 1
-            origin = '%s - row %d' % (filename, row_number)
-            row_dict['origin'] = origin
-            try:
-                nist_row_data = NistRowData()
-                nist_row_data.ReadFromDict(row_dict)
-            except NistMissingCrucialDataException as e:
-                logging.debug("%s - %s" % (origin, str(e)))
-                continue
-            try:
-                nist_row_data.sparse = self.kegg.BalanceReaction(nist_row_data.sparse, balance_water=True)
-            except NistReactionBalanceException as e:
-                logging.warning("%s - %s" % (origin, str(e)))
-                logging.debug(str(nist_row_data.sparse))
-                continue
-            
-            self.data.append(nist_row_data)
-            for cid in nist_row_data.GetAllCids():
-                self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
-        
-    def ToDatabase(self):
-        columns = ['K REAL', 'pH REAL', 'I REAL', 'pMg REAL', 'T REAL',
-                 'dG0 REAL', 'Ktype TEXT', 'evaluation TEXT', 
-                 'comment TEXT', 'reaction TEXT', 'origin TEXT',
-                 'url TEXT']
-        self.db.CreateTable('nist_data', ','.join(columns))
-        for nist_row_data in self.data:
-            row_list = [nist_row_data.K, nist_row_data.pH, nist_row_data.I,
-                        nist_row_data.pMg, nist_row_data.T, nist_row_data.dG0_r,
-                        nist_row_data.K_type, nist_row_data.evaluation,
-                        nist_row_data.comment, 
-                        nist_row_data.GetReactionString(nist_row_data.sparse),
-                        nist_row_data.origin,
-                        nist_row_data.url]
-            self.db.Insert('nist_data', row_list)
-            
     def FromDatabase(self):
         self.data = []
         self.cid2count = {}
         logging.info('Reading NIST reaction data from database')
-        for row_dict in self.db.DictReader('nist_data'):
+        for row_dict in self.db.DictReader('nist_equilibrium'):
             nist_row_data = NistRowData()
-            nist_row_data.ReadFromDatabase(row_dict)
-            self.data.append(nist_row_data)
-            for cid in nist_row_data.GetAllCids():
-                self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
-        
-    def Load(self):
-        if not self.db.DoesTableExist('nist_data'):
-            #self.FromFile('../data/thermodynamics/nist.ods')
-            self.FromFile('../data/thermodynamics/nist.csv')
-            self.ToDatabase()
-        else:
-            self.FromDatabase()    
+            try:
+                nist_row_data.ReadFromDatabase(row_dict)
+                self.data.append(nist_row_data)
+                for cid in nist_row_data.GetAllCids():
+                    self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
+            except NistMissingCrucialDataException:
+                continue
         
     def GetAllCids(self):
         return sorted(self.cid2count.keys())
@@ -265,10 +175,14 @@ class Nist(object):
         pMg_list = []
         year_list = []
         for nist_row_data in self.data:
-            T_list.append(nist_row_data.T - 273.15)
-            I_list.append(nist_row_data.I)
             pH_list.append(nist_row_data.pH)
-            pMg_list.append(nist_row_data.pMg)
+            T_list.append(nist_row_data.T - 273.15)
+
+            if nist_row_data.I:
+                I_list.append(nist_row_data.I)
+            if nist_row_data.pMg:
+                pMg_list.append(nist_row_data.pMg)
+            
             year = nist_row_data.GetYear()
             if year:
                 year_list.append(year)
@@ -357,11 +271,10 @@ class Nist(object):
         for row_data in self.SelectRowsFromNist():
             unknown_set = set(row_data.GetAllCids()).difference(known_cid_set)
             if unknown_set:
-                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
+                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.ref_id)
                 continue
             
-            #label = row_data.evaluation
-            label = row_data.K_type
+            label = row_data.evaluation
             
             if label not in evaluation_map:
                 evaluation_map[label] = ([], [])
@@ -381,7 +294,7 @@ class Nist(object):
             total_list.append([error, row_data.dG0_r, dG0_pred, 
                                row_data.sparse, row_data.pH, row_data.pMg, 
                                row_data.I, row_data.T, row_data.evaluation, 
-                               row_data.origin, row_data.url])
+                               row_data.url])
         
         if not dG0_obs_vec:
             return 0, 0
@@ -439,8 +352,8 @@ class Nist(object):
             d['I'] = '%.2f' % row[6]
             d['T'] = '%.1f' % row[7]
             d['eval.'] = row[8]
-            if row[10]:
-                d['url'] = '<a href="%s">link</a>' % row[10]
+            if row[9]:
+                d['url'] = '<a href="%s">link</a>' % row[9]
             else:
                 d['url'] = ''
             dict_list.append(d)
@@ -471,11 +384,7 @@ class Nist(object):
 if __name__ == '__main__':
     #logging.getLogger('').setLevel(logging.DEBUG)
     _mkdir("../res/nist")
-    db = SqliteDatabase('../res/gibbs.sqlite')    
     html_writer = HtmlWriter("../res/nist/statistics.html")
-    nist = Nist(db, html_writer)
-    #nist.FromFile('../data/thermodynamics/nist.ods')
-    nist.FromFile('../data/thermodynamics/nist.csv')
-    nist.ToDatabase()
+    nist = Nist(html_writer)
     nist.AnalyzeStats()
     html_writer.close()

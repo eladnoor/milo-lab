@@ -5,11 +5,9 @@ import pylab
 from pygibbs.thermodynamic_constants import default_pH
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
+import types
 
 BUFFERS_CSV_FNAME = '../data/thermodynamics/pKa_of_buffers.csv'
-NIST_CSV_FNAME = '../data/thermodynamics/nist_equilibrium_raw.csv'
-KEGG_COMPOUND_FNAME = '../data/thermodynamics/nist_compounds_to_kegg.csv'
-OUTPUT_FNAME = '../data/thermodynamics/nist.csv'
 
 class MissingCompoundsFromKeggException(Exception):
     def __init__(self, names):
@@ -59,6 +57,9 @@ def parse_reaction_side(s, compound_aliases):
         return " + ".join(res)
 
 def parse_reaction(s, compound_aliases):
+    if s.find('=') == -1:
+        raise MissingCompoundsFromKeggException([])
+    
     subs, prods = s.split('=', 1)
     missing_names = []
     try:
@@ -77,7 +78,7 @@ def parse_reaction(s, compound_aliases):
         return subs + ' = ' + prods
     
 def make_sure_it_is_float(s):
-    if not s or s == 'not given':
+    if not s or s == 'not given' or s == '-':
         return None
     
     if s == '298.l5':
@@ -112,7 +113,7 @@ def choose_buffer(row_dict):
     """ choose the first buffer that has a concentration value """
     
     for key in ['buffer', 'buffer(mol dm-3)', 'Buffer']:
-        if re.findall('\d+\.\d+', row_dict[key]):
+        if row_dict[key] and re.findall('\d+\.\d+', row_dict[key]):
             return row_dict[key].lower()
     return None
 
@@ -225,190 +226,196 @@ def load_compound_aliases():
     
     return compound_aliases
 
-# rows with K instead of K'
-reverse_transformed_rows = \
-['T1=00BYR/GOL_1519',
-'T1=00ROD/BAR_1603',
-'T1=01TIS/IHL_1682',
-'T1=02TEW/HAW_1641',
-'T1=03RAN/VAN_1602',
-'T1=06TAN/SUR_1609',
-'T1=06XU/WES_1713',
-'T1=07LIN/ALG_1584',
-'T1=76CRA/WAI_1521',
-'T1=79VAN_1688',
-'T1=82NG/WON_1590',
-'T1=91PAR/HOR_1594',
-'T1=98DIE/STR_1524',
-'T1=99ELS_1527',
-'T1=99KAT/UED_1557',
-'T1=99NIE/SCH_1592']
-
 ################################################################################
 
-def WriteDataToDB(db):
+def WriteDataToDB(nist_db, db):
     """
         each reaction is composed of 'substrates' and 'products'.
-        each compound from both classes is matched to aliases and recieve its 
+        each compound from both classes is matched to aliases and receive its 
         representative name
     """
     buffer_dict = load_buffer_dict()
     compound_aliases = load_compound_aliases()
+    titles2colnum = {}
+    for new_row_dict in nist_db.DictReader('nist_fields'):
+        titles2colnum[new_row_dict['name']] = new_row_dict['col_number']
+    
+    salt_titles = { # values are lists of (charge, conc) pairs
+        'm(KCl,mol.kg-3)':    [(1, 1), (-1, 1)], # K(+) Cl(-)
+        'c(KCl,mol dm-3)':    [(1, 1), (-1, 1)], # K(+) Cl(-)
+        'c(MnCl2,mol dm-3)':  [(2, 1), (-1, 2)], # Mn(2+) 2xCl(-)
+        'c(MgCl2)':           [(2, 1), (-1, 2)], # Mg(2+) 2xCl(-)
+        'c(MnSO4,mol dm-3)':  [(2, 1), (-2, 1)], # Mn(2+) SO4(2-)
+        'c c(Mg2+,mol dm-3)': [(2, 1)],          # Mg(2+)
+        'c(Mg)tot(mol dm-3)': [(2, 1)],          # Mg(2+)
+        'c(MgSO4,mol dm-3)':  [(2, 1), (-2, 1)], # Mg(2+) SO4(2-)
+        'm(MgCl2,mol.kg-1)':  [(2, 1), (-1, 2)], # Mg(2+) 2xCl(-)
+        'c(CaCl2,mol dm-3)':  [(2, 1), (-1, 2)], # Ca(2+) 2xCl(-)
+        'c(ZnCl2,mol dm-3)':  [(2, 1), (-1, 2)], # Zn(2+) 2xCl(-)
+        'm(KCl,mol.kg-1)':    [(1, 1), (-1, 1)], # K(+) Cl(-)
+        'c(Na+,mol dm-3)':    [(1, 1)],          # Na(+)
+        'c(NaCl,mol dm-3)':   [(1, 1), (-1, 1)], # Na(+) Cl(-)
+        'c(MgCl2,mol dm-3)':  [(2, 1), (-1, 2)], # Mg(2+) 2xCl(-)
+        'c(Mg2+,mol dm-3)':   [(2, 1)],          # Mg(2+)
+        'c(MnSO4)':           [(2, 1), (-2, 1)], # Mn(2+) SO4(2-)
+        'pMn':                [(2, 1)], # the logscale is taken care of 
+        'pMg':                [(2, 1)], # specifically in the code itself
+        'c(orthophosphate)': 'phosphate',
+        'c(orthophosphate,mol dm-3)': 'phosphate',
+        'c(phosphate,mol dm-3)': 'phosphate',
+        'c(Tris,mol dm-3)': 'tris'
+        }
 
-    successful_row_counter = 0
-    missing_compounds = {}
-    missing_buffers = {}
+    Mg_titles = ['c(MgCl2)', 'c c(Mg2+,mol dm-3)', 'c(Mg)tot(mol dm-3)',
+        'c(MgSO4,mol dm-3)', 'm(MgCl2,mol.kg-1)', 'c(MgCl2,mol dm-3)',
+        'c(Mg2+,mol dm-3)', 'pMg']
+    
+    title_mapping = {'URL':'url', 'Reference_id':'reference_id', 
+        'Method':'method', 'Evaluation':'evaluation', 'EC value':'ec', 
+        'Enzyme':'enzyme', 'Reaction':'reaction', 'pH':'pH',
+        'Ic(mol dm-3)':'I', 'Ic':'I', 'Im(mol kg-1)':'I', 'Ic(kJ.mol-1)':'I',
+        'T(T)':'T', 'T(K)':'T',
+        "K'":"K_tag", "Kc'(mol dm-3)":"K_tag", "Kc'":"K_tag", "K '":"K_tag", "Km'":"K_tag",
+        "K'(kJ.mol-1)":"K_tag", "Kc":"K", "K":"K"}
+    
+    text_titles = ['url', 'reference_id', 
+        'method', 'evaluation', 'ec', 'enzyme',
+        'kegg_reaction', 'reaction']
+    real_titles = ['K', 'K_tag', 'T', 'I', 
+        'pH', 'pMg']
+    new_titles = text_titles + real_titles
+    
+    db.CreateTable('nist_equilibrium', [t + " TEXT" for t in text_titles] + [t + " REAL" for t in real_titles])
+    db.CreateTable('nist_errors', ['row_id INT', 'url TEXT', 'comment TEXT'])
+    
+    for row in nist_db.Execute('select * from nist_values'):
+        skip_this_row = False
+        row_comments = []
 
-    nist_reader = csv.reader(open(NIST_CSV_FNAME, 'r'))
-    titles = nist_reader.next()
-    
-    salt_titles = []
-    for t in titles[14:46]:
-        tmp = re.findall('[cm]\(([\w\d\+\-]+),mol[\s\.][dk][mg]-[13]\)', t)
-        if tmp:
-            salt_titles.append(tmp[0])
-            continue
-        tmp = re.findall('[cm]\(([\w\d\+\-]+)\)', t)
-        if tmp:
-            salt_titles.append(tmp[0])
-            continue
-        salt_titles.append(t)
-    
-    new_titles = ['URL', 'Reference_id', 'Method', 
-        'Evaluation', 'EC value', 'Enzyme', 'KEGG Reaction', 'Reaction',
-        'K', 'Temp', 'Ionic strength', 'pH', 'pMg', 'comment', 'Ktype']
-    
-    db.CreateTable('nist_equilibrium', ['url TEXT', 'reference_id TEXT', 
-        'method TEXT', 'evaluation TEXT', 'ec TEXT', 'enzyme TEXT',
-        'kegg_reaction TEXT', 'reaction TEXT', 'K REAL', 'T REAL', 'I REAL', 
-        'pH REAL', 'pMg REAL', 'comment TEXT', 'Ktype TEXT'])
-    
-    row_counter = 0
-    for row in nist_reader:
-        row_counter += 1
+        row_id = row[0]
+        row_dict = {}
+        for title, colnum in titles2colnum.iteritems():
+            row_dict[title] = row[colnum+1] # +1 because the first column is the row ID
     
         # specific corrections to NIST
-        if row[0].find('&') == -1:
+        if row_dict['URL'].find('&') == -1:
             continue
-        url_id = row[0].split('&')[1]
+        url_id = row_dict['URL'].split('&')[1]
         if url_id == "T1=43KRE/EGG_1159": # NIST mistakenly list the pH as 1.4
-            row[titles.index('pH')] = "7.4"
+            row_dict['pH'] = "7.4"
         if url_id == "T1=72WUR/HES_1276": # the alpha and beta appear in NIST but have been thrown away by our parsing
-            row[titles.index('Reaction')] = "alpha-D-Glucose 6-phosphate(aq) = " + \
+            row_dict['Reaction'] = "alpha-D-Glucose 6-phosphate(aq) = " + \
                 "beta-D-Glucose 6-phosphate(aq)"
         if url_id == "T1=93VIN/GRU_1691": # NIST says nicotinamide mononucleotide instead of nicotinate mononucleotide
-            row[titles.index('Reaction')] = "Nicotinate D-ribonucleotide(aq) + pyrophosphate(aq) = " + \
+            row_dict['Reaction'] = "Nicotinate D-ribonucleotide(aq) + pyrophosphate(aq) = " + \
                 "nicotinic acid(aq) + 5-Phospho-alpha-D-ribose 1-diphosphate(aq)"
         if url_id == "T1=73VEL/GUY_1167": # the concentration is actually in mM (not M)
-            row[titles.index('c(MgCl2,mol dm-3)')] += " 10-3"
+            row_dict['c(MgCl2,mol dm-3)'] += " 10-3"
         if url_id == "T1=63GRE_1058":
-            row[titles.index('Buffer')] = "potassium maleate (0.001 mol dm-3)" # originally NIST say 1.0 M, which is too high
+            row_dict['Buffer'] = "potassium maleate (0.001 mol dm-3)" # originally NIST say 1.0 M, which is too high
         if url_id == "T1=69LAN/DEK_92":
             continue
         if url_id == "T1=98KIM/VOE_559":
             continue
-        if url_id == "T1=74UEB/BLA_161" and row[titles.index('Temp')] == '203.15': # typo in NIST, verified using original paper
-            row[titles.index('Temp')] = '303.15'
+        if url_id == "T1=74UEB/BLA_161" and row_dict['T(K)'] == '203.15': # typo in NIST, verified using original paper
+            row_dict['T(K)'] = '303.15'
         if url_id == "T1=62GOL/WAG_1116": # possible huge mistake in NIST
             continue
         if url_id == "T1=80TER/RAB_994": # type on NIST, where it's written 2 ammonia instead of only 1
-            row[titles.index('Reaction')] = \
+            row_dict['Reaction'] = \
                 "ammonium carbamate(aq) + H2O(l) = ammonia(aq) + carbon dioxide(aq)"
         
-        row_dict = dict([(titles[i], row[i]) for i in xrange(len(titles))])
-        row_dict['URL'] = "http://xpdb.nist.gov/enzyme_thermodynamics/" + row_dict['URL']
-        row_dict['KEGG Reaction'] = None
-        row_dict['comment'] = None
-        row_dict['K'] = make_sure_it_is_float(row_dict['K'])
-        if url_id in reverse_transformed_rows:
-            row_dict["Ktype"] = "K"
-        else:
-            row_dict["Ktype"] = "K\'"
-    
-        if row_dict['Reaction'].find('=') != -1:
-            # specific corrections to NIST
-            row_dict['Reaction'] = row_dict['Reaction'].replace(' +-D-', ' + D-')
-            row_dict['Reaction'] = row_dict['Reaction'].replace(' +-lipoate', ' + lipoate')
-            try:
-                row_dict['KEGG Reaction'] = parse_reaction(row_dict['Reaction'],
-                                                           compound_aliases)
-            except MissingCompoundsFromKeggException as e:
-                if row_dict['K']: # count missing compounds only if the reaction has an observed Keq
-                    for s in e.names:
-                        missing_compounds[s] = missing_compounds.get(s, 0) + 1
+        new_row_dict = {}
+        for old_title, new_title in title_mapping.iteritems():
+            new_row_dict.setdefault(new_title, None)
+            if row_dict[old_title] and not new_row_dict[new_title]:
+                new_row_dict[new_title] = row_dict[old_title]
+            elif row_dict[old_title] and new_row_dict[new_title]:
+                raise Exception("Row %d (%s) in NIST has two values for %s" % 
+                                (row_id, row_dict['URL'], new_title))
+
+        new_row_dict['url'] = "http://xpdb.nist.gov/enzyme_thermodynamics/" + new_row_dict['url']
+        new_row_dict['pMg'] = None
         
-        for key in ['Temp', 'Ionic strength', 'pH']:
-            row_dict[key] = make_sure_it_is_float(row_dict[key])
-    
-        if row_dict['x(cosolvent)']:
-            row_dict['comment'] = 'cosolvent => ' + row_dict['x(cosolvent)']
-        if row_dict['cosolvent']:
-            row_dict['comment'] = 'cosolvent => ' + row_dict['cosolvent']
-    
+        if row_dict['cosolvent'] not in [None, 'none']:
+            row_comments += ['cosolvent => ' + row_dict['cosolvent']]
+            skip_this_row = True
+        if row_dict['solvent'] not in [None, 'none', 'H2O']:
+            row_comments += ['solvent => ' + row_dict['solvent']]
+            skip_this_row = True
+        
+        # specific corrections to NIST
+        new_row_dict['reaction'] = new_row_dict['reaction'].replace(' +-D-', ' + D-')
+        new_row_dict['reaction'] = new_row_dict['reaction'].replace(' +-lipoate', ' + lipoate')
+        try:
+            new_row_dict['kegg_reaction'] = parse_reaction(new_row_dict['reaction'],
+                                                       compound_aliases)
+        except MissingCompoundsFromKeggException as e:
+            row_comments += ['missing compounds: ' + str(e.names)]
+            skip_this_row = True
+
+        for key in real_titles:
+            try:
+                new_row_dict[key] = make_sure_it_is_float(new_row_dict[key])
+            except ValueError:
+                raise Exception("Cannot parse row %d, the value of %s is %s" %
+                                 (row_id, key, new_row_dict[key]))
+        
+        ### Salts ###
         Mg_conc = 0
         charge_conc_pairs = []
-        ### Salts ###
-        concentrations = row[14:46]
-        for i in xrange(len(concentrations)):
+        for title, cc_lists in salt_titles.iteritems():
             try:
-                conc = make_sure_it_is_float(concentrations[i])
+                conc = make_sure_it_is_float(row_dict[title])
             except ValueError:
                 continue
             if not conc:
                 continue
-            if salt_titles[i] in ['KCl', 'NaCl']:
-                charge_conc_pairs += [(1, conc), (-1, conc)]
-            elif salt_titles[i] == 'Na+':
-                charge_conc_pairs += [(1, conc)]
-            elif salt_titles[i] in ['Mg2+', 'Mg']:
-                charge_conc_pairs += [(2, conc)]
-            elif salt_titles[i] in ['MgCl2', 'MnCl2', 'ZnCl2', 'CaCl2']:
-                charge_conc_pairs += [(2, conc), (-1, 2*conc)]
-            elif salt_titles[i] in ['MnSO4', 'MgSO4']:
-                charge_conc_pairs += [(2, conc), (-2, conc)]
-            elif salt_titles[i] in ['pMn', 'pMg']:
-                charge_conc_pairs += [(2, 10**(-conc))]
-            elif salt_titles[i] in ['phosphate', 'orthophosphate']:
-                base_charge, pKa_list = buffer_dict['phosphate']
-                charge_conc_pairs += get_buffer_charges(base_charge, pKa_list, 
-                                                        conc, row_dict['pH'])
-            elif salt_titles[i] in ['Tris']:
-                base_charge, pKa_list = buffer_dict['tris']
-                charge_conc_pairs += get_buffer_charges(base_charge, pKa_list, 
-                                                        conc, row_dict['pH'])
+            
+            if title in ['pMn', 'pMg']:
+                conc = 10**(-conc)
                 
-            if salt_titles[i] in ['Mg2+', 'Mg', 'MgCl2', 'MgSO4']:
+            if title in Mg_titles:
                 Mg_conc += conc
-            elif salt_titles[i] == 'pMg':
-                Mg_conc += 10**(-conc)
-    
+
+            if type(cc_lists) == types.StringType:
+                base_charge, pKa_list = buffer_dict[cc_lists]
+                charge_conc_pairs += get_buffer_charges(base_charge, pKa_list, 
+                                                        conc, new_row_dict['pH'])
+            else:
+                if not cc_lists:
+                    raise Exception(title)
+                for charge, coeff in cc_lists:
+                    charge_conc_pairs.append((charge, conc*coeff))
+                    
         ### Buffers ###
-        row_dict['buffer'] = choose_buffer(row_dict)
-        charge_conc_pairs += buffer_match(row_dict['buffer'], 
-                                          buffer_dict, row_dict['pH'], missing_buffers)
+        buffer = choose_buffer(row_dict)
+        missing_buffers = {}
+        charge_conc_pairs += buffer_match(buffer, 
+            buffer_dict, new_row_dict['pH'], missing_buffers)
+        if missing_buffers:
+            row_comments += ['missing buffers: ' + str(missing_buffers)]
         
-        if row_dict['pH']:
-            row_dict['pH'] = '%.3g' % row_dict['pH']
-        if not row_dict['Ionic strength']:
-            row_dict['Ionic strength'] = "%.3g" % (0.5 * sum([(conc * ch**2) for (ch, conc) in charge_conc_pairs]))
+        if not new_row_dict['I']:
+            new_row_dict['I'] = (0.5 * sum([(conc * ch**2) for (ch, conc) in charge_conc_pairs]))
+        
         if Mg_conc > 0:
-            row_dict['pMg'] = "%.3g" % -log10(Mg_conc)
-        
-        db.Insert('nist_equilibrium', [row_dict[k] for k in new_titles]) 
-        if row_dict['K'] and row_dict['KEGG Reaction'] and not row_dict['comment']:
-            successful_row_counter += 1
+            new_row_dict['pMg'] = -log10(Mg_conc)
+
+        if skip_this_row:
+            db.Insert('nist_errors', [row_id, new_row_dict['url'], ', '.join(row_comments)])
+        else:
+            db.Insert('nist_equilibrium', [new_row_dict[k] for k in new_titles])
 
     db.Commit()
 
-    for name, count in sorted(missing_buffers.iteritems(), key=lambda x:x[1]):
-        print "Missing buffer: %s (%d times)" % (name, count) 
-
-    for name, count in sorted(missing_compounds.iteritems(), key=lambda x:x[1]):
-        print "Missing compound: %s (%d times)" % (name, count)
-        
-    print "Deciphered %d reactions!" % successful_row_counter
+    for row in db.Execute("SELECT COUNT(*) FROM nist_equilibrium "
+                          "WHERE K_tag IS NOT NULL OR K IS NOT NULL"):
+        print "%d reactions have been succesfully mapped!" % row[0]
 
 if __name__ == "__main__":
+    nist_db = SqliteDatabase('../res/nist_raw.sqlite')
     db = SqliteDatabase('../data/public_data.sqlite')
-    WriteDataToDB(db)
+    WriteDataToDB(nist_db, db)
+    
     #test_buffer_methods()

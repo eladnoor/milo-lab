@@ -27,7 +27,8 @@ class BaseHtmlWriter:
         self.write('</head>\n')
         self.write('<html>\n<body>\n')
         r = get_current_svn_revision()
-        self.write('<a href=https://code.google.com/p/milo-lab/source/browse/trunk/?r=%d>milo-lab SVN r%d</a></br>' % (r,r))
+        if r:
+            self.write('<a href=https://code.google.com/p/milo-lab/source/browse/trunk/?r=%d>milo-lab SVN r%d</a></br>' % (r,r))
 
     def write_js(self, path):
         if (os.path.exists(path + '/expandCollapse.js')):
