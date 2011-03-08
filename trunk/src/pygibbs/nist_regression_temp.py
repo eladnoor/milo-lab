@@ -17,7 +17,8 @@ def main():
     cids = [cids[i] for i in nonzero_columns]
         
     dG0 = dG0.reshape((dG0.shape[0], 1))
-    x, K = LinearRegression.SolveLinearSystem(S, dG0)
+    #x, K = LinearRegression.SolveLinearSystem(S, dG0)
+    K = LinearRegression.FindSparseKernel(S)
 
     for i in xrange(K.shape[0]):
         nonzero_columns = pylab.find(abs(K[i, :]) > 1e-10)

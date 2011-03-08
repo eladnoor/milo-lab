@@ -1,5 +1,6 @@
 import logging
-from pylab import np, find
+from pylab import np, find, norm
+from toolbox.util import gcd
 
 class LinearRegression(object):
     
@@ -124,11 +125,120 @@ class LinearRegression(object):
                 K[col-row, col] = 1
                 
         return x, K
+    
+    @staticmethod
+    def FindSparseKernel(A, eps=1e-10, upper_bound=1000):
+        """
+            Finds a sparse representation of the kernel matrix, using MILP
+            to iterate the Fundamental Modes of the matrix.
+        
+            Input:
+                a (n x m) matrix A, whose rank is r.
+            Return:
+                a (m x m-r) matrix K that will span the kernel of A, i.e.:
+                span(K) = {x | Ax = 0}
+        """
+        import cplex
+        
+        kernel_rank = A.shape[1] - LinearRegression.Rank(A, eps)
+        cpl = cplex.Cplex()
+        cpl.set_problem_name('find_kernel')
+        cpl.set_log_stream(None)
+        cpl.set_results_stream(None)
+        cpl.set_warning_stream(None)
+        
+        for col in xrange(A.shape[1]):
+            cpl.variables.add(names=['c%d_plus' % col], lb=[0], ub=[upper_bound])
+            cpl.variables.add(names=['g%d_plus' % col], types='B')
 
+            # c_plus - M*g_plus <= 0
+            constraint_name = 'g%d_plus_bound_upper' % col
+            cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[0])
+            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_plus' % col, 1)
+            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, -upper_bound)
+
+            # c_plus - g_plus >= 0
+            constraint_name = 'g%d_plus_bound_lower' % col
+            cpl.linear_constraints.add(names=[constraint_name], senses='G', rhs=[0])
+            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_plus' % col, 1)
+            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, -1)
+
+            cpl.variables.add(names=['c%d_minus' % col], lb=[0], ub=[upper_bound])
+            cpl.variables.add(names=['g%d_minus' % col], types='B')
+
+            # c_minus - M*g_minus <= 0
+            constraint_name = 'g%d_minus_bound_upper' % col
+            cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[0])
+            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_minus' % col, 1)
+            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, -upper_bound)
+
+            # c_minus - g_minus >= 0
+            constraint_name = 'g%d_minus_bound_lower' % col
+            cpl.linear_constraints.add(names=[constraint_name], senses='G', rhs=[0])
+            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_minus' % col, 1)
+            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, -1)
+            
+            # g_plus + g_minus <= 1
+            constraint_name = 'g%d_bound' % col
+            cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[1])
+            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
+            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
+
+        for row in xrange(A.shape[0]):
+            constraint_name = 'r%d' % row
+            cpl.linear_constraints.add(names=[constraint_name], senses='E', rhs=[0])
+            for col in xrange(A.shape[1]):
+                if A[row,col] != 0:
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_plus' % col, A[row,col])
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_minus' % col, -A[row,col])
+
+        all_gammas = ['g%d_plus' % col for col in xrange(A.shape[1])] + \
+                     ['g%d_minus' % col for col in xrange(A.shape[1])]
+        
+        cpl.objective.set_linear([(g, 1) for g in all_gammas])
+
+        cpl.linear_constraints.add(names=['avoid_0'], senses='G', rhs=[1])
+        for g in all_gammas:
+            cpl.linear_constraints.set_coefficients('avoid_0', g, 1)
+
+        K = np.zeros((A.shape[1], kernel_rank))
+        for dimension in xrange(kernel_rank):
+            print dimension
+            try:
+                cpl.solve()
+            except cplex.exceptions.CplexSolverError:
+                return False
+            
+            if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.MIP_optimal:
+                return False
+            
+            g_plus = cpl.solution.get_values(['g%d_plus' % col for col in xrange(A.shape[1])])
+            g_minus = cpl.solution.get_values(['g%d_minus' % col for col in xrange(A.shape[1])])
+            c_plus = cpl.solution.get_values(['c%d_plus' % col for col in xrange(A.shape[1])])
+            c_minus = cpl.solution.get_values(['c%d_minus' % col for col in xrange(A.shape[1])])
+            
+            constraint_name = 'avoid_%d' % (dimension+1)
+            cpl.linear_constraints.add(names=[constraint_name], senses='L')
+            for col in xrange(A.shape[1]):
+                if g_plus[col] + g_minus[col] > 0.5:
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
+                    if g_plus[col] > 0.5:
+                        K[col, dimension] = c_plus[col]
+                    else:
+                        K[col, dimension] = -c_minus[col]
+            nonzero_values = find(K[:, dimension])
+            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_values)-1)
+            g = min(abs(K[nonzero_values, dimension]))
+            K[:, dimension] /= g
+            
+        return K.T
+        
 if __name__ == '__main__':
-    A = np.matrix([[1, 2, 3, 9],[2, -1, 1, 8],[2, 4, 6, 3]])
-    LinearRegression.ToReducedRowEchelonForm(A, reduce_last_column=False)
+    A = np.matrix([[1, 0, 1, 1],[0, 1, 1, 1],[1, 1, 2, 2]])
+    K = LinearRegression.FindSparseKernel(A)
     print A
+    print K
     
     #y = matrix([[1],[1],[1],[1]])
     A = np.matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
@@ -138,10 +248,15 @@ if __name__ == '__main__':
     #print A
     #print x
     #w_pred, V = LinearRegression.LeastSquares(A, A*w)
+    K = LinearRegression.FindSparseKernel(A)
+    print A
+    print K
+
     w_pred, V = LinearRegression.SolveLinearSystem(A, A*w)
     print w_pred
     print V
     print np.dot(A, V.T)
+    
 
     
     x1 = np.matrix([[0,0,0,1,0]]).T
