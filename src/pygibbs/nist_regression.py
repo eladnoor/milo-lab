@@ -56,16 +56,12 @@ class NistAnchors(object):
 
 class NistRegression(Thermodynamics):
     
-    def __init__(self, db, html_writer, nist=None):
+    def __init__(self, db, html_writer):
         Thermodynamics.__init__(self)
         self.db = db
         self.html_writer = html_writer
         self.kegg = Kegg.getInstance()
-        if nist:
-            self.nist = nist
-        else:
-            self.nist = Nist(db, html_writer)
-            self.nist.Load()
+        self.nist = Nist()
         
         self.nist_anchors = NistAnchors(self.db, self.html_writer)
         self.nist_anchors.FromCsvFile()
@@ -556,27 +552,30 @@ class NistRegression(Thermodynamics):
         Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
         
     def VerifyResults(self):
-        return self.nist.verify_results(self)
+        return self.nist.verify_results(html_writer=self.html_writer, 
+                                        thermodynamics=self)
 
 
 def main():
     html_writer = HtmlWriter("../res/nist/regression.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
     db_public = SqliteDatabase('../data/public_data.sqlite')
-    alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
-    alberty.ToDatabase(db, 'alberty')
-    
-    html_writer.write("<h2>NIST regression:</h2>")
     nist_regression = NistRegression(db, html_writer)
-    nist_regression.std_diff_threshold = 100.0
-    nist_regression.nist.T_range = (298, 314)
-    #nist_regression.nist.override_I = 0.25
-    nist_regression.nist.override_pMg = 10.0
     
     if False:
+        html_writer.write("<h2>NIST pKa table:</h2>")
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
     else:
+        html_writer.write("<h2>NIST regression:</h2>")
+        
+        alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+        alberty.ToDatabase(db, 'alberty')
+        
+        nist_regression.std_diff_threshold = 100.0
+        nist_regression.nist.T_range = (298, 314)
+        #nist_regression.nist.override_I = 0.25
+        nist_regression.nist.override_pMg = 10.0
         nist_regression.ReverseTransform(prior_thermodynamics=alberty)
         nist_regression.ToDatabase()
         

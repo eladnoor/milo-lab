@@ -22,7 +22,7 @@ def main():
     db_public = SqliteDatabase('../data/public_data.sqlite')
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/nist/report.html")
-    nist = Nist(html_writer)
+    nist = Nist()
     nist.T_range = (298, 314)
     #nist.override_I = 0.25
     nist.override_pMg = 10.0
@@ -32,7 +32,7 @@ def main():
                                 db_public, 'alberty_pseudoisomers')
     estimators['Hatzimanikatis Group Contribution'] = Hatzi()
 
-    regress = NistRegression(db, html_writer, nist) 
+    regress = NistRegression(db, html_writer) 
     regress.FromDatabase()
     estimators['NIST regression'] = regress
         
@@ -46,7 +46,8 @@ def main():
         html_writer.write('<p><b>%s </b>\n' % key)
         html_writer.insert_toggle(key)
         html_writer.start_div(key)
-        num_estimations, rmse = nist.verify_results(thermodynamics)
+        num_estimations, rmse = nist.verify_results(html_writer=html_writer, 
+                                                    thermodynamics=thermodynamics)
         html_writer.end_div()
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
         logging.info('N = %d, RMSE = %.1f' % (num_estimations, rmse))
