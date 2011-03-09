@@ -75,6 +75,12 @@
 	padding-left: 6px;
 }
 
+#searchResults .resultsSection .title {
+	text-align: left;
+	font-size: 22px;
+	margin: 5px 0 5px 0;
+}
+
 #searchResults .searchResult .name {
 	color: #0066CC;
 	padding-left: 0px;
@@ -84,18 +90,24 @@
 	float: right;
 }
 
+#searchResults .searchResult .note {
+	font-size: 9px;
+	color: #FF3300;
+}
+
 #searchResults .image img {
 	border: solid 1px black;
 	max-height: 100px;
 }
 
-.parsedRxn, .compoundSelector, .compound {
+.parsedRxn, .compoundSelector, .compound, .enzyme {
 	font-size: 20px;
 	font-weight: bold;
 	margin: 15px auto;
 }
 
-table.results, table.compoundInfo, table.speciesInfo {
+table.results, table.compoundInfo, table.speciesInfo,
+table.enzymeInfo, table.reactionsInfo {
 	margin: 10px auto;
 	width: 750px;
 	border: solid 1px black;

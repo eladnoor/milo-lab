@@ -19,7 +19,7 @@ $(document).ready(function(){
 	// Set up autocomplete
 	var options = {
 	  serviceUrl: '/suggest',
-	  delimiter: /(\+|=|<=>|=>)*\s+\d*/
+	  delimiter: /(^|\+|=|<=>|=>)+\s+\d*\s*/
 	};
 	var queryField = $('#queryField');
 	if (queryField) {

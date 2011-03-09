@@ -26,6 +26,11 @@ class CompoundWithCoeff(object):
         self.concentration = concentration
         self.transformed_energy = None
         
+    @staticmethod
+    def FromReactant(reactant):
+        return CompoundWithCoeff(reactant.coeff, reactant.compound,
+                                 name=reactant.compound.ShortestName())
+        
     def Minus(self):
         """Returns a new CompoundWithCoeff with coeff = -self.coeff."""
         return CompoundWithCoeff(-self.coeff, self.compound, self.name)
@@ -85,7 +90,10 @@ class Reaction(object):
             
     def StandardConcentrations(self):
         """Returns True if using standard concentrations."""
-        return self.concentration_profile and self.concentration_profile.IsStandard()
+        if not self.concentration_profile:
+            return True
+        return (self.concentration_profile and
+                self.concentration_profile.IsStandard())
     
     @staticmethod
     def FromForm(form):
@@ -97,6 +105,11 @@ class Reaction(object):
         Returns:
             A Reaction object or None if there's an error.
         """
+        if form.cleaned_reactionId:
+            stored_reaction = models.StoredReaction.objects.get(
+                kegg_id=form.cleaned_reactionId)
+            return Reaction.FromStoredReaction(stored_reaction)
+        
         i_s = form.cleaned_ionic_strength
         ph = form.cleaned_ph
         pmg = form.cleaned_pmg
@@ -125,6 +138,22 @@ class Reaction(object):
                                 concentration_profile=cprofile,
                                 pH=ph, pMg=pmg,
                                 ionic_strength=i_s)
+    
+    @staticmethod
+    def FromStoredReaction(stored_reaction):
+        """Build a reaction object from a stored reaction.
+        
+        Args:
+            stored_reaction: models.StoredReaction object.
+            
+        Returns:
+            A Reaction object.
+        """
+        reactants = [CompoundWithCoeff.FromReactant(r)
+                     for r in stored_reaction.reactants.all()]
+        products  = [CompoundWithCoeff.FromReactant(r)
+                     for r in stored_reaction.products.all()]
+        return Reaction(reactants, products)
     
     @staticmethod
     def FromIds(reactants, products, concentration_profile=None,

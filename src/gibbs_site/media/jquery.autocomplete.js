@@ -273,7 +273,8 @@
       this.container.hide().empty();
       for (i = 0; i < len; i++) {
         s = this.suggestions[i];
-        div = $((me.selectedIndex === i ? '<div class="selected"' : '<div') + ' title="' + s + '">' + f(s, this.data[i], v) + '</div>');
+        div = $((me.selectedIndex === i ? '<div class="selected"' : '<div') + ' title="' + s + '">' +
+		f(s, this.data[i], v) + '<span class="type ' + this.data[i] + 'Type">' + this.data[i] + '</span></div>');
         div.mouseover(mOver(i));
         div.click(mClick(i));
         this.container.append(div);

@@ -10,5 +10,8 @@
   	{{ compound.coeff }}
   {% endif %}
   
-  <a href="{{ c.link }}" title="{{ c.formula }}">{{ compound.name }}</a>
+  <a href="{{ c.link }}" title="{{ c.formula }}">
+  	 {% if c.preferred_name %} {{ c.preferred_name }} 
+  	 {% else %} {{ compound.name }} {% endif %}
+  </a>
 {% endwith %}

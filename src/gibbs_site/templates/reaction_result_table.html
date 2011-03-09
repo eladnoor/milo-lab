@@ -5,7 +5,7 @@
 			<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'</strong></td>
 			<td colspan="2">
 			<strong>
-			{% if reaction.dg_tag %}
+			{% if reaction.dg_tag != None %}
 				{{ reaction.dg_tag|floatformat:1 }} kJ / mol
 			{% else %}
 				<a href="/faq#notAvailable">Not available</a>
@@ -19,7 +19,7 @@
 		<tr>
 			<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'&deg;</strong></td>
 			<td colspan="2">
-			{% if reaction.dg0_tag %}
+			{% if reaction.dg0_tag != None %}
 			  <strong>
 				{{ reaction.dg0_tag|floatformat:1 }} kJ / mol
 				</strong>
@@ -33,7 +33,7 @@
 			</td>
 		</tr>
 		
-		{% if reaction.dg0_tag %}
+		{% if reaction.dg0_tag != None %}
 		<tr>
 			<td width="150px">
 				<a class="lightBox" href="{{ reaction.ph_graph_link }}" target="_blank" title="Reaction energy as a function of pH">pH</a>

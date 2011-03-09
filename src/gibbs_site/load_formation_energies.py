@@ -5,6 +5,7 @@ import logging
 
 from util import django_utils
 from util import inchi
+from util import kegg
 
 django_utils.SetupDjango()
 
@@ -25,7 +26,6 @@ def AddAllSpeciesToCompound(compound, species_dicts, source):
                                formation_energy_source=source)
         specie.save()
         compound.species.add(specie)
-    compound.save()
 
 
 def GetSource(source_string):
@@ -40,35 +40,47 @@ def GetSource(source_string):
     return None
 
 
-def LoadFormationEnergies(json, source):
+def LoadFormationEnergies(json):
     for cdict in json:
-        inchi_str = cdict['inchi']
-        if not inchi_str:
-            logging.error('No inchi!')
+        cid = cdict.get('cid')
+        if not cid:
+            logging.error('No kegg ID!')
+            logging.error(cdict)
+            continue
+        kegg_id = kegg.KeggIdFromInt(cid)
+
+        try:
+            compound = models.Compound.objects.get(kegg_id=kegg_id)
+        except Exception, e:
+            logging.error(e)
+            logging.error(cdict)
+            continue
+            
+        species = cdict.get('species')
+        if not species:
+            error = cdict.get('error')
+            if error:
+                compound.no_dg_explanation = error
+                compound.save()
+                continue
+            
+        # Override the passed-in source if one is specified in JSON.
+        source_string = cdict.get('source')
+        my_source = GetSource(source_string)
+        if not my_source:
+            logging.error('Couldn\'t get source for %s' % my_source)
             logging.error(cdict)
             continue
         
-        # Override the passed-in source if one is specified in JSON.
-        my_source = GetSource(cdict.get('source', None))
-        my_source = my_source or source
-        
-        compounds = models.Compound.objects.filter(inchi__exact=inchi_str)
-        for c in compounds:
-            if (my_source != models.ValueSource.GroupContribution() or
-                not len(c.species.all())):
-                AddAllSpeciesToCompound(c, cdict['species'], my_source)
+        AddAllSpeciesToCompound(compound, species, my_source)
+        compound.save()
             
 
-def LoadAllFormationEnergies(alberty_json_filename='data/alberty.json',
-                             gc_json_filename='data/group_contribution.json'):
-    alberty_json = json.load(open(alberty_json_filename))
-    gc_json = json.load(open(gc_json_filename))
+def LoadAllFormationEnergies(json_filename='data/pseudoisomers.json'):
+    json_data = json.load(open(json_filename))
     
-    print 'Writing Alberty data'
-    LoadFormationEnergies(alberty_json, models.ValueSource.Alberty())
-    
-    print 'Writing Group Contribution data'
-    LoadFormationEnergies(gc_json, models.ValueSource.GroupContribution()) 
+    print 'Writing Pseudoisomers data'
+    LoadFormationEnergies(json_data)
 
 
 if __name__ == '__main__':

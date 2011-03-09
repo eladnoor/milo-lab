@@ -21,12 +21,16 @@
 		<td><img src="{{ compound.small_image_url }}" /></td>
 		{% endif %}
 	</tr>
-	<tr>
-		{% if compound.kegg_link %}
+	{% if compound.kegg_link %}
+	<tr>	
 		<td width="150px">KEGG Link</td>
-		<td><a href="{{kegg_link}}">{{compound.kegg_link}}</a></td>
-		{% endif %}
+		<td><a href="{{compound.kegg_link}}">{{compound.kegg_link}}</a></td>
 	</tr>
+	{% endif %}
+	{% if compound.note %}
+		<td width="150px">Note</td>
+		<td>{{compound.note}}</td>
+	{% endif %}
 </table>
 {% if compound.all_species %}
 <table class="speciesInfo">

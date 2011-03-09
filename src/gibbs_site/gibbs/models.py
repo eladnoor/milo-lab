@@ -137,6 +137,12 @@ class Compound(models.Model):
     # A list of common names of the compound, used for searching.
     common_names = models.ManyToManyField(CommonName)
     
+    # If present, this name should always be used.
+    preferred_name = models.CharField(max_length=250, null=True)
+    
+    # A remark about this compound.
+    note = models.TextField(null=True)
+    
     # The chemical formula.
     formula = models.CharField(max_length=500, null=True)
     
@@ -172,6 +178,10 @@ class Compound(models.Model):
         """Custom save-time behavior."""
         if self.inchi:
             self.achiral_inchi = inchi.AchiralInchi(self.inchi)
+    
+    def HasData(self):
+        """Has enough data to display."""
+        return self.mass and self.formula
     
     def FirstName(self):
         return self.common_names.all()[0]
@@ -316,3 +326,113 @@ class Compound(models.Model):
         compounds = Compound.objects.filter(kegg_id__in=kegg_ids)
         return dict((c.kegg_id, c) for c in compounds if c != None)
 
+
+class Reactant(models.Model):
+    """A compound and its coefficient."""
+    # The compound.
+    compound = models.ForeignKey(Compound)
+    
+    # The coeff.
+    coeff = models.IntegerField(default=1)
+
+    @staticmethod
+    def GetOrCreate(kegg_id, coeff):
+        """Attempts to fetch the CommonName object, or creates it if not present.
+        
+        Args:
+            name: the name to use.
+        
+        Returns:
+            A CommonName object.
+        """
+        try:
+            r = Reactant.objects.get(compound__kegg_id=kegg_id,
+                                     coeff=coeff)
+            return r
+        except Exception:
+            c = Compound.objects.get(kegg_id=kegg_id)
+            r = Reactant(compound=c, coeff=coeff)
+            r.save()
+            return r
+    
+
+class StoredReaction(models.Model):
+    """A reaction stored in the database."""
+    # The ID of this reaction in KEGG.
+    kegg_id = models.CharField(max_length=10, null=True)
+    
+    # The list of reactants.
+    reactants = models.ManyToManyField(Reactant, related_name='reactant_in')
+    
+    # The list of products.
+    products = models.ManyToManyField(Reactant, related_name='product_in')
+    
+    # TODO(flamholz): add some sort of hash identifier.
+    
+    @staticmethod
+    def _SideString(side):
+        l = []
+        for r in side:
+            if r.coeff == 1:
+                l.append(r.compound.ShortestName())
+            else:
+                l.append('%d %s' % (r.coeff,
+                                    r.compound.ShortestName()))
+        return ' + '.join(l)
+                
+        
+    
+    def ReactionString(self):
+        """Get the reaction as a string."""
+        return '%s <=> %s' % (self._SideString(self.reactants.all()),
+                              self._SideString(self.products.all()))
+    
+    def Link(self):
+        """Returns a link to this reactions page."""
+        return '/reaction?reactionId=%s' % self.kegg_id
+    
+    link = property(Link)
+    reaction_string = property(ReactionString)
+
+
+class Enzyme(models.Model):
+    """A single enzyme."""
+    # EC class enzyme.
+    ec = models.CharField(max_length=10)
+    
+    # A list of common names of the compound, used for searching.
+    common_names = models.ManyToManyField(CommonName)
+    
+    # List of reactions this enzyme catalyzes.
+    reactions = models.ManyToManyField(StoredReaction)
+    
+    # TODO(flamholz): add more fields.
+    
+    def HasData(self):
+        """Checks if it has enough data to display."""
+        return self.ec and self.reactions.all()
+
+    def Link(self):
+        """Returns a link to this reactions page."""
+        return '/enzyme?ec=%s' % self.ec
+    
+    def KeggLink(self):
+        """Returns a link to the KEGG page for this enzyme."""
+        return 'http://kegg.jp/dbget-bin/www_bget?ec:%s' % self.ec
+
+    def AllReactions(self):
+        """Returns all the reactions."""
+        return self.reactions.all()
+
+    def FirstName(self):
+        """The first name in the list of names."""
+        return self.all_common_names[0]
+
+    def __unicode__(self):
+        """Return a single string identifier of this enzyme."""
+        return unicode(self.FirstName())
+
+    all_common_names = property(lambda self: self.common_names.all())
+    all_reactions = property(AllReactions)
+    kegg_link = property(KeggLink)
+    link = property(Link)
