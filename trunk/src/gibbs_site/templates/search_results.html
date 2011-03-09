@@ -3,9 +3,11 @@
 {% endwith %}
 
 	<div id="searchResults">
-	{% if results %}
-		{% for result in results|slice:":5" %}
-			<a href="{{ result.value.link }}" class="searchResult clearfix">
+	{% if compound_results %}
+		<div class="resultsSection">
+			<div class="title">Compounds</div>
+		{% for result in compound_results|slice:":5" %}
+			<a href="{{ result.value.link }}" class="searchResult compoundResult clearfix">
 				<span class="image"><img src="{{ result.value.small_image_url }}" /></span>
 				<span class="name">{{ result.key }}</span>
 				<span class="formula">Formula: {{ result.value.html_formula|safe }}</span>
@@ -18,10 +20,34 @@
 					  {% endif %}
 				  {% endwith %}
 				</span>
+				{% if result.value.note %}
+				<span class="note">*{{ result.value.note }}</span>
+				{% endif %}
 			</a>
 		{% endfor %}
-		{% else %}
-			No results. Try again?
+		</div>
+	{% endif %}
+	
+	{% if enzyme_results %}
+		<div class="resultsSection">
+			<div class="title">Enzymes</div>
+		{% for result in enzyme_results|slice:":5" %}
+			<div class="searchResult enzymeResult clearfix">
+				<span class="name"><a href="{{result.value.link}}">{{ result.key }}</a></span>
+				<span class="reactions">
+					<ul>
+					{% for reaction in result.value.all_reactions %}
+						<li><a href="{{reaction.link}}">{{reaction.reaction_string}}</a></li>
+					{% endfor %}
+					</ul>
+				</span>
+			</div>
+		{% endfor %}
+		</div>
+	{% endif %}
+	
+	{% if not compound_results and not enzyme_results %}
+		No results. Try again?
 	{% endif %}
 	</div>
 

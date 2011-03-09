@@ -6,6 +6,7 @@ from gibbs import compound_form
 from gibbs import models
 from util import django_utils
 
+
 def CompoundPage(request):
     """Renders a page for a particular compound."""
     form = compound_form.CompoundForm(request.GET)

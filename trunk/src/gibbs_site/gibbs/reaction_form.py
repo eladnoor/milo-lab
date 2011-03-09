@@ -4,12 +4,13 @@ from gibbs import constants
 
 
 class ReactionForm(form_utils.BaseForm):
-    reactantsId = form_utils.ListFormField()
-    productsId = form_utils.ListFormField()
-    reactantsCoeff = form_utils.ListFormField()
-    productsCoeff = form_utils.ListFormField()
-    reactantsName = form_utils.ListFormField()
-    productsName = form_utils.ListFormField()
+    reactionId = forms.CharField(required=False)
+    reactantsId = form_utils.ListFormField(required=False)
+    productsId = form_utils.ListFormField(required=False)
+    reactantsCoeff = form_utils.ListFormField(required=False)
+    productsCoeff = form_utils.ListFormField(required=False)
+    reactantsName = form_utils.ListFormField(required=False)
+    productsName = form_utils.ListFormField(required=False)
     reactantsConcentration = form_utils.ListFormField(required=False)
     productsConcentration = form_utils.ListFormField(required=False)
 
@@ -29,6 +30,7 @@ class ReactionForm(form_utils.BaseForm):
                                         ('Save', 'save')])
     
     # Convenience accessors for clean data with defaults.
+    cleaned_reactionId = property(lambda self: self.cleaned_data['reactionId'])
     cleaned_reactantIds = property(lambda self: self.cleaned_data['reactantsId'])
     cleaned_productIds = property(lambda self: self.cleaned_data['productsId'])
     cleaned_reactantCoeffs = property(lambda self: [int(c) for c in self.cleaned_data['reactantsCoeff']])

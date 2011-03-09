@@ -16,7 +16,11 @@ def SuggestJson(request):
     
     matcher = service_config.Get().compound_matcher
     query = str(form.cleaned_query)
-    results = [unicode(m.key) for m in matcher.Match(query)]
-    json_data = json.dumps({'query': query, 'suggestions': results})
+    matches = matcher.Match(query)
+    results = [unicode(m.key) for m in matches]
+    types = [m.TypeStr() for m in matches]
+    json_data = json.dumps({'query': query,
+                            'suggestions': results,
+                            'data': types})
     
     return HttpResponse(json_data, mimetype='application/json')

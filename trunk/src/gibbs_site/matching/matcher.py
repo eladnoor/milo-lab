@@ -37,6 +37,19 @@ class Match(object):
         return '<matcher.Match> value=%s, score=%f' % (self.value,
                                                        self.score)
     
+    def TypeStr(self):
+        if self.IsCompound():
+            return 'Compound'
+        elif self.IsEnzyme():
+            return 'Enzyme'
+        return ''
+
+    def IsCompound(self):
+        return isinstance(self.value, models.Compound)
+    
+    def IsEnzyme(self):
+        return isinstance(self.value, models.Enzyme)
+    
 
 class Matcher(object):
     """A class that matches a string against the database.
@@ -139,7 +152,7 @@ class Matcher(object):
             matches: an unfiltered list of match objects.
         """
         f = lambda match: (match.score >= self._min_score and
-                           match.value.mass and match.value.formula)
+                           match.value and match.value.HasData())
         return filter(f, matches) 
     
     def _SortAndClip(self, matches):
@@ -165,8 +178,11 @@ class Matcher(object):
         matches = [Match(nm, None, 0.0) for nm in name_matches]
         for m in matches:
             compounds = m.key.compound_set.all()
+            enzymes = m.key.enzyme_set.all()
             if compounds:
                 m.value = compounds[0]
+            elif enzymes:
+                m.value = enzymes[0]
         self._ScoreMatches(processed_query, matches)
         matches = self._FilterMatches(matches)
         

@@ -1,5 +1,7 @@
 import logging
 
+from gibbs import models
+
 class ReactionCompoundMatch(object):
     """A match of a compound in a reaction.
     
@@ -38,6 +40,14 @@ class ReactionMatches(object):
         self.reactants = reactants or []
         self.products = products or []
     
+    @staticmethod
+    def _FindFirstCompoundMatch(matches):
+        """Finds the first match that has a Compound as a value."""
+        for m in matches:
+            if isinstance(m.value, models.Compound):
+                return m
+        return None
+    
     def GetBestMatch(self):
         """Returns a 2-tuple of product and reactant lists for the
         best match.
@@ -46,19 +56,23 @@ class ReactionMatches(object):
         """
         reactants = []
         for c in self.reactants:
-            if not c.matches:
+            compound_match = self._FindFirstCompoundMatch(c.matches)
+            if not compound_match:
                 return None
+            
             reactants.append((c.parsed_coeff,
-                              c.matches[0].value.kegg_id,
-                              c.matches[0].key))
+                              compound_match.value.kegg_id,
+                              compound_match.key))
         
         products = []
         for c in self.products:
-            if not c.matches:
+            compound_match = self._FindFirstCompoundMatch(c.matches)
+            if not compound_match:
                 return None
+            
             products.append((c.parsed_coeff,
-                             c.matches[0].value.kegg_id,
-                             c.matches[0].key))
+                             compound_match.value.kegg_id,
+                             compound_match.key))
         
         return reactants, products
     

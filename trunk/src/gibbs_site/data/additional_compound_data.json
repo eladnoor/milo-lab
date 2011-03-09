@@ -1,0 +1,24 @@
+[
+    {
+        "CID": "C00009",
+        "names": [
+            "Pi" 
+        ]
+    },
+    {
+        "CID": "C00026",
+        "names": [
+            "alpha-Ketoglutarate" 
+        ]
+    }, 
+    {
+        "CID": "C00288",  
+        "names": [
+            "Carbonic acid", 
+            "CO2",
+            "Carbon dioxide"
+        ],
+        "preferred name": "Carbonate",
+        "note": "Includes aqueous CO2 and all protonation levels of bicarbonate because they cannot be differentiated."
+    }
+]
