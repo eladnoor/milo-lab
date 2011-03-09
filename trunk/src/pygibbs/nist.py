@@ -134,9 +134,8 @@ class NistRowData:
             
     
 class Nist(object):
-    def __init__(self, html_writer):
+    def __init__(self):
         self.db = SqliteDatabase('../data/public_data.sqlite')
-        self.html_writer = html_writer
         self.kegg = Kegg.getInstance()
         self.T_range = (298, 314)
         self.override_I = None
@@ -160,7 +159,7 @@ class Nist(object):
     def GetAllCids(self):
         return sorted(self.cid2count.keys())
     
-    def AnalyzeStats(self):
+    def AnalyzeStats(self, html_writer):
         """
             Produces a set of plots that show some statistics about the NIST database
         """
@@ -192,32 +191,32 @@ class Nist(object):
         pylab.hist(T_list, pylab.arange(int(min(T_list)), int(max(T_list)+1), 2.5))
         pylab.xlabel("Temperature (C)")
         pylab.ylabel("No. of measurements")
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
         fig = pylab.figure()
         pylab.hist(pMg_list, pylab.arange(0, 10.1, 0.1))
         pylab.xlabel("pMg")
         pylab.ylabel("No. of measurements")
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
         fig = pylab.figure()
         pylab.hist(pH_list, pylab.arange(4, 11, 0.1))
         pylab.xlabel("pH")
         pylab.ylabel("No. of measurements")
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
         fig = pylab.figure()
         pylab.hist(I_list, pylab.arange(0, 1, 0.025))
         pylab.xlabel("Ionic Strength [mM]")
         pylab.ylabel("No. of measurements")
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
         # histogram of publication years
         fig = pylab.figure()
         pylab.hist(year_list, pylab.arange(1930, 2010, 5))
         pylab.xlabel("Year of publication")
         pylab.ylabel("No. of measurements")
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
 
         alberty = Alberty()
         alberty_cids = set(alberty.cid2pmap_dict.keys())
@@ -244,10 +243,10 @@ class Nist(object):
         pylab.ylabel("no. of compounds measured in N reactions")
         pylab.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
 
-        self.html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
         logging.info('Done analyzing stats.')
 
-    def verify_results(self, thermodynamics):
+    def verify_results(self, html_writer, thermodynamics):
         """Calculate all the dG0_r for the reaction from NIST and compare to
            the measured data.
         
@@ -255,7 +254,6 @@ class Nist(object):
         
         Args:
             thermodynamics: a Thermodynamics object that provides dG estimates.
-            html_writer: to write HTML.
             ignore_I: whether or not to ignore the ionic strength in NIST.
         """
         
@@ -330,14 +328,14 @@ class Nist(object):
         max_x = max(dG0_obs_vec)
         pylab.plot([min_x, max_x], [min_x, max_x], 'k--')
         pylab.axis([-60, 60, -60, 60])
-        self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+        html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         
         fig = pylab.figure()
         pylab.hist([(row[1] - row[2]) for row in total_list], bins=pylab.arange(-50, 50, 0.5))
         pylab.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
         pylab.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
         pylab.ylabel(r'no. of measurements', fontsize=14)
-        self.html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+        html_writer.embed_matplotlib_figure(fig, width=400, height=300)
 
         table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "url"]
         dict_list = []
@@ -357,7 +355,7 @@ class Nist(object):
             else:
                 d['url'] = ''
             dict_list.append(d)
-        self.html_writer.write_table(dict_list, table_headers)
+        html_writer.write_table(dict_list, table_headers)
         
         return len(dG0_obs_vec), rmse
     
@@ -385,6 +383,6 @@ if __name__ == '__main__':
     #logging.getLogger('').setLevel(logging.DEBUG)
     _mkdir("../res/nist")
     html_writer = HtmlWriter("../res/nist/statistics.html")
-    nist = Nist(html_writer)
-    nist.AnalyzeStats()
+    nist = Nist()
+    nist.AnalyzeStats(html_writer)
     html_writer.close()
