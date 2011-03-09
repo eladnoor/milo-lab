@@ -231,13 +231,12 @@ class GroupContribution(Thermodynamics):
             except KeyError:
                 h['inchi'] = None
             h['source'] = self.cid2source_string.get(row['cid'], None)
-            h['error'] = row['error']
             h['species'] = []
             try:
                 for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(row['cid']).ToMatrix():
                     h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
             except MissingCompoundFormationEnergy:
-                pass
+                h['error'] = row['error']
 
             formations.append(h)
 

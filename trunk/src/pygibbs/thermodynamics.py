@@ -266,7 +266,7 @@ class PsuedoisomerTableThermodynamics(Thermodynamics):
             else:
                 thermo.cid2source_string[cid] = ref
             
-            return thermo
+        return thermo
 
     def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
