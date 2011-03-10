@@ -1,6 +1,5 @@
 import logging
-from pylab import np, find, norm
-from toolbox.util import gcd
+from pylab import np, find, array
 
 class LinearRegression(object):
     
@@ -126,8 +125,11 @@ class LinearRegression(object):
                 
         return x, K
     
+    class LinearProgrammingException(Exception):
+        pass
+    
     @staticmethod
-    def FindSparseKernel(A, eps=1e-10, upper_bound=1000):
+    def FindSparseKernel(A, kernel_dimension=None, eps=1e-10, upper_bound=1000):
         """
             Finds a sparse representation of the kernel matrix, using MILP
             to iterate the Fundamental Modes of the matrix.
@@ -141,6 +143,8 @@ class LinearRegression(object):
         import cplex
         
         kernel_rank = A.shape[1] - LinearRegression.Rank(A, eps)
+        if not kernel_dimension or kernel_dimension > kernel_rank:
+            kernel_dimension = kernel_rank
         cpl = cplex.Cplex()
         cpl.set_problem_name('find_kernel')
         cpl.set_log_stream(None)
@@ -201,16 +205,18 @@ class LinearRegression(object):
         for g in all_gammas:
             cpl.linear_constraints.set_coefficients('avoid_0', g, 1)
 
-        K = np.zeros((A.shape[1], kernel_rank))
-        for dimension in xrange(kernel_rank):
-            print dimension
+        K = np.zeros((A.shape[1], kernel_dimension))
+        dimension = 0
+        emf_counter = 0
+        while dimension < kernel_dimension:
+            emf_counter += 1
             try:
                 cpl.solve()
-            except cplex.exceptions.CplexSolverError:
-                return False
+            except cplex.exceptions.CplexSolverError as e:
+                raise LinearRegression.LinearProgrammingException(str(e))
             
             if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.MIP_optimal:
-                return False
+                raise LinearRegression.LinearProgrammingException("No more EMFs")
             
             g_plus = cpl.solution.get_values(['g%d_plus' % col for col in xrange(A.shape[1])])
             g_minus = cpl.solution.get_values(['g%d_minus' % col for col in xrange(A.shape[1])])
@@ -218,7 +224,23 @@ class LinearRegression(object):
             c_minus = cpl.solution.get_values(['c%d_minus' % col for col in xrange(A.shape[1])])
             
             constraint_name = 'avoid_%d' % (dimension+1)
+            K[col, :] = array(c_plus) - array(c_minus)
+            if LinearRegression.Rank(K, eps) < dimension+1:
+                print "%d) The new mode is dependent, (dimension = %d / %d)" \
+                    % (emf_counter, dimension, kernel_rank)
+                K[:, dimension] *= 0.0
+                continue
+
+            print "%d) The new mode is independent, (dimension = %d / %d)" \
+                % (emf_counter, dimension+1, kernel_rank)
+
+            nonzero_values = find(K[:, dimension])
+            g = min(abs(K[nonzero_values, dimension]))
+            K[:, dimension] /= g
+            if sum(K[:, dimension] < 0):
+                K[:, dimension] *= -1.0
             cpl.linear_constraints.add(names=[constraint_name], senses='L')
+            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_values)-1)
             for col in xrange(A.shape[1]):
                 if g_plus[col] + g_minus[col] > 0.5:
                     cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
@@ -227,10 +249,7 @@ class LinearRegression(object):
                         K[col, dimension] = c_plus[col]
                     else:
                         K[col, dimension] = -c_minus[col]
-            nonzero_values = find(K[:, dimension])
-            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_values)-1)
-            g = min(abs(K[nonzero_values, dimension]))
-            K[:, dimension] /= g
+            dimension += 1
             
         return K.T
         
