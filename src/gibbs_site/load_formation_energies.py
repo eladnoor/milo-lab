@@ -37,6 +37,8 @@ def GetSource(source_string):
         return models.ValueSource.Alberty()
     elif lsource.startswith('thauer'):
         return models.ValueSource.Thauer()
+    elif lsource.startswith('group'):
+        return models.ValueSource.GroupContribution()
     return None
 
 

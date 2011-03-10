@@ -9,7 +9,6 @@
 				{{ reaction.dg_tag|floatformat:1 }} kJ / mol
 			{% else %}
 				<a href="/faq#notAvailable">Not available</a>
-				{% if reaction.no_dg_explanation %} ({{ reaction.no_dg_explanation }}) {% endif %}
 			{% endif %}
 			</strong>
 			</td>
@@ -27,7 +26,6 @@
 			{% else %}
 			  <strong>
 				<a href="/faq#notAvailable">Not available</a>
-				{% if reaction.no_dg_explanation %} ({{ reaction.no_dg_explanation }}) {% endif %}
 	      </strong>
 			{% endif %}
 			</td>

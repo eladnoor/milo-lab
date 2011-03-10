@@ -7,6 +7,7 @@ django_utils.SetupDjango()
 import load_additional_data
 import load_formation_energies
 import load_kegg_json
+import mirror_compounds
 
 
 def main():
@@ -18,6 +19,9 @@ def main():
     
     print 'Loading formation energies'
     load_formation_energies.LoadAllFormationEnergies()
+
+    print 'Mirroring equivalent compounds'
+    mirror_compounds.MirrorCompounds()
     
     
     

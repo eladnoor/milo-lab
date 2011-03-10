@@ -18,7 +18,7 @@
             "CO2",
             "Carbon dioxide"
         ],
-        "preferred name": "Carbonate",
-        "note": "Includes aqueous CO2 and all protonation levels of bicarbonate because they cannot be differentiated."
+        "preferred name": "CO2(aq)",
+        "note": "CO2(aq) represents several species - solvated CO2, carbonic acid, bicarbonate and carbonate. These species are in rapid equilibrium, and are, therefore, energetically equivalent. Hence, even though a reaction mechanism may involve a particular species of CO2(aq), the reaction draws from the equilibrated pool of CO2(aq) species. Since we refer to the hydrated form of CO2, reactions that are traditionally written with CO2 are balanced here with water."
     }
 ]
