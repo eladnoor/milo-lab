@@ -1,9 +1,13 @@
+<form name="compoundForm" action="/compound" method="get">
+	<input type="hidden" name="compoundId" value="{{ compound.kegg_id }}" />
+	
+			
 <table class="results">
 	<tr>
 		<td width="150px"><strong>Estimated &Delta;<sub>f</sub>G'&deg;</strong></td>
 		<td colspan="2">
 		<strong>
-		{% if delta_g_estimate %}
+		{% if delta_g_estimate != None %}
 			{{ delta_g_estimate|floatformat:1 }} kJ / mol
 		{% else %}
 			<a href="/faq#notAvailable">Not available</a>
@@ -13,6 +17,7 @@
 		</td>
 	</tr>	
 	
+	{% if delta_g_estimate != None %}
 	<tr>
 		<td width="150px">pH </td>
 		<td width="50px"><input type="text" name="ph" id="phField" value="{{ ph }}" size="5"/></td>
@@ -28,4 +33,10 @@
 		<td width="50px"><input type="text" name="ionic_strength" id="ionStrengthField" value="{{ ionic_strength }}" size="5"/></td>
 		<td><div id="ionStrengthSlider"></div></td>
 	</tr>
+	{% endif %}
 </table>
+
+	{% if delta_g_estimate != None%}
+	<input type="submit" value="Update" />
+	{% endif %}
+</form>

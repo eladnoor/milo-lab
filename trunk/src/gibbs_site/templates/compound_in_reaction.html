@@ -11,7 +11,6 @@
   {% endif %}
   
   <a href="{{ c.link }}" title="{{ c.formula }}">
-  	 {% if c.preferred_name %} {{ c.preferred_name }} 
-  	 {% else %} {{ compound.name }} {% endif %}
+  	 {{ compound.name }}
   </a>
 {% endwith %}

@@ -61,8 +61,8 @@ def LoadKeggCompounds(kegg_json_filename='data/kegg_compounds.json'):
                 c.common_names.add(n)
             c.save()        
         except Exception, e:
-            logging.error('Error parsing cid %s', cid)
-            logging.debug(e)
+            logging.warning('Error parsing cid %s', cid)
+            logging.error(e)
             continue
         
 

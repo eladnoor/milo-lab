@@ -4,6 +4,17 @@ body {
   font-family: helevetica;
 }
 
+.logoSmall {
+  width: 100%;
+  text-align: center;
+}
+
+.logoSmall img {
+  width: 150px;
+  height: 120px;
+  border: none;
+}
+
 .container {
   width: 650px;
   margin-left: 30px;
