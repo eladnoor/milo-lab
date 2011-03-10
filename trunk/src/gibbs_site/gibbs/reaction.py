@@ -22,7 +22,7 @@ class CompoundWithCoeff(object):
         """
         self.compound = compound
         self.coeff = coeff
-        self.name = name
+        self._name = name
         self.concentration = concentration
         self.transformed_energy = None
         
@@ -41,8 +41,10 @@ class CompoundWithCoeff(object):
     
     def GetName(self):
         """Gives a string name for this compound."""
-        if self.name:
-            return self.name
+        if self.compound.preferred_name:
+            return self.compound.preferred_name
+        if self._name:
+            return self._name
         return str(self.compound.FirstName())
     
     def _MicromolarConcentration(self):
@@ -54,6 +56,7 @@ class CompoundWithCoeff(object):
             return '%.2e' % conc
         return '%.2f' % conc
     
+    name = property(GetName)
     micromolar_concentration = property(_MicromolarConcentration)
     micromolar_concentration_string = property(_MicromolarConcentrationString)
     
@@ -371,9 +374,11 @@ class Reaction(object):
         # Omit oxygen for checking balancedness.
         oxy_count = atom_diff.pop('O', 0)
     
+        # If it's not balanced without oxygen, can't balance with water.
         if not self._IsBalanced(atom_diff):
             return None
         
+        # Requires this many waters to balance (1 O per).
         return oxy_count
 
     @staticmethod
@@ -436,19 +441,21 @@ class Reaction(object):
             How many waters are left after we subtracted as many as we could.
         """
         i = Reaction._FindWater(side)
+
+        # Didn't find water in this side at all.        
+        if i is None:
+            return how_many
         
-        if i:
-            net_water = side[i].coeff - how_many
-            if net_water > 0:
-                side[i].coeff = net_water
-                return 0
+        net_water = side[i].coeff - how_many
+        if net_water > 0:
+            # We didn't consume all the waters on this side.
+            side[i].coeff = net_water
+            return 0
+        
+        # We consumed all the waters on this side.
+        side.pop(i)
+        return net_water
             
-            side.pop(i)
-            return net_water
-        
-        # Didn't find water in this side at all.
-        return how_many
-    
     def CanBalanceWithWater(self):
         """Returns True if balanced with or without water."""
         extra_waters = self._ExtraWaters()
@@ -479,7 +486,7 @@ class Reaction(object):
         if extra_waters == 0:
             return True
         
-        abs_waters = abs(extra_waters)        
+        abs_waters = abs(extra_waters)
         if extra_waters > 0:
             waters_left = self.SubtractWater(self.reactants, abs_waters)
             self.AddWater(self.products, waters_left)
