@@ -120,11 +120,15 @@ def Test():
     
     p.scatter(skin[0], skin[1], c='g')
     p.scatter(leftover[0], leftover[1], c='r')
-    p.scatter(least_densest_pts[0], least_densest_pts[1], c='k',
-              s=300, alpha=0.2)
     p.scatter(no_nbrs[0], no_nbrs[1], c='b',
               s=300, alpha=0.2)
+    
+    """
+    p.scatter(least_densest_pts[0], least_densest_pts[1], c='k',
+              s=300, alpha=0.2)
+    
     p.scatter(pointies[:,0], pointies[:,1], c='y')
+    """
     
     p.show()
     
