@@ -3,11 +3,11 @@ import logging
 import urllib
 import re
 from toolbox import util, database
-import kegg
+from pygibbs import kegg
 import json
 from collections import deque
-import kegg_utils
-from kegg_errors import KeggNonCompoundException
+from pygibbs import kegg_utils
+from pygibbs.kegg_errors import KeggNonCompoundException
 
 def parse_metacyc_file(filename):
     metacyc_file = open(filename, 'r')

@@ -16,7 +16,7 @@ def MakeOpts():
     opt_parser.add_option("-m", "--pmg", dest="pmg", type="float",
                           default=default_pMg, help="The pMg")
     opt_parser.add_option("-i", "--ionic_strength", dest="i_s", type="float",
-                          default=default_pMg, help="The ionic strength, mM")
+                          default=default_I, help="The ionic strength, M")
     opt_parser.add_option("-g", "--ignore_cofactors", action="store_true",
                           dest="ignore_cofactors", default=False,
                           help="If True, don't fix co-factor concentrations.")
