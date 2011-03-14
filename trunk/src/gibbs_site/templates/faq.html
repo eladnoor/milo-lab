@@ -23,7 +23,7 @@
 				and another for enzymes. If you're interested in a compound, click on it to see more details and to change the 
 				conditions of &Delta;<sub>f</sub>G estimation. If you're interested in an enzyme, click on the enzyme name to 
 				see detailed information about it. If you want to explore the thermodynamics of an enzyme-catalyzed reaction,
-				choose a reaction listed under the enzyme name to get a &Delta;<sub>r</sub>G estimation</p>.
+				choose a reaction listed under the enzyme name to get a &Delta;<sub>r</sub>G estimation.</p>
 				</div>
 			</div>
 			
@@ -110,22 +110,28 @@
 				</div>
 			</div>
 			
-      <div class="faqEntry" id="aqueousCO2">
-        <div class="faqQuestion">What is CO<sub>2</sub>(aq)?</div>
-        
-        <div class="faqAnswer">
-        <p>CO2(aq) is a collection of four species - solvated CO2, carbonic acid, bicarbonate and carbonate.
-        Since this collection refers to hydrated form of CO2, reactions that are traditionally written with CO2
-        should be balanced an additional water molecule.</p>
-
-        <p>It is often assumed that dissolved CO<sub>2</sub> is found in equilibrium with
-        all of its hydrated forms: bicarbonate, carbonate and carbonic acid. Because of this 
-        equilibrium, these species must be considered together. Reactions that consume or produce
-        bicarbonate, for example, alter the population of this equilibrated pool. Removing the pool
-        from equilibrium has an energetic cost. This cost must be considered when examining the 
-        thermodynamics of reactions involving CO2 and its species.</p>
-        </div>
-      </div>
+	      <div class="faqEntry" id="aqueousCO2">
+	        <div class="faqQuestion">What are CO<sub>2</sub>(aq) and CO<sub>2</sub>(total)?</div>
+	        
+	        <div class="faqAnswer">
+	        <p>CO2(aq) is dissolved CO2. Dissolved CO2 undergoes a spontaneous hydration reaction:</p>
+	        
+	        <p>
+	        CO<sub>2</sub> + H<sub>2</sub>O <=> H<sub>2</sub>CO<sub>3</sub>
+	        </p>
+	        
+	        <p>The rate of the uncatalyzed hydration reaction is t<sub>1/2</sub> = 15 seconds. In some
+	        species this reaction is catalyzed by the enzyme carbonic anhydrase, which speeds it up
+	        by a factor of 10<sup>6</sup> [6]. In aqueous environments, CO2 is generally considered to be
+	        in equilibrium with its hydrated forms - carbonic acid, bicarbonate and carbonate. CO2(total)
+	        represents the collection of species including dissolved CO2 and its 3 hydrated forms.</>
+	        
+	        <p>It is generally simpler to measure the concentration of CO2(total) than it is to measure
+	        the individual species. As such, it is common to apply the equilibrium assumption and use
+	        CO2(total) in place of CO2(aq) in biochemical reactions. If you can measure the concentration
+	        of CO2(aq), then it is reasonable to use it as a reactant.</p>
+	        </div>
+	      </div>
 			
 			{% include "references.html" %}
 		</div>

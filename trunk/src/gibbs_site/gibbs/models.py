@@ -143,6 +143,9 @@ class Compound(models.Model):
     # A remark about this compound.
     note = models.TextField(null=True)
     
+    # A link for detailed remarks about this compound. 
+    details_link = models.URLField(null=True)
+
     # The chemical formula.
     formula = models.CharField(max_length=500, null=True)
     
@@ -184,7 +187,8 @@ class Compound(models.Model):
         return self.mass and self.formula
     
     def FirstName(self):
-        return self.common_names.all()[0]
+        names = list(self.common_names.all())
+        return names[0].name
     
     def ShortestName(self):
         shortest_len = 10000
@@ -374,10 +378,10 @@ class StoredReaction(models.Model):
         l = []
         for r in side:
             if r.coeff == 1:
-                l.append(r.compound.ShortestName())
+                l.append(r.compound.FirstName())
             else:
                 l.append('%d %s' % (r.coeff,
-                                    r.compound.ShortestName()))
+                                    r.compound.FirstName()))
         return ' + '.join(l)
                 
         

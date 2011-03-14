@@ -29,7 +29,11 @@
 	{% endif %}
 	{% if compound.note %}
 		<td width="150px">Note</td>
-		<td>{{compound.note}}</td>
+		<td>{{compound.note}}
+		{% if compound.details_link %}
+		<a href="{{compound.details_link}}">More info &raquo;</a>
+		{% endif %}
+		</td>
 	{% endif %}
 </table>
 {% if compound.all_species %}

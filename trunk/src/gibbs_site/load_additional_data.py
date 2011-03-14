@@ -29,10 +29,13 @@ def LoadAdditionalCompoundData(json_filename='data/additional_compound_data.json
             
             note = cd.get('note')
             preferred_name = cd.get('preferred name')
+            details_link = cd.get('details_link')
             if note:
                 compound.note = note
             if preferred_name:
                 compound.preferred_name = preferred_name
+            if details_link:
+                compound.details_link = details_link
             
             names = cd.get('names')
             if names:
