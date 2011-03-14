@@ -1,21 +1,26 @@
 #!/usr/bin/python
 
+import logging
+import pylab
 import sys
+
 from pygibbs import flags
-from pygibbs.thermodynamic_constants import default_T
+from pygibbs.thermodynamic_constants import R, default_I, default_pH
+from pygibbs.thermodynamic_constants import default_pMg, default_T
 from pygibbs.groups import GroupContribution
 from pygibbs import reversibility
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
+from toolbox.html_writer import HtmlWriter
 
 
 def GetReactionIdInput():
     while True:
         try:
-            print 'KEGG reaction ID:',
+            print 'KEGG compound ID:',
             return int(raw_input())
-        except Exception:
-            print 'KEGG reaction IDs should be integers.'
+        except Exception, e:
+            print 'KEGG compound IDs should be integers.'
 
 
 def main():
@@ -43,15 +48,17 @@ def main():
 
     while True:
         try:
-            rid = GetReactionIdInput()        
-            reaction = kegg.rid2reaction(rid)
-            print 'Reaction Name: %s' % reaction.name
-            print '\tKegg ID: R%05d' % rid
-            print '\tEC: %s' % str(reaction.ec_list)
-            rev = reversibility.CalculateReversability(reaction.sparse,
-                                                       G, pH=pH, I=I, pMg=pMg,
-                                                       T=T, concentration_map=cmap)
-            print '\tIrreversibility: %.1f' % rev
+            cid = GetReactionIdInput()        
+            compound = kegg.cid2compound(cid)
+            print 'Compound Name: %s' % compound.name
+            print '\tKegg ID: C%05d' % cid
+            print '\tFormula: %s' % compound.formula
+            print '\tInChI: %s' % compound.inchi
+            print '\tConcentration: %.2e' % cmap.get(cid, c_mid)
+            dG0_tag = G.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T) + \
+                      R*T*pylab.log(cmap.get(cid, c_mid))
+            
+            print '\tTransformed Formation Energy: %.1f' % dG0_tag
         except Exception, e:
             print 'Error: ', e
 
