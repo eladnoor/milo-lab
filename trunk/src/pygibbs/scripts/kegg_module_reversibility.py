@@ -35,7 +35,7 @@ def main():
     G.init()
 
     print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
-           'I=%.2gmM, Median concentration=%.2gM' % (T, pH, pMg, I, c_mid))
+           'I=%.2gM, Median concentration=%.2gM' % (T, pH, pMg, I, c_mid))
     
     cmap = {}
     if not options.ignore_cofactors:
