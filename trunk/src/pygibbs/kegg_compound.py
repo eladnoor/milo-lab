@@ -64,6 +64,9 @@ class Compound(object):
         comp.num_electrons = row_dict['num_electrons']
         if row_dict['inchi']:
             comp.inchi = str(row_dict['inchi'])
+        if row_dict['cas']:
+            comp.cas = str(row_dict['cas'])
+        
         return comp
     
     def get_atom_bag(self):

@@ -1,4 +1,4 @@
-import csv, re, logging, pybel, sys, openbabel
+import csv, logging, pybel, openbabel
 from kegg import Kegg
 from kegg_errors import KeggParseException
 from toolbox.database import SqliteDatabase
@@ -8,103 +8,13 @@ from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import default_T
 
 class DissociationConstants(object):
+    
     def __init__(self, db, html_writer, group_decomposer=None):
         self.db = db
         self.html_writer = html_writer
         self.kegg = Kegg.getInstance()
         self.group_decomposer = group_decomposer or GroupDecomposer.FromDatabase(db)
     
-    def ReadOriginalCSV(self):
-        """
-            Reads the raw data collected from the CRC handbook and tries to map every
-            compound name there to a KEGG compound ID.
-        """
-        last_formula = None
-        last_name = None
-        data = []
-        for row_dict in csv.DictReader(open('../data/thermodynamics/pKa_from_CRC.csv', 'r')):
-            if row_dict['name'] and row_dict['formula']:
-                cid, kegg_name, distance = self.FindCID(row_dict['formula'], row_dict['name'])
-                last_formula = row_dict['formula']
-                last_name = row_dict['name']
-                row_dict['step'] = 1
-            else:
-                row_dict['name'] = last_name
-                row_dict['formula'] = last_formula
-
-            data.append((cid, kegg_name, distance, row_dict['name'], 
-                         row_dict['formula'], row_dict['step'], 
-                         row_dict['T'], row_dict['pKa']))
-        
-        return data
-    
-    def Formula2AtomBag(self, formula):
-        if (formula == None or formula.find("(") != -1 or formula.find(")") != -1 or formula.find("R") != -1):
-            raise Exception("non-specific compound formula: " + formula)
-        
-        atom_bag = {}
-        for (atom, count) in re.findall("([A-Z][a-z]*)([0-9]*)", formula):
-            if (count == ''):
-                count = 1
-            else:
-                count = int(count)
-            atom_bag[atom] = count
-
-        return atom_bag
-    
-    def FindCID(self, formula, name):
-        name = name.strip()
-        cid, kegg_name, distance = self.kegg.name2cid(name, cutoff=3)
-        if not cid:
-            return None, None, None
-
-        atom_bag = self.Formula2AtomBag(formula)
-        kegg_atom_bag = self.kegg.cid2atom_bag(cid)
-        if (atom_bag != kegg_atom_bag):
-            return None, None, None
-        else:
-            return cid, kegg_name, distance
-    
-    def WriteCsvWithCids(self):
-        """
-            historical function used when importing the data from the CRC handbook
-        """
-        data = self.ReadOriginalCSV()
-        csv_writer = csv.writer(open('../res/pKa_with_cids.csv', 'w'))
-        csv_writer.writerow(('cid', 'Kegg name', 'distance', 'original name', 'formula', 'step', 'T', 'pKa'))
-        for cid, kegg_name, distance, name, formula, step, T, pKa in data:
-            csv_writer.writerow((cid, kegg_name, distance, name, formula, step, T, pKa))
-
-        # Now, the user must go over the output file, fix the problems in it and save it to:
-        # ../data/thermodynamics/pKa_with_cids.csv
-    
-    def WriteCsvWithNumHydrogens(self):
-        """
-            historical function used when importing the data from the CRC handbook
-        """
-        csv_writer = csv.writer(open('../res/pKa_with_nH.csv', 'w'))
-        csv_writer.writerow(['cid', 'name', 'T', 'nH below', 'nH above', 'smiles below', 'smiles above', 'pKa'])
-
-        csv_reader = csv.DictReader(open('../data/thermodynamics/pKa_with_cids.csv', 'r'))
-        for row in csv_reader:
-            if row['cid']:
-                cid = int(row['cid'])
-            else:
-                cid = None
-            nH_below = None
-            nH_above = None
-            
-            if cid:
-                if row['smiles_below'] and row['smiles_above']:
-                    nH_below = DissociationConstants.smiles2nH(row['smiles_above'])
-                    nH_above = DissociationConstants.smiles2nH(row['smiles_below'])
-                else:
-                    nH_above = self.kegg.cid2num_hydrogens(cid)
-                name = self.kegg.cid2name(cid)
-            csv_writer.writerow([cid, name, row['T'], nH_below, nH_above, 
-                                 row['smiles_below'], row['smiles_above'], 
-                                 row['pKa']])
-
     def LoadValuesToDB(self):
         """
             Load the data regarding pKa values according to KEGG compound IDs.
@@ -249,7 +159,6 @@ if (__name__ == '__main__'):
     db = SqliteDatabase("../res/gibbs.sqlite")
     html_writer = HtmlWriter("../res/dissociation_constants.html")
     _mkdir('../res/dissociation_constants')
-    
     dissociation = DissociationConstants(db, html_writer)
     dissociation.LoadValuesToDB()
     dissociation.AnalyseValues()

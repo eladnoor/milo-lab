@@ -95,7 +95,7 @@ class Kegg(Singleton):
             if "DBLINKS" in field_map:
                 for sid in re.findall("PubChem: (\d+)", field_map.GetStringField("DBLINKS")):
                     comp.pubchem_id = int(sid)
-                for cas in re.findall("CAS: ([\d\-]+)", field_map.GetStringField("DBLINKS")):
+                for cas in re.findall("CAS:\s+([\d\-]+)", field_map.GetStringField("DBLINKS")):
                     comp.cas = cas
             
             self.cid2compound_map[cid] = comp
