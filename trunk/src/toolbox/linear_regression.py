@@ -218,17 +218,38 @@ class LinearRegression(object):
             if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.MIP_optimal:
                 raise LinearRegression.LinearProgrammingException("No more EMFs")
             
-            g_plus = cpl.solution.get_values(['g%d_plus' % col for col in xrange(A.shape[1])])
-            g_minus = cpl.solution.get_values(['g%d_minus' % col for col in xrange(A.shape[1])])
-            c_plus = cpl.solution.get_values(['c%d_plus' % col for col in xrange(A.shape[1])])
-            c_minus = cpl.solution.get_values(['c%d_minus' % col for col in xrange(A.shape[1])])
+            g_plus = array(cpl.solution.get_values(['g%d_plus' % col for col in xrange(A.shape[1])]))
+            g_minus = array(cpl.solution.get_values(['g%d_minus' % col for col in xrange(A.shape[1])]))
             
-            constraint_name = 'avoid_%d' % (dimension+1)
-            K[col, :] = array(c_plus) - array(c_minus)
+            coeffs = array(cpl.solution.get_values(['c%d_plus' % col for col in xrange(A.shape[1])])) - \
+                     array(cpl.solution.get_values(['c%d_minus' % col for col in xrange(A.shape[1])]))
+            
+            nonzero_indices = find(g_plus > 0.5).tolist() + find(g_minus > 0.5).tolist()
+            
+            constraint_name = 'avoid_%d_plus' % emf_counter
+            cpl.linear_constraints.add(names=[constraint_name], senses='L')
+            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_indices)-1)
+            for col in xrange(A.shape[1]):
+                if g_plus[col] > 0.5:
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
+                elif g_minus[col] > 0.5:
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
+
+            constraint_name = 'avoid_%d_minus' % emf_counter
+            cpl.linear_constraints.add(names=[constraint_name], senses='L')
+            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_indices)-1)
+            for col in xrange(A.shape[1]):
+                if g_plus[col] > 0.5:
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
+                elif g_minus[col] > 0.5:
+                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
+            
+            K[nonzero_indices, dimension] = coeffs[nonzero_indices]
+            
             if LinearRegression.Rank(K, eps) < dimension+1:
                 print "%d) The new mode is dependent, (dimension = %d / %d)" \
                     % (emf_counter, dimension, kernel_rank)
-                K[:, dimension] *= 0.0
+                K[:, dimension] = 0.0
                 continue
 
             print "%d) The new mode is independent, (dimension = %d / %d)" \
@@ -237,18 +258,8 @@ class LinearRegression(object):
             nonzero_values = find(K[:, dimension])
             g = min(abs(K[nonzero_values, dimension]))
             K[:, dimension] /= g
-            if sum(K[:, dimension] < 0):
+            if sum(K[:, dimension] < 0.0):
                 K[:, dimension] *= -1.0
-            cpl.linear_constraints.add(names=[constraint_name], senses='L')
-            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_values)-1)
-            for col in xrange(A.shape[1]):
-                if g_plus[col] + g_minus[col] > 0.5:
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
-                    if g_plus[col] > 0.5:
-                        K[col, dimension] = c_plus[col]
-                    else:
-                        K[col, dimension] = -c_minus[col]
             dimension += 1
             
         return K.T
