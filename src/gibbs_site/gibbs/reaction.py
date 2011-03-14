@@ -8,6 +8,7 @@ from gibbs import concentration_profile
 from gibbs import constants
 from gibbs import models
 
+
 class CompoundWithCoeff(object):
     """A compound with a stoichiometric coefficient."""
     

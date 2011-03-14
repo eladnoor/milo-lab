@@ -11,10 +11,17 @@
 			{{ delta_g_estimate|floatformat:1 }} kJ / mol
 		{% else %}
 			<a href="/faq#notAvailable">Not available</a>
-			{% if no_dg_explanation %} ({{ no_dg_explanation }}) {% endif %}
 		{% endif %}
 		</strong>
 		</td>
+		{% if no_dg_explanation %}
+		<tr>
+			<td width="150px">Note</td>
+			<td colspan="2">
+				{{ no_dg_explanation }}
+			</td>
+		</tr>
+		{% endif %}
 	</tr>	
 	
 	{% if delta_g_estimate != None %}

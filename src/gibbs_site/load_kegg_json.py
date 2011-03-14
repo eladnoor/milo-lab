@@ -61,7 +61,7 @@ def LoadKeggCompounds(kegg_json_filename='data/kegg_compounds.json'):
                 c.common_names.add(n)
             c.save()        
         except Exception, e:
-            logging.warning('Error parsing cid %s', cid)
+            logging.warning('Missing data for cid %s', cid)
             logging.error(e)
             continue
         
@@ -92,7 +92,7 @@ def LoadKeggReactions(reactions_json_filename='data/kegg_reactions.json'):
                 rxn.products.add(product)
             rxn.save()
         except Exception, e:
-            logging.warning('Error parsing rid %s', rid)
+            logging.warning('Missing data for rid %s', rid)
             logging.error(e)
             continue
 
@@ -115,7 +115,7 @@ def LoadKeggEnzymes(enzymes_json_filename='data/kegg_enzymes.json'):
                 enz.reactions.add(rxn)
             enz.save()
         except Exception, e:
-            logging.warning('Error parsing ec %s', ec)
+            logging.warning('Missing data for ec %s', ec)
             logging.error(e)
             continue
 

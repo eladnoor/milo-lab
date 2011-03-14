@@ -95,6 +95,10 @@
 	color: #FF3300;
 }
 
+#searchResults .searchResult .reactionLink {
+	color: #006633;
+}
+
 #searchResults .image img {
 	border: solid 1px black;
 	max-height: 100px;

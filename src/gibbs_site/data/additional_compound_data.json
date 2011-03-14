@@ -6,11 +6,32 @@
         ]
     },
     {
+        "CID": "C00011",
+        "names": [
+            "CO2(aq)" 
+        ],
+        "preferred name": "CO2(aq)",
+        "note": "CO2(aq) is dissolved CO2. This is different from CO2(total), which includes the hydrated forms of CO2 - carbonate, bicarbonate and carbonic acid.",
+    	"details_link": "/faq#aqueousCO2"
+    },
+    {
         "CID": "C00026",
         "names": [
             "alpha-Ketoglutarate" 
         ]
-    }, 
+    },
+    {
+        "CID": "C00085",
+        "names": [
+            "F6P" 
+        ]
+    },  
+    {
+        "CID": "C00092",
+        "names": [
+            "G6P" 
+        ]
+    },  
     {
         "CID": "C00111",
         "names": [
@@ -20,7 +41,15 @@
     {
         "CID": "C00118",
         "names": [
-            "G3P" 
+            "G3P",
+            "GADP",
+            "GA3P"
+        ]
+    }, 
+    {
+        "CID": "C00197",
+        "names": [
+            "3PG" 
         ]
     }, 
     {
@@ -30,19 +59,38 @@
         ]
     }, 
     {
-        "CID": "C00288",  
+        "CID": "C00288",
         "names": [
-            "Carbonic acid", 
-            "CO2",
-            "Carbon dioxide"
+            "CO2(total)",
+            "Carbonate",
+            "Carbonic acid"
         ],
-        "preferred name": "CO2(aq)",
-        "note": "CO2(aq) represents several species - solvated CO2, carbonic acid, bicarbonate and carbonate. These species are in rapid equilibrium, and are, therefore, energetically equivalent. Hence, even though a reaction mechanism may involve a particular species of CO2(aq), the reaction draws from the equilibrated pool of CO2(aq) species. Since we refer to the hydrated form of CO2, reactions that are traditionally written with CO2 are balanced here with water."
-    }
+        "preferred name": "CO2(total)",
+        "note": "CO2(total) is a collection of the hydrated and dehydrated forms of CO2 - aqueous CO2, carbonate, carbonic acid and bicarbonate. These forms are often considered to be in equilibrium in biochemical systems.",
+    	"details_link": "/faq#aqueousCO2"
+    },
+    {
+        "CID": "C00354",
+        "names": [
+            "F1,6BP" 
+        ]
+    }, 
+    {
+        "CID": "C00637",
+        "names": [
+            "2PG" 
+        ]
+    },
+    {
+        "CID": "C00665",
+        "names": [
+            "F2,6BP" 
+        ]
+    },
     {
         "CID": "C04442",
         "names": [
             "KDPG" 
         ]
-    }, 
+    }
 ]
