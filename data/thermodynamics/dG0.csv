@@ -198,6 +198,9 @@
 ,920,"Glutathione-CoA",-35.85,,-5,46,0,"test","Alberty (2003)","CoA(-5)=0, Glutathione(ox)=0"
 "C(CO)C(=O)[O-]",1013,"3-Hydroxypropanoate",-518.4,,-1,5,0,"train","Alberty (2003)",
 ,1352,"FADH2(red)",-38.88,,-2,33,0,"test","Alberty (2003)",
+,1353,"CO2(tot)",-527.81,-677.14,-2,0,0,"test","Alberty (2003)","Same as C00288"
+,1353,"CO2(tot)",-586.77,-691.99,-1,1,0,"test","Alberty (2003)","Same as C00288"
+,1353,"CO2(tot)",-623.11,-699.63,0,2,0,"test","Alberty (2003)","Same as C00288"
 ,1438,"Methane(aq)",-34.33,-89.04,0,4,0,"test","Alberty (2003)",
 ,1438,"Methane(g)",-50.72,-74.81,0,4,0,"skip","Alberty (2003)","irrelevant for aquatic reactions"
 "CC(C)O",1845,"2-propanol",-185.23,-330.83,0,8,0,"train","Alberty (2003)",
