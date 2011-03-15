@@ -129,6 +129,12 @@ class LinearRegression(object):
         pass
     
     @staticmethod
+    def FindKernel(A):
+        b = np.zeros((A.shape[0], 1))
+        _x, K = LinearRegression.SolveLinearSystem(A, b)
+        return K
+
+    @staticmethod
     def FindSparseKernel(A, kernel_dimension=None, eps=1e-10, upper_bound=1000):
         """
             Finds a sparse representation of the kernel matrix, using MILP
