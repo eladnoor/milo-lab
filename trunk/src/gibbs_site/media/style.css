@@ -99,6 +99,10 @@
 	color: #006633;
 }
 
+#searchResults .searchResult .viewAllLink {
+	color: #0066CC;
+}
+
 #searchResults .image img {
 	border: solid 1px black;
 	max-height: 100px;
@@ -116,4 +120,13 @@ table.enzymeInfo, table.reactionsInfo {
 	width: 750px;
 	border: solid 1px black;
 	padding: 2px;
+}
+
+table.reactionsInfo {
+	text-align: center;
+	padding: 0px;
+}
+
+.reactionRowOdd {
+	background-color: #CCFFCC;
 }
