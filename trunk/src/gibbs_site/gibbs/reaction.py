@@ -30,7 +30,14 @@ class CompoundWithCoeff(object):
     @staticmethod
     def FromReactant(reactant):
         return CompoundWithCoeff(reactant.coeff, reactant.compound,
-                                 name=reactant.compound.ShortestName())
+                                 name=reactant.compound.FirstName())
+    
+    @staticmethod
+    def FromId(coeff, kegg_id, name=None, concentration=1.0):
+        compound = models.Compound.objects.get(kegg_id=kegg_id)
+        my_name = name or compound.FirstName()
+        return CompoundWithCoeff(coeff, compound, name=my_name,
+                                 concentration=concentration)
         
     def Minus(self):
         """Returns a new CompoundWithCoeff with coeff = -self.coeff."""
@@ -314,6 +321,13 @@ class Reaction(object):
         params.append('balance_electrons=1')
     
         return '/reaction?%s' % '&'.join(params)
+
+    def GetReplaceCO2Link(self, query=None):
+        """Returns a link to balance this reaction with water."""
+        params = self._GetUrlParams(query)
+        params.append('replace_co2=1')
+    
+        return '/reaction?%s' % '&'.join(params)
     
     def GetPhGraphLink(self):
         params = self._GetUrlParams()
@@ -347,6 +361,12 @@ class Reaction(object):
         rq = self._GetReactionSideString(self.reactants)
         pq = self._GetReactionSideString(self.products)
         return '%s <=> %s' % (rq, pq)
+    
+    def ContainsCO2(self):
+        co2_id = 'C00011'
+        if self._FindCompoundIndex(self.reactants, co2_id) is not None:
+            return True
+        return self._FindCompoundIndex(self.products, co2_id) is not None
     
     def IsBalanced(self):
         """Checks if the collection is atom-wise balanced.
@@ -403,6 +423,16 @@ class Reaction(object):
         return Reaction._FindCompoundIndex(side, 'C00001')
 
     @staticmethod
+    def _ReplaceCompound(side, from_id, to_id):
+        index = Reaction._FindCompoundIndex(side, from_id)
+        if index is None:
+            return
+        
+        coeff = side[index].coeff
+        c_w_coeff = CompoundWithCoeff.FromId(coeff, to_id)
+        side[index] = c_w_coeff
+
+    @staticmethod
     def _AddCompound(side, id, how_many):
         """Adds "how_many" of the compound with the given id.
         
@@ -415,10 +445,8 @@ class Reaction(object):
         if i:
             side[i].coeff += how_many
         else:
-            compound = models.Compound.objects.get(kegg_id=id)
-            c_w_coeff = CompoundWithCoeff(compound=compound, coeff=how_many,
-                                          name=compound.ShortestName())
-            side.append(c_w_coeff)
+            c_w_coeff = CompoundWithCoeff.FromId(how_many, id)
+            side.append(c_w_coeff)    
 
     @staticmethod
     def AddWater(side, how_many):
@@ -499,6 +527,19 @@ class Reaction(object):
         self.products  = self._FilterZeroes(self.products)
         
         return True
+    
+    def TryReplaceCO2(self):
+        """Attempt to replace CO2(aq) with CO2(total).
+        
+        Returns:
+            True on success.
+        """
+        co2_id = 'C00011'
+        bic_id = 'C00288'
+        self._ReplaceCompound(self.reactants, co2_id, bic_id)
+        self._ReplaceCompound(self.products, co2_id, bic_id)
+        
+        return self.TryBalanceWithWater()
 
     def CanBalanceElectrons(self):
         """Returns True if balanced with or extra electrons."""
@@ -704,7 +745,8 @@ class Reaction(object):
         if diff < 0:
             return -diff
         return None
-
+    
+    contains_co2 = property(ContainsCO2)
     is_balanced = property(IsBalanced)
     can_balance_electrons = property(CanBalanceElectrons)
     is_electron_balanced = property(IsElectronBalanced)

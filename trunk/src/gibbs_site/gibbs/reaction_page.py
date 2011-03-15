@@ -30,10 +30,14 @@ def ReactionPage(request):
     if form.cleaned_balance_electrons:
         rxn.BalanceElectrons()
         query = rxn.GetQueryString()
+    if form.cleaned_replace_co2:
+        rxn.TryReplaceCO2()
+        query = rxn.GetQueryString()
     
     # Render the template.
     balance_with_water_link = rxn.GetBalanceWithWaterLink(query)
     balance_electrons_link = rxn.GetBalanceElectronsLink(query)
+    replace_co2_link = rxn.GetReplaceCO2Link(query)
     template_data = {'reaction': rxn,
                      'query': query,
                      'ph': rxn.ph,
@@ -41,5 +45,6 @@ def ReactionPage(request):
                      'ionic_strength': rxn.i_s,
                      'concentration_profile': str(rxn.concentration_profile),
                      'balance_with_water_link': balance_with_water_link,
-                     'balance_electrons_link': balance_electrons_link}
+                     'balance_electrons_link': balance_electrons_link,
+                     'replace_co2_link': replace_co2_link}
     return render_to_response(template_name, template_data)
