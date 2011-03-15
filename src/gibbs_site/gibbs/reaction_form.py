@@ -25,6 +25,7 @@ class ReactionForm(form_utils.BaseForm):
     query = forms.CharField(max_length=2048, required=False)
     balance_w_water = forms.BooleanField(required=False)
     balance_electrons = forms.BooleanField(required=False)
+    replace_co2 = forms.BooleanField(required=False)
     submit = forms.ChoiceField(required=False,
                                choices=[('Update', 'update'),
                                         ('Save', 'save')])
@@ -47,4 +48,5 @@ class ReactionForm(form_utils.BaseForm):
     cleaned_query = property(lambda self: self.cleaned_data['query'])
     cleaned_balance_w_water = property(lambda self: self._GetWithDefault('balance_w_water', False))
     cleaned_balance_electrons = property(lambda self: self._GetWithDefault('balance_electrons', False))
+    cleaned_replace_co2 = property(lambda self: self._GetWithDefault('replace_co2', False))
     cleaned_submit = property(lambda self: self._GetWithDefault('submit', 'Update'))

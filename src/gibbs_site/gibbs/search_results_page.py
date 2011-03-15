@@ -49,9 +49,11 @@ def ResultsPage(request):
         
         balance_with_water_link = rxn.GetBalanceWithWaterLink(query)
         balance_electrons_link = rxn.GetBalanceElectronsLink(query)
+        replace_co2_link = rxn.GetReplaceCO2Link(query)
         template_data.update({'reaction': rxn,
                               'balance_with_water_link': balance_with_water_link,
-                              'balance_electrons_link': balance_electrons_link})
+                              'balance_electrons_link': balance_electrons_link,
+                              'replace_co2_link': replace_co2_link})
         return render_to_response('reaction_page.html', template_data)
 
     else:
