@@ -33,8 +33,12 @@
 				<span class="name"><a href="{{result.value.link}}">{{ result.key }}</a></span>
 				<span class="reactions">
 					<ul>
-					{% for reaction in result.value.all_reactions %}
-						<li><a class="reactionLink" href="{{reaction.link}}">{{reaction.reaction_string}}</a></li>
+					{% for reaction in result.value.all_reactions|slice:":3" %}
+						<li><a class="reactionLink" href="{{reaction.link}}">{{reaction.reaction_string}}</a>
+						{% if forloop.last and result.value.all_reactions|slice:"3:" %}
+						<li><a class="viewAllLink" href="{{result.value.link}}">View all {{ result.key }} reactions &raquo;</a></li>
+						{% endif %}
+						</li>
 					{% endfor %}
 					</ul>
 				</span>

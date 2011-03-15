@@ -16,13 +16,13 @@
 </table>
 {% if enzyme.all_reactions %}
 <table class="reactionsInfo">
-	<tr>
-		<th>Reactions</td>		
+	<tr class="reactionRow">
+		<th>Reactions</th>		
 	</tr>
 	{% for reaction in enzyme.all_reactions %}
-	<tr>
-		<td><a href="{{reaction.link}}">{{reaction.reaction_string}}</a></td>
-	</tr>
+		<tr class="{% cycle 'reactionRowOdd' 'reactionRowEven' %}">
+			<td><a href="{{reaction.link}}">{{reaction.reaction_string}}</a></td>
+		</tr>
 	{% endfor %}
 </table>
 {% endif %}
