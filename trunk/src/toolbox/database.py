@@ -1,6 +1,7 @@
 import sqlite3, csv
 import os
 import types
+import logging
 
 class Database(object):
     
@@ -139,11 +140,15 @@ class SqliteDatabase(SQLDatabase):
             raise ValueError('Illegal flag: %s' % str(flag))
     
     def Execute(self, command, arguments=None):
-        if arguments:
-            return self.comm.execute(command, arguments)
-        else:
-            return self.comm.execute(command)
-    
+        try:
+            if arguments:
+                return self.comm.execute(command, arguments)
+            else:
+                return self.comm.execute(command)
+        except sqlite3.InterfaceError, e:
+            logging.error('Failed to execute database command: ' + command)
+            raise e
+        
     def Commit(self):
         self.comm.commit()
 

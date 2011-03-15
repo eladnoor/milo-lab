@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import pylab
+import numpy as np
 import logging
 import csv
 from toolbox.linear_regression import LinearRegression
@@ -27,9 +28,14 @@ class NistAnchors(object):
         self.cid2dG0_f = {}
         self.cid2min_nH = {}
         
+    def __len__(self):
+        return len(self.cid2dG0_f)
+        
     def FromCsvFile(self, filename='../data/thermodynamics/nist_anchors.csv'):
         self.db.CreateTable('nist_anchors', 'cid INT, z INT, nH INT, nMg INT, dG0 REAL')
         for row in csv.DictReader(open(filename, 'r')):
+            if bool(row['skip']) and row['skip'] != 'False':
+                continue
             cid = int(row['cid'])
             dG0_f = float(row['dG0'])
             z = int(row['z'])
@@ -70,7 +76,7 @@ class NistRegression(Thermodynamics):
         self.cid2pmap_dict = {}
         
         self.assume_no_pKa_by_default = False
-        self.std_diff_threshold = pylab.inf
+        self.std_diff_threshold = np.inf
         
     def cid2PseudoisomerMap(self, cid):
         if (cid in self.cid2pmap_dict):
@@ -81,7 +87,73 @@ class NistRegression(Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
         
-    def ReverseTransform(self, prior_thermodynamics=None):
+    def ReverseTranformNistRows(self, nist_rows):
+        all_cids_with_pKa = set(self.cid2diss_table.keys())
+        all_cids_in_nist = set(self.nist.GetAllCids())
+        
+        if self.assume_no_pKa_by_default:
+            for cid in all_cids_in_nist.difference(all_cids_with_pKa):
+                diss = DissociationTable(cid)
+                diss.min_nH = self.kegg.cid2num_hydrogens(cid)
+                diss.min_charge = self.kegg.cid2charge(cid)
+                if diss.min_nH == None or diss.min_charge == None:
+                    logging.warning('cannot add C%05d since nH or charge '
+                                    'cannot be determined' % cid) 
+                else:
+                    self.cid2diss_table[cid] = diss
+                    all_cids_with_pKa.add(cid)
+
+        data = {}
+        data['cids_to_estimate'] = sorted(all_cids_with_pKa)
+        
+        # the transformed (observed) free energy of the reactions dG'0_r
+        data['dG0_r_tag'] = np.zeros((0, 1))
+        
+        # dG'0_r - dG0_r  (which is only a function of the conditions and pKas)
+        data['ddG0_r'] = np.zeros((0, 1))
+        
+        data['pH'] = np.zeros((0, 1))
+        data['I'] = np.zeros((0, 1))
+        data['pMg'] = np.zeros((0, 1))
+        data['T'] = np.zeros((0, 1))
+        data['S'] = np.zeros((0, len(data['cids_to_estimate']))) # stoichiometric matrix
+        
+        for nist_row_data in nist_rows:
+            # check that all participating compounds have a known pKa
+            cids_in_reaction = set(nist_row_data.sparse.keys())
+            cids_without_pKa = cids_in_reaction.difference(all_cids_with_pKa)
+            if cids_without_pKa:
+                logging.debug('reaction contains CIDs with unknown pKa values: %s' % \
+                              ', '.join(['C%05d' % cid for cid in cids_without_pKa]))
+                continue
+            
+            data['dG0_r_tag'] = np.vstack([data['dG0_r_tag'], nist_row_data.dG0_r])
+            data['pH'] = np.vstack([data['pH'], nist_row_data.pH])
+            data['I'] = np.vstack([data['I'], nist_row_data.I])
+            data['pMg'] = np.vstack([data['pMg'], nist_row_data.pMg])
+            data['T'] = np.vstack([data['T'], nist_row_data.T])
+            ddG = self.ReverseTransformReaction(nist_row_data.sparse, 
+                nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
+                nist_row_data.T)
+            data['ddG0_r'] = np.vstack([data['ddG0_r'], ddG])
+            
+            stoichiometric_row = np.zeros((1, len(data['cids_to_estimate'])))
+            for cid, coeff in nist_row_data.sparse.iteritems():
+                stoichiometric_row[0, data['cids_to_estimate'].index(cid)] = coeff
+            
+            data['S'] = np.vstack([data['S'], stoichiometric_row])
+        
+        data['dG0_r'] = data['dG0_r_tag'] - data['ddG0_r']
+        
+        # remove the columns that are all-zeros in S
+        nonzero_columns = pylab.find(pylab.sum(abs(data['S']), 0))
+        data['S'] = data['S'][:, nonzero_columns]
+        data['cids_to_estimate'] = pylab.array(data['cids_to_estimate'])
+        data['cids_to_estimate'] = data['cids_to_estimate'][nonzero_columns]
+        
+        return data
+
+    def ReverseTransform(self, use_anchors=False):
         """
             Performs the reverse Lagandre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
@@ -92,27 +164,11 @@ class NistRegression(Thermodynamics):
         nist_rows = self.nist.SelectRowsFromNist()
         data = self.ReverseTranformNistRows(nist_rows)
         
-        # get a vector of anchored formation energies. one needs to be careful
-        # to always use the most basic pseudoisomer (the one with the lowest nH)
-        # because these are the forms used in the regression matrix
-        for cid in self.anchors:
-            dG0_f = self.nist_anchors.cid2dG0_f[cid]
-            nH = self.nist_anchors.cid2min_nH[cid]
-            dG0_f_base = self.ConvertPseudoisomer(cid, dG0_f, nH)
-
-            # by assigning a dG0_f to this compound, it will be subtracted out
-            # from the dG0_r when applying the reverse transform.
-            self.cid2diss_table[cid].min_dG0 = dG0_f_base
-            self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
-
-        # remove compounds that do no appear in S (since all the reactions
-        # that they are in were discarded).
-        nonzero_columns = pylab.find(pylab.sum(abs(data['S']), 0))
-        stoichiometric_matrix = data['S'][:, nonzero_columns]
-        cids_to_estimate = [data['cids_to_estimate'][i] for i in nonzero_columns]
+        stoichiometric_matrix = data['S']
+        cids_to_estimate = data['cids_to_estimate']
         
-        logging.info("%d compounds are anchored, and the %d others will be estimated" % \
-                     (len(self.anchors), len(cids_to_estimate)))
+        logging.info("%d out of %d compounds are anchored" % \
+                     (len(self.nist_anchors), len(cids_to_estimate)))
         logging.info("%d out of %d NIST measurements can be used" % \
                      (stoichiometric_matrix.shape[0], len(self.nist.data)))
 
@@ -132,7 +188,7 @@ class NistRegression(Thermodynamics):
         # the averages are over the equivalence set of each reaction (i.e. the 
         # average dG of all the rows in NIST with that same reaction).
         # 'N' is the unique row number (i.e. the ID of the equivalence set)
-        full_data_mat = pylab.zeros((n_rows, 5))
+        full_data_mat = np.zeros((n_rows, 5))
         full_data_mat[:, 0] = data['dG0_r'][:, 0]
         full_data_mat[:, 1] = data['dG0_r_tag'][:, 0]
         
@@ -140,11 +196,11 @@ class NistRegression(Thermodynamics):
         # std(dG0), std(dG0_tag), no. rows
         # there is exactly one row for each equivalence set (i.e. unique reaction)
         # no. rows holds the number of times this unique reaction appears in NIST
-        unique_data_mat = pylab.zeros((n_unique_rows, 5))
+        unique_data_mat = np.zeros((n_unique_rows, 5))
         unique_sparse_reactions = []
         for i in xrange(n_unique_rows):
             # convert the rows of unique_rows_S to a list of sparse reactions
-            sparse = dict([(cids_to_estimate[j], unique_rows_S[i, j]) 
+            sparse = dict([(int(cids_to_estimate[j]), unique_rows_S[i, j]) 
                            for j in pylab.find(unique_rows_S[i, :])])
             unique_sparse_reactions.append(sparse)
 
@@ -153,8 +209,8 @@ class NistRegression(Thermodynamics):
             row_indices = pylab.find(pylab.sum(diff, 1) == 0)
             
             # take the mean and std of the dG0_r of these rows
-            unique_data_mat[i, 0:2] = pylab.mean(full_data_mat[row_indices, 0:2], 0)
-            unique_data_mat[i, 2:4] = pylab.std(full_data_mat[row_indices, 0:2], 0)
+            unique_data_mat[i, 0:2] = np.mean(full_data_mat[row_indices, 0:2], 0)
+            unique_data_mat[i, 2:4] = np.std(full_data_mat[row_indices, 0:2], 0)
             unique_data_mat[i, 4]   = len(row_indices)
             full_data_mat[row_indices, 4] = i
             full_data_mat[row_indices, 2:4] = full_data_mat[row_indices, 0:2]
@@ -165,26 +221,96 @@ class NistRegression(Thermodynamics):
         # before and after the reverse transform
         self.WriteUniqueReactionReport(unique_sparse_reactions, 
                                        unique_data_mat, full_data_mat)
+        
+        dG0 = unique_data_mat[:, 0:1]
+        if use_anchors:
+            # get a vector of anchored formation energies. one needs to be careful
+            # to always use the most basic pseudoisomer (the one with the lowest nH)
+            # because these are the forms used in the regression matrix
+            anchor_dG0_f = np.zeros((cids_to_estimate.shape[0], 1))
+    
+            anchor_cols = []
+            for cid in self.nist_anchors.GetAllCids():
+                dG0_f = self.nist_anchors.cid2dG0_f[cid]
+                nH = self.nist_anchors.cid2min_nH[cid]
+                if cid not in self.cid2diss_table:
+                    diss = DissociationTable(cid)
+                    diss.min_dG0 = dG0_f
+                    diss.min_nH = nH or self.kegg.cid2num_hydrogens(cid) or 0
+                    diss.CalculateCharge()
+                    self.cid2diss_table[cid] = diss
+                else:
+                    self.cid2diss_table[cid].min_dG0 = self.ConvertPseudoisomer(cid, dG0_f, nH)
+                
+                self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
+                
+                if cid in cids_to_estimate:
+                    c = pylab.find(cids_to_estimate == cid)[0]
+                    anchor_cols.append(c)
+                    anchor_dG0_f[c, 0] = self.cid2diss_table[cid].min_dG0
 
+            # subtract the effect of the anchor compounds on the reverse-transformed
+            # reaction energies.
+            dG0 -= np.dot(unique_rows_S, anchor_dG0_f)
+            
+            # remove anchored compounds and compounds that do no appear in S
+            # (since all the reactions that they are in were discarded).
+            unique_rows_S = np.delete(unique_rows_S, anchor_cols, 1)
+            cids_to_estimate = np.delete(cids_to_estimate, anchor_cols, 0)
+        
+        return unique_rows_S, dG0, cids_to_estimate
+
+    def ReactionVector2String(self, stoichiometric_vec, cids):
+        nonzero_columns = pylab.find(abs(stoichiometric_vec) > 1e-10)
+        gv = " + ".join(["%g %s (C%05d)" % (stoichiometric_vec[i], 
+            self.kegg.cid2name(int(cids[i])), cids[i]) for i in nonzero_columns])
+        return gv
+
+    def FindKernel(self, S, cids, sparse=True):
+        rankS = LinearRegression.Rank(S)
+        logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
+                     (S.shape[0], S.shape[1], S.shape[1]-rankS))
+        
+        # Remove non-zero columns
+        if False:
+            nonzero_columns = pylab.find(np.sum(abs(S), 0))
+            S = S[:, nonzero_columns]
+            cids = [cids[i] for i in nonzero_columns]
+
+        logging.info("Finding the kernel of the stoichiometric matrix")
+
+        if not sparse:
+            K = LinearRegression.FindKernel(S)
+        else:
+            try:
+                K = LinearRegression.FindSparseKernel(S)
+            except LinearRegression.LinearProgrammingException as e:
+                print "Error when trying to find a sparse kernel: " + str(e)
+    
+        for i in xrange(K.shape[0]):
+            print i, ":", self.ReactionVector2String(K[i, :], cids)
+    
+    def ExportToTextFiles(self, S, dG0, cids):
+        
         # export the raw data matrices to text files
-        pylab.np.savetxt('../res/nist/regress_CID.txt', 
-            pylab.array(cids_to_estimate), fmt='%d', delimiter=',')
-        pylab.np.savetxt('../res/nist/regress_S.txt', 
-            unique_rows_S, fmt='%g', delimiter=',')
-        pylab.np.savetxt('../res/nist/regress_dG0.txt',
-            unique_data_mat[:, 0], fmt='%.2f', delimiter=',')
+        prefix = '../res/nist/regress_'
+        np.savetxt(prefix + 'CID.txt', pylab.array(cids), fmt='%d', delimiter=',')
+        np.savetxt(prefix + 'S.txt', S, fmt='%g', delimiter=',')
+        np.savetxt(prefix + 'dG0.txt', dG0, fmt='%.2f', delimiter=',')
         
-        logging.info("Regression matrix is %d x %d, and it's rank is %d" % \
-                     (unique_rows_S.shape[0], unique_rows_S.shape[1],
-                      LinearRegression.Rank(unique_rows_S)))
-        estimated_dG0_f, kerA = LinearRegression.LeastSquares(unique_rows_S, 
-            unique_data_mat[:, 0], reduced_row_echlon=False)
-        
-        estimated_dG0_r = pylab.dot(unique_rows_S, estimated_dG0_f)
-        residuals = estimated_dG0_r - unique_data_mat[:, 0:1]
-        rmse = pylab.sqrt(pylab.mean(residuals**2))
+        for i in xrange(S.shape[0]):
+            print i, self.ReactionVector2String(S[i, :], cids)
+    
+    def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None):
+        rankS = LinearRegression.Rank(S)
+        logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
+                     (S.shape[0], S.shape[1], S.shape[1]-rankS))
+        est_dG0_f, kerA = LinearRegression.LeastSquares(S, dG0)
+        est_dG0_r = np.dot(S, est_dG0_f)
+        residuals = est_dG0_r - dG0
+        rmse = np.sqrt(np.mean(residuals**2))
         logging.info("Regression results for reverse transformed data:")
-        logging.info("N = %d, RMSE = %.1f" % (n_unique_rows, rmse))
+        logging.info("N = %d, RMSE = %.1f" % (S.shape[0], rmse))
         logging.info("Kernel rank = %d" % (kerA.shape[0]))
 
         if prior_thermodynamics:
@@ -192,14 +318,14 @@ class NistRegression(Thermodynamics):
             # prior formation energies
             delta_dG0_f = pylab.zeros((0, 1))
             indices_in_prior = []
-            for i, cid in enumerate(cids_to_estimate):
+            for i, cid in enumerate(cids):
                 try:
                     pmap = prior_thermodynamics.cid2PseudoisomerMap(cid)
                     for p_nH, unused_z, p_nMg, dG0 in sorted(pmap.ToMatrix()):
                         if p_nMg == 0:
                             dG0_base = self.ConvertPseudoisomer(cid, dG0, p_nH)
-                            difference = dG0_base - estimated_dG0_f[i, 0]
-                            delta_dG0_f = pylab.vstack([delta_dG0_f, difference])
+                            difference = dG0_base - est_dG0_f[i, 0]
+                            delta_dG0_f = np.vstack([delta_dG0_f, difference])
                             indices_in_prior.append(i)
                             break
                 except MissingCompoundFormationEnergy:
@@ -207,18 +333,18 @@ class NistRegression(Thermodynamics):
             
             v, _ = LinearRegression.LeastSquares(kerA.T[indices_in_prior,:], 
                         delta_dG0_f, reduced_row_echlon=False)
-            estimated_dG0_f += pylab.dot(kerA.T, v)
+            est_dG0_f += np.dot(kerA.T, v)
 
         # copy the solution into the diss_tables of all the compounds,
         # and then generate their PseudoisomerMaps.
-        for i, cid in enumerate(cids_to_estimate):
-            self.cid2diss_table[cid].min_dG0 = estimated_dG0_f[i, 0]
+        for i, cid in enumerate(cids):
+            self.cid2diss_table[cid].min_dG0 = est_dG0_f[i, 0]
             self.cid2pmap_dict[cid] = self.cid2diss_table[cid].GetPseudoisomerMap()
 
     def WriteUniqueReactionReport(self, unique_sparse_reactions, 
                                   unique_data_mat, full_data_mat):
         
-        total_std = pylab.std(full_data_mat[:, 2:4], 0)
+        total_std = np.std(full_data_mat[:, 2:4], 0)
         
         fig = pylab.figure()
         pylab.plot(unique_data_mat[:, 2], unique_data_mat[:, 3], '.')
@@ -259,67 +385,6 @@ class NistRegression(Thermodynamics):
         
         dict_list.sort(key=lambda x:x["diff"], reverse=True)
         self.html_writer.write_table(dict_list, table_headers)
-
-    def ReverseTranformNistRows(self, nist_rows):
-        all_cids_with_pKa = set(self.cid2diss_table.keys())
-        all_cids_in_nist = set(self.nist.GetAllCids())
-        
-        if self.assume_no_pKa_by_default:
-            for cid in all_cids_in_nist.difference(all_cids_with_pKa):
-                diss = DissociationTable(cid)
-                diss.min_nH = self.kegg.cid2num_hydrogens(cid)
-                diss.min_charge = self.kegg.cid2charge(cid)
-                if diss.min_nH == None or diss.min_charge == None:
-                    logging.warning('cannot add C%05d since nH or charge '
-                                    'cannot be determined' % cid) 
-                else:
-                    self.cid2diss_table[cid] = diss
-                    all_cids_with_pKa.add(cid)
-        
-
-        data = {}
-        data['cids_to_estimate'] = sorted(all_cids_with_pKa.difference(self.anchors))
-        
-        # the transformed (observed) free energy of the reactions dG'0_r
-        data['dG0_r_tag'] = pylab.zeros((0, 1))
-        
-        # dG'0_r - dG0_r  (which is only a function of the conditions and pKas)
-        data['ddG0_r'] = pylab.zeros((0, 1))
-        
-        data['pH'] = pylab.zeros((0, 1))
-        data['I'] = pylab.zeros((0, 1))
-        data['pMg'] = pylab.zeros((0, 1))
-        data['T'] = pylab.zeros((0, 1))
-        data['S'] = pylab.zeros((0, len(data['cids_to_estimate']))) # stoichiometric matrix
-        
-        for nist_row_data in nist_rows:
-            # check that all participating compounds have a known pKa
-            cids_in_reaction = set(nist_row_data.sparse.keys())
-            cids_without_pKa = cids_in_reaction.difference(all_cids_with_pKa)
-            if cids_without_pKa:
-                logging.debug('reaction contains CIDs with unknown pKa values: %s' % \
-                              ', '.join(['C%05d' % cid for cid in cids_without_pKa]))
-                continue
-            
-            data['dG0_r_tag'] = pylab.vstack([data['dG0_r_tag'], nist_row_data.dG0_r])
-            data['pH'] = pylab.vstack([data['pH'], nist_row_data.pH])
-            data['I'] = pylab.vstack([data['I'], nist_row_data.I])
-            data['pMg'] = pylab.vstack([data['pMg'], nist_row_data.pMg])
-            data['T'] = pylab.vstack([data['T'], nist_row_data.T])
-            ddG = self.ReverseTransformReaction(nist_row_data.sparse, 
-                nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
-                nist_row_data.T)
-            data['ddG0_r'] = pylab.vstack([data['ddG0_r'], ddG])
-            
-            stoichiometric_row = pylab.zeros((1, len(data['cids_to_estimate'])))
-            for cid, coeff in nist_row_data.sparse.iteritems():
-                if cid not in self.anchors:
-                    stoichiometric_row[0, data['cids_to_estimate'].index(cid)] = coeff
-            
-            data['S'] = pylab.vstack([data['S'], stoichiometric_row])
-        
-        data['dG0_r'] = data['dG0_r_tag'] - data['ddG0_r']
-        return data
 
     def AnalyseSingleReaction(self, sparse, html_writer=None):
         pylab.rcParams['text.usetex'] = False
@@ -369,7 +434,7 @@ class NistRegression(Thermodynamics):
         x_limits = {'pH' : (3, 12), 'I' : (0, 1), 'pMg' : (0, 10)}
         
         for j, y_axis in enumerate(['dG0_r_tag', 'dG0_r']):
-            sigma = pylab.std(data[y_axis])
+            sigma = np.std(data[y_axis])
             html_writer.write("  <li>stdev(%s) = %.2g</li>" % (y_axis, sigma))
             for i, x_axis in enumerate(['pH', 'I', 'pMg']):
                 pylab.subplot(2,3,i+3*j+1)
@@ -385,9 +450,9 @@ class NistRegression(Thermodynamics):
         # draw the response of the graph to pH, I and pMg:
         fig2 = pylab.figure()
 
-        pH_range = pylab.arange(3, 12.01, 0.25)
-        I_range = pylab.arange(0.0, 1.01, 0.05)
-        pMg_range = pylab.arange(0.0, 10.01, 0.2)
+        pH_range = np.arange(3, 12.01, 0.25)
+        I_range = np.arange(0.0, 1.01, 0.05)
+        pMg_range = np.arange(0.0, 10.01, 0.2)
 
         ddG_vs_pH = []
         for pH in pH_range:
@@ -423,8 +488,9 @@ class NistRegression(Thermodynamics):
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
         try:
             return self.cid2diss_table[cid].ConvertPseudoisomer(dG0, nH_from, nH_to)
-        except KeyError as e:
-            raise KeyError("In C%05d, %s" % (cid, str(e)))
+        except KeyError:
+            raise KeyError("Cannot find the pKas of C%05d (%s)" % \
+                           (cid, self.kegg.cid2name(cid)))
     
     def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
         """
@@ -567,54 +633,59 @@ def main():
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
     else:
-        html_writer.write("<h2>NIST regression:</h2>")
-        
-        alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
-        alberty.ToDatabase(db, 'alberty')
-        
         nist_regression.std_diff_threshold = 100.0
         nist_regression.nist.T_range = (298, 314)
         #nist_regression.nist.override_I = 0.25
         nist_regression.nist.override_pMg = 10.0
-        nist_regression.ReverseTransform(prior_thermodynamics=alberty)
-        nist_regression.ToDatabase()
+        S, dG0, cids = nist_regression.ReverseTransform(use_anchors=True)
+
+        #nist_regression.ExportToTextFiles(S, dG0, cids)
+        if False:
+            nist_regression.FindKernel(S, cids, sparse=False)
+        else:
+            html_writer.write("<h2>NIST regression:</h2>")
+            
+            alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+            alberty.ToDatabase(db, 'alberty')
+            nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=alberty)
+            nist_regression.ToDatabase()
+            
+            html_writer.write('<h3>Regression results:</h3>\n')
+            html_writer.insert_toggle('regression')
+            html_writer.start_div('regression')
+            nist_regression.WriteDataToHtml()
+            html_writer.end_div()
         
-        html_writer.write('<h3>Regression results:</h3>\n')
-        html_writer.insert_toggle('regression')
-        html_writer.start_div('regression')
-        nist_regression.WriteDataToHtml()
-        html_writer.end_div()
+            html_writer.write('<h3>Reaction energies - Estimated vs. Observed:</h3>\n')
+            html_writer.insert_toggle('verify')
+            html_writer.start_div('verify')
+            N, rmse = nist_regression.VerifyResults()
+            html_writer.end_div()
+            html_writer.write('</br>\n')
+            
+            logging.info("Regression results for observed data:")
+            logging.info("N = %d, RMSE = %.1f" % (N, rmse))
     
-        html_writer.write('<h3>Reaction energies - Estimated vs. Observed:</h3>\n')
-        html_writer.insert_toggle('verify')
-        html_writer.start_div('verify')
-        N, rmse = nist_regression.VerifyResults()
-        html_writer.end_div()
-        html_writer.write('</br>\n')
-        
-        logging.info("Regression results for observed data:")
-        logging.info("N = %d, RMSE = %.1f" % (N, rmse))
-
-        html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
-
-        query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
-                'FROM alberty a, nist_regression r ' + \
-                'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
-                'AND a.anchor=0 ORDER BY a.cid,a.nH'
-        
-        data = pylab.zeros((0, 2))
-        fig = pylab.figure()
-        pylab.hold(True)
-        for row in db.Execute(query):
-            cid, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
-            name = nist_regression.kegg.cid2name(cid)
-            x = (dG0_a + dG0_r)/2
-            y = dG0_a - dG0_r
-            pylab.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
-            data = pylab.vstack([data, (x,y)])
-
-        pylab.plot(data[:,0], data[:,1], '.')
-        html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+            html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
+    
+            query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
+                    'FROM alberty a, nist_regression r ' + \
+                    'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
+                    'AND a.anchor=0 ORDER BY a.cid,a.nH'
+            
+            data = np.zeros((0, 2))
+            fig = pylab.figure()
+            pylab.hold(True)
+            for row in db.Execute(query):
+                cid, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
+                name = nist_regression.kegg.cid2name(cid)
+                x = (dG0_a + dG0_r)/2
+                y = dG0_a - dG0_r
+                pylab.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
+                data = np.vstack([data, (x,y)])
+    
+            pylab.plot(data[:,0], data[:,1], '.')
+            html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
     html_writer.close()
     
