@@ -301,5 +301,6 @@ class PsuedoisomerTableThermodynamics(Thermodynamics):
         pylab.show()
 
 if __name__ == "__main__":
-    T = PsuedoisomerTableThermodynamics('../data/thermodynamics/alberty_pseudoisomers.csv')
+    T = PsuedoisomerTableThermodynamics.FromCsvFile(
+        '../data/thermodynamics/alberty_pseudoisomers.csv')
     T.test()

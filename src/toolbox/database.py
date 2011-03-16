@@ -140,14 +140,20 @@ class SqliteDatabase(SQLDatabase):
             raise ValueError('Illegal flag: %s' % str(flag))
     
     def Execute(self, command, arguments=None):
-        try:
-            if arguments:
+        if arguments:
+            try:
                 return self.comm.execute(command, arguments)
-            else:
+            except sqlite3.InterfaceError, e:
+                logging.error('Failed to execute database command: %s - %s' % \
+                              (command, str(arguments)))
+                raise e
+        else:
+            try:
                 return self.comm.execute(command)
-        except sqlite3.InterfaceError, e:
-            logging.error('Failed to execute database command: ' + command)
-            raise e
+            except sqlite3.InterfaceError, e:
+                logging.error('Failed to execute database command: %s' % \
+                              command)
+                raise e
         
     def Commit(self):
         self.comm.commit()

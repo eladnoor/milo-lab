@@ -134,166 +134,20 @@ class LinearRegression(object):
         _x, K = LinearRegression.SolveLinearSystem(A, b)
         return K
 
-    @staticmethod
-    def FindSparseKernel(A, kernel_dimension=None, eps=1e-10, upper_bound=1000):
-        """
-            Finds a sparse representation of the kernel matrix, using MILP
-            to iterate the Fundamental Modes of the matrix.
-        
-            Input:
-                a (n x m) matrix A, whose rank is r.
-            Return:
-                a (m x m-r) matrix K that will span the kernel of A, i.e.:
-                span(K) = {x | Ax = 0}
-        """
-        import cplex
-        
-        kernel_rank = A.shape[1] - LinearRegression.Rank(A, eps)
-        if not kernel_dimension or kernel_dimension > kernel_rank:
-            kernel_dimension = kernel_rank
-        cpl = cplex.Cplex()
-        cpl.set_problem_name('find_kernel')
-        cpl.set_log_stream(None)
-        cpl.set_results_stream(None)
-        cpl.set_warning_stream(None)
-        
-        for col in xrange(A.shape[1]):
-            cpl.variables.add(names=['c%d_plus' % col], lb=[0], ub=[upper_bound])
-            cpl.variables.add(names=['g%d_plus' % col], types='B')
-
-            # c_plus - M*g_plus <= 0
-            constraint_name = 'g%d_plus_bound_upper' % col
-            cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[0])
-            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_plus' % col, 1)
-            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, -upper_bound)
-
-            # c_plus - g_plus >= 0
-            constraint_name = 'g%d_plus_bound_lower' % col
-            cpl.linear_constraints.add(names=[constraint_name], senses='G', rhs=[0])
-            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_plus' % col, 1)
-            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, -1)
-
-            cpl.variables.add(names=['c%d_minus' % col], lb=[0], ub=[upper_bound])
-            cpl.variables.add(names=['g%d_minus' % col], types='B')
-
-            # c_minus - M*g_minus <= 0
-            constraint_name = 'g%d_minus_bound_upper' % col
-            cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[0])
-            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_minus' % col, 1)
-            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, -upper_bound)
-
-            # c_minus - g_minus >= 0
-            constraint_name = 'g%d_minus_bound_lower' % col
-            cpl.linear_constraints.add(names=[constraint_name], senses='G', rhs=[0])
-            cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_minus' % col, 1)
-            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, -1)
-            
-            # g_plus + g_minus <= 1
-            constraint_name = 'g%d_bound' % col
-            cpl.linear_constraints.add(names=[constraint_name], senses='L', rhs=[1])
-            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
-            cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
-
-        for row in xrange(A.shape[0]):
-            constraint_name = 'r%d' % row
-            cpl.linear_constraints.add(names=[constraint_name], senses='E', rhs=[0])
-            for col in xrange(A.shape[1]):
-                if A[row,col] != 0:
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_plus' % col, A[row,col])
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'c%d_minus' % col, -A[row,col])
-
-        all_gammas = ['g%d_plus' % col for col in xrange(A.shape[1])] + \
-                     ['g%d_minus' % col for col in xrange(A.shape[1])]
-        
-        cpl.objective.set_linear([(g, 1) for g in all_gammas])
-
-        cpl.linear_constraints.add(names=['avoid_0'], senses='G', rhs=[1])
-        for g in all_gammas:
-            cpl.linear_constraints.set_coefficients('avoid_0', g, 1)
-
-        K = np.zeros((A.shape[1], kernel_dimension))
-        dimension = 0
-        emf_counter = 0
-        while dimension < kernel_dimension:
-            emf_counter += 1
-            try:
-                cpl.solve()
-            except cplex.exceptions.CplexSolverError as e:
-                raise LinearRegression.LinearProgrammingException(str(e))
-            
-            if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.MIP_optimal:
-                raise LinearRegression.LinearProgrammingException("No more EMFs")
-            
-            g_plus = array(cpl.solution.get_values(['g%d_plus' % col for col in xrange(A.shape[1])]))
-            g_minus = array(cpl.solution.get_values(['g%d_minus' % col for col in xrange(A.shape[1])]))
-            
-            coeffs = array(cpl.solution.get_values(['c%d_plus' % col for col in xrange(A.shape[1])])) - \
-                     array(cpl.solution.get_values(['c%d_minus' % col for col in xrange(A.shape[1])]))
-            
-            nonzero_indices = find(g_plus > 0.5).tolist() + find(g_minus > 0.5).tolist()
-            
-            constraint_name = 'avoid_%d_plus' % emf_counter
-            cpl.linear_constraints.add(names=[constraint_name], senses='L')
-            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_indices)-1)
-            for col in xrange(A.shape[1]):
-                if g_plus[col] > 0.5:
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
-                elif g_minus[col] > 0.5:
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
-
-            constraint_name = 'avoid_%d_minus' % emf_counter
-            cpl.linear_constraints.add(names=[constraint_name], senses='L')
-            cpl.linear_constraints.set_rhs(constraint_name, len(nonzero_indices)-1)
-            for col in xrange(A.shape[1]):
-                if g_plus[col] > 0.5:
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_minus' % col, 1)
-                elif g_minus[col] > 0.5:
-                    cpl.linear_constraints.set_coefficients(constraint_name, 'g%d_plus' % col, 1)
-            
-            K[nonzero_indices, dimension] = coeffs[nonzero_indices]
-            
-            if LinearRegression.Rank(K, eps) < dimension+1:
-                print "%d) The new mode is dependent, (dimension = %d / %d)" \
-                    % (emf_counter, dimension, kernel_rank)
-                K[:, dimension] = 0.0
-                continue
-
-            print "%d) The new mode is independent, (dimension = %d / %d)" \
-                % (emf_counter, dimension+1, kernel_rank)
-
-            nonzero_values = find(K[:, dimension])
-            g = min(abs(K[nonzero_values, dimension]))
-            K[:, dimension] /= g
-            if sum(K[:, dimension] < 0.0):
-                K[:, dimension] *= -1.0
-            dimension += 1
-            
-        return K.T
-        
 if __name__ == '__main__':
     A = np.matrix([[1, 0, 1, 1],[0, 1, 1, 1],[1, 1, 2, 2]])
-    K = LinearRegression.FindSparseKernel(A)
+    K = LinearRegression.FindKernel(A)
     print A
     print K
     
     #y = matrix([[1],[1],[1],[1]])
     A = np.matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
     w = np.matrix([[1],[1],[1],[2],[1]])
-    
-    #y = A*x
-    #print A
-    #print x
-    #w_pred, V = LinearRegression.LeastSquares(A, A*w)
-    K = LinearRegression.FindSparseKernel(A)
-    print A
-    print K
 
     w_pred, V = LinearRegression.SolveLinearSystem(A, A*w)
     print w_pred
     print V
     print np.dot(A, V.T)
-    
-
     
     x1 = np.matrix([[0,0,0,1,0]]).T
     x2 = np.matrix([[-1,0,0,-1,-2]]).T
