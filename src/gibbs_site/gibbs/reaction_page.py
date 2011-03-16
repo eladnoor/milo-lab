@@ -24,6 +24,8 @@ def ReactionPage(request):
 
     rxn = reaction.Reaction.FromForm(form)
     query = form.cleaned_query
+    if form.cleaned_reactionId:
+        query = rxn.GetQueryString()
     if form.cleaned_balance_w_water:
         rxn.TryBalanceWithWater()
         query = rxn.GetQueryString()
