@@ -1,6 +1,8 @@
 import logging
+import itertools
 from gibbs import models
 from util import topk
+
 
 
 class Error(Exception):
@@ -49,6 +51,13 @@ class Match(object):
     
     def IsEnzyme(self):
         return isinstance(self.value, models.Enzyme)
+    
+    def Key(self):
+        if self.IsCompound():
+            return self.value.kegg_id
+        elif self.IsEnzyme():
+            return self.value.ec
+        return None
     
 
 class Matcher(object):
@@ -151,9 +160,14 @@ class Matcher(object):
         Args:
             matches: an unfiltered list of match objects.
         """
+        # Filter matches without data or beneath the score limit. 
         f = lambda match: (match.score >= self._min_score and
                            match.value and match.value.HasData())
-        return filter(f, matches) 
+        filtered = filter(f, matches)
+        
+        # Take only unique matches.
+        group_key = lambda match: match.Key()
+        return [g.next() for _, g in itertools.groupby(matches, key=group_key)] 
     
     def _SortAndClip(self, matches):
         matches.sort(key=lambda m: m.score, reverse=True)
