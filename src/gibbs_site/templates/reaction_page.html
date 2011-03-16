@@ -21,7 +21,7 @@
 				{% if reaction.contains_co2 %}
 				<div class="warning">
 				Did you mean <a href="{{ replace_co2_link }}">CO<sub>2</sub>(total)</a>?
-				<a href="/faq#aqueousCO2">More info &raquo;</a>
+				<a href="/faq#aqueousCO2">Learn more &raquo;</a>
 				</div>
 				{% endif %}
 			{% endif %}
@@ -100,7 +100,7 @@
 				<td>
 				{% if compound.transformed_energy != None %}
 				{{ compound.transformed_energy|floatformat:1 }}
-				{% else %}Not available
+				{% else %}&mdash;
 				{% endif %}
 				</td>
 				<td>

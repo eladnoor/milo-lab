@@ -86,9 +86,9 @@
 					  {% if kegg_id == 'C00001' or kegg_id == 'C00080' %}
 					  <input type="hidden" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" />
 					  	{% if kegg_id == 'C00001' %}
-					  		<a href="<a href="/faq#waterConcentration">55 M</a>
+					  		55 M <a href="/faq#waterConcentration">Learn more &raquo;</a>
 					  	{% else %}
-					  		N/A
+					  		N/A <a href="/faq#hConcentration">Learn more &raquo;</a>
 					  	{% endif %}
 					  {% else %}
 					  	<input type="text" size="10" value="{{ reactant.micromolar_concentration_string }}" name="reactantsConcentration" /> &mu;M
