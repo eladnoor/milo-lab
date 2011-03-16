@@ -167,7 +167,16 @@ class Matcher(object):
         
         # Take only unique matches.
         group_key = lambda match: match.Key()
-        return [g.next() for _, g in itertools.groupby(matches, key=group_key)] 
+        filtered_matches = []
+        for _, g in itertools.groupby(filtered, key=group_key):
+            # Keep the unique match with the top score.
+            max_match = None
+            for match in g:
+                if not max_match or max_match.score < match.score:
+                    max_match = match
+            filtered_matches.append(max_match)
+            
+        return filtered_matches 
     
     def _SortAndClip(self, matches):
         matches.sort(key=lambda m: m.score, reverse=True)
