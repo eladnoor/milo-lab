@@ -19,6 +19,7 @@ from pygibbs.thermodynamic_constants import default_I, default_pMg, default_T,\
 import os
 from toolbox.util import _mkdir
 from pygibbs import kegg_reaction
+from toolbox.sparse_kernel import SparseKernel
 
 class NistAnchors(object):
     
@@ -258,6 +259,9 @@ class NistRegression(Thermodynamics):
             unique_rows_S = np.delete(unique_rows_S, anchor_cols, 1)
             cids_to_estimate = np.delete(cids_to_estimate, anchor_cols, 0)
         
+        # numpy arrays contains a unique data type for integers and that
+        # should be converted to the native type in python.
+        cids_to_estimate = [int(x) for x in cids_to_estimate]
         return unique_rows_S, dG0, cids_to_estimate
 
     def ReactionVector2String(self, stoichiometric_vec, cids):
@@ -267,9 +271,9 @@ class NistRegression(Thermodynamics):
         return gv
 
     def FindKernel(self, S, cids, sparse=True):
-        rankS = LinearRegression.Rank(S)
+        sparse_kernel = SparseKernel(S)
         logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
-                     (S.shape[0], S.shape[1], S.shape[1]-rankS))
+                     (S.shape[0], S.shape[1], len(sparse_kernel)))
         
         # Remove non-zero columns
         if False:
@@ -279,16 +283,21 @@ class NistRegression(Thermodynamics):
 
         logging.info("Finding the kernel of the stoichiometric matrix")
 
+        dict_list = []
         if not sparse:
             K = LinearRegression.FindKernel(S)
+            for i in xrange(K.shape[0]):
+                v_str = self.ReactionVector2String(K[i, :], cids)
+                dict_list.append({'dimension':i, 'kernel vector':v_str})
         else:
             try:
-                K = LinearRegression.FindSparseKernel(S)
-            except LinearRegression.LinearProgrammingException as e:
+                for i, v in enumerate(sparse_kernel):
+                    v_str = self.ReactionVector2String(v, cids)
+                    print i, ':', v_str
+                    dict_list.append({'dimension':i, 'kernel vector':v_str})
+            except SparseKernel.LinearProgrammingException as e:
                 print "Error when trying to find a sparse kernel: " + str(e)
-    
-        for i in xrange(K.shape[0]):
-            print i, ":", self.ReactionVector2String(K[i, :], cids)
+        self.html_writer.write_table(dict_list, ['dimension', 'kernel vector'])
     
     def ExportToTextFiles(self, S, dG0, cids):
         
@@ -640,52 +649,51 @@ def main():
         S, dG0, cids = nist_regression.ReverseTransform(use_anchors=True)
 
         #nist_regression.ExportToTextFiles(S, dG0, cids)
-        if False:
-            nist_regression.FindKernel(S, cids, sparse=False)
-        else:
-            html_writer.write("<h2>NIST regression:</h2>")
-            
-            alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
-            alberty.ToDatabase(db, 'alberty')
-            nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=alberty)
-            nist_regression.ToDatabase()
-            
-            html_writer.write('<h3>Regression results:</h3>\n')
-            html_writer.insert_toggle('regression')
-            html_writer.start_div('regression')
-            nist_regression.WriteDataToHtml()
-            html_writer.end_div()
+        html_writer.write("<h2>NIST regression:</h2>")
         
-            html_writer.write('<h3>Reaction energies - Estimated vs. Observed:</h3>\n')
-            html_writer.insert_toggle('verify')
-            html_writer.start_div('verify')
-            N, rmse = nist_regression.VerifyResults()
-            html_writer.end_div()
-            html_writer.write('</br>\n')
-            
-            logging.info("Regression results for observed data:")
-            logging.info("N = %d, RMSE = %.1f" % (N, rmse))
+        alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+        alberty.ToDatabase(db, 'alberty')
+        nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=alberty)
+        nist_regression.ToDatabase()
+        
+        html_writer.write('<h3>Regression results:</h3>\n')
+        html_writer.insert_toggle('regression')
+        html_writer.start_div('regression')
+        nist_regression.WriteDataToHtml()
+        html_writer.end_div()
     
-            html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
-    
-            query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
-                    'FROM alberty a, nist_regression r ' + \
-                    'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
-                    'AND a.anchor=0 ORDER BY a.cid,a.nH'
-            
-            data = np.zeros((0, 2))
-            fig = pylab.figure()
-            pylab.hold(True)
-            for row in db.Execute(query):
-                cid, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
-                name = nist_regression.kegg.cid2name(cid)
-                x = (dG0_a + dG0_r)/2
-                y = dG0_a - dG0_r
-                pylab.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
-                data = np.vstack([data, (x,y)])
-    
-            pylab.plot(data[:,0], data[:,1], '.')
-            html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+        html_writer.write('<h3>Reaction energies - Estimated vs. Observed:</h3>\n')
+        html_writer.insert_toggle('verify')
+        html_writer.start_div('verify')
+        N, rmse = nist_regression.VerifyResults()
+        html_writer.end_div()
+        html_writer.write('</br>\n')
+        
+        logging.info("Regression results for observed data:")
+        logging.info("N = %d, RMSE = %.1f" % (N, rmse))
+
+        html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
+
+        query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
+                'FROM alberty a, nist_regression r ' + \
+                'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
+                'AND a.anchor=0 ORDER BY a.cid,a.nH'
+        
+        data = np.zeros((0, 2))
+        fig = pylab.figure()
+        pylab.hold(True)
+        for row in db.Execute(query):
+            cid, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
+            name = nist_regression.kegg.cid2name(cid)
+            x = (dG0_a + dG0_r)/2
+            y = dG0_a - dG0_r
+            pylab.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
+            data = np.vstack([data, (x,y)])
+
+        pylab.plot(data[:,0], data[:,1], '.')
+        html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+
+        nist_regression.FindKernel(S, cids, sparse=True)
 
     html_writer.close()
     
