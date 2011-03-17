@@ -118,7 +118,7 @@ class DissociationTable(object):
                 pKa = float(row['pK'])
                 if nMg_below != nMg_above:
                     raise Exception('C%05d has different nMg below and above '
-                                    'the pKa = %.1f' % pKa)
+                                    'the pKa = %.1f' % (cid, pKa))
                 cid2pK[cid].AddpKa(pKa, nH_below, nH_above, nMg_below, ref, T)
 
             if row['type'] == 'Mg':
@@ -126,7 +126,10 @@ class DissociationTable(object):
                 if nH_below != nH_above:
                     raise Exception('C%05d has different nH below and above '
                                     'the pK_Mg = %.1f' % pKMg)
-                cid2pK[cid].AddpKMg(pKMg, nMg_below, nMg_above, nH_below, ref, T)
+                try:
+                    cid2pK[cid].AddpKMg(pKMg, nMg_below, nMg_above, nH_below, ref, T)
+                except Exception, e:
+                    raise Exception("In C%05d: %s" % (cid, str(e)))
         
         for pK_table in cid2pK.values():
             pK_table.CalculateCharge()
