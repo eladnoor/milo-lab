@@ -16,7 +16,7 @@ if __name__ == "__main__":
     nist_regression = NistRegression(db, html_writer)
     nist_regression.nist.T_range = (298, 314)
     #nist_regression.nist.override_I = 0.25
-    nist_regression.nist.override_pMg = 10.0
+    #nist_regression.nist.override_pMg = 10.0
     
     reactions = {}
     #reactions['creatine kinase'] = {2:-1, 300:-1, 8:1, 2305:1}
