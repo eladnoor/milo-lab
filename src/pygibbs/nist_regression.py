@@ -645,7 +645,7 @@ def main():
         nist_regression.std_diff_threshold = 100.0
         nist_regression.nist.T_range = (298, 314)
         #nist_regression.nist.override_I = 0.25
-        nist_regression.nist.override_pMg = 10.0
+        #nist_regression.nist.override_pMg = 10.0
         S, dG0, cids = nist_regression.ReverseTransform(use_anchors=True)
 
         #nist_regression.ExportToTextFiles(S, dG0, cids)
@@ -693,7 +693,7 @@ def main():
         pylab.plot(data[:,0], data[:,1], '.')
         html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
-        nist_regression.FindKernel(S, cids, sparse=True)
+        #nist_regression.FindKernel(S, cids, sparse=True)
 
     html_writer.close()
     
