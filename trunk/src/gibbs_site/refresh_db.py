@@ -24,12 +24,12 @@ from django.contrib.auth import models as auth_app
 from django.db.models import signals
 from django.dispatch import dispatcher
 
-print "Dumping Data... ",
-sys.stdout = open('data/dumped_data.json', 'w')
-call_command('dumpdata', format='json', indent=4)
-sys.stdout.close()
-sys.stdout = sys.__stdout__
-print "Done"
+#print "Dumping Data... ",
+#sys.stdout = open('data/dumped_data.json', 'w')
+#call_command('dumpdata', format='json', indent=4)
+#sys.stdout.close()
+#sys.stdout = sys.__stdout__
+#print "Done"
 
 print "Deleting Tables... ",
 app_labels = [app.__name__.split('.')[-2] for app in get_apps()]

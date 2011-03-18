@@ -423,6 +423,10 @@ class Enzyme(models.Model):
     def KeggLink(self):
         """Returns a link to the KEGG page for this enzyme."""
         return 'http://kegg.jp/dbget-bin/www_bget?ec:%s' % self.ec
+    
+    def BrendaLink(self):
+        """Returns a link to the BRENDA page for this enzyme."""
+        return 'http://www.brenda-enzymes.org/php/result_flat.php4?ecno=%s' % self.ec
 
     def AllReactions(self):
         """Returns all the reactions."""
@@ -439,4 +443,5 @@ class Enzyme(models.Model):
     all_common_names = property(lambda self: self.common_names.all())
     all_reactions = property(AllReactions)
     kegg_link = property(KeggLink)
+    brenda_link = property(BrendaLink)
     link = property(Link)
