@@ -16,6 +16,7 @@ urlpatterns = patterns('',
     (r'^graph_reaction', 'gibbs_site.gibbs.reaction_graph.ReactionGraph'),
     (r'^search', 'gibbs_site.gibbs.search_results_page.ResultsPage'),
     (r'^suggest', 'gibbs_site.gibbs.suggest.SuggestJson'),
+    (r'^robots\.txt', 'gibbs_site.gibbs.info_pages.Robots'),
     # Example:
     # (r'^gibbs_site/', include('gibbs_site.foo.urls')),
 
