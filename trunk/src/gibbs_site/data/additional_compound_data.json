@@ -1,5 +1,21 @@
 [
     {
+        "CID": "C00003",
+        "names": [
+            "Nicotinamide adenine dinucleotide (oxidized)" 
+        ],
+        "preferred name": "NAD+"
+
+    },
+    {
+        "CID": "C00004",
+        "names": [
+            "Nicotinamide adenine dinucleotide (reduced)" 
+        ],
+        "preferred name": "NADH"
+
+    },
+    {
         "CID": "C00009",
         "names": [
             "Pi" 
@@ -12,7 +28,7 @@
         ],
         "preferred name": "CO2(aq)",
         "note": "CO2(aq) is dissolved CO2. This is different from CO2(total), which includes the hydrated forms of CO2 - carbonate, bicarbonate and carbonic acid.",
-    	"details_link": "/faq#aqueousCO2"
+    	  "details_link": "/faq#aqueousCO2"
     },
     {
         "CID": "C00026",
