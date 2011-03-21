@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /admin/
+Sitemap: http://milolab.webfactional.com/media/sitemap.txt
