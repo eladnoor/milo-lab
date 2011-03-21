@@ -187,10 +187,26 @@ class Compound(models.Model):
         return self.mass and self.formula
     
     def FirstName(self):
+        """Return the 'first' name of this compound.
+        
+        If a 'preferred_name' is set, returns that. Otherwise, returns
+        the first name in the list of common names. Presumes that the
+        list of names is in some order.
+        """
+        if self.preferred_name:
+            return self.preferred_name
+        
         names = list(self.common_names.all())
         return names[0].name
     
     def ShortestName(self):
+        """Returns the shortest name of this compound.
+        
+        DEPRECATED: This method returns strange names that people tend not to 
+        recognize. 
+        
+        TODO(flamholz): Delete when possible.
+        """
         shortest_len = 10000
         shortest_name = None
         for name in self.common_names.all():
@@ -257,6 +273,7 @@ class Compound(models.Model):
         return atom_bag
 
     def GetLink(self):
+        """Returns the link to the stand-alone page for this compound."""
         if not self.kegg_id:
             return None
         return '/compound?compoundId=%s' % self.kegg_id
@@ -375,6 +392,11 @@ class StoredReaction(models.Model):
     
     @staticmethod
     def _SideString(side):
+        """Returns a string representation for a single side of a reaction.
+        
+        Args:
+            side: the list of CompoundWithCoeff objects representing the side.
+        """
         l = []
         for r in side:
             if r.coeff == 1:
@@ -383,16 +405,18 @@ class StoredReaction(models.Model):
                 l.append('%d %s' % (r.coeff,
                                     r.compound.FirstName()))
         return ' + '.join(l)
-                
-        
     
     def ReactionString(self):
-        """Get the reaction as a string."""
+        """Get the string representation of this reaction."""
         return '%s <=> %s' % (self._SideString(self.reactants.all()),
                               self._SideString(self.products.all()))
     
+    def __str__(self):
+        """String representation."""
+        return self.ReactionString()
+    
     def Link(self):
-        """Returns a link to this reactions page."""
+        """Returns a link to this reaction's page."""
         return '/reaction?reactionId=%s' % self.kegg_id
     
     link = property(Link)
