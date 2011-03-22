@@ -54,9 +54,9 @@ class EntryDictWrapper(dict):
     
     def GetStringField(self, field_name, default_value=None):
         if field_name not in self:
-            if default_value:
+            if default_value is not None:
                 return default_value
-            raise Exception("Missing obligatory field: " + field_name)
+            raise Exception("Missing obligatory string field: " + field_name)
             
         return self[field_name]
     
@@ -65,7 +65,7 @@ class EntryDictWrapper(dict):
         
         if val == False:
             if default_value == None:
-                raise Exception("Missing obligatory field: " + field_name)
+                raise Exception("Missing obligatory string-list field: " + field_name)
             return default_value
         return val.split()
         
@@ -74,7 +74,7 @@ class EntryDictWrapper(dict):
         
         if val == False:
             if default_value == None:
-                raise Exception("Missing obligatory field: " + field_name)
+                raise Exception("Missing obligatory boolean field: " + field_name)
             return default_value
         elif val.upper() == 'TRUE':
             return True
@@ -86,7 +86,7 @@ class EntryDictWrapper(dict):
         
         if val == False:
             if default_value == None:
-                raise Exception("Missing obligatory field: " + field_name)
+                raise Exception("Missing obligatory float field: " + field_name)
             return default_value
         return float(val)
     
@@ -95,11 +95,10 @@ class EntryDictWrapper(dict):
         
         if val == False:
             if default_value == None:
-                raise Exception("Missing obligatory field: " + field_name)
+                raise Exception("Missing obligatory vector-float field: " + field_name)
             return default_value
         return [float(x) for x in val.split()]
     
-
 class ParsedKeggFile(dict):
     """A class encapsulating a parsed KEGG file."""
 
