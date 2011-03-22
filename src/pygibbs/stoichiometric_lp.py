@@ -46,9 +46,9 @@ class Stoichiometric_LP():
         for c in xrange(len(self.compounds)):
             constraint_name = "C%05d_mass_balance" % self.compounds[c].cid
             self.cpl.linear_constraints.add(names=[constraint_name], senses='E', rhs=[0])
-            for r in pylab.find(self.S[c,:] != 0):
+            for r in pylab.find(self.S[c,:]):
                 self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name, self.S[c,r])
-
+            
         if source:
             self.add_flux("SOURCE", source, lb=1, ub=1)
         
