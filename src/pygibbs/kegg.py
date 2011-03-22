@@ -1088,9 +1088,9 @@ class KeggPathologic(object):
                     raise Exception("Syntax error in update file: " + line)
                 rxns = self.create_reactions("R%05d" % rid, direction, spr, rid, weight=1)
                 html_writer.write("<li><b>Set Reaction,</b> R%05d : %s" % (rid, self.sparse_to_hypertext(spr, show_cids=True, direction=direction)))
-                ver = rxns[0].verify(self.cid2atom_bag)
-                if ver != None:
-                    html_writer.write(' <b>WARNING: %s' % ver)
+                #ver = rxns[0].verify(self.cid2atom_bag)
+                #if ver != None:
+                #    html_writer.write(' <b>WARNING: %s' % ver)
                 added_reactions += rxns
             elif (command == 'DELR'):
                 rid = int(line[1:])
@@ -1137,11 +1137,11 @@ class KeggPathologic(object):
             raise kegg_errors.KeggParseException(
                 "Direction must be either =>, <= or <=>")
         if (direction in ["=>", "<=>"]):
-            res.append(kegg_reaction.Reaction(name + "_F", spr,
+            res.append(kegg_reaction.Reaction([name + "_F"], spr,
                                               rid=rid, weight=weight))
         if (direction in ["<=", "<=>"]):
             res.append(kegg_reaction.Reaction(
-                name + "_R", KeggPathologic.reverse_sparse_reaction(spr),
+                [name + "_R"], KeggPathologic.reverse_sparse_reaction(spr),
                 rid=rid, weight=weight))
         return res
     
@@ -1261,7 +1261,7 @@ class KeggPathologic(object):
             if (self.reactions[r].weight != 0):
                 f.append((r, self.reactions[r].weight))
             
-            for (cid, count) in reduced_sparse_reactions[r].iteritems():
+            for cid, count in reduced_sparse_reactions[r].iteritems():
                 comp = self.get_compound(cid)
                 c = cid2index[comp.cid]
                 S[c, r] = count
@@ -1271,7 +1271,7 @@ class KeggPathologic(object):
         # Although this is a stoichiometric redundancy, thermodynamically this is important
         # since each version of this reaction will have different constraints.
         logging.info("the Stoichiometry matrix contains %d compounds & %d reactions" % (Ncompounds, Nreactions))
-        return (f, S, compounds, self.reactions)
+        return f, S, compounds, self.reactions
 
     def create_compound_node(self, Gdot, comp, node_name=None, is_cofactor=False):
         if (node_name == None):
