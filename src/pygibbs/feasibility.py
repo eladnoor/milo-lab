@@ -6,6 +6,7 @@ from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
 from pygibbs import kegg
 from toolbox.database import SqliteDatabase
+from pygibbs.kegg import Kegg
 
 try:
     import cplex
@@ -284,11 +285,12 @@ def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, l
 
     return (dG_f, concentrations, pCr)
 
-def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, kegg, html_writer):
+def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_writer):
     (Nr, Nc) = S.shape
 
     # adjust the directions of the reactions in S to fit the fluxes
     fluxes = [abs(f) for f in fluxes]
+    kegg = Kegg.getInstance()
     
     kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
     dG0_f = thermodynamics.write_pseudoisomers_to_html(html_writer, kegg, cids)
