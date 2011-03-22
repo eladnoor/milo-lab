@@ -22,7 +22,7 @@ class Pathologic:
         self.max_reactions = None
         self.max_solutions = 100
         self.flux_relaxtion_factor = None
-        self.kegg_patholotic = KeggPathologic(self.gc.kegg())
+        self.kegg_patholotic = KeggPathologic()
         self.kegg_patholotic.update_database(update_file, self.html_writer)
 
     def find_path(self, experiment_name, source=None, target=None):
@@ -57,16 +57,16 @@ class Pathologic:
             exp_html.write('<h2>Target (biomass) Reaction:</h2>\n')
             exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg_patholotic.cid2compound[cid].name, cid) for (cid, coeff) in target.iteritems()])
 
-        (f, S, compounds, reactions) = self.kegg_patholotic.get_unique_cids_and_reactions()
+        f, S, compounds, reactions = self.kegg_patholotic.get_unique_cids_and_reactions()
         exp_html.write('<h2>%d reactions with %d unique compounds</h2>\n' % (len(reactions), len(compounds)))
         
         exp_html.write('</div><br>\n')
         
         logging.debug("All compounds:")
-        for c in range(len(compounds)):
+        for c in xrange(len(compounds)):
             logging.debug("%05d) C%05d = %s" % (c, compounds[c].cid, compounds[c].name))
         logging.debug("All reactions:")
-        for r in range(len(reactions)):
+        for r in xrange(len(reactions)):
             logging.debug("%05d) R%05d = %s" % (r, reactions[r].rid, str(reactions[r])))
 
         # Find a solution with a minimal total flux
@@ -206,7 +206,7 @@ class Pathologic:
                 c = cids.index(cid)
                 S[r, c] = coeff
 
-        return thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.gc, self.gc.kegg(), exp_html)
+        return thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.gc, exp_html)
 
 ################################################################################
 #                               MAIN                                           #
@@ -223,17 +223,21 @@ def main():
     pl.max_solutions = 1
     #pl.max_reactions = 10
     
+    source = {31:1}; target = {22:2}
+    name = "glucose => 2 pyruvate (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+    pl.find_path(name, source, target)
+
     #source = {}; target = {48:1}
     #name = "=> glyoxylate (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
 
     #source = {}; target = {24:1}
     #name = "=> acetyl-CoA (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
 
-    source = {}; target = {197:1}
-    for pl.maximal_dG in [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 10, 100]:
-        name = "=> 3PG (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
-        logging.info(name)
-        pl.find_path(name, source, target)
+    #source = {}; target = {197:1}
+    #for pl.maximal_dG in [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 10, 100]:
+    #    name = "=> 3PG (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+    #    logging.info(name)
+    #    pl.find_path(name, source, target)
     
     
     #pl.find_path('Glucose to Butanol (Global)', source={31:1}, target={6142:1}, thermo_method="global")
