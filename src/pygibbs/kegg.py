@@ -185,7 +185,6 @@ class Kegg(Singleton):
         
         logging.info("Parsing the COFACTOR file")
         cofactor_csv = csv.DictReader(open('../data/thermodynamics/cofactors.csv', 'r'))
-        cofactor_csv.next()
         for row in cofactor_csv:
             cid = int(row['cid'])
             name = row['name']
