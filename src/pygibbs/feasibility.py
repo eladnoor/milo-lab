@@ -4,9 +4,10 @@ import csv, sys
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 from matplotlib.font_manager import FontProperties
 from toolbox.html_writer import HtmlWriter
-from pygibbs import kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.kegg import Kegg
+from pygibbs.kegg_errors import KeggMissingModuleException
+from pygibbs.thermodynamic_constants import R, default_T
 
 try:
     import cplex
@@ -14,9 +15,6 @@ try:
 except ImportError:
     IsCplexInstalled = False
     
-R = 8.31e-3 # gas constant (kJ/K mol)
-T = 300 # temperature (K)
-
 class LinProgNoSolutionException(Exception):
     def __init__(self, value):
         self.value = value
@@ -120,7 +118,7 @@ def create_cplex(S, dG0_f, log_stream=None):
 
     return cpl
 
-def add_thermodynamic_constraints(cpl, dG0_f, c_range=(1e-6, 1e-2), bounds=None):   
+def add_thermodynamic_constraints(cpl, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None):   
     """
         For any compound that does not have an explicit bound set by the 'bounds' argument,
         create a bound using the 'margin' variables (the last to columns of A).
@@ -149,7 +147,7 @@ def add_thermodynamic_constraints(cpl, dG0_f, c_range=(1e-6, 1e-2), bounds=None)
             # this compound has a specific upper bound on its activity
             cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][1]))
 
-def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, log_stream=None):
+def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stream=None):
     """
         Find a distribution of concentration that will satisfy the 'relaxed' thermodynamic constraints.
         The 'relaxation' means that there is a slack variable 'B' where all dG_r are constrained to be < B.
@@ -164,7 +162,7 @@ def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, log_stream=None):
         raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (S.shape[1], dG0_f.shape[0]))
     
     cpl = create_cplex(S, dG0_f, log_stream)
-    add_thermodynamic_constraints(cpl, dG0_f, c_range, bounds)
+    add_thermodynamic_constraints(cpl, dG0_f, c_range=c_range, bounds=bounds)
 
     # Define the MCMF variable and use it relax the thermodynamic constraints on each reaction
     cpl.variables.add(names=["B"], lb=[-1e6], ub=[1e6])
@@ -188,7 +186,7 @@ def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), bounds=None, log_stream=None):
 def pC_to_range(pC, c_mid=1e-3, ratio=3.0):
     return (c_mid * 10 ** (-ratio/(ratio+1.0) * pC), c_mid * 10 ** (1.0/(ratio+1.0) * pC))
 
-def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, bounds=None):   
+def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, T=default_T, bounds=None):   
     """
         For any compound that does not have an explicit bound set by the 'bounds' argument,
         create a bound using the 'margin' variables (the last to columns of A).
@@ -231,7 +229,7 @@ def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, bounds=None):
     # Set 'pC' as the objective
     cpl.objective.set_linear([("pC", 1)])
 
-def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, bounds=None, log_stream=None):
+def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stream=None):
     """
         Compute the feasibility of a given set of reactions
     
@@ -247,7 +245,7 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, bounds=None, log_stream=None):
         raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
 
     cpl = create_cplex(S, dG0_f, log_stream)
-    generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, bounds)
+    generate_constraints_pCr(cpl, dG0_f, c_mid=c_mid, ratio=ratio, bounds=bounds)
 
     #cpl.write("../res/test_PCR.lp", "lp")
     cpl.solve()
@@ -259,7 +257,7 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, bounds=None, log_stream=None):
 
     return (dG_f, concentrations, pCr)
 
-def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, log_stream=None):
+def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, T=default_T, bounds=None, log_stream=None):
     """ 
         Almost the same as find_pCr, but adds a global restriction on the concentrations (for compounds
         that don't have specific bounds in 'bounds').
@@ -268,7 +266,7 @@ def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, l
         If at least one concentration needs to be adjusted, then pCr looses its meaning
         and therefore is returned with the value None.
     """
-    (dG_f, concentrations, pCr) = find_pCr(S, dG0_f, c_mid, bounds, log_stream)
+    dG_f, concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds, log_stream=log_stream)
 
     for c in xrange(dG0_f.shape[0]):
         if (pylab.isnan(dG0_f[c, 0])):
@@ -286,7 +284,7 @@ def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, bounds=None, l
     return (dG_f, concentrations, pCr)
 
 def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_writer):
-    (Nr, Nc) = S.shape
+    Nr, Nc = S.shape
 
     # adjust the directions of the reactions in S to fit the fluxes
     fluxes = [abs(f) for f in fluxes]
@@ -448,11 +446,11 @@ def test_all_modules():
     for mid in sorted(gc.kegg().mid2rid_map.keys()):
         module_name = gc.kegg().mid2name_map[mid]
         try:
-            (S, rids, fluxes, cids) = gc.kegg().get_module(mid)
-        except kegg.KeggMissingModuleException as e:
+            S, _rids, _fluxes, cids = gc.kegg().get_module(mid)
+        except KeggMissingModuleException as e:
             sys.stderr.write("WARNING: " + str(e) + "\n")
             continue
-        (Nr, Nc) = S.shape
+        _Nr, Nc = S.shape
         for pH in [5, 6, 7, 8, 9]:
             for I in [0.0, 0.1, 0.2, 0.3, 0.4]:
                 dG0_f = pylab.zeros((Nc, 1))
@@ -472,13 +470,13 @@ def test_all_modules():
                 bounds = [gc.kegg().cid2bounds.get(cid, (None, None)) for cid in cids]
 
                 try:
-                    (dG_f, concentrations, pCr) = find_pCr(S, dG0_f, c_mid=c_mid, ratio=3.0, bounds=bounds)
+                    _dG_f, _concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, ratio=3.0, bounds=bounds)
                 except LinProgNoSolutionException:
                     sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
                     pCr = None
 
                 try:
-                    (dG_f, concentrations, MCMF) = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
+                    _dG_f, _concentrations, MCMF = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
                 except LinProgNoSolutionException:
                     sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
                     MCMF = None

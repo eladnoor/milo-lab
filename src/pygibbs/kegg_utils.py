@@ -3,7 +3,9 @@
 import openbabel
 import re
 
-from pygibbs import kegg_errors
+from pygibbs import kegg_errors, kegg_reaction
+from pylab import find
+from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
 
 ##
 ## TODO(flamholz): Not all these utilities are specific to KEGG.
@@ -106,7 +108,6 @@ def parse_reaction_formula(formula):
 
     return (sparse_reaction, direction)
 
-
 def unparse_reaction_formula(sparse, direction='=>'):
     s_left = []
     s_right = []
@@ -124,3 +125,34 @@ def unparse_reaction_formula(sparse, direction='=>'):
             else:
                 s_left.append('%d %s' % (-count, show_string))
     return ' + '.join(s_left) + ' ' + direction + ' ' + ' + '.join(s_right)
+
+def write_kegg_pathway(html_writer, reactions, fluxes):
+
+    def write_reaction(prefix, reaction, flux=1):
+        if (flux == 1):
+            html_writer.write('%sR%05d&nbsp;&nbsp;%s<br>\n' % (prefix, reaction.rid, str(reaction)))
+        else:
+            html_writer.write('%sR%05d&nbsp;&nbsp;%s (x%g)<br>\n' % (prefix, reaction.rid, str(reaction), flux))
+    
+    html_writer.write('<p style="font-family: courier; font-size:10pt">')
+    html_writer.write('ENTRY' + '&nbsp;'*7 + 'M-PATHOLOGIC<br>\n')
+    html_writer.write('SKIP' + '&nbsp;'*8 + 'FALSE<br>\n')
+    html_writer.write('NAME' + '&nbsp;'*8 + 'M-PATHOLOGIC<br>\n')
+    html_writer.write('TYPE' + '&nbsp;'*8 + 'MARGIN<br>\n')
+    html_writer.write('CONDITIONS' + '&nbsp;'*2 + 'pH=%g,I=%g,T=%g<br>\n' % 
+                      (default_pH, default_I, default_T))
+    html_writer.write('C_MID' + '&nbsp;'*7 + '0.0001<br>\n')
+    for r in range(len(reactions)):
+        if (r == 0):
+            write_reaction('REACTION' + '&nbsp;'*4, reactions[r], fluxes[r])
+        else:
+            write_reaction('&nbsp;'*12, reactions[r], fluxes[r])
+    html_writer.write('///<br></p>\n')
+    
+def write_module_to_html(html_writer, S, rids, fluxes, cids):
+    reactions = []
+    for r in xrange(S.shape[0]):
+        sparse = dict([(cids[c], S[r,c]) for c in find(S[r,:])])
+        reaction = kegg_reaction.Reaction('R%05d' % rids[r], sparse, rid=rids[r])
+        reactions.append(reaction)
+    write_kegg_pathway(html_writer, reactions, fluxes)

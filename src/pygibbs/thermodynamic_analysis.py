@@ -1,8 +1,6 @@
 import re
 from thermodynamic_constants import default_T, default_pH, default_I,\
     default_c0, R
-from pygibbs.kegg import parse_bool_field, parse_float_field, parse_string_field,\
-    parse_kegg_file, parse_vfloat_field, Kegg
 import pylab
 import copy
 from pygibbs.feasibility import pC_to_range, find_mcmf, find_pCr,\
@@ -13,45 +11,48 @@ import logging
 from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
 from pygibbs.groups import GroupContribution
+from pygibbs.kegg_parser import ParsedKeggFile
+from pygibbs.kegg import Kegg
+from pygibbs import kegg_utils
 
 class ThermodynamicAnalysis(object):
-    def __init__(self, db, html_writer, kegg, thermodynamics):
+    def __init__(self, db, html_writer, thermodynamics):
         self.thermo = thermodynamics
         self.html_writer = html_writer
-        self.kegg = kegg
+        self.kegg = Kegg.getInstance()
         self.db = db
 
     def analyze_pathway(self, filename):
         self.html_writer.write("<h1>Pathway analysis using Group Contribution Method</h1>\n")
-        entry2fields_map = parse_kegg_file(filename)
+        entry2fields_map = ParsedKeggFile.FromKeggFile(filename)
         
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
-            if (field_map.get("SKIP", "FALSE") == "TRUE"):
+            if field_map.GetBoolField('SKIP'):
                 logging.info("skipping pathway: " + key)
                 continue
             try:
-                self.html_writer.write("<b>%s - %s</b>" % (field_map["NAME"], field_map["TYPE"]))
+                self.html_writer.write("<b>%s - %s</b>" % (field_map.GetStringField('NAME'), field_map.GetStringField('TYPE')))
                 self.html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (key))
                 self.html_writer.write('<div id="%s" style="display:none">' % key)
-                self.html_writer.write('<h2>%s - %s</h2>\n' % (field_map["NAME"], field_map["TYPE"]))
+                self.html_writer.write('<h2>%s - %s</h2>\n' % (field_map.GetStringField('NAME'), field_map.GetStringField('TYPE')))
             except KeyError:
                 raise Exception("Both the 'NAME' and 'TYPE' fields must be defined for each pathway")
 
             logging.info("analyzing pathway: " + key)
 
-            if (field_map["TYPE"] == "PROFILE"):     
-                self.analyze_profile(key, field_map)
-            elif (field_map["TYPE"] == "SLACK"):     
-                self.analyze_slack(key, field_map)
-            elif (field_map["TYPE"] == "MARGIN"):     
-                self.analyze_margin(key, field_map)               
-            elif (field_map["TYPE"] == "CONTOUR"):
-                self.analyze_contour(key, field_map)
-            elif (field_map["TYPE"] == "PROTONATION"):
-                self.analyze_protonation(key, field_map)
+            function_dict = {'PROFILE':self.analyze_profile,
+                             'SLACK':self.analyze_slack,
+                             'MARGIN':self.analyze_margin,
+                             'CONTOUR':self.analyze_contour,
+                             'PROTONATION':self.analyze_protonation}
+
+            analysis_type = field_map.GetStringField('TYPE')
+            if analysis_type in function_dict:
+                function_dict[analysis_type](key, field_map)     
             else:
-                raise Exception("Unknown analysis type: " + field_map["TYPE"])
+                raise Exception("Unknown analysis type: " + analysis_type)
+            
             self.html_writer.write('</div><br>\n')
             
         self.html_writer.write('<h4>Measured concentration table:</h4>\n')
@@ -128,9 +129,9 @@ class ThermodynamicAnalysis(object):
         
         # read the list of methods for calculating the dG
         methods = []
-        if (parse_bool_field(field_map, 'MILO', True)):
+        if field_map.GetBoolField('MILO', default_value=True):
             methods.append('MILO')
-        if (parse_bool_field(field_map, 'HATZI', False)):
+        if field_map.GetBoolField('HATZI', default_value=False):
             methods.append('HATZI')
         
         # prepare the legend for the profile graph
@@ -160,9 +161,9 @@ class ThermodynamicAnalysis(object):
             dG0_f[plot_key] = pylab.zeros((Nc, 1))
             dG_f[plot_key] = pylab.zeros((Nc, 1))
             for c in range(Nc):
-                if (method == "MILO"):
+                if method == "MILO":
                     dG0_f[plot_key][c] = self.thermo.cid2dG0_tag(cids[c], pH=pH, I=I, T=T)
-                elif (method == "HATZI"):
+                elif method == "HATZI":
                     dG0_f[plot_key][c] = self.thermo.hatzi.cid2dG0_tag(cids[c], pH=pH, I=I, T=T)
                 else:
                     raise Exception("Unknown dG evaluation method: " + method)
@@ -202,7 +203,7 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('<ul>\n')
         self.html_writer.write('<li>Conditions:</br><ol>\n')
         # c_mid the middle value of the margin: min(conc) < c_mid < max(conc) 
-        c_mid = parse_float_field(field_map, 'C_MID', 1e-3)
+        c_mid = field_map.GetFloatField('C_MID', default_value=1e-3)
         (pH, I, T) = (default_pH, default_I, default_T)
         concentration_bounds = copy.deepcopy(self.kegg.cid2bounds)
         if ("CONDITIONS" in field_map):
@@ -224,7 +225,7 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('</ul>\n')
         self.write_metabolic_graph(key, S, rids, cids)
         
-        physiological_pC = parse_float_field(field_map, "PHYSIO", 4)
+        physiological_pC = field_map.GetFloatField('PHYSIO', default_value=4)
         (Nr, Nc) = S.shape
 
         # calculate the dG_f of each compound, and then use S to calculate dG_r
@@ -236,20 +237,20 @@ class ThermodynamicAnalysis(object):
         #limiting_reactions = set()
         for i in xrange(len(pC)):
             c_range = pC_to_range(pC[i], c_mid=c_mid)
-            unused_dG_f, unused_concentrations, B = find_mcmf(S, dG0_f, c_range, bounds=bounds)
+            unused_dG_f, unused_concentrations, B = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
             B_vec[i] = B
             #curr_limiting_reactions = set(find(abs(dG_r - B) < 1e-9)).difference(limiting_reactions)
             #label_vec[i] = ", ".join(["%d" % rids[r] for r in curr_limiting_reactions]) # all RIDs of reactions that have dG_r = B
             #limiting_reactions |= curr_limiting_reactions
 
         try:
-            unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid, bounds=bounds)
+            unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
         except LinProgNoSolutionException:
             pCr = None
             
         try:
             c_range = pC_to_range(physiological_pC, c_mid=c_mid)
-            unused_dG_f, unused_concentrations, B_physiological = find_mcmf(S, dG0_f, c_range, bounds) 
+            unused_dG_f, unused_concentrations, B_physiological = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds) 
         except LinProgNoSolutionException:
             B_physiological = None
 
@@ -311,14 +312,14 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('</table><br>\n')
         
         self.html_writer.write('</p>\n')
-charge
+
     def analyze_margin(self, key, field_map):
         self.html_writer.write('<p>\n')
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
         self.html_writer.write('<li>Conditions:</br><ol>\n')
                     
         # The method for how we are going to calculate the dG0
-        method = parse_string_field(field_map, "METHOD", "MILO")
+        method = field_map.GetStringField('METHOD', default_value='MILO')
 
         if (method == "MILO"):
             thermodynamics = self.thermo
@@ -339,19 +340,20 @@ charge
                 self.html_writer.write(', [C%05d] = %g\n' % (cid, conc))
             self.html_writer.write('</li>\n')
         self.html_writer.write('</ol></li>')
-        thermodynamics.c_range = parse_vfloat_field(field_map, "C_RANGE", [1e-6, 1e-2])
-        thermodynamics.c_mid = parse_float_field(field_map, 'C_MID', 1e-3)
+        thermodynamics.c_range = field_map.GetVFloatField('C_RANGE', default_value=[1e-6, 1e-2])
+        thermodynamics.c_mid = field_map.GetFloatField('C_MID', default_value=1e-3)
         
-        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.kegg, self.html_writer)
+        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.html_writer)
+        kegg_utils.write_module_to_html(self.html_writer, S, rids, fluxes, cids)
 
     def analyze_contour(self, key, field_map):
-        pH_list = parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
-        I_list = parse_vfloat_field(field_map, "I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
-        T = parse_float_field(field_map, "T", default_T)
-        most_abundant = parse_bool_field(field_map, "ABUNDANT", False)
-        formula = parse_string_field(field_map, "REACTION")
-        c0 = parse_float_field(field_map, "C0", 1.0)
-        media = parse_string_field(field_map, "MEDIA", "None")
+        pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
+        I_list = field_map.GetVFloatField("I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
+        T = field_map.GetFloatField("T", default_T)
+        most_abundant = field_map.GetBoolField("ABUNDANT", False)
+        formula = field_map.GetStringField("REACTION")
+        c0 = field_map.GetFloatField("C0", 1.0)
+        media = field_map.GetStringField("MEDIA", "None")
         if (media == "None"):
             media = None
             
@@ -369,10 +371,10 @@ charge
         self.html_writer.write('</p>')
 
     def analyze_protonation(self, key, field_map):
-        pH_list = parse_vfloat_field(field_map, "PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
-        I = parse_float_field(field_map, "I", default_I)
-        T = parse_float_field(field_map, "T", default_T)
-        cid = parse_string_field(field_map, "COMPOUND")
+        pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
+        I = field_map.GetFloatField("I", default_I)
+        T = field_map.GetFloatField("T", default_T)
+        cid = field_map.GetStringField("COMPOUND")
         cid = int(cid[1:])
         pmatrix = self.thermo.cid2PseudoisomerMap(cid).ToMatrix()
         data = pylab.zeros((len(self.cid), len(pH_list)))

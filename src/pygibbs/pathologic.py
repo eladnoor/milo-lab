@@ -6,6 +6,7 @@ from pygibbs.feasibility import thermodynamic_pathway_analysis
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
 from toolbox.database import SqliteDatabase
+from pygibbs.kegg_utils import write_kegg_pathway
 
 ################################################################################
 #                               CONSTANTS & DEFAULTS                           #
@@ -121,7 +122,7 @@ class Pathologic:
         exp_html.close()
 
     def write_current_solution(self, exp_html, lp, experiment_name):
-        (sol_reactions, sol_fluxes) = lp.get_fluxes()
+        sol_reactions, sol_fluxes = lp.get_fluxes()
         solution_id = '%03d' % lp.solution_index
         
         exp_html.write('%d reactions, flux = %g, \n' % (len(sol_reactions), lp.get_total_flux()))
@@ -146,7 +147,7 @@ class Pathologic:
         
         # perform feasibility analysis and write the results
         res = self.margin_analysis(exp_html, sol_reactions, sol_fluxes, experiment_name, solution_id)
-        self.write_kegg_pathway(exp_html, sol_reactions, sol_fluxes)
+        write_kegg_pathway(exp_html, sol_reactions, sol_fluxes)
         exp_html.write('</div>\n')
         
         for optimization in res.keys():
@@ -165,28 +166,6 @@ class Pathologic:
         Gdot.write(fname, format='dot')
         win.open_file(fname)
         gtk.main()
-    
-    def write_kegg_pathway(self, exp_html, reactions, fluxes):
-
-        def write_reaction(prefix, reaction, flux=1):
-            if (flux == 1):
-                exp_html.write('%sR%05d&nbsp;&nbsp;%s<br>\n' % (prefix, reaction.rid, str(reaction)))
-            else:
-                exp_html.write('%sR%05d&nbsp;&nbsp;%s (x%g)<br>\n' % (prefix, reaction.rid, str(reaction), flux))
-        
-        exp_html.write('<p style="font-family: courier; font-size:10pt">')
-        exp_html.write('ENTRY' + '&nbsp;'*7 + 'M-PATHOLOGIC<br>\n')
-        exp_html.write('SKIP' + '&nbsp;'*8 + 'FALSE<br>\n')
-        exp_html.write('NAME' + '&nbsp;'*8 + 'M-PATHOLOGIC<br>\n')
-        exp_html.write('TYPE' + '&nbsp;'*8 + 'MARGIN<br>\n')
-        exp_html.write('CONDITIONS' + '&nbsp;'*2 + 'pH=%g,I=%g,T=%g<br>\n' % (self.gc.pH, self.gc.I, self.gc.T))
-        exp_html.write('C_MID' + '&nbsp;'*7 + '0.0001<br>\n')
-        for r in range(len(reactions)):
-            if (r == 0):
-                write_reaction('REACTION' + '&nbsp;'*4, reactions[r], fluxes[r])
-            else:
-                write_reaction('&nbsp;'*12, reactions[r], fluxes[r])
-        exp_html.write('///<br></p>\n')
 
     def margin_analysis(self, exp_html, reactions, fluxes, experiment_name, solution_id):
         cids = [] # I am not using a set() since I want to keep the order of compounds the same as they appear in the reaction

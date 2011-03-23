@@ -1257,7 +1257,7 @@ class KeggPathologic(object):
         S = pylab.zeros((Ncompounds, Nreactions))
 
         for r in range(Nreactions):
-            if (self.reactions[r].weight != 0):
+            if self.reactions[r].weight != 0:
                 f.append((r, self.reactions[r].weight))
             
             for cid, count in reduced_sparse_reactions[r].iteritems():
