@@ -1,6 +1,5 @@
 #!/usr/bin/python
-from pygibbs import kegg_utils
-
+import kegg_utils
 
 class Reaction(object):
     """A reaction from KEGG."""
