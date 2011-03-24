@@ -1,3 +1,22 @@
+ENTRY       M-ED-FULL
+SKIP        FALSE
+NAME        Entner-Doudoroff full (from glucose to pyruvate)
+TYPE        MARGIN
+CONDITIONS  pH=7,I=0.1,T=300
+C_MID       1e-3
+C_RANGE     1e-6 1e-2
+REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
+            R02739  C00668 -> C01172 (x1)
+            R02736  C01172 + C00006 -> C01236 + C00005 (x1)
+            R02035  C00001 + C01236 -> C00345 (x1)
+            R02036  C00345 -> C00001 + C04442 (x1)
+            R05605  C04442 -> C00022 + C00118 (x1)
+            R01061  C00009 + C00003 + C00118 -> C00004 + C00236 (x1)
+            R01512  C00008 + C00236 -> C00002 + C00197 (x1)
+            R01518  C00197 -> C00631 (x1)
+            R00658  C00631 -> C00001 + C00074 (x1)
+            R00200  C00008 + C00074 -> C00002 + C00022 (x1)    
+///
 ENTRY       C-FORMATE2GLYCINE
 NAME        FORMATE TO GLYCINE
 SKIP        TRUE

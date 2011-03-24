@@ -3,7 +3,7 @@ from thermodynamic_constants import default_T, default_pH, default_I,\
     default_c0, R
 import pylab
 import copy
-from pygibbs.feasibility import pC_to_range, find_mcmf, find_pCr,\
+from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr,\
     LinProgNoSolutionException, thermodynamic_pathway_analysis
 from pygibbs.thermodynamic_constants import transform
 import matplotlib
@@ -237,7 +237,7 @@ class ThermodynamicAnalysis(object):
         #limiting_reactions = set()
         for i in xrange(len(pC)):
             c_range = pC_to_range(pC[i], c_mid=c_mid)
-            unused_dG_f, unused_concentrations, B = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
+            unused_dG_f, unused_concentrations, B = find_mtdf(S, dG0_f, c_range=c_range, bounds=bounds)
             B_vec[i] = B
             #curr_limiting_reactions = set(find(abs(dG_r - B) < 1e-9)).difference(limiting_reactions)
             #label_vec[i] = ", ".join(["%d" % rids[r] for r in curr_limiting_reactions]) # all RIDs of reactions that have dG_r = B
@@ -250,7 +250,7 @@ class ThermodynamicAnalysis(object):
             
         try:
             c_range = pC_to_range(physiological_pC, c_mid=c_mid)
-            unused_dG_f, unused_concentrations, B_physiological = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds) 
+            unused_dG_f, unused_concentrations, B_physiological = find_mtdf(S, dG0_f, c_range=c_range, bounds=bounds) 
         except LinProgNoSolutionException:
             B_physiological = None
 

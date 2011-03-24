@@ -20,7 +20,7 @@ class Stoichiometric_LP():
         self.flux_upper_bound = 100
         self.milp = False
         self.pCr = False
-        self.mcmf = False
+        self.mtdf = False
         self.use_dG_f = False
         self.target_reaction = None
 
@@ -97,7 +97,7 @@ class Stoichiometric_LP():
         for r in self.reactions:
             self.cpl.linear_constraints.set_coefficients('num_reactions', r.name + "_gamma", 1)
     
-    def add_dGr_constraints(self, thermodynamics, pCr=False, MCMF=False, maximal_dG=0.0):
+    def add_dGr_constraints(self, thermodynamics, pCr=False, MTDF=False, maximal_dG=0.0):
         """
             Create concentration variables for each CID in the database (at least in one reaction).
             If this compound doesn't have a dG0_f, its concentration will not be constrained.
@@ -109,8 +109,8 @@ class Stoichiometric_LP():
         if not self.milp:
             raise Exception("Cannot add thermodynamic constraints without the MILP variables")
         
-        if pCr and MCMF:
-            raise Exception("Cannot optimize both the pCr and the MCMF")
+        if pCr and MTDF:
+            raise Exception("Cannot optimize both the pCr and the MTDF")
         
         self.use_dG_f = True
 
@@ -118,9 +118,9 @@ class Stoichiometric_LP():
             self.pCr = True        
             self.cpl.variables.add(names=["pCr"], lb=[0], ub=[1e6])
         
-        if MCMF:
-            self.mcmf = True
-            self.cpl.variables.add(names=["mcmf"], lb=[-1e6], ub=[1e6])
+        if MTDF:
+            self.mtdf = True
+            self.cpl.variables.add(names=["mtdf"], lb=[-1e6], ub=[1e6])
         
         for r in self.reactions:
             self.cids_with_concentration = self.cids_with_concentration.union(r.sparse.keys())
@@ -178,8 +178,8 @@ class Stoichiometric_LP():
             
             gamma_factor = 1e6
             self.cpl.linear_constraints.set_coefficients(constraint_name, r.name + "_gamma", gamma_factor)
-            if self.mcmf:
-                self.cpl.linear_constraints.set_coefficients(constraint_name, "mcmf", -1)
+            if self.mtdf:
+                self.cpl.linear_constraints.set_coefficients(constraint_name, "mtdf", -1)
             
             rhs = gamma_factor - (dG0_r - maximal_dG)/(R*thermodynamics.T) 
             self.cpl.linear_constraints.set_rhs(constraint_name, rhs) 
@@ -236,8 +236,8 @@ class Stoichiometric_LP():
             obj = [(self.reactions[r].name, weight) for (r, weight) in self.weights]
         elif (self.pCr): # minimize the pCr
             obj = [("pCr", 1)]
-        elif (self.mcmf):
-            obj = [("mcmf", 1)]
+        elif (self.mtdf):
+            obj = [("mtdf", 1)]
         else: # minimize the number of reactions (weighted)
             obj = [(self.reactions[r].name + "_gamma", weight) for (r, weight) in self.weights]
 
