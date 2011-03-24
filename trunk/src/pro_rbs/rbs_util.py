@@ -10,10 +10,18 @@ JOULES_PER_CAL = 4.184
 TEMP = 298.15 # K
 
 
-def TryCalcDG(seq):
-    """Wrapper around weird library to calculate binding dG."""
+def TryCalcDG(seq, start_codon_index=0):
+    """Wrapper around weird library to calculate binding dG.
+    
+    Args:
+        seq: the DNA/RNA RBS sequence to test.
+        start_codon_index: the index into the sequence of the relevant start codon.
+        
+    Returns:
+        The predicted binding energy.
+    """
     seq_str = str(seq)
-    start_range = [0, len(seq_str)]
+    start_range = [start_codon_index, len(seq_str)]
     name = seq_str
     calc_obj = RBS_Calculator(seq_str, start_range, name)
     calc_obj.calc_dG()
