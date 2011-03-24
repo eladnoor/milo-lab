@@ -63,12 +63,12 @@ class NistAnchors(object):
 
 class NistRegression(Thermodynamics):
     
-    def __init__(self, db, html_writer):
+    def __init__(self, db, html_writer, nist=None):
         Thermodynamics.__init__(self)
         self.db = db
         self.html_writer = html_writer
         self.kegg = Kegg.getInstance()
-        self.nist = Nist()
+        self.nist = nist or Nist()
         
         self.nist_anchors = NistAnchors(self.db, self.html_writer)
         self.nist_anchors.FromCsvFile()
@@ -693,7 +693,7 @@ def main():
         pylab.plot(data[:,0], data[:,1], '.')
         html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
-        #nist_regression.FindKernel(S, cids, sparse=True)
+        nist_regression.FindKernel(S, cids, sparse=True)
 
     html_writer.close()
     

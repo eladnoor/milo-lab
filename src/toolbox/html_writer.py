@@ -182,10 +182,10 @@ class BaseHtmlWriter:
     
     @staticmethod
     def oasa_mol_to_canvas(oasa_mol):
-        maxx = max([v.x for v in oasa_mol.vertices])
-        minx = min([v.x for v in oasa_mol.vertices])
-        maxy = max([v.y for v in oasa_mol.vertices])
-        miny = min([v.y for v in oasa_mol.vertices])
+        maxx = max([(v.x or 0) for v in oasa_mol.vertices])
+        minx = min([(v.x or 0) for v in oasa_mol.vertices])
+        maxy = max([(v.y or 0) for v in oasa_mol.vertices])
+        miny = min([(v.y or 0) for v in oasa_mol.vertices])
         maxcoord = max(maxx - minx, maxy - miny)
         fontsize = 16
         bondwidth = 6
@@ -258,6 +258,7 @@ class BaseHtmlWriter:
 class NullHtmlWriter(BaseHtmlWriter):
     def __init__(self):
         BaseHtmlWriter.__init__(self)
+        self.filename = None
     
     def write(self, str):
         pass
