@@ -78,7 +78,6 @@ class SQLDatabase(Database):
         for row in self.Execute(query):
             html_writer.write('  <tr>' + "".join([('<td>' + str(s) + '</td>') for s in row]) + '</tr>\n')
         html_writer.write('</table>\n')
-        html_writer.write('</p>\n')
 
     def GetColumnNames(self, table_name):        
         column_names = []

@@ -112,7 +112,7 @@ class GroupObervationCollection(object):
         
         try:
             self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id)
-        except TypeError: # The Mg ions cannot be drawn by OASA 
+        except (TypeError, AssertionError): # The Mg ions cannot be drawn by OASA 
             pass
         
         try:
