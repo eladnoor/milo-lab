@@ -1,6 +1,40 @@
+ENTRY       M-ED-LATE-PHOSPHORYLATION
+SKIP        FALSE
+NAME        Entner-Doudoroff full, phosphorylating glycerate
+TYPE        MARGIN
+CONDITIONS  pH=7,I=0.1,T=300
+C_MID       1e-3
+C_RANGE     1e-6 1e-2
+REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
+            R01519  C00198 + C00001 -> C00257 (x1) 
+            R01538  C00257 -> C00204 + C00001 (x1)
+            R08570  C00204 -> C00577 + C00022 (x1)
+            R08571  C00577 + C00001 + C00139 -> C00258 + C00080 + C00138 (x1)
+            R08572  C00258 + C00002 -> C00631 + C00008 (x1)
+            R00658  C00631 -> C00001 + C00074 (x1)
+            R00200  C00008 + C00074 -> C00002 + C00022 (x1)    
+///
+ENTRY       M-ED-MID-PHOSPHORYLATION
+SKIP        FALSE
+NAME        Entner-Doudoroff full, phosphorylating KDG
+TYPE        MARGIN
+CONDITIONS  pH=7,I=0.1,T=300
+C_MID       1e-3
+C_RANGE     1e-6 1e-2
+REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
+            R01519  C00198 + C00001 -> C00257 (x1)
+            R01538  C00257 -> C00204 + C00001 (x1)
+            R01541  C00002 + C00204 -> C00008 + C04442 (x1)
+            R05605  C04442 -> C00118 + C00022 (x1)
+            R01061  C00009 + C00003 + C00118 -> C00004 + C00236 (x1)
+            R01512  C00008 + C00236 -> C00002 + C00197 (x1)
+            R01518  C00197 -> C00631 (x1)
+            R00658  C00631 -> C00001 + C00074 (x1)
+            R00200  C00008 + C00074 -> C00002 + C00022 (x1)              
+///
 ENTRY       M-ED-FULL
 SKIP        FALSE
-NAME        Entner-Doudoroff full (from glucose to pyruvate)
+NAME        Entner-Doudoroff full, phosphorylating glucose
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
