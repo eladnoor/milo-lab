@@ -126,35 +126,35 @@ def add_thermodynamic_constraints(cpl, dG0_f, c_range=(1e-6, 1e-2), T=default_T,
     
     Nc = dG0_f.shape[0]
 
-    if (bounds != None and len(bounds) != Nc):
+    if bounds != None and len(bounds) != Nc:
         raise Exception("The concentration bounds list must be the same length as the number of compounds")
     
     for c in xrange(Nc):
-        if (pylab.isnan(dG0_f[c, 0])):
+        if pylab.isnan(dG0_f[c, 0]):
             continue # unknown dG0_f - cannot bound this compound's concentration at all
 
-        if (bounds == None or bounds[c][0] == None):
+        if bounds == None or bounds[c][0] == None:
             # lower bound: dG0_f + R*T*ln(Cmin) <= x_i
             cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(c_range[0]))
         else:
             # this compound has a specific lower bound on its activity
             cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][0]))
 
-        if (bounds == None or bounds[c][1] == None):
+        if bounds == None or bounds[c][1] == None:
             # upper bound: x_i <= dG0_f + R*T*ln(Cmax)
             cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(c_range[1]))
         else:
             # this compound has a specific upper bound on its activity
             cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][1]))
 
-def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stream=None):
+def find_mtdf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stream=None):
     """
         Find a distribution of concentration that will satisfy the 'relaxed' thermodynamic constraints.
         The 'relaxation' means that there is a slack variable 'B' where all dG_r are constrained to be < B.
         Note that B can also be negative, which will happen when the pathway is feasible.
-        MCMF (Maximal Chemical Motive Force) is defined as the minimal B, note that it is a function of the concentration bounds.
+        MTDF (Maximal Thermodynamic Driving Force) is defined as the minimal B, note that it is a function of the concentration bounds.
     """
-    (Nr, Nc) = S.shape
+    Nr, Nc = S.shape
     
     # compute right hand-side vector - r,
     # i.e. the deltaG0' of the reactions divided by -RT
@@ -164,7 +164,7 @@ def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stre
     cpl = create_cplex(S, dG0_f, log_stream)
     add_thermodynamic_constraints(cpl, dG0_f, c_range=c_range, bounds=bounds)
 
-    # Define the MCMF variable and use it relax the thermodynamic constraints on each reaction
+    # Define the MTDF variable and use it relax the thermodynamic constraints on each reaction
     cpl.variables.add(names=["B"], lb=[-1e6], ub=[1e6])
     for r in xrange(Nr):
         cpl.linear_constraints.set_coefficients("r%d" % r, "B", -1)
@@ -172,16 +172,16 @@ def find_mcmf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stre
     # Set 'B' as the objective
     cpl.objective.set_linear([("B", 1)])
     
-    #cpl.write("../res/test_MCMF.lp", "lp")
+    #cpl.write("../res/test_MTDF.lp", "lp")
     cpl.solve()
     if (cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal):
         raise LinProgNoSolutionException("")
 
     dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
-    MCMF = cpl.solution.get_values(["B"])[0]
+    MTDF = cpl.solution.get_values(["B"])[0]
 
-    return (dG_f, concentrations, MCMF)
+    return dG_f, concentrations, MTDF
 
 def pC_to_range(pC, c_mid=1e-3, ratio=3.0):
     return (c_mid * 10 ** (-ratio/(ratio+1.0) * pC), c_mid * 10 ** (1.0/(ratio+1.0) * pC))
@@ -198,7 +198,7 @@ def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, T=default_T, bounds=None)
     
     Nc = dG0_f.shape[0]
 
-    if (bounds != None and len(bounds) != Nc):
+    if bounds != None and len(bounds) != Nc:
         raise Exception("The concentration bounds list must be the same length as the number of compounds")
     
     cpl.variables.add(names=['pC'], lb=[0], ub=[1e6])
@@ -206,7 +206,7 @@ def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, T=default_T, bounds=None)
         if (pylab.isnan(dG0_f[c, 0])):
             continue # unknown dG0_f - cannot bound this compound's concentration at all
 
-        if (bounds == None or bounds[c][0] == None):
+        if bounds == None or bounds[c][0] == None:
             # lower bound: x_i + r/(1+r) * R*T*ln(10)*pC >= dG0_f + R*T*ln(Cmid) 
             cpl.linear_constraints.add(senses='G', names=['c%d_lower' % c], rhs=[dG0_f[c, 0] + R*T*pylab.log(c_mid)])
             cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'c%d' % c, 1)
@@ -217,7 +217,7 @@ def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, T=default_T, bounds=None)
 
         row_upper = pylab.zeros(Nc + 1)
         row_upper[c] = 1
-        if (bounds == None or bounds[c][1] == None):
+        if bounds == None or bounds[c][1] == None:
             # upper bound: x_i - 1/(1+r) * R*T*ln(10)*pC <= dG0_f + R*T*ln(Cmid)
             cpl.linear_constraints.add(senses='L', names=['c%d_upper' % c], rhs=[dG0_f[c, 0] + R*T*pylab.log(c_mid)])
             cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'c%d' % c, 1)
@@ -241,7 +241,7 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stre
         output: (concentrations, margin)
     """
     Nc = S.shape[1]
-    if (Nc != dG0_f.shape[0]):
+    if Nc != dG0_f.shape[0]:
         raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
 
     cpl = create_cplex(S, dG0_f, log_stream)
@@ -249,7 +249,7 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stre
 
     #cpl.write("../res/test_PCR.lp", "lp")
     cpl.solve()
-    if (cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal):
+    if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal:
         raise LinProgNoSolutionException("")
     dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
@@ -297,7 +297,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
     try:
         res['pCr'] = find_pCr(S, dG0_f, c_mid=thermodynamics.c_mid, ratio=3.0, bounds=bounds)
         #res['PCR2'] = find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=c_mid, bounds=bounds)
-        res['MCMF'] = find_mcmf(S, dG0_f, c_range=thermodynamics.c_range, bounds=bounds)
+        res['MTDF'] = find_mtdf(S, dG0_f, c_range=thermodynamics.c_range, bounds=bounds)
     except LinProgNoSolutionException:
         html_writer.write('<b>No feasible solution found, cannot calculate the Margin</b>')
     
@@ -442,7 +442,7 @@ def test_all_modules():
     
     f = open("../res/feasibility.csv", "w")
     csv_output = csv.writer(f)
-    csv_output.writerow(("MID", "module name", "pH", "I", "T", "pCr", "MCMF"))
+    csv_output.writerow(("MID", "module name", "pH", "I", "T", "pCr", "MTDF"))
     for mid in sorted(gc.kegg().mid2rid_map.keys()):
         module_name = gc.kegg().mid2name_map[mid]
         try:
@@ -476,12 +476,12 @@ def test_all_modules():
                     pCr = None
 
                 try:
-                    _dG_f, _concentrations, MCMF = find_mcmf(S, dG0_f, c_range=c_range, bounds=bounds)
+                    _dG_f, _concentrations, MTDF = find_mtdf(S, dG0_f, c_range=c_range, bounds=bounds)
                 except LinProgNoSolutionException:
                     sys.stderr.write("M%05d: Pathway is theoretically infeasible\n" % mid)
-                    MCMF = None
+                    MTDF = None
                 
-                csv_output.writerow([mid, module_name, pH, I, T, pCr, MCMF])
+                csv_output.writerow([mid, module_name, pH, I, T, pCr, MTDF])
                         
     f.close()
 

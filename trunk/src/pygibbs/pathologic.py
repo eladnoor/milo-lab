@@ -18,8 +18,8 @@ class Pathologic:
         self.html_writer = html_writer
         self.gc = GroupContribution(db, html_writer)
         self.gc.init()
-        self.thermodynamic_method = "global" # options are: "none", "pCr", "MCMF", "global" or "localized"
-        self.maximal_dG = 0 # use this to change the thermodynamic constraints to have a different MCMF (when set to 0, it is the usual feasibility measure)
+        self.thermodynamic_method = "global" # options are: "none", "pCr", "MTDF", "global" or "localized"
+        self.maximal_dG = 0 # use this to change the thermodynamic constraints to have a different MTDF (when set to 0, it is the usual feasibility measure)
         self.max_reactions = None
         self.max_solutions = 100
         self.flux_relaxtion_factor = None
@@ -41,14 +41,14 @@ class Pathologic:
             exp_html.write("ignore thermodynamics")
         elif (self.thermodynamic_method == "pCr"):
             exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.gc.c_mid)
-        elif (self.thermodynamic_method == "MCMF"):
+        elif (self.thermodynamic_method == "MTDF"):
             exp_html.write("Maximal Chemical Motive Force Analysis, %g M < C < %g M" % self.gc.c_range)
         elif (self.thermodynamic_method == "global"):
             exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" % (self.gc.c_range[0], self.gc.c_range[1], self.maximal_dG))
         elif (self.thermodynamic_method == "localized"):
             exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.gc.c_range)
         else:
-            raise Exception("thermodynamic_method must be: 'none', 'pCr', 'MCMF', 'global' or 'localized'")
+            raise Exception("thermodynamic_method must be: 'none', 'pCr', 'MTDF', 'global' or 'localized'")
         exp_html.write('<br>\n')
         
         if (source != None):
@@ -98,11 +98,11 @@ class Pathologic:
             milp.add_reaction_num_constraint(self.max_reactions)
         
         if (self.thermodynamic_method == "pCr"):
-            milp.add_dGr_constraints(self.gc, pCr=True, MCMF=False, maximal_dG=0)
-        elif (self.thermodynamic_method == "MCMF"):
-            milp.add_dGr_constraints(self.gc, pCr=False, MCMF=True, maximal_dG=0)
+            milp.add_dGr_constraints(self.gc, pCr=True, MTDF=False, maximal_dG=0)
+        elif (self.thermodynamic_method == "MTDF"):
+            milp.add_dGr_constraints(self.gc, pCr=False, MTDF=True, maximal_dG=0)
         elif (self.thermodynamic_method == "global"):
-            milp.add_dGr_constraints(self.gc, pCr=False, MCMF=False, maximal_dG=self.maximal_dG)
+            milp.add_dGr_constraints(self.gc, pCr=False, MTDF=False, maximal_dG=self.maximal_dG)
         elif (self.thermodynamic_method == "localized"):
             milp.add_localized_dGf_constraints(self.gc)
         
