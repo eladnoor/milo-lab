@@ -847,7 +847,7 @@
 14453,"4-bromophenol","acid-base",298.15,5,4,0,0,"Brc1ccc(O)cc1","Brc1ccc([O-])cc1",9.37,"CRC (88th edition)"
 14455,"N-ethylbenzenamine","acid-base",298.15,12,11,0,0,"CC[NH2+]c1ccccc1","CCNc1ccccc1",5.12,"CRC (88th edition)"
 14686,"dicyclohexylamine","acid-base",298.15,24,23,0,0,"C1CCC(CC1)[NH2+]C2CCCCC2","C1CCC(CC1)NC2CCCCC2",10.4,"CRC (88th edition)"
-14691,"triethylamine","acid-base",298.15,16,15,0,0,"CCN(CC)CC","CC[NH+](CC)CC",10.75,"CRC (88th edition)"
+14691,"triethylamine","acid-base",298.15,16,15,0,0,"CC[NH+](CC)CC","CCN(CC)CC",10.75,"CRC (88th edition)"
 14695,"titrilotriacetate","acid-base",293.15,7,6,0,0,"[O-]C(=O)C[NH+](CC([O-])=O)CC([O-])=O","[O-]C(=O)CN(CC([O-])=O)CC([O-])=O",10.7,"CRC (88th edition)"
 14695,"titrilotriacetate","acid-base",293.15,8,7,0,0,"OC(=O)C[NH+](CC([O-])=O)CC([O-])=O","[O-]C(=O)C[NH+](CC([O-])=O)CC([O-])=O",3.07,"CRC (88th edition)"
 14695,"titrilotriacetate","acid-base",293.15,9,8,0,0,"OC(=O)C[NH+](CC(O)=O)CC([O-])=O","OC(=O)C[NH+](CC([O-])=O)CC([O-])=O",3.03,"CRC (88th edition)"

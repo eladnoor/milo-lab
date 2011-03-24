@@ -2,7 +2,6 @@
 
 import csv
 import logging
-import openbabel
 import os
 import pybel
 import types
@@ -16,29 +15,33 @@ from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
-from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.groups_data import Group, GroupsData
 from pygibbs import templates
 from toolbox import util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from pygibbs.pseudoisomers_data import PseudoisomersData
+from pygibbs.pseudoisomers_data import PseudoisomersData, DissociationTable
 from pygibbs.pseudoisomer import PseudoisomerMap
 import sys
+from toolbox.sparse_kernel import SparseKernel
+from pygibbs.group_vector import GroupVector
 
 class GroupContributionError(Exception):
     pass
     
 class GroupMissingTrainDataError(Exception):
+    
     def __init__(self, value, kernel_rows=[]):
         self.value = value
         self.kernel_rows = kernel_rows
+    
     def __str__(self):
         if (type(self.value) == types.StringType):
             return self.value
         else:
             return repr(self.value)
+    
     def Explain(self, gc):
         missing_single_groups = []
         for i in self.kernel_rows:
@@ -51,6 +54,266 @@ class GroupMissingTrainDataError(Exception):
                 
         return 'contains missing groups: ' + ", ".join(
             [str(gc.groups_data.all_groups[j]) for j in missing_single_groups])
+        
+class GroupObservation(object):
+    
+    def __init__(self):
+        self.groupvec = None
+        self.dG0 = None
+        self.name = None
+        self.cid = None
+        self.obs_type = None # can be 'formation', 'acid-base' or 'Mg'
+
+    def NetCharge(self):
+        return self.groupvec.NetCharge()
+
+    def Hydrogens(self):
+        return self.groupvec.Hydrogens()
+
+    def Magnesiums(self):
+        return self.groupvec.Magnesiums()
+
+    def ToDatabase(self, db):
+        db.Insert('group_observations', list(self.groupvec) +
+                  [self.dG0, self.name, self.cid, self.obs_type])
+        
+class GroupObervationCollection(object):
+    
+    def __init__(self, db, html_writer, group_decomposer):
+        self.kegg = Kegg.getInstance()
+        self.db = db
+        self.groups_data = group_decomposer.groups_data
+        self.group_decomposer = group_decomposer
+        self.observations = []
+        self.n_groups = len(self.groups_data.all_groups)
+        self.groupvec_titles = ["g%d" % i for i in xrange(self.n_groups)]
+        self.cid2pmap = {}
+        self.cid_test_set = set()
+
+        self.html_writer = html_writer
+        if html_writer and html_writer.filename:
+            self.FIG_DIR = os.path.basename(html_writer.filename).rsplit('.', 1)[0]
+        else:
+            self.FIG_DIR = ''
+        
+    def Add(self, groupvec, dG0, name, cid, obs_type):
+        obs = GroupObservation()
+        obs.groupvec = groupvec
+        obs.dG0 = dG0
+        obs.name = name
+        obs.cid = cid
+        obs.obs_type = obs_type
+        self.observations.append(obs)
+
+    def smiles2groupvec(self, smiles, id):
+        mol = pybel.readstring('smiles', str(smiles))
+        mol.removeh()
+        mol.title = id
+        
+        try:
+            self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id)
+        except TypeError: # The Mg ions cannot be drawn by OASA 
+            pass
+        
+        try:
+            return self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
+        except GroupDecompositionError as _e:
+            logging.warning('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
+            self.html_writer.write('%s Could not be decomposed<br>\n' % smiles)
+
+    def AddDissociationTable(self, cid, diss_table):
+        name = self.kegg.cid2name(cid)
+        logging.info("Reading pKa data for C%05d, %s:" % (cid, name))
+        self.html_writer.write('<h3>C%05d - %s</h3>\n' % (cid, name))
+        for key in diss_table:
+            nH_above, nH_below, nMg_above, nMg_below = key
+            ddG0, _ref = diss_table.ddGs[key]
+            smiles_above, smiles_below = diss_table.smiles_dict[key]
+            
+            if not smiles_above or not smiles_below:
+                continue
+    
+            if nH_above != nH_below:
+                s = "nH = %d -> %d" % (nH_above, nH_below)
+            elif nMg_above != nMg_below:
+                s = "nMg = %d -> %d" % (nMg_above, nMg_below)
+            logging.info("\t" + s)
+            self.html_writer.write('%s: &#x394;G = %.2f<br>\n' 
+                                   % (s, ddG0))
+            self.html_writer.write('SMILES = %s >> %s<br>\n' % (smiles_below, smiles_above))
+            decomposition_below = self.smiles2groupvec(smiles_below, 
+                            "C%05d_b_H%d_Mg%d" % (cid, nH_below, nMg_below))
+            decomposition_above = self.smiles2groupvec(smiles_above, 
+                            "C%05d_a_H%d_Mg%d" % (cid, nH_above, nMg_above))
+            if not decomposition_below or not decomposition_above:
+                continue
+            groupvec = decomposition_below.AsVector() - decomposition_above.AsVector()
+            self.html_writer.write('<br>\nDecomposition = %s<br>\n' % str(groupvec))
+            
+            if nH_above != nH_below:
+                if nH_above != nH_below-1:
+                    raise Exception("a pKa must represent a difference of exactly 1 hydrogen")
+                fullname = '%s [nH=%d]' % (name, nH_above)
+                self.Add(groupvec, ddG0, fullname, cid, 'acid-base')
+            elif nMg_above != nMg_below:
+                if nMg_above != nMg_below-1:
+                    raise Exception("a pK_Mg must represent a difference of exactly 1 magnesium")
+                fullname = '%s [nMg=%d]' % (name, nMg_above)
+                #self.Add(groupvec, ddG0, fullname, cid, 'Mg')
+                # TODO: solve the problems with Mg species !!!
+                # there seems to be a problem in decomposition of ADP:Mg (and maybe other forms that have Mg ions)
+
+    def AddPseudoIsomer(self, ps_isomer):
+        #name = str(ps_isomer)
+        name = "%s (%d)" % (ps_isomer.name, ps_isomer.net_charge)
+        logging.info('Verifying data for %s', name)
+        self.html_writer.write("<h3>%s, %s</h3>\n" % (ps_isomer.name, ps_isomer.ref))
+
+        if ps_isomer.dG0 == None:
+            self.html_writer.write('No data for &#x394;G<sub>f</sub><br>\n')
+            return
+
+        if ps_isomer.Skip():
+            self.html_writer.write('Compound marked as not to be used<br>\n')
+            return
+            
+        self.html_writer.write('&#x394;G<sub>f</sub> = %.2f<br>\n' % ps_isomer.dG0)
+
+        if ps_isomer.cid:
+            self.cid2pmap.setdefault(ps_isomer.cid, PseudoisomerMap())
+            self.cid2pmap[ps_isomer.cid].Add(ps_isomer.hydrogens, ps_isomer.net_charge,
+                                             ps_isomer.magnesiums, ps_isomer.dG0)
+
+        if ps_isomer.Test():
+            self.cid_test_set.add(ps_isomer.cid)
+            self.html_writer.write('Compound marked to be used only for testing (not training)<br>\n')
+            return
+        
+        elif ps_isomer.Train():
+            self.html_writer.write('Compound marked to be used for training<br>\n')
+        else:
+            raise Exception('Unknown usage flag: %' % ps_isomer.use_for)
+
+        if not ps_isomer.smiles:
+            raise Exception("Cannot use compound '%s' for training if it lacks a SMILES string" % ps_isomer.name)
+        try:
+            self.html_writer.write('SMILES = %s<br>\n' % ps_isomer.smiles)
+            mol = ps_isomer.MolNoH()
+        except TypeError, e:
+            logging.error(e)
+            raise Exception('Invalid smiles: %s' % ps_isomer.smiles)
+
+        mol.title = name
+        img_fname = self.FIG_DIR + '/train_%05d.png' % len(self.observations)
+        try:
+            self.html_writer.embed_molecule_as_png(mol, img_fname)
+        except (TypeError, IndexError, AssertionError):
+            logging.warning('PyBel cannot draw the compound %s',  name)
+            self.html_writer.write('WARNING: cannot draw this compound using PyBel\n')
+
+        self.html_writer.write('<br>\n')
+
+        try:
+            decomposition = self.group_decomposer.Decompose(mol, strict=True)
+        except GroupDecompositionError as e:
+            logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
+            raise e
+        
+        groupvec = decomposition.AsVector()
+        self.Add(groupvec, ps_isomer.dG0, name, ps_isomer.cid, 'formation')
+        self.html_writer.write("Decomposition = %s<br>\n" % decomposition)
+        
+        gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
+        if ps_isomer.hydrogens != gc_hydrogens:
+            s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
+                ps_isomer.hydrogens, gc_hydrogens)
+            logging.error(s)
+            self.html_writer.write(s + '<br>\n')
+        if ps_isomer.net_charge != gc_charge:
+            s = 'ERROR: Charge doesn\'t match: explicit = %d, formula = %d' % (
+                ps_isomer.net_charge, gc_charge)
+            logging.error(s)
+            self.html_writer.write(s + '<br>\n')
+        
+    def CreateTables(self):
+        # This table is used only as an output for checking results
+        # it is not used elsewhere in the code
+        self.db.CreateTable('train_groups', 'name TEXT, nH INT, z INT, nMg INT')
+        for group in self.groups_data.all_groups:
+            self.db.Insert('train_groups', [group.name, group.hydrogens,
+                                            group.charge, group.nMg])
+
+        # the table 'group_observation' will contain all the observed data
+        # that is used for training later
+        titles = ['%s REAL' % t for t in self.groupvec_titles] + \
+                 ['dG0 REAL', 'name TEXT', 'cid INT', 'obs_type TEXT']
+        self.db.CreateTable('group_observations', ','.join(titles))
+
+        self.db.CreateTable('pseudoisomer_observation', 
+            'cid INT, name TEXT, protons INT, charge INT'
+            ', nMg INT, dG0_f REAL, use_for TEXT')
+        
+    def ToDatabase(self):
+        self.CreateTables()
+        for obs in self.observations:
+            obs.ToDatabase(self.db)
+        self.db.Commit()
+        
+        for cid in self.cid2pmap.keys():
+            if cid in self.cid_test_set:
+                use_for = 'test'
+            else:
+                use_for = 'train'
+            for (nH, z, nMg, dG0) in self.cid2pmap[cid].ToMatrix():
+                self.db.Insert('pseudoisomer_observation', 
+                    [cid, self.kegg.cid2name(cid), nH, z, nMg, dG0, use_for])
+        
+    def FromDatabase(self):
+        self.observations = []
+        for row in self.db.Execute("SELECT * FROM group_observations"):
+            obs = GroupObservation()
+            obs.groupvec = GroupVector(self.groups_data, row[0:self.n_groups])
+            obs.dG0, obs.name, obs.cid, obs.obs_type = row[self.n_groups:]
+            self.observations.append(obs)
+
+        self.cid2pmap = {}
+        for row in self.db.Execute("SELECT * FROM pseudoisomer_observation"):
+            (cid, unused_name, nH, z, mgs, dG0_f, use_for) = row
+            self.cid2pmap.setdefault(cid, PseudoisomerMap())
+            self.cid2pmap[cid].Add(nH, z, mgs, dG0_f)
+            if use_for == 'test':
+                self.cid_test_set.add(cid)
+        
+    def GetRegressionData(self):
+        """ 
+            Returns the regression matrix and corresponding observation data 
+            and names as a tuple: (A, b, names)
+            Next step is to solve Ax = b
+            
+            Makes sure that there are no duplicates (two identical rows in A)
+            by averaging the observed values.
+        """
+        
+        hash2obs_vec = {}
+        for obs in self.observations:
+            h = str(obs.groupvec)
+            hash2obs_vec.setdefault(h, []).append(obs)
+        
+        A = []
+        b = []
+        names = []
+        for h, obs_vec in hash2obs_vec.iteritems():
+            A.append(obs_vec[0].groupvec)
+            
+            all_cids = '; '.join(["%d" % obs.cid for obs in obs_vec])
+            all_names = '; '.join([obs.name for obs in obs_vec])
+            if obs_vec[0].obs_type == 'formation':
+                names.append(all_names)
+            else:
+                names.append('pK:(%s) - [%s]' % (h, all_cids))
+            b.append(pylab.mean([obs.dG0 for obs in obs_vec]))
+            
+        return pylab.matrix(A), pylab.array(b), names
 
 class GroupContribution(Thermodynamics):    
     def __init__(self, db, html_writer=None):
@@ -58,10 +321,8 @@ class GroupContribution(Thermodynamics):
         self.db = db
 
         if html_writer:
-            self.FIG_DIR = os.path.basename(html_writer.filename).rsplit('.', 1)[0]
             self.html_writer = html_writer
         else:
-            self.FIG_DIR = ''
             self.html_writer = NullHtmlWriter()
 
         self.kegg = Kegg.getInstance()
@@ -73,6 +334,7 @@ class GroupContribution(Thermodynamics):
         self.cid2pmap_dict = None
         self.group_nullspace = None
         self.group_contributions = None
+        self.obs_collection = None
             
     def write_gc_tables(self):
         table_names = ["groups", "contribution", "observation"]
@@ -119,7 +381,7 @@ class GroupContribution(Thermodynamics):
             cdict = {}
             cdict['cid'] = cid
             cdict['compound'] = comp
-            cdict['measured_pmap'] = self.cid2pmap_obs.get(cid, None)
+            cdict['measured_pmap'] = self.obs_collection.cid2pmap.get(cid, None)
             cdict['estimated_pmap'] = None
             
             if comp.inchi:
@@ -157,8 +419,8 @@ class GroupContribution(Thermodynamics):
                 logging.info('Saving KEGG Compound C%05d' % cid)
             
             # If the compound is measured:
-            if (cid in self.cid2pmap_obs):
-                pmap = self.cid2pmap_obs[cid]
+            if cid in self.obs_collection.cid2pmap:
+                pmap = self.obs_collection.cid2pmap[cid]
                 cdict['measured_pmap'] = pmap
                 for (nH, z, nMg, dG0) in pmap.ToMatrix():
                     self.db.Insert('gc_cid2prm', [cid, nH, z, nMg, dG0, False])
@@ -199,14 +461,14 @@ class GroupContribution(Thermodynamics):
         self.cid2source_string = {}
 
         # Now load the data into the cid2pmap_dict:
-        for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 1;"):
+        for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 1"):
             cid, nH, z, nMg, dG0 = row
             self.cid2pmap_dict.setdefault(cid, PseudoisomerMap())
             self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
             self.cid2source_string[cid] = 'Group Contribution'
 
         cid2pmap_obs = {} # observed formation energies
-        for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 0;"):
+        for row in self.db.Execute("SELECT cid, nH, z, nMg, dG0 from gc_cid2prm WHERE estimated == 0"):
             cid, nH, z, nMg, dG0 = row
             cid2pmap_obs.setdefault(cid, PseudoisomerMap())
             cid2pmap_obs[cid].Add(nH, z, nMg, dG0)
@@ -244,33 +506,6 @@ class GroupContribution(Thermodynamics):
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
         
-    def train(self, obs_fname, use_dG0_format=False):
-        l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = self.read_training_data_pKa()
-        #l_groupvec_pKa, l_deltaG_pKa, l_names_pKa = [], [], []
-
-        if use_dG0_format:
-            l_groupvec_formation, l_deltaG_formation, l_names_formation = self.read_training_data_dG0(obs_fname)
-        else:
-            l_groupvec_formation, l_deltaG_formation, l_names_formation = self.read_training_data(obs_fname)
-        
-        l_groupvec = l_groupvec_pKa + l_groupvec_formation
-        l_deltaG = l_deltaG_pKa + l_deltaG_formation
-        l_names = l_names_pKa + l_names_formation
-        self.save_training_data(l_groupvec, l_deltaG, l_names)
-
-        self.group_contributions, self.group_nullspace = \
-            self.linear_regression_train()
-        self.SaveContributionsToDB()
-            
-    def linear_regression_train(self):
-        self.load_training_data()
-        
-        #group_contributions, nullspace = LinearRegression.LeastSquares(
-        #    self.group_matrix, self.obs)
-        group_contributions, nullspace = LinearRegression.SolveLinearSystem(
-            self.group_matrix, self.obs)
-        return list(group_contributions.flat), nullspace
-    
     def load_groups(self, group_fname=None):
         if group_fname:
             self.groups_data = GroupsData.FromGroupsFile(group_fname)
@@ -278,9 +513,62 @@ class GroupContribution(Thermodynamics):
         else:
             self.groups_data = GroupsData.FromDatabase(self.db)
         self.group_decomposer = GroupDecomposer(self.groups_data)
-        self.dissociation = DissociationConstants(self.db, self.html_writer, 
-                                                  self.group_decomposer)
 
+    def read_training_data_formation(self, obs_fname="../data/thermodynamics/dG0.csv"):
+        """
+            Finds all the compounds which have a valid dG0 in the dG0.csv file,
+            and adds the qualifying observations to obs_collection.
+        """
+        self.html_writer.write('<h2><a name=compounds>List of compounds for training</a>')
+        div_id = self.html_writer.insert_toggle()
+        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.write('Source File = %s<br>\n' % obs_fname)
+        
+        pdata = PseudoisomersData.FromFile(obs_fname)
+        for ps_isomer in pdata:
+            self.obs_collection.AddPseudoIsomer(ps_isomer)
+        
+        self.html_writer.write('</div>')
+        
+    def read_training_data_pKa(self):
+        self.html_writer.write('<h2><a name=compounds>List of pKa for training</a>')
+        div_id = self.html_writer.insert_toggle()
+        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+
+        cid2DissociationTable = DissociationTable.ReadDissociationCsv()
+        for cid, diss_table in cid2DissociationTable.iteritems():
+            self.obs_collection.AddDissociationTable(cid, diss_table)
+            
+        self.html_writer.write('</div>')
+            
+    def load_training_data(self):
+        self.obs_collection = GroupObervationCollection(self.db, 
+            self.html_writer, self.group_decomposer)
+        self.obs_collection.FromDatabase()
+        self.group_matrix, self.obs, self.mol_names = self.obs_collection.GetRegressionData()
+
+    def train(self, FromFiles=True):
+        self.obs_collection = GroupObervationCollection(self.db, 
+            self.html_writer, self.group_decomposer)
+        if FromFiles:
+            self.read_training_data_pKa()
+            self.read_training_data_formation()
+            self.obs_collection.ToDatabase()
+        else:
+            self.obs_collection.FromDatabase()
+            
+        self.group_matrix, self.obs, self.mol_names = self.obs_collection.GetRegressionData()
+        
+        self.group_contributions, self.group_nullspace = self.RunLinearRegression()
+        self.SaveContributionsToDB()
+            
+    def RunLinearRegression(self):
+        group_contributions, _nullspace = LinearRegression.LeastSquares(self.group_matrix, self.obs)
+        nullspace = SparseKernel(self.group_matrix).Solve()
+        #group_contributions, nullspace = LinearRegression.SolveLinearSystem(
+        #    self.group_matrix, self.obs)
+        return list(group_contributions.flat), nullspace
+    
     def does_table_exist(self, table_name):
         for unused_ in self.db.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
             return True
@@ -334,261 +622,6 @@ class GroupContribution(Thermodynamics):
         except KeggParseException:
             return [(0, 0, 0)]
     
-    def mol2inchi(self, mol):
-        obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("smi", "inchi")
-        return obConversion.WriteString(mol.OBMol).strip()        
-    
-    def read_training_data_dG0(self, obs_fname):
-        """
-            Finds all the compounds which have a valid dG0 in the dG0.csv file,
-            and generates a regression matrix using the KEGG groups for these compounds.
-            Return values is a tuple (X, dG_obs, names) where:
-            X           - is the group regression matrix
-            dG_obs      - is the observed dG0 vector.
-            names       - is the list of compound names.
-        """
-        l_groupvec = []
-        l_deltaG = []
-        l_names = [] # is the list of Molecules (pybel class) used for the regression
-        self.inchi2val_obs = {}
-        self.cid2pmap_obs = {}
-        self.cid_test_set = set()
-        
-        self.html_writer.write('<h2><a name=compounds>List of compounds for training</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
-        self.html_writer.write('Source File = %s<br>\n' % obs_fname)
-        
-        pdata = PseudoisomersData.FromFile(obs_fname)
-        
-        counter = 0
-        for ps_isomer in pdata:
-            name = str(ps_isomer)
-            logging.info('Verifying data for %s', name)
-            
-            self.html_writer.write("<h3>%s, %s</h3>\n" % (ps_isomer.name, ps_isomer.ref))
-
-            if ps_isomer.dG0 == None:
-                self.html_writer.write('No data for &#x394;G<sub>f</sub><br>\n')
-                continue
-
-            if ps_isomer.Skip():
-                self.html_writer.write('Compound marked as not to be used<br>\n')
-                continue
-                
-            self.html_writer.write('&#x394;G<sub>f</sub> = %.2f<br>\n' % ps_isomer.dG0)
-
-            if ps_isomer.cid:
-                self.cid2pmap_obs.setdefault(ps_isomer.cid, PseudoisomerMap())
-                self.cid2pmap_obs[ps_isomer.cid].Add(ps_isomer.hydrogens, ps_isomer.net_charge,
-                                                     ps_isomer.magnesiums, ps_isomer.dG0)
-
-            if ps_isomer.Test():
-                self.cid_test_set.add(ps_isomer.cid)
-                self.html_writer.write('Compound marked to be used only for testing (not training)<br>\n')
-                continue
-            
-            elif ps_isomer.Train():
-                self.html_writer.write('Compound marked to be used for training<br>\n')
-            else:
-                raise Exception('Unknown usage flag: %' % ps_isomer.use_for)
-
-            if not ps_isomer.smiles:
-                raise Exception("Cannot use compound '%s' for training if it lacks a SMILES string" % ps_isomer.name)
-            try:
-                self.html_writer.write('SMILES = %s<br>\n' % ps_isomer.smiles)
-                mol = ps_isomer.MolNoH()
-            except TypeError, e:
-                logging.error(e)
-                raise Exception('Invalid smiles: %s' % ps_isomer.smiles)
-
-            inchi = self.mol2inchi(mol)
-            self.html_writer.write('INCHI = %s<br>\n' % inchi)
-            self.inchi2val_obs[inchi] = ps_isomer.dG0
-            mol.title = name
-            
-            img_fname = self.FIG_DIR + '/train_%05d.png' % counter
-            counter += 1
-            try:
-                self.html_writer.embed_molecule_as_png(mol, img_fname)
-            except (TypeError, IndexError, AssertionError):
-                logging.warning('PyBel cannot draw the compound %s',  name)
-                self.html_writer.write('WARNING: cannot draw this compound using PyBel\n')
-
-            self.html_writer.write('<br>\n')
-    
-            try:
-                decomposition = self.group_decomposer.Decompose(mol, strict=True)
-            except GroupDecompositionError as e:
-                logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
-                raise e
-            
-            groupvec = decomposition.AsVector()
-            l_names.append(name)
-            l_groupvec.append(groupvec)
-            l_deltaG.append(ps_isomer.dG0)
-            self.html_writer.write("Decomposition = %s<br>\n" % decomposition)
-            
-            gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
-            if ps_isomer.hydrogens != gc_hydrogens:
-                s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
-                    ps_isomer.hydrogens, gc_hydrogens)
-                logging.error(s)
-                self.html_writer.write(s + '<br>\n')
-            if ps_isomer.net_charge != gc_charge:
-                s = 'ERROR: Charge doesn\'t match: explicit = %d, formula = %d' % (
-                    ps_isomer.net_charge, gc_charge)
-                logging.error(s)
-                self.html_writer.write(s + '<br>\n')
-                
-        self.html_writer.write('</div>')
-        return (l_groupvec, l_deltaG, l_names)        
-        
-    def read_training_data(self, obs_fname):
-        l_groupvec = []
-        l_deltaG = []
-        l_names = [] # is the list of Molecules (pybel class) used for the regression
-        self.inchi2val_obs = {}
-        self.cid2pmap_obs = {}
-        
-        self.html_writer.write('<h2><a name=compounds>List of compounds for training</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
-        self.html_writer.write('Source File = %s<br>\n' % obs_fname)
-        Km_csv = csv.reader(open(obs_fname, 'r'))
-        Km_csv.next()
-        
-        for row in Km_csv:
-            (cid, obs_val) = row
-            if (cid == "" or obs_val == ""):
-                continue
-            cid = int(cid)
-            obs_val = float(obs_val)
-            self.cid2pmap_obs[cid].Add(0, 0, 0, obs_val)
-            try:
-                mol = self.kegg.cid2mol(cid)
-                self.html_writer.write('<h3><a href="%s">C%05d - %s</a></h3>\n' % (self.kegg.cid2link(cid), cid, self.kegg.cid2name(cid)))
-                self.html_writer.write('Observed value = %f <br>\n' % obs_val)
-                
-                inchi = self.mol2inchi(mol)
-                self.html_writer.write('INCHI = %s<br>\n' % inchi)
-                self.inchi2val_obs[inchi] = obs_val
-                
-                groupvec = self.group_decomposer.Decompose(mol).AsVector()
-                l_names.append(mol)
-                l_groupvec.append(groupvec)
-                l_deltaG.append(obs_val)
-                self.html_writer.write('Decomposition = %s <br>\n' % self.get_decomposition_str(mol))
-            except GroupDecompositionError:
-                self.html_writer.write('Could not be decomposed<br>\n')
-            except KeyError:
-                self.html_writer.write('Compound has no INCHI in KEGG<br>\n')
-
-        self.html_writer.write('</div>')
-        return (l_groupvec, l_deltaG, l_names)        
-
-    def read_training_data_pKa(self):
-        
-        def smiles2groupvec(smiles, id):
-            mol = pybel.readstring('smiles', str(smiles))
-            mol.removeh()
-            mol.title = id
-            self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id)
-            try:
-                return self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
-            except GroupDecompositionError as _e:
-                logging.warning('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
-                self.html_writer.write('%s Could not be decomposed<br>\n' % smiles)
-                #raise e
-        
-        l_groupvec = []
-        l_deltaG = []
-        l_names = [] # is the list of Molecules' names
-
-        self.dissociation.LoadValuesToDB()
-        self.html_writer.write('<h2><a name=compounds>List of pKa for training</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
-        for cid, T, nH_below, nH_above, smiles_below, smiles_above, pKa in self.db.Execute(
-                "SELECT cid, T, nH_below, nH_above, smiles_below, smiles_above, pKa FROM pKa"):
-            if not smiles_above or not smiles_below or not cid:
-                continue
-            
-            logging.info("Reading pKa data for C%05d, %s, nH=%d -> nH=%d" % \
-                         (cid, self.kegg.cid2name(cid), nH_below, nH_above))
-            self.html_writer.write('<h3>C%05d - %s - nH=%d -> nH=%d</h3>\n' % \
-                                   (cid, self.kegg.cid2name(cid), nH_below, nH_above))
-            
-            dG0 = R*T*pylab.log(10)*pKa
-            self.html_writer.write('pKa = %.2f, T = %.2f \n</br>' % (pKa, T))
-            self.html_writer.write('&#x394;G<sub>p</sub> = %.2f<br>\n' % dG0)
-            
-            self.html_writer.write('SMILES = %s >> %s<br>\n' % (smiles_below, smiles_above))
-            decomposition_below = smiles2groupvec(smiles_below, "C%05d_b_H%d" % (cid, nH_below))
-            decomposition_above = smiles2groupvec(smiles_above, "C%05d_a_H%d" % (cid, nH_above))
-            if not decomposition_below or not decomposition_above:
-                continue
-            groupvec = decomposition_above.AsVector() - decomposition_below.AsVector()
-            self.html_writer.write('<br>\nDecomposition = %s<br>\n' % str(groupvec))
-
-            try:
-                i = l_groupvec.index(groupvec)
-                l_deltaG[i].append(dG0)
-                l_names[i] += ', C%05d [%d->%d]' % (cid, nH_above, nH_below)
-            except ValueError:
-                l_groupvec.append(groupvec)
-                l_deltaG.append([dG0])
-                l_names.append('pKa (%s): C%05d [%d->%d]' % \
-                               (str(groupvec), cid, nH_above, nH_below))
-        
-        for i in xrange(len(l_groupvec)):
-            l_deltaG[i] = pylab.mean(l_deltaG[i])
-        
-        self.html_writer.write('</div>')
-        return (l_groupvec, l_deltaG, l_names)        
-
-    def save_training_data(self, l_groupvec, l_deltaG, l_names):
-        n_obs = len(l_deltaG)
-        if not n_obs:
-            raise Exception("No observations have been given for training")
-        
-        n_groups = len(l_groupvec[0])
-        
-        self.db.CreateTable('train_group_matrix', ",".join(["g%d REAL" % i for i in range(n_groups)]))
-        for j in range(n_obs):
-            self.db.Insert('train_group_matrix', l_groupvec[j])
-        
-        self.db.CreateTable('train_observations', 'obs REAL')
-        for i in range(n_obs):
-            self.db.Insert('train_observations', [l_deltaG[i]])
-        
-        self.db.CreateTable('train_groups', 'name TEXT, nH INT, z INT, nMg INT')
-        for group in self.groups_data.all_groups:
-            self.db.Insert('train_groups', [group.name, group.hydrogens,
-                                            group.charge, group.nMg])
-
-        self.db.CreateTable('train_molecules', 'name TEXT')
-        for name in l_names:
-            self.db.Insert('train_molecules', [name])
-
-        self.db.Commit()
-            
-    def load_training_data(self):
-        X = []
-        for row in self.db.Execute("SELECT * FROM train_group_matrix"):
-            X.append(list(row))
-        self.group_matrix = pylab.array(X)
-
-        y = []
-        for row in self.db.Execute("SELECT * FROM train_observations"):
-            y.append(row[0])
-        self.obs = pylab.array(y)
-        
-        self.mol_names = []
-        for row in self.db.Execute("SELECT name FROM train_molecules"):
-            self.mol_names.append(row[0])
-
     def groupvec2val(self, groupvec):
         if self.group_contributions == None or self.group_nullspace == None:
             raise Exception("You need to first Train the system before using it to estimate values")
@@ -600,18 +633,6 @@ class GroupContribution(Thermodynamics):
                 "is not orthogonal to the kernel", k_list)
         return pylab.dot(groupvec, self.group_contributions)
     
-    def estimate_val(self, mol):
-        try:
-            groupvec = self.get_groupvec(mol)
-        except GroupDecompositionError as e:
-            inchi = self.mol2inchi(mol)
-            if (inchi in self.inchi2val_obs):
-                return self.inchi2val_obs[inchi]
-            else:
-                raise e
-        
-        return self.groupvec2val(groupvec)
-
     def write_regression_report(self, include_raw_data=False, T=default_T, pH=default_pH):        
         self.html_writer.write('<h2><a name=compounds>Regression report</a>')
         div_id = self.html_writer.insert_toggle()
@@ -632,7 +653,8 @@ class GroupContribution(Thermodynamics):
                         '<td>Group Vector</td></tr>')
         for i in xrange(self.group_matrix.shape[0]):
             self.html_writer.write('<tr><td>%s</td><td>%.2f</td><td>%s</td></tr>' % \
-                            (self.mol_names[i], self.obs[i], ' '.join(['%d' % x for x in self.group_matrix[i, :]])))
+                            (self.mol_names[i], self.obs[i], 
+                             ' '.join(['%d' % self.group_matrix[i, j] for j in xrange(self.group_matrix.shape[1])])))
         self.html_writer.write('</table>')
         
         self.html_writer.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
@@ -651,13 +673,12 @@ class GroupContribution(Thermodynamics):
 
         self.html_writer.write('<h2><a name="nullspace">Nullspace of regression matrix</a></h2>\n')
         div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.write('<div id="%s" style="display:none">\n' % div_id)
         self.db.Table2HTML(self.html_writer, 'gc_nullspace')
         self.html_writer.write('</div>\n')
 
     def analyze_training_set(self):
         n_obs = self.group_matrix.shape[0]
-        orig_est = []
         val_names = []
         val_obs = []
         val_est = []
@@ -668,7 +689,7 @@ class GroupContribution(Thermodynamics):
             # skip the cross-validation of the pKa values since group
             # contribution is not meant to give any real prediction for pKas
             # except the mean of the class of pKas.
-            if self.mol_names[i][0:3] == 'pKa':
+            if self.mol_names[i][0:3] == 'pK:':
                 continue
             logging.info('Cross validation, leaving-one-out: ' + self.mol_names[i])
             
@@ -686,11 +707,10 @@ class GroupContribution(Thermodynamics):
                 continue
             
             orig_estimation = pylab.dot(self.group_matrix[i, :], self.group_contributions)
-            estimation = pylab.dot(self.group_matrix[i, :], group_contributions)[0]
+            estimation = pylab.dot(self.group_matrix[i, :], group_contributions)[0, 0]
             error = self.obs[i] - estimation
             
             val_names.append(self.mol_names[i])
-            orig_est.append(orig_estimation)
             val_obs.append(self.obs[i])
             val_est.append(estimation)
             val_err.append(error)
@@ -802,9 +822,9 @@ class GroupContribution(Thermodynamics):
             pmap.Add(0, 0, 0, 0)
             return pmap
 
-        if (cid in self.cid2pmap_obs and (self.override_gc_with_measurements or cid in self.cid_test_set)):
+        if (cid in self.obs_collection.cid2pmap and (self.override_gc_with_measurements or cid in self.obs_collection.cid_test_set)):
             pmap = PseudoisomerMap()
-            pmap.AddAll(self.cid2pmap_obs[cid])
+            pmap.AddAll(self.obs_collection.cid2pmap[cid])
             return pmap
         else:
             try:
@@ -816,8 +836,8 @@ class GroupContribution(Thermodynamics):
             try:
                 return self.Mol2PseudoisomerMap(mol)
             except GroupContributionError as e:
-                if cid in self.cid2pmap_obs:
-                    return self.cid2pmap_obs[cid]
+                if cid in self.obs_collection.cid2pmap:
+                    return self.obs_collection.cid2pmap[cid]
                 else:
                     raise MissingCompoundFormationEnergy(str(e), cid)
     
@@ -1032,15 +1052,6 @@ class GroupContribution(Thermodynamics):
         f.close()
         
     def SaveContributionsToDB(self):
-        self.db.CreateTable('observation', 'cid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_f REAL, use_for TEXT')
-        for cid in self.cid2pmap_obs.keys():
-            if (cid in self.cid_test_set):
-                use_for = 'test'
-            else:
-                use_for = 'train'
-            for (nH, z, nMg, dG0) in self.cid2pmap_obs[cid].ToMatrix():
-                self.db.Insert('observation', [cid, self.kegg.cid2name(cid), nH, z, nMg, dG0, use_for])
-        
         logging.info("storing the group contribution data in the database")
         self.db.CreateTable('gc_contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL, nullspace TEXT')
         
@@ -1065,16 +1076,6 @@ class GroupContribution(Thermodynamics):
     def LoadContributionsFromDB(self):
         logging.info("loading the group contribution data from the database")
         self.group_contributions = []
-        self.cid2pmap_obs = {}
-        self.cid_test_set = set()
-
-        for row in self.db.Execute("SELECT * FROM observation"):
-            (cid, unused_name, nH, z, mgs, dG0_f, use_for) = row
-            self.cid2pmap_obs.setdefault(cid, PseudoisomerMap())
-            self.cid2pmap_obs[cid].Add(nH, z, mgs, dG0_f)
-            if (use_for == 'test'):
-                self.cid_test_set.add(cid)
-        
         nullspace_mat = []
         for row in self.db.Execute("SELECT * FROM gc_contribution ORDER BY gid"):
             (unused_gid, unused_name, unused_protons, unused_charge, unused_mg, dG0_gr, nullspace) = row
@@ -1143,7 +1144,8 @@ if __name__ == '__main__':
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
         G.load_groups("../data/thermodynamics/groups_species.csv")
-        G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
+        #G.train(FromFiles=False)
+        G.train()
         G.write_regression_report()
         G.analyze_training_set()
         G.save_cid2pmap()

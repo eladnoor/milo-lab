@@ -81,12 +81,22 @@ class PseudoisomerEntry(object):
 class DissociationTable(object):
     
     def __init__(self, cid=None):
+        # ddGs is a dictionary whose keys are 4-tuples of (nH_above, nH_below, nMg_above, nMg_below)
+        # and the values are pairs of (ddG0, reference)
         self.ddGs = {}
+        
+        # smiles_dict has the sames keys are ddGs, but the values are pairs of
+        # (smiles_above, smiles_below)
+        self.smiles_dict = {}
+        
         self.cid = cid
         self.min_nH = None # the nH of the most basic pseudoisomer
         self.min_charge = None # the charge of the most basic pseudoisomer
         self.min_dG0 = 0 # the dG0 of the most basic pseudoisomer
         self.kegg = Kegg.getInstance()
+
+    def __iter__(self):
+        return self.ddGs.__iter__()
 
     @staticmethod
     def ReadDissociationCsv(filename='../data/thermodynamics/dissociation_constants.csv'):
@@ -95,7 +105,7 @@ class DissociationTable(object):
             and returns a dictionary of their DissociationTables, where the key
             is the CID.
         """
-        cid2pK = {}
+        cid2DissociationTable = {}
 
         csv_reader = csv.DictReader(open(filename, 'r'))
         for i, row in enumerate(csv_reader):
@@ -108,10 +118,13 @@ class DissociationTable(object):
             nH_above = int(row['nH_above'])
             nMg_below = int(row['nMg_below'])
             nMg_above = int(row['nMg_above'])
+            smiles_below = row['smiles_below']
+            smiles_above = row['smiles_above']
+            
             ref = row['ref']
             T = float(row['T'] or default_T)
-            cid2pK.setdefault(cid, DissociationTable(cid))
-            cid2pK[cid].min_nH = min(nH_above, cid2pK[cid].min_nH or nH_above)
+            cid2DissociationTable.setdefault(cid, DissociationTable(cid))
+            cid2DissociationTable[cid].min_nH = min(nH_above, cid2DissociationTable[cid].min_nH or nH_above)
 
 
             if row['type'] == 'acid-base':
@@ -119,7 +132,7 @@ class DissociationTable(object):
                 if nMg_below != nMg_above:
                     raise Exception('C%05d has different nMg below and above '
                                     'the pKa = %.1f' % (cid, pKa))
-                cid2pK[cid].AddpKa(pKa, nH_below, nH_above, nMg_below, ref, T)
+                cid2DissociationTable[cid].AddpKa(pKa, nH_below, nH_above, nMg_below, ref, T, smiles_below, smiles_above)
 
             if row['type'] == 'Mg':
                 pKMg = float(row['pK'])
@@ -127,30 +140,36 @@ class DissociationTable(object):
                     raise Exception('C%05d has different nH below and above '
                                     'the pK_Mg = %.1f' % pKMg)
                 try:
-                    cid2pK[cid].AddpKMg(pKMg, nMg_below, nMg_above, nH_below, ref, T)
+                    cid2DissociationTable[cid].AddpKMg(pKMg, nMg_below, nMg_above, nH_below, ref, T, smiles_below, smiles_above)
                 except Exception, e:
                     raise Exception("In C%05d: %s" % (cid, str(e)))
         
-        for pK_table in cid2pK.values():
+        for pK_table in cid2DissociationTable.values():
             pK_table.CalculateCharge()
         
-        return cid2pK
+        return cid2DissociationTable
     
-    def AddpKa(self, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T):
+    def AddpKa(self, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T, 
+               smiles_below=None, smiles_above=None):
         if nH_below != nH_above+1:
             raise Exception('A H+ dissociation constant (pKa) has to represent an '
                             'increase of exactly one hydrogen')
         
         ddG0 = R * T * pylab.log(10) * pKa
-        self.ddGs[(nH_above, nH_below, nMg, nMg)] = (-ddG0, ref) # adding H+ decreases dG0
+        key = (nH_above, nH_below, nMg, nMg)
+        self.ddGs[key] = (-ddG0, ref) # adding H+ decreases dG0
+        self.smiles_dict[key] = (smiles_above, smiles_below)
         
-    def AddpKMg(self, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T):
+    def AddpKMg(self, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T, 
+                smiles_below=None, smiles_above=None):
         if nMg_below != nMg_above+1:
             raise Exception('A Mg+2 dissociation constant (pK_Mg) has to represent an '
                             'increase of exactly one magnesium ion')
 
         ddG0 = R * T * pylab.log(10) * pKMg - dG0_f_Mg
-        self.ddGs[(nH, nH, nMg_above, nMg_below)] = (-ddG0, ref) # adding Mg+2 decreases dG0
+        key = (nH, nH, nMg_above, nMg_below)
+        self.ddGs[key] = (-ddG0, ref) # adding Mg+2 decreases dG0
+        self.smiles_dict[key] = (smiles_above, smiles_below)
     
     def GetSingleStep(self, nH_from, nH_to, nMg_from, nMg_to):
         if nH_from == nH_to and nMg_from == nMg_to:

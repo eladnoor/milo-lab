@@ -2,16 +2,12 @@ from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs.nist_regression import NistRegression
-from pygibbs.dissociation_constants import DissociationConstants
 import logging
 
 if __name__ == "__main__":
     html_writer = HtmlWriter("../res/nist/example_reaction.html")
     db = SqliteDatabase('../res/gibbs.sqlite')
     
-    dissociation = DissociationConstants(db, html_writer)
-    dissociation.LoadValuesToDB()
-
     kegg = Kegg.getInstance()
     nist_regression = NistRegression(db, html_writer)
     nist_regression.nist.T_range = (298, 314)

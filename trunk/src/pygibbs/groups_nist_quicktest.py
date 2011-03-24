@@ -7,23 +7,17 @@ import logging
 
 def main():    
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg.getInstance()
     html_writer = HtmlWriter('../res/groups_quicktest.html')
-    
-    nist = Nist(db, html_writer, kegg)
-    nist.Load()
+    nist = Nist()
 
-    G = GroupContribution(db=db, html_writer=html_writer, kegg=kegg)
+    G = GroupContribution(db=db, html_writer=html_writer)
     G.load_groups("../data/thermodynamics/groups_species.csv")
-    if True:
-        G.train("../data/thermodynamics/dG0.csv", use_dG0_format=True)
-    else:
-        G.load_training_data()
+    G.train(FromFiles=False)
     G.override_gc_with_measurements = True
     G.quick_init(nist.GetAllCids(), html_fname='../res/groups_quicktest_pmaps.html')
 
     logging.info('Writing the NIST report')
-    num_estimations, rmse = nist.verify_results(G, T_range=(298, 314))
+    num_estimations, rmse = nist.verify_results(html_writer, G)
     logging.info('N = %d' % num_estimations)
     logging.info('RMSE = %.1f' % rmse)
 

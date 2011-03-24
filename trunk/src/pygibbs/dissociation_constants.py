@@ -45,6 +45,7 @@ class DissociationConstants(object):
             else:
                 name = None
 
+            # TODO: read also the Mg dissociation constants
             if row['type'] and row['type'] != 'acid-base':
                 continue
             
