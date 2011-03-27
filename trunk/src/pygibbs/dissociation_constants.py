@@ -6,6 +6,7 @@ from toolbox.util import _mkdir
 from pygibbs.group_decomposition import GroupDecomposer
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import default_T
+from toolbox import draw_chemicals
 
 class DissociationConstants(object):
     
@@ -126,7 +127,7 @@ class DissociationConstants(object):
     def DrawProtonation(self, cid, nH_below, nH_above, smiles_below, smiles_above, pKa):
         self.html_writer.write('<h3>C%05d - %s</h3></br>\n' % (cid, self.kegg.cid2name(cid)))
         try:
-            self.html_writer.embed_molecule_as_png(self.kegg.cid2mol(cid), 'dissociation_constants/C%05d.png' % cid)
+            self.html_writer.write(draw_chemicals.smiles2svg(self.kegg.cid2smiles(cid)))
         except (KeggParseException, ValueError):
             self.html_writer.write('<b>cannot draw molecule from KEGG</b>')
         self.html_writer.write('</br>')
@@ -134,9 +135,9 @@ class DissociationConstants(object):
         if not pKa:
             self.html_writer.write('No known pKas at the physiological range')
         elif smiles_below and smiles_above:
-            self.smiles2HTML(smiles_below, 'C%05d_b_H%d' % (cid, nH_below))
+            self.html_writer.write(draw_chemicals.smiles2svg(smiles_below))
             self.html_writer.write(' pKa = %.2f ' % pKa)
-            self.smiles2HTML(smiles_above, 'C%05d_a_H%d' % (cid, nH_above))
+            self.html_writer.write(draw_chemicals.smiles2svg(smiles_above))
         elif nH_below and nH_above:
             self.html_writer.write('<b>nH = %d</b> pKa = %.2f <b>nH = %d</b>\n' % \
                                    (nH_below, pKa, nH_above))
@@ -146,20 +147,9 @@ class DissociationConstants(object):
         
         self.html_writer.write('</br>')
     
-    def smiles2HTML(self, smiles, id, height=50, width=50):
-        try:
-            mol = pybel.readstring('smiles', str(smiles))
-        except IOError:
-            self.html_writer.write('Error reading smiles: ' + smiles)
-            return
-        mol.removeh()
-        #self.html_writer.write(smiles)
-        self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id, height=height, width=width)
-
 if (__name__ == '__main__'):
     db = SqliteDatabase("../res/gibbs.sqlite")
     html_writer = HtmlWriter("../res/dissociation_constants.html")
-    _mkdir('../res/dissociation_constants')
     dissociation = DissociationConstants(db, html_writer)
     dissociation.LoadValuesToDB()
     dissociation.AnalyseValues()

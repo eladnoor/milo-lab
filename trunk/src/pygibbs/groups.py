@@ -111,7 +111,6 @@ class GroupObervationCollection(object):
         mol.title = id
         
         try:
-            #self.html_writer.embed_molecule_as_png(mol, 'dissociation_constants/%s.png' % id)
             self.html_writer.write(draw_chemicals.smiles2svg(smiles))
         except (TypeError, AssertionError): # The Mg ions cannot be drawn by OASA 
             pass
@@ -206,8 +205,6 @@ class GroupObervationCollection(object):
 
         mol.title = name
         try:
-            #img_fname = self.FIG_DIR + '/train_%05d.png' % len(self.observations)
-            #self.html_writer.embed_molecule_as_png(mol, img_fname)
             self.html_writer.write(draw_chemicals.smiles2svg(ps_isomer.smiles))
         except (TypeError, IndexError, AssertionError):
             logging.warning('PyBel cannot draw the compound %s',  name)
