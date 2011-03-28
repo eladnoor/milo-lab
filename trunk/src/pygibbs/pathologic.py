@@ -1,33 +1,75 @@
-import pylab, cplex, sys, logging
+#!/usr/bin/python
+
+import cplex
+import logging
+import os.path
+import pylab
+import sys
+
 from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
 from pygibbs.groups import GroupContribution
 from pygibbs.feasibility import thermodynamic_pathway_analysis
 from toolbox.html_writer import HtmlWriter
-from toolbox.util import _mkdir
+from toolbox import util
 from toolbox.database import SqliteDatabase
 from pygibbs.kegg_utils import write_kegg_pathway
 
-################################################################################
-#                               CONSTANTS & DEFAULTS                           #
-################################################################################
-class Pathologic:
-    def __init__(self, db, html_writer, update_file='../data/thermodynamics/database_updates.txt'):
+
+class Pathologic(object):
+    
+    ALLOWED_THERMODYNAMIC_METHODS = ['none', 'pCr', 'MTDF', 'global', 'localized'] 
+    
+    def __init__(self, db, html_writer,
+                 thermodynamic_method='global',
+                 max_reactions=None,
+                 max_solutions=100,
+                 maximal_dG=0,
+                 update_file='../data/thermodynamics/database_updates.txt'):
+        """Initialize the Pathologic object.
+        
+        Args:
+            db: the DB to read group contribution data from.
+            html_writer: an HtmlWriter for writing output.
+            thermodynamic_method: the analysis methods.
+                Options are: "none", "pCr", "MTDF", "global" or "localized"
+            max_reactions: the maximum number of reactions to find in a solution.
+            max_solutions: the maximum number of solutions to find.
+            maximal_dG: the maximum dG allowed.
+                Use this to change the thermodynamic constraints to have a different
+                MTDF. When set to 0, it is the usual feasibility measure.
+            update_file: the file to read for KEGG updates.
+        """
+        assert thermodynamic_method in self.ALLOWED_THERMODYNAMIC_METHODS
+        
         cplex.Cplex() # causes CPLEX to print its initialization message
-        _mkdir('../res/pathologic')
+        util._mkdir('../res/pathologic')
+        
         self.html_writer = html_writer
+        self.thermodynamic_method = thermodynamic_method
+        self.max_reactions = max_reactions
+        self.max_solutions = max_solutions
+        self.maximal_dG = maximal_dG
+        
         self.gc = GroupContribution(db, html_writer)
         self.gc.init()
-        self.thermodynamic_method = "global" # options are: "none", "pCr", "MTDF", "global" or "localized"
-        self.maximal_dG = 0 # use this to change the thermodynamic constraints to have a different MTDF (when set to 0, it is the usual feasibility measure)
-        self.max_reactions = None
-        self.max_solutions = 100
+        
         self.flux_relaxtion_factor = None
         self.kegg_patholotic = KeggPathologic()
         self.kegg_patholotic.update_database(update_file, self.html_writer)
 
     def find_path(self, experiment_name, source=None, target=None):
-        _mkdir('../res/pathologic/' + experiment_name)
+        """Find a pathway from the source to the target.
+        
+        Args:    
+            experiment_name: a name given to this experiment.
+            source: a sparse reaction of the net reactions reactants.
+            target: a sparse reaction of the net reactions products.
+        """
+        dirname = os.path.join('../res/pathologic/', experiment_name)
+        logging.info('Writing output to: %s' % dirname)
+        util._mkdir(dirname)
+        
         self.html_writer.write('<a href="pathologic/' + experiment_name + '.html">' + experiment_name + '</a><br>\n')
         exp_html = HtmlWriter('../res/pathologic/' + experiment_name + '.html')
         exp_html.write("<p><h1>%s</h1>\n" % experiment_name)
@@ -37,24 +79,24 @@ class Pathologic:
 
         exp_html.write('<h2>Conditions:</h2> pH = %g, I = %g, T = %g<br>\n' % (self.gc.pH, self.gc.I, self.gc.T))
         exp_html.write('<h2>Thermodynamic constraints:</h2> ')
-        if (self.thermodynamic_method == "none"):
+        if self.thermodynamic_method == "none":
             exp_html.write("ignore thermodynamics")
-        elif (self.thermodynamic_method == "pCr"):
+        elif self.thermodynamic_method == "pCr":
             exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.gc.c_mid)
-        elif (self.thermodynamic_method == "MTDF"):
+        elif self.thermodynamic_method == "MTDF":
             exp_html.write("Maximal Chemical Motive Force Analysis, %g M < C < %g M" % self.gc.c_range)
-        elif (self.thermodynamic_method == "global"):
+        elif self.thermodynamic_method == "global":
             exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" % (self.gc.c_range[0], self.gc.c_range[1], self.maximal_dG))
-        elif (self.thermodynamic_method == "localized"):
+        elif self.thermodynamic_method == "localized":
             exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.gc.c_range)
         else:
-            raise Exception("thermodynamic_method must be: 'none', 'pCr', 'MTDF', 'global' or 'localized'")
+            raise Exception("thermodynamic_method must be one of %s" % self.ALLOWED_THERMODYNAMIC_METHODS)
         exp_html.write('<br>\n')
         
-        if (source != None):
+        if source is not None:
             exp_html.write('<h2>Source Reaction:</h2>\n')
             exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg_patholotic.cid2compound[cid].name, cid) for (cid, coeff) in source.iteritems()])
-        if (target != None):
+        if target is not None:
             exp_html.write('<h2>Target (biomass) Reaction:</h2>\n')
             exp_html.write_ul(['%d x %s(C%05d)' % (coeff, self.kegg_patholotic.cid2compound[cid].name, cid) for (cid, coeff) in target.iteritems()])
 
@@ -79,7 +121,7 @@ class Pathologic:
         slip.export("../res/pathologic/%s/%03d_lp.txt" % (experiment_name, 0))
         exp_html.write(' (<a href="%s/%03d_lp.txt">LP file</a>): ' % (experiment_name, 0))
         logging.info("Solving")
-        if (not slip.solve() ):
+        if not slip.solve():
             exp_html.write("<b>There are no solutions!</b>")
             logging.warning("There are no solutions. Quitting!")
             return
@@ -153,6 +195,8 @@ class Pathologic:
         for optimization in res.keys():
             score = res[optimization][2]
             exp_html.write(", %s = %g" % (optimization, score))
+        if not res:
+            exp_html.write(", No feasible solutions found")
         exp_html.write('<br>\n')
 
     def show_Gdot(self, Gdot):
@@ -196,14 +240,15 @@ def main():
     db = SqliteDatabase('../res/gibbs.sqlite', 'r')
     html_writer = HtmlWriter('../res/pathologic.html')
     update_file = '../data/thermodynamics/database_updates_with_MOG_reactions.txt'
-    pl = Pathologic(db, html_writer, update_file)
-    pl.thermodynamic_method = 'global'
+    pl = Pathologic(db, html_writer,
+                    max_solutions=1,
+                    max_reactions=15,
+                    thermodynamic_method='global',
+                    update_file=update_file)
     pl.gc.c_range = (1e-6, 1e-2)
-    pl.max_solutions = 1
-    #pl.max_reactions = 10
     
-    source = {31:1}; target = {22:2}
-    name = "glucose => 2 pyruvate (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+    source = {31:1, 8:2, 3:2}; target = {22:2, 2:2, 4:2}
+    name = "glucose + 2 ADP + 2 NAD => 2 pyruvate + 2 ATP + 2 NADH (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
     pl.find_path(name, source, target)
 
     #source = {}; target = {48:1}
@@ -225,5 +270,5 @@ def main():
     
 ####################################################################################################
 
-if (__name__ == '__main__'):
+if __name__ == '__main__':
     main()

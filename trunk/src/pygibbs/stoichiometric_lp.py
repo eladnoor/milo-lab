@@ -43,8 +43,11 @@ class Stoichiometric_LP():
             self.cpl.variables.add(names=[self.reactions[r].name], lb=[0], ub=[self.flux_upper_bound])
         
         # add a linear constraint on the fluxes for each compound (mass balance)
-        for c in xrange(len(self.compounds)):
-            constraint_name = "C%05d_mass_balance" % self.compounds[c].cid
+        for c, compound in enumerate(self.compounds):
+            cid = compound.cid
+                
+            constraint_name = "C%05d_mass_balance" % cid
+            
             self.cpl.linear_constraints.add(names=[constraint_name], senses='E', rhs=[0])
             for r in pylab.find(self.S[c,:]):
                 self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name, self.S[c,r])
@@ -65,7 +68,10 @@ class Stoichiometric_LP():
         """
         self.cpl.variables.add(names=[name], lb=[lb], ub=[ub])
         for cid, coeff in sparse.iteritems():
-            self.cpl.linear_constraints.set_coefficients("C%05d_mass_balance" % cid, name, coeff)        
+            try:
+                self.cpl.linear_constraints.set_coefficients("C%05d_mass_balance" % cid, name, coeff)
+            except cplex.exceptions.CplexSolverError:
+                print 'CID:', cid
 
     def export(self, fname):
         self.cpl.write(fname, filetype='lp')
