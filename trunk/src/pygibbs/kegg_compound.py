@@ -230,6 +230,9 @@ class Compound(object):
                 logging.warning(e)
         
         return d
+    
+    def __str__(self):
+        return '%s: %s' % (self.cid, self.name)
 
 def GetAllCompoundsFromDB(db):
     """Fetch all the compounds from the database."""
