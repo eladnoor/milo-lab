@@ -34,6 +34,23 @@ class Reaction(object):
         reaction.ec_list = row_dict['ec_list']
         return reaction
 
+    def replace_compound(self, replace_cid, with_cid):
+        """Replace one CID with another in this reaction.
+        
+        Args:
+            replace_cid: the CID to replace.
+            with_cid: the one to replace with.
+        """
+        if replace_cid not in self.sparse:
+            return
+        
+        if with_cid in self.sparse:
+            raise ValueError('Reaction %s already contains CID %s' % (self.rid,
+                                                                      with_cid))
+        
+        count = self.sparse.pop(replace_cid)
+        self.sparse[with_cid] = count
+
     def get_cids(self):
         """Returns the KEGG IDs of the products and reactants."""
         return set(self.sparse.keys())
