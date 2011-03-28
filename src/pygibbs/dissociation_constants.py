@@ -1,8 +1,7 @@
-import csv, logging, pybel, openbabel
+import csv, logging, openbabel
 from kegg import Kegg
 from kegg_errors import KeggParseException
 from toolbox.database import SqliteDatabase
-from toolbox.util import _mkdir
 from pygibbs.group_decomposition import GroupDecomposer
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import default_T
@@ -96,16 +95,6 @@ class DissociationConstants(object):
             cid2pKa_list[cid].sort(reverse=True)
             
         return cid2pKa_list, cid2minimal_nH
-
-    @staticmethod
-    def smiles2nH(smiles, correctForPH=False):
-        obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("smiles", "mol")
-        obmol = openbabel.OBMol()
-        polaronly = False
-        obConversion.ReadString(obmol, str(smiles))
-        obmol.AddHydrogens(polaronly, correctForPH)
-        return obmol.NumAtoms() - obmol.NumHvyAtoms()
 
     def GetActiveGroups(self, decomposition):
         group_name_to_index = {}

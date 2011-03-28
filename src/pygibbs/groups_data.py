@@ -5,9 +5,6 @@ import logging
 import pybel
 import pylab
 
-from toolbox import smarts_util
-
-
 class GroupsDataError(Exception):
     pass
 
@@ -96,7 +93,7 @@ class Group(object):
     @staticmethod
     def _IsHydrocarbon(mol):
         """Tests if a molecule is a simple hydrocarbon."""
-        if smarts_util.FindSmarts(mol, '[!C;!c]'):
+        if mol.FindSmarts('[!C;!c]'):
             # If we find anything other than a carbon (w/ hydrogens)
             # then it's not a hydrocarbon.
             return 0
@@ -107,16 +104,17 @@ class Group(object):
         expressions = ['c1cccc1', 'c1ccccc1']
         count = 0
         for smarts_str in expressions:
-            count += len(smarts_util.FindSmarts(mol, smarts_str))
+            count += len(mol.FindSmarts(smarts_str))
         return count
     
     @staticmethod
     def _CountHeteroaromaticRings(mol):
         expressions = ['a1aaaa1', 'a1aaaaa1']
         count = 0
+        all_atoms = mol.GetAtoms()
         for smarts_str in expressions:
-            for match in smarts_util.FindSmarts(mol, smarts_str):
-                atoms = set([mol.atoms[i].atomicnum for i in match])
+            for match in mol.FindSmarts(smarts_str):
+                atoms = set([all_atoms[i].atomicnum for i in match])
                 atoms.discard(6)  # Ditch carbons
                 if atoms:
                     count += 1

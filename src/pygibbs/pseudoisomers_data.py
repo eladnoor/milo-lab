@@ -8,6 +8,7 @@ import pylab
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
+from toolbox.molecule import Molecule
 
 class PseudoisomerEntry(object):
     def __init__(self, net_charge, hydrogens, magnesiums, smiles="",
@@ -36,7 +37,7 @@ class PseudoisomerEntry(object):
             int(self.net_charge)
             int(self.hydrogens)
             int(self.magnesiums)
-        except Exception, e:
+        except Exception:
             return False
         
         return True
@@ -54,14 +55,14 @@ class PseudoisomerEntry(object):
         """Returns a new Mol object corresponding to this compound."""
         if not self.smiles:
             return None
-        return pybel.readstring('smiles', self.smiles)
+        return Molecule.FromSmiles(self.smiles)
     
     def MolNoH(self):
         mol = self.Mol()
         if not mol:
             return None
         
-        mol.removeh()
+        mol.RemoveHydrogens()
         return mol
     
     def __str__(self):
@@ -126,15 +127,13 @@ class DissociationTable(object):
             cid2DissociationTable.setdefault(cid, DissociationTable(cid))
             cid2DissociationTable[cid].min_nH = min(nH_above, cid2DissociationTable[cid].min_nH or nH_above)
 
-
             if row['type'] == 'acid-base':
                 pKa = float(row['pK'])
                 if nMg_below != nMg_above:
                     raise Exception('C%05d has different nMg below and above '
                                     'the pKa = %.1f' % (cid, pKa))
                 cid2DissociationTable[cid].AddpKa(pKa, nH_below, nH_above, nMg_below, ref, T, smiles_below, smiles_above)
-
-            if row['type'] == 'Mg':
+            elif row['type'] == 'Mg':
                 pKMg = float(row['pK'])
                 if nH_below != nH_above:
                     raise Exception('C%05d has different nH below and above '
@@ -143,6 +142,12 @@ class DissociationTable(object):
                     cid2DissociationTable[cid].AddpKMg(pKMg, nMg_below, nMg_above, nH_below, ref, T, smiles_below, smiles_above)
                 except Exception, e:
                     raise Exception("In C%05d: %s" % (cid, str(e)))
+            elif row['pK']:
+                raise ValueError('The row about C%05d has a pK although it is not "acid-base" nor "Mg"' % cid)
+            elif nMg_below != nMg_above:
+                raise ValueError('The row about C%05d has different nMgs although it is not "Mg"' % cid)
+            elif nH_below != nH_above:
+                raise ValueError('The row about C%05d has different nHs although it is not "acid-base"' % cid)
         
         for pK_table in cid2DissociationTable.values():
             pK_table.CalculateCharge()
@@ -190,8 +195,8 @@ class DissociationTable(object):
                 ddG0, ref = self.ddGs[nH_to, nH_from, nMg_from, nMg_to]
                 return (-ddG0, ref)
         except KeyError:
-            raise KeyError('The dissociation constant for (nH=%d,nMg=%d) -> '
-                            '(nH=%d,nMg=%d) is missing' % (nH_from, nMg_from, nH_to, nMg_to))
+            raise KeyError('The dissociation constant for C%05d: (nH=%d,nMg=%d) -> '
+                            '(nH=%d,nMg=%d) is missing' % (self.cid, nH_from, nMg_from, nH_to, nMg_to))
 
         raise Exception('A dissociation constant can either represent a'
                 ' change in only one hydrogen or magnesium')
@@ -243,6 +248,15 @@ class DissociationTable(object):
         comp.net_charge += (nH_to - nH_from) + 2 * (nMg_to - nMg_from)
         
         return comp
+    
+    def SetFormationEnergyByNumHydrogens(self, dG0, nH):
+        """ Uses the value of any pseudoisomer to set the base value of dG0 """
+        self.min_dG0 = self.ConvertPseudoisomer(dG0, nH, self.min_nH)
+        
+    def SetFormationEnergyByCharge(self, dG0, charge):
+        """ Uses the value of any pseudoisomer to set the base value of dG0 """
+        nH = self.min_nH + (charge - self.min_charge)
+        self.min_dG0 = self.ConvertPseudoisomer(dG0, nH, self.min_nH)
     
     def CalculateCharge(self):
         # get the charge and nH of the default pseudoisomer in KEGG:

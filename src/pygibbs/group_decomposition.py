@@ -4,7 +4,6 @@ import pybel
 import sys
 import logging
 
-from toolbox import smarts_util
 from toolbox import util
 from pygibbs import groups_data
 from pygibbs import group_vector
@@ -41,8 +40,9 @@ class GroupDecomposition(object):
                                                       'valence', 'charge'))
             l.append(spacer)
             
+            all_atoms = self.mol.GetAtoms()
             for i in self.unassigned_nodes:
-                a = self.mol.atoms[i]
+                a = all_atoms[i]
                 l.append('%10d | %10d | %10d | %10d\n' % (i, a.atomicnum,
                                                           a.heavyvalence, a.formalcharge))
         return ''.join(l)
@@ -77,7 +77,7 @@ class GroupDecomposition(object):
     def UnassignedAtoms(self):
         """Generator for unassigned atoms."""
         for i in self.unassigned_nodes:
-            yield self.mol.atoms[i], i
+            yield self.mol.GetAtoms()[i], i
     
     def SparseRepresentation(self):
         """Returns a dictionary representation of the group.
@@ -216,7 +216,7 @@ class GroupDecomposer(object):
         
         all_pmg_groups = (groups_data.GroupsData.FINAL_PHOSPHATES_TO_MGS +
                           groups_data.GroupsData.MIDDLE_PHOSPHATES_TO_MGS)
-        for mg in smarts_util.FindSmarts(mol, '[Mg+2]'):
+        for mg in mol.FindSmarts('[Mg+2]'):
             if mg[0] in assigned_mgs:
                 continue
             
@@ -249,7 +249,7 @@ class GroupDecomposer(object):
             A list of 2-tuples (phosphate group, # occurrences).
         """
         group_map = dict((pg, []) for pg in groups_data.GroupsData.PHOSPHATE_GROUPS)
-        v_charge = [a.formalcharge for a in mol.atoms]
+        v_charge = [a.formalcharge for a in mol.GetAtoms()]
         assigned_mgs = set()
         
         def pop_phosphate(pchain, p_size):
@@ -283,7 +283,7 @@ class GroupDecomposer(object):
             # Find internal phosphate chains (ones in the middle of the molecule).
             smarts_str = GroupDecomposer._InternalPChainSmarts(length)
             chain_map = dict((k, []) for (k, _) in group_map.iteritems())
-            for pchain in smarts_util.FindSmarts(mol, smarts_str):
+            for pchain in mol.FindSmarts(smarts_str):
                 working_pchain = list(pchain)
                 working_pchain.pop() # Lose the carbons
                 working_pchain.pop(0)
@@ -306,7 +306,7 @@ class GroupDecomposer(object):
             # Find terminal phosphate chains.
             smarts_str = GroupDecomposer._TerminalPChainSmarts(length)
             chain_map = dict((k, []) for (k, _) in group_map.iteritems())
-            for pchain in smarts_util.FindSmarts(mol, smarts_str):
+            for pchain in mol.FindSmarts(smarts_str):
                 working_pchain = list(pchain)
                 working_pchain.pop() # Lose the carbon
                 
@@ -343,7 +343,7 @@ class GroupDecomposer(object):
         Returns:
             A GroupDecomposition object containing the decomposition.
         """
-        unassigned_nodes = set(range(len(mol.atoms)))
+        unassigned_nodes = set(range(len(mol)))
         groups = []
         
         def _AddCorrection(group, count):
@@ -376,7 +376,7 @@ class GroupDecomposer(object):
             # Not a phosphate group or expanded correction.
             else:  
                 current_groups = []
-                for nodes in smarts_util.FindSmarts(mol, group.smarts):
+                for nodes in mol.FindSmarts(group.smarts): 
                     try:
                         focal_set = group.FocalSet(nodes)
                     except IndexError:
@@ -391,7 +391,7 @@ class GroupDecomposer(object):
                 groups.append((group, current_groups))
         
         # Ignore the hydrogen atoms when checking which atom is unassigned
-        for nodes in smarts_util.FindSmarts(mol, '[H]'): 
+        for nodes in mol.FindSmarts('[H]'): 
             unassigned_nodes = unassigned_nodes - set(nodes)
         
         decomposition = GroupDecomposition(self.groups_data, mol,

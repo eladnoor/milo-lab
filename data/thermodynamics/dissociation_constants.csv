@@ -247,7 +247,7 @@
 212,"adenosine","acid-base",298.15,13,12,0,0,,,12.35,"Christensen (1970a)"
 213,"sarcosine","acid-base",298.15,7,6,0,0,"C[NH2+]CC(=O)[O-]","CNCC(=O)[O-]",10.1,"CRC (88th edition)"
 213,"sarcosine","acid-base",298.15,8,7,0,0,"C[NH2+]CC(=O)O","C[NH2+]CC(=O)[O-]",2.21,"CRC (88th edition)"
-214,"thymidine",,298.15,14,13,0,0,,,9.79,"Christensen (1970b)"
+214,"thymidine","acid-base",298.15,14,13,0,0,,,9.79,"Christensen (1970b)"
 216,"D-arabinose",,298.15,10,10,0,0,,,,
 217,"D-glutamate","acid-base",298.15,10,9,0,0,,,2.13,"Taken as is from L-glutamate"
 217,"D-glutamate","acid-base",298.15,9,8,0,0,,,4.31,"Taken as is from L-glutamate"
@@ -271,9 +271,9 @@
 245,"taurine","acid-base",298.15,8,7,0,0,"[NH3+]CCS(=O)(=O)O","[NH3+]CCS(=O)(=O)[O-]",1.5,"CRC (88th edition)"
 246,"butanoic acid","acid-base",298.15,8,7,0,0,"CCCC(=O)O","CCCC(=O)[O-]",4.83,"CRC (88th edition)"
 247,"L-sorbose",,298.15,12,12,0,0,,,,
-249,"palmitate",,298.15,32,31,0,0,"CCCCCCCCCCCCCCCC(=O)O","CCCCCCCCCCCCCCCC(=O)[O-]",4.8,"Moran (1987)"
-250,"pyridoxal",,298.15,10,9,0,0,,,5,"Taken as is from pyridoxine"
-250,"pyridoxal",,298.15,9,8,0,0,,,9,"Taken as is from pyridoxine"
+249,"palmitate","acid-base",298.15,32,31,0,0,"CCCCCCCCCCCCCCCC(=O)O","CCCCCCCCCCCCCCCC(=O)[O-]",4.8,"Moran (1987)"
+250,"pyridoxal","acid-base",298.15,10,9,0,0,,,5,"Taken as is from pyridoxine"
+250,"pyridoxal","acid-base",298.15,9,8,0,0,,,9,"Taken as is from pyridoxine"
 252,"Isomaltose",,298.15,22,22,0,0,,,,
 253,"nicotinate","acid-base",298.15,6,5,0,0,,,2,"CRC (88th edition)"
 253,"nicotinate","acid-base",298.15,5,4,0,0,,,4.82,"CRC (88th edition)"
@@ -378,7 +378,7 @@
 447,"Sedoheptulose 1,7-P","acid-base",296.15,13,12,0,0,,,6.12,"Robitaille (1990)"
 455,"Nicotinamide D-ribonucleotide","acid-base",298.15,15,14,0,0,,,6.44,"Alberty (2003)"
 463,"Indole",,298.15,7,7,0,0,,,,
-468,"Estrone",,298.15,22,21,0,0,,,10.34,"Hurwitz 1977"
+468,"Estrone","acid-base",298.15,22,21,0,0,,,10.34,"Hurwitz 1977"
 469,"Ethanol","acid-base",298.15,6,5,0,0,"CCO","CC[O-]",15.5,"CRC (88th edition)"
 473,"Retinol",,298.15,30,30,0,0,,,,
 474,"Ribitol",,298.15,12,12,0,0,,,,
@@ -406,7 +406,7 @@
 547,"L-noradrenaline","acid-base",298.15,12,11,0,0,,,9.7,"CRC (88th edition)"
 552,"meso-Tartaric acid","acid-base",298.15,5,4,0,0,"C(=O)(O)C(O)C(O)C(=O)[O-]","C(=O)([O-])C(O)C(O)C(=O)[O-]",4.91,"CRC (88th edition)"
 552,"meso-Tartaric acid","acid-base",298.15,6,5,0,0,"C(=O)(O)C(O)C(O)C(=O)O","C(=O)(O)C(O)C(O)C(=O)[O-]",3.17,"CRC (88th edition)"
-556,"Benzyl alcohol",,298.15,8,7,0,0,,,15.4,"wikipedia"
+556,"Benzyl alcohol","acid-base",298.15,8,7,0,0,,,15.4,"wikipedia"
 565,"Trimethylamine","acid-base",298.15,10,9,0,0,"[NH+](C)(C)C","N(C)(C)C",9.8,"CRC (88th edition)"
 571,"Cyclohexylamine","acid-base",298.15,14,13,0,0,"C1CCCCC1[NH3+]","C1CCCCC1N",10.64,"CRC (88th edition)"
 577,"D-Glyceraldehyde",,298.15,6,6,0,0,,,,
@@ -415,7 +415,7 @@
 587,"3-Hydroxybenzoate","acid-base",292.15,5,4,0,0,"c1ccc(O)cc1C(=O)[O-]","c1ccc([O-])cc1C(=O)[O-]",9.92,"CRC (88th edition)"
 587,"3-Hydroxybenzoate","acid-base",298.15,6,5,0,0,"c1ccc(O)cc1C(=O)O","c1ccc(O)cc1C(=O)[O-]",4.08,"CRC (88th edition)"
 588,"choline phosphate","acid-base",296.15,14,13,0,0,,,5.76,"Robitaille (1990)"
-590,"Coniferyl alcohol",,298.15,12,11,0,0,,,9.5,"Achyuthan (2009)"
+590,"Coniferyl alcohol","acid-base",298.15,12,11,0,0,,,9.5,"Achyuthan (2009)"
 604,"1,10-Phenanthroline","acid-base",298.15,9,8,0,0,,,4.84,"CRC (88th edition)"
 620,"alpha-D-Ribose 1-phosphate","acid-base",296.15,10,9,0,0,"C(C1C(C(C(O1)OP(=O)([O-])O)O)O)O","C(C1C(C(C(O1)OP(=O)([O-])[O-])O)O)O",6,"Robitaille (1990)"
 623,"Glycerol 1-phosphate","acid-base",296.15,8,7,0,0,"C(C(COP(=O)([O-])O)O)O","C(C(COP(=O)([O-])[O-])O)O",6.18,"Robitaille (1990)"
@@ -460,7 +460,7 @@
 898,"(R,R)-Tartaric acid","acid-base",298.15,5,4,0,0,,,4.34,"CRC (88th edition)"
 928,"Mercaptoethanol","acid-base",298.15,6,5,0,0,"OCCS","OCC[S-]",9.72,"CRC (88th edition)"
 935,"UDP-L-arabinose",,298.15,20,20,0,0,,,,
-951,"Estradiol",,298.15,24,23,0,0,,,10.46,"Hurwitz 1977"
+951,"Estradiol","acid-base",298.15,24,23,0,0,,,10.46,"Hurwitz 1977"
 956,"L-2-Aminoadipate","acid-base",298.15,12,11,0,0,,,2.14,"CRC (88th edition)"
 956,"L-2-Aminoadipate","acid-base",298.15,11,10,0,0,,,4.21,"CRC (88th edition)"
 956,"L-2-Aminoadipate","acid-base",298.15,10,9,0,0,,,9.77,"CRC (88th edition)"
@@ -480,7 +480,7 @@
 1060,"3,5-Diiodo-L-tyrosine","acid-base",298.15,8,7,0,0,,,9.48,"CRC (88th edition)"
 1066,"Cyclohexane-1,3-dione","acid-base",298.15,8,7,0,0,,,5.26,"CRC (88th edition)"
 1083,"alpha,alpha-Trehalose",,298.15,22,22,0,0,,,,
-1089,"3-hydroxybutanoate",,298.15,8,7,0,0,"CC(O)CC(=O)O","CC(O)CC(=O)[O-]",4.7,"CRC (88th edition)"
+1089,"3-hydroxybutanoate","acid-base",298.15,8,7,0,0,"CC(O)CC(=O)O","CC(O)CC(=O)[O-]",4.7,"CRC (88th edition)"
 1094,"fructose 1-P","acid-base",296.15,12,11,0,0,,,5.92,"Robitaille (1990)"
 1096,"Sorbitol 6-phosphate","acid-base",298.15,14,13,0,0,"C(C(C(C(C(COP(=O)([O-])O)O)O)O)O)O","C(C(C(C(C(COP(=O)([O-])[O-])O)O)O)O)O",6.42,"Alberty (2003)"
 1104,"Trimethylamine N-oxide","acid-base",293.15,10,9,0,0,,,4.65,"CRC (88th edition)"
@@ -558,9 +558,9 @@
 1829,"levothyroxin","acid-base",298.15,10,9,0,0,,,10.1,"CRC (88th edition)"
 1837,"nitroethane","acid-base",298.15,5,4,0,0,,,8.46,"CRC (88th edition)"
 1845,"isopropanol",,298.15,8,8,0,0,,,,
-1847,"FMNH2",,298.15,23,22,0,0,,,1.89,"Taken as is from FMN"
-1847,"FMNH2",,298.15,22,21,0,0,,,6.37,"Taken as is from FMN"
-1847,"FMNH2",,298.15,21,20,0,0,,,6.8,"Mayhew (1999), Heelis (1982), Draper (1968)"
+1847,"FMNH2","acid-base",298.15,23,22,0,0,,,1.89,"Taken as is from FMN"
+1847,"FMNH2","acid-base",298.15,22,21,0,0,,,6.37,"Taken as is from FMN"
+1847,"FMNH2","acid-base",298.15,21,20,0,0,,,6.8,"Mayhew (1999), Heelis (1982), Draper (1968)"
 1857,"thioacetate","acid-base",298.15,4,3,0,0,,,3.33,"CRC (88th edition)"
 1874,"2-iodophenol","acid-base",298.15,5,4,0,0,,,8.51,"CRC (88th edition)"
 1879,"pyroglutamate","acid-base",298.15,7,6,0,0,,,3.32,"CRC (88th edition)"
@@ -626,7 +626,7 @@
 2632,"2-methylpropanoate","acid-base",293.15,8,7,0,0,"CC(C)C(=O)O","CC(C)C(=O)[O-]",4.84,"CRC (88th edition)"
 2656,"pimelate","acid-base",298.15,11,10,0,0,"C(=O)(O)CCCCCC(=O)[O-]","C(=O)([O-])CCCCCC(=O)[O-]",5.58,"CRC (88th edition)"
 2656,"pimelate","acid-base",298.15,12,11,0,0,"C(=O)(O)CCCCCC(=O)O","C(=O)(O)CCCCCC(=O)[O-]",4.71,"CRC (88th edition)"
-2666,"coniferaldehyde",,298.15,10,9,0,0,,,7.94,"Nilvebrant (2001)"
+2666,"coniferaldehyde","acid-base",298.15,10,9,0,0,,,7.94,"Nilvebrant (2001)"
 2846,"dimethylaminobenzene","acid-base",298.15,12,11,0,0,"C[NH+](C)c1ccccc1","CN(C)c1ccccc1",5.07,"CRC (88th edition)"
 3005,"N-methylanthranilate","acid-base",298.15,9,8,0,0,"CNc1ccccc1C(O)=O","CNc1ccccc1C([O-])=O",5.34,"CRC (88th edition)"
 3044,"(R,R)-butane-2,3-diol",,298.15,10,10,0,0,,,,
@@ -637,7 +637,7 @@
 3224,"3,5-dibromo-L-tyrosine","acid-base",298.15,10,9,0,0,"[NH3+][C@@H](Cc1cc(Br)c(O)c(Br)c1)C(O)=O","[NH3+][C@@H](Cc1cc(Br)c(O)c(Br)c1)C([O-])=O",2.17,"CRC (88th edition)"
 3232,"3-phosphonooxypyruvate","acid-base",298.15,3,2,0,0,,,3.8,"Taken as is from pyruvate"
 3232,"3-phosphonooxypyruvate","acid-base",296.15,4,3,0,0,,,6.22,"Robitaille (1990)"
-3351,"3-hydroxybenzenemethanol",,298.15,8,7,0,0,,,9.5,"Naik (2008)"
+3351,"3-hydroxybenzenemethanol","acid-base",298.15,8,7,0,0,,,9.5,"Naik (2008)"
 3383,"D-galactono-1,4-lactone",,298.15,10,10,0,0,,,,
 3384,"D-galactose 1-phosphate","acid-base",298.15,12,11,0,0,"C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)OP(=O)([O-])O)O)O)O)O","C([C@@H]1[C@@H]([C@@H]([C@H](C(O1)OP(=O)([O-])[O-])O)O)O)O",6.17,"Alberty (2003)"
 3479,"5-formyltetrahydrofolate","acid-base",298.15,23,22,0,0,,,3.1,"CRC (88th edition)"
@@ -650,7 +650,7 @@
 3737,"xylose 1-P","acid-base",296.15,10,9,0,0,,,6.06,"Robitaille (1990)"
 3758,"dopamine","acid-base",298.15,12,11,0,0,"[NH3+]CCc1ccc(O)c(O)c1","NCCc1ccc(O)c(O)c1",8.9,"CRC (88th edition)"
 3758,"dopamine","acid-base",298.15,11,10,0,0,"NCCc1ccc(O)c(O)c1","NCCc1ccc(O)c([O-])c1",10.6,"CRC (88th edition)"
-3783,"D-galactosamine 1-P","acid-base",296.15,13,12,0,0,,,5.44,"Robitaille (1990)"
+3783,"D-galactosamine 1-P","acid-base",296.15,14,13,0,0,,,5.40,"Robitaille (1990)"
 3882,"piperine","acid-base",291.15,20,19,0,0,,,12.22,"CRC (88th edition)"
 4178,"bromoxynil","acid-base",298.15,3,2,0,0,,,4.06,"CRC (88th edition)"
 4256,"N-acetyl D-glucosamine 1P","acid-base",296.15,15,14,0,0,,,6.12,"Robitaille (1990)"
@@ -670,7 +670,7 @@
 5382,"sedoheptulose 7-P","acid-base",296.15,14,13,0,0,,,6.08,"Robitaille (1990)"
 5469,"17alpha,21-Dihydroxy-5beta-pregnane-3,11,20-trione",,298.15,30,30,0,0,,,,
 5471,"11beta,17alpha,21-Trihydroxy-5beta-pregnane-3,20-dione",,298.15,32,32,0,0,,,,
-5512,"Deoxyinosine",,298.15,12,11,0,0,,,8.8,"Taken as is from inosine"
+5512,"Deoxyinosine","acid-base",298.15,12,11,0,0,,,8.8,"Taken as is from inosine"
 5945,"L-Arginine phosphate","acid-base",298.15,16,15,0,0,"C(=O)(O)[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])(O)=O","C(=O)([O-])[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])(O)=O",2.8,
 5945,"L-Arginine phosphate","acid-base",298.15,15,14,0,0,"C(=O)([O-])[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])(O)=O","C(=O)([O-])[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])([O-])=O",4.5,
 5945,"L-Arginine phosphate","acid-base",298.15,14,13,0,0,"C(=O)([O-])[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])([O-])=O","C(=O)([O-])[C@@H](N)CCCNC(=[NH2+])NP([O-])([O-])=O",9.6,
@@ -681,7 +681,7 @@
 6104,"hexanedioate","acid-base",291.15,10,9,0,0,"OC(=O)CCCCC(O)=O","OC(=O)CCCCC([O-])=O",4.41,"CRC (88th edition)"
 6108,"fluoroacetate","acid-base",298.15,3,2,0,0,"FCC(=O)O","FCC(=O)[O-]",2.59,"CRC (88th edition)"
 6142,"1-butanol",,298.15,10,10,0,0,,,,
-6156,"D-glucosamine 1-P","acid-base",296.15,13,12,0,0,,,5.4,"Robitaille (1990)"
+6156,"D-glucosamine 1-P","acid-base",296.15,14,13,0,0,,,5.40,"Robitaille (1990)"
 6173,"thebaine","acid-base",288.15,22,21,0,0,,,6.05,"CRC (88th edition)"
 6174,"codeine","acid-base",298.15,22,21,0,0,,,8.21,"CRC (88th edition)"
 6202,"salicylaldehyde","acid-base",298.15,6,5,0,0,"C(=O)c1ccccc1O","C(=O)c1ccccc1[O-]",8.37,"CRC (88th edition)"
@@ -824,7 +824,7 @@
 11713,"2-naphthol","acid-base",298.15,8,7,0,0,"Oc1ccc2ccccc2c1","[O-]c1ccc2ccccc2c1",9.63,"CRC (88th edition)"
 11714,"1-naphthol","acid-base",298.15,8,7,0,0,"Oc1cccc2ccccc12","[O-]c1cccc2ccccc12",9.39,"CRC (88th edition)"
 11754,"cephaloridine","acid-base",298.15,18,17,0,0,,,3.2,"CRC (88th edition)"
-11907,"4,6-dideoxy-4-oxo-dTDP-D-glucose",,298.15,22,21,0,0,,,9.79,"Taken as is from thymidine"
+11907,"4,6-dideoxy-4-oxo-dTDP-D-glucose","acid-base",298.15,22,21,0,0,,,9.79,"Taken as is from thymidine"
 12600,"phenol red","acid-base",298.15,14,13,0,0,,,7.9,"CRC (88th edition)"
 14101,"2-naphthoic acid","acid-base",298.15,8,7,0,0,"OC(=O)c1ccc2ccccc2c1","[O-]C(=O)c1ccc2ccccc2c1",4.16,"CRC (88th edition)"
 14130,"2-tert-butylphenol","acid-base",298.15,14,13,0,0,,,10.62,"CRC (88th edition)"

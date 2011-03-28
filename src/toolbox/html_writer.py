@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-"""\
+"""
 html_writer.py - Construct HTML pages
 
 """

@@ -22,6 +22,7 @@ from toolbox.database import SqliteDatabase
 from toolbox.singletonmixin import Singleton
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
+from toolbox.molecule import Molecule
     
 class Kegg(Singleton):
 
@@ -155,12 +156,6 @@ class Kegg(Singleton):
                 inchi = re.sub(r'(\d)u', r'\1?', inchi)
                 self.cid2compound_map[cid].inchi = inchi
                 self.inchi2cid_map[inchi] = cid
-                try:
-                    obmol = self.cid2compound_map[cid].get_obmol(False)
-                    n_e = kegg_compound.Compound.CalculateNumElectrons(obmol)
-                    self.cid2compound_map[cid].num_electrons = n_e
-                except kegg_errors.KeggParseException:
-                    pass
 
         logging.info("Retrieving MODULE file and parsing it")
         if (not os.path.exists(self.MODULE_FILE)):
@@ -221,7 +216,7 @@ class Kegg(Singleton):
            'pubchem_id INT, cas TEXT')
         for cid, comp in self.cid2compound_map.iteritems():
             self.db.Insert('kegg_compound', [cid, comp.name, ';'.join(comp.all_names),
-                comp.mass, comp.formula, comp.inchi, comp.num_electrons, comp.from_kegg, 
+                comp.mass, comp.formula, comp.inchi, comp.get_num_electrons(), comp.from_kegg, 
                 comp.pubchem_id, comp.cas])
         
         self.db.CreateTable('kegg_reaction', 'rid INT, all_names TEXT, definition TEXT, '
@@ -492,7 +487,7 @@ class Kegg(Singleton):
             return comp.name
         
     def cid2mol(self, cid):
-        return self.cid2compound(cid).get_mol()
+        return self.cid2compound(cid).GetMolecule()
 
     @staticmethod
     def cid2link(cid):
