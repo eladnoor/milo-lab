@@ -1,7 +1,7 @@
 from toolbox.ods import ODSDictReader
 import pybel
-from toolbox.smarts_util import FindSmarts
 import logging
+from toolbox.molecule import Molecule
 
 class EnzymeClass(object):
     
@@ -20,26 +20,10 @@ class EnzymeClass(object):
     def __str__(self):
         return "%9s : %s => %s" % (self.ec, self.substrate, self.product)
 
-    @staticmethod
-    def FindSmarts(mol, smarts):
-        """
-        Corrects the pyBel version of Smarts.findall() which returns results as tuples,
-        with 1-based indices even though Molecule.atoms is 0-based.
-    
-        Args:
-            mol: the molecule to search in.
-            smarts_str: the SMARTS query to search for.
-        
-        Returns:
-            The re-mapped list of SMARTS matches.
-        """
-        shift_left = lambda m: [(n - 1) for n in m] 
-        return map(shift_left, smarts.findall(mol))    
-    
     def React(self, mol):
         if self.smarts_subs and self.smarts_prod:
             products = []
-            for atoms in EnzymeClass.FindSmarts(mol, self.smarts_subs):
+            for atoms in mol.FindSmarts(self.smarts_subs):
                 products.append(atoms)
             return products
         else:
@@ -78,7 +62,7 @@ class EnzymeMarketplace(object):
         return products
 
 def main():
-    mol = pybel.readstring('smiles', 'C(O)(=O)C(=O)O')
+    mol = Molecule.FromSmiles('C(O)(=O)C(=O)O')
     emp = EnzymeMarketplace()
     print emp.React(mol)
     

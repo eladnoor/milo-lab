@@ -12,7 +12,6 @@ import pylab
 from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_I, default_T, default_c0, dG0_f_Mg
 from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
-from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
 from pygibbs.groups_data import Group, GroupsData
@@ -26,6 +25,7 @@ from pygibbs.pseudoisomer import PseudoisomerMap
 import sys
 from toolbox.sparse_kernel import SparseKernel
 from pygibbs.group_vector import GroupVector
+from toolbox.molecule import Molecule
 
 class GroupContributionError(Exception):
     pass
@@ -106,12 +106,12 @@ class GroupObervationCollection(object):
         self.observations.append(obs)
 
     def smiles2groupvec(self, smiles, id):
-        mol = pybel.readstring('smiles', str(smiles))
-        mol.removeh()
-        mol.title = id
+        mol = Molecule.FromSmiles(str(smiles))
+        mol.RemoveHydrogens()
+        mol.SetTitle(id)
         
         try:
-            self.html_writer.write(draw_chemicals.smiles2svg(smiles))
+            self.html_writer.write(mol.ToSVG())
         except (TypeError, AssertionError): # The Mg ions cannot be drawn by OASA 
             pass
         
@@ -203,7 +203,7 @@ class GroupObervationCollection(object):
             logging.error(e)
             raise Exception('Invalid smiles: %s' % ps_isomer.smiles)
 
-        mol.title = name
+        mol.SetTitle(name)
         try:
             self.html_writer.write(draw_chemicals.smiles2svg(ps_isomer.smiles))
         except (TypeError, IndexError, AssertionError):
@@ -215,7 +215,7 @@ class GroupObervationCollection(object):
         try:
             decomposition = self.group_decomposer.Decompose(mol, strict=True)
         except GroupDecompositionError as e:
-            logging.error('Cannot decompose one of the compounds in the training set: ' + mol.title)
+            logging.error('Cannot decompose one of the compounds in the training set: ' + str(mol))
             raise e
         
         groupvec = decomposition.AsVector()
@@ -326,8 +326,6 @@ class GroupContribution(Thermodynamics):
 
         self.kegg = Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
-        self.hatzi = Hatzi()
-        self.hatzi.bounds = self.bounds
             
         self.override_gc_with_measurements = True
         self.cid2pmap_dict = None
@@ -385,7 +383,7 @@ class GroupContribution(Thermodynamics):
             
             if comp.inchi:
                 try:
-                    decomposition = self.Mol2Decomposition(comp.get_mol(),
+                    decomposition = self.Mol2Decomposition(comp.GetMolecule(),
                                                            ignore_protonations=True)
                     cdict['decomposition'] = decomposition
                     pmap = self.GroupDecomposition2PseudoisomerMap(decomposition)
@@ -432,7 +430,7 @@ class GroupContribution(Thermodynamics):
                 error_str = 'no InChI exists'
             else:
                 try:
-                    decomposition = self.Mol2Decomposition(comp.get_mol(),
+                    decomposition = self.Mol2Decomposition(comp.GetMolecule(),
                                                            ignore_protonations=True)
                     cdict['decomposition'] = decomposition
                     pmap = self.GroupDecomposition2PseudoisomerMap(decomposition)
@@ -615,7 +613,7 @@ class GroupContribution(Thermodynamics):
     def cid2pseudoisomers(self, cid):
         try:
             comp = self.kegg.cid2compound(cid)
-            return self.get_pseudoisomers(comp.get_mol())
+            return self.get_pseudoisomers(comp.GetMolecule())
         except GroupDecompositionError:
             return [(self.kegg.cid2num_hydrogens(cid), self.kegg.cid2charge(cid), 0)]
         except KeggParseException:
@@ -787,7 +785,7 @@ class GroupContribution(Thermodynamics):
         all_groupvecs = decomposition.PseudoisomerVectors()
         if not all_groupvecs:
             raise GroupDecompositionError('Found no pseudoisomers for %s'
-                                          % mol.title)
+                                          % str(decomposition.mol))
 
         kernel_rows = set()
         pmap = PseudoisomerMap()
@@ -799,7 +797,7 @@ class GroupContribution(Thermodynamics):
                 kernel_rows.update(e.kernel_rows)
         if pmap.Empty():
             raise GroupMissingTrainDataError("All species of %s have missing groups: " % 
-                                             decomposition.mol.title, kernel_rows)            
+                                             decomposition.mol, kernel_rows)            
 
         pmap.Squeeze()
         return pmap

@@ -1,9 +1,7 @@
 # Indigo code acquired from http://www.ggasoftware.com/
 from indigo import Indigo
 from indigo_renderer import IndigoRenderer
-from toolbox import html_writer
 import uuid
-import cairo
 import rsvg
 import gtk
 
@@ -40,35 +38,22 @@ def smiles2svg(smiles, comment=''):
         i += 1
     return s
 
-def delete_cb(win, event):
-    gtk.main_quit()
-
-def expose_cairo(win, event, svg):
-    _x, _y, w, h = win.allocation
-    cr = win.window.cairo_create()
-    cr.set_source_color(win.style.fg[win.state])
-    cr.rectangle(0, 0, w, h)
-    cr.set_line_width(5.0)
-    cr.set_line_join(cairo.LINE_JOIN_ROUND)
-    cr.stroke()
-
-    if svg != None:
-        matrix = cairo.Matrix(3,0,0,3,0, 0)
-        #cairo.Matrix.rotate( matrix, prop.rot )
-        cr.transform (matrix)
+def display_svg(svg_string):
+    def expose_cairo(win, event, svg):
+        cr = win.window.cairo_create()
         svg.render_cairo(cr)
-
-    return True
-
-def display_svg(s):
-    svg = rsvg.Handle(data=s)
-    win = gtk.Window ()
-    win.connect("delete-event", delete_cb)
+        return True
+    
+    svg = rsvg.Handle(data=svg_string)
+    _x, _y, w, h = svg.get_dimension_data()
+    win = gtk.Window()
+    win.resize(int(w), int(h))
+    win.connect("delete-event", lambda w, e: gtk.main_quit())
     win.connect("expose-event", expose_cairo, svg)
     win.show_all()
     win.connect("destroy", lambda w: gtk.main_quit())
     gtk.main()
 
 if __name__ == "__main__":
-    s1 = smiles2svg('C(=O)C(=O)C(O)CSCCCNOCCC')
+    s1 = smiles2svg('C(=O)O')
     display_svg(s1)

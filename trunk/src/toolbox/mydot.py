@@ -23,16 +23,17 @@ def dict2Dot(dict):
             
     return Gdot
 
-
-if (__name__ == "__main__"):
-    
-    G = {'a' : ['b', 'c', 'd'], 'b' : ['c', 'd'], 'd' : ['a', 'e']}
-    Gdot = dict2Dot(G)
-    
+def display_dot(Gdot):
     win = xdot.DotWindow()
     win.connect('destroy', gtk.main_quit)
     win.set_filter('dot')
     fname = '.dot'
     Gdot.write(fname, format='dot')
     win.open_file(fname)
-    gtk.main()
+    gtk.main()    
+
+
+if __name__ == "__main__":
+    G = {'a' : ['b', 'c', 'd'], 'b' : ['c', 'd'], 'd' : ['a', 'e']}
+    Gdot = dict2Dot(G)
+    display_dot(Gdot)
