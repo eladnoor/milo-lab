@@ -984,8 +984,8 @@ class KeggPathologic(object):
         self.cid2atom_bag = {}
         for cid in kegg.get_all_cids():
             comp = kegg.cid2compound(cid)
-            if (comp.inchi != None): # always point to the lowest CID with the same InChI
-                if (comp.inchi in inchi2compound):
+            if comp.inchi is not None: # always point to the lowest CID with the same InChI
+                if comp.inchi in inchi2compound:
                     self.cid2compound[cid] = inchi2compound[comp.inchi]
                 else:
                     inchi2compound[comp.inchi] = comp
@@ -997,7 +997,7 @@ class KeggPathologic(object):
         for rid in kegg.get_all_rids():
             reaction = kegg.rid2reaction(rid)
             ver = self.verify(reaction)
-            if (ver != None):
+            if ver is not None:
                 logging.debug("R%05d is %s, not adding it to Pathologic" % (rid, ver))
             else:
                 self.reactions += self.create_reactions("R%05d" % rid, reaction.direction, reaction.sparse, rid=rid)
@@ -1047,7 +1047,7 @@ class KeggPathologic(object):
             return None
     
     def get_compound(self, cid):
-        if (cid in self.cid2compound):
+        if cid in self.cid2compound:
             return self.cid2compound[cid]
         else:
             raise KeyError("The compound C%05d is not present in the cid2compound in KeggPathologic" % cid)
@@ -1100,33 +1100,54 @@ class KeggPathologic(object):
                 banned_compounds.add(cid)
                 html_writer.write("<li><b>Ban Compound,</b> C%05d" % (cid))
             elif (command == 'COFR'): # cofactor
-                try:
-                    spr, direction = kegg_utils.parse_reaction_formula(line.strip())
-                except kegg_errors.KeggParseException:
-                    raise Exception("Syntax error in update file: " + line)
-                self.cofactor_reaction_list.append((spr, direction))
-                self.cofactors = self.cofactors.union(spr.keys())
-                html_writer.write("<li><b>Cofactor Reaction,</b> %s" % (self.sparse_to_hypertext(spr, show_cids=True, direction=direction)))
+                if len(line.split()) == 1:
+                    name = line.strip()
+                    self.cofactors.add(name)
+                    html_writer.write("<li><b>Cofactor,</b> %s" % name)
+                else:
+                    try:
+                        spr, direction = kegg_utils.parse_reaction_formula(line.strip())
+                    except kegg_errors.KeggParseException:
+                        raise Exception("Syntax error in update file: " + line)
+                    self.cofactor_reaction_list.append((spr, direction))
+                    self.cofactors = self.cofactors.union(spr.keys())
+                    html_writer.write("<li><b>Cofactor Reaction,</b> %s" % (self.sparse_to_hypertext(spr, show_cids=True, direction=direction)))
     
         html_writer.write('</ul>\n')
         update_file.close()
 
         logging.info("removing reaction which are banned or involve a banned compound")
         
-        # create a new map of RID to reactants, without the co-factors.
-        # if the reaction is not balanced, skip it and don't add it to the new map.
+        # Create a new map of RID to reactions, without the banned reactions.
         temp_reactions = []
         for r in self.reactions:
-            if (r.rid in banned_reactions):
-                logging.debug("this reaction has been banned by its RID (R%05d): %s" % (r.rid, r.name))
-            elif ( len(banned_compounds.intersection(r.get_cids())) > 0 ):
-                logging.debug("this reaction has been banned by at least one of its CIDs (%s): %s" % (str(banned_compounds.intersection(r.get_cids())), r.name))
+            if r.rid in banned_reactions:
+                logging.debug("This reaction has been banned by its RID (R%05d): %s" % (r.rid, r.name))
+            elif len(banned_compounds.intersection(r.get_cids())) > 0:
+                logging.debug("This reaction has been banned by at least one of its CIDs (%s): %s" % (str(banned_compounds.intersection(r.get_cids())), r.name))
             else:
                 temp_reactions.append(r)
                 
-        self.reactions = temp_reactions + added_reactions
-
+        # Replace all compounds in all reactions with the primary compound
+        # determined earlier by the InChI identifiers.
+        temp_reactions.extend(added_reactions)
+        all_reactions = []
+        for r in temp_reactions:
+            try:
+                for cid in r.get_cids():
+                    compound = self.get_compound(cid)
+                    if compound.cid != cid:
+                            r.replace_compound(cid, compound.cid)
+            except ValueError, e:
+                logging.error(e)
+                continue
+            
+            all_reactions.append(r)
+        
+        self.reactions = all_reactions
+        
     def create_reactions(self, name, direction, sparse_reaction, rid=None, weight=1):
+        """Creates Reaction objects needed according to the sign of the arrow."""
         spr = deepcopy(sparse_reaction)
         if (80 in spr):
             del spr[80]
@@ -1185,6 +1206,41 @@ class KeggPathologic(object):
                 else:
                     s_left.append('%d <a href="%s" title="%s">%s</a>' % (-count, url, title, show_string))
         return ' + '.join(s_left) + ' ' + direction + ' ' + ' + '.join(s_right)
+
+    @staticmethod
+    def is_subreaction(spr1, spr2):
+        """
+            checks if spr1 is a sub-reaction of spr2
+        """
+        for cid in spr1.keys():
+            if 0 < spr1[cid] <= spr2.get(cid, 0):
+                continue
+            elif 0 > spr1[cid] >= spr2.get(cid, 0):
+                continue
+            else: # the coeff in spr1 is either larger than spr2, or in the wrong direction
+                return False
+        # if all coefficients follow the rule, this is a sub-reaction
+        return True
+    
+    @staticmethod
+    def subtract_reaction(spr, spr_to_subtract):
+        for cid in spr_to_subtract.keys():
+            if (spr[cid] == spr_to_subtract[cid]):
+                del spr[cid]
+            else:
+                spr[cid] -= spr_to_subtract[cid]
+    
+    @staticmethod
+    def neutralize_reaction(spr, spr_to_subtract, direction="<=>"):
+        if not set(spr_to_subtract.keys()).issubset(set(spr.keys())):
+            return
+        if direction in ["<=>", "=>"]:
+            while KeggPathologic.is_subreaction(spr_to_subtract, spr):
+                KeggPathologic.subtract_reaction(spr, spr_to_subtract)
+        if direction in ["<=>", "<="]:
+            spr_small_rev = KeggPathologic.reverse_sparse_reaction(spr_to_subtract)
+            while KeggPathologic.is_subreaction(spr_small_rev, spr):
+                KeggPathologic.subtract_reaction(spr, spr_small_rev)                
     
     def get_unique_cids_and_reactions(self):
         """
@@ -1192,41 +1248,6 @@ class KeggPathologic(object):
             Remove reaction duplicates (i.e. have the same substrates and products,
             and store them in 'unique_reaction_map'.
         """
-        def is_subreaction(spr1, spr2):
-            """
-                checks if spr1 is a sub-reaction of spr2
-            """
-            for cid in spr1.keys():
-                if 0 < spr1[cid] <= spr2.get(cid, 0):
-                    continue
-                elif 0 > spr1[cid] >= spr2.get(cid, 0):
-                    continue
-                else: # the coeff in spr1 is either larger than spr2, or in the wrong direction
-                    return False
-            # if all coefficients follow the rule, this is a sub-reaction
-            return True
-        
-        def subtract_reaction(spr, spr_to_subtract):
-            for cid in spr_to_subtract.keys():
-                if (spr[cid] == spr_to_subtract[cid]):
-                    del spr[cid]
-                else:
-                    spr[cid] -= spr_to_subtract[cid]
-        
-        def neutralize_reaction(spr, spr_to_subtract, direction="<=>"):
-            if (not set(spr_to_subtract.keys()).issubset(set(spr.keys()))):
-                return
-            if (direction in ["<=>", "=>"]):
-                while is_subreaction(spr_to_subtract, spr):
-                    subtract_reaction(spr, spr_to_subtract)
-            if (direction in ["<=>", "<="]):
-                spr_small_rev = self.reverse_sparse_reaction(spr_to_subtract)
-                while is_subreaction(spr_small_rev, spr):
-                    subtract_reaction(spr, spr_small_rev)                 
-        
-        def sparse_to_unique_string(sparse_reaction):
-            return ' + '.join(["%d %d" % (coeff, cid) for (cid, coeff) in sorted(sparse_reaction.iteritems())])
-
         logging.info("creating the Stoichiometry Matrix")
         cids = set()
         for r in self.reactions:
@@ -1237,7 +1258,7 @@ class KeggPathologic(object):
         Ncompounds = len(cids)
         cid2index = {}
         compounds = []
-        for c in range(Ncompounds):
+        for c in xrange(Ncompounds):
             cid2index[cids[c]] = c
             compounds.append(self.get_compound(cids[c]))
 
@@ -1247,8 +1268,8 @@ class KeggPathologic(object):
             
             # remove the co-factor pairs from the reaction
             spr = deepcopy(r.sparse)
-            for (cofr_spr, cofr_direction) in self.cofactor_reaction_list:
-                neutralize_reaction(spr, cofr_spr, cofr_direction)
+            for cofr_spr, cofr_direction in self.cofactor_reaction_list:
+                KeggPathologic.neutralize_reaction(spr, cofr_spr, cofr_direction)
             
             reduced_sparse_reactions.append(spr)
 
