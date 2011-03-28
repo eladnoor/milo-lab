@@ -27,8 +27,8 @@ class Molecule(object):
         self.obmol = openbabel.OBMol()
         self.pybel_mol = None
         self.indigo_mol = None
-        self.smiles = ""
-        self.inchi = ""
+        self.smiles = None
+        self.inchi = None
     
     def __str__(self):
         return self.title or self.smiles or self.inchi or ""
@@ -46,10 +46,7 @@ class Molecule(object):
         Molecule._obConversion.SetInAndOutFormats("smiles", "mol")
         Molecule._obConversion.ReadString(m.obmol, m.smiles)
         m.pybel_mol = pybel.Molecule(m.obmol)
-        Molecule._obConversion.SetInAndOutFormats("mol", "inchi")
-        m.inchi = Molecule._obConversion.WriteString(m.obmol).strip()
-        
-        m.indigo_mol = Molecule._indigo.loadMolecule(smiles)
+        m.indigo_mol = Molecule._indigo.loadMolecule(m.ToSmiles())
         m.SetTitle(smiles)
         return m
         
@@ -60,10 +57,7 @@ class Molecule(object):
         Molecule._obConversion.SetInAndOutFormats("inchi", "mol")
         Molecule._obConversion.ReadString(m.obmol, m.inchi)
         m.pybel_mol = pybel.Molecule(m.obmol)
-        Molecule._obConversion.SetInAndOutFormats("mol", "smiles")
-        m.smiles = Molecule._obConversion.WriteString(m.obmol).strip()
-        
-        m.indigo_mol = Molecule._indigo.loadMolecule(m.smiles)
+        m.indigo_mol = Molecule._indigo.loadMolecule(m.ToSmiles())
         m.SetTitle(inchi)
         return m
 
@@ -77,9 +71,23 @@ class Molecule(object):
         return self.pybel_mol
 
     def ToInChI(self):
+        """ 
+            Lazy storage of the InChI identifier (calculate once only when 
+            asked for and store for later use).
+        """
+        if not self.inchi:
+            Molecule._obConversion.SetInAndOutFormats("mol", "inchi")
+            self.inchi = Molecule._obConversion.WriteString(self.obmol).strip()
         return self.inchi
     
     def ToSmiles(self):
+        """ 
+            Lazy storage of the SMILES identifier (calculate once only when 
+            asked for and store for later use).
+        """
+        if not self.smiles:
+            Molecule._obConversion.SetInAndOutFormats("mol", "smiles")
+            self.smiles = Molecule._obConversion.WriteString(self.obmol).strip()
         return self.smiles
     
     def GetNumHydrogens(self):
