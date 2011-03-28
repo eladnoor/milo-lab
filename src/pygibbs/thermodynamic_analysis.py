@@ -79,7 +79,7 @@ class ThermodynamicAnalysis(object):
             read the list of reactions from the command file
         """
         
-        if ("MODULE" in field_map):
+        if "MODULE" in field_map:
             mid_str = field_map["MODULE"]
             if (mid_str[0] == 'M'):
                 mid = int(mid_str[1:])
@@ -88,12 +88,12 @@ class ThermodynamicAnalysis(object):
             (S, rids, fluxes, cids) = self.kegg.get_module(mid)
             self.html_writer.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
         else:
-            (S, rids, fluxes, cids) = self.kegg.parse_explicit_module(field_map)
-
+            (S, rids, fluxes, cids) = self.kegg.parse_explicit_module(field_map) 
+        
         # Explicitly map some of the CIDs to new ones.
         # This is useful, for example, when a KEGG module uses unspecific co-factor pairs,
         # like NTP => NDP, and we replace them with ATP => ADP 
-        if ("MAP_CID" in field_map):
+        if "MAP_CID" in field_map:
             for line in field_map["MAP_CID"].split('\t'):
                 (cid_before, cid_after) = [int(cid[1:]) for cid in line.split(None, 1)]
                 if (cid_before in cids):
@@ -321,14 +321,14 @@ class ThermodynamicAnalysis(object):
         # The method for how we are going to calculate the dG0
         method = field_map.GetStringField('METHOD', default_value='MILO')
 
-        if (method == "MILO"):
+        if method == "MILO":
             thermodynamics = self.thermo
-        elif (method == "HATZI"):
+        elif method == "HATZI":
             thermodynamics = self.thermo.hatzi
         else:
             raise Exception("Unknown dG evaluation method: " + method)
         
-        if ("CONDITIONS" in field_map):
+        if "CONDITIONS" in field_map:
             thermodynamics.pH = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "pH", default_pH)
             thermodynamics.I = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "I", default_I)
             thermodynamics.T = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "T", default_T)
