@@ -73,6 +73,14 @@
         "names": [
             "GDL" 
         ]
+    },
+    {
+        "CID": "C00236",
+        "names": [
+            "BPG",
+            "Glycerate-1,3-Bisphosphate",
+            "1,3-Bisphosphoglycerate"
+        ]
     }, 
     {
         "CID": "C00288",
