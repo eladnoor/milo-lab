@@ -31,8 +31,8 @@ def main():
     estimators['Alberty'] = PsuedoisomerTableThermodynamics.FromDatabase(
                                 db_public, 'alberty_pseudoisomers')
     estimators['Hatzimanikatis Group Contribution'] = Hatzi()
-
-    regress = NistRegression(db, html_writer) 
+    
+    regress = NistRegression(db, html_writer, nist=nist) 
     regress.FromDatabase()
     estimators['NIST regression'] = regress
         

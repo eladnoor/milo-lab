@@ -3,28 +3,27 @@
 import csv
 import logging
 import os
-import pybel
 import types
 import json
 
 from copy import deepcopy
 import pylab
+import sys
 from pygibbs.thermodynamic_constants import R, default_pH, default_pMg, default_I, default_T, default_c0, dG0_f_Mg
 from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
 from pygibbs.groups_data import Group, GroupsData
+from pygibbs.group_vector import GroupVector
+from pygibbs.pseudoisomers_data import PseudoisomersData, DissociationTable
+from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs import templates
-from toolbox import util, draw_chemicals
+from toolbox import util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from pygibbs.pseudoisomers_data import PseudoisomersData, DissociationTable
-from pygibbs.pseudoisomer import PseudoisomerMap
-import sys
 from toolbox.sparse_kernel import SparseKernel
-from pygibbs.group_vector import GroupVector
 from toolbox.molecule import Molecule
 
 class GroupContributionError(Exception):
@@ -37,7 +36,7 @@ class GroupMissingTrainDataError(Exception):
         self.kernel_rows = kernel_rows
     
     def __str__(self):
-        if (type(self.value) == types.StringType):
+        if type(self.value) == types.StringType:
             return self.value
         else:
             return repr(self.value)
@@ -205,7 +204,7 @@ class GroupObervationCollection(object):
 
         mol.SetTitle(name)
         try:
-            self.html_writer.write(draw_chemicals.smiles2svg(ps_isomer.smiles))
+            self.html_writer.write(mol.ToSVG())
         except (TypeError, IndexError, AssertionError):
             logging.warning('PyBel cannot draw the compound %s',  name)
             self.html_writer.write('WARNING: cannot draw this compound using PyBel\n')
@@ -402,7 +401,7 @@ class GroupContribution(Thermodynamics):
                 
     def save_cid2pmap(self):
         self.cid2pmap_dict = {}
-        logging.info('Calculating the table of chemical formation energies for all KEGG compounds.')
+        logging.info('Calculating the table of chemical formation energies for all KEGG compounds')
         self.db.CreateTable('gc_cid2prm', 'cid INT, nH INT, z INT, nMg INT, dG0 REAL, estimated BOOL')
         self.db.CreateTable('gc_cid2error', 'cid INT, error TEXT')
 
@@ -419,7 +418,7 @@ class GroupContribution(Thermodynamics):
             if cid in self.obs_collection.cid2pmap:
                 pmap = self.obs_collection.cid2pmap[cid]
                 cdict['measured_pmap'] = pmap
-                for (nH, z, nMg, dG0) in pmap.ToMatrix():
+                for nH, z, nMg, dG0 in pmap.ToMatrix():
                     self.db.Insert('gc_cid2prm', [cid, nH, z, nMg, dG0, False])
 
             # Try to also estimate the dG0_f using Group Contribution:

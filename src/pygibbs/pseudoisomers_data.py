@@ -2,7 +2,6 @@
 
 import csv
 import logging
-import pybel
 from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel
 import pylab
 from toolbox.util import log_sum_exp
@@ -95,6 +94,16 @@ class DissociationTable(object):
         self.min_charge = None # the charge of the most basic pseudoisomer
         self.min_dG0 = 0 # the dG0 of the most basic pseudoisomer
         self.kegg = Kegg.getInstance()
+
+    def __str__(self):
+        s = "Base: nH=%d, z=%d, dG0=%.1f kJ/mol\n" % \
+            (self.min_nH, self.min_charge, self.min_dG0)
+        for (nH_above, nH_below, nMg_above, nMg_below), (ddG, ref) in self.ddGs.iteritems():
+            if nH_above != nH_below:
+                s += "nH (%2d -> %2d) : %.1f kJ/mol [%s]\n" % (nH_above, nH_below, ddG, ref)
+            if nMg_above != nMg_below:
+                s += "nMg (%2d -> %2d) : %.1f kJ/mol [%s]\n" % (nMg_above, nMg_below, ddG, ref)
+        return s
 
     def __iter__(self):
         return self.ddGs.__iter__()
@@ -257,6 +266,10 @@ class DissociationTable(object):
         """ Uses the value of any pseudoisomer to set the base value of dG0 """
         nH = self.min_nH + (charge - self.min_charge)
         self.min_dG0 = self.ConvertPseudoisomer(dG0, nH, self.min_nH)
+    
+    def SetTransformedFormationEnergy(self, dG0_tag, pH, I, pMg, T):
+        """ Sets the min_dG0 according to a transformed formation energy. """
+        self.min_dG0 += dG0_tag - self.Transform(pH, I, pMg, T)
     
     def CalculateCharge(self):
         # get the charge and nH of the default pseudoisomer in KEGG:
