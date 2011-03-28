@@ -24,7 +24,7 @@ class AmbigousDNASeq(Seq):
                           }
     
     def __init__(self, seq_str):
-        Seq.__init__(self, seq_str, IUPACAmbiguousDNA())
+        Seq.__init__(self, seq_str.upper(), IUPACAmbiguousDNA())
         
         self._seq_list = list(self.tostring())
     
