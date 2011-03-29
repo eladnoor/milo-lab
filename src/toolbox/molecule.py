@@ -1,6 +1,7 @@
 import pybel, indigo, indigo_renderer, uuid, rsvg, gtk
 import openbabel
 import types
+import re
 
 class Molecule(object):
 
@@ -90,13 +91,33 @@ class Molecule(object):
             self.smiles = Molecule._obConversion.WriteString(self.obmol).strip()
         return self.smiles
     
+    def ToAtomBagAndCharge(self):
+        if self.ToInChI() == 'InChI=1S/p+1': # a proton
+            return {'H':1}, 1
+
+        fixed_charge = 0
+        for s in re.findall('/q([0-9\+\-])', self.ToInChI()):
+            fixed_charge += int(s)
+        
+        formula = ''
+        for s in re.findall('InChI=1S/([A-Z][^/]+)', self.ToInChI()):
+            formula = s
+
+        atom_bag = {}
+        for atom, count in re.findall("([A-Z][a-z]*)([0-9]*)", formula):
+            if count == '':
+                count = 1
+            else:
+                count = int(count)
+            atom_bag[atom] = count
+        
+        return atom_bag, fixed_charge
+        
     def GetNumHydrogens(self):
         """
             Returns the number of hydrogen atoms in a compound.
-            It is calculated by subtracting the number of heavy atoms (anything bigger than H)
-            from the total number of atoms.
         """
-        return self.obmol.NumAtoms() - self.obmol.NumHvyAtoms()
+        return self.ToAtomBag().get('H', 0) + self.obmol.GetTotalCharge()
     
     def GetTotalCharge(self):
         return self.obmol.GetTotalCharge()
@@ -177,12 +198,16 @@ class Molecule(object):
         
 if __name__ == "__main__":
     Molecule.SetBondLength(50.0)
-    #m = Molecule.FromSmiles('CC(=O)O')
+    m = Molecule.FromSmiles('CC(=O)[O-]')
     #m.SetTitle('acetate')
-    m = Molecule.FromInChI('InChI=1/C10H16N5O13P3/c11-8-5-9(13-2-12-8)15(3-14-5)10-7(17)6(16)4(26-10)1-25-30(21,22)28-31(23,24)27-29(18,19)20/h2-4,6-7,10,16-17H,1H2,(H,21,22)(H,23,24)(H2,11,12,13)(H2,18,19,20)/t4-,6-,7-,10-/m1/s1')
+    #m = Molecule.FromInChI('InChI=1/C10H16N5O13P3/c11-8-5-9(13-2-12-8)15(3-14-5)10-7(17)6(16)4(26-10)1-25-30(21,22)28-31(23,24)27-29(18,19)20/h2-4,6-7,10,16-17H,1H2,(H,21,22)(H,23,24)(H2,11,12,13)(H2,18,19,20)/t4-,6-,7-,10-/m1/s1')
     m.SetTitle('ATP')
     print m.ToSmiles()
     print m.ToInChI()
     obmol = m.ToOBMol()
-    print m.GetNumElectrons()
+    print 'atom bag =', m.ToAtomBag()
+    print 'no. e- =', m.GetNumElectrons()
+    print 'no. H =', m.GetNumHydrogens()
+    print 'no. atoms =', m.GetNumAtoms()
+    print 'charge =', m.GetTotalCharge()
     m.Draw(True)

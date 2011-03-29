@@ -28,18 +28,22 @@ def main():
     nist.override_pMg = 10.0
 
     estimators = {}
+    
     estimators['Alberty'] = PsuedoisomerTableThermodynamics.FromDatabase(
                                 db_public, 'alberty_pseudoisomers')
-    estimators['Hatzimanikatis Group Contribution'] = Hatzi()
     
-    regress = NistRegression(db, html_writer, nist=nist) 
-    regress.FromDatabase()
-    estimators['NIST regression'] = regress
+    estimators['Hatzimanikatis Group Contribution'] = Hatzi()
+    estimators['Hatzimanikatis Group Contribution'].use_pKa = False
+
+    estimators['Hatzimanikatis Group Contribution (with pKa)'] = Hatzi()
+    estimators['Hatzimanikatis Group Contribution (with pKa)'].use_pKa = True
+    
+    estimators['NIST regression'] = NistRegression(db, html_writer, nist=nist) 
+    estimators['NIST regression'].FromDatabase()
         
-    gc = GroupContribution(db, html_writer)
-    gc.override_gc_with_measurements = True
-    gc.init()
-    estimators['Milo Group Contribution'] = gc
+    estimators['Milo Group Contribution'] = GroupContribution(db, html_writer)
+    estimators['Milo Group Contribution'].override_gc_with_measurements = True
+    estimators['Milo Group Contribution'].init()
     
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % key)

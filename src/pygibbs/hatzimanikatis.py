@@ -9,36 +9,33 @@ import logging
 from pygibbs.thermodynamic_constants import R
 import pylab
 from toolbox.database import SqliteDatabase
+from toolbox.molecule import Molecule
 
 HATZI_CSV_FNAME = "../data/thermodynamics/hatzimanikatis_cid.csv"
 
 class Hatzi (Thermodynamics):
     
-    def __init__(self, use_pKa=True):
+    def __init__(self):
         Thermodynamics.__init__(self)
+        self.use_pKa = True
+        self.cid2DissociationTable = DissociationTable.ReadDissociationCsv()
         
         # the conditions in which Hatzimanikatis makes his predictions
-        self.pH = 7.0
-        self.I = 0.0
-        self.pMg = 10.0
-        self.T = 298.15
+        self.Hatzi_pH = 7.0
+        self.Hatzi_I = 0.0
+        self.Hatzi_pMg = 10.0
+        self.Hatzi_T = 298.15
         
         self.kegg = Kegg.getInstance()
-        
+
         # for some reason, Hatzimanikatis doesn't indicate that H+ is zero,
         # so we add it here
         H_pmap = pseudoisomer.PseudoisomerMap()
         H_pmap.Add(0, 0, 0, 0)
         self.cid2pmap_dict = {80 : H_pmap}
-        
         self.cid2dG0_tag_dict = {80 : 0}
         self.cid2charge_dict = {80 : 0}
-        
-        if use_pKa:
-            self.cid2DissociationTable = DissociationTable.ReadDissociationCsv()
-        else:
-            self.cid2DissociationTable = {}
-        
+
         for row in csv.DictReader(open(HATZI_CSV_FNAME, 'r')):
             cid = int(row['ENTRY'][1:])
             self.cid2source_string[cid] = 'Jankowski et al. 2008'
@@ -48,63 +45,94 @@ class Hatzi (Thermodynamics):
             self.cid2charge_dict[cid] = int(row['CHARGE'])
 
     def charge2nH(self, cid, charge):
-        base_charge = self.kegg.cid2charge(cid) or 0
-        base_nH = self.kegg.cid2num_hydrogens(cid) or 0
+        inchi = self.kegg.cid2inchi(cid)
+        mol = Molecule.FromInChI(inchi)
+        base_charge = mol.GetTotalCharge()
+        base_nH = mol.GetNumHydrogens()
         return base_nH + (charge - base_charge)
 
-    def cid2PseudoisomerMap(self, cid):
-        if cid in self.cid2pmap_dict:
-            return self.cid2pmap_dict[cid]
-        elif cid in self.cid2dG0_tag_dict:
-            charge = self.cid2charge_dict[cid]
-            try:
-                nH = self.charge2nH(cid, charge)
-            except KeyError:
-                logging.warning('The compound C%05d is missing from KEGG' % cid)
-                nH = 0
-            
-            # Unlike Alberty, Hatzimanikatis writes down the transformed 
-            # formation energies but leaves the potential of H+ to be not 0.
-            # We therefore need to subtract that potential from 
-            # the given formation energies (we already set H+ to 0).
-            ddG0 = nH * R * self.T * pylab.log(10) * self.pH
-            dG0_tag = self.cid2dG0_tag_dict[cid] + ddG0
-            
+    def GeneratePseudoisomerMap(self, cid):
+        """
+            Generates a PseudoisomerMap for the CID using the
+            data in Hatzimanikatis' CID table. Note that when
+            using the dissociation constant table to generate all
+            psuedoisomers, one must reverse-transform the dG0
+            since Hatzimanikatis is using dG0' and not dG0. It is 
+            misleading because in his model H+ does have a dG0'
+            associated to it, according to the pH=7, and that must be
+            subtracted 
+        """ 
+        
+        charge = self.cid2charge_dict[cid]
+        dG0_tag = self.cid2dG0_tag_dict[cid]
+        if self.use_pKa:
             if cid not in self.cid2DissociationTable:
                 diss_table = DissociationTable(cid)
-                diss_table.min_nH = nH
                 diss_table.min_charge = charge
+                try:
+                    diss_table.min_nH = self.charge2nH(cid, charge)
+                except KeyError:
+                    logging.warning('The compound C%05d is missing from KEGG' % cid)
+                    diss_table.nH = 0
                 self.cid2DissociationTable[cid] = diss_table
-
+            
+            nH = self.cid2DissociationTable[cid].min_nH + (charge - self.cid2DissociationTable[cid].min_charge)
+            dG0_hplus = -R * self.T * pylab.log(10) * self.Hatzi_pH
+            dG0_tag -= nH*dG0_hplus
+            
             self.cid2DissociationTable[cid].SetTransformedFormationEnergy(
-                dG0_tag, pH=7.0, I=0.0, pMg=10.0, T=298.15)
-            self.cid2pmap_dict[cid] = self.cid2DissociationTable[cid].GetPseudoisomerMap()
-            return self.cid2pmap_dict[cid]
+                dG0_tag, pH=self.Hatzi_pH, I=self.Hatzi_I, 
+                pMg=self.Hatzi_pMg, T=self.Hatzi_T)
+            
+            return self.cid2DissociationTable[cid].GetPseudoisomerMap()
         else:
+            pmap = pseudoisomer.PseudoisomerMap()
+            pmap.Add(nH=charge, z=charge, nMg=0, dG0=dG0_tag)
+            return pmap
+
+    def cid2PseudoisomerMap(self, cid):
+        if cid not in self.cid2pmap_dict and cid not in self.cid2dG0_tag_dict:
             raise MissingCompoundFormationEnergy(
                 "The compound C%05d does not have a value for its"
                 " formation energy of any of its pseudoisomers" % cid, cid)
+
+        return self.cid2pmap_dict.setdefault(cid, self.GeneratePseudoisomerMap(cid))
 
     def get_all_cids(self):
         return sorted(self.cid2dG0_tag_dict.keys())
         
 if (__name__ == "__main__"):
     db = SqliteDatabase('../res/gibbs.sqlite')
+    H_nopka = Hatzi()
+    H_nopka.use_pKa = False
     H = Hatzi()
+    
     #H.ToDatabase(db, 'hatzi_gc')
     #H.I = 0.25
     #H.T = 300;
     #sparse_reaction = {13:-1, 1:-1, 9:2}
-    sparse_reaction = {36:-1, 3981:1}
+    #sparse_reaction = {36:-1, 3981:1}
+    #sparse_reaction = {6:-1, 143:-1, 234:1, 5:1}
+    #sparse_reaction = {1:-1, 499:-1, 603:1, 86:1}
+    #sparse_reaction = {1:-1, 6:-1, 311:-1, 288:1, 5:1, 80:2, 26:1}
+    #sparse_reaction = {408:-1, 6:-1, 4092:1, 5:1}
+    sparse_reaction = {588:-1, 1:-1, 114:1, 9:1}
+    
     #sys.stdout.write("The dG0_r of PPi + H20 <=> 2 Pi: \n\n")
+    
+    sparse_reaction = H.kegg.BalanceReaction(sparse_reaction, balance_water=False)
+    print H.kegg.sparse_reaction_to_string(sparse_reaction)
+    
     sys.stdout.write("%5s | %5s | %6s | %6s\n" % ("pH", "I", "T", "dG0_r"))
     for pH in arange(5, 9.01, 0.25):
         H.pH = pH
         sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f\n" % 
                          (H.pH, H.I, H.T, H.reaction_to_dG0(sparse_reaction)))
 
-    print '-'*50
-    print H.cid2DissociationTable[36]
-    print H.cid2DissociationTable[3981]
-    print H.cid2pmap_dict[36].Transform(pH=7, I=0, pMg=10, T=298.15)
-    print H.cid2pmap_dict[3981].Transform(pH=7, I=0, pMg=10, T=298.15)
+    for cid in sparse_reaction.keys():
+        print '-'*50
+        print "C%05d - %s:" % (cid, H.kegg.cid2name(cid))
+        print "Pseudoisomers:\n", H.cid2PseudoisomerMap(cid)
+        print "dG0'_f = %.1f kJ/mol" % H.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
+        print "dG0_f = %.1f kJ/mol" % H_nopka.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
+        print "Dissociations:\n", H.cid2DissociationTable[cid]

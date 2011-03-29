@@ -577,38 +577,23 @@ class Kegg(Singleton):
         except KeyError:
             return "unknown reaction"
 
-    def cid2obmol(self, cid, correctForPH=True, pH=7.4):
-        comp = self.cid2compound(cid)
-        if not comp.inchi:
-            return None
-        obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("inchi", "mol")
-        obmol = openbabel.OBMol()
-        obConversion.ReadString(obmol, comp.inchi)
-        if obmol.NumAtoms() == 0:
-            atom_bag = comp.get_atom_bag()
-            if not atom_bag:
-                return None
-            return comp.get_atom_bag().get('H')
-        polaronly = False        
-        obmol.AddHydrogens(polaronly, correctForPH, pH)
-        return obmol
-
-    def cid2num_hydrogens(self, cid, correctForPH=True, pH=7.4):
-        obmol = self.cid2obmol(cid, correctForPH, pH)
-        if obmol:
-            return obmol.NumAtoms() - obmol.NumHvyAtoms() # HvyAtoms are all the non-hydrogen atoms
+    def cid2num_hydrogens(self, cid):
+        inchi = self.cid2inchi(cid)
+        if inchi:
+            mol = Molecule.FromInChI(inchi)
+            return mol.GetNumHydrogens()
         atom_bag = self.cid2compound(cid).get_atom_bag()
         if atom_bag:
             return atom_bag.get('H')
         return None
         
-    def cid2charge(self, cid, correctForPH=True, pH=7.4):
-        obmol = self.cid2obmol(cid, correctForPH, pH)
-        if not obmol:
-            return None
-        return obmol.GetTotalCharge()        
-
+    def cid2charge(self, cid):
+        inchi = self.cid2inchi(cid)
+        if inchi:
+            mol = Molecule.FromInChI(inchi)
+            return mol.GetTotalCharge()
+        return None
+    
     def get_bounds(self, cid):
         return self.cid2bounds.get(cid, (None, None))
     

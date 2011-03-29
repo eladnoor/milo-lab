@@ -5,7 +5,7 @@ from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy
 from pygibbs.alberty import Alberty
 from toolbox.util import _mkdir, calc_rmse, calc_r2
 from toolbox.html_writer import HtmlWriter
-from pygibbs.thermodynamic_constants import R, default_I, default_pMg
+from pygibbs.thermodynamic_constants import R
 from toolbox.database import SqliteDatabase
 import copy
 
@@ -141,6 +141,7 @@ class Nist(object):
         self.override_I = None
         self.override_pMg = None
         self.FromDatabase()
+        self.BalanceReactions(balance_water=True)
 
     def FromDatabase(self):
         self.data = []
@@ -156,6 +157,10 @@ class Nist(object):
             except NistMissingCrucialDataException:
                 continue
         
+    def BalanceReactions(self, balance_water=False):
+        for row in self.data:
+            row.sparse = self.kegg.BalanceReaction(row.sparse, balance_water)
+
     def GetAllCids(self):
         return sorted(self.cid2count.keys())
     
