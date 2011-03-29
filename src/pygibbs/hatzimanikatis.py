@@ -9,7 +9,6 @@ import logging
 from pygibbs.thermodynamic_constants import R
 import pylab
 from toolbox.database import SqliteDatabase
-from toolbox.molecule import Molecule
 
 HATZI_CSV_FNAME = "../data/thermodynamics/hatzimanikatis_cid.csv"
 
@@ -23,7 +22,7 @@ class Hatzi (Thermodynamics):
         # the conditions in which Hatzimanikatis makes his predictions
         self.Hatzi_pH = 7.0
         self.Hatzi_I = 0.0
-        self.Hatzi_pMg = 10.0
+        self.Hatzi_pMg = 14.0
         self.Hatzi_T = 298.15
         
         self.kegg = Kegg.getInstance()
@@ -45,11 +44,12 @@ class Hatzi (Thermodynamics):
             self.cid2charge_dict[cid] = int(row['CHARGE'])
 
     def charge2nH(self, cid, charge):
-        inchi = self.kegg.cid2inchi(cid)
-        mol = Molecule.FromInChI(inchi)
-        base_charge = mol.GetTotalCharge()
-        base_nH = mol.GetNumHydrogens()
-        return base_nH + (charge - base_charge)
+        nH_z_pair = self.kegg.cid2nH_and_charge(cid)
+        if nH_z_pair:
+            nH, z = nH_z_pair
+            return nH + (charge - z)
+        else:
+            raise ValueError("cannot infer the nH of C%05d" % cid)
 
     def GeneratePseudoisomerMap(self, cid):
         """
@@ -116,7 +116,8 @@ if (__name__ == "__main__"):
     #sparse_reaction = {1:-1, 499:-1, 603:1, 86:1}
     #sparse_reaction = {1:-1, 6:-1, 311:-1, 288:1, 5:1, 80:2, 26:1}
     #sparse_reaction = {408:-1, 6:-1, 4092:1, 5:1}
-    sparse_reaction = {588:-1, 1:-1, 114:1, 9:1}
+    #sparse_reaction = {588:-1, 1:-1, 114:1, 9:1}
+    sparse_reaction = {1:-1, 3:-1, 149:-1, 288:1, 4:1, 80:2, 22:1}
     
     #sys.stdout.write("The dG0_r of PPi + H20 <=> 2 Pi: \n\n")
     
@@ -132,6 +133,7 @@ if (__name__ == "__main__"):
     for cid in sparse_reaction.keys():
         print '-'*50
         print "C%05d - %s:" % (cid, H.kegg.cid2name(cid))
+        print H.kegg.cid2inchi(cid)
         print "Pseudoisomers:\n", H.cid2PseudoisomerMap(cid)
         print "dG0'_f = %.1f kJ/mol" % H.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
         print "dG0_f = %.1f kJ/mol" % H_nopka.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
