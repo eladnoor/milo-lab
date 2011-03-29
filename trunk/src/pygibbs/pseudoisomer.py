@@ -118,8 +118,9 @@ class PseudoisomerMap(object):
     
     def __str__(self):
         s = ""
-        for ((nH, z, nMg), dG0_list) in self.dgs.iteritems():
-            s += "%2d %2d %2d %s\n" % (nH, z, nMg, str(dG0_list))
+        for (nH, z, nMg), dG0_list in self.dgs.iteritems():
+            s_dG0 = ", ".join(["%.1f" % dG0 for dG0 in dG0_list])
+            s += "nH=%d z=%d nMg=%d dG0=%s kJ/mol\n" % (nH, z, nMg, s_dG0)
         return s
     
     def GetdG0(self, nH, z, nMg, T=default_T):

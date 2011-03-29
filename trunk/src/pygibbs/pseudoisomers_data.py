@@ -273,8 +273,8 @@ class DissociationTable(object):
     
     def CalculateCharge(self):
         # get the charge and nH of the default pseudoisomer in KEGG:
-        z = self.kegg.cid2charge(self.cid, correctForPH=False) or 0
-        nH = self.kegg.cid2num_hydrogens(self.cid, correctForPH=False) or 0
+        z = self.kegg.cid2charge(self.cid) or 0
+        nH = self.kegg.cid2num_hydrogens(self.cid) or 0
         
         # calculate the charge for the most basic species
         self.min_charge = z + (self.min_nH - nH)
