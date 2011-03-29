@@ -121,22 +121,21 @@ class Compound(object):
         """Get a SMILES expression for this compound."""
         return self.GetMolecule().ToSmiles()
 
-    def get_nH(self):
+    def get_nH_and_charge(self):
+        if not self.mol and self.inchi:
+            self.mol = Molecule.FromInChI(self.inchi)
+
         if self.mol:
-            return self.mol.GetNumHydrogens()
-        else:
-            atom_bag = self.get_atom_bag()
-            if not atom_bag:
-                return None
-            else: 
-                return atom_bag.get('H')
+            return self.mol.GetHydrogensAndCharge()
+
+        # if there is no InChI assume that the formula is correct and that
+        # it represents the number of H for the neutral species
+        atom_bag = self.get_atom_bag()
+        if atom_bag:
+            return atom_bag.get('H', 0), 0
+
+        return None
         
-    def get_charge(self):
-        if self.mol:
-            return self.mol.GetTotalCharge()
-        else:
-            return 0
-    
     def get_num_electrons(self):
         return self.num_electrons
 

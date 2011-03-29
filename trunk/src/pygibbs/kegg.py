@@ -577,22 +577,9 @@ class Kegg(Singleton):
         except KeyError:
             return "unknown reaction"
 
-    def cid2num_hydrogens(self, cid):
-        inchi = self.cid2inchi(cid)
-        if inchi:
-            mol = Molecule.FromInChI(inchi)
-            return mol.GetNumHydrogens()
-        atom_bag = self.cid2compound(cid).get_atom_bag()
-        if atom_bag:
-            return atom_bag.get('H')
-        return None
-        
-    def cid2charge(self, cid):
-        inchi = self.cid2inchi(cid)
-        if inchi:
-            mol = Molecule.FromInChI(inchi)
-            return mol.GetTotalCharge()
-        return None
+    def cid2nH_and_charge(self, cid):
+        comp = self.cid2compound(cid)
+        return comp.get_nH_and_charge()
     
     def get_bounds(self, cid):
         return self.cid2bounds.get(cid, (None, None))

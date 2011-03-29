@@ -237,7 +237,7 @@ class NistRegression(Thermodynamics):
                 if cid not in self.cid2diss_table:
                     diss = DissociationTable(cid)
                     diss.min_dG0 = dG0_f
-                    diss.min_nH = nH or self.kegg.cid2num_hydrogens(cid) or 0
+                    diss.min_nH = nH
                     diss.CalculateCharge()
                     self.cid2diss_table[cid] = diss
                 else:
@@ -645,7 +645,7 @@ def main():
         nist_regression.std_diff_threshold = 100.0
         nist_regression.nist.T_range = (298, 314)
         #nist_regression.nist.override_I = 0.25
-        #nist_regression.nist.override_pMg = 10.0
+        nist_regression.nist.override_pMg = 14.0
         S, dG0, cids = nist_regression.ReverseTransform(use_anchors=True)
 
         #nist_regression.ExportToTextFiles(S, dG0, cids)

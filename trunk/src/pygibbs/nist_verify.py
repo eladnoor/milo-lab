@@ -25,7 +25,7 @@ def main():
     nist = Nist()
     nist.T_range = (298, 314)
     #nist.override_I = 0.25
-    nist.override_pMg = 10.0
+    nist.override_pMg = 14.0
 
     estimators = {}
     
