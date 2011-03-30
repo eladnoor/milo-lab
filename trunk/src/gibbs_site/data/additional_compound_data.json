@@ -5,7 +5,6 @@
             "Nicotinamide adenine dinucleotide (oxidized)" 
         ],
         "preferred name": "NAD+"
-
     },
     {
         "CID": "C00004",
@@ -55,6 +54,12 @@
         ]
     }, 
     {
+        "CID": "C00117",
+        "names": [
+            "R5P"
+        ]
+    }, 
+    {
         "CID": "C00118",
         "names": [
             "G3P",
@@ -67,7 +72,13 @@
         "names": [
             "3PG" 
         ]
-    }, 
+    },
+    {
+        "CID": "C00199",
+        "names": [
+            "Ru5P" 
+        ]
+    },  
     {
         "CID": "C00198",
         "names": [
@@ -117,6 +128,12 @@
             "F2,6BP" 
         ]
     },
+    {
+        "CID": "C01182",
+        "names": [
+            "RuBP" 
+        ]
+    }    
     {
         "CID": "C04442",
         "names": [
