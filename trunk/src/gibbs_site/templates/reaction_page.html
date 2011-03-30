@@ -82,7 +82,9 @@
 			{% endif %}
 		</div>
 		
-		{% include "reaction_result_table.html" %}
+		{% if reaction.is_balanced and reaction.is_electron_balanced %}
+			{% include "reaction_result_table.html" %}
+		{% endif %}
 		
 		{% if reaction.all_compounds %}
 		<table class="compoundInfo">
