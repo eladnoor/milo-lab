@@ -1,3 +1,18 @@
+ENTRY       M-METHYLGLYOXAL-PATHWAY-DIRECT
+SKIP        TRUE
+NAME        Methylglyoxal Pathway direct to Pyruvate from Methylglyoxal
+TYPE        MARGIN
+CONDITIONS  pH=7,I=0.1,T=298.15
+C_MID       1e-3
+C_RANGE     1e-6 1e-2
+REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
+            R02740  C00668 -> C05345 (x1)
+            R04779  C00002 + C05345 -> C00008 + C05378 (x1)
+            R01070  C05378 -> C00111 + C00118 (x1)
+            R01015  C00118 -> C00111 (x1)
+            R01016  C00111 -> C00546 + C00009 (x2)
+            R00205  C00546 + C00006 + C00001 <=> C00022 + C00005 + C00080 (x2)
+///
 ENTRY       M-ED-LATE-PHOSPHORYLATION
 SKIP        FALSE
 NAME        Entner-Doudoroff full, phosphorylating glycerate
