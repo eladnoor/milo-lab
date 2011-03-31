@@ -4,29 +4,32 @@ import types
 import logging
 
 class Database(object):
+    """Abstract base Database class."""
     
     def __init__(self):
-        raise Exception("class Database is an abstract class and cannot be instantiated")
+        raise NotImplementedError("class Database is an abstract class and cannot be instantiated")
     
     def CreateTable(self, table_name, columns, drop_if_exists=True):
-        raise Exception("function not implemented")
+        raise NotImplementedError("CreateTable not implemented")
             
     def Insert(self, table_name, list):
-        raise Exception("function not implemented")
+        raise NotImplementedError("Insert not implemented")
     
     def DoesTableExist(self, table_name):
-        raise Exception("function not implemented")
+        raise NotImplementedError("DoesTableExist not implemented")
+    
     
 class SQLDatabase(Database):
+    """Abstract base SQLDatabase class."""
     
     def __init__(self, filename):
-        raise Exception("class SQLDatabase is an abstract class and cannot be instantiated")
+        raise NotImplementedError("class SQLDatabase is an abstract class and cannot be instantiated")
     
     def Execute(self, command, arguments=None):
-        raise Exception("function not implemented")
+        raise NotImplementedError("Execute not implemented")
     
     def Commit(self):
-        raise Exception("function not implemented")
+        raise NotImplementedError("Commit not implemented")
     
     def CreateTable(self, table_name, columns, drop_if_exists=True):
         if drop_if_exists:
@@ -119,6 +122,7 @@ class SQLDatabase(Database):
             table_data.append(row_dict)
         return table_data    
         
+        
 class SqliteDatabase(SQLDatabase):
     
     def __init__(self, filename, flag='w'):
@@ -129,6 +133,8 @@ class SqliteDatabase(SQLDatabase):
                    use 'r' to verify that the file already exists (throws IOError otherwise)
                    use 'w' to create the file if it doesn't exist
         """
+        self.filename = filename
+        
         if flag == 'r':
             if not os.path.exists(filename):
                 raise IOError('No such file or directory: %s' % filename)
@@ -160,3 +166,6 @@ class SqliteDatabase(SQLDatabase):
     def __del__(self):
         self.comm.commit()
         self.comm.close()
+    
+    def __str__(self):
+        return '<SqliteDatabase: %s>' % self.filename
