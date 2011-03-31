@@ -10,7 +10,7 @@ def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
     opt_parser.add_option("-d", "--database_location", dest="db_filename",
-                          default="../res/gibbs.sqlite",
+                          default="../data/public_data.sqlite",
                           help="The database location")
     opt_parser.add_option("-c", "--compounds_out_filename",
                           dest="compounds_out_filename",

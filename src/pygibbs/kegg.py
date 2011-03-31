@@ -139,13 +139,13 @@ class Kegg(Singleton):
 
         inchi_file = csv.reader(open(self.INCHI_FILE, 'r'), delimiter='\t')
         for row in inchi_file:
-            if (len(row) != 2):
+            if len(row) != 2:
                 continue
-            (key, inchi) = row
-            if (key[0] != 'C'):
+            key, inchi = row
+            if key[0] != 'C':
                 continue
             cid = int(key[1:])
-            if (not cid in self.cid2compound_map):
+            if not cid in self.cid2compound_map:
                 logging.debug("Compound C%05d is in inchi.txt, but not in compounds.txt\n" % cid)
             else:
                 # since the convention in KEGG for undefined chirality is 'u' instead of the standard '?'
@@ -211,6 +211,7 @@ class Kegg(Singleton):
                 self.ec2enzyme_map[enz.ec] = enz
 
     def ToDatabase(self):
+        logging.info('Writing to database %s', self.db)
         self.db.CreateTable('kegg_compound', 'cid INT, name TEXT, all_names TEXT, '
            'mass REAL, formula TEXT, inchi TEXT, num_electrons INT, from_kegg BOOL, '
            'pubchem_id INT, cas TEXT')

@@ -1,13 +1,16 @@
 #!/usr/bin/python
 
+import re
+
 from pygibbs import kegg_parser
+
 
 class Enzyme(object):
     """A class representing an Enzyme from Kegg."""
     
     def __init__(self, ec_class, title=None, names=None,
-                 reactions=None, substrate=None, product=None,
-                 cofactor=None, organisms=None):
+                 reactions=None, substrates=None, products=None,
+                 cofactors=None, organisms=None):
         """Initialize the enzyme class.
         
         Args:
@@ -15,9 +18,9 @@ class Enzyme(object):
             title: the title field from KEGG.
             names: common names for the enzyme.
             reactions: a list of (integer) KEGG reaction IDs.
-            substrate: the substrate of the reaction, if defined.
-            product: the product of the enzyme, if defined.
-            cofactor: cofactors used by the enzyme.
+            substrates: the substrate of the reaction, if defined.
+            products: the products of the enzyme, if defined.
+            cofactors: cofactors used by the enzyme.
             organisms: the organisms this enzyme is found in, if defined.
             
         Attributes:
@@ -25,18 +28,18 @@ class Enzyme(object):
             title
             names
             reactions
-            substrate
-            product
-            cofactor
+            substrates
+            products
+            cofactors
             organisms
         """
         self.ec = ec_class
         self.title = title
         self.names = names or []
         self.reactions = reactions or []
-        self.substrate = substrate
-        self.product = product
-        self.cofactor = cofactor
+        self.substrates = substrates
+        self.products = products
+        self.cofactors = cofactors
         self.organisms = organisms or []
 
     @staticmethod
@@ -51,6 +54,15 @@ class Enzyme(object):
             return ec_str[3:]
         return ec_str
 
+    @staticmethod
+    def GetCompoundIds(cpd_str):
+        """Returns a list of KEGG ids parsed from the string."""
+        if not cpd_str:
+            return None
+        
+        pattern = re.compile(r'\[CPD:(C\d{5})\]')
+        return pattern.findall(cpd_str)
+        
     @staticmethod
     def FromEntryDict(ec_class, entry_dict):
         """Initialize from an kegg_parser.EntryDictWrapper instance.
@@ -71,10 +83,10 @@ class Enzyme(object):
         if 'ORGANISM' in entry_dict:
             enz.organisms = kegg_parser.NormalizeOrganisms(
                 entry_dict.get('ORGANISM'))
-        enz.substrate = entry_dict.get('SUBSTRATE', None)
-        enz.product = entry_dict.get('PRODUCT', None)
+        enz.substrates = Enzyme.GetCompoundIds(entry_dict.get('SUBSTRATE', None))
+        enz.products = Enzyme.GetCompoundIds(entry_dict.get('PRODUCT', None))
+        enz.cofactors = Enzyme.GetCompoundIds(entry_dict.get('COFACTOR', None))
         enz.title = entry_dict.get('TITLE', None)
-        enz.cofactor = entry_dict.get('COFACTOR', None)
         
         if enz.title:
             enz.title = enz.title.replace('\t', ' ')
@@ -101,30 +113,60 @@ class Enzyme(object):
             names = row_dict['all_names']
             if names:
                 enz.names = names.split(', ')
+                
         if 'rid_list' in row_dict:
             rid_list = row_dict['rid_list']
             if rid_list:
                 enz.reactions = [int(r) for r in row_dict['rid_list'].split(', ')]
+                
         if 'organism_list' in row_dict:
             org_list = row_dict['organism_list']
-            if rid_list:
-                enz.organisms = org_list.split(', ')        
-        enz.substrate = row_dict.get('substrate', None)
-        enz.product = row_dict.get('product', None)
+            if org_list:
+                enz.organisms = org_list.split(', ')
+                        
+        enz.substrates = row_dict.get('substrate', None)
+        if enz.substrates:
+            enz.substrates = enz.substrates.split(', ')
+            
+        enz.products = row_dict.get('product', None)
+        if enz.products:
+            enz.products = enz.products.split(', ')
+            
+        enz.cofactors = row_dict.get('cofactor', None)
+        if enz.cofactors:
+            enz.cofactors = enz.cofactors.split(', ')
+            
         enz.title = row_dict.get('title', None)
-        enz.cofactor = row_dict.get('cofactor', None)
         return enz
 
     def ToDBRow(self):
         """Create a DB row from this enzyme."""
-        return [self.ec,
-                ', '.join(self.names),
-                self.title,
-                ', '.join([str(r) for r in self.reactions]),
-                self.substrate,
-                self.product,
-                self.cofactor,
-                ', '.join(self.organisms)]
+        row = [self.ec,
+               ', '.join(self.names),
+               self.title,
+               ', '.join([str(r) for r in self.reactions])]
+        
+        if self.substrates:
+            row.append(', '.join(self.substrates))
+        else:
+            row.append(None)
+        
+        if self.products:
+            row.append(', '.join(self.products))
+        else:
+            row.append(None)
+        
+        if self.cofactors:
+            row.append(', '.join(self.cofactors))
+        else:
+            row.append(None)
+            
+        if self.organisms:
+            row.append(', '.join(self.organisms))
+        else:
+            row.append(None)
+        
+        return row
 
     def ToJSONDict(self):
         """Format the enzyme as a JSON dictionary."""
@@ -133,9 +175,9 @@ class Enzyme(object):
                 'title': self.title,
                 'names': self.names,
                 'reaction_ids': rids,
-                'substrate': self.substrate,
-                'product': self.product,
-                'cofactor': self.cofactor,
+                'substrates': self.substrates,
+                'products': self.products,
+                'cofactors': self.cofactors,
                 'organism': self.organisms}
 
     def __str__(self):
@@ -149,14 +191,14 @@ class Enzyme(object):
             l.append('Names: %s\n' % ', '.join(self.names))
         if self.reactions:
             l.append('Reactions: %s\n' % ', '.join(self.reactions))
-        if self.substrate:
-            l.append('Substrate: %s\n' % self.substrate)
-        if self.product:
-            l.append('Product: %s\n' % self.product)
-        if self.cofactor:
-            l.append('Co-factor: %s\n' % self.cofactor)
-        if self.organism:
-            l.append('Organism: %s\n' % self.organism)
+        if self.substrates:
+            l.append('Substrates: %s\n' % ', '.join(self.substrates))
+        if self.products:
+            l.append('Product: %s\n' % ', '.join(self.products))
+        if self.cofactors:
+            l.append('Co-factor: %s\n' % ', '.join(self.cofactors))
+        if self.organisms:
+            l.append('Organism: %s\n' % self.organisms)
         
         return ''.join(l)
     
