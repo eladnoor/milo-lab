@@ -14,6 +14,8 @@ from pygibbs.groups import GroupContribution
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs import kegg_utils
+from pygibbs.hatzimanikatis import Hatzi
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -404,10 +406,38 @@ class ThermodynamicAnalysis(object):
 
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite')
+    db_public = SqliteDatabase('../data/public_data.sqlite')
     html_writer = HtmlWriter('../res/thermodynamic_pathway_analysis.html')
-    G = GroupContribution(db, html_writer=html_writer)
-    G.init()
-    G.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
+    
+    #G = GroupContribution(db, html_writer=html_writer)
+    #G.init()
+    #G.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
+    
+    # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
+    # Where: 
+    #    F  = 0.1 (kJ/mol)/mV
+    #    nE - change in e-
+    #    nH - change in H+
+    #    pH - the conditions in which the E' was measured
+    
+    # Ferredoxin  ox/red: E' = -380mV (nE = 1, nH = 0) -> dG0 = 38.0 kJ/mol [1]
+    # Ubiqinone   ox/red: E' =  113mV (nE = 2, nH = 2) -> dG0 = -103.2 kJ/mol [1]
+    # Menaquinone ox/red: E' =  -74mV (nE = 2, nH = 2) -> dG0 = -65.8 kJ/mol [1]
+    #
+    # [1] - Thauer 1977
+    
+    if True:
+        G = Hatzi()
+        G.AddPseudoisomer( 139, nH=0,  z=1, nMg=0, dG0=0)      # Ferrodoxin(ox)
+        G.AddPseudoisomer( 138, nH=0,  z=0, nMg=0, dG0=38.0)   # Ferrodoxin(red)
+        G.AddPseudoisomer( 399, nH=90, z=0, nMg=0, dG0=0)      # Ubiquinone-10(ox)
+        G.AddPseudoisomer( 390, nH=92, z=0, nMg=0, dG0=-103.2) # Ubiquinone-10(red)
+        G.AddPseudoisomer( 828, nH=16, z=0, nMg=0, dG0=0)      # Menaquinone(ox)
+        G.AddPseudoisomer(5819, nH=18, z=0, nMg=0, dG0=-65.8)  # Menaquinone(red)
+    else:
+        G = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+    
     thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=G)
-    thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
+    #thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
+    thermo_analyze.analyze_pathway("../data/thermodynamics/pathways_carbon_fixation.txt")
     

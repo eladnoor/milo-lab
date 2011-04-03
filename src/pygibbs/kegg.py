@@ -859,8 +859,8 @@ class Kegg(Singleton):
     def sparse_to_hypertext(self, sparse, show_cids=True):
         s_left = []
         s_right = []
-        for (cid, count) in sparse.iteritems():
-            if (abs(count) < 0.01):
+        for cid, count in sparse.iteritems():
+            if abs(count) < 0.01:
                 continue
             comp = self.cid2compound(cid)
             url = comp.get_link()
@@ -872,16 +872,16 @@ class Kegg(Singleton):
                 show_string = name
                 title = "C%05d" % cid
             
-            if (count > 0):
-                if (count == 1):
+            if count > 0:
+                if count == 1:
                     s_right.append('<a href="%s" title="%s">%s</a>' % (url, title, show_string))
                 else:
-                    s_right.append('%d <a href="%s" title="%s">%s</a>' % (count, url, title, show_string))
-            elif (count < 0):
+                    s_right.append('%g <a href="%s" title="%s">%s</a>' % (count, url, title, show_string))
+            elif count < 0:
                 if (count == -1):
                     s_left.append('<a href="%s" title="%s">%s</a>' % (url, title, show_string))
                 else:
-                    s_left.append('%d <a href="%s" title="%s">%s</a>' % (-count, url, title, show_string))
+                    s_left.append('%g <a href="%s" title="%s">%s</a>' % (-count, url, title, show_string))
         return ' + '.join(s_left) + ' => ' + ' + '.join(s_right)
     
     def write_reactions_to_html(self, html_writer, S, rids, fluxes, cids, show_cids=True):

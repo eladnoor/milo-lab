@@ -9,6 +9,7 @@ import logging
 from pygibbs.thermodynamic_constants import R
 import pylab
 from toolbox.database import SqliteDatabase
+from pygibbs.pseudoisomer import PseudoisomerMap
 
 HATZI_CSV_FNAME = "../data/thermodynamics/hatzimanikatis_cid.csv"
 
@@ -18,6 +19,7 @@ class Hatzi (Thermodynamics):
         Thermodynamics.__init__(self)
         self.use_pKa = True
         self.cid2DissociationTable = DissociationTable.ReadDissociationCsv()
+        self.cid2pmap_dict = {}
         
         # the conditions in which Hatzimanikatis makes his predictions
         self.Hatzi_pH = 7.0
@@ -31,7 +33,8 @@ class Hatzi (Thermodynamics):
         # so we add it here
         H_pmap = pseudoisomer.PseudoisomerMap()
         H_pmap.Add(0, 0, 0, 0)
-        self.cid2pmap_dict = {80 : H_pmap}
+        self.SetPseudoisomerMap(80, H_pmap)
+
         self.cid2dG0_tag_dict = {80 : 0}
         self.cid2charge_dict = {80 : 0}
 
@@ -94,13 +97,24 @@ class Hatzi (Thermodynamics):
             pmap.Add(nH=charge, z=charge, nMg=0, dG0=dG0_tag)
             return pmap
 
-    def cid2PseudoisomerMap(self, cid):
-        if cid not in self.cid2pmap_dict and cid not in self.cid2dG0_tag_dict:
-            raise MissingCompoundFormationEnergy(
-                "The compound C%05d does not have a value for its"
-                " formation energy of any of its pseudoisomers" % cid, cid)
+    def SetPseudoisomerMap(self, cid, pmap):
+        self.cid2pmap_dict[cid] = pmap
 
-        return self.cid2pmap_dict.setdefault(cid, self.GeneratePseudoisomerMap(cid))
+    def AddPseudoisomer(self, cid, nH, z, nMg, dG0):
+        self.cid2pmap_dict.setdefault(cid, PseudoisomerMap())
+        self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
+
+    def cid2PseudoisomerMap(self, cid):
+        if cid in self.cid2pmap_dict:
+            return self.cid2pmap_dict[cid]
+        if cid in self.cid2dG0_tag_dict:
+            pmap = self.GeneratePseudoisomerMap(cid)
+            self.SetPseudoisomerMap(cid, pmap)
+            return pmap
+
+        raise MissingCompoundFormationEnergy(
+            "The compound C%05d does not have a value for its"
+            " formation energy of any of its pseudoisomers" % cid, cid)
 
     def get_all_cids(self):
         return sorted(self.cid2dG0_tag_dict.keys())

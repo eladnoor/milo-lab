@@ -390,7 +390,10 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
         else:
             pylab.axvspan(thermodynamics.c_range[0], thermodynamics.c_range[1], facecolor='r', alpha=0.3, figure=conc_fig)
         pylab.axis([x_min, x_max, y_min, y_max], figure=conc_fig)
-        html_writer.embed_matplotlib_figure(conc_fig, width=420, height=360)
+        try:
+            html_writer.embed_matplotlib_figure(conc_fig, width=420, height=360)
+        except AttributeError:
+            html_writer.write('<b>Failed to generate concentration figure</b>')
 
     # write all the results in tables as well
 
