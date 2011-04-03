@@ -40,6 +40,10 @@ class Hatzi (Thermodynamics):
             self.cid2source_string[cid] = 'Jankowski et al. 2008'
             if row['DELTAG'] == "Not calculated":
                 continue
+            if cid == 3178:
+                # this compound, which is supposed to be "Tetrahydroxypteridine"
+                # seems to be mapped to something else by Hatzimanikatis
+                continue
             self.cid2dG0_tag_dict[cid] = float(row['DELTAG']) * J_per_cal
             self.cid2charge_dict[cid] = int(row['CHARGE'])
 
@@ -117,7 +121,8 @@ if (__name__ == "__main__"):
     #sparse_reaction = {1:-1, 6:-1, 311:-1, 288:1, 5:1, 80:2, 26:1}
     #sparse_reaction = {408:-1, 6:-1, 4092:1, 5:1}
     #sparse_reaction = {588:-1, 1:-1, 114:1, 9:1}
-    sparse_reaction = {1:-1, 3:-1, 149:-1, 288:1, 4:1, 80:2, 22:1}
+    #sparse_reaction = {1:-1, 3:-1, 149:-1, 288:1, 4:1, 80:2, 22:1}
+    sparse_reaction = {408:-1, 6:-1, 4092:1, 5:1}
     
     #sys.stdout.write("The dG0_r of PPi + H20 <=> 2 Pi: \n\n")
     
@@ -125,7 +130,7 @@ if (__name__ == "__main__"):
     print H.kegg.sparse_reaction_to_string(sparse_reaction)
     
     sys.stdout.write("%5s | %5s | %6s | %6s\n" % ("pH", "I", "T", "dG0_r"))
-    for pH in arange(5, 9.01, 0.25):
+    for pH in arange(5, 10.01, 0.25):
         H.pH = pH
         sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f\n" % 
                          (H.pH, H.I, H.T, H.reaction_to_dG0(sparse_reaction)))

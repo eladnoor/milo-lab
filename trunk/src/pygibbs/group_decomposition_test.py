@@ -1,16 +1,12 @@
 import unittest
-import pybel
-
 from pygibbs import groups_data
 from pygibbs import group_decomposition
+from toolbox.molecule import Molecule
 
 
-PHOSPHATE = pybel.readstring('smiles', 'OP(O)(=O)O')
-ATP = pybel.readstring('smiles',
-                       'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
-A4P = pybel.readstring('smiles',
-                       'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
-
+PHOSPHATE = Molecule.FromSmiles('OP(O)(=O)O')
+ATP = Molecule.FromSmiles('C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
+A4P = Molecule.FromSmiles('C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O')
 
 class GroupsDecompositionTest(unittest.TestCase):
     """Tests for GroupsDecomposition"""

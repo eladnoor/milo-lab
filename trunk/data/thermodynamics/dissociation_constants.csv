@@ -670,6 +670,7 @@
 3882,"piperine","acid-base",291.15,20,19,0,0,,,12.22,"CRC (88th edition)"
 3981,"2-Hydroxyethylenedicarboxylate",,298.15,2,2,0,0,,,,
 4056,"9-cis,11-trans-Octadecadienoate","acid-base",298.15,32,31,0,0,,,7.6,"taken as is from linoleate"
+4092,"delta1-Piperideine-2-carboxylate","acid-base",298.15,9,8,0,0,,,8.10,"Srinivasan (1991)"
 4178,"bromoxynil","acid-base",298.15,3,2,0,0,,,4.06,"CRC (88th edition)"
 4256,"N-acetyl D-glucosamine 1P","acid-base",296.15,15,14,0,0,,,6.12,"Robitaille (1990)"
 4268,"dTDP-4-amino-4,6-dideoxy-D-glucose","acid-base",298.15,26,25,0,0,,,9.79,"Taken as is from thymidine"

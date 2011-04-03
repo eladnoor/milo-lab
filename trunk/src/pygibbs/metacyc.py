@@ -8,6 +8,7 @@ import json
 from collections import deque
 from pygibbs import kegg_utils
 from pygibbs.kegg_errors import KeggNonCompoundException
+from toolbox.molecule import Molecule
 
 def parse_metacyc_file(filename):
     metacyc_file = open(filename, 'r')
@@ -436,7 +437,7 @@ class Compound(object):
             self.types = types if types != None else []                     # TYPES
             self.smiles = smiles if smiles != None else ""                 # SMILES
             if (smiles and not inchi):
-                self.inchi = kegg_utils.smiles2inchi(smiles)
+                self.inchi = Molecule.Smiles2InChI(smiles)
             
     def Print(self):
         print 'uid=',self.uid,'\nname=',self.name,'\nall_names=',self.all_names,'\nmass=',self.mass,'\nformula=',self.formula,'\ninchi=',self.inchi,'\npubchem_id=',self.pubchem_id,'ncas=',self.cas,'\nregs=',self.regulates,'\ntypes=',self.types,'\nsmiles=',self.smiles,'\n' 

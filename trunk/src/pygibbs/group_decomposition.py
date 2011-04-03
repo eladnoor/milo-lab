@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
-import pybel
 import sys
 import logging
 
 from toolbox import util
 from pygibbs import groups_data
 from pygibbs import group_vector
+from toolbox.molecule import Molecule
 
 class GroupDecompositionError(Exception):
     pass
@@ -418,7 +418,7 @@ def main():
         
         try:
             mol = ps_isomer.Mol()
-            mol.removeh()
+            mol.RemoveHydrogens()
             mol.title = str(ps_isomer)
             decomposition = decomposer.Decompose(mol, strict=True)
         except GroupDecompositionError as e:
@@ -441,7 +441,7 @@ def main():
                ('CoA', coa), ('Glucose', glucose), ('MgAtp', mgatp),
                #('CTP', ctp)
                ]
-    mols = [(name, pybel.readstring('smiles', s)) for name, s in smiless]
+    mols = [(name, Molecule.FromSmiles(s)) for name, s in smiless]
 
     for name, mol in mols:
         print name    

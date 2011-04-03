@@ -23,7 +23,7 @@ def main():
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/nist/report.html")
     nist = Nist()
-    nist.T_range = (298, 314)
+    nist.T_range = (278, 314)
     #nist.override_I = 0.25
     nist.override_pMg = 14.0
 

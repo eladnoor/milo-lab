@@ -1,18 +1,17 @@
 import sys
 from pygibbs.groups import GroupContribution, GroupMissingTrainDataError
 from pygibbs.group_decomposition import GroupDecompositionError
-import pybel
 from pygibbs.kegg import KeggParseException, Kegg
 from toolbox import database
 from toolbox.html_writer import HtmlWriter
 from pygibbs.groups_data import GroupsData
 from pygibbs.group_decomposition import GroupDecomposer
+from toolbox.molecule import Molecule
 
 def main():
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/group_test.html')
-    kegg = Kegg.getInstance()
-    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
+    G = GroupContribution(db, html_writer=html_writer)
     G.init()
 
     print '-' * 50
@@ -32,25 +31,26 @@ def main():
     cids = [522, 966]
     #smiles = ['C[NH2+]CC(=O)O']
     smiles = []
-    smarts = pybel.Smarts("[C;H2;X4]")
+    smarts = "[C;H2;X4]"
     
+    kegg = Kegg.getInstance()
     mols = []
     for cid in cids:
         try:
-            mols += [G.kegg().cid2mol(cid)]
+            mols += [kegg.cid2mol(cid)]
         except KeggParseException:
             continue
         except KeyError:
             continue
     
     for s in smiles:
-        mols += [pybel.readstring('smiles', s)]
+        mols += [Molecule.FromSmiles(s)]
     
     for m in mols:
         print '-' * 50
         try:
-            m.removeh()
-            print "SMARTS PATTERN FOUND AT:", smarts.findall(m)
+            m.RemoveHydrogens()
+            print "SMARTS PATTERN FOUND AT:", m.FindSmarts(smarts)
             decomposition = group_decomposer.Decompose(m, ignore_protonations=False, strict=True)
             print decomposition.ToTableString()
             pmap_m = G.Mol2PseudoisomerMap(m)
@@ -65,7 +65,7 @@ def main():
         except GroupDecompositionError as e:
             sys.stderr.write(str(e) + "\n")
             pass
-        m.draw()
+        m.Draw()
     
 
 if __name__ == "__main__":
