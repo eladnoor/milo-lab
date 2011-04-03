@@ -1,6 +1,14 @@
-import cplex
 from pylab import linalg, find, zeros, array, matrix, reshape
-import sys
+
+try:
+    from cplex1 import Cplex
+    from cplex1.exceptions import CplexSolverError
+    from cplex1.callbacks import SolveCallback
+except ImportError:
+    pass
+
+class CplexNotInstalledError(Exception):
+    pass
 
 class SparseKernel(object):
     """
@@ -25,7 +33,11 @@ class SparseKernel(object):
         self.upper_bound = 1000
         self.eps = 1e-10
         
-        self.cpl = cplex.Cplex()
+        try:
+            self.cpl = Cplex()
+        except NameError:
+            raise CplexNotInstalledError()
+            
         self.cpl.set_problem_name('find_kernel')
         self.cpl.set_log_stream(None)
         self.cpl.set_results_stream(None)
@@ -110,11 +122,11 @@ class SparseKernel(object):
     def GetSolution(self):
             try:
                 self.cpl.solve()
-            except cplex.exceptions.CplexSolverError as e:
+            except CplexSolverError as e:
                 raise SparseKernel.LinearProgrammingException(str(e))
             
             sol = self.cpl.solution
-            if self.cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.MIP_optimal:
+            if self.cpl.solution.get_status() != SolveCallback.status.MIP_optimal:
                 raise SparseKernel.LinearProgrammingException("No more EMFs")
             
             g_plus = array(sol.get_values(['g%d_plus' % col for col in xrange(self.n_variables)]))

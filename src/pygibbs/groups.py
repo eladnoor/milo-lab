@@ -23,7 +23,7 @@ from toolbox import util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from toolbox.sparse_kernel import SparseKernel
+from toolbox.sparse_kernel import SparseKernel, CplexNotInstalledError
 from toolbox.molecule import Molecule
 
 class GroupContributionError(Exception):
@@ -561,7 +561,12 @@ class GroupContribution(Thermodynamics):
             
     def RunLinearRegression(self):
         group_contributions, _nullspace = LinearRegression.LeastSquares(self.group_matrix, self.obs)
-        nullspace = SparseKernel(self.group_matrix).Solve()
+        try:
+            nullspace = SparseKernel(self.group_matrix).Solve()
+        except CplexNotInstalledError:
+            logging.warning("CPLEX is not installed on this system, using a non-sparse"
+                            " method for describing the Kernel of the group matrix")
+            nullspace = _nullspace
         #group_contributions, nullspace = LinearRegression.SolveLinearSystem(
         #    self.group_matrix, self.obs)
         return list(group_contributions.flat), nullspace
