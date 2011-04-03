@@ -1,10 +1,8 @@
 #!/usr/bin/python
 
 import logging
-import pybel
 import re
 
-from pygibbs import elements
 from pygibbs import kegg_errors
 from pygibbs import kegg_utils
 from toolbox.molecule import Molecule
@@ -13,7 +11,6 @@ class Compound(object):
     """A class representing a compound in KEGG."""
     
     free_cid = -1 # class static variable
-    
     def __init__(self, cid=None):
         """Initialize the Compound.
         
@@ -41,7 +38,6 @@ class Compound(object):
         self.mass = None
         self.formula = None
         self.inchi = None
-        self.num_electrons = None
         self.mol = None 
         self.from_kegg = True
         self.pubchem_id = None
@@ -66,11 +62,8 @@ class Compound(object):
         comp.all_names = row_dict['all_names'].split(';')
         comp.mass = row_dict['mass']
         comp.formula = row_dict['formula']
-        if row_dict['num_electrons']:
-            comp.num_electrons = int(row_dict['num_electrons'])
         if row_dict['inchi']:
             comp.inchi = str(row_dict['inchi'])
-            #comp.mol = Molecule.FromInChI(comp.inchi)
         if row_dict['cas']:
             comp.cas = str(row_dict['cas'])
         
@@ -100,17 +93,19 @@ class Compound(object):
     
     def get_atom_vector(self):
         atom_bag = self.get_atom_bag()
-        atom_vector = [0] * len(elements.ELEMENTS.symbols)
+        if not atom_bag:
+            return None
+        
+        atom_vector = [0] * Molecule.GetNumberOfElements()
         for elem, count in atom_bag.iteritems():
             if elem in ['R', 'X']:
                 return None # wildcard compound!
-            try:
-                an = elements.ELEMENTS.symbol_to_an[elem]
-                atom_vector[an-1] = count
-            except KeyError:
-                logging.warning(
-                    "Unsupported element in (C%05d): %s", (self.cid, elem))
+            an = Molecule.GetAtomicNum(elem)
+            if not an:
+                logging.warning("Unsupported element in (C%05d): %s",
+                                (self.cid, elem))
                 return None
+            atom_vector[an] = count
         return atom_vector
     
     def get_inchi(self):
@@ -128,16 +123,29 @@ class Compound(object):
         if self.mol:
             return self.mol.GetHydrogensAndCharge()
 
-        # if there is no InChI assume that the formula is correct and that
+        # if there is no InChI assume that self.formula is correct and that
         # it represents the number of H for the neutral species
         atom_bag = self.get_atom_bag()
-        if atom_bag:
-            return atom_bag.get('H', 0), 0
-
-        return None
+        if not atom_bag:
+            return None
+        return atom_bag.get('H', 0), 0
         
     def get_num_electrons(self):
-        return self.num_electrons
+        if not self.mol and self.inchi:
+            self.mol = Molecule.FromInChI(self.inchi)
+
+        if self.mol:
+            return self.mol.GetNumElectrons()
+
+        # if there is no InChI assume that self.formula is correct and that
+        # the charge is 0.
+        atom_bag = self.get_atom_bag()
+        if not atom_bag:
+            return None
+        n_protons = 0
+        for elem, count in atom_bag.iteritems():
+            n_protons += count * Molecule.GetAtomicNum(elem)
+        return n_protons
 
     def get_link(self):
         """Returns a link to KEGG for this compound."""

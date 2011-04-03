@@ -2,6 +2,7 @@ import gzip, sqlite3, os, sys, csv, re, urllib, zipfile
 import libsbml # obtained from http://sbml.org/Software/libSBML (version 4.1.0)
 from pygibbs.groups import GroupContribution
 from toolbox.sql import write_csv_table
+from toolbox.molecule import Molecule
 
 def connect_db(fname='../res/gibbs.sqlite'):
     try:
@@ -126,8 +127,7 @@ def create_species2inchi(cursor):
                    "WHERE S.species_type_id = T.species_type_id AND T.chebi_id = C.chebi_id")
 
 def add_thermodynamics(cursor):
-    from groups import GroupContribution, GroupMissingTrainDataError, GroupDecompositionError
-    from pybel import readstring
+    from groups import GroupMissingTrainDataError, GroupDecompositionError
 
     gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="pathologic")
     gc.init()
@@ -145,7 +145,7 @@ def add_thermodynamics(cursor):
     
     for inchi in inchi_list:
         try:
-            mol = readstring("inchi", str(inchi))
+            mol = Molecule.FromInChI(str(inchi))
             pmap = gc.Mol2PseudoisomerMap(mol)
             for ((z, nH), dG0) in pmap.iteritems():
                 cursor.execute("INSERT INTO yeast_inchi2thermo VALUES(?,?,?,?)", [inchi, z, nH, dG0])
@@ -159,8 +159,6 @@ def get_model(cursor, pH=7.0, I=0.2, T=300):
         species is a list of 3-tuples, which contains (species ID, compartment ID, dG0 formation)
         reactions is a list of 2-tuples, containing (reaction ID, reaction name)
     """
-    from pylab import zeros
-
     inchi2pmap = {}
     for row in cursor.execute("SELECT inchi, charge, nH, dG0_f FROM yeast_inchi2thermo"):
         (inchi, z, nH, dG0) = row
@@ -175,7 +173,7 @@ def get_model(cursor, pH=7.0, I=0.2, T=300):
         (species_id, compartment_id, inchi) = row
         species_id = str(species_id)
         if (inchi != None and inchi in inchi2pmap):
-            dG0 = GroupContribution.pmap_to_dG0(inchi2pmap[inchi], pH=pH, I=I, T=T)
+            dG0 = inchi2pmap[inchi].Transform(pH=pH, I=I, T=T)
         else:
             dG0 = None
         species.append((species_id, compartment_id, dG0))

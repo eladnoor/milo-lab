@@ -488,6 +488,7 @@ class GroupContribution(Thermodynamics):
                 h['inchi'] = kegg.cid2inchi(h['cid'])
             except KeyError:
                 h['inchi'] = None
+            h['num_electrons'] = kegg.cid2num_electrons(h['cid'])
             h['source'] = self.cid2source_string.get(row['cid'], None)
             h['species'] = []
             try:
@@ -1153,36 +1154,36 @@ if __name__ == '__main__':
         mols = {}
         cid = int(sys.argv[1])
         mols[G.kegg.cid2smiles(cid)] = G.kegg.cid2mol(cid)
-        #mols['ATP'] = pybel.readstring('smiles', 'C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
-        #mols['Tryptophan'] = pybel.readstring('smiles', "c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
-        #mols['Adenine'] = pybel.readstring('smiles', 'c1nc2c([NH2])[n]c[n-]c2n1')
-        #mols['Glutamate'] = pybel.readstring('smiles', 'C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O')
-        #mols['Acetyl-CoA [nH=36]'] = pybel.readstring('smiles', 'CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
-        #mols['Acetyl-CoA [nH=35]'] = pybel.readstring('smiles', 'CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
-        #mols['Acetyl-CoA [nH=34]'] = pybel.readstring('smiles', 'CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
+        #mols['ATP'] = Molecule.FromSmiles('C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
+        #mols['Tryptophan'] = Molecule.FromSmiles("c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
+        #mols['Adenine'] = Molecule.FromSmiles('c1nc2c([NH2])[n]c[n-]c2n1')
+        #mols['Glutamate'] = Molecule.FromSmiles('C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O')
+        #mols['Acetyl-CoA [nH=36]'] = Molecule.FromSmiles('CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
+        #mols['Acetyl-CoA [nH=35]'] = Molecule.FromSmiles('CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
+        #mols['Acetyl-CoA [nH=34]'] = Molecule.FromSmiles('CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
 
-        #mols['acetamide [nH=5]'] = pybel.readstring('smiles', 'CC(=O)N')
-        #mols['acetamide [nH=4]'] = pybel.readstring('smiles', 'CC(=O)[NH-]')
+        #mols['acetamide [nH=5]'] = Molecule.FromSmiles('CC(=O)N')
+        #mols['acetamide [nH=4]'] = Molecule.FromSmiles('CC(=O)[NH-]')
         
-        #mols['sparteine [nH=27]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2C[NH+]2CCCC[C@]12[H]')
-        #mols['sparteine [nH=28]'] = pybel.readstring('smiles', '[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
-        #mols['sparteine [nH=26]'] = pybel.readstring('smiles', '[H][C@@]12CCCCN1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
+        #mols['sparteine [nH=27]'] = Molecule.FromSmiles('[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2C[NH+]2CCCC[C@]12[H]')
+        #mols['sparteine [nH=28]'] = Molecule.FromSmiles('[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
+        #mols['sparteine [nH=26]'] = Molecule.FromSmiles('[H][C@@]12CCCCN1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
         #mols['acetyl-CoA a'] = kegg.cid2mol(24)
-        #mols['acetyl-CoA b'] = pybel.readstring('smiles', "CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")
-        #mols['acetyl-CoA c'] = pybel.readstring('smiles', "CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12")
-        #mols['glycylglycine'] = pybel.readstring('smiles', 'C(C(=O)NCC(=O)[O-])[NH3+]')
+        #mols['acetyl-CoA b'] = Molecule.FromSmiles("CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")
+        #mols['acetyl-CoA c'] = Molecule.FromSmiles("CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12")
+        #mols['glycylglycine'] = Molecule.FromSmiles('C(C(=O)NCC(=O)[O-])[NH3+]')
         #mols['N-Acetylornithine'] = kegg.cid2mol(437)
         #mols['Sinapoyl-CoA'] = kegg.cid2mol(411)
         
-        #smarts = pybel.Smarts('C(=O)[N;H1;0]C')
+        #smarts = 'C(=O)[N;H1;0]C'
         smarts = None
         
         for key, mol in mols.iteritems():
-            #mol.title = key
+            #mol.SetTitle(key)
             print '-'*100
             print key
             if smarts:
-                print smarts.findall(mol)
+                print mol.FindSmarts(smarts)
             try:
                 decomposition = G.Mol2Decomposition(mol, ignore_protonations=True)
                 print decomposition.ToTableString()

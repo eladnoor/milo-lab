@@ -1,62 +1,25 @@
 #!/usr/bin/python
 
-import openbabel
 import re
-
 from pygibbs import kegg_errors, kegg_reaction
 from pylab import find
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
 
 ##
 ## TODO(flamholz): Not all these utilities are specific to KEGG.
-## Maybe move some of them elsewhere.
 ##
-
-
-def mol2inchi(mol):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("smi", "inchi")
-    return obConversion.WriteString(mol.OBMol).strip()
-
-
-def mol2smiles(mol):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("inchi", "smi")
-    return obConversion.WriteString(mol.OBMol).split()[0]
-
-
-def smiles2inchi(smiles):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("smi", "inchi")
-    obmol = openbabel.OBMol()
-    obConversion.ReadString(obmol, str(smiles))
-    return obConversion.WriteString(obmol).strip()
-
-
-def inchi2smiles(inchi):
-    obConversion = openbabel.OBConversion()
-    obConversion.SetInAndOutFormats("inchi", "smi")
-    obmol = openbabel.OBMol()
-    obConversion.ReadString(obmol, inchi)
-    return obConversion.WriteString(obmol).split()[0]
-
-
-def remove_atoms_from_mol(mol, atoms):
-    obmol = mol.OBMol
-    obmol.BeginModify()
-    for i in sorted(atoms, reverse=True):
-        obmol.DeleteAtom(obmol.GetAtom(i))
-    obmol.EndModify()
-
 
 def cid2link(cid):
     """Returns the KEGG link for this compound."""
     return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % cid
 
-
 def parse_reaction_formula_side(s):
-    """ parse the side formula, e.g. '2 C00001 + C00002 + 3 C00003'
-        return the set of CIDs, ignore stoichiometry
+    """ 
+        Parses the side formula, e.g. '2 C00001 + C00002 + 3 C00003'
+        Ignores stoichiometry.
+        
+        Returns:
+            The set of CIDs.
     """
     if s.strip() == "null":
         return {}
@@ -87,10 +50,12 @@ def parse_reaction_formula_side(s):
     
     return compound_bag
 
-
 def parse_reaction_formula(formula):
-    """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
-        return the set of substrates, products and the direction of the reaction
+    """ 
+        Parses a two-sided formula such as: 2 C00001 => C00002 + C00003 
+        
+        Return:
+            The set of substrates, products and the direction of the reaction
     """
     tokens = re.findall("([^=^<]+) (<*=>*) ([^=^>]+)", formula)
     if len(tokens) != 1:
@@ -109,6 +74,13 @@ def parse_reaction_formula(formula):
     return (sparse_reaction, direction)
 
 def unparse_reaction_formula(sparse, direction='=>'):
+    """
+        Converts a reaction in sparse representation (keys are CIDs of reactants,
+        values are stoichiometric coefficients) into a string representation.
+        
+        Result:
+            A KEGG formatted string representation of the reaction
+    """
     s_left = []
     s_right = []
     for cid, count in sparse.iteritems():

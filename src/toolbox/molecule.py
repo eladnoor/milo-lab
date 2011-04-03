@@ -18,6 +18,26 @@ class Molecule(object):
     _indigo.setOption('render-label-mode', 'hetero')
     
     _obConversion = openbabel.OBConversion()
+    _obElements = openbabel.OBElementTable()
+    
+    @staticmethod
+    def GetNumberOfElements():
+        return Molecule._obElements.GetNumberOfElements()
+    
+    @staticmethod
+    def GetAllElements():
+        return [Molecule._obElements.GetSymbol(i) for i in 
+                xrange(Molecule.GetNumberOfElements())]
+
+    @staticmethod
+    def GetSymbol(atomic_num):
+        return Molecule._obElements.GetSymbol(atomic_num)
+            
+    @staticmethod
+    def GetAtomicNum(elem):
+        if type(elem) == types.UnicodeType:
+            elem = str(elem)
+        return Molecule._obElements.GetAtomicNum(elem)
     
     @staticmethod
     def SetBondLength(l):
@@ -27,7 +47,6 @@ class Molecule(object):
         self.title = None
         self.obmol = openbabel.OBMol()
         self.pybel_mol = None
-        self.indigo_mol = None
         self.smiles = None
         self.inchi = None
     
@@ -36,6 +55,15 @@ class Molecule(object):
         
     def __len__(self):
         return self.GetNumAtoms()
+    
+    def Clone(self):
+        tmp = Molecule()
+        tmp.title = self.title
+        tmp.obmol = openbabel.OBMol(self.obmol)
+        tmp.pybel_mol = pybel.Molecule(tmp.obmol)
+        tmp.smiles = self.smiles
+        tmp.inchi = self.inchi
+        return tmp
     
     def SetTitle(self, title):
         self.title = title 
@@ -47,7 +75,6 @@ class Molecule(object):
         Molecule._obConversion.SetInAndOutFormats("smiles", "mol")
         Molecule._obConversion.ReadString(m.obmol, m.smiles)
         m.pybel_mol = pybel.Molecule(m.obmol)
-        m.indigo_mol = Molecule._indigo.loadMolecule(m.ToSmiles())
         m.SetTitle(smiles)
         return m
         
@@ -58,18 +85,48 @@ class Molecule(object):
         Molecule._obConversion.SetInAndOutFormats("inchi", "mol")
         Molecule._obConversion.ReadString(m.obmol, m.inchi)
         m.pybel_mol = pybel.Molecule(m.obmol)
-        m.indigo_mol = Molecule._indigo.loadMolecule(m.ToSmiles())
         m.SetTitle(inchi)
         return m
+    
+    @staticmethod
+    def Smiles2InChI(smiles):
+        Molecule._obConversion.SetInAndOutFormats("smiles", "inchi")
+        obmol = openbabel.OBMol()
+        Molecule._obConversion.ReadString(obmol, str(smiles))
+        return Molecule._obConversion.WriteString(obmol).strip()
+
+    @staticmethod
+    def InChI2Smiles(inchi):
+        Molecule._obConversion.SetInAndOutFormats("inchi", "smiles")
+        obmol = openbabel.OBMol()
+        Molecule._obConversion.ReadString(obmol, inchi)
+        return Molecule._obConversion.WriteString(obmol).split()[0]
 
     def RemoveHydrogens(self):
         self.pybel_mol.removeh()
     
+    def RemoveAtoms(self, indices):
+        self.obmol.BeginModify()
+        for i in sorted(indices, reverse=True):
+            self.obmol.DeleteAtom(self.obmol.GetAtom(i+1))
+        self.obmol.EndModify()
+        self.smiles = None
+        self.inchi = None
+        
+    def SetAtomicNum(self, index, new_atomic_num):
+        self.obmol.GetAtom(index+1).SetAtomicNum(new_atomic_num)
+        self.smiles = None
+        self.inchi = None
+        
     def ToOBMol(self):
         return self.obmol
     
     def ToPybelMol(self):
         return self.pybel_mol
+
+    def UpdateInChI(self):
+        Molecule._obConversion.SetInAndOutFormats("mol", "inchi")
+        self.inchi = Molecule._obConversion.WriteString(self.obmol).strip()
 
     def ToInChI(self):
         """ 
@@ -77,9 +134,12 @@ class Molecule(object):
             asked for and store for later use).
         """
         if not self.inchi:
-            Molecule._obConversion.SetInAndOutFormats("mol", "inchi")
-            self.inchi = Molecule._obConversion.WriteString(self.obmol).strip()
+            self.UpdateInChI()
         return self.inchi
+    
+    def UpdateSmiles(self):
+        Molecule._obConversion.SetInAndOutFormats("mol", "smiles")
+        self.smiles = Molecule._obConversion.WriteString(self.obmol).strip()
     
     def ToSmiles(self):
         """ 
@@ -87,8 +147,7 @@ class Molecule(object):
             asked for and store for later use).
         """
         if not self.smiles:
-            Molecule._obConversion.SetInAndOutFormats("mol", "smiles")
-            self.smiles = Molecule._obConversion.WriteString(self.obmol).strip()
+            self.UpdateSmiles()
         return self.smiles
     
     def GetFormula(self):
@@ -97,7 +156,10 @@ class Molecule(object):
         for s in re.findall('InChI=1S/([A-Z][^/]+)', self.ToInChI()):
             return s
         return None
-            
+    
+    def GetExactMass(self):
+        return self.obmol.GetExactMass()
+    
     def ToAtomBagAndCharge(self):
         inchi = self.ToInChI()
         if inchi == 'InChI=1S/p+1': # a proton
@@ -134,13 +196,11 @@ class Molecule(object):
         
     def GetNumElectrons(self):
         """Calculates the number of electrons in a given molecule."""
-        atom_bag = {}
-        for i in xrange(self.obmol.NumAtoms()):
-            atom = self.obmol.GetAtom(i+1)
-            atom_bag.setdefault(atom.GetAtomicNum(), 0)
-            atom_bag[atom.GetAtomicNum()] += 1
-        n_protons = sum([an*cnt for (an, cnt) in atom_bag.iteritems()])
-        return n_protons - self.obmol.GetTotalCharge()
+        atom_bag, fixed_charge = self.ToAtomBagAndCharge()
+        n_protons = 0
+        for elem, count in atom_bag.iteritems():
+            n_protons += count * self._obElements.GetAtomicNum(elem)
+        return n_protons - fixed_charge
     
     def GetNumAtoms(self):
         return self.obmol.NumAtoms()
@@ -170,9 +230,10 @@ class Molecule(object):
             Molecule._indigo.setOption('render-comment', comment)
         else:
             Molecule._indigo.setOption('render-comment', '')
-        self.indigo_mol.aromatize()
-        self.indigo_mol.layout()
-        svg_str = Molecule._renderer.renderToBuffer(self.indigo_mol).tostring()
+        indigo_mol = Molecule._indigo.loadMolecule(self.ToSmiles())
+        indigo_mol.aromatize()
+        indigo_mol.layout()
+        svg_str = Molecule._renderer.renderToBuffer(indigo_mol).tostring()
         id = str(uuid.uuid4())
         i = 0
         while True:
@@ -209,9 +270,12 @@ class Molecule(object):
 if __name__ == "__main__":
     Molecule.SetBondLength(50.0)
     #m = Molecule.FromSmiles('CC(=O)[O-]'); m.SetTitle('acetate')
+    m = Molecule.FromSmiles('[CH3]C(=O)OP(=O)(O)O'); m.SetTitle('acetyl-phosphate')
     #m = Molecule.FromInChI('InChI=1/C21H27N7O14P2/c22-17-12-19(25-7-24-17)28(8-26-12)21-16(32)14(30)11(41-21)6-39-44(36,37)42-43(34,35)38-5-10-13(29)15(31)20(40-10)27-3-1-2-9(4-27)18(23)33/h1-4,7-8,10-11,13-16,20-21,29-32H,5-6H2,(H5-,22,23,24,25,33,34,35,36,37)/p+1/t10-,11-,13-,14-,15-,16-,20-,21-/m1/s1'); m.SetTitle('NAD+')
     #m = Molecule.FromInChI('InChI=1/C5H14NO/c1-6(2,3)4-5-7/h7H,4-5H2,1-3H3/q+1'); m.SetTitle('choline')
-    m = Molecule.FromInChI('InChI=1/CH2O3/c2-1(3)4/h(H2,2,3,4)/p-1'); m.SetTitle('carbonate')
+    #m = Molecule.FromInChI('InChI=1/CH2O3/c2-1(3)4/h(H2,2,3,4)/p-1'); m.SetTitle('carbonate')
+    #m = Molecule.FromInChI('InChI=1/CO2/c2-1-3'); m.SetTitle('CO2')
+    #m = Molecule.FromInChI('InChI=1/CO/c1-2'); m.SetTitle('CO')
     #m = Molecule.FromInChI('InChI=1/C10H16N5O13P3/c11-8-5-9(13-2-12-8)15(3-14-5)10-7(17)6(16)4(26-10)1-25-30(21,22)28-31(23,24)27-29(18,19)20/h2-4,6-7,10,16-17H,1H2,(H,21,22)(H,23,24)(H2,11,12,13)(H2,18,19,20)/t4-,6-,7-,10-/m1/s1'); m.SetTitle('ATP')
     
     print m.ToSmiles()
@@ -222,3 +286,4 @@ if __name__ == "__main__":
     print 'nH = %d, charge = %d' % m.GetHydrogensAndCharge()
     print 'no. atoms =', m.GetNumAtoms()
     m.Draw(True)
+    

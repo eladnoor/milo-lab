@@ -2,7 +2,6 @@ import csv, re, sys
 from pylab import arange, NaN, isfinite
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs import pseudoisomer
-import pylab
 
 class Alberty(Thermodynamics):
     def read_alberty_mathematica(self, fname):
@@ -39,7 +38,7 @@ class Alberty(Thermodynamics):
                     alberty_name_to_hmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
                     alberty_name_to_hmap[alberty_name].Add(nH, z, nMg, dH0)
             
-        return (alberty_name_to_pmap, alberty_name_to_hmap)
+        return alberty_name_to_pmap, alberty_name_to_hmap
         
     def read_alberty_kegg_mapping(self, fname):
         alberty_name_to_cid = {}
@@ -52,23 +51,25 @@ class Alberty(Thermodynamics):
     
     def __init__(self):
         Thermodynamics.__init__(self)
-        (alberty_name_to_pmap, alberty_name_to_hmap) = self.read_alberty_mathematica("../data/thermodynamics/alberty_mathematica.txt")
-        alberty_name_to_cid = self.read_alberty_kegg_mapping("../data/thermodynamics/alberty_names.csv")
+        alberty_name_to_pmap, alberty_name_to_hmap = \
+            self.read_alberty_mathematica("../data/thermodynamics/alberty_mathematica.txt")
+        alberty_name_to_cid = \
+            self.read_alberty_kegg_mapping("../data/thermodynamics/alberty_names.csv")
 
         self.cid2pmap_dict = {}
         self.cid2hmap_dict = {}
         for name in sorted(alberty_name_to_cid.keys()):
             cid = alberty_name_to_cid[name]
             self.cid2source_string[cid] = 'Alberty 2006'
-            if (name in alberty_name_to_pmap):
+            if name in alberty_name_to_pmap:
                 self.cid2pmap_dict[cid] = alberty_name_to_pmap[name]
-            if (name in alberty_name_to_hmap):
+            if name in alberty_name_to_hmap:
                 self.cid2hmap_dict[cid] = alberty_name_to_hmap[name]
     
-    def cid2pmap(self, cid):
-        if (cid in self.cid2pmap_dict):
+    def cid2PseudoisomerMap(self, cid):
+        try:
             return self.cid2pmap_dict[cid]
-        else:
+        except KeyError:
             raise MissingCompoundFormationEnergy("The compound C%05d does not have a value for its formation energy of any of its pseudoisomers" % cid, cid)
 
     def get_all_cids(self):

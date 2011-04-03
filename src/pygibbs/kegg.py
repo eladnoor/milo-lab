@@ -1,15 +1,12 @@
 import csv
 import logging
-import openbabel
 import os
 import pydot
 import pylab
-import pybel
 import re
 import sqlite3
 import urllib
 
-from pygibbs import elements
 from pygibbs import kegg_compound
 from pygibbs import kegg_enzyme
 from pygibbs import kegg_errors
@@ -311,9 +308,9 @@ class Kegg(Singleton):
                 self.inchi2cid_map[comp.inchi] = new_cid
                 comp.name = row_dict['name']
                 comp.all_names = [row_dict['name']]
-                mol = pybel.readstring('inchi', comp.inchi)
-                comp.mass = mol.exactmass
-                comp.formula = mol.formula
+                mol = Molecule.FromInChI(comp.inchi)
+                comp.mass = mol.GetExactMass()
+                comp.formula = mol.GetFormula()
                 self.cid2compound_map[new_cid] = comp
     
     def AllCompounds(self):
@@ -500,9 +497,6 @@ class Kegg(Singleton):
     def cid2atom_bag(self, cid):
         return self.cid2compound(cid).get_atom_bag()
     
-    def cid2atom_vector(self, cid):
-        return self.cid2compound(cid).get_atom_vector()
-        
     def get_all_cids(self):
         return sorted(self.cid2compound_map.keys())
 
@@ -539,7 +533,7 @@ class Kegg(Singleton):
         comp = kegg_compound.Compound()
         comp.name = name
         comp.all_names = [name]
-        comp.inchi = kegg_utils.smiles2inchi(smiles)
+        comp.inchi = Molecule.Smiles2InChI(smiles)
         if comp.inchi == "":
             raise Exception("The smiles notation for compound %s could not be interpreted: %s" % (name, smiles))
         
@@ -581,6 +575,10 @@ class Kegg(Singleton):
     def cid2nH_and_charge(self, cid):
         comp = self.cid2compound(cid)
         return comp.get_nH_and_charge()
+
+    def cid2num_electrons(self, cid):
+        comp = self.cid2compound(cid)
+        return comp.get_num_electrons()
     
     def get_bounds(self, cid):
         return self.cid2bounds.get(cid, (None, None))
@@ -705,59 +703,43 @@ class Kegg(Singleton):
             Print a CSV file containing the CIDs of compounds that have CoA and/or Pi
         """
         csv_file = csv.writer(open('../res/compounds.csv', 'w'))
-        csv_file.writerow(["cid", "EXACT MASS"] + elements.ELEMENTS.symbols)
+        element_list = kegg_compound.Compound.GetAllElements()
+        csv_file.writerow(["cid", "EXACT MASS"] + element_list)
         for cid in self.get_all_cids():
             comp = self.cid2compound(cid)
             atom_vec = comp.get_atom_vector()
-            if (atom_vec == None):
+            if not atom_vec:
                 continue
-            else:
-                csv_file.writerow([cid, comp.mass] + comp.get_atom_vector())
-    
-        smiles2cid_map = {}
-        inchi2cid_map = {}
-        
-        list_of_cids = self.get_all_cids_with_inchi()
-        #list_of_cids = list_of_cids[0:40]
-        
-        for cid in list_of_cids:
-            logging.debug("Converting INCHI of compound %s (C%05d)" % (self.cid2name(cid), cid))
-            smiles = self.cid2smiles(cid)
-            smiles2cid_map[smiles] = cid
-            inchi2cid_map[kegg_utils.smiles2inchi(smiles)] = cid
+            csv_file.writerow([cid, comp.mass] + atom_vec)
     
         csv_file = csv.writer(open('../res/coa_pi_pairs.csv', 'w'))
         csv_file.writerow(["CID +", "CID -", "Pi(1) or CoA(2)"])
-        for cid in list_of_cids:
+        for cid in self.get_all_cids_with_inchi():
             try:
                 mol = self.cid2mol(cid)
             except kegg_errors.KeggParseException:
                 continue
-            if (len(mol.atoms) <= 5):
+            if len(mol) <= 5:
                 continue # ignore compounds which are too small (e.g. orthophosphate)
             smiles_pi = "P(=O)([OH,O-])[OH,O-]"
-            for pgroup in pybel.Smarts(smiles_pi).findall(mol):
-                tmp_mol = self.cid2mol(cid)
-                kegg_utils.remove_atoms_from_mol(tmp_mol, pgroup)
-                new_smiles = kegg_utils.mol2smiles(tmp_mol)
-                new_inchi = kegg_utils.smiles2inchi(new_smiles)
-                if (new_inchi in inchi2cid_map):
-                    new_cid = inchi2cid_map[new_inchi]
+            for pgroup in mol.FindSmarts(smiles_pi):
+                tmp_mol = mol.Clone()
+                tmp_mol.RemoveAtoms(pgroup)
+                new_inchi = tmp_mol.ToInChI()
+                if new_inchi in kegg.inchi2cid_map:
+                    new_cid = kegg.inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 1])
                     logging.info("Match: %s = %s + Pi" % (self.cid2name(cid), self.cid2name(new_cid)))
             
-            smiles_coa = 'SCCN=C(CCN=C(C(C(C)(C)COP(=O)(O)OP(=O)(O)OC[C@@]([H])1[C@]([H])([C@]([H])([C@]([H])(n2cnc3c(N)ncnc23)O1)O)OP(=O)(O)O)O)O)O'
-            for cgroup in pybel.Smarts(smiles_coa).findall(mol):
-                tmp_mol = self.cid2mol(cid)
-                cgroup = list(cgroup)
-                sulfur_atom = cgroup.pop(0)
-                tmp_mol.OBMol.GetAtom(sulfur_atom).SetAtomicNum(8)
-                kegg_utils.remove_atoms_from_mol(tmp_mol, cgroup)
-                tmp_mol.removeh()
-                new_smiles = kegg_utils.mol2smiles(tmp_mol)
-                new_inchi = kegg_utils.smiles2inchi(new_smiles)
-                if (new_inchi in inchi2cid_map):
-                    new_cid = inchi2cid_map[new_inchi]
+            smiles_coa = "CC(C)(COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n2cnc3c(N)ncnc23)C(O)C(~O)~NCCC(~O)~NCCS"
+            for cgroup in mol.FindSmarts(smiles_coa):
+                tmp_mol = mol.Clone()
+                tmp_mol.SetAtomicNum(cgroup.pop(), 8) # change S to O
+                tmp_mol.RemoveAtoms(cgroup)
+                tmp_mol.RemoveHydrogens()
+                new_inchi = tmp_mol.ToInChI()
+                if new_inchi in kegg.inchi2cid_map:
+                    new_cid = kegg.inchi2cid_map[new_inchi]
                     csv_file.writerow([cid, new_cid, 2])
                     logging.info("Match: %s = %s + CoA" % (self.cid2name(cid), self.cid2name(new_cid)))
                     
