@@ -118,7 +118,7 @@ SKIP        FALSE
 NAME        3-Hydroxypropionate Cycle
 TYPE        REDOX
 C_MID       1e-3
-C_RANGE     1e-6 1e-2
+C_RANGE     1e-10 1e0
 REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R00740  C00083 + C00005 -> C00222 + C00010 + C00006 (x0.5)
             R09289  C00222 + C00005 -> C01013 + C00006 (x0.5)

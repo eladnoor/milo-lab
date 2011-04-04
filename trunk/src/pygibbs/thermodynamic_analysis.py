@@ -4,7 +4,7 @@ from thermodynamic_constants import default_T, default_pH, default_I,\
 import pylab
 import copy
 from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr,\
-    LinProgNoSolutionException, thermodynamic_pathway_analysis
+    LinProgNoSolutionException, thermodynamic_pathway_analysis, find_ratio
 from pygibbs.thermodynamic_constants import transform
 import matplotlib
 import logging
@@ -401,32 +401,56 @@ class ThermodynamicAnalysis(object):
         self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
 
-        pCr_mat = pylab.zeros((len(pH_list), len(atp_list)))
+        i_h2o = cids.index(1)
+        i_atp = cids.index(2)
+        i_nad = cids.index(3)
+        i_nadh = cids.index(4)
+        i_adp = cids.index(8)
+        i_pi = cids.index(9)
+        if 13 in cids:
+            i_ppi = cids.index(13)
+        else:
+            i_ppi = None
+        if 20 in cids:
+            i_amp = cids.index(20)
+        else:
+            i_amp = None
+        bounds = [(None, None)] * len(cids)
+        bounds[i_h2o] = (1.0, 1.0)
+        
+        r_mat = pylab.zeros((len(pH_list), len(atp_list)))
         for i, pH in enumerate(pH_list):
             self.thermo.pH = pH
             dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            dG0_r_pyrophosphatase = 2*dG0_f[i_pi,0] - dG0_f[i_ppi,0] - dG0_f[i_h2o,0]
+            Keq = pylab.exp(-(dG0_r_pyrophosphatase)/(R*self.thermo.T))
+            
+            pi_conc = 1e-3
+            bounds[i_pi]  = (pi_conc,  pi_conc) # Pi
+            ppi_conc = pi_conc**2 / Keq
+            if i_ppi:
+                bounds[i_ppi] = (ppi_conc,  ppi_conc) # PPi
+            
             for j, atp_ratio in enumerate(atp_list):
-                cid2bounds = dict([(cid, c_range) for cid in cids])
                 r = 10**(atp_ratio)
-                cid2bounds[2] =  (c_mid*r,  c_mid*r) # ATP
-                cid2bounds[8] =  (c_mid,    c_mid  ) # ADP
-                cid2bounds[20] = (c_mid/r,  c_mid/r) # AMP
-                for cid in [3, 4]:
-                    cid2bounds[cid] = (None, None)
-                bounds = [cid2bounds.get(cid, c_range) for cid in cids]
+                bounds[i_atp] = (c_mid*r, c_mid*r)
+                bounds[i_adp] = (c_mid,   c_mid  )
+                if i_amp:
+                    bounds[i_amp] = (c_mid/r, c_mid/r)
                 try:
-                    unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
+                    _, _, log_ratio = find_ratio(S, dG0_f, i_nadh, i_nad, 
+                        c_range=c_range, T=self.thermo.T, bounds=bounds)
                 except LinProgNoSolutionException:
-                    pCr = -1
-                pCr_mat[i, j] = pCr
+                    log_ratio = 0
+                r_mat[i, j] = log_ratio
                 
         contour_fig = pylab.figure()
         pH_meshlist, atp_meshlist = pylab.meshgrid(pH_list, atp_list)
-        CS = pylab.contour(pH_meshlist.T, atp_meshlist.T, pCr_mat)       
+        CS = pylab.contour(pH_meshlist.T, atp_meshlist.T, r_mat)       
         pylab.clabel(CS, inline=1, fontsize=10)
         pylab.xlabel("pH")
         pylab.ylabel("$\\log{\\frac{[ATP]}{[ADP]}}$")
-        pylab.title("Redox Balance as a function of pH and Redox state")
+        pylab.title("log([NADH]/[NAD+]) as a function of pH and ATP/ADP")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
         self.html_writer.write('</p>')
         
