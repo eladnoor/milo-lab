@@ -325,7 +325,7 @@ class Kegg(Singleton):
         """Return all the enzymes."""
         return self.ec2enzyme_map.values()
 
-    def parse_explicit_module(self, field_map):
+    def parse_explicit_module(self, field_map, cid_mapping):
         """
             Unlike parse_module, this method doesn't use the RIDs of the reactions in the module to understand the reactions
             but rather uses the explicit reaction given on each line as the actual reaction
@@ -335,9 +335,9 @@ class Kegg(Singleton):
         sparse_reactions = []
         cids = []
         for line in field_map["REACTION"].split('\t'):
-            for (rid_clause, left_clause, right_clause, remainder) in re.findall('([R,0-9]+)  ([C\s\+\d\.]+) -> ([C\s\+\d\.]+)(.*)', line):
-                # @@@ we take only the first RID from the list of options in this line in the module!
-                # @@@ there must be a better way to choose it!
+            for rid_clause, left_clause, right_clause, remainder in re.findall('([R,0-9]+)  ([C\s\+\d\.]+) -> ([C\s\+\d\.]+)(.*)', line):
+                # TODO: we take only the first RID from the list of options in this line in the module!
+                # there must be a better way to choose it!
                 
                 rid = rid_clause.split(',')[0]
                 rid = int(rid[1:])
@@ -346,10 +346,16 @@ class Kegg(Singleton):
                     for (f) in re.findall('\(x([0-9\.]+)\)', remainder):
                         flux = float(f)
                 
-                (spr, unused_direction) = kegg_utils.parse_reaction_formula(left_clause + " => " + right_clause)
+                spr, _direction = kegg_utils.parse_reaction_formula(left_clause + " => " + right_clause)
+                for old_cid, (new_cid, factor) in cid_mapping.iteritems():
+                    if old_cid in spr:
+                        coeff = spr[old_cid]
+                        del spr[old_cid]
+                        spr.setdefault(new_cid, 0)
+                        spr[new_cid] = spr.get(new_cid, 0) + coeff * factor
                 
-                for cid in (spr.keys()):
-                    if (cid not in cids and cid != 80): # don't include H+ as a compound
+                for cid in spr.keys():
+                    if cid not in cids and cid != 80: # don't include H+ as a compound
                         cids.append(cid)
     
                 rids.append(rid)
@@ -375,8 +381,8 @@ class Kegg(Singleton):
         """
         rid_flux_list = []
         for (rid_clause, left_clause, right_clause) in re.findall('([R,0-9]+)  ([C\s\+\d]+) <?-> ([C\s\+\d]+)', field_map["REACTION"]):
-            # @@@ we take only the first RID from the list of options in this line in the module!
-            # @@@ there must be a better way to choose it!
+            # TODO: we take only the first RID from the list of options in this line in the module!
+            # there must be a better way to choose it!
             
             rid = rid_clause.split(',')[0]
             rid = int(rid[1:])
@@ -703,7 +709,7 @@ class Kegg(Singleton):
             Print a CSV file containing the CIDs of compounds that have CoA and/or Pi
         """
         csv_file = csv.writer(open('../res/compounds.csv', 'w'))
-        element_list = kegg_compound.Compound.GetAllElements()
+        element_list = Molecule.GetAllElements()
         csv_file.writerow(["cid", "EXACT MASS"] + element_list)
         for cid in self.get_all_cids():
             comp = self.cid2compound(cid)

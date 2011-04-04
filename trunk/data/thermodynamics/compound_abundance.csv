@@ -1,4 +1,4 @@
-"Compound","Kegg ID","Glucose","Glucose(min)","Glucose(max)","Glycerol","Glycerol(min)","Glycerol(max)","Acetate","Acetate(min)","Acetate(max)","Reference","use"
+"compound","KEGG ID","glucose","glucose(min)","glucose(max)","glycerol","glycerol(min)","glycerol(max)","acetate","acetate(min)","acetate(max)","reference","use"
 "NAD",3,0.00167,0.001256,0.002078,,,,,,,"Firth 1972",0
 "ATP",2,0.002641,,,,,,,,,"Glaser 1971",0
 "ADP",8,0.000823,,,,,,,,,"Glaser 1971",0
