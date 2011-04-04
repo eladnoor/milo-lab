@@ -4,6 +4,7 @@ import csv
 import logging
 import pybel
 import pylab
+from toolbox.molecule import Molecule
 
 class GroupsDataError(Exception):
     pass
@@ -281,7 +282,9 @@ class GroupsData(object):
                     charge = int(charge)
                 
                 # Check that the smarts are good.
-                pybel.Smarts(smarts)
+                if not Molecule.VerifySmarts(smarts):
+                    raise GroupsDataError('Cannot parse SMARTS from line %d: %s' %
+                                          (group_csv_file.line_num, smarts))
                 
                 mgs = 0
                 group = Group(gid, group_name, protons, charge, mgs, str(smarts),
@@ -294,9 +297,6 @@ class GroupsData(object):
                 logging.error(msg)
                 raise GroupsDataError('Wrong number of columns (%d) in one of the rows in %s: %s' %
                                       (len(row), filename, str(row)))
-            except IOError:
-                raise GroupsDataError('Cannot parse SMARTS from line %d: %s' %
-                                      (group_csv_file.line_num, smarts))
             
             gid += 1
         logging.info('Done reading groups data.')

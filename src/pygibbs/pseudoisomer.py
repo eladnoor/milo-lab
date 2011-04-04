@@ -122,6 +122,10 @@ class PseudoisomerMap(object):
             s_dG0 = ", ".join(["%.1f" % dG0 for dG0 in dG0_list])
             s += "nH=%d z=%d nMg=%d dG0=%s kJ/mol\n" % (nH, z, nMg, s_dG0)
         return s
+
+    def Display(self, cid):
+        for nH, z, nMg, dG0 in self.ToMatrix():
+            print "C%05d | %2d | %2d | %3d | %6.2f" % (cid, nH, z, nMg, dG0)
     
     def GetdG0(self, nH, z, nMg, T=default_T):
         if (nH, z, nMg) not in self.dgs:

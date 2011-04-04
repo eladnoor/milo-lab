@@ -128,24 +128,21 @@ def add_thermodynamic_constraints(cpl, dG0_f, c_range=(1e-6, 1e-2), T=default_T,
 
     if bounds != None and len(bounds) != Nc:
         raise Exception("The concentration bounds list must be the same length as the number of compounds")
+    if bounds == None:
+        bounds = [(None, None)] * Nc
     
     for c in xrange(Nc):
         if pylab.isnan(dG0_f[c, 0]):
             continue # unknown dG0_f - cannot bound this compound's concentration at all
 
-        if bounds == None or bounds[c][0] == None:
-            # lower bound: dG0_f + R*T*ln(Cmin) <= x_i
-            cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(c_range[0]))
-        else:
-            # this compound has a specific lower bound on its activity
-            cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][0]))
+        b_low = bounds[c][0] or c_range[0]
+        b_high = bounds[c][1] or c_range[1]
 
-        if bounds == None or bounds[c][1] == None:
-            # upper bound: x_i <= dG0_f + R*T*ln(Cmax)
-            cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(c_range[1]))
-        else:
-            # this compound has a specific upper bound on its activity
-            cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][1]))
+        # lower bound: dG0_f + R*T*ln(Cmin) <= x_i
+        cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(b_low))
+
+        # upper bound: x_i <= dG0_f + R*T*ln(Cmax)
+        cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(b_high))
 
 def find_mtdf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stream=None):
     """
@@ -186,24 +183,28 @@ def find_mtdf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stre
 def pC_to_range(pC, c_mid=1e-3, ratio=3.0):
     return (c_mid * 10 ** (-ratio/(ratio+1.0) * pC), c_mid * 10 ** (1.0/(ratio+1.0) * pC))
 
-def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, T=default_T, bounds=None):   
+def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stream=None):
     """
-        For any compound that does not have an explicit bound set by the 'bounds' argument,
-        create a bound using the 'margin' variables (the last to columns of A).
-        
-        The constraints will eventually look like this:
-        
-        ln(c_mid) - r/(1+r) * pC <= ln(c) <= ln(c_mid) + 1/(1+r) * pC 
-    """
+        Compute the feasibility of a given set of reactions
     
-    Nc = dG0_f.shape[0]
+        input: S = stoichiometric matrix (reactions x compounds)
+               dG0_f = deltaG0'-formation values for all compounds (in kJ/mol) (1 x compounds)
+               c_mid = the default concentration
+               ratio = the ratio between the distance of the upper bound from c_mid and the lower bound from c_mid (in logarithmic scale)
+        
+        output: (concentrations, margin)
+    """
+    Nc = S.shape[1]
+    if Nc != dG0_f.shape[0]:
+        raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
 
+    cpl = create_cplex(S, dG0_f, log_stream)
     if bounds != None and len(bounds) != Nc:
         raise Exception("The concentration bounds list must be the same length as the number of compounds")
     
     cpl.variables.add(names=['pC'], lb=[0], ub=[1e6])
     for c in xrange(Nc):
-        if (pylab.isnan(dG0_f[c, 0])):
+        if pylab.isnan(dG0_f[c, 0]):
             continue # unknown dG0_f - cannot bound this compound's concentration at all
 
         if bounds == None or bounds[c][0] == None:
@@ -229,23 +230,55 @@ def generate_constraints_pCr(cpl, dG0_f, c_mid, ratio, T=default_T, bounds=None)
     # Set 'pC' as the objective
     cpl.objective.set_linear([("pC", 1)])
 
-def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stream=None):
+    #cpl.write("../res/test_PCR.lp", "lp")
+    cpl.solve()
+    if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal:
+        raise LinProgNoSolutionException("")
+    dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
+    concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
+    pCr = cpl.solution.get_values(["pC"])[0]
+
+    return (dG_f, concentrations, pCr)
+
+def find_ratio(S, dG0_f, index_up, index_down, c_range=(1e-6, 1e-2), c_mid=None, 
+               T=default_T, bounds=None, log_stream=None):
     """
-        Compute the feasibility of a given set of reactions
+        Compute the smallest ratio between two concentrations which makes the pathway feasible.
+        All other compounds except these two are constrained by 'boudns' or unconstrained at all.
     
-        input: s1 = stoichiometric matrix (reactions x compounds)
-               dG = deltaG0'-formation values for all compounds (in kJ/mol) (1 x compounds)
-               c_mid = the default concentration
-               ratio = the ratio between the distance of the upper bound from c_mid and the lower bound from c_mid (in logarithmic scale)
+        input: S = stoichiometric matrix (reactions x compounds)
+               dG0_f = deltaG0'-formation values for all compounds (in kJ/mol) (1 x compounds)
+               index_up = the index of the compound whose concentration is in numerator
+               index_down = the index of the compound whose concentration is in denominator
         
-        output: (concentrations, margin)
+        output: (concentrations, ratio)
     """
     Nc = S.shape[1]
     if Nc != dG0_f.shape[0]:
         raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
 
     cpl = create_cplex(S, dG0_f, log_stream)
-    generate_constraints_pCr(cpl, dG0_f, c_mid=c_mid, ratio=ratio, bounds=bounds)
+    c_mid = c_mid or pylab.sqrt(c_range[0] * c_range[1])
+
+    if bounds != None and len(bounds) != Nc:
+        raise Exception("The concentration bounds list must be the same length as the number of compounds")
+    if bounds == None:
+        bounds = [(None, None)] * Nc
+    
+    for c in xrange(Nc):
+        if pylab.isnan(dG0_f[c, 0]):
+            continue # unknown dG0_f - cannot bound this compound's concentration at all
+
+        b_low = bounds[c][0] or c_range[0]
+        b_high = bounds[c][1] or c_range[1]
+
+        # lower bound: dG0_f + R*T*ln(Cmin) <= x_i
+        cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(b_low))
+
+        # upper bound: x_i <= dG0_f + R*T*ln(Cmax)
+        cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(b_high))
+
+    # TODO: add the special constraints for the two compounds whose ratio must be optimized.
 
     #cpl.write("../res/test_PCR.lp", "lp")
     cpl.solve()
@@ -291,7 +324,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
     kegg = Kegg.getInstance()
     
     kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
-    dG0_f = thermodynamics.write_pseudoisomers_to_html(html_writer, kegg, cids)
+    dG0_f = thermodynamics.GetTransformedFormationEnergies(html_writer, kegg, cids)
     bounds = [thermodynamics.bounds.get(cid, (None, None)) for cid in cids]
     res = {}
     try:

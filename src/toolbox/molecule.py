@@ -43,6 +43,14 @@ class Molecule(object):
     def SetBondLength(l):
         Molecule._indigo.setOption('render-bond-length', l)
     
+    @staticmethod
+    def VerifySmarts(smarts):
+        try:
+            pybel.Smarts(smarts)
+            return True
+        except IOError:
+            return False
+    
     def __init__(self):
         self.title = None
         self.obmol = openbabel.OBMol()

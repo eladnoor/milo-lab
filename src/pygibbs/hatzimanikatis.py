@@ -79,8 +79,9 @@ class Hatzi (Thermodynamics):
                 try:
                     diss_table.min_nH = self.charge2nH(cid, charge)
                 except KeyError:
-                    logging.warning('The compound C%05d is missing from KEGG' % cid)
-                    diss_table.nH = 0
+                    raise MissingCompoundFormationEnergy('The compound C%05d is missing from KEGG' % cid)
+                except ValueError:
+                    diss_table.min_nH = 0
                 self.cid2DissociationTable[cid] = diss_table
             
             nH = self.cid2DissociationTable[cid].min_nH + (charge - self.cid2DissociationTable[cid].min_charge)
@@ -124,6 +125,7 @@ if (__name__ == "__main__"):
     H_nopka = Hatzi()
     H_nopka.use_pKa = False
     H = Hatzi()
+    H.ToDatabase(db, 'hatzi_thermodynamics')
     
     #H.ToDatabase(db, 'hatzi_gc')
     #H.I = 0.25

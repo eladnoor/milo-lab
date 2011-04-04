@@ -7,6 +7,7 @@ import json
 from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 from pygibbs import thermodynamic_constants
 from pygibbs.pseudoisomer import PseudoisomerMap
+from pygibbs.kegg import Kegg
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -93,27 +94,13 @@ class Thermodynamics(object):
                     (cid, coeff) in sparse_reaction.iteritems()])
     
     def cid_to_bounds(self, cid, use_default=True):
-        (curr_c_min, curr_c_max) = self.bounds.get(cid, (None, None))
-        if (curr_c_min == None and use_default):
+        curr_c_min, curr_c_max = self.bounds.get(cid, (None, None))
+        if not curr_c_min and use_default:
             curr_c_min = self.c_range[0]
-        if (curr_c_max == None and use_default):
+        if not curr_c_max and use_default:
             curr_c_max = self.c_range[1]
         return (curr_c_min, curr_c_max)
 
-    @staticmethod
-    def pmap_to_table(pmap, pH=default_pH, pMg=default_pMg, I=default_I, T=default_T):
-        s = ""
-        s += "%2s | %2s | %3s | %7s | %7s\n" % ("nH", "z", "nMg", "dG0_f", "dG0'_f")
-        s += "-" * 35 + "\n"
-        for nH, z, nMg, dG0 in pmap.ToMatrix():
-            dG0_tag = thermodynamic_constants.transform(dG0, nH, nMg, z, pH, pMg, I, T)
-            s += "%2d | %2d | %3d | %7.1f | %7.1f\n" % (nH, z, nMg, dG0, dG0_tag)
-        return s     
-
-    def display_pmap(self, cid):
-        for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
-            print "C%05d | %2d | %2d | %3d | %6.2f" % (cid, nH, z, nMg, dG0)
-    
     def WriteDataToHtml(self, html_writer, kegg):
         dict_list = []
         for cid in self.get_all_cids():
@@ -181,10 +168,14 @@ class Thermodynamics(object):
             
     def ToDatabase(self, db, table_name):
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
-                       "dG0_f REAL, anchor BOOL")
+                       "dG0 REAL, anchor BOOL")
         for cid in self.get_all_cids():
-            for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
-                db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
+            try:
+                for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
+                    db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
+            except MissingCompoundFormationEnergy as e:
+                logging.warning(str(e))
+                continue
         db.Commit()
 
     def FromDatabase(self, db, table_name):
@@ -197,32 +188,83 @@ class Thermodynamics(object):
             if row['anchor']:
                 self.anchors.add(row['cid'])
     
-    def write_pseudoisomers_to_html(self, html_writer, kegg, cids):
-        # calculate the dG0_f of each compound
+    def GetTransformedFormationEnergies(self, cids):
+        """ calculate the dG0_f of each compound """
         dG0_f = pylab.zeros((len(cids), 1))
+        for c, cid in enumerate(cids):
+            try:
+                dG0_f[c] = self.cid2dG0_tag(cid)
+            except MissingCompoundFormationEnergy:
+                # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
+                dG0_f[c] = pylab.nan
+        return dG0_f
+        
+    def WriteFormationEnergiesToHTML(self, html_writer, cids):
+        """ calculate the dG0_f of each compound """
+        kegg = Kegg.getInstance()
         html_writer.write('<table border="1">\n')
         html_writer.write('  ' + '<td>%s</td>'*6 % ("KEGG CID", "Compound Name", 
                                                     "dG0_f [kJ/mol]", "nH", "z", 
                                                     "nMg") + '\n')
-        for c, cid in enumerate(cids):
+        for cid in cids:
             name = kegg.cid2name(cid)
             try:
                 for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                     html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2f</td><td>%d</td><td>%d</td><td>%d</td></tr>\n' % \
                                       (kegg.cid2link(cid), cid, name, dG0, nH, z, nMg))
-                dG0_f[c] = self.cid2dG0_tag(cid)
-            
             except MissingCompoundFormationEnergy:
-                # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
-                dG0_f[c] = pylab.nan
                 html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % \
                                   (kegg.cid2link(cid), cid, name))
         html_writer.write('</table>\n')
-        return dG0_f
     
-class PsuedoisomerTableThermodynamics(Thermodynamics):
+class ThermodynamicsWithCompoundAbundance(Thermodynamics):
+    
     def __init__(self):
         Thermodynamics.__init__(self)
+        self.media_list = []
+        self.default_c0 = 1 # Molar
+        self.cid2conc = {}
+    
+    def LoadConcentrationsFromBennett(self, filename=
+            '../data/thermodynamics/compound_abundance.csv'):
+        
+        self.media_list = ['glucose', 'glycerol', 'acetate']
+        for row in csv.DictReader(open(filename, 'r')):
+            if not row['KEGG ID']:
+                continue
+            cid = int(row['KEGG ID'])
+            if row['use'] != '1':
+                continue
+            for media in self.media_list:
+                try:
+                    conc = float(row[media])
+                    self.cid2conc[(cid, media)] = conc
+                except ValueError:
+                    pass
+
+    def LoadConcentrationsFromDB(self, db, table_name='compound_abundance'):
+        self.media_list = []
+        if db.DoesTableExist(table_name):
+            for row in db.Execute("SELECT media FROM compound_abundance GROUP BY media"):
+                self.media_list.append(row[0])
+                
+            self.cid2conc = {}
+            for row in self.db.Execute("SELECT cid, media, concentration FROM compound_abundance"):
+                cid, media, conc = row
+                self.cid2conc[(cid, media)] = conc # in [M]
+
+    def GetConcentration(self, cid, c0=None, media=None):
+        c0 = c0 or self.default_c0
+        if cid == 1: # the concentration of water must always be 1 [M]
+            return 1
+        if not media:
+            return c0
+        return self.cid2conc.get((cid, media), c0)
+    
+class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
+    
+    def __init__(self):
+        ThermodynamicsWithCompoundAbundance.__init__(self)
         self.cid2pmap_dict = {}
         
     @staticmethod

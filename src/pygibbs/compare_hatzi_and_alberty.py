@@ -3,18 +3,17 @@ import pylab
 from alberty import Alberty, MissingCompoundFormationEnergy
 from hatzimanikatis import Hatzi
 from groups import GroupContribution
-from nist_train import GradientAscent
 from thermodynamic_constants import R
 import logging
 import sys
+from toolbox.database import SqliteDatabase
 
 A = Alberty()
 H = Hatzi()
-gc = GroupContribution(sqlite_name="gibbs.sqlite", html_name="dG0_test")
+db = SqliteDatabase('../res/gibbs.sqlite')
+gc = GroupContribution(db)
 gc.init()
-nist = Nist(gc.kegg())
-grad = GradientAscent(gc)
-grad.FromDatabase()
+nist = Nist()
 
 def pH_dependence():
     
@@ -60,11 +59,11 @@ def pH_dependence():
         
         logging.info("Compound parameters from Alberty's table:")
         for cid in analyze_this_reaction[i].keys():
-            A.display_pmap(cid)
+            A.cid2PseudoisomerMap(cid).Display()
         
         logging.info("Compound parameters from Hatzimanikatis' table:")
         for cid in analyze_this_reaction[i].keys():
-            H.display_pmap(cid)
+            H.cid2PseudoisomerMap(cid).Display()
         
         M_obs = []
         sys.stdout.write("%5s | %5s | %5s | %6s | %6s | %s\n" % ("Match", "pH", "I", "T", "dG0(N)", "link"))
@@ -97,7 +96,7 @@ def pH_dependence():
         I_high = I_mid[i]+I_tolerance[i]
         for pH in pH_range:
             predictions = []
-            for predictor in [A, H, grad]:
+            for predictor in [A, H]:
                 predictions.append(predictor.reaction_to_dG0(sparse_reaction, pH, I=I_low, T=T_mid[i]))
                 predictions.append(predictor.reaction_to_dG0(sparse_reaction, pH, I=I_mid[i], T=T_mid[i]))
                 predictions.append(predictor.reaction_to_dG0(sparse_reaction, pH, I=I_high, T=T_mid[i]))
@@ -127,15 +126,15 @@ def pH_dependence():
             pylab.xlabel('pH')
         if (i == 0 or i == 2):
             pylab.ylabel(r"$\Delta_r G'^\circ$ [kJ/mol]")
-        s_title = gc.kegg().sparse_reaction_to_string(sparse_reaction, cids=False) + "\n"
+        s_title = gc.kegg.sparse_reaction_to_string(sparse_reaction, cids=False) + "\n"
         s_title += "($I = %.2f \pm %.2f$ $M$, $T = %.1f \pm %.1f$ $K$)" % (I_mid[i], I_tolerance[i], T_mid[i]-273.15, T_tolerance[i])
         pylab.title(s_title, fontsize=5)
     pylab.savefig('../res/compare_pH.pdf', format='pdf')
 
 def map_rid_to_nist_rowids():
     rid_to_nist_rowids = {}
-    for rid in gc.kegg().get_all_rids():
-        sparse_reaction = gc.kegg().rid2sparse_reaction(rid)
+    for rid in gc.kegg.get_all_rids():
+        sparse_reaction = gc.kegg.rid2sparse_reaction(rid)
         for rowid in range(len(nist.data)):
             row = nist.data[rowid]
             if (sparse_reaction == row[6]):
@@ -177,7 +176,7 @@ def uncertainty_comparison():
         rid_to_nist_rowids = map_rid_to_nist_rowids()
         data_mat = []
         for (rid, rowids) in rid_to_nist_rowids.iteritems():
-            sparse_reaction = gc.kegg().rid2sparse_reaction(rid)
+            sparse_reaction = gc.kegg.rid2sparse_reaction(rid)
             try:
                 error_mat = []
                 for rowid in rowids:
@@ -185,7 +184,7 @@ def uncertainty_comparison():
                     #evaluation = row[3] # A, B, C, D
                     [Keq, T, I, pH] = row[8:12]
                     dG0_obs = -R*T*pylab.log(Keq)
-                    dG0_est = [predictor.reaction_to_dG0(sparse_reaction, pH, I, T) for predictor in [A, H, grad]]
+                    dG0_est = [predictor.reaction_to_dG0(sparse_reaction, pH, I, T) for predictor in [A, H]]
                     error_mat.append([(dG0_obs - x) for x in dG0_est])
                 error_mat = pylab.array(error_mat)
                 rmse = pylab.sqrt(pylab.mean(error_mat**2, 0))

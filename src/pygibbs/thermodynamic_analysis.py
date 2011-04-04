@@ -10,12 +10,11 @@ import matplotlib
 import logging
 from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
-from pygibbs.groups import GroupContribution
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs import kegg_utils
-from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from copy import deepcopy
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -47,6 +46,7 @@ class ThermodynamicAnalysis(object):
                              'SLACK':self.analyze_slack,
                              'MARGIN':self.analyze_margin,
                              'CONTOUR':self.analyze_contour,
+                             'REDOX':self.analyze_redox2,
                              'PROTONATION':self.analyze_protonation}
 
             analysis_type = field_map.GetStringField('TYPE')
@@ -80,6 +80,14 @@ class ThermodynamicAnalysis(object):
         """
             read the list of reactions from the command file
         """
+        # Explicitly map some of the CIDs to new ones.
+        # This is useful, for example, when a KEGG module uses unspecific co-factor pairs,
+        # like NTP => NDP, and we replace them with ATP => ADP 
+        cid_mapping = {}
+        if "MAP_CID" in field_map:
+            for line in field_map["MAP_CID"].strip().split('\t'):
+                cid_before, cid_after = [int(cid[1:]) for cid in line.split(None, 1)]
+                cid_mapping[cid_before] = (cid_after, 1.0)
         
         if "MODULE" in field_map:
             mid_str = field_map["MODULE"]
@@ -87,19 +95,10 @@ class ThermodynamicAnalysis(object):
                 mid = int(mid_str[1:])
             else:
                 mid = int(mid_str)
-            (S, rids, fluxes, cids) = self.kegg.get_module(mid)
+            S, rids, fluxes, cids = self.kegg.get_module(mid)
             self.html_writer.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
         else:
-            (S, rids, fluxes, cids) = self.kegg.parse_explicit_module(field_map) 
-        
-        # Explicitly map some of the CIDs to new ones.
-        # This is useful, for example, when a KEGG module uses unspecific co-factor pairs,
-        # like NTP => NDP, and we replace them with ATP => ADP 
-        if "MAP_CID" in field_map:
-            for line in field_map["MAP_CID"].split('\t'):
-                (cid_before, cid_after) = [int(cid[1:]) for cid in line.split(None, 1)]
-                if (cid_before in cids):
-                    cids[cids.index(cid_before)] = cid_after
+            S, rids, fluxes, cids = self.kegg.parse_explicit_module(field_map, cid_mapping) 
         
         return (S, rids, fluxes, cids)
 
@@ -222,16 +221,17 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('</ol></li>')
                     
         # The method for how we are going to calculate the dG0
-        (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
         self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
         self.html_writer.write('</ul>\n')
         self.write_metabolic_graph(key, S, rids, cids)
         
         physiological_pC = field_map.GetFloatField('PHYSIO', default_value=4)
-        (Nr, Nc) = S.shape
+        Nr, Nc = S.shape
 
         # calculate the dG_f of each compound, and then use S to calculate dG_r
-        dG0_f = self.thermo.write_pseudoisomers_to_html(self.html_writer, self.kegg, cids)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+        dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
         bounds = [concentration_bounds.get(cid, (None, None)) for cid in cids]
         pC = pylab.arange(0, 20, 0.1)
         B_vec = pylab.zeros(len(pC))
@@ -348,6 +348,88 @@ class ThermodynamicAnalysis(object):
         thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.html_writer)
         kegg_utils.write_module_to_html(self.html_writer, S, rids, fluxes, cids)
 
+    def analyze_redox(self, key, field_map):
+        self.html_writer.write('<p>\n')
+        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
+        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(4.0, 10.01, 0.25))
+        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(-3.0, 3.01, 0.5))
+        c_mid = field_map.GetFloatField("C_MID", thermo.c_mid)
+
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+
+        pCr_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        for i, pH in enumerate(pH_list):
+            self.thermo.pH = pH
+            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            for j, redox in enumerate(redox_list):
+                cid2bounds = deepcopy(self.kegg.cid2bounds)
+                r = 10**(redox/2.0)
+                cid2bounds[3] = (c_mid * r, c_mid * r) # NAD+
+                cid2bounds[4] = (c_mid / r, c_mid / r) # NADH
+                cid2bounds[6] = (c_mid * r, c_mid * r) # NADPH
+                cid2bounds[5] = (c_mid / r, c_mid / r) # NADP+
+                bounds = [cid2bounds.get(cid, (None, None)) for cid in cids]
+                try:
+                    unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
+                except LinProgNoSolutionException:
+                    pCr = -1
+                pCr_mat[i, j] = pCr
+                
+        contour_fig = pylab.figure()
+        pH_meshlist, r_meshlist = pylab.meshgrid(pH_list, redox_list)
+        CS = pylab.contour(pH_meshlist.T, r_meshlist.T, pCr_mat)       
+        pylab.clabel(CS, inline=1, fontsize=10)
+        pylab.xlabel("pH")
+        pylab.ylabel("$\\log{\\frac{[NAD(P)^+]}{[NAD(P)H]}}$")
+        pylab.title("pCr as a function of pH and Redox state")
+        self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
+        self.html_writer.write('</p>')
+        
+    def analyze_redox2(self, key, field_map):
+        self.html_writer.write('<p>\n')
+        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
+        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(4.0, 10.01, 0.25))
+        atp_list = field_map.GetVFloatField("ATP_RATIO", pylab.arange(-3.0, 3.01, 0.5))
+        c_range = tuple(field_map.GetVFloatField("C_RANGE", thermo.c_range))
+        c_mid = field_map.GetFloatField("C_MID", thermo.c_mid)
+        
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+
+        pCr_mat = pylab.zeros((len(pH_list), len(atp_list)))
+        for i, pH in enumerate(pH_list):
+            self.thermo.pH = pH
+            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            for j, atp_ratio in enumerate(atp_list):
+                cid2bounds = dict([(cid, c_range) for cid in cids])
+                r = 10**(atp_ratio)
+                cid2bounds[2] =  (c_mid*r,  c_mid*r) # ATP
+                cid2bounds[8] =  (c_mid,    c_mid  ) # ADP
+                cid2bounds[20] = (c_mid/r,  c_mid/r) # AMP
+                for cid in [3, 4]:
+                    cid2bounds[cid] = (None, None)
+                bounds = [cid2bounds.get(cid, c_range) for cid in cids]
+                try:
+                    unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
+                except LinProgNoSolutionException:
+                    pCr = -1
+                pCr_mat[i, j] = pCr
+                
+        contour_fig = pylab.figure()
+        pH_meshlist, atp_meshlist = pylab.meshgrid(pH_list, atp_list)
+        CS = pylab.contour(pH_meshlist.T, atp_meshlist.T, pCr_mat)       
+        pylab.clabel(CS, inline=1, fontsize=10)
+        pylab.xlabel("pH")
+        pylab.ylabel("$\\log{\\frac{[ATP]}{[ADP]}}$")
+        pylab.title("Redox Balance as a function of pH and Redox state")
+        self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
+        self.html_writer.write('</p>')
+        
     def analyze_contour(self, key, field_map):
         pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
         I_list = field_map.GetVFloatField("I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
@@ -409,9 +491,9 @@ if __name__ == "__main__":
     db_public = SqliteDatabase('../data/public_data.sqlite')
     html_writer = HtmlWriter('../res/thermodynamic_pathway_analysis.html')
     
-    #G = GroupContribution(db, html_writer=html_writer)
-    #G.init()
-    #G.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
+    #thermo = GroupContribution(db, html_writer=html_writer)
+    #thermo.init()
+    #thermo.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
     
     # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
     # Where: 
@@ -427,17 +509,20 @@ if __name__ == "__main__":
     # [1] - Thauer 1977
     
     if True:
-        G = Hatzi()
-        G.AddPseudoisomer( 139, nH=0,  z=1, nMg=0, dG0=0)      # Ferrodoxin(ox)
-        G.AddPseudoisomer( 138, nH=0,  z=0, nMg=0, dG0=38.0)   # Ferrodoxin(red)
-        G.AddPseudoisomer( 399, nH=90, z=0, nMg=0, dG0=0)      # Ubiquinone-10(ox)
-        G.AddPseudoisomer( 390, nH=92, z=0, nMg=0, dG0=-103.2) # Ubiquinone-10(red)
-        G.AddPseudoisomer( 828, nH=16, z=0, nMg=0, dG0=0)      # Menaquinone(ox)
-        G.AddPseudoisomer(5819, nH=18, z=0, nMg=0, dG0=-65.8)  # Menaquinone(red)
+        thermo = PsuedoisomerTableThermodynamics.FromDatabase(db, 'hatzi_thermodynamics')
+        thermo.AddPseudoisomer( 139, nH=0,  z=1, nMg=0, dG0=0)      # Ferrodoxin(ox)
+        thermo.AddPseudoisomer( 138, nH=0,  z=0, nMg=0, dG0=38.0)   # Ferrodoxin(red)
+        thermo.AddPseudoisomer( 399, nH=90, z=0, nMg=0, dG0=0)      # Ubiquinone-10(ox)
+        thermo.AddPseudoisomer( 390, nH=92, z=0, nMg=0, dG0=-103.2) # Ubiquinone-10(red)
+        thermo.AddPseudoisomer( 828, nH=16, z=0, nMg=0, dG0=0)      # Menaquinone(ox)
+        thermo.AddPseudoisomer(5819, nH=18, z=0, nMg=0, dG0=-65.8)  # Menaquinone(red)
     else:
-        G = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+        thermo = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
     
-    thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=G)
+    kegg = Kegg.getInstance()
+    thermo.bounds = deepcopy(kegg.cid2bounds)
+    
+    thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
     #thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
     thermo_analyze.analyze_pathway("../data/thermodynamics/pathways_carbon_fixation.txt")
     
