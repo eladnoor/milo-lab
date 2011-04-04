@@ -8,6 +8,7 @@ from toolbox.database import SqliteDatabase
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggMissingModuleException
 from pygibbs.thermodynamic_constants import R, default_T
+import logging
 
 try:
     import cplex
@@ -99,21 +100,22 @@ def linprog(f, A, b, lb=[], ub=[], log_stream=None):
 
 def create_cplex(S, dG0_f, log_stream=None):
     cpl = cplex.Cplex()
-    if (log_stream != None):
-        cpl.set_log_stream(log_stream)
-    else:
-        cpl.set_log_stream(None)
+    cpl.set_log_stream(log_stream)
     cpl.set_results_stream(None)
-    #cpl.set_warning_stream(None)
+    cpl.set_warning_stream(None)
     
     Nr, Nc = S.shape
     cpl.set_problem_name('LP')
+    
+    # name the variables for the dG'_f of each compound
     cpl.variables.add(names=["c%d" % c for c in range(Nc)], lb=[-1e6]*Nc, ub=[1e6]*Nc)
 
     for r in xrange(Nr):
-        c_list = pylab.find(S[r, :])
+        # name the constraints that describe the dG'_r of each reaction and constrain them to be <= 0
         cpl.linear_constraints.add(senses='L', names=["r%d" % r], rhs=[0])
-        for c in c_list:
+        
+        # use S to define the relationship between dG'_f and dG'_r
+        for c in pylab.find(S[r, :]):
             cpl.linear_constraints.set_coefficients("r%d" % r, "c%d" % c, S[r, c])
 
     return cpl
@@ -238,13 +240,13 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stre
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
     pCr = cpl.solution.get_values(["pC"])[0]
 
-    return (dG_f, concentrations, pCr)
+    return dG_f, concentrations, pCr
 
 def find_ratio(S, dG0_f, index_up, index_down, c_range=(1e-6, 1e-2), c_mid=None, 
                T=default_T, bounds=None, log_stream=None):
     """
         Compute the smallest ratio between two concentrations which makes the pathway feasible.
-        All other compounds except these two are constrained by 'boudns' or unconstrained at all.
+        All other compounds except these two are constrained by 'bounds' or unconstrained at all.
     
         input: S = stoichiometric matrix (reactions x compounds)
                dG0_f = deltaG0'-formation values for all compounds (in kJ/mol) (1 x compounds)
@@ -257,6 +259,9 @@ def find_ratio(S, dG0_f, index_up, index_down, c_range=(1e-6, 1e-2), c_mid=None,
     if Nc != dG0_f.shape[0]:
         raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
 
+    if pylab.isnan(dG0_f[index_up, 0]) or pylab.isnan(dG0_f[index_down, 0]):
+        raise Exception("The formation energy of the compounds whose ratio is optimized must be known")
+
     cpl = create_cplex(S, dG0_f, log_stream)
     c_mid = c_mid or pylab.sqrt(c_range[0] * c_range[1])
 
@@ -266,29 +271,39 @@ def find_ratio(S, dG0_f, index_up, index_down, c_range=(1e-6, 1e-2), c_mid=None,
         bounds = [(None, None)] * Nc
     
     for c in xrange(Nc):
-        if pylab.isnan(dG0_f[c, 0]):
+        if c == index_up or c == index_down or pylab.isnan(dG0_f[c, 0]):
             continue # unknown dG0_f - cannot bound this compound's concentration at all
 
         b_low = bounds[c][0] or c_range[0]
         b_high = bounds[c][1] or c_range[1]
 
-        # lower bound: dG0_f + R*T*ln(Cmin) <= x_i
+        # change the lower and upper bounds for this compound, to be in a narrow range
+        # corresponding to the bounds on its concentration
+        
+        # lower bound: x >= dG0_f + R*T*ln(Cmin)
         cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(b_low))
 
-        # upper bound: x_i <= dG0_f + R*T*ln(Cmax)
+        # upper bound: x <= dG0_f + R*T*ln(Cmax)
         cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(b_high))
 
-    # TODO: add the special constraints for the two compounds whose ratio must be optimized.
-
-    #cpl.write("../res/test_PCR.lp", "lp")
+    # constrain the sum of c_up and c_down:
+    dG_sum = dG0_f[index_up, 0] + dG0_f[index_down, 0] + 2*R*T*pylab.log(c_mid)
+    cpl.linear_constraints.add(senses='E', names=['dG_sum'], rhs=[dG_sum])
+    cpl.linear_constraints.set_coefficients('dG_sum', 'c%d' % index_up, 1)
+    cpl.linear_constraints.set_coefficients('dG_sum', 'c%d' % index_down, 1)
+    
+    # the optimization function would be to minimize the c_up
+    cpl.objective.set_linear([('c%d' % index_up, 1), ('c%d' % index_down, -1)])
+    
+    cpl.write("../res/test_Ratio.lp", "lp")
     cpl.solve()
     if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal:
         raise LinProgNoSolutionException("")
     dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
-    pCr = cpl.solution.get_values(["pC"])[0]
+    log_ratio = pylab.log10(concentrations[index_up] / concentrations[index_down])
 
-    return (dG_f, concentrations, pCr)
+    return dG_f, concentrations, log_ratio
 
 def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, T=default_T, bounds=None, log_stream=None):
     """ 
