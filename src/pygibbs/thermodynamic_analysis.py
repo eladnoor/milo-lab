@@ -23,7 +23,7 @@ class ThermodynamicAnalysis(object):
         self.kegg = Kegg.getInstance()
         self.db = db
 
-    def analyze_pathway(self, filename):
+    def analyze_pathway(self, filename, insert_toggles=True, write_measured_concentrations=False):
         self.html_writer.write("<h1>Pathway analysis using Group Contribution Method</h1>\n")
         entry2fields_map = ParsedKeggFile.FromKeggFile(filename)
         
@@ -33,10 +33,11 @@ class ThermodynamicAnalysis(object):
                 logging.info("skipping pathway: " + key)
                 continue
             try:
-                self.html_writer.write("<b>%s - %s</b>" % (field_map.GetStringField('NAME'), field_map.GetStringField('TYPE')))
-                self.html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (key))
-                self.html_writer.write('<div id="%s" style="display:none">' % key)
+                self.html_writer.write('<p>\n')
                 self.html_writer.write('<h2>%s - %s</h2>\n' % (field_map.GetStringField('NAME'), field_map.GetStringField('TYPE')))
+                if insert_toggles:
+                    self.html_writer.insert_toggle(key)
+                    self.html_writer.start_div(key)
             except KeyError:
                 raise Exception("Both the 'NAME' and 'TYPE' fields must be defined for each pathway")
 
@@ -54,18 +55,22 @@ class ThermodynamicAnalysis(object):
                 function_dict[analysis_type](key, field_map)     
             else:
                 raise Exception("Unknown analysis type: " + analysis_type)
-            
-            self.html_writer.write('</div><br>\n')
-            
-        self.html_writer.write('<h4>Measured concentration table:</h4>\n')
-        self.html_writer.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % ('__concentrations__'))
-        self.html_writer.write('<div id="%s" style="display:none">' % '__concentrations__')
-        self.html_writer.write('<p><h2>Abundance</h2>\n')
-        self.db.Query2HTML(self.html_writer,
-                           "SELECT cid, media, 1000*concentration from compound_abundance ORDER BY cid, media",
-                           column_names=["cid", "media", "concentration [mM]"])
-        self.html_writer.write('</p>\n')
-        self.html_writer.write('</div><br>\n')
+            if insert_toggles:
+                self.html_writer.end_div()
+            self.html_writer.write('</p>\n')
+        
+        if write_measured_concentrations:    
+            self.html_writer.write('<p>\n')
+            self.html_writer.write('<h2>Measured concentration table:</h2>\n')
+            if insert_toggles:
+                div_id = self.html_writer.insert_toggle()
+                self.html_writer.start_div(div_id)
+            self.db.Query2HTML(self.html_writer,
+                               "SELECT cid, media, 1000*concentration from compound_abundance ORDER BY cid, media",
+                               column_names=["cid", "media", "concentration [mM]"])
+            if insert_toggles:
+                self.html_writer.end_div()
+            self.html_writer.write('</p>\n')
 
     @staticmethod
     def get_float_parameter(s, name, default_value):
@@ -102,6 +107,26 @@ class ThermodynamicAnalysis(object):
         
         return (S, rids, fluxes, cids)
 
+    def write_reactions_to_html(self, S, rids, fluxes, cids, show_cids=True):
+        self.thermo.pH = 7
+        dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+        dG0_r = pylab.dot(S, dG0_f)
+        
+        self.html_writer.write("<li>Reactions:</br><ul>\n")
+        
+        for r in range(S.shape[0]):
+            self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + '>R%05d ' % rids[r] + '</a>')
+            self.html_writer.write('[x%g, &#x394;G<sub>r</sub><sup>0</sup> = %.1f] : ' % (fluxes[r], dG0_r[r, 0]))
+            self.html_writer.write(self.kegg.vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
+            self.html_writer.write('</li>\n')
+        
+        v_total = pylab.dot(pylab.matrix(fluxes), S).flat
+        dG0_total = pylab.dot(pylab.matrix(fluxes), dG0_r)[0,0]
+        self.html_writer.write('<li><b>Total </b>')
+        self.html_writer.write('[&#x394;G<sub>r</sub><sup>0</sup> = %.1f] : \n' % dG0_total)
+        self.html_writer.write(self.kegg.vector_to_hypertext(v_total, cids, show_cids=show_cids))
+        self.html_writer.write("</li></ul></li>\n")
+        
     def write_metabolic_graph(self, name, S, rids, cids):
         """
             draw a graph representation of the pathway
@@ -110,7 +135,6 @@ class ThermodynamicAnalysis(object):
         self.html_writer.embed_dot(Gdot, name, width=400, height=400)
 
     def analyze_profile(self, key, field_map):
-        self.html_writer.write('<p>\n')
         self.html_writer.write('<ul>\n')
         self.html_writer.write('<li>Conditions:</br><ol>\n')
         # read the list of conditions from the command file
@@ -197,10 +221,8 @@ class ThermodynamicAnalysis(object):
         pylab.xlabel("Reaction no.")
         pylab.ylabel("dG [kJ/mol]")
         self.html_writer.embed_matplotlib_figure(profile_fig, width=800, heigh=600)
-        self.html_writer.write('</p>')
     
     def analyze_slack(self, key, field_map):
-        self.html_writer.write('<p>\n')
         self.html_writer.write('<ul>\n')
         self.html_writer.write('<li>Conditions:</br><ol>\n')
         # c_mid the middle value of the margin: min(conc) < c_mid < max(conc) 
@@ -312,11 +334,8 @@ class ThermodynamicAnalysis(object):
             reaction_str = self.kegg.sparse_to_hypertext(spr)
             self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%g</td>\n' % (rid_str, reaction_str, fluxes[r]))
         self.html_writer.write('</table><br>\n')
-        
-        self.html_writer.write('</p>\n')
 
     def analyze_margin(self, key, field_map):
-        self.html_writer.write('<p>\n')
         (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
         self.html_writer.write('<li>Conditions:</br><ol>\n')
                     
@@ -349,7 +368,6 @@ class ThermodynamicAnalysis(object):
         kegg_utils.write_module_to_html(self.html_writer, S, rids, fluxes, cids)
 
     def analyze_redox(self, key, field_map):
-        self.html_writer.write('<p>\n')
         self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
         self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
         pH_list = field_map.GetVFloatField("PH", pylab.arange(4.0, 10.01, 0.25))
@@ -386,73 +404,72 @@ class ThermodynamicAnalysis(object):
         pylab.ylabel("$\\log{\\frac{[NAD(P)^+]}{[NAD(P)H]}}$")
         pylab.title("pCr as a function of pH and Redox state")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
-        self.html_writer.write('</p>')
         
     def analyze_redox2(self, key, field_map):
-        self.html_writer.write('<p>\n')
         self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
         self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(4.0, 10.01, 0.25))
-        atp_list = field_map.GetVFloatField("ATP_RATIO", pylab.arange(-3.0, 3.01, 0.5))
-        c_range = tuple(field_map.GetVFloatField("C_RANGE", thermo.c_range))
-        c_mid = field_map.GetFloatField("C_MID", thermo.c_mid)
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.25))
+        co2_list = field_map.GetVFloatField("LOG_CO2", pylab.arange(-5.0, -2.01, 0.25))
+        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
         
+        self.html_writer.write('Parameters:</br>\n')
+        self.html_writer.write('<ul>\n')
+        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
+        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
+        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
+                               (c_range[0], c_range[1]))
+        self.html_writer.write('</ul>\n')
+        
+        self.html_writer.insert_toggle(key)
+        self.html_writer.start_div(key)
         S, rids, fluxes, cids = self.get_reactions(key, field_map)
-        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
+        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-
-        i_h2o = cids.index(1)
-        i_atp = cids.index(2)
-        i_nad = cids.index(3)
-        i_nadh = cids.index(4)
-        i_adp = cids.index(8)
-        i_pi = cids.index(9)
-        if 13 in cids:
-            i_ppi = cids.index(13)
-        else:
-            i_ppi = None
-        if 20 in cids:
-            i_amp = cids.index(20)
-        else:
-            i_amp = None
-        bounds = [(None, None)] * len(cids)
-        bounds[i_h2o] = (1.0, 1.0)
+        self.html_writer.end_div()
         
-        r_mat = pylab.zeros((len(pH_list), len(atp_list)))
+        cid2bounds = {}
+        cid2bounds[1] = (1.0, 1.0) # H2O
+        cid2bounds[2] = (1e-3, 1e-3) # ATP
+        cid2bounds[8] = (1e-4, 1e-4) # ADP
+        cid2bounds[20] = (None, None) # AMP
+        cid2bounds[9] = (1e-3, 1e-3) # Pi
+        cid2bounds[13] = (None, None) # PPi
+
+        #cid2bounds[11] = (1e-5, 1e-5) # Co2(aq)
+        cid2bounds[288] = (None, None) # Co2(tot)
+
+        cid2bounds[3] = (None, None) # NAD+
+        cid2bounds[4] = (None, None) # NADH
+        
+        cid2bounds[139] = (None, None)  # Ferrodoxin(ox)
+        cid2bounds[138] = (None, None)  # Ferrodoxin(red)
+        cid2bounds[399] = (None, None)  # Ubiquinone-10(ox)
+        cid2bounds[390] = (None, None)  # Ubiquinone-10(red)
+        cid2bounds[828] = (None, None)  # Menaquinone(ox)
+        cid2bounds[5819] = (None, None) # Menaquinone(red)
+        
+        r_mat = pylab.zeros((len(pH_list), len(co2_list)))
         for i, pH in enumerate(pH_list):
             self.thermo.pH = pH
             dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-            dG0_r_pyrophosphatase = 2*dG0_f[i_pi,0] - dG0_f[i_ppi,0] - dG0_f[i_h2o,0]
-            Keq = pylab.exp(-(dG0_r_pyrophosphatase)/(R*self.thermo.T))
-            
-            pi_conc = 1e-3
-            bounds[i_pi]  = (pi_conc,  pi_conc) # Pi
-            ppi_conc = pi_conc**2 / Keq
-            if i_ppi:
-                bounds[i_ppi] = (ppi_conc,  ppi_conc) # PPi
-            
-            for j, atp_ratio in enumerate(atp_list):
-                r = 10**(atp_ratio)
-                bounds[i_atp] = (c_mid*r, c_mid*r)
-                bounds[i_adp] = (c_mid,   c_mid  )
-                if i_amp:
-                    bounds[i_amp] = (c_mid/r, c_mid/r)
+            for j, log_co2 in enumerate(co2_list):
+                c_co2 = 10**(log_co2)
+                cid2bounds[11] = (c_co2, c_co2) # Co2(aq)
                 try:
-                    _, _, log_ratio = find_ratio(S, dG0_f, i_nadh, i_nad, 
-                        c_range=c_range, T=self.thermo.T, bounds=bounds)
+                    _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=4, cid_down=3, 
+                        c_range=c_range, T=self.thermo.T, cid2bounds=cid2bounds)
                 except LinProgNoSolutionException:
                     log_ratio = 0
                 r_mat[i, j] = log_ratio
                 
         contour_fig = pylab.figure()
-        pH_meshlist, atp_meshlist = pylab.meshgrid(pH_list, atp_list)
+        pH_meshlist, atp_meshlist = pylab.meshgrid(pH_list, co2_list)
         CS = pylab.contour(pH_meshlist.T, atp_meshlist.T, r_mat)       
         pylab.clabel(CS, inline=1, fontsize=10)
         pylab.xlabel("pH")
-        pylab.ylabel("$\\log{\\frac{[ATP]}{[ADP]}}$")
-        pylab.title("log([NADH]/[NAD+]) as a function of pH and ATP/ADP")
-        self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
-        self.html_writer.write('</p>')
+        pylab.ylabel("$\\log{[CO_2]}$")
+        pylab.title("minimal $\\log{\\frac{[NADH]}{[NAD+]}}$ required for feasibility")
+        self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
         
     def analyze_contour(self, key, field_map):
         pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
@@ -476,7 +493,6 @@ class ThermodynamicAnalysis(object):
         pylab.ylabel("Ionic Strength")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
         self.html_writer.write('<br>\n' + self.kegg.sparse_to_hypertext(sparse_reaction) + '<br>\n')
-        self.html_writer.write('</p>')
 
     def analyze_protonation(self, key, field_map):
         pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
@@ -508,7 +524,6 @@ class ThermodynamicAnalysis(object):
         for (nH, z, dG0) in pmatrix:
             self.html_writer.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
         self.html_writer.write('</table>')
-        self.html_writer.write('</p>')
 
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -548,5 +563,5 @@ if __name__ == "__main__":
     
     thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
     #thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
-    thermo_analyze.analyze_pathway("../data/thermodynamics/pathways_carbon_fixation.txt")
+    thermo_analyze.analyze_pathway("../data/thermodynamics/pathways_carbon_fixation.txt", insert_toggles=False)
     
