@@ -18,10 +18,10 @@ from copy import deepcopy
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
-        self.thermo = thermodynamics
-        self.html_writer = html_writer
-        self.kegg = Kegg.getInstance()
         self.db = db
+        self.html_writer = html_writer
+        self.thermo = thermodynamics
+        self.kegg = Kegg.getInstance()
 
     def analyze_pathway(self, filename, insert_toggles=True, write_measured_concentrations=False):
         self.html_writer.write("<h1>Pathway analysis using Group Contribution Method</h1>\n")
