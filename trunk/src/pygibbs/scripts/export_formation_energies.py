@@ -4,17 +4,11 @@ import sys
 
 from optparse import OptionParser
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
-from pygibbs.kegg import Kegg
-from pygibbs.groups import GroupContribution
 from toolbox.database import SqliteDatabase
-
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
-    opt_parser.add_option("-p", "--public_database_location", dest="public_db_filename",
-                          default="../data/public_data.sqlite",
-                          help="The public database location")
     opt_parser.add_option("-d", "--database_location", dest="db_filename",
                           default="../res/gibbs.sqlite",
                           help="The database location")
@@ -40,9 +34,8 @@ def main():
     print 'Output JSON filename:', options.out_filename
 
     db = SqliteDatabase(options.db_filename)
-    db_public = SqliteDatabase(options.public_db_filename)
     
-    alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+    alberty = PsuedoisomerTableThermodynamics.FromCsvFile('../data/thermodynamics/dG0.csv')
     group_contrib = PsuedoisomerTableThermodynamics.FromDatabase(db, 'gc_pseudoisomers')
     group_contrib.override_data(alberty)
     group_contrib.write_data_to_json(options.out_filename)
