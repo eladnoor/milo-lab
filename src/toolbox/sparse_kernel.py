@@ -1,9 +1,9 @@
 from pylab import linalg, find, zeros, array, matrix, reshape
 
 try:
-    from cplex1 import Cplex
-    from cplex1.exceptions import CplexSolverError
-    from cplex1.callbacks import SolveCallback
+    from cplex import Cplex
+    from cplex.exceptions import CplexSolverError
+    from cplex.callbacks import SolveCallback
 except ImportError:
     pass
 

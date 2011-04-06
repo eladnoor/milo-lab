@@ -5,7 +5,6 @@ import logging
 import json
 
 from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
-from pygibbs import thermodynamic_constants
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
 
@@ -28,6 +27,9 @@ class Thermodynamics(object):
         self.bounds = {}
         self.cid2source_string = {}
         self.anchors = set()
+
+    def cid2SourceString(self, cid):
+        return self.cid2source_string.get(cid, "")
 
     def SetPseudoisomerMap(self, cid, pmap):
         """ Add a whole Pseudoisomer Map for a compound according to its CID """
@@ -128,7 +130,8 @@ class Thermodynamics(object):
             for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 writer.writerow([cid, nH, z, nMg, dG0])
 
-    def write_data_to_json(self, json_fname, kegg):
+    def write_data_to_json(self, json_fname):
+        kegg = Kegg.getInstance()
         formations = []
         for cid in self.get_all_cids():
             h = {}
@@ -166,27 +169,34 @@ class Thermodynamics(object):
             dG0_tag = self.cid2dG0_tag(cid)
             writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
             
-    def ToDatabase(self, db, table_name):
+    def ToDatabase(self, db, table_name, error_table_name=""):
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
-                       "dG0 REAL, anchor BOOL")
+                       "dG0 REAL, ref TEXT, anchor BOOL")
+        if error_table_name:
+            db.CreateTable(error_table_name, 'cid INT, error TEXT')
+        
         for cid in self.get_all_cids():
+            ref = self.cid2SourceString(cid)
             try:
                 for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
-                    db.Insert(table_name, [cid, nH, z, nMg, dG0, cid in self.anchors])
+                    db.Insert(table_name, [cid, nH, z, nMg, dG0, ref, cid in self.anchors])
             except MissingCompoundFormationEnergy as e:
-                logging.warning(str(e))
-                continue
+                if error_table_name:
+                    db.Insert(error_table_name, [cid, str(e)])
+                else:
+                    logging.warning(str(e))
         db.Commit()
 
     def FromDatabase(self, db, table_name):
-        self.cid2pmap_dict = {}
-        self.anchors = set()
-        for row in db.DictReader(table_name):
-            self.cid2pmap_dict.setdefault(row['cid'], pseudoisomer.PseudoisomerMap())
-            self.cid2pmap_dict[row['cid']].Add(row['nH'], row['z'], row['nMg'], 
-                                               row['dG0_f'])
-            if row['anchor']:
-                self.anchors.add(row['cid'])
+        raise NotImplementedError
+        #self.cid2pmap_dict = {}
+        #self.anchors = set()
+        #for row in db.DictReader(table_name):
+        #    self.cid2pmap_dict.setdefault(row['cid'], pseudoisomer.PseudoisomerMap())
+        #    self.cid2pmap_dict[row['cid']].Add(row['nH'], row['z'], row['nMg'], 
+        #                                       row['dG0'])
+        #    if row['anchor']:
+        #        self.anchors.add(row['cid'])
     
     def GetTransformedFormationEnergies(self, cids):
         """ calculate the dG0_f of each compound """

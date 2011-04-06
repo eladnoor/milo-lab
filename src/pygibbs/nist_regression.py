@@ -674,7 +674,7 @@ def main():
 
         html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
 
-        query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0_f, r.dG0_f ' + \
+        query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0, r.dG0 ' + \
                 'FROM alberty a, nist_regression r ' + \
                 'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
                 'AND a.anchor=0 ORDER BY a.cid,a.nH'
