@@ -55,11 +55,11 @@ def main():
     
     print 'Primer length:', len(primer)
     print ('Forward primer (for right-side sequence "%s"):'
-           % options.left_filename)
+           % options.right_filename)
     print '\t%s' % primer
     primer.reverse_complement()
     print ('Reverse primer (for left-hand sequence "%s"):'
-           % options.right_filename)
+           % options.left_filename)
     print '\t%s' % primer
     
 
