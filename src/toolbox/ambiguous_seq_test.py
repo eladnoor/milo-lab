@@ -38,5 +38,9 @@ class TestAmbigousDNASeq(unittest.TestCase):
         self.assertSeqsEqual(expected_seqs, ambig_seq.AllConcreteSeqs())
 
 
+def Suite():
+    return unittest.makeSuite(TestAmbigousDNASeq,'test')
+    
+
 if __name__ == '__main__':
     unittest.main()

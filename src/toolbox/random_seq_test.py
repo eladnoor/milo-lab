@@ -79,8 +79,11 @@ class TestRandomSeq(unittest.TestCase):
         seq_str = seq.tostring()
         self.assertEqual(100, len(seq_str))
         self.assertTrue(mock_alphabet.ContainsString(seq_str))
+    
         
-
+def Suite():
+    return unittest.makeSuite(TestRandomSeq,'test')
+    
 
 if __name__ == '__main__':
     unittest.main()
