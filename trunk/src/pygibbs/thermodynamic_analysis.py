@@ -34,7 +34,9 @@ class ThermodynamicAnalysis(object):
                 continue
             try:
                 self.html_writer.write('<p>\n')
-                self.html_writer.write('<h2>%s - %s</h2>\n' % (field_map.GetStringField('NAME'), field_map.GetStringField('TYPE')))
+                a_name = field_map.GetStringField('NAME')
+                a_type = field_map.GetStringField('TYPE')
+                self.html_writer.write('<h2>%s - %s</h2>\n' % (a_name, a_type))
                 if insert_toggles:
                     self.html_writer.insert_toggle(key)
                     self.html_writer.start_div(key)

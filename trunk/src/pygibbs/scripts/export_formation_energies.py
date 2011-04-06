@@ -12,6 +12,9 @@ from toolbox.database import SqliteDatabase
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
+    opt_parser.add_option("-p", "--public_database_location", dest="public_db_filename",
+                          default="../data/public_data.sqlite",
+                          help="The public database location")
     opt_parser.add_option("-d", "--database_location", dest="db_filename",
                           default="../res/gibbs.sqlite",
                           help="The database location")
@@ -37,14 +40,12 @@ def main():
     print 'Output JSON filename:', options.out_filename
 
     db = SqliteDatabase(options.db_filename)
-    kegg = Kegg.getInstance()
+    db_public = SqliteDatabase(options.public_db_filename)
     
-    alberty = PsuedoisomerTableThermodynamics.FromCsvFile(options.thermo_filename)
-    
-    G = GroupContribution(db=db)
-    G.init()
-    G.override_data(alberty)
-    G.write_data_to_json(options.out_filename, kegg)
+    alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+    group_contrib = PsuedoisomerTableThermodynamics.FromDatabase(db, 'gc_pseudoisomers')
+    group_contrib.override_data(alberty)
+    group_contrib.write_data_to_json(options.out_filename)
     print 'Done.'
 
     

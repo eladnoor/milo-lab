@@ -41,9 +41,9 @@ def main():
     estimators['NIST regression'] = NistRegression(db, html_writer, nist=nist) 
     estimators['NIST regression'].FromDatabase()
         
-    estimators['Milo Group Contribution'] = GroupContribution(db, html_writer)
-    estimators['Milo Group Contribution'].override_gc_with_measurements = True
-    estimators['Milo Group Contribution'].init()
+    estimators['Milo Group Contribution'] = PsuedoisomerTableThermodynamics.FromDatabase(
+                                db, 'gc_pseudoisomers')
+    estimators['Milo Group Contribution'].override_data(estimators['Alberty'])
     
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % key)
