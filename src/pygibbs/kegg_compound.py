@@ -44,15 +44,20 @@ class Compound(object):
         self.cas = ""
 
     def GetMolecule(self):
+        """Gets a Molecule for this compound if possible.
+        
+        Returns None if no molecular data is available.
+        """
         if self.mol:
             return self.mol
-        elif self.inchi:
+        
+        if self.inchi:
             self.mol = Molecule.FromInChI(self.inchi)
             self.mol.SetTitle(self.name)
             return self.mol
-        else:
-            raise kegg_errors.KeggParseException(
-                "C%05d doesn't have an explicit molecular structure" % self.cid)
+        
+        raise kegg_errors.KeggParseException(
+             "C%05d doesn't have an explicit molecular structure" % self.cid)
 
     @staticmethod
     def FromDBRow(row_dict):
@@ -62,10 +67,14 @@ class Compound(object):
         comp.all_names = row_dict['all_names'].split(';')
         comp.mass = row_dict['mass']
         comp.formula = row_dict['formula']
-        if row_dict['inchi']:
-            comp.inchi = str(row_dict['inchi'])
-        if row_dict['cas']:
-            comp.cas = str(row_dict['cas'])
+        
+        inchi = row_dict['inchi']
+        if inchi is not None:
+            comp.inchi = str(inchi)
+        
+        cas = row_dict['cas']
+        if cas is not None:
+            comp.cas = str(cas)
         
         return comp
     
@@ -131,12 +140,11 @@ class Compound(object):
         return atom_bag.get('H', 0), 0
         
     def get_num_electrons(self):
-        if not self.mol and self.inchi:
-            self.mol = Molecule.FromInChI(self.inchi)
-
-        if self.mol:
-            return self.mol.GetNumElectrons()
-
+        """Return the putative number of electrons in the molecule."""
+        mol = self.GetMolecule()
+        if mol:
+            return mol.GetNumElectrons()
+        
         # if there is no InChI assume that self.formula is correct and that
         # the charge is 0.
         atom_bag = self.get_atom_bag()
@@ -153,17 +161,26 @@ class Compound(object):
     kegg_link = property(get_link)
 
     def ToJSONDict(self, verbose=False):
+        """Converts to a JSON-formatted dictionary."""
         d = {}
         if self.cid:
             d['CID'] = "C%05d" % self.cid
-        if self.mol:
+
+        try:
             d['InChI'] = self.get_inchi()
+        except Exception, e:
+            d['InChI'] = None
+        
+        try:            
             d['num_electrons'] = self.get_num_electrons()
+        except Exception, e:
+            d['num_electrons'] = None
+        
         if self.mass is not None:
             d['mass'] = self.mass
-        if self.formula:
+        if self.formula is not None:
             d['formula'] = self.formula
-        if self.all_names:
+        if self.all_names is not None:
             d['names'] = self.all_names
         
         return d
