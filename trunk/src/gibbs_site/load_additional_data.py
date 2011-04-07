@@ -9,6 +9,8 @@ django_utils.SetupDjango()
 
 from gibbs import models
 
+DEFAULT_COMPOUND_DATA_FILENAME = 'data/additional_compound_data.json'
+
 
 def GetOrCreateNames(names_list):
     """Find all the names in the database.
@@ -17,9 +19,9 @@ def GetOrCreateNames(names_list):
     """
     return [models.CommonName.GetOrCreate(n)
             for n in names_list]
+    
 
-
-def LoadAdditionalCompoundData(json_filename='data/additional_compound_data.json'):
+def LoadAdditionalCompoundData(json_filename=DEFAULT_COMPOUND_DATA_FILENAME):
     parsed_json = json.load(open(json_filename))
 
     for cd in parsed_json:
@@ -47,6 +49,11 @@ def LoadAdditionalCompoundData(json_filename='data/additional_compound_data.json
             logging.error('Error parsing cid %s', cid)
             logging.error(e)
             continue
+
+
+def CheckData(filenames=(DEFAULT_COMPOUND_DATA_FILENAME,)):
+    for json_fname in filenames:
+        json.load(open(json_fname))
 
 
 def LoadAllAdditionalData():

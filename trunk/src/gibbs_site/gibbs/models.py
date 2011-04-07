@@ -310,14 +310,26 @@ class Compound(models.Model):
         if not self.all_species:
             return None
         
-        return self.all_species[0].formation_energy_source
-        
+        return self.all_species[0].formation_energy_source        
+    
+    def _GetSubstrateEnzymes(self):
+        return self.substrate_for_enzymes.all()
+    
+    def _GetProductEnzymes(self):
+        return self.product_of_enzymes.all()
+    
+    def _GetCofactorEnzymes(self):
+        return self.cofactor_of_enzymes.all()
+    
     html_formula = property(GetHtmlFormattedFormula)
     link = property(GetLink)
     kegg_link = property(GetKeggLink)
     small_image_url = property(GetSmallImageUrl)
     all_common_names = property(lambda self: self.common_names.all())
     all_species = property(GetSpecies)
+    substrate_of = property(_GetSubstrateEnzymes)
+    product_of = property(_GetProductEnzymes)
+    cofactor_of = property(_GetCofactorEnzymes)
     standard_formation_energy = property(DeltaG)
     dg_source = property(_GetDGSource)
     
@@ -346,7 +358,7 @@ class Compound(models.Model):
         """
         compounds = Compound.objects.filter(kegg_id__in=kegg_ids)
         return dict((c.kegg_id, c) for c in compounds if c != None)
-
+    
 
 class Reactant(models.Model):
     """A compound and its coefficient."""
@@ -434,6 +446,11 @@ class Enzyme(models.Model):
     # List of reactions this enzyme catalyzes.
     reactions = models.ManyToManyField(StoredReaction)
     
+    # Compounds that this reaction
+    substrates = models.ManyToManyField(Compound, related_name='substrate_for_enzymes')
+    products = models.ManyToManyField(Compound, related_name='product_of_enzymes')
+    cofactors = models.ManyToManyField(Compound, related_name='cofactor_of_enzymes')
+    
     # TODO(flamholz): add more fields.
     
     def HasData(self):
@@ -465,6 +482,7 @@ class Enzyme(models.Model):
         return unicode(self.FirstName())
 
     all_common_names = property(lambda self: self.common_names.all())
+    first_name = property(FirstName)
     all_reactions = property(AllReactions)
     kegg_link = property(KeggLink)
     brenda_link = property(BrendaLink)

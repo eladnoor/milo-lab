@@ -10,6 +10,10 @@ import load_kegg_json
 
 
 def main():
+    load_kegg_json.CheckData()
+    load_additional_data.CheckData()
+    load_formation_energies.CheckData()
+    
     print 'Loading KEGG data'
     load_kegg_json.LoadAllKeggData()
     
