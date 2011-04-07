@@ -25,8 +25,7 @@ class TestKeggEnzyme(unittest.TestCase):
                            '  1.1.1.2',
                            '1.1.1.2  ',
                            '  1.1.1.2  ')
-        
-        
+                
         for test_ec_str in test_ec_strings:
             self.assertEqual(expected_ec,
                              self.test_enzyme.ProcessEC(test_ec_str))
@@ -62,8 +61,6 @@ class TestKeggEnzyme(unittest.TestCase):
         kegg_link = self.test_enzyme.kegg_link
         self.assertNotEqual(-1, kegg_link.find(self.ec))
     
-    
-    
     def testJSONDict(self):
         json_dict = self.test_enzyme.ToJSONDict()
         
@@ -82,7 +79,7 @@ class TestKeggEnzyme(unittest.TestCase):
 
 
 def Suite():
-    return unittest.makeSuite(TestKeggEnzyme,'test')
+    return unittest.makeSuite(TestKeggEnzyme, 'test')
     
 
 if __name__ == '__main__':

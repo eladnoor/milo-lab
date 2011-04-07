@@ -130,7 +130,8 @@ class Thermodynamics(object):
             for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 writer.writerow([cid, nH, z, nMg, dG0])
 
-    def write_data_to_json(self, json_fname):
+    def get_json_dictionary(self):
+        """Returns a JSON formatted thermodynamic data."""
         kegg = Kegg.getInstance()
         formations = []
         for cid in self.get_all_cids():
@@ -149,7 +150,17 @@ class Thermodynamics(object):
             for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 h['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
             formations.append(h)
+        
+        return formations
 
+    def write_data_to_json(self, json_fname):
+        """Write JSON data to a file.
+        
+        Args:
+            json_fname: the filename to write to.
+        """
+        formations = self.get_json_dictionary()
+        
         json_file = open(json_fname, 'w')
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
@@ -276,46 +287,16 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
     def __init__(self):
         ThermodynamicsWithCompoundAbundance.__init__(self)
         self.cid2pmap_dict = {}
-        
+    
     @staticmethod
-    def FromDatabase(db, table_name):
-        """
-            Imports the pseudoisomer maps from a CSV file, with these headers:
-            'cid', 'nH', 'z', 'nMg', 'dG0'
+    def _FromDictReader(reader):
+        """Internal and for testing only.
+        
+        Creates a Thermodynamics object from a DictReader.
         """
         thermo = PsuedoisomerTableThermodynamics()
-        for row in db.DictReader(table_name):
+        for row in reader:
             if row.get('use for', None) == 'skip':
-                continue
-            
-            cid = row['cid']
-            if not cid:
-                continue
-            
-            nH = row['nH']
-            z = row['z']
-            nMg = row['nMg']
-            dG0 = row['dG0']
-            thermo.AddPseudoisomer(cid, nH, z, nMg, dG0)
-            ref = row.get('ref', '')
-            if row['cid'] in thermo.cid2source_string and \
-                    thermo.cid2source_string[row['cid']] != ref:
-                logging.warning('There are conflicting references for C%05d in '
-                                'table %s' % (row['cid'], table_name))
-            else:
-                thermo.cid2source_string[row['cid']] = ref
-            
-        return thermo
-        
-    @staticmethod
-    def FromCsvFile(filename):
-        """
-            Imports the pseudoisomer maps from a CSV file, with these headers:
-            'cid', 'nH', 'z', 'nMg', 'dG0'
-        """
-        thermo = PsuedoisomerTableThermodynamics()
-        for row in csv.DictReader(open(filename, 'r')):
-            if 'use for' in row and row['use for'] == 'skip':
                 continue
             
             cid = int(row['cid'])
@@ -329,12 +310,29 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
             thermo.AddPseudoisomer(cid, nH, z, nMg, dG0)
             ref = row.get('ref', '')
             if cid in thermo.cid2source_string and thermo.cid2source_string[cid] != ref:
-                logging.warning('There are conflicting references for C%05d in '
-                                '%s' % (cid, filename))
+                logging.warning('There are conflicting references for C%05d ' % cid)
             else:
                 thermo.cid2source_string[cid] = ref
             
         return thermo
+    
+    @staticmethod
+    def FromDatabase(db, table_name):
+        """
+            Imports the pseudoisomer maps from a CSV file, with these headers:
+            'cid', 'nH', 'z', 'nMg', 'dG0'
+        """
+        reader = db.DictReader(table_name)
+        return PsuedoisomerTableThermodynamics._FromDictReader(reader)
+
+    @staticmethod
+    def FromCsvFile(filename):
+        """
+            Imports the pseudoisomer maps from a CSV file, with these headers:
+            'cid', 'nH', 'z', 'nMg', 'dG0'
+        """
+        reader = csv.DictReader(open(filename, 'r'))
+        return PsuedoisomerTableThermodynamics._FromDictReader(reader)
 
     def cid2PseudoisomerMap(self, cid):
         if cid in self.cid2pmap_dict:
