@@ -302,7 +302,7 @@ def find_ratio(S, rids, fluxes, cids, dG0_f, cid_up, cid_down, c_range=(1e-6, 1e
     c_mid = c_mid or pylab.sqrt(c_range[0] * c_range[1])
 
     for c in xrange(Nc):
-        if c == i_up or c == i_down or pylab.isnan(dG0_f[c, 0]):
+        if pylab.isnan(dG0_f[c, 0]):
             continue # unknown dG0_f - cannot bound this compound's concentration at all
 
         b_lower = cid2bounds.get(cids[c], c_range)[0]
@@ -320,21 +320,21 @@ def find_ratio(S, rids, fluxes, cids, dG0_f, cid_up, cid_down, c_range=(1e-6, 1e
             cpl.variables.set_upper_bounds('C%05d' % cids[c], dG0_f[c, 0] + R*T*pylab.log(b_upper))
 
     # constrain the sum of c_up and c_down:
-    dG_sum = dG0_f[i_up, 0] + dG0_f[i_down, 0] + 2*R*T*pylab.log(c_mid)
-    cpl.linear_constraints.add(senses='E', names=['dG_sum'], rhs=[dG_sum])
-    cpl.linear_constraints.set_coefficients('dG_sum', 'C%05d' % cids[i_up], 1)
-    cpl.linear_constraints.set_coefficients('dG_sum', 'C%05d' % cids[i_down], 1)
+    #dG_sum = dG0_f[i_up, 0] + dG0_f[i_down, 0] + 2*R*T*pylab.log(c_mid)
+    #cpl.linear_constraints.add(senses='E', names=['dG_sum'], rhs=[dG_sum])
+    #cpl.linear_constraints.set_coefficients('dG_sum', 'C%05d' % cids[i_up], 1)
+    #cpl.linear_constraints.set_coefficients('dG_sum', 'C%05d' % cids[i_down], 1)
     
     # the optimization function would be to minimize the c_up
     cpl.objective.set_linear([('C%05d' % cids[i_up], 1), ('C%05d' % cids[i_down], -1)])
     
-    #cpl.write("../res/test_Ratio.lp", "lp")
+    cpl.write("../res/test_Ratio.lp", "lp")
     cpl.solve()
     if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal:
         raise LinProgNoSolutionException("")
     dG_f = pylab.matrix(cpl.solution.get_values(["C%05d" % cid for cid in cids])).T
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
-    log_ratio = pylab.log10(concentrations[i_up] / concentrations[i_down])
+    log_ratio = pylab.log10(concentrations[i_up, 0] / concentrations[i_down, 0])
 
     return dG_f, concentrations, log_ratio
 

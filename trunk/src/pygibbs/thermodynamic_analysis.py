@@ -15,6 +15,7 @@ from pygibbs.kegg import Kegg
 from pygibbs import kegg_utils
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from copy import deepcopy
+import scipy.io
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -49,7 +50,7 @@ class ThermodynamicAnalysis(object):
                              'SLACK':self.analyze_slack,
                              'MARGIN':self.analyze_margin,
                              'CONTOUR':self.analyze_contour,
-                             'REDOX':self.analyze_redox2,
+                             'REDOX':self.analyze_redox3,
                              'PROTONATION':self.analyze_protonation}
 
             analysis_type = field_map.GetStringField('TYPE')
@@ -82,6 +83,49 @@ class ThermodynamicAnalysis(object):
         if (len(tokens) > 1):
             raise Exception("The parameter %s appears more than once in %s" % (name, s))
         return float(tokens[0])
+
+    def get_bounds(self, module_name, field_map):
+        cid2bounds = {1: (1, 1)} # the default for H2O is 1
+        if "BOUND" in field_map:
+            for line in field_map["BOUND"].strip().split('\t'):
+                tokens = line.split(None)
+                cid = int(tokens[0][1:])
+                try:
+                    b_lower = float(tokens[1])
+                except ValueError:
+                    b_lower = None    
+
+                if len(tokens) == 2:
+                    b_upper = b_lower
+                elif len(tokens) == 3:
+                    try:
+                        b_upper = float(tokens[2])
+                    except ValueError:
+                        b_upper = None    
+                else:
+                    raise ValueError("Parsing error in BOUND definition for %s: %s" % \
+                                     (module_name, line))
+                cid2bounds[cid] = (b_lower, b_upper)
+        return cid2bounds
+                
+    def write_bounds_to_html(self, cid2bounds, c_range):
+        self.html_writer.write("Concentration bounds:</br>\n")
+
+        l = ["<b>Default</b>: %g M < concentration < %g M</br>\n" % (c_range)]
+        for cid in sorted(cid2bounds.keys()):
+            (b_lower, b_upper) = cid2bounds[cid]
+            s = ""
+            if b_lower == None:
+                s += "-inf"
+            else:
+                s += "%g M" % b_lower
+            s += ' < [<a href="%s">%s</a>] < ' % (self.kegg.cid2link(cid), self.kegg.cid2name(cid))
+            if b_lower == None:
+                s += "inf"
+            else:
+                s += "%g M" % b_upper
+            l.append(s)
+        self.html_writer.write_ul(l)
 
     def get_reactions(self, module_name, field_map):
         """
@@ -125,7 +169,7 @@ class ThermodynamicAnalysis(object):
         v_total = pylab.dot(pylab.matrix(fluxes), S).flat
         dG0_total = pylab.dot(pylab.matrix(fluxes), dG0_r)[0,0]
         self.html_writer.write('<li><b>Total </b>')
-        self.html_writer.write('[&#x394;G<sub>r</sub><sup>0</sup> = %.1f] : \n' % dG0_total)
+        self.html_writer.write('[&#x394;G<sub>r</sub><sup>0</sup> = %.1f kJ/mol] : \n' % dG0_total)
         self.html_writer.write(self.kegg.vector_to_hypertext(v_total, cids, show_cids=show_cids))
         self.html_writer.write("</li></ul></li>\n")
         
@@ -369,110 +413,6 @@ class ThermodynamicAnalysis(object):
         thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.html_writer)
         kegg_utils.write_module_to_html(self.html_writer, S, rids, fluxes, cids)
 
-    def analyze_redox(self, key, field_map):
-        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
-        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(4.0, 10.01, 0.25))
-        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(-3.0, 3.01, 0.5))
-        c_mid = field_map.GetFloatField("C_MID", thermo.c_mid)
-
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
-        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
-        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-
-        pCr_mat = pylab.zeros((len(pH_list), len(redox_list)))
-        for i, pH in enumerate(pH_list):
-            self.thermo.pH = pH
-            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-            for j, redox in enumerate(redox_list):
-                cid2bounds = deepcopy(self.kegg.cid2bounds)
-                r = 10**(redox/2.0)
-                cid2bounds[3] = (c_mid * r, c_mid * r) # NAD+
-                cid2bounds[4] = (c_mid / r, c_mid / r) # NADH
-                cid2bounds[6] = (c_mid * r, c_mid * r) # NADPH
-                cid2bounds[5] = (c_mid / r, c_mid / r) # NADP+
-                bounds = [cid2bounds.get(cid, (None, None)) for cid in cids]
-                try:
-                    unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
-                except LinProgNoSolutionException:
-                    pCr = -1
-                pCr_mat[i, j] = pCr
-                
-        contour_fig = pylab.figure()
-        pH_meshlist, r_meshlist = pylab.meshgrid(pH_list, redox_list)
-        CS = pylab.contour(pH_meshlist.T, r_meshlist.T, pCr_mat)       
-        pylab.clabel(CS, inline=1, fontsize=10)
-        pylab.xlabel("pH")
-        pylab.ylabel("$\\log{\\frac{[NAD(P)^+]}{[NAD(P)H]}}$")
-        pylab.title("pCr as a function of pH and Redox state")
-        self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
-        
-    def analyze_redox2(self, key, field_map):
-        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
-        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.25))
-        co2_list = field_map.GetVFloatField("LOG_CO2", pylab.arange(-5.0, -2.01, 0.25))
-        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
-        
-        self.html_writer.write('Parameters:</br>\n')
-        self.html_writer.write('<ul>\n')
-        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
-        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
-        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
-                               (c_range[0], c_range[1]))
-        self.html_writer.write('</ul>\n')
-        
-        self.html_writer.insert_toggle(key)
-        self.html_writer.start_div(key)
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
-        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
-        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-        self.html_writer.end_div()
-        
-        cid2bounds = {}
-        cid2bounds[1] = (1.0, 1.0) # H2O
-        cid2bounds[2] = (1e-3, 1e-3) # ATP
-        cid2bounds[8] = (1e-4, 1e-4) # ADP
-        cid2bounds[20] = (None, None) # AMP
-        cid2bounds[9] = (1e-3, 1e-3) # Pi
-        cid2bounds[13] = (None, None) # PPi
-
-        #cid2bounds[11] = (1e-5, 1e-5) # Co2(aq)
-        cid2bounds[288] = (None, None) # Co2(tot)
-
-        cid2bounds[3] = (None, None) # NAD+
-        cid2bounds[4] = (None, None) # NADH
-        
-        cid2bounds[139] = (None, None)  # Ferrodoxin(ox)
-        cid2bounds[138] = (None, None)  # Ferrodoxin(red)
-        cid2bounds[399] = (None, None)  # Ubiquinone-10(ox)
-        cid2bounds[390] = (None, None)  # Ubiquinone-10(red)
-        cid2bounds[828] = (None, None)  # Menaquinone(ox)
-        cid2bounds[5819] = (None, None) # Menaquinone(red)
-        
-        r_mat = pylab.zeros((len(pH_list), len(co2_list)))
-        for i, pH in enumerate(pH_list):
-            self.thermo.pH = pH
-            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-            for j, log_co2 in enumerate(co2_list):
-                c_co2 = 10**(log_co2)
-                cid2bounds[11] = (c_co2, c_co2) # Co2(aq)
-                try:
-                    _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=4, cid_down=3, 
-                        c_range=c_range, T=self.thermo.T, cid2bounds=cid2bounds)
-                except LinProgNoSolutionException:
-                    log_ratio = 0
-                r_mat[i, j] = log_ratio
-                
-        contour_fig = pylab.figure()
-        pH_meshlist, atp_meshlist = pylab.meshgrid(pH_list, co2_list)
-        CS = pylab.contour(pH_meshlist.T, atp_meshlist.T, r_mat)       
-        pylab.clabel(CS, inline=1, fontsize=10)
-        pylab.xlabel("pH")
-        pylab.ylabel("$\\log{[CO_2]}$")
-        pylab.title("minimal $\\log{\\frac{[NADH]}{[NAD+]}}$ required for feasibility")
-        self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
-        
     def analyze_contour(self, key, field_map):
         pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
         I_list = field_map.GetVFloatField("I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
@@ -481,7 +421,7 @@ class ThermodynamicAnalysis(object):
         formula = field_map.GetStringField("REACTION")
         c0 = field_map.GetFloatField("C0", 1.0)
         media = field_map.GetStringField("MEDIA", "None")
-        if (media == "None"):
+        if media == "None":
             media = None
             
         sparse_reaction = self.kegg.formula_to_sparse(formula)
@@ -526,6 +466,194 @@ class ThermodynamicAnalysis(object):
         for (nH, z, dG0) in pmatrix:
             self.html_writer.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
         self.html_writer.write('</table>')
+
+    def analyze_redox(self, key, field_map):
+        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
+        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(4.0, 10.01, 0.25))
+        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(-3.0, 3.01, 0.5))
+        c_mid = field_map.GetFloatField("C_MID", thermo.c_mid)
+
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+
+        pCr_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        for i, pH in enumerate(pH_list):
+            self.thermo.pH = pH
+            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            for j, redox in enumerate(redox_list):
+                cid2bounds = deepcopy(self.kegg.cid2bounds)
+                r = 10**(redox/2.0)
+                cid2bounds[3] = (c_mid * r, c_mid * r) # NAD+
+                cid2bounds[4] = (c_mid / r, c_mid / r) # NADH
+                cid2bounds[6] = (c_mid * r, c_mid * r) # NADPH
+                cid2bounds[5] = (c_mid / r, c_mid / r) # NADP+
+                bounds = [cid2bounds.get(cid, (None, None)) for cid in cids]
+                try:
+                    unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
+                except LinProgNoSolutionException:
+                    pCr = -1
+                pCr_mat[i, j] = pCr
+                
+        contour_fig = pylab.figure()
+        pH_meshlist, r_meshlist = pylab.meshgrid(pH_list, redox_list)
+        CS = pylab.contour(pH_meshlist.T, r_meshlist.T, pCr_mat)       
+        pylab.clabel(CS, inline=1, fontsize=10)
+        pylab.xlabel("pH")
+        pylab.ylabel("$\\log{\\frac{[NAD(P)^+]}{[NAD(P)H]}}$")
+        pylab.title("pCr as a function of pH and Redox state")
+        self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
+        
+    def analyze_redox2(self, key, field_map):
+        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
+        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.25))
+        co2_list = field_map.GetVFloatField("LOG_CO2", pylab.arange(-5.0, -1.99, 0.25))
+        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
+        
+        self.html_writer.write('Parameters:</br>\n')
+        self.html_writer.write('<ul>\n')
+        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
+        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
+        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
+                               (c_range[0], c_range[1]))
+        self.html_writer.write('</ul>\n')
+        
+        self.html_writer.insert_toggle(key)
+        self.html_writer.start_div(key)
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+        self.html_writer.end_div()
+        
+        cid2bounds = {}
+        cid2bounds[1] = (1.0, 1.0) # H2O
+        cid2bounds[2] = (1e-3, 1e-3) # ATP
+        cid2bounds[8] = (1e-4, 1e-4) # ADP
+        cid2bounds[20] = (None, None) # AMP
+        cid2bounds[9] = (1e-3, 1e-3) # Pi
+        cid2bounds[13] = (None, None) # PPi
+
+        cid2bounds[288] = (None, None) # Co2(tot)
+
+        cid2bounds[3] = (None, None) # NAD+
+        cid2bounds[4] = (None, None) # NADH
+        
+        cid2bounds[5] = (None, None) # NADPH
+        cid2bounds[6] = (None, None) # NADP+
+        cid2bounds[139] = (None, None)  # Ferrodoxin(ox)
+        cid2bounds[138] = (None, None)  # Ferrodoxin(red)
+        cid2bounds[399] = (None, None)  # Ubiquinone-10(ox)
+        cid2bounds[390] = (None, None)  # Ubiquinone-10(red)
+        cid2bounds[828] = (None, None)  # Menaquinone(ox)
+        cid2bounds[5819] = (None, None) # Menaquinone(red)
+        
+        ratio_mat = pylab.zeros((len(pH_list), len(co2_list)))
+        feasability_mat = pylab.zeros((len(pH_list), len(co2_list)))
+        for i, pH in enumerate(pH_list):
+            self.thermo.pH = pH
+            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            for j, log_co2 in enumerate(co2_list):
+                c_co2 = 10**(log_co2)
+                cid2bounds[11] = (c_co2, c_co2) # Co2(aq)
+                try:
+                    _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=4, cid_down=3, 
+                        c_range=c_range, T=self.thermo.T, cid2bounds=cid2bounds)
+                    ratio_mat[i, j] = log_ratio
+                    feasability_mat[i, j] = 1
+                except LinProgNoSolutionException:
+                    ratio_mat[i, j] = 10 # 10 is a very high value for the ratio
+                    feasability_mat[i, j] = 0
+                
+        contour_fig = pylab.figure()
+        pylab.hold(True)
+        pH_meshlist, atp_meshlist = pylab.meshgrid(pH_list, co2_list)
+        #pylab.contourf(pH_meshlist.T, atp_meshlist.T, feasability_mat, colors=('red','white'))
+        #CS = pylab.contour(pH_meshlist.T, atp_meshlist.T, ratio_mat)
+        pylab.pcolor(pH_meshlist.T, atp_meshlist.T, ratio_mat)
+        pylab.colorbar()
+        #pylab.clabel(CS, inline=1, fontsize=10)
+        pylab.xlabel("pH")
+        pylab.ylabel("$\\log{[CO_2]}$")
+        pylab.title("minimal $\\log{\\frac{[NADH]}{[NAD+]}}$ required for feasibility")
+        self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
+        
+    def analyze_redox3(self, key, field_map):
+        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
+        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.1))
+        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.1))
+        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
+        
+        self.html_writer.write('Parameters:</br>\n')
+        self.html_writer.write('<ul>\n')
+        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
+        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
+        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
+                               (c_range[0], c_range[1]))
+        self.html_writer.write('</ul>\n')
+        
+        self.html_writer.insert_toggle(key)
+        self.html_writer.start_div(key)
+        cid2bounds = self.get_bounds(key, field_map)
+        self.write_bounds_to_html(cid2bounds, c_range)
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+        self.html_writer.end_div()
+        self.html_writer.write('</br>\n')
+        
+        pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        ratio_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        feasibility_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        for i, pH in enumerate(pH_list):
+            self.thermo.pH = pH
+            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            for j, redox in enumerate(redox_list):
+                r = 10**(redox)
+                cid2bounds[6] = (1e-5, 1e-5) # NADP+
+                cid2bounds[5] = (1e-5*r, 1e-5*r) # NADPH
+
+                pH_mat[i, j] = pH
+                redox_mat[i, j] = redox
+                
+                try:
+                    _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=11, cid_down=1, 
+                        c_range=c_range, T=self.thermo.T, cid2bounds=cid2bounds)
+                    ratio_mat[i, j] = log_ratio
+                    feasibility_mat[i, j] = 0.0
+                except LinProgNoSolutionException:
+                    ratio_mat[i, j] = cid2bounds[11][1] + 1.0 # i.e. 10 times higher than the upper bound
+                    feasibility_mat[i, j] = 1.0
+                
+        matfile = field_map.GetStringField("MATFILE", "")
+        if matfile:
+            scipy.io.savemat(matfile, {"pH":pH_mat, "redox":redox_mat, "co2":ratio_mat}, oned_as='column')
+        
+        contour_fig = pylab.figure()
+        pylab.hold(True)
+        pylab.contourf(pH_mat, redox_mat, feasibility_mat, [-1.0, 0.5, 2.0])
+        CS = pylab.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-5.0, -0.99, 0.5))
+        pylab.clabel(CS, inline=1, fontsize=10)
+        pylab.xlim(min(pH_list), max(pH_list))
+        pylab.ylim(min(redox_list), max(redox_list))
+        pylab.xlabel("pH")
+        pylab.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
+        pylab.title("minimal $\\log{[CO_2]}$ required for feasibility")
+        self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
+
+        heatmat_fig = pylab.figure()
+        pylab.pcolor(pH_mat, redox_mat, ratio_mat)
+        pylab.colorbar()
+        pylab.xlim(min(pH_list), max(pH_list))
+        pylab.ylim(min(redox_list), max(redox_list))
+        pylab.clim((cid2bounds[11][0], cid2bounds[11][1]+1.0))
+        pylab.xlabel("pH")
+        pylab.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
+        pylab.title("minimal $\\log{[CO_2]}$ required for feasibility")
+        self.html_writer.embed_matplotlib_figure(heatmat_fig, width=640, height=480)
 
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite')
