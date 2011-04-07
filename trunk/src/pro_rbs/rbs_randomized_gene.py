@@ -24,7 +24,7 @@ def MakeOpts():
                           help=("The RBS sequence including spacers, start codon, and"
                                 "(optionally) his_tag. Cannot be ambiguous."))
     opt_parser.add_option("-s", "--start_codon_seq", dest="start_codon_seq",
-                          default="ATGCATCATCACCATCACCAC",
+                          default="ATG",
                           help="The sequence of the start codon, including some trailing bases.")
     opt_parser.add_option("-n", "--num_trials", dest="num_trials", type="int",
                           default=100,
@@ -43,7 +43,7 @@ def HandleSeq(seq, start_codon_seq, num_trials):
             some trailing bases.
         num_trials: the number of random genes to test.
     """
-    start_index = seq.find(start_codon_seq)
+    start_index = seq.rfind(start_codon_seq)
     if start_index == -1:
         logging.error('Couldn\'t find start codon.')
         return
