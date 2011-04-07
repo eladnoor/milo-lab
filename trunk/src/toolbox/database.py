@@ -135,11 +135,11 @@ class SqliteDatabase(SQLDatabase):
         """
         self.filename = filename
         
-        if flag == 'r':
+        if flag.lower() == 'r':
             if not os.path.exists(filename):
                 raise IOError('No such file or directory: %s' % filename)
             self.comm = sqlite3.connect(filename)
-        elif flag == 'w':
+        elif flag.lower() == 'w':
             self.comm = sqlite3.connect(filename)
         else:
             raise ValueError('Illegal flag: %s' % str(flag))

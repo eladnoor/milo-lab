@@ -10,6 +10,7 @@ from pygibbs.thermodynamic_constants import R
 import pylab
 from toolbox.database import SqliteDatabase
 from pygibbs.pseudoisomer import PseudoisomerMap
+from toolbox.util import _mkdir
 
 HATZI_CSV_FNAME = "../data/thermodynamics/hatzimanikatis_cid.csv"
 
@@ -120,8 +121,9 @@ class Hatzi (Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2dG0_tag_dict.keys())
         
-if (__name__ == "__main__"):
-    db = SqliteDatabase('../res/gibbs.sqlite')
+if __name__ == "__main__":
+    _mkdir('../res')
+    db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     H_nopka = Hatzi()
     H_nopka.use_pKa = False
     H = Hatzi()
