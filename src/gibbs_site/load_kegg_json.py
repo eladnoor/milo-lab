@@ -34,23 +34,61 @@ def GetReactions(rids_list):
             continue
     return rxns
         
-         
-def LoadKeggCompounds(kegg_json_filename='data/kegg_compounds.json'):
+
+def GetCompounds(cids_list):
+    """Find all the given compounds in the database.
+    
+    Skip those that are not present.
+    """
+    compounds = []
+    for kegg_id in cids_list:
+        try:
+            compounds.append(models.Compound.objects.get(kegg_id=kegg_id))
+        except Exception:
+            logging.warning('Failed to retrieve compound %s', rid)
+            continue
+    return compounds
+        
+
+COMPOUND_FILE = 'data/kegg_compounds.json'
+REACTION_FILE = 'data/kegg_reactions.json'
+ENZYME_FILE = 'data/kegg_enzymes.json'
+
+
+ALLOWED_COMPOUND_EXCEPTIONS = frozenset(('C00138',  # Reduced ferredoxin
+                                         'C00139')) # Oxidized ferredoxin
+
+
+def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(open(kegg_json_filename))
     
     for cd in parsed_json:
         try:
             cid = cd['CID']
-            formula = cd['formula']
-            mass = float(cd['mass'])
-            inchi = cd['InChI']
+            
+            formula = cd.get('formula')
+            mass = cd.get('mass')
+            if mass is not None:
+                mass = float(mass)
+            inchi = cd.get('InChI')
             num_electrons = cd.get('num_electrons')
+            
+            if cid not in ALLOWED_COMPOUND_EXCEPTIONS:
+                if formula is None:
+                    raise KeyError('Missing formula for CID %s' % cid)
+                
+                if mass is None:
+                    raise KeyError('Missing mass for CID %s' % cid)
+
+                if inchi is None:
+                    raise KeyError('Missing inchi for CID %s' % cid)
+                
             c = models.Compound(kegg_id=cid,
                                 formula=formula,
                                 inchi=inchi,
                                 mass=mass)
             
-            if num_electrons != None:
+            if num_electrons is not None:
                 c.num_electrons = int(num_electrons)
                 
             # Need to save before setting up many-to-many relationships.
@@ -61,12 +99,11 @@ def LoadKeggCompounds(kegg_json_filename='data/kegg_compounds.json'):
                 c.common_names.add(n)
             c.save()        
         except Exception, e:
-            logging.warning('Missing data for cid %s', cid)
-            logging.error(e)
+            logging.warning(e)
             continue
         
 
-def LoadKeggReactions(reactions_json_filename='data/kegg_reactions.json'):
+def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
     parsed_json = json.load(open(reactions_json_filename))
 
     for rd in parsed_json:
@@ -97,7 +134,7 @@ def LoadKeggReactions(reactions_json_filename='data/kegg_reactions.json'):
             continue
 
 
-def LoadKeggEnzymes(enzymes_json_filename='data/kegg_enzymes.json'):
+def LoadKeggEnzymes(enzymes_json_filename=ENZYME_FILE):
     parsed_json = json.load(open(enzymes_json_filename))
 
     for ed in parsed_json:
@@ -105,19 +142,34 @@ def LoadKeggEnzymes(enzymes_json_filename='data/kegg_enzymes.json'):
             ec = ed['EC']
             names = GetOrCreateNames(ed['names'])
             reactions = GetReactions(ed['reaction_ids'])
+            substrates = GetCompounds(ed['substrates'])
+            products = GetCompounds(ed['products'])
+            cofactors = GetCompounds(ed['cofactors'])
             
+            # Save first so we can do many-to-many mappings.
             enz = models.Enzyme(ec=ec)
             enz.save()
             
-            for name in names:
-                enz.common_names.add(name)
-            for rxn in reactions:
-                enz.reactions.add(rxn)
+            # Add names, reactions, and compound mappings.
+            map(enz.common_names.add, names)
+            map(enz.reactions.add, reactions)
+            map(enz.substrates.add, substrates)
+            map(enz.products.add, products)
+            map(enz.cofactors.add, cofactors)
             enz.save()
+            
         except Exception, e:
             logging.warning('Missing data for ec %s', ec)
             logging.error(e)
             continue
+
+
+def CheckData(filenames=(COMPOUND_FILE,
+                         REACTION_FILE,
+                         ENZYME_FILE)):
+    for json_fname in filenames:
+        json.load(open(json_fname))
+
 
 
 def LoadAllKeggData():

@@ -52,6 +52,6 @@ call_command('syncdb')
 print "Done"
 
 #print "Loading Back Data... "
-call_command('loaddata', 'data/dumped_data.json')
+#call_command('loaddata', 'data/dumped_data.json')
 #os.remove('dumped_data.json')
 print "Done"

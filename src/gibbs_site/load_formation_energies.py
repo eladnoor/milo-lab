@@ -78,7 +78,13 @@ def LoadFormationEnergies(json):
         compound.save()
             
 
-def LoadAllFormationEnergies(json_filename='data/pseudoisomers.json'):
+DEFAULT_DATA_FILE = 'data/pseudoisomers.json'
+
+def CheckData(json_filename=DEFAULT_DATA_FILE):
+    json.load(open(json_filename))
+    
+
+def LoadAllFormationEnergies(json_filename=DEFAULT_DATA_FILE):
     json_data = json.load(open(json_filename))
     
     print 'Writing Pseudoisomers data'
