@@ -37,7 +37,7 @@ class Enzyme(object):
         self.title = title
         self.names = names or []
         self.reactions = reactions or []
-        self.substrates = substrates
+        self.substrates = substrates 
         self.products = products
         self.cofactors = cofactors
         self.organisms = organisms or []
@@ -50,9 +50,10 @@ class Enzyme(object):
             ec_str: the raw EC string from the KEGG file. May include
               the "EC " prefix.
         """
-        if ec_str.startswith('EC '):
-            return ec_str[3:]
-        return ec_str
+        stripped = ec_str.strip()
+        if stripped.startswith('EC '):
+            return stripped[3:]
+        return stripped
 
     @staticmethod
     def GetCompoundIds(cpd_str):
@@ -168,9 +169,14 @@ class Enzyme(object):
         
         return row
 
+    @staticmethod
+    def GetStringRID(int_rid):
+        """Gets a string RID from an integer one."""
+        return 'R%05d' % int_rid
+
     def ToJSONDict(self):
         """Format the enzyme as a JSON dictionary."""
-        rids = ['R%05d' % r for r in self.reactions]
+        rids = map(self.GetStringRID, self.reactions)
         return {'EC': self.ec,
                 'title': self.title,
                 'names': self.names,
@@ -178,7 +184,7 @@ class Enzyme(object):
                 'substrates': self.substrates,
                 'products': self.products,
                 'cofactors': self.cofactors,
-                'organism': self.organisms}
+                'organisms': self.organisms}
 
     def __str__(self):
         """String representation of the enzyme."""
@@ -205,6 +211,7 @@ class Enzyme(object):
     def GetLink(self):
         """Returns a link to the KEGG page for this enzyme."""
         return 'http://kegg.jp/dbget-bin/www_bget?ec:%s' % self.ec
+    kegg_link = property(GetLink)
     
     def HasReactions(self):
         """Returns True if this enzyme has reactions defined."""
