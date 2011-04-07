@@ -11,7 +11,15 @@ class Compound(object):
     """A class representing a compound in KEGG."""
     
     free_cid = -1 # class static variable
-    def __init__(self, cid=None):
+    
+    def __init__(self,
+                 cid=None,
+                 name=None,
+                 all_names=None,
+                 mass=None,
+                 formula=None,
+                 inchi=None,
+                 from_kegg=True):
         """Initialize the Compound.
         
         Args:
@@ -33,13 +41,17 @@ class Compound(object):
             Compound.free_cid -= 1
         else:
             self.cid = cid
-        self.name = "?"
-        self.all_names = []
-        self.mass = None
-        self.formula = None
-        self.inchi = None
-        self.mol = None 
-        self.from_kegg = True
+        
+        self.all_names = all_names or []
+        self.name = name or "?"
+        if self.all_names and name is None:
+            self.name = self.all_names[0]
+        
+        self.mass = mass
+        self.formula = formula
+        self.inchi = inchi
+        self.mol = None
+        self.from_kegg = from_kegg
         self.pubchem_id = None
         self.cas = ""
 
@@ -160,33 +172,35 @@ class Compound(object):
         return kegg_utils.cid2link(self.cid)
     kegg_link = property(get_link)
 
+    def get_string_cid(self):
+        """Returns a string of the CID."""
+        if self.cid is None:
+            return None
+        
+        return "C%05d" % self.cid
+
     def ToJSONDict(self, verbose=False):
         """Converts to a JSON-formatted dictionary."""
-        d = {}
-        if self.cid:
-            d['CID'] = "C%05d" % self.cid
+        d = {'CID': self.get_string_cid(),
+             'mass': self.mass,
+             'formula': self.formula,
+             'names': self.all_names}
 
         try:
             d['InChI'] = self.get_inchi()
         except Exception, e:
             d['InChI'] = None
         
-        try:            
+        try:
             d['num_electrons'] = self.get_num_electrons()
         except Exception, e:
             d['num_electrons'] = None
-        
-        if self.mass is not None:
-            d['mass'] = self.mass
-        if self.formula is not None:
-            d['formula'] = self.formula
-        if self.all_names is not None:
-            d['names'] = self.all_names
         
         return d
     
     def __str__(self):
         return '%s: %s' % (self.cid, self.name)
+
 
 def GetAllCompoundsFromDB(db):
     """Fetch all the compounds from the database."""
