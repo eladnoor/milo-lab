@@ -35,9 +35,9 @@ def main():
 
     db = SqliteDatabase(options.db_filename)
     
-    alberty = PsuedoisomerTableThermodynamics.FromCsvFile('../data/thermodynamics/dG0.csv')
+    observed_thermo = PsuedoisomerTableThermodynamics.FromCsvFile('../data/thermodynamics/dG0.csv')
     group_contrib = PsuedoisomerTableThermodynamics.FromDatabase(db, 'gc_pseudoisomers')
-    group_contrib.override_data(alberty)
+    group_contrib.override_data(observed_thermo)
     group_contrib.write_data_to_json(options.out_filename)
     print 'Done.'
 
