@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import csv
 import logging
 import numpy
 import os
@@ -28,12 +29,15 @@ def MakeOpts():
     opt_parser.add_option("-b", "--gene_b", dest="gene_b",
                           help="Sequence of a second gene.")
     opt_parser.add_option("-s", "--start_codon_seq", dest="start_codon_seq",
-                          default="ATGCATCATCACCATCACCAC",
+                          default="ATG",
                           help="The sequence of the start codon, including some trailing bases.")
+    opt_parser.add_option("-o", "--output_filename", dest="output_filename",
+                          help="The filename to output raw data to.")
     return opt_parser
 
 
-def HandleAmbigSeq(ambig_seq, start_codon_seq, gene_a, gene_b):
+def HandleAmbigSeq(ambig_seq, start_codon_seq, gene_a, gene_b,
+                   output_filename=None):
     """Process an ambiguous RBS sequence.
     
     Test all concrete possibilities for the sequence, draw a histogram of 
@@ -45,7 +49,25 @@ def HandleAmbigSeq(ambig_seq, start_codon_seq, gene_a, gene_b):
             some trailing bases.
         gene_a: the sequence of the first gene.
         gene_b: the sequence of the second gene.
+        output_filename: the name of the file to output data to.
     """
+    # Create a CSV writer as needed.
+    writer = None
+    rbs_key = 'RBS seq'
+    gene_a_key = 'Gene %s' % gene_a
+    gene_b_key = 'Gene %s' % gene_b
+    field_names = (rbs_key, gene_a_key, gene_b_key)
+    
+    if output_filename:
+        writer = csv.DictWriter(open(output_filename, 'w'), field_names)
+    
+    ambig_str = ambig_seq.tostring()
+    start_index = ambig_str.rfind(start_codon_seq)
+    if start_index == -1:
+        # Need a non-ambiguous start-codon.
+        logging.error('Couldn\'t find start codon.')
+        return
+        
     dGs_a = []
     dGs_b = []
     failure_count = 0
@@ -54,12 +76,7 @@ def HandleAmbigSeq(ambig_seq, start_codon_seq, gene_a, gene_b):
             print 'Testing concrete sequence', i, concrete_seq
         
         try:
-            seq_str = concrete_seq.tostring()
-            start_index = seq_str.find(start_codon_seq)
-            if start_index == -1:
-                logging.error('Couldn\'t find start codon.')
-                continue
-            
+            seq_str = concrete_seq.tostring()            
             seq_a = seq_str + gene_a
             seq_b = seq_str + gene_b
             
@@ -70,6 +87,13 @@ def HandleAmbigSeq(ambig_seq, start_codon_seq, gene_a, gene_b):
             
             dGs_a.append(dG_a)
             dGs_b.append(dG_b)
+            
+            if writer:
+                row_dict = {rbs_key: seq_str,
+                            gene_a_key: dG_a,
+                            gene_b_key: dG_b}
+                writer.writerow(row_dict)
+                
         except Exception, e:
             logging.error(e)
             failure_count += 1
@@ -125,8 +149,13 @@ def main():
         print 'Got a concrete sequence. Bailing.'
         return
     
+    out_filename = options.output_filename
+    if out_filename:
+        print 'Will write output to', out_filename
+    
     print 'Testing all options for ambiguous sequence'
-    HandleAmbigSeq(ambig_seq, start_codon_seq, gene_a, gene_b)
+    HandleAmbigSeq(ambig_seq, start_codon_seq, gene_a, gene_b,
+                   output_filename=out_filename)
         
 
 if __name__ == '__main__':
