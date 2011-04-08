@@ -11,6 +11,10 @@ def FAQPage(request):
     return render_to_response('faq.html', {})
 
 
+def ClassicReactions(request):
+    """Renders the landing page."""
+    return render_to_response('classic_reactions.html', {})
+
 def Robots(request):
     """Renders robots.txt."""
     return render_to_response('robots.txt', {})
