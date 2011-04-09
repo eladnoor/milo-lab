@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+import hashlib
 import logging
 import numpy
 import re
@@ -401,6 +404,7 @@ class StoredReaction(models.Model):
     products = models.ManyToManyField(Reactant, related_name='product_in')
     
     # TODO(flamholz): add some sort of hash identifier.
+    hash = models.CharField(max_length=2048)
     
     @staticmethod
     def _SideString(side):
@@ -418,10 +422,40 @@ class StoredReaction(models.Model):
                                     r.compound.FirstName()))
         return ' + '.join(l)
     
+    def save(self, *args, **kwargs):
+        """Custom save-time behavior: set the hash."""
+        self.hash = self.GetHash()
+        super(StoredReaction, self).save(*args, **kwargs)
+
     def ReactionString(self):
         """Get the string representation of this reaction."""
         return '%s <=> %s' % (self._SideString(self.reactants.all()),
                               self._SideString(self.products.all()))
+    
+    @staticmethod
+    def HashableReactionString(reactants, products):
+        """Return a hashable string for a reaction."""
+        reactants_strs = ['%d %s' % (r.coeff, r.compound.kegg_id)
+                          for r in reactants]
+        products_strs = ['%d %s' % (r.coeff, r.compound.kegg_id)
+                         for r in products]
+        return '%s <=> %s' % (' + '.join(reactants_strs),
+                              ' + '.join(products_strs))
+        
+    @staticmethod
+    def HashReaction(reactants, products):
+        md5 = hashlib.md5()
+        md5.update(StoredReaction.HashableReactionString(reactants, products))
+        return md5.hexdigest()
+    
+    def GetHash(self):
+        """Returns a string hash of this reaction for easy identification."""
+        return self.HashReaction(self.reactants,
+                                 self.products)
+    
+    def __hash__(self):
+        """Makes stored reactions hashable."""
+        return hash(self.GetHash())
     
     def __str__(self):
         """String representation."""
