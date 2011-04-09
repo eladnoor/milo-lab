@@ -55,10 +55,6 @@ REACTION_FILE = 'data/kegg_reactions.json'
 ENZYME_FILE = 'data/kegg_enzymes.json'
 
 
-ALLOWED_COMPOUND_EXCEPTIONS = frozenset(('C00138',  # Reduced ferredoxin
-                                         'C00139')) # Oxidized ferredoxin
-
-
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(open(kegg_json_filename))
     
@@ -73,15 +69,14 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             inchi = cd.get('InChI')
             num_electrons = cd.get('num_electrons')
             
-            if cid not in ALLOWED_COMPOUND_EXCEPTIONS:
-                if formula is None:
-                    raise KeyError('Missing formula for CID %s' % cid)
-                
-                if mass is None:
-                    raise KeyError('Missing mass for CID %s' % cid)
+            if formula is None:
+                raise KeyError('Missing formula for CID %s' % cid)
+            
+            if mass is None:
+                raise KeyError('Missing mass for CID %s' % cid)
 
-                if inchi is None:
-                    raise KeyError('Missing inchi for CID %s' % cid)
+            if inchi is None:
+                raise KeyError('Missing inchi for CID %s' % cid)
                 
             c = models.Compound(kegg_id=cid,
                                 formula=formula,
