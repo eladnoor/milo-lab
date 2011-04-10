@@ -314,18 +314,21 @@ class GroupObervationCollection(object):
         return pylab.matrix(A), pylab.array(b), names
 
 class GroupContribution(Thermodynamics):    
-    def __init__(self, db, html_writer=None):
+    def __init__(self, db, html_writer=None, kegg=None):
+        """Construct a GroupContribution instance.
+        
+        Args:
+            db: the database handle to read from.
+            html_writer: the HtmlWriter to write to.
+            kegg: a Kegg instance if you don't want to use the default one.
+        """
         Thermodynamics.__init__(self)
         self.db = db
+        self.html_writer = html_writer or NullHtmlWriter()
 
-        if html_writer:
-            self.html_writer = html_writer
-        else:
-            self.html_writer = NullHtmlWriter()
-
-        self.kegg = Kegg.getInstance()
+        self.kegg = kegg or Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
-            
+
         self.group_nullspace = None
         self.group_contributions = None
         self.obs_collection = None
