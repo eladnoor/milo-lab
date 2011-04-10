@@ -8,19 +8,20 @@ import sys
 
 from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
-from pygibbs.groups import GroupContribution
+from pygibbs import groups
 from pygibbs.feasibility import thermodynamic_pathway_analysis
+from pygibbs.kegg_utils import write_kegg_pathway
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.html_writer import HtmlWriter
 from toolbox import util
 from toolbox.database import SqliteDatabase
-from pygibbs.kegg_utils import write_kegg_pathway
 
 
 class Pathologic(object):
     
     ALLOWED_THERMODYNAMIC_METHODS = ['none', 'pCr', 'MTDF', 'global', 'localized'] 
     
-    def __init__(self, db, html_writer,
+    def __init__(self, db, public_db, html_writer,
                  thermodynamic_method='global',
                  max_reactions=None,
                  max_solutions=100,
@@ -51,9 +52,14 @@ class Pathologic(object):
         self.max_solutions = max_solutions
         self.maximal_dG = maximal_dG
         
-        self.gc = GroupContribution(db, html_writer)
-        self.gc.init()
-        
+        self.db_public = public_db
+        self.db = db
+        self.observed_thermo = PsuedoisomerTableThermodynamics.FromDatabase(
+                                self.db_public, 'alberty_pseudoisomers')
+        self.thermo = PsuedoisomerTableThermodynamics.FromDatabase(
+                                self.db, 'gc_pseudoisomers')
+        self.thermo.override_data(self.observed_thermo)
+                
         self.flux_relaxtion_factor = None
         self.kegg_patholotic = KeggPathologic()
         self.kegg_patholotic.update_database(update_file, self.html_writer)
@@ -77,18 +83,18 @@ class Pathologic(object):
         exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'__parameters__\')" value="Show Parameters">\n')
         exp_html.write('<div id="__parameters__" style="display:none">')
 
-        exp_html.write('<h2>Conditions:</h2> pH = %g, I = %g, T = %g<br>\n' % (self.gc.pH, self.gc.I, self.gc.T))
+        exp_html.write('<h2>Conditions:</h2> pH = %g, I = %g, T = %g<br>\n' % (self.thermo.pH, self.thermo.I, self.thermo.T))
         exp_html.write('<h2>Thermodynamic constraints:</h2> ')
         if self.thermodynamic_method == "none":
             exp_html.write("ignore thermodynamics")
         elif self.thermodynamic_method == "pCr":
-            exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.gc.c_mid)
+            exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.thermo.c_mid)
         elif self.thermodynamic_method == "MTDF":
-            exp_html.write("Maximal Chemical Motive Force Analysis, %g M < C < %g M" % self.gc.c_range)
+            exp_html.write("Maximal Chemical Motive Force Analysis, %g M < C < %g M" % self.thermo.c_range)
         elif self.thermodynamic_method == "global":
-            exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" % (self.gc.c_range[0], self.gc.c_range[1], self.maximal_dG))
+            exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" % (self.thermo.c_range[0], self.thermo.c_range[1], self.maximal_dG))
         elif self.thermodynamic_method == "localized":
-            exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.gc.c_range)
+            exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.thermo.c_range)
         else:
             raise Exception("thermodynamic_method must be one of %s" % self.ALLOWED_THERMODYNAMIC_METHODS)
         exp_html.write('<br>\n')
@@ -140,13 +146,13 @@ class Pathologic(object):
             milp.add_reaction_num_constraint(self.max_reactions)
         
         if (self.thermodynamic_method == "pCr"):
-            milp.add_dGr_constraints(self.gc, pCr=True, MTDF=False, maximal_dG=0)
+            milp.add_dGr_constraints(self.thermo, pCr=True, MTDF=False, maximal_dG=0)
         elif (self.thermodynamic_method == "MTDF"):
-            milp.add_dGr_constraints(self.gc, pCr=False, MTDF=True, maximal_dG=0)
+            milp.add_dGr_constraints(self.thermo, pCr=False, MTDF=True, maximal_dG=0)
         elif (self.thermodynamic_method == "global"):
-            milp.add_dGr_constraints(self.gc, pCr=False, MTDF=False, maximal_dG=self.maximal_dG)
+            milp.add_dGr_constraints(self.thermo, pCr=False, MTDF=False, maximal_dG=self.maximal_dG)
         elif (self.thermodynamic_method == "localized"):
-            milp.add_localized_dGf_constraints(self.gc)
+            milp.add_localized_dGf_constraints(self.thermo)
         
         for index in range(1, self.max_solutions+1):
             # create the MILP problem to constrain the previous solutions not to reappear again.
@@ -229,7 +235,7 @@ class Pathologic(object):
                 c = cids.index(cid)
                 S[r, c] = coeff
 
-        return thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.gc, exp_html)
+        return thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, exp_html)
 
 ################################################################################
 #                               MAIN                                           #
@@ -238,17 +244,36 @@ class Pathologic(object):
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     db = SqliteDatabase('../res/gibbs.sqlite', 'r')
+    public_db = SqliteDatabase('../data/public_data.sqlite')
     html_writer = HtmlWriter('../res/pathologic.html')
     update_file = '../data/thermodynamics/database_updates_with_MOG_reactions.txt'
-    pl = Pathologic(db, html_writer,
-                    max_solutions=1,
-                    max_reactions=15,
-                    thermodynamic_method='global',
+    pl = Pathologic(db,
+                    public_db,
+                    html_writer,
+                    max_solutions=5,
+                    max_reactions=11,
+                    thermodynamic_method='MTDF',
                     update_file=update_file)
     pl.gc.c_range = (1e-6, 1e-2)
     
-    source = {31:1, 8:2, 3:2}; target = {22:2, 2:2, 4:2}
-    name = "glucose + 2 ADP + 2 NAD => 2 pyruvate + 2 ATP + 2 NADH (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+    # Handy reference
+    atp = 2
+    adp = 8
+    nad = 3
+    nadh = 4
+    
+    glucose = 31
+    g6p = 92
+    fbp = 354
+    bpg = 236
+    g3p = 118
+    threepg = 197
+    pep = 74
+    pyruvate = 22
+    
+    source = {glucose:1, adp:2, nad:2}
+    target = {pyruvate:2, atp:2, nadh:2}
+    name = "MTDF Glucose + 2 ADP + 2 NAD => 2 Pyruvate + 2 ATP + 2 NADH (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
     pl.find_path(name, source, target)
 
     #source = {}; target = {48:1}
