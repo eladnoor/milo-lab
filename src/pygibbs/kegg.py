@@ -322,9 +322,11 @@ class Kegg(Singleton):
             try:
                 comp.pmap = thermo.cid2PseudoisomerMap(cid)
                 comp.pmap_source = thermo.cid2SourceString(cid)
-            except MissingCompoundFormationEnergy:
+                comp.pmap_error = ""
+            except MissingCompoundFormationEnergy as e:
                 comp.pmap = None
                 comp.pmap_source = ""
+                comp.pmap_error = str(e)
     
     def AllCompounds(self):
         """Returns all the compounds."""

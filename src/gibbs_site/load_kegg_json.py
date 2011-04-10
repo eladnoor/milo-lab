@@ -4,7 +4,6 @@ import json
 import logging
 
 from util import django_utils
-from util import kegg
 
 django_utils.SetupDjango()
 
@@ -45,7 +44,7 @@ def GetCompounds(cids_list):
         try:
             compounds.append(models.Compound.objects.get(kegg_id=kegg_id))
         except Exception:
-            logging.warning('Failed to retrieve compound %s', rid)
+            logging.warning('Failed to retrieve compound %s', kegg_id)
             continue
     return compounds
         
@@ -54,6 +53,33 @@ COMPOUND_FILE = 'data/kegg_compounds.json'
 REACTION_FILE = 'data/kegg_reactions.json'
 ENZYME_FILE = 'data/kegg_enzymes.json'
 
+def AddAllSpeciesToCompound(compound, species_dicts, source):
+    print 'Writing data from source %s for compound %s' % (source.name,
+                                                           compound.kegg_id)
+    
+    compound.species.clear()
+    for sdict in species_dicts:
+        specie = models.Specie(kegg_id=compound.kegg_id,
+                               number_of_hydrogens=sdict['nH'],
+                               number_of_mgs=sdict['nMg'],
+                               net_charge=sdict['z'],
+                               formation_energy=sdict['dG0_f'],
+                               formation_energy_source=source)
+        specie.save()
+        compound.species.add(specie)
+
+def GetSource(source_string):
+    if not source_string:
+        return None
+    
+    lsource = source_string.lower()
+    if lsource.startswith('alberty'):
+        return models.ValueSource.Alberty()
+    elif lsource.startswith('thauer'):
+        return models.ValueSource.Thauer()
+    elif lsource.startswith('group'):
+        return models.ValueSource.GroupContribution()
+    return None
 
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(open(kegg_json_filename))
@@ -85,6 +111,20 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             
             if num_electrons is not None:
                 c.num_electrons = int(num_electrons)
+
+            species = cd.get('species')
+            if not species:
+                error = cd.get('error')
+                if error:
+                    c.no_dg_explanation = error
+            else:
+                source_string = cd.get('source')
+                my_source = GetSource(source_string)
+                if not my_source:
+                    logging.error('Couldn\'t get source for %s' % my_source)
+                    logging.error(cd)
+                else:
+                    AddAllSpeciesToCompound(c, species, my_source)
                 
             # Need to save before setting up many-to-many relationships.
             c.save()
