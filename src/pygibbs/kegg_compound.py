@@ -35,6 +35,8 @@ class Compound(object):
             from_kegg: whether the compound is from KEGG
             pubchem_id
             cas
+            pmap: a PseudoisomerMap object - formation energies
+            pmap_source: the source for the pmap (or "")
         """
         if cid == None:
             self.cid = Compound.free_cid
@@ -54,6 +56,8 @@ class Compound(object):
         self.from_kegg = from_kegg
         self.pubchem_id = None
         self.cas = ""
+        self.pmap = None
+        self.pmap_source = ""
 
     def GetMolecule(self):
         """Gets a Molecule for this compound if possible.
@@ -196,6 +200,12 @@ class Compound(object):
         except Exception, e:
             d['num_electrons'] = None
         
+        if self.pmap:
+            d['species'] = []
+            for nH, z, nMg, dG0 in self.pmap.ToMatrix():
+                d['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
+            d['source'] = self.pmap_source
+            
         return d
     
     def __str__(self):

@@ -20,6 +20,7 @@ from toolbox.singletonmixin import Singleton
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
 from toolbox.molecule import Molecule
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
     
 class Kegg(Singleton):
 
@@ -315,6 +316,15 @@ class Kegg(Singleton):
                 comp.mass = mol.GetExactMass()
                 comp.formula = mol.GetFormula()
                 self.cid2compound_map[new_cid] = comp
+    
+    def AddThermodynamicData(self, thermo):
+        for cid, comp in self.cid2compound_map.iteritems():
+            try:
+                comp.pmap = thermo.cid2PseudoisomerMap(cid)
+                comp.pmap_source = thermo.cid2SourceString(cid)
+            except MissingCompoundFormationEnergy:
+                comp.pmap = None
+                comp.pmap_source = ""
     
     def AllCompounds(self):
         """Returns all the compounds."""

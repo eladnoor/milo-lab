@@ -1,5 +1,4 @@
 import csv
-import pseudoisomer
 import pylab
 import logging
 import json
@@ -8,13 +7,8 @@ from thermodynamic_constants import default_T, default_pH, default_I, default_pM
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
-
-class MissingCompoundFormationEnergy(Exception):
-    def __init__(self, value, cid=0):
-        self.value = value
-        self.cid = cid
-    def __str__(self):
-        return repr(self.value)    
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+import matplotlib
 
 class Thermodynamics(object):
     def __init__(self):
