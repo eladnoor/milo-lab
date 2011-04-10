@@ -23,11 +23,13 @@ class TestThermoJsonOutput(unittest.TestCase):
     def setUp(self):
         fake_csv_file = StringIO(CSV_DATA)
         csv_reader = csv.DictReader(fake_csv_file)
-        self.fake_thermo_csv = PsuedoisomerTableThermodynamics._FromDictReader(csv_reader)
+        self.fake_thermo_csv = PsuedoisomerTableThermodynamics._FromDictReader(
+                                    csv_reader, warn_for_conflicting_refs=False)
         
         db = SqliteDatabase(PUBLIC_DB_FNAME)
         db_reader = db.DictReader('fake_pseudoisomers')
-        self.fake_thermo_db = PsuedoisomerTableThermodynamics._FromDictReader(db_reader)
+        self.fake_thermo_db = PsuedoisomerTableThermodynamics._FromDictReader(
+                                    db_reader, warn_for_conflicting_refs=False)
 
     def testGetJsonDictionary(self):
         json_list = [self.fake_thermo_csv.get_json_dictionary(),
@@ -37,11 +39,13 @@ class TestThermoJsonOutput(unittest.TestCase):
             self.assertEqual(json_data[0]['cid'], 1)
             self.assertEqual(json_data[0]['source'], 'Alberty (2003)')
             self.assertEqual(json_data[0]['inchi'], 'InChI=1S/H2O/h1H2')
+            self.assertEqual(json_data[0]['num_electrons'], 10)
             self.assertAlmostEqual(json_data[0]['species'][0]['dG0_f'], -237.19, places=5)
     
             self.assertEqual(json_data[1]['cid'], 2)
             self.assertEqual(json_data[1]['source'], 'Alberty (2003)')
             self.assertEqual(json_data[1]['inchi'], 'InChI=1S/C10H16N5O13P3/c11-8-5-9(13-2-12-8)15(3-14-5)10-7(17)6(16)4(26-10)1-25-30(21,22)28-31(23,24)27-29(18,19)20/h2-4,6-7,10,16-17H,1H2,(H,21,22)(H,23,24)(H2,11,12,13)(H2,18,19,20)/t4-,6-,7-,10-/m1/s1')
+            self.assertEqual(json_data[1]['num_electrons'], 260)
             self.assertEqual(json_data[1]['species'][0]['nH'], 12)
             self.assertEqual(json_data[1]['species'][0]['nMg'], 0)
             self.assertEqual(json_data[1]['species'][0]['z'], -4)
@@ -54,6 +58,7 @@ class TestThermoJsonOutput(unittest.TestCase):
             self.assertEqual(json_data[2]['cid'], 7)
             self.assertEqual(json_data[2]['source'], 'Alberty (2003)')
             self.assertEqual(json_data[2]['inchi'], 'InChI=1S/O2/c1-2')
+            self.assertEqual(json_data[2]['num_electrons'], 16)
             self.assertAlmostEqual(json_data[2]['species'][0]['dG0_f'], 16.4, places=5)
 
 def Suite():
