@@ -2,7 +2,7 @@ import pylab, cplex
 from pygibbs.thermodynamic_constants import R
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 
-class Stoichiometric_LP():
+class Stoichiometric_LP(object):
     
     def __init__(self, name='Stoichiometric_LP', log_file=None):
         self.cpl = cplex.Cplex()
