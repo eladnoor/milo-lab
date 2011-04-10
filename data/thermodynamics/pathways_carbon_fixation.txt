@@ -1,5 +1,5 @@
 ENTRY       M-CALVIN_NADP
-SKIP        FALSE
+SKIP        TRUE
 NAME        rPP cycle (with NADP)
 TYPE        REDOX
 PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
@@ -36,7 +36,7 @@ REACTION    R00024  C01182 + C00288 -> 2 C00197 (x1)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       M-rTCA
-SKIP        FALSE
+SKIP        TRUE
 NAME        rTCA cycle
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
@@ -74,7 +74,7 @@ REACTION    R00343  C00036 + C00005 -> C00149 + C00006 (x0.5)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       M-DC-4HB
-SKIP        FALSE
+SKIP        TRUE
 NAME        Dicarboxylate / 4-Hydroxybutyrate
 TYPE        REDOX
 PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
@@ -115,11 +115,9 @@ REACTION    R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       M-3HP-4HB
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
 TYPE        REDOX
-PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
-REDOX       0.0 0.5 1.0 1.5 2.0 2.5 3.0
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -159,7 +157,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       M-3HP
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate Cycle
 TYPE        REDOX
 PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
@@ -202,9 +200,11 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       M-C1-1
-SKIP        TRUE
+SKIP        FALSE
 NAME        C1-1
 TYPE        REDOX
+PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
+REDOX       0.0 0.5 1.0 1.5 2.0 2.5 3.0
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -224,8 +224,7 @@ REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R01655  C00234 -> C00445 + C00001 (x0.5)
             R01220  C00445 + C00005 -> C00143 + C00006 (x0.5)
             R01224  C00143 + C00005 -> C00440 + C00006 (x0.5)
-            R07157  C00011 + 2 C00138 -> C00237 + C00001 + 2 C00139 (x0.5)
-            R90001  C00237 + C00010 + C00440 -> C00101 + C00024 (x0.5)
+            R90001  C00011 + 2 C00138 + C00010 + C00440 -> C00001 + 2 C00139 + C00101 + C00024 (x0.5)
             R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0.5)
             R01195  2 C00138 + C00006 -> 2 C00139 + C00005 (x0)
 ///
@@ -258,6 +257,8 @@ ENTRY       M-C1-4
 SKIP        TRUE
 NAME        C1-4
 TYPE        REDOX
+PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
+REDOX       0.0 0.5 1.0 1.5 2.0 2.5 3.0
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
