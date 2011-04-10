@@ -6,6 +6,7 @@ import re
 from pygibbs import kegg_errors
 from pygibbs import kegg_utils
 from toolbox.molecule import Molecule
+from pygibbs.kegg_errors import KeggParseException
 
 class Compound(object):
     """A class representing a compound in KEGG."""
@@ -58,6 +59,7 @@ class Compound(object):
         self.cas = ""
         self.pmap = None
         self.pmap_source = ""
+        self.pmap_error = ""
 
     def GetMolecule(self):
         """Gets a Molecule for this compound if possible.
@@ -192,12 +194,12 @@ class Compound(object):
 
         try:
             d['InChI'] = self.get_inchi()
-        except Exception, e:
+        except KeggParseException:
             d['InChI'] = None
         
         try:
             d['num_electrons'] = self.get_num_electrons()
-        except Exception, e:
+        except KeggParseException:
             d['num_electrons'] = None
         
         if self.pmap:
@@ -205,6 +207,8 @@ class Compound(object):
             for nH, z, nMg, dG0 in self.pmap.ToMatrix():
                 d['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
             d['source'] = self.pmap_source
+        elif self.pmap_error:
+            d['error'] = self.pmap_error
             
         return d
     

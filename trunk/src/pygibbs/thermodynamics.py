@@ -8,7 +8,6 @@ from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
-import matplotlib
 
 class Thermodynamics(object):
     def __init__(self):
