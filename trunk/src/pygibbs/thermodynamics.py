@@ -7,6 +7,7 @@ import json
 from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
+from pygibbs.kegg_errors import KeggParseException
 
 class MissingCompoundFormationEnergy(Exception):
     def __init__(self, value, cid=0):
@@ -145,6 +146,11 @@ class Thermodynamics(object):
                 h['inchi'] = kegg.cid2inchi(h['cid'])
             except KeyError:
                 h['inchi'] = None
+            try:
+                h['num_electrons'] = kegg.cid2num_electrons(h['cid'])
+            except KeggParseException:
+                h['num_electrons'] = None
+
             h['source'] = self.cid2source_string.get(cid, None)
             h['species'] = []
             for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
@@ -289,7 +295,7 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
         self.cid2pmap_dict = {}
     
     @staticmethod
-    def _FromDictReader(reader):
+    def _FromDictReader(reader, warn_for_conflicting_refs=True):
         """Internal and for testing only.
         
         Creates a Thermodynamics object from a DictReader.
@@ -310,7 +316,8 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
             thermo.AddPseudoisomer(cid, nH, z, nMg, dG0)
             ref = row.get('ref', '')
             if cid in thermo.cid2source_string and thermo.cid2source_string[cid] != ref:
-                logging.warning('There are conflicting references for C%05d ' % cid)
+                if warn_for_conflicting_refs:
+                    logging.warning('There are conflicting references for C%05d ' % cid)
             else:
                 thermo.cid2source_string[cid] = ref
             

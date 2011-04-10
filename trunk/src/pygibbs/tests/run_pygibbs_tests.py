@@ -14,7 +14,7 @@ def main():
                     thermo_json_output_test)
     
     modules_str = ', '.join(m.__name__ for m in test_modules)
-    print 'Running test suites from modules %s' % modules_str
+    logging.info('Running test suites from modules %s' % modules_str)
     
     suites = [m.Suite() for m in test_modules]
     alltests = unittest.TestSuite(suites)

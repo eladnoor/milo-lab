@@ -290,13 +290,16 @@ class Kegg(Singleton):
     def ReadAdditionsFile(self):
         logging.info("Adding compound data from %s" % self.COMPOUND_ADDITIONS_FILE)
         for row_dict in csv.DictReader(open(self.COMPOUND_ADDITIONS_FILE)):
-            if row_dict['cid'] and row_dict['inchi']:
-                raise Exception("One must provide either a CID or InChI but "
-                                "not both - fix compound %s" % row_dict['name'])
             if row_dict['cid']:
                 cid = int(row_dict['cid'])
                 self.name2cid_map[row_dict['name']] = cid
-                self.cid2compound(cid).all_names.append(row_dict['name'])
+                comp = self.cid2compound(cid)
+                comp.all_names.append(row_dict['name'])
+                if row_dict['inchi']:
+                    if comp.inchi:
+                        raise Exception('C%0d already has an InChI' % cid)
+                    else:
+                        comp.inchi = row_dict['inchi']
             elif row_dict['inchi']:
                 if row_dict['inchi'] in self.inchi2cid_map:
                     raise Exception("The InChI for compound %s already exists "

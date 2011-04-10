@@ -584,8 +584,8 @@ class ThermodynamicAnalysis(object):
     def analyze_redox3(self, key, field_map):
         self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
         self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.05))
-        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.05))
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.2))
+        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.2))
         c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
         
         self.html_writer.write('Parameters:</br>\n')
