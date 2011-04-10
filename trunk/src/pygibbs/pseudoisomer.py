@@ -9,8 +9,10 @@ from pygibbs.thermodynamic_constants import dG0_f_Mg
 class PseudoisomerMap(object):
     """A map from pseudoisomers to dG values."""
     
-    def __init__(self):
+    def __init__(self, nH=None, z=None, nMg=None, dG0=None):
         self.dgs = {}
+        if nH != None and z != None and nMg != None and dG0 != None:
+            self.Add(nH, z, nMg, dG0)
     
     @staticmethod
     def _MakeGroupVectorKey(groupvector):

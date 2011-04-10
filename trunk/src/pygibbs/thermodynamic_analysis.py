@@ -7,6 +7,7 @@ from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr,\
     LinProgNoSolutionException, thermodynamic_pathway_analysis, find_ratio
 from pygibbs.thermodynamic_constants import transform
 import matplotlib
+import matplotlib.pyplot as plt
 import logging
 from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
@@ -16,6 +17,7 @@ from pygibbs import kegg_utils
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from copy import deepcopy
 import scipy.io
+from pygibbs.pseudoisomer import PseudoisomerMap
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -582,13 +584,14 @@ class ThermodynamicAnalysis(object):
     def analyze_redox3(self, key, field_map):
         self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
         self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.1))
-        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.1))
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.05))
+        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.05))
         c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
         
         self.html_writer.write('Parameters:</br>\n')
         self.html_writer.write('<ul>\n')
         self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
+        self.html_writer.write('<li>default pH = %g</li>\n' % self.thermo.pH)
         self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
         self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
                                (c_range[0], c_range[1]))
@@ -623,7 +626,10 @@ class ThermodynamicAnalysis(object):
                     _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=11, cid_down=1, 
                         c_range=c_range, T=self.thermo.T, cid2bounds=cid2bounds)
                     ratio_mat[i, j] = log_ratio
-                    feasibility_mat[i, j] = 0.0
+                    if log_ratio < -5:
+                        feasibility_mat[i, j] = 0.0
+                    else:
+                        feasibility_mat[i, j] = 0.5
                 except LinProgNoSolutionException:
                     ratio_mat[i, j] = cid2bounds[11][1] + 1.0 # i.e. 10 times higher than the upper bound
                     feasibility_mat[i, j] = 1.0
@@ -634,26 +640,27 @@ class ThermodynamicAnalysis(object):
         
         contour_fig = pylab.figure()
         pylab.hold(True)
-        pylab.contourf(pH_mat, redox_mat, feasibility_mat, [-1.0, 0.5, 2.0])
-        CS = pylab.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-5.0, -0.99, 0.5))
-        pylab.clabel(CS, inline=1, fontsize=10)
-        pylab.xlim(min(pH_list), max(pH_list))
-        pylab.ylim(min(redox_list), max(redox_list))
-        pylab.xlabel("pH")
-        pylab.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
-        pylab.title("minimal $\\log{[CO_2]}$ required for feasibility")
+        matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
+        plt.contourf(pH_mat, redox_mat, feasibility_mat, [-1.0, 0.25, 0.75, 2.0])
+        CS = plt.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-4.5, -1.49, 0.5), colors='k')
+        plt.clabel(CS, inline=1, fontsize=7, colors='black')
+        plt.xlim(min(pH_list), max(pH_list))
+        plt.ylim(min(redox_list), max(redox_list))
+        plt.xlabel("pH")
+        plt.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
+        plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
 
-        heatmat_fig = pylab.figure()
-        pylab.pcolor(pH_mat, redox_mat, ratio_mat)
-        pylab.colorbar()
-        pylab.xlim(min(pH_list), max(pH_list))
-        pylab.ylim(min(redox_list), max(redox_list))
-        pylab.clim((cid2bounds[11][0], cid2bounds[11][1]+1.0))
-        pylab.xlabel("pH")
-        pylab.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
-        pylab.title("minimal $\\log{[CO_2]}$ required for feasibility")
-        self.html_writer.embed_matplotlib_figure(heatmat_fig, width=640, height=480)
+        #heatmat_fig = plt.figure()
+        #plt.pcolor(pH_mat, redox_mat, ratio_mat)
+        #plt.colorbar()
+        #plt.xlim(min(pH_list), max(pH_list))
+        #plt.ylim(min(redox_list), max(redox_list))
+        #plt.clim((cid2bounds[11][0], cid2bounds[11][1]+1.0))
+        #plt.xlabel("pH")
+        #plt.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
+        #plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
+        #self.html_writer.embed_matplotlib_figure(heatmat_fig, width=640, height=480)
 
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -685,6 +692,11 @@ if __name__ == "__main__":
         thermo.AddPseudoisomer( 390, nH=92, z=0, nMg=0, dG0=-103.2) # Ubiquinone-10(red)
         thermo.AddPseudoisomer( 828, nH=16, z=0, nMg=0, dG0=0)      # Menaquinone(ox)
         thermo.AddPseudoisomer(5819, nH=18, z=0, nMg=0, dG0=-65.8)  # Menaquinone(red)
+        thermo.SetPseudoisomerMap(101, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=0.0)) # THF
+        thermo.SetPseudoisomerMap(234, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=-137.5)) # 10-Formyl-THF
+        thermo.SetPseudoisomerMap(445, PseudoisomerMap(nH=22, z=0, nMg=0, dG0=65.1)) # 5,10-Methenyl-THF
+        thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
+        thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
     else:
         thermo = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
     
