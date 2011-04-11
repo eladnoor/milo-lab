@@ -14,7 +14,7 @@
 			</td>
 		</tr>
 		{% endif %}
-	
+
 		<tr>
 			<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'&deg;</strong></td>
 			<td colspan="2">
@@ -30,7 +30,18 @@
 			{% endif %}
 			</td>
 		</tr>
-		
+
+		{% if reaction.catalyzing_enzymes %}
+		<tr>
+			<td width="150px"><strong>Catalyzed by</strong></td>
+			<td colspan="2">
+			{% for enzyme in reaction.catalyzing_enzymes %}
+				<div><a href="{{ enzyme.link }}">{{ enzyme }}</a></div>
+			{% endfor %}
+			</td>
+		</tr>
+		{% endif %}
+
 		{% if reaction.dg0_tag != None %}
 		<tr>
 			<td width="150px">

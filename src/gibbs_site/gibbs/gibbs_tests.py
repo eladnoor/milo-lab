@@ -3,10 +3,12 @@
 import unittest
 
 from gibbs import models_test
+from gibbs import reaction_test
 
 
 def main():
-    test_modules = (models_test,)
+    test_modules = (models_test,
+                    reaction_test)
     
     modules_str = ', '.join(m.__name__ for m in test_modules)
     print 'Running test suites from modules %s' % modules_str
@@ -19,5 +21,5 @@ def main():
     
     
 if __name__ == '__main__':
-    main() 
+    main()
     

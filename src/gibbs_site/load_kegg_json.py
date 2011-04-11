@@ -2,12 +2,16 @@
 
 import json
 import logging
+import sys, traceback
 
 from util import django_utils
 
 django_utils.SetupDjango()
 
 from gibbs import models
+
+# Cache compounds so we can look them up faster.
+COMPOUNDS_CACHE = {}
 
 
 def GetOrCreateNames(names_list):
@@ -24,6 +28,9 @@ def GetReactions(rids_list):
     
     Skip those that are not present.
     """
+    if not rids_list:
+        return []
+    
     rxns = []
     for rid in rids_list:
         try:
@@ -39,6 +46,11 @@ def GetCompounds(cids_list):
     
     Skip those that are not present.
     """
+    if not cids_list:
+        return []
+    
+    global COMPOUNDS_CACHE
+    
     compounds = []
     for kegg_id in cids_list:
         try:
@@ -68,6 +80,7 @@ def AddAllSpeciesToCompound(compound, species_dicts, source):
         specie.save()
         compound.species.add(specie)
 
+
 def GetSource(source_string):
     if not source_string:
         return None
@@ -80,6 +93,7 @@ def GetSource(source_string):
     elif lsource.startswith('group'):
         return models.ValueSource.GroupContribution()
     return None
+
 
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(open(kegg_json_filename))
@@ -162,10 +176,12 @@ def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
                 rxn.reactants.add(reactant)
             for product in products:
                 rxn.products.add(product)
+            rxn.hash = rxn.GetHash()
             rxn.save()
         except Exception, e:
             logging.warning('Missing data for rid %s', rid)
             logging.error(e)
+            traceback.print_exc(file=sys.stdout)
             continue
 
 
@@ -175,11 +191,23 @@ def LoadKeggEnzymes(enzymes_json_filename=ENZYME_FILE):
     for ed in parsed_json:
         try:
             ec = ed['EC']
-            names = GetOrCreateNames(ed['names'])
-            reactions = GetReactions(ed['reaction_ids'])
-            substrates = GetCompounds(ed['substrates'])
-            products = GetCompounds(ed['products'])
-            cofactors = GetCompounds(ed['cofactors'])
+            names = ed['names']
+            reactions = ed['reaction_ids']
+            
+            if not ec:
+                raise KeyError('Encountered an enzyme without an EC number.')
+            if not names:
+                raise KeyError('Common names are required for enzymes (EC) %s.' % ec )
+            
+            names = GetOrCreateNames(names)
+            reactions = GetReactions(reactions)
+            if not reactions:
+                logging.info('Ignoring EC %s since we found no reactions.' % ec)
+                continue
+            
+            substrates = GetCompounds(ed.get('substrates'))
+            products = GetCompounds(ed.get('products'))
+            cofactors = GetCompounds(ed.get('cofactors'))
             
             # Save first so we can do many-to-many mappings.
             enz = models.Enzyme(ec=ec)
@@ -194,8 +222,10 @@ def LoadKeggEnzymes(enzymes_json_filename=ENZYME_FILE):
             enz.save()
             
         except Exception, e:
-            logging.warning('Missing data for ec %s', ec)
+            logging.warning('Missing data for ec %s', ec)           
             logging.error(e)
+            traceback.print_exc(file=sys.stdout)
+
             continue
 
 
@@ -204,7 +234,6 @@ def CheckData(filenames=(COMPOUND_FILE,
                          ENZYME_FILE)):
     for json_fname in filenames:
         json.load(open(json_fname))
-
 
 
 def LoadAllKeggData():

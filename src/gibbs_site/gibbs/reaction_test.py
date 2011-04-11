@@ -29,5 +29,9 @@ class CompoundWithCoeffTest(unittest.TestCase):
         self.assertAlmostEqual(5e5, c_w_coeff.micromolar_concentration, 3)
 
 
+def Suite():
+    suites = (unittest.makeSuite(CompoundWithCoeffTest, 'test'),)
+    return unittest.TestSuite(suites)
+
 if __name__ == '__main__':
     unittest.main()

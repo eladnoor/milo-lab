@@ -113,6 +113,7 @@ class StoredReactionTest(unittest.TestCase):
         compound_c = models.Compound(kegg_id='C00021')
         compound_d = models.Compound(kegg_id='C00032')
         compound_e = models.Compound(kegg_id='C00190')
+        hydrogen = models.Compound(kegg_id='C00080')
         
         # 1 a + 1 b = 1 c + 1 d
         reactants_a = [models.Reactant(coeff=1, compound=compound_a),
@@ -149,6 +150,50 @@ class StoredReactionTest(unittest.TestCase):
         all_hashables = (hashable_a, hashable_b, hashable_c, hashable_d)
         for a, b in itertools.combinations(all_hashables, 2):
             self.assertNotEqual(a, b)
+            
+        # 1 a + 1 b = 1 d + 1 c
+        reactants_a2 = [models.Reactant(coeff=1, compound=compound_a),
+                        models.Reactant(coeff=1, compound=compound_b)]
+        products_a2  = [models.Reactant(coeff=1, compound=compound_d),
+                        models.Reactant(coeff=1, compound=compound_c)]
+        hashable_a2  = models.StoredReaction.HashableReactionString(reactants_a2,
+                                                                    products_a2)
+        self.assertEqual(hashable_a2, hashable_a)
+        
+        # 1 d + 1 c = 1 a + 1 b 
+        products_a3  = [models.Reactant(coeff=1, compound=compound_a),
+                        models.Reactant(coeff=1, compound=compound_b)]
+        reactants_a3 = [models.Reactant(coeff=1, compound=compound_d),
+                        models.Reactant(coeff=1, compound=compound_c)]
+        hashable_a3  = models.StoredReaction.HashableReactionString(reactants_a3,
+                                                                    products_a3)
+        self.assertEqual(hashable_a3, hashable_a)
+        
+        # 1 b + 3 a = 2 c
+        reactants_d2 = [models.Reactant(coeff=1, compound=compound_b),
+                        models.Reactant(coeff=3, compound=compound_a)]
+        products_d2  = [models.Reactant(coeff=2, compound=compound_c)]
+        hashable_d2  = models.StoredReaction.HashableReactionString(reactants_d2,
+                                                                    products_d2)
+        self.assertEqual(hashable_d2, hashable_d)
+        
+        # 2 c = 1 b + 3 a
+        products_d3  = [models.Reactant(coeff=1, compound=compound_b),
+                        models.Reactant(coeff=3, compound=compound_a)]
+        reactants_d3 = [models.Reactant(coeff=2, compound=compound_c)]
+        hashable_d3  = models.StoredReaction.HashableReactionString(reactants_d3,
+                                                                    products_d3)
+        self.assertEqual(hashable_d3, hashable_d)
+
+        # 1 b + 3 a = 2 c + 2 h+
+        reactants_d4 = [models.Reactant(coeff=1, compound=compound_b),
+                        models.Reactant(coeff=3, compound=compound_a)]
+        products_d4  = [models.Reactant(coeff=2, compound=compound_c),
+                        models.Reactant(coeff=2, compound=hydrogen)]
+        hashable_d4  = models.StoredReaction.HashableReactionString(reactants_d4,
+                                                                    products_d4)
+        self.assertEqual(hashable_d4, hashable_d)
+        
 
 def Suite():
     suites = (unittest.makeSuite(SpeciesFormationEnergyTest, 'test'),

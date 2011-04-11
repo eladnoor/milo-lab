@@ -10,9 +10,20 @@
   <tr>
     <td width="150px">EC Number</td>
     <td>
-      <div class="commonName">{{ enzyme.ec }}</div>
+      <div>{{ enzyme.ec }}</div>
     </td>
   </tr>
+  	{% if enzyme.all_cofactors %}
+  	<tr>
+    	<td width="150px">EC Number</td>
+    	<td>
+    		{% for cofactor in enzyme.all_cofactors %}
+      		<div class="commonName">{{ cofactor }}</div>
+      		{% endfor %}
+    	</td>
+  	</tr>
+  	
+  	{% endif %}
 	{% if enzyme.kegg_link %}
 	<tr>
 		<td width="150px">Links</td>
