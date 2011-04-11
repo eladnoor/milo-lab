@@ -318,13 +318,11 @@ class Kegg(Singleton):
     def AddThermodynamicData(self, thermo):
         for cid, comp in self.cid2compound_map.iteritems():
             try:
-                comp.pmap = thermo.cid2PseudoisomerMap(cid)
-                comp.pmap_source = thermo.cid2SourceString(cid)
-                comp.pmap_error = ""
+                comp.AddThermodynamicData(thermo.cid2PseudoisomerMap(cid),
+                                          thermo.cid2SourceString(cid))
             except MissingCompoundFormationEnergy as e:
-                comp.pmap = None
-                comp.pmap_source = ""
-                comp.pmap_error = str(e)
+                error_string = str(e)
+                comp.SetThermodynamicError(error_string)
     
     def AllCompounds(self):
         """Returns all the compounds."""
