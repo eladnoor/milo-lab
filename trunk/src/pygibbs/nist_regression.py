@@ -61,10 +61,10 @@ class NistAnchors(object):
     def GetAllCids(self):
         return sorted(self.cid2dG0_f.keys())
 
-class NistRegression(Thermodynamics):
+class NistRegression(PsuedoisomerTableThermodynamics):
     
     def __init__(self, db, html_writer, nist=None):
-        Thermodynamics.__init__(self)
+        PsuedoisomerTableThermodynamics.__init__(self)
         self.db = db
         self.html_writer = html_writer
         self.kegg = Kegg.getInstance()
@@ -613,16 +613,6 @@ class NistRegression(Thermodynamics):
                 self.self.html_writer.write('</td></tr>\n')
         self.self.html_writer.write('</table>\n')
 
-    def ToDatabase(self):
-        Thermodynamics.ToDatabase(self, self.db, 'nist_regression')
-
-    def FromDatabase(self):
-        if self.db.DoesTableExist('nist_regression'):
-            Thermodynamics.FromDatabase(self, self.db, 'nist_regression')
-        else:
-            logging.warning('You should run nist_regression.py before trying to'
-                            ' load the data from the database')
-        
     def WriteDataToHtml(self):
         Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
         
@@ -654,7 +644,7 @@ def main():
         alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
         alberty.ToDatabase(db, 'alberty')
         nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=alberty)
-        nist_regression.ToDatabase()
+        nist_regression.ToDatabase(db, 'nist_regression_pseudoisomers')
         
         html_writer.write('<h3>Regression results:</h3>\n')
         html_writer.insert_toggle('regression')
@@ -675,7 +665,7 @@ def main():
         html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
 
         query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0, r.dG0 ' + \
-                'FROM alberty a, nist_regression r ' + \
+                'FROM alberty a, nist_regression_pseudoisomers r ' + \
                 'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
                 'AND a.anchor=0 ORDER BY a.cid,a.nH'
         

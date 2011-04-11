@@ -218,6 +218,15 @@ class Thermodynamics(object):
                 # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
                 dG0_f[c] = pylab.nan
         return dG0_f
+    
+    def GetTransfromedReactionEnergies(self, S, cids):
+        dG0_f = self.GetTransformedFormationEnergies(cids)
+        dG0_r = pylab.zeros((S.shape[0], 1))
+        for r in xrange(S.shape[0]):
+            dG0_r[r, 0] = 0.0
+            for c in pylab.find(S[r, :]):
+                dG0_r[r, 0] += S[r, c] * dG0_f[c, 0]
+        return dG0_r
         
     def WriteFormationEnergiesToHTML(self, html_writer, cids):
         """ calculate the dG0_f of each compound """
