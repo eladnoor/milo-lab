@@ -3,7 +3,7 @@
 import unittest
 
 from pygibbs import kegg_compound
-
+from pygibbs import pseudoisomer
 
 class TestKeggCompound(unittest.TestCase):
     
@@ -47,6 +47,18 @@ class TestKeggCompound(unittest.TestCase):
         self.test_compound.get_atom_bag()
         self.test_compound.get_nH_and_charge()
         self.test_compound.get_num_electrons()
+        
+    def testAddThermodynamicData(self):
+        pmap = pseudoisomer.PseudoisomerMap(nH=8, z=0, nMg=0, dG0=18.8)
+        source_string = 'Noor, Bar-Even 2011'
+        self.test_compound.AddThermodynamicData(pmap, source_string)
+        self.assertEqual(pmap, self.test_compound.pmap)
+        self.assertEqual(source_string, self.test_compound.pmap_source)
+    
+    def testSetThermodynamicError(self):
+        error = 'Group contribution failed to solve your problems.'
+        self.test_compound.SetThermodynamicError(error)
+        self.assertEqual(error, self.test_compound.pmap_error)
     
     def testJSONDict(self):
         json_dict = self.test_compound.ToJSONDict()

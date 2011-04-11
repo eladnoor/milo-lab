@@ -11,7 +11,11 @@ class PseudoisomerMap(object):
     
     def __init__(self, nH=None, z=None, nMg=None, dG0=None):
         self.dgs = {}
-        if nH != None and z != None and nMg != None and dG0 != None:
+        
+        if (nH != None and
+            z != None and
+            nMg != None and
+            dG0 != None):
             self.Add(nH, z, nMg, dG0)
     
     @staticmethod

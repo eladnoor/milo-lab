@@ -58,8 +58,26 @@ class Compound(object):
         self.pubchem_id = None
         self.cas = ""
         self.pmap = None
-        self.pmap_source = ""
-        self.pmap_error = ""
+        self.pmap_source = None
+        self.pmap_error = None
+        
+    def AddThermodynamicData(self, pseudoisomer_map, source_string=None):
+        """Add thermodynamic data.
+        
+        Args:
+            pseudoisomer_map: a pseudoisomer.PseudoisomerMap object.
+            source_string: a string denoting the source of the thermodynamic data.
+        """
+        self.pmap = pseudoisomer_map
+        self.pmap_source = source_string
+    
+    def SetThermodynamicError(self, error_string):
+        """Sets an explanatory error for why there's no thermodynamic data.
+        
+        Args:
+            error_string: the explanatory error.
+        """
+        self.pmap_error = error_string
 
     def GetMolecule(self):
         """Gets a Molecule for this compound if possible.
