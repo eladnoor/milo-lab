@@ -10,6 +10,7 @@ from pygibbs.thermodynamic_constants import default_pMg, default_T
 from pygibbs.groups import GroupContribution
 from pygibbs import reversibility
 from pygibbs.kegg import Kegg
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 
@@ -31,10 +32,18 @@ def main():
     I = options.i_s
     T = default_T
 
-    db = SqliteDatabase('../res/gibbs.sqlite')
+    db = SqliteDatabase("../res/gibbs.sqlite")
+    observed_thermo = PsuedoisomerTableThermodynamics.FromCsvFile(
+        '../data/thermodynamics/dG0.csv')
+    gc_table_name = "gc_pseudoisomers"
+    if not db.DoesTableExist(gc_table_name):
+        raise ValueError('The table %s does not exist in the database. '
+                         'Please run the groups.py script and try again.'
+                         % gc_table_name)
+    thermo = PsuedoisomerTableThermodynamics.FromDatabase(
+        db, gc_table_name)
+    thermo.override_data(observed_thermo)
     kegg = Kegg.getInstance()
-    G = GroupContribution(db)
-    G.init()
     
     print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
            'I=%.2gmM, Median concentration=%.2gM' % (T, pH, pMg, I, c_mid))
@@ -55,10 +64,11 @@ def main():
             print '\tFormula: %s' % compound.formula
             print '\tInChI: %s' % compound.inchi
             print '\tConcentration: %.2e' % cmap.get(cid, c_mid)
-            dG0_tag = G.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T) + \
-                      R*T*pylab.log(cmap.get(cid, c_mid))
+            dG0_tag = thermo.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T)
+            dG_tag = dG0_tag + R*T*pylab.log(cmap.get(cid, c_mid))
             
-            print '\tTransformed Formation Energy: %.1f' % dG0_tag
+            print '\tStandard Transformed Formation Energy: %.1f' % dG0_tag
+            print '\tTransformed Formation Energy: %.1f' % dG_tag
         except Exception, e:
             print 'Error: ', e
 
