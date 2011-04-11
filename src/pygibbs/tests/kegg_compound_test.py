@@ -62,6 +62,16 @@ class TestKeggCompound(unittest.TestCase):
         self.assertEqual(self.names, json_dict['names'])
         self.assertEqual(self.inchi, json_dict['InChI'])
         self.assertTrue(json_dict['num_electrons'] is not None)
+    
+    def testToDBRow(self):
+        expected_row = [self.cid, self.name, ';'.join(self.names),
+                        self.mass, self.formula, self.inchi,
+                        self.test_compound.get_num_electrons(),
+                        self.test_compound.from_kegg,
+                        self.test_compound.pubchem_id,
+                        self.test_compound.cas]
+        db_row = self.test_compound.ToDBRow()
+        self.assertEqual(expected_row, db_row)
         
 
 def Suite():
