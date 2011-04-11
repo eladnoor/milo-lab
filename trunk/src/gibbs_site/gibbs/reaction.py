@@ -64,6 +64,20 @@ class CompoundWithCoeff(object):
             return '%.2e' % conc
         return '%.2f' % conc
     
+    def __eq__(self, other):
+        """Check equality with another CompoundWithCoeff.
+        
+        Args:
+            other: a second CompoundWithCoeff (or like object).
+        """
+        if self.coeff != other.coeff:
+            return False
+        
+        if self.compound.kegg_id != other.compound.kegg_id:
+            return False
+        
+        return True
+    
     name = property(GetName)
     micromolar_concentration = property(_MicromolarConcentration)
     micromolar_concentration_string = property(_MicromolarConcentrationString)
@@ -87,7 +101,14 @@ class Reaction(object):
         self.ph = pH
         self.pmg = pMg
         self.i_s = ionic_strength
-        self.concentration_profile = None
+        self._concentration_profile = None
+        self._stored_reaction = None
+        self._all_stored_reactions = None
+        self._catalyzing_enzymes = None
+        
+    def GetConcentrationProfile(self):
+        """Get the concentration profile of this reaction."""
+        return self._concentration_profile
     
     def ApplyConcentrationProfile(self, concentration_profile):
         """Apply this concentration profile to this reaction.
@@ -95,16 +116,68 @@ class Reaction(object):
         Args:
             concentration_profile: a ConcentrationProfile object.
         """
-        self.concentration_profile = concentration_profile
+        self._concentration_profile = concentration_profile
         for c in self.reactants + self.products:
-            c.concentration = self.concentration_profile.Concentration(c.compound.kegg_id)
-            
+            c.concentration = self._concentration_profile.Concentration(c.compound.kegg_id)
+    concentration_profile = property(GetConcentrationProfile,
+                                     ApplyConcentrationProfile)    
+        
+    def SameChecmicalReaction(self, stored_reaction):
+        """Checks that the two chemical reactions are the same."""
+        my_string = models.StoredReaction.HashableReactionString(self.reactants,
+                                                                 self.products)
+        their_string = stored_reaction.GetHashableReactionString()
+        return my_string == their_string
+    
+    def _GetHash(self):
+        """Get the hash for this reaction."""
+        if self._stored_reaction:
+            return self._stored_reaction.GetHash()
+        
+        return models.StoredReaction.HashReaction(self.reactants,
+                                                  self.products)
+    
+    def _GetAllStoredReactions(self):
+        """Find all stored reactions matching this compound."""
+        if not self._all_stored_reactions:
+            self._all_stored_reactions = []
+            hash = self._GetHash()
+            matching_reactions = models.StoredReaction.objects.filter(hash=hash)
+            for stored_rxn in matching_reactions:
+                if self.SameChecmicalReaction(stored_rxn):
+                    self._all_stored_reactions.append(stored_rxn)
+        
+        return self._all_stored_reactions
+    all_stored_reactions = property(_GetAllStoredReactions)
+    
+    def GetStoredReaction(self):
+        """Get the stored reaction if any."""
+        return self._stored_reaction
+    
+    def SetStoredReaction(self, stored_reaction):
+        """Setter for stored reaction."""
+        self._stored_reaction = stored_reaction
+    stored_reaction = property(GetStoredReaction,
+                               SetStoredReaction)
+    
+    def GetCatalyzingEnzymes(self):
+        """Get all the enzymes catalyzing this reaction."""        
+        if not self._catalyzing_enzymes:
+            self._catalyzing_enzymes = []
+            for stored_reaction in self.all_stored_reactions:
+                print stored_reaction
+                enzymes = stored_reaction.enzyme_set.all()
+                self._catalyzing_enzymes.extend(enzymes)
+        
+        return self._catalyzing_enzymes
+    catalyzing_enzymes = property(GetCatalyzingEnzymes)
+    
     def StandardConcentrations(self):
         """Returns True if using standard concentrations."""
-        if not self.concentration_profile:
+        if not self._concentration_profile:
             return True
-        return (self.concentration_profile and
-                self.concentration_profile.IsStandard())
+        return (self._concentration_profile and
+                self._concentration_profile.IsStandard())
     
     @staticmethod
     def FromForm(form):
@@ -164,7 +237,9 @@ class Reaction(object):
                      for r in stored_reaction.reactants.all()]
         products  = [CompoundWithCoeff.FromReactant(r)
                      for r in stored_reaction.products.all()]
-        return Reaction(reactants, products)
+        rxn = Reaction(reactants, products)
+        rxn.SetStoredReaction(stored_reaction)
+        return rxn
     
     @staticmethod
     def FromIds(reactants, products, concentration_profile=None,
@@ -300,8 +375,8 @@ class Reaction(object):
             params.append('pmg=%f' % self.pmg)
         if self.i_s:
             params.append('ionic_strength=%f' % self.i_s)
-        if self.concentration_profile:
-            params.append('concentration_profile=%s' % self.concentration_profile)
+        if self._concentration_profile:
+            params.append('concentration_profile=%s' % self._concentration_profile)
         if query:
             tmp_query = query.replace(u'→', '=>')
             params.append('query=%s' % urllib.quote(tmp_query))

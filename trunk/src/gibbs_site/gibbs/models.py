@@ -421,11 +421,6 @@ class StoredReaction(models.Model):
                 l.append('%d %s' % (r.coeff,
                                     r.compound.FirstName()))
         return ' + '.join(l)
-    
-    def save(self, *args, **kwargs):
-        """Custom save-time behavior: set the hash."""
-        self.hash = self.GetHash()
-        super(StoredReaction, self).save(*args, **kwargs)
 
     def ReactionString(self):
         """Get the string representation of this reaction."""
@@ -434,14 +429,42 @@ class StoredReaction(models.Model):
     
     @staticmethod
     def HashableReactionString(reactants, products):
-        """Return a hashable string for a reaction."""
-        reactants_strs = ['%d %s' % (r.coeff, r.compound.kegg_id)
-                          for r in reactants]
-        products_strs = ['%d %s' % (r.coeff, r.compound.kegg_id)
-                         for r in products]
-        return '%s <=> %s' % (' + '.join(reactants_strs),
-                              ' + '.join(products_strs))
+        """Return a hashable string for a biochemical reaction.
         
+        The string fully identifies the biochemical reaction up to directionality.
+        If it is equal to another reaction's string, then they have identical
+        stoichiometry up to their directionality.
+        
+        Args:
+            reactants: the reactants; a list of Reactants or like objects.
+            products: the products; a list of Reactants or like objects.
+        """
+        sort_key = lambda r: r.compound.kegg_id
+        make_str = lambda r: '%d %s' % (r.coeff, r.compound.kegg_id)
+        is_not_hydrogen = lambda r: r.compound.kegg_id != 'C00080'
+        
+        reactants_strs = map(make_str,
+                             sorted(filter(is_not_hydrogen, reactants),
+                                    key=sort_key))
+        rside_str = ' + '.join(reactants_strs)
+        rside_hash = str(hash(rside_str))
+        
+        products_strs = map(make_str,
+                            sorted(filter(is_not_hydrogen, products),
+                                   key=sort_key))
+        pside_str = ' + '.join(products_strs)
+        pside_hash = str(hash(pside_str))
+        
+        sides = ['%s%s' % (rside_hash, rside_str),
+                 '%s%s' % (pside_hash, pside_str)]
+        sides.sort()
+        return '%s <=> %s' % (sides[0], sides[1])
+    
+    def GetHashableReactionString(self):
+        """Get a hashable string identifying this chemical reaction."""
+        return self.HashableReactionString(self.reactants.all(),
+                                           self.products.all())
+    
     @staticmethod
     def HashReaction(reactants, products):
         md5 = hashlib.md5()
@@ -450,8 +473,8 @@ class StoredReaction(models.Model):
     
     def GetHash(self):
         """Returns a string hash of this reaction for easy identification."""
-        return self.HashReaction(self.reactants,
-                                 self.products)
+        return self.HashReaction(self.reactants.all(),
+                                 self.products.all())
     
     def __hash__(self):
         """Makes stored reactions hashable."""
@@ -516,6 +539,7 @@ class Enzyme(models.Model):
         return unicode(self.FirstName())
 
     all_common_names = property(lambda self: self.common_names.all())
+    all_cofactors = property(lambda self: self.cofactors.all())
     first_name = property(FirstName)
     all_reactions = property(AllReactions)
     kegg_link = property(KeggLink)
