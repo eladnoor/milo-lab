@@ -8,7 +8,6 @@
 import logging
 from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
-from pygibbs.groups import GroupContribution
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
 from pygibbs.nist_regression import NistRegression
@@ -38,8 +37,8 @@ def main():
     estimators['Hatzimanikatis Group Contribution (with pKa)'] = Hatzi()
     estimators['Hatzimanikatis Group Contribution (with pKa)'].use_pKa = True
     
-    estimators['NIST regression'] = NistRegression(db, html_writer, nist=nist) 
-    estimators['NIST regression'].FromDatabase()
+    estimators['NIST regression'] = PsuedoisomerTableThermodynamics.FromDatabase(
+                                db, 'nist_regression_pseudoisomers')
         
     estimators['Milo Group Contribution'] = PsuedoisomerTableThermodynamics.FromDatabase(
                                 db, 'gc_pseudoisomers')

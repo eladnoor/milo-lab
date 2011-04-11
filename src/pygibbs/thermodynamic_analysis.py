@@ -53,7 +53,8 @@ class ThermodynamicAnalysis(object):
                              'MARGIN':self.analyze_margin,
                              'CONTOUR':self.analyze_contour,
                              'REDOX':self.analyze_redox3,
-                             'PROTONATION':self.analyze_protonation}
+                             'PROTONATION':self.analyze_protonation,
+                             'STANDARD':self.analyze_standard_conditions}
 
             analysis_type = field_map.GetStringField('TYPE')
             if analysis_type in function_dict:
@@ -157,8 +158,7 @@ class ThermodynamicAnalysis(object):
 
     def write_reactions_to_html(self, S, rids, fluxes, cids, show_cids=True):
         self.thermo.pH = 7
-        dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-        dG0_r = pylab.dot(S, dG0_f)
+        dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
         
         self.html_writer.write("<li>Reactions:</br><ul>\n")
         
@@ -662,6 +662,30 @@ class ThermodynamicAnalysis(object):
         #plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
         #self.html_writer.embed_matplotlib_figure(heatmat_fig, width=640, height=480)
 
+    def analyze_standard_conditions(self, key, field_map):
+        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
+        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        self.thermo.pH = field_map.GetFloatField("PH", self.thermo.pH)
+        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
+        
+        self.html_writer.write('Parameters:</br>\n')
+        self.html_writer.write('<ul>\n')
+        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
+        self.html_writer.write('<li>pH = %g</li>\n' % self.thermo.pH)
+        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
+        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
+                               (c_range[0], c_range[1]))
+        self.html_writer.write('</ul>\n')
+        
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+        #dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
+        #self.html_writer.write('<p>\n')
+        #for r in xrange(S.shape[0]):
+        #    self.html_writer.write('%d, %.1f</br>\n' % (rids[r], dG0_r[r, 0]))
+        #self.html_writer.write('</p>\n')
+
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite')
     db_public = SqliteDatabase('../data/public_data.sqlite')
@@ -670,14 +694,14 @@ if __name__ == "__main__":
     #thermo = GroupContribution(db, html_writer=html_writer)
     #thermo.init()
     #thermo.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
-    
+
     # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
     # Where: 
     #    F  = 0.1 (kJ/mol)/mV
     #    nE - change in e-
     #    nH - change in H+
     #    pH - the conditions in which the E' was measured
-    
+    #
     # Ferredoxin  ox/red: E' = -380mV (nE = 1, nH = 0) -> dG0 = 38.0 kJ/mol [1]
     # Ubiqinone   ox/red: E' =  113mV (nE = 2, nH = 2) -> dG0 = -103.2 kJ/mol [1]
     # Menaquinone ox/red: E' =  -74mV (nE = 2, nH = 2) -> dG0 = -65.8 kJ/mol [1]
@@ -698,7 +722,7 @@ if __name__ == "__main__":
         thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
         thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
     else:
-        thermo = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+        thermo = PsuedoisomerTableThermodynamics.FromCsvFile('../data/thermodynamics/dG0.csv')
     
     kegg = Kegg.getInstance()
     thermo.bounds = deepcopy(kegg.cid2bounds)
