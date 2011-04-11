@@ -5,24 +5,18 @@ from util import django_utils
 django_utils.SetupDjango()
 
 import load_additional_data
-import load_formation_energies
 import load_kegg_json
 
 
 def main():
     load_kegg_json.CheckData()
     load_additional_data.CheckData()
-    load_formation_energies.CheckData()
     
     print 'Loading KEGG data'
     load_kegg_json.LoadAllKeggData()
     
     print 'Loading corrections/additions to KEGG'
-    load_additional_data.LoadAdditionalCompoundData()
-    
-    print 'Loading formation energies'
-    load_formation_energies.LoadAllFormationEnergies()
-    
+    load_additional_data.LoadAdditionalCompoundData()    
     
     
 if __name__ == '__main__':

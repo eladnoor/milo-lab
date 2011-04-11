@@ -125,7 +125,9 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             
             if num_electrons is not None:
                 c.num_electrons = int(num_electrons)
+            c.save()
 
+            # Add the thermodynamic data.
             species = cd.get('species')
             if not species:
                 error = cd.get('error')
@@ -139,10 +141,8 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
                     logging.error(cd)
                 else:
                     AddAllSpeciesToCompound(c, species, my_source)
-                
-            # Need to save before setting up many-to-many relationships.
-            c.save()
-                        
+            
+            # Add the common names.
             names = GetOrCreateNames(cd['names'])            
             for n in names:
                 c.common_names.add(n)
@@ -180,8 +180,8 @@ def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
             rxn.save()
         except Exception, e:
             logging.warning('Missing data for rid %s', rid)
-            logging.error(e)
-            traceback.print_exc(file=sys.stdout)
+            logging.warning(e)
+            #traceback.print_exc(file=sys.stdout)
             continue
 
 
@@ -223,9 +223,8 @@ def LoadKeggEnzymes(enzymes_json_filename=ENZYME_FILE):
             
         except Exception, e:
             logging.warning('Missing data for ec %s', ec)           
-            logging.error(e)
-            traceback.print_exc(file=sys.stdout)
-
+            logging.warning(e)
+            #traceback.print_exc(file=sys.stdout)
             continue
 
 
