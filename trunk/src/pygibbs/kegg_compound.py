@@ -96,6 +96,36 @@ class Compound(object):
         
         return comp
     
+    def ToDBRow(self):
+        """Format the compound as a database row.
+        
+        Returns:
+            A list of field values in the appropriate order.
+        """
+        inchi = None
+        try:
+            inchi = self.get_inchi()
+        except Exception, e:
+            logging.warning(e)
+        
+        num_electrons = None
+        try:
+            num_electrons = self.get_num_electrons()
+        except Exception, e:
+            logging.warning(e)
+        
+        row = [self.cid,
+               self.name,
+               ';'.join(self.all_names),
+               self.mass,
+               self.formula,
+               inchi,
+               num_electrons,
+               self.from_kegg,
+               self.pubchem_id,
+               self.cas]
+        return row
+    
     def get_atom_bag(self):
         """Returns a dict containing the count for
            each atom in the compound.

@@ -214,9 +214,7 @@ class Kegg(Singleton):
            'mass REAL, formula TEXT, inchi TEXT, num_electrons INT, from_kegg BOOL, '
            'pubchem_id INT, cas TEXT')
         for cid, comp in self.cid2compound_map.iteritems():
-            self.db.Insert('kegg_compound', [cid, comp.name, ';'.join(comp.all_names),
-                comp.mass, comp.formula, comp.inchi, comp.get_num_electrons(), comp.from_kegg, 
-                comp.pubchem_id, comp.cas])
+            self.db.Insert('kegg_compound', comp.ToDBRow())
         
         self.db.CreateTable('kegg_reaction', 'rid INT, all_names TEXT, definition TEXT, '
                             'ec_list TEXT, equation TEXT')
