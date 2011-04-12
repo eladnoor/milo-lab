@@ -144,6 +144,12 @@ class Compound(object):
                self.cas]
         return row
     
+    def SetInChI(self, inchi):
+        self.inchi = inchi
+        self.mol = Molecule.FromInChI(inchi)
+        self.formula = self.mol.GetFormula()
+        self.mass = self.mol.GetExactMass() 
+    
     def get_atom_bag(self):
         """Returns a dict containing the count for
            each atom in the compound.

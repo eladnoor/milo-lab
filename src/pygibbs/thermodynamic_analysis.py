@@ -584,6 +584,7 @@ class ThermodynamicAnalysis(object):
     def analyze_redox3(self, key, field_map):
         self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
         self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        self.thermo.pMg = field_map.GetFloatField("PMG", self.thermo.pMg)
         pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.2))
         redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.2))
         c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
@@ -666,12 +667,14 @@ class ThermodynamicAnalysis(object):
         self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
         self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
         self.thermo.pH = field_map.GetFloatField("PH", self.thermo.pH)
+        self.thermo.pMg = field_map.GetFloatField("PMG", self.thermo.pMg)
         c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
         
         self.html_writer.write('Parameters:</br>\n')
         self.html_writer.write('<ul>\n')
-        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
         self.html_writer.write('<li>pH = %g</li>\n' % self.thermo.pH)
+        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
+        self.html_writer.write('<li>pMg = %g</li>\n' % self.thermo.pMg)
         self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
         self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
                                (c_range[0], c_range[1]))

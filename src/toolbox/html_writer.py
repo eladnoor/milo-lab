@@ -8,6 +8,7 @@ html_writer.py - Construct HTML pages
 import os, types
 import xml.dom.minidom
 from toolbox.util import _mkdir, get_current_svn_revision
+import matplotlib
 
 class BaseHtmlWriter:
     def __init__(self):
@@ -86,7 +87,8 @@ class BaseHtmlWriter:
             self.div_counter += 1
         elif type(div_id) != types.StringType:
             raise ValueError("HTML div ID must be a string")
-        self.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % div_id)
+        self.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n'
+                   % div_id)
         return div_id
     
     def start_div(self, div_id):
@@ -99,16 +101,35 @@ class BaseHtmlWriter:
         self.write('<img src="' + fig_fname + '" atl="' + alternative_string + '" />')
     
     def embed_svg(self, fig_fname, width=320, height=240, name=''):
-        self.write('<object data="%s" type="image/svg+xml" width="%d" height="%d" name="%s"/></object>' % (fig_fname, width, height, name))
+        self.write('<object data="%s" type="image/svg+xml" width="%dpt" height="%dpt" name="%s" frameborder="0" marginwidth="0" marginheight="0"/></object>'
+                   % (fig_fname, width, height, name))
+        #self.write('<object data="%s" type="image/svg+xml" name="%s"/></object>'
+        #           % (fig_fname, name))
     
-    def embed_matplotlib_figure(self, fig, width=320, height=240):
+    def embed_matplotlib_figure(self, fig, width=320, height=240, name=None):
         """
-            Converts the figure to an SVG DOM and uses the inline SVG option to 
-            add it directly into the HTML (without creating a separate SVG file).
+            Adds a matplotlib figure into the HTML as an inline SVG
+            
+            Arguments:
+                fig          - a matplotlib Figure object
+                width        - the desired width of the figure in pixels
+                height       - the desired height of the figure in pixels
+                name         - if not None, the SVG will be written to a file with that name will
+                               be linked to from the inline figure
         """
-        fig.savefig('.svg', format='svg')
-        self.extract_svg_from_file('.svg', width, height)
-        os.remove('.svg')
+        if name:
+            svg_filename = self.relative_to_full_path(name + '.svg')
+            self.write('<a href=%s.svg>' % name)
+        else:
+            svg_filename = '.svg'
+
+        fig.savefig(svg_filename, format='svg')
+        self.extract_svg_from_file(svg_filename, width=width, height=height)
+        
+        if name:
+            self.write('</a>')
+        else:
+            os.remove(svg_filename)
 
     def embed_dot_inline(self, Gdot, width=320, height=240):
         """
@@ -205,7 +226,7 @@ def test():
     import pylab
     fig = pylab.figure()
     pylab.plot([1, 2, 3, 4], [4, 3, 2, 1], 'g--')
-    html_write.embed_matplotlib_figure(fig, 1000, 1000)
+    html_write.embed_matplotlib_figure(fig, 320, 240, name='test')
 
 if __name__ == '__main__':
     test()

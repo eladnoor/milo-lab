@@ -16,9 +16,9 @@ HATZI_CSV_FNAME = "../data/thermodynamics/hatzimanikatis_cid.csv"
 
 class Hatzi (Thermodynamics):
     
-    def __init__(self):
+    def __init__(self, use_pKa=True):
         Thermodynamics.__init__(self)
-        self.use_pKa = True
+        self.use_pKa = use_pKa
         self.cid2DissociationTable = DissociationTable.ReadDissociationCsv()
         self.cid2pmap_dict = {}
         
