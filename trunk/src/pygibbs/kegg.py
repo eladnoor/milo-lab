@@ -298,7 +298,7 @@ class Kegg(Singleton):
                     if comp.inchi:
                         raise Exception('C%0d already has an InChI' % cid)
                     else:
-                        comp.inchi = row_dict['inchi']
+                        comp.SetInChI(row_dict['inchi'])
             elif row_dict['inchi']:
                 if row_dict['inchi'] in self.inchi2cid_map:
                     raise Exception("The InChI for compound %s already exists "
@@ -306,13 +306,10 @@ class Kegg(Singleton):
                                     self.inchi2cid_map[row_dict['inchi']]))
                 new_cid = max(self.cid2compound_map.keys() + [90000]) + 1
                 comp = kegg_compound.Compound(new_cid)
-                comp.inchi = row_dict['inchi']
-                self.inchi2cid_map[comp.inchi] = new_cid
+                comp.SetInChI(row_dict['inchi'])
+                self.inchi2cid_map[row_dict['inchi']] = new_cid
                 comp.name = row_dict['name']
                 comp.all_names = [row_dict['name']]
-                mol = Molecule.FromInChI(comp.inchi)
-                comp.mass = mol.GetExactMass()
-                comp.formula = mol.GetFormula()
                 self.cid2compound_map[new_cid] = comp
     
     def AddThermodynamicData(self, thermo):

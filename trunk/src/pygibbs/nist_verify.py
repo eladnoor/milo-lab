@@ -10,7 +10,6 @@ from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
-from pygibbs.nist_regression import NistRegression
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 ################################################################################################################
@@ -19,29 +18,34 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 def main():
     db_public = SqliteDatabase('../data/public_data.sqlite')
-    db = SqliteDatabase('../res/gibbs.sqlite')
+    db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/nist/report.html")
     nist = Nist()
-    nist.T_range = (278, 314)
+    nist.T_range = (273.15 + 15, 273.15 + 45)
     #nist.override_I = 0.25
     nist.override_pMg = 14.0
+    
+    html_writer.write('<p>\n')
+    html_writer.write("Total number of reaction in NIST: %d</br>\n" % len(nist.data))
+    html_writer.write("Total number of reaction in range %.1fK < T < %.1fK: %d</br>\n" % \
+                      (nist.T_range[0], nist.T_range[1], len(nist.SelectRowsFromNist())))
+    html_writer.write('</p>\n')
+
+    db_tables = {'Alberty': (db_public, 'alberty_pseudoisomers'),
+                 'NIST regression': (db_gibbs, 'nist_regression_pseudoisomers'),
+                 'Milo Group Contribution': (db_gibbs, 'gc_pseudoisomers')}
 
     estimators = {}
-    
-    estimators['Alberty'] = PsuedoisomerTableThermodynamics.FromDatabase(
-                                db_public, 'alberty_pseudoisomers')
-    
-    estimators['Hatzimanikatis Group Contribution'] = Hatzi()
-    estimators['Hatzimanikatis Group Contribution'].use_pKa = False
 
-    estimators['Hatzimanikatis Group Contribution (with pKa)'] = Hatzi()
-    estimators['Hatzimanikatis Group Contribution (with pKa)'].use_pKa = True
+    for key, (db, table_name) in db_tables.iteritems():
+        if db.DoesTableExist(table_name):
+            estimators[key] = PsuedoisomerTableThermodynamics.FromDatabase(db, table_name)
+        else:
+            logging.warning('The table %s does not exist in %s' % (table_name, str(db)))
     
-    estimators['NIST regression'] = PsuedoisomerTableThermodynamics.FromDatabase(
-                                db, 'nist_regression_pseudoisomers')
-        
-    estimators['Milo Group Contribution'] = PsuedoisomerTableThermodynamics.FromDatabase(
-                                db, 'gc_pseudoisomers')
+    estimators['Hatzimanikatis Group Contribution'] = Hatzi(use_pKa=False)
+    estimators['Hatzimanikatis Group Contribution (with pKa)'] = Hatzi(use_pKa=True)
+    
     estimators['Milo Group Contribution'].override_data(estimators['Alberty'])
     
     for key, thermodynamics in estimators.iteritems():

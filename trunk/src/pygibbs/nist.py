@@ -1,13 +1,16 @@
 import pylab, re, logging
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
-from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy
+from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy,\
+    PsuedoisomerTableThermodynamics
 from pygibbs.alberty import Alberty
 from toolbox.util import _mkdir, calc_rmse, calc_r2
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import R
 from toolbox.database import SqliteDatabase
 import copy
+import csv
+import pydot
 
 class NistMissingCrucialDataException(Exception):
     pass
@@ -168,7 +171,7 @@ class Nist(object):
         """
             Produces a set of plots that show some statistics about the NIST database
         """
-        logging.info('Analyzing stats against NIST database (%d rows).' % len(self.data))
+        logging.info('Calculating statistics for NIST database (%d rows)' % len(self.data))
         
         if not self.data:
             raise Exception("The database has no rows in it")
@@ -191,48 +194,60 @@ class Nist(object):
             if year:
                 year_list.append(year)
         
+        html_writer.write("<p><h2>NIST database statistics</h2>\n")
         fig = pylab.figure()
-        pylab.title("NIST database statistics")
+        pylab.title("Temperature histogram")
         pylab.hist(T_list, pylab.arange(int(min(T_list)), int(max(T_list)+1), 2.5))
         pylab.xlabel("Temperature (C)")
         pylab.ylabel("No. of measurements")
-        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_T')
 
         fig = pylab.figure()
         pylab.hist(pMg_list, pylab.arange(0, 10.1, 0.1))
+        pylab.title("pMg histogram")
         pylab.xlabel("pMg")
         pylab.ylabel("No. of measurements")
-        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_pMg')
 
         fig = pylab.figure()
         pylab.hist(pH_list, pylab.arange(4, 11, 0.1))
+        pylab.title("pH histogram")
         pylab.xlabel("pH")
         pylab.ylabel("No. of measurements")
-        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_pH')
 
         fig = pylab.figure()
         pylab.hist(I_list, pylab.arange(0, 1, 0.025))
-        pylab.xlabel("Ionic Strength [mM]")
+        pylab.title("Ionic Strength histogram")
+        pylab.xlabel("Ionic Strength [M]")
         pylab.ylabel("No. of measurements")
-        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_I')
 
         # histogram of publication years
         fig = pylab.figure()
         pylab.hist(year_list, pylab.arange(1930, 2010, 5))
+        pylab.title("Year of publication histogram")
         pylab.xlabel("Year of publication")
         pylab.ylabel("No. of measurements")
-        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_year')
 
-        alberty = Alberty()
-        alberty_cids = set(alberty.cid2pmap_dict.keys())
+        db_public = SqliteDatabase('../data/public_data.sqlite')
+        alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+        alberty_cids = set(alberty.get_all_cids())
+        nist_cids = set(self.GetAllCids())
+        
+        count_list = ["Alberty #compounds = %d" % len(alberty_cids),
+                      "NIST #compounds = %d" % len(nist_cids),
+                      "intersection #compounds = %d" % len(alberty_cids.intersection(nist_cids))]
+        html_writer.write_ul(count_list)
         
         N = 60 # cutoff for the number of counts in the histogram
         hist_a = pylab.zeros(N)
         hist_b = pylab.zeros(N)
-        for (cid, cnt) in self.cid2count.iteritems():
-            if (cnt >= N):
+        for cid, cnt in self.cid2count.iteritems():
+            if cnt >= N:
                 cnt = N-1
-            if (cid in alberty_cids):
+            if cid in alberty_cids:
                 hist_a[cnt] += 1
             else:
                 hist_b[cnt] += 1
@@ -244,12 +259,62 @@ class Nist(object):
         p1 = pylab.bar(range(N), hist_a, color='b')
         p2 = pylab.bar(range(N), hist_b, color='r', bottom=hist_a[0:N])
         pylab.text(N-1, hist_a[N-1]+hist_b[N-1], '> %d' % (N-1), fontsize=10, horizontalalignment='right', verticalalignment='baseline')
+        pylab.title("Overlap with Alberty's database")
         pylab.xlabel("N reactions")
         pylab.ylabel("no. of compounds measured in N reactions")
         pylab.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
 
-        html_writer.embed_matplotlib_figure(fig, width=320, height=240)
-        logging.info('Done analyzing stats.')
+        html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='connectivity')
+
+    def AnalyzeConnectivity(self, html_writer):
+        
+        def cid2name(cid, KEGG):
+            return "\"" + KEGG.cid2name(cid) + "\""
+        
+        def load_cid_set(train_csv_fname):
+            """
+                Read the training data from a CSV file
+            """
+            cid_set = set()
+            for row in csv.DictReader(open(train_csv_fname)):
+                #(smiles, cid, compoud_name, dG0, dH0, z, nH, Mg, use_for, ref, remark) = row
+                if (row['use for'] in ['skip']):
+                    continue
+                cid = int(row['cid'])
+                if cid > 0:
+                    cid_set.add(cid)
+            return cid_set
+                
+        known_cids = load_cid_set('../data/thermodynamics/dG0_seed.csv')
+        one_step_cids = set()
+        coupled_cids = set()
+        Gdot = pydot.Dot()
+        
+        for nist_row_data in nist.data:
+            unknown_cids = list(set(nist_row_data.sparse.keys()).difference(known_cids))
+            if len(unknown_cids) == 1:
+                one_step_cids.add(unknown_cids[0])
+            elif len(unknown_cids) == 2:
+                coupled_cids.add((min(unknown_cids), max(unknown_cids)))
+        
+        for cid in one_step_cids:
+            #Gdot.add_node(pydot.Node(cid2name(cid, KEGG), None))
+            Gdot.add_node(pydot.Node("C%05d" % cid, None))
+        
+        for (cid1, cid2) in coupled_cids:
+            Gdot.add_edge(pydot.Edge("C%05d" % cid1, "C%05d" % cid2, None))
+        
+        html_writer.write("<p><h2>Connectivity</h2>\n")
+        html_writer.embed_dot_inline(Gdot, width=640, height=480)
+        html_writer.write("</p>\n")
+        #win = xdot.DotWindow()
+        #win.connect('destroy', gtk.main_quit)
+        #win.set_filter('dot')
+        #util._mkdir('../res/nist')
+        #dot_fname = '../res/nist/connectivity.dot'
+        #Gdot.write(dot_fname, format='dot')
+        #win.open_file(dot_fname)
+        #gtk.main()
 
     def verify_results(self, html_writer, thermodynamics):
         """Calculate all the dG0_r for the reaction from NIST and compare to
@@ -390,4 +455,5 @@ if __name__ == '__main__':
     html_writer = HtmlWriter("../res/nist/statistics.html")
     nist = Nist()
     nist.AnalyzeStats(html_writer)
+    nist.AnalyzeConnectivity(html_writer)
     html_writer.close()
