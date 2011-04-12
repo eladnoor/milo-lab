@@ -15,10 +15,12 @@
   </tr>
   	{% if enzyme.all_cofactors %}
   	<tr>
-    	<td width="150px">EC Number</td>
+    	<td width="150px">Cofactors</td>
     	<td>
     		{% for cofactor in enzyme.all_cofactors %}
-      		<div class="commonName">{{ cofactor }}</div>
+      		<div class="commonName">
+      			<a href="{{ cofactor.link }}">{{ cofactor }}</a>
+      		</div>
       		{% endfor %}
     	</td>
   	</tr>
