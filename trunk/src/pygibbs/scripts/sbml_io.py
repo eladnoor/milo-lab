@@ -5,6 +5,8 @@ import csv
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from optparse import OptionParser
+import logging
+from pygibbs.kegg import Kegg
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
@@ -50,11 +52,6 @@ print 'Observed Thermodynamics filename:', options.thermo_filename
 print 'Thermodynamic Database filename:', options.db_filename
 print 'Group Contribution Table Name:', options.gc_table_name
 
-document = libsbml.readSBML(options.sbml_model_filename)
-if document.getNumErrors():
-    raise Exception('cannot read SBML model from file %s due to error: %s' % 
-                    (options.sbml_model_filename, document.getError(0).getMessage()))
-
 db = SqliteDatabase(options.db_filename)
 observed_thermo = PsuedoisomerTableThermodynamics.FromCsvFile(
     options.thermo_filename)
@@ -65,8 +62,18 @@ if not db.DoesTableExist(options.gc_table_name):
 thermo = PsuedoisomerTableThermodynamics.FromDatabase(
     db, options.gc_table_name)
 thermo.override_data(observed_thermo)
+kegg = Kegg.getInstance()
 
-model_annotation = semanticSBML.annotate.ModelElementsAnnotations(document.getModel(), suppress_errors=True)
+document = libsbml.readSBML(options.sbml_model_filename)
+if document.getNumErrors():
+    raise Exception('cannot read SBML model from file %s due to error: %s' % 
+                    (options.sbml_model_filename, document.getError(0).getMessage()))
+model = document.getModel()
+logging.info('Done parsing the model: ' + model.getName())
+model_annotation = semanticSBML.annotate.ModelElementsAnnotations(model, suppress_errors=True)
+
+species_ids_to_names = dict([(s.getId(), s.getName()) for s in model.getListOfSpecies()])
+reaction_ids_to_names = dict([(r.getId(), r.getName()) for r in model.getListOfReactions()])
 
 rowdicts = []
 # go through all the elements
@@ -76,12 +83,26 @@ for element_annotation in model_annotation.getElementAnnotations():
         if annotation.db == 'KEGG Compound':
             rowdict = {}
             cid = int(annotation.id[1:])
-            rowdict['cid'] = annotation.id
-            rowdict['element_id'] = element_annotation.id
-            rowdict['dG0\'_f'] = thermo.cid2dG0_tag(cid)
+            rowdict['rdf'] = 'urn:miriam:kegg.compound:' + annotation.id
+            rowdict['element id'] = element_annotation.id
+            rowdict['name'] = species_ids_to_names.get(element_annotation.id, '')
+            rowdict['kegg name'] = kegg.cid2name(cid)
+            #rowdict['kegg id'] = annotation.id
+            rowdict['dG0\''] = thermo.cid2dG0_tag(cid)
+            rowdicts.append(rowdict)
+        if annotation.db == 'KEGG Reaction':
+            rowdict = {}
+            rid = int(annotation.id[1:])
+            reaction = kegg.rid2reaction(rid)
+            rowdict['rdf'] = 'urn:miriam:kegg.reaction:' + annotation.id
+            rowdict['element id'] = element_annotation.id
+            rowdict['name'] = reaction_ids_to_names.get(element_annotation.id, '')
+            rowdict['kegg name'] = reaction.name
+            #rowdict['kegg id'] = annotation.id
+            rowdict['dG0\''] = reaction.PredictReactionEnergy(thermo)
             rowdicts.append(rowdict)
             
-csv_writer = csv.DictWriter(open(options.csv_output_filename, 'w'), 
-    fieldnames=['element_id', 'cid', 'dG0\'_f'])
-csv_writer.writer.writerow(['element_id', 'cid', 'dG0\'_f'])
+fieldnames=['rdf', 'element id', 'name', 'kegg name', 'dG0\'']            
+csv_writer = csv.DictWriter(open(options.csv_output_filename, 'w'), fieldnames)
+csv_writer.writer.writerow(fieldnames)
 csv_writer.writerows(rowdicts)

@@ -31,7 +31,7 @@ class NistRowData:
         else:
             return None
     
-    def ReadFromDatabase(self, row_dict):
+    def ReadFromDatabase(self, name, row_dict):
         self.K_tag = NistRowData.none_float(row_dict['K_tag'])
         self.pH = NistRowData.none_float(row_dict['pH'])
         if not (self.K_tag and self.pH): # missing Keq or pH makes the data unusable
@@ -49,14 +49,14 @@ class NistRowData:
         self.evaluation = row_dict['evaluation']
         self.url = row_dict['url']
         self.ref_id = row_dict['reference_id']
-        reaction = row_dict['kegg_reaction']
-        if not reaction:
+        kegg_reaction = row_dict['kegg_reaction']
+        if not kegg_reaction:
             raise NistMissingCrucialDataException(
                 "cannot use this NIST reaction because it couldn't be mapped to KEGG IDs")
         try:
-            self.sparse = NistRowData.ParseReactionFormula(reaction)
+            self.reaction = NistRowData.ParseReactionFormula(name, kegg_reaction) 
         except KeggParseException as e:
-            raise NistMissingCrucialDataException("cannot use reaction \"%s\", because: %s" % (reaction, str(e)))
+            raise NistMissingCrucialDataException("cannot use reaction \"%s\", because: %s" % (kegg_reaction, str(e)))
 
     def GetYear(self):
         try:
@@ -69,7 +69,7 @@ class NistRowData:
             return None
     
     @staticmethod
-    def ParseReactionFormula(formula):
+    def ParseReactionFormula(name, formula):
         """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
             return the set of substrates, products and the direction of the reaction
         """
@@ -85,7 +85,7 @@ class NistRowData:
                 raise KeggParseException("C%05d appears on both sides of this formula" % cid)
             sparse_reaction[cid] = amount
         
-        return sparse_reaction
+        return Reaction([name], sparse_reaction, None, '=>')
     
     @staticmethod
     def ParseReactionFormulaSide(s):
@@ -111,29 +111,12 @@ class NistRowData:
         
         return compound_bag
     
-    @staticmethod
-    def GetReactionString(sparse):
-        return ' + '.join(["%g C%05d" % (coeff, cid) for (cid, coeff) in sorted(sparse.iteritems())])
-
-    @staticmethod
-    def SetReactionFromString(s):
-        sparse = {}
-        for coeff_cid in s.split(' + '):
-            coeff, cid = coeff_cid.split(' ')
-            coeff = float(coeff)
-            cid = int(cid[1:])
-            sparse[cid] = coeff
-        return sparse
-      
     def GetAllCids(self):
-        return self.sparse.keys()
-    
-    def PredictFormationEnergy(self, thermodynamics, cid):
-        return thermodynamics.cid2PseudoisomerMap(cid).Transform(pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
+        return self.reaction.get_cids()
     
     def PredictReactionEnergy(self, thermodynamics):
-        return sum([self.PredictFormationEnergy(thermodynamics, cid)*coeff 
-                    for cid, coeff in self.sparse.iteritems()])
+        return self.reaction.PredictReactionEnergy(thermodynamics, pH=self.pH,
+            pMg=self.pMg, I=self.I, T=self.T)
             
     
 class Nist(object):
@@ -150,10 +133,10 @@ class Nist(object):
         self.data = []
         self.cid2count = {}
         logging.info('Reading NIST reaction data from database')
-        for row_dict in self.db.DictReader('nist_equilibrium'):
+        for i, row_dict in enumerate(self.db.DictReader('nist_equilibrium')):
             nist_row_data = NistRowData()
             try:
-                nist_row_data.ReadFromDatabase(row_dict)
+                nist_row_data.ReadFromDatabase('nist%05d' % i, row_dict)
                 self.data.append(nist_row_data)
                 for cid in nist_row_data.GetAllCids():
                     self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
@@ -162,7 +145,7 @@ class Nist(object):
         
     def BalanceReactions(self, balance_water=False):
         for row in self.data:
-            row.sparse = self.kegg.BalanceReaction(row.sparse, balance_water)
+            row.reaction.Balance(balance_water)
 
     def GetAllCids(self):
         return sorted(self.cid2count.keys())
@@ -291,7 +274,7 @@ class Nist(object):
         Gdot = pydot.Dot()
         
         for nist_row_data in nist.data:
-            unknown_cids = list(set(nist_row_data.sparse.keys()).difference(known_cids))
+            unknown_cids = list(nist_row_data.GetAllCids().difference(known_cids))
             if len(unknown_cids) == 1:
                 one_step_cids.add(unknown_cids[0])
             elif len(unknown_cids) == 2:
@@ -360,7 +343,7 @@ class Nist(object):
             error = abs(row_data.dG0_r - dG0_pred)
 
             total_list.append([error, row_data.dG0_r, dG0_pred, 
-                               row_data.sparse, row_data.pH, row_data.pMg, 
+                               row_data.reaction, row_data.pH, row_data.pMg, 
                                row_data.I, row_data.T, row_data.evaluation, 
                                row_data.url])
         
@@ -414,7 +397,7 @@ class Nist(object):
             d['|err|'] = '%.1f' % row[0]
             d['dG\'0 (obs)'] = '%.1f' % row[1]
             d['dG\'0 (est)'] = '%.1f' % row[2]
-            d['reaction'] = self.kegg.sparse_to_hypertext(row[3], show_cids=False)
+            d['reaction'] = row[3].to_hypertext(show_cids=False)
             d['pH'] = '%.1f' % row[4]
             d['pMg'] = '%.1f' % row[5]
             d['I'] = '%.2f' % row[6]
@@ -429,14 +412,17 @@ class Nist(object):
         
         return len(dG0_obs_vec), rmse
     
-    def SelectRowsFromNist(self, sparse=None):
+    def SelectRowsFromNist(self, reaction=None, check_reverse=True):
         rows = []
-        if sparse:
-            sparse = self.kegg.BalanceReaction(sparse)
+        checklist = []
+        if reaction:
+            checklist.append(reaction)
+            if check_reverse:
+                checklist.append(reaction.reverse())
         for nist_row_data in self.data:
             if self.T_range and not (self.T_range[0] < nist_row_data.T < self.T_range[1]):
                 continue 
-            if sparse and nist_row_data.sparse != sparse:
+            if checklist and nist_row_data.reaction not in checklist:
                 continue
             if self.override_pMg or self.override_I:
                 nist_row_copy = copy.deepcopy(nist_row_data)
@@ -450,8 +436,8 @@ class Nist(object):
         return rows
     
     def GetUniqueReactionSet(self):
-        return set([row.sparse for row in self.data])
-            
+        return set([row.reaction for row in self.data])
+
 
 if __name__ == '__main__':
     #logging.getLogger('').setLevel(logging.DEBUG)

@@ -50,7 +50,7 @@ def main():
     estimators['Milo Group Contribution'].override_data(estimators['Alberty'])
     
     kegg_reactions = Kegg.getInstance().AllReactions()
-    nist = nist.SelectRowsFromNist()
+    nist_reactions = nist.GetUniqueReactionSet()
     
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % key)
@@ -60,9 +60,12 @@ def main():
         num_estimations, rmse = nist.verify_results(html_writer=html_writer, 
                                                     thermodynamics=thermodynamics)
         html_writer.end_div()
-        html_writer.write('Coverage: %d out of %d reaction KEGG reactions</br>\n' % 
+        html_writer.write('Coverage: %d out of %d KEGG reactions</br>\n' % 
                           (thermodynamics.CalculateCoverage(kegg_reactions), 
                            len(kegg_reactions)))
+        html_writer.write('Coverage: %d out of %d unique NIST reactions</br>\n' % 
+                          (thermodynamics.CalculateCoverage(nist_reactions), 
+                           len(nist_reactions)))
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
         logging.info('N = %d, RMSE = %.1f' % (num_estimations, rmse))
 
