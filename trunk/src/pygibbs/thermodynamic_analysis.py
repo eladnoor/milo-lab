@@ -13,11 +13,11 @@ from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
-from pygibbs import kegg_utils
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from copy import deepcopy
 import scipy.io
 from pygibbs.pseudoisomer import PseudoisomerMap
+from toolbox.util import _mkdir
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -181,6 +181,23 @@ class ThermodynamicAnalysis(object):
         """        
         Gdot = self.kegg.draw_pathway(S, rids, cids)
         self.html_writer.embed_dot(Gdot, name, width=400, height=400)
+
+    def get_conditions(self, field_map):
+        self.thermo.pH = field_map.GetFloatField("PH", self.thermo.pH)
+        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
+        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
+        self.thermo.pMg = field_map.GetFloatField("PMG", self.thermo.pMg)
+        self.thermo.c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
+        self.thermo.c_mid = field_map.GetFloatField('C_MID', default_value=self.thermo.c_mid)
+        
+        self.html_writer.write('Parameters:</br>\n')
+        condition_list = ['pH = %g' % self.thermo.pH,
+                          'Ionic strength = %g M' % self.thermo.I,
+                          'pMg = %g' % self.thermo.pMg,
+                          'Temperature = %g K' % self.thermo.T,
+                          'Concentration range = %g - %g M' % self.thermo.c_range,
+                          'Default concentration = %g M' % self.thermo.c_mid]
+        self.html_writer.write_ul(condition_list)
 
     def analyze_profile(self, key, field_map):
         self.html_writer.write('<ul>\n')
@@ -384,36 +401,13 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('</table><br>\n')
 
     def analyze_margin(self, key, field_map):
-        (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
-        self.html_writer.write('<li>Conditions:</br><ol>\n')
-                    
-        # The method for how we are going to calculate the dG0
-        method = field_map.GetStringField('METHOD', default_value='MILO')
+        self.get_conditions(field_map)
+        cid2bounds = self.get_bounds(key, field_map)
+        self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
+        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
 
-        if method == "MILO":
-            thermodynamics = self.thermo
-        elif method == "HATZI":
-            thermodynamics = self.thermo.hatzi
-        else:
-            raise Exception("Unknown dG evaluation method: " + method)
-        
-        if "CONDITIONS" in field_map:
-            thermodynamics.pH = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "pH", default_pH)
-            thermodynamics.I = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "I", default_I)
-            thermodynamics.T = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "T", default_T)
-            self.html_writer.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (thermodynamics.pH, thermodynamics.I, thermodynamics.T))
-            for tokens in re.findall("C([0-9]+)=([0-9\.e\+\-]+)", field_map["CONDITIONS"]):
-                cid = float(tokens[0])
-                conc = float(tokens[1])
-                thermodynamics.bounds[cid] = (conc, conc)
-                self.html_writer.write(', [C%05d] = %g\n' % (cid, conc))
-            self.html_writer.write('</li>\n')
-        self.html_writer.write('</ol></li>')
-        thermodynamics.c_range = field_map.GetVFloatField('C_RANGE', default_value=[1e-6, 1e-2])
-        thermodynamics.c_mid = field_map.GetFloatField('C_MID', default_value=1e-3)
-        
-        thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, self.html_writer)
-        kegg_utils.write_module_to_html(self.html_writer, S, rids, fluxes, cids)
+        thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
 
     def analyze_contour(self, key, field_map):
         pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
@@ -582,31 +576,19 @@ class ThermodynamicAnalysis(object):
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
         
     def analyze_redox3(self, key, field_map):
-        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
-        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        self.thermo.pMg = field_map.GetFloatField("PMG", self.thermo.pMg)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.2))
-        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.2))
-        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
-        
-        self.html_writer.write('Parameters:</br>\n')
-        self.html_writer.write('<ul>\n')
-        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
-        self.html_writer.write('<li>default pH = %g</li>\n' % self.thermo.pH)
-        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
-        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
-                               (c_range[0], c_range[1]))
-        self.html_writer.write('</ul>\n')
-        
         self.html_writer.insert_toggle(key)
         self.html_writer.start_div(key)
+        self.get_conditions(field_map)
         cid2bounds = self.get_bounds(key, field_map)
-        self.write_bounds_to_html(cid2bounds, c_range)
+        self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
         S, rids, fluxes, cids = self.get_reactions(key, field_map)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
         self.html_writer.end_div()
         self.html_writer.write('</br>\n')
+
+        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.2))
+        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.2))
         
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
@@ -625,7 +607,7 @@ class ThermodynamicAnalysis(object):
                 
                 try:
                     _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=11, cid_down=1, 
-                        c_range=c_range, T=self.thermo.T, cid2bounds=cid2bounds)
+                        c_range=self.thermo.c_range, T=self.thermo.T, cid2bounds=cid2bounds)
                     ratio_mat[i, j] = log_ratio
                     if log_ratio < -5:
                         feasibility_mat[i, j] = 0.0
@@ -664,35 +646,14 @@ class ThermodynamicAnalysis(object):
         #self.html_writer.embed_matplotlib_figure(heatmat_fig, width=640, height=480)
 
     def analyze_standard_conditions(self, key, field_map):
-        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
-        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        self.thermo.pH = field_map.GetFloatField("PH", self.thermo.pH)
-        self.thermo.pMg = field_map.GetFloatField("PMG", self.thermo.pMg)
-        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
-        
-        self.html_writer.write('Parameters:</br>\n')
-        self.html_writer.write('<ul>\n')
-        self.html_writer.write('<li>pH = %g</li>\n' % self.thermo.pH)
-        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
-        self.html_writer.write('<li>pMg = %g</li>\n' % self.thermo.pMg)
-        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
-        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
-                               (c_range[0], c_range[1]))
-        self.html_writer.write('</ul>\n')
-        
+        self.get_conditions(field_map)
         S, rids, fluxes, cids = self.get_reactions(key, field_map)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-        #dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
-        #self.html_writer.write('<p>\n')
-        #for r in xrange(S.shape[0]):
-        #    self.html_writer.write('%d, %.1f</br>\n' % (rids[r], dG0_r[r, 0]))
-        #self.html_writer.write('</p>\n')
 
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite')
     db_public = SqliteDatabase('../data/public_data.sqlite')
-    html_writer = HtmlWriter('../res/thermodynamic_pathway_analysis.html')
     
     #thermo = GroupContribution(db, html_writer=html_writer)
     #thermo.init()
@@ -730,7 +691,13 @@ if __name__ == "__main__":
     kegg = Kegg.getInstance()
     thermo.bounds = deepcopy(kegg.cid2bounds)
     
-    thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
-    #thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
-    thermo_analyze.analyze_pathway("../data/thermodynamics/pathways_carbon_fixation.txt", insert_toggles=False)
+    _mkdir('../res/thermo_analysis')
+    if True:
+        html_writer = HtmlWriter('../res/thermo_analysis/report.html')
+        thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
+        thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
+    else:
+        html_writer = HtmlWriter('../res/thermo_analysis/report_cf.html')
+        thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
+        thermo_analyze.analyze_pathway("../data/thermodynamics/pathways_carbon_fixation.txt", insert_toggles=False)
     
