@@ -122,7 +122,7 @@ class Reaction(object):
     concentration_profile = property(GetConcentrationProfile,
                                      ApplyConcentrationProfile)    
         
-    def SameChecmicalReaction(self, stored_reaction):
+    def SameChemicalReaction(self, stored_reaction):
         """Checks that the two chemical reactions are the same."""
         my_string = models.StoredReaction.HashableReactionString(self.reactants,
                                                                  self.products)
@@ -144,7 +144,7 @@ class Reaction(object):
             hash = self._GetHash()
             matching_reactions = models.StoredReaction.objects.filter(hash=hash)
             for stored_rxn in matching_reactions:
-                if self.SameChecmicalReaction(stored_rxn):
+                if self.SameChemicalReaction(stored_rxn):
                     self._all_stored_reactions.append(stored_rxn)
         
         return self._all_stored_reactions
