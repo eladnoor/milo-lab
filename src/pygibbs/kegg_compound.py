@@ -269,6 +269,9 @@ class Compound(object):
     def __str__(self):
         return '%s: %s' % (self.cid, self.name)
 
+    def PredictFormationEnergy(self, thermodynamics, 
+                               pH=None, pMg=None, I=None ,T=None):
+        return thermodynamics.cid2dG0_tag(self.cid, pH, pMg, I, T)
 
 def GetAllCompoundsFromDB(db):
     """Fetch all the compounds from the database."""

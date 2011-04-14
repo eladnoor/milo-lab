@@ -121,7 +121,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         for nist_row_data in nist_rows:
             # check that all participating compounds have a known pKa
-            cids_in_reaction = set(nist_row_data.sparse.keys())
+            cids_in_reaction = nist_row_data.GetAllCids()
             cids_without_pKa = cids_in_reaction.difference(all_cids_with_pKa)
             if cids_without_pKa:
                 logging.debug('reaction contains CIDs with unknown pKa values: %s' % \
@@ -133,13 +133,13 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             data['I'] = np.vstack([data['I'], nist_row_data.I])
             data['pMg'] = np.vstack([data['pMg'], nist_row_data.pMg])
             data['T'] = np.vstack([data['T'], nist_row_data.T])
-            ddG = self.ReverseTransformReaction(nist_row_data.sparse, 
+            ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
                 nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
                 nist_row_data.T)
             data['ddG0_r'] = np.vstack([data['ddG0_r'], ddG])
             
             stoichiometric_row = np.zeros((1, len(data['cids_to_estimate'])))
-            for cid, coeff in nist_row_data.sparse.iteritems():
+            for cid, coeff in nist_row_data.reaction.iteritems():
                 stoichiometric_row[0, data['cids_to_estimate'].index(cid)] = coeff
             
             data['S'] = np.vstack([data['S'], stoichiometric_row])
@@ -386,7 +386,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                 link = "reactions/nist_reaction%03d.html" % i
                 d["analysis"] = '<a href="%s">link</a>' % link
                 reaction_html_writer = HtmlWriter(os.path.join('../res/nist', link))
-                self.AnalyseSingleReaction(unique_sparse_reactions[i],
+                self.AnalyzeSingleReaction(unique_sparse_reactions[i],
                                            html_writer=reaction_html_writer)
             else:
                 d["analysis"] = ''
@@ -395,7 +395,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         dict_list.sort(key=lambda x:x["diff"], reverse=True)
         self.html_writer.write_table(dict_list, table_headers)
 
-    def AnalyseSingleReaction(self, sparse, html_writer=None):
+    def AnalyzeSingleReaction(self, reaction, html_writer=None):
         pylab.rcParams['text.usetex'] = False
         pylab.rcParams['legend.fontsize'] = 6
         pylab.rcParams['font.family'] = 'sans-serif'
@@ -409,8 +409,11 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             html_writer = self.html_writer
 
         # gather all the measurements from NIST that correspond to this reaction
-        nist_rows = self.nist.SelectRowsFromNist(sparse)
-        
+        logging.info("Analyzing reaction - " + str(reaction))
+        nist_rows = self.nist.SelectRowsFromNist(reaction)
+        logging.info("Found %d measurements in NIST with this reaction" %
+                     len(nist_rows))
+        html_writer.write('<h2>%s</h2>\n' % reaction.name)
         html_writer.write('<p>\nShow observation table: ')
         div_id = html_writer.insert_toggle()
         html_writer.start_div(div_id)
@@ -434,13 +437,13 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         # reverse transform the data
         data = self.ReverseTranformNistRows(nist_rows)
         
-        hyper = self.kegg.sparse_to_hypertext(sparse, show_cids=False)
-        html_writer.write('Reaction: %s</br>\n' % hyper)
+        html_writer.write('Reaction: %s</br>\n' % \
+                          reaction.to_hypertext(show_cids=False))
         fig1 = pylab.figure()
         html_writer.write('Standard deviations:</br>\n<ul>\n')
         
         y_labels = ['$\Delta_r G^{\'\circ}$', '$\Delta_r G^{\circ}$']
-        x_limits = {'pH' : (3, 12), 'I' : (0, 1), 'pMg' : (0, 10)}
+        x_limits = {'pH' : (3, 12), 'I' : (0, 1), 'pMg' : (0, 14)}
         
         for j, y_axis in enumerate(['dG0_r_tag', 'dG0_r']):
             sigma = np.std(data[y_axis])
@@ -459,25 +462,25 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         # draw the response of the graph to pH, I and pMg:
         fig2 = pylab.figure()
 
-        pH_range = np.arange(3, 12.01, 0.25)
-        I_range = np.arange(0.0, 1.01, 0.05)
-        pMg_range = np.arange(0.0, 10.01, 0.2)
+        pH_range = np.arange(3, 12.01, 0.05)
+        I_range = np.arange(0.0, 1.01, 0.01)
+        pMg_range = np.arange(0.0, 14.01, 0.1)
 
         ddG_vs_pH = []
         for pH in pH_range:
-            ddG = self.ReverseTransformReaction(sparse, pH=pH, I=default_I, 
+            ddG = self.ReverseTransformReaction(reaction, pH=pH, I=default_I, 
                                                 pMg=default_pMg, T=default_T)
             ddG_vs_pH.append(ddG)
         
         ddG_vs_I = []
         for I in I_range:
-            ddG = self.ReverseTransformReaction(sparse, pH=default_pH, I=I, 
+            ddG = self.ReverseTransformReaction(reaction, pH=default_pH, I=I, 
                                                 pMg=default_pMg, T=default_T)
             ddG_vs_I.append(ddG)
 
         ddG_vs_pMg = []
         for pMg in pMg_range:
-            ddG = self.ReverseTransformReaction(sparse, pH=default_pH, I=default_I, 
+            ddG = self.ReverseTransformReaction(reaction, pH=default_pH, I=default_I, 
                                                 pMg=pMg, T=default_T)
             ddG_vs_pMg.append(ddG)
         
@@ -501,12 +504,12 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             raise KeyError("Cannot find the pKas of C%05d (%s)" % \
                            (cid, self.kegg.cid2name(cid)))
     
-    def ReverseTransformReaction(self, sparse, pH, I, pMg, T):
+    def ReverseTransformReaction(self, reaction, pH, I, pMg, T):
         """
             Calculates the difference between dG'0_r and dG0_r
         """
         return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
-                    for cid, coeff in sparse.iteritems()])
+                    for cid, coeff in reaction.iteritems()])
 
     def ReverseTransformCompound(self, cid, pH, I, pMg, T):
         """
