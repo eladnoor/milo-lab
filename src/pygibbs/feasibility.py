@@ -139,7 +139,7 @@ def create_cplex_kegg(S, rids, fluxes, cids, log_stream=None):
 
     for r in xrange(Nr):
         # name the constraints that describe the dG'_r of each reaction and constrain them to be <= 0
-        if not fluxes or fluxes[r] > 0:
+        if fluxes[r] > 0:
             cpl.linear_constraints.add(senses='L', names=["R%05d" % rids[r]], rhs=[0]) # positive flux: negative dG
         elif fluxes[r] < 0:
             cpl.linear_constraints.add(senses='G', names=["R%05d" % rids[r]], rhs=[0]) # negative flux: positive dG
@@ -371,7 +371,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
     fluxes = [abs(f) for f in fluxes]
     kegg = Kegg.getInstance()
     
-    kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
+    #kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
     dG0_f = thermodynamics.GetTransformedFormationEnergies(cids)
     bounds = [thermodynamics.bounds.get(cid, (None, None)) for cid in cids]
     res = {}
@@ -435,8 +435,8 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
     # plot the optimal metabolite concentrations for the different optimization schemes
     ind_nan = pylab.find(pylab.isnan(dG0_f))
     for optimization in res.keys():
-        (dG_f, conc, score) = res[optimization]
-        if (score == None):
+        dG_f, conc, score = res[optimization]
+        if score is None:
             continue
 
         dG_r = pylab.dot(S, dG_f)
@@ -458,10 +458,10 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
         for c in range(Nc):
             pylab.text(conc[c, 0] * 1.1, Nc - c, kegg.cid2name(cids[c]), \
                        figure=conc_fig, fontsize=6, rotation=0)
-            (b_low, b_up) = bounds[c]
-            if (b_low == None):
+            b_low, b_up = bounds[c]
+            if b_low is None:
                 b_low = x_min
-            if (b_up == None):
+            if b_up is None:
                 b_up = x_max
             pylab.plot([b_low, b_up], [Nc - c, Nc - c], '-k', linewidth=0.4)
 

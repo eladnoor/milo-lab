@@ -245,7 +245,15 @@ class Thermodynamics(object):
                 html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>\n' % \
                                   (kegg.cid2link(cid), cid, name))
         html_writer.write('</table>\n')
-    
+
+    def CalculateCoverage(self, list_or_reactions):
+        covered_cids = set(self.get_all_cids())
+        covered_counter = 0
+        for reaction in list_or_reactions:
+            if reaction.get_cids().issubset(covered_cids):
+                covered_counter += 1
+        return covered_counter 
+        
 class ThermodynamicsWithCompoundAbundance(Thermodynamics):
     
     def __init__(self):
@@ -385,4 +393,6 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
 if __name__ == "__main__":
     T = PsuedoisomerTableThermodynamics.FromCsvFile(
         '../data/thermodynamics/alberty_pseudoisomers.csv')
-    T.test()
+    #T.test()
+    kegg_num_reactions = len(Kegg.getInstance().AllReactions())
+    print T.CalculateKeggCoverage(), kegg_num_reactions

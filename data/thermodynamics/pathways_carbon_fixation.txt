@@ -1,7 +1,7 @@
 ENTRY       M-CALVIN_NADP
 SKIP        FALSE
 NAME        rPP cycle (with NADP)
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -14,8 +14,6 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00024  C01182 + C00288 -> 2 C00197 (x1)
             R01512  C00002 + C00197 -> C00008 + C00236 (x2)
             R01063  C00236 + C00005 -> C00118 + C00009 + C00006 (x2)
@@ -36,7 +34,7 @@ REACTION    R00024  C01182 + C00288 -> 2 C00197 (x1)
 ENTRY       M-rTCA
 SKIP        FALSE
 NAME        rTCA cycle
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -49,11 +47,9 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00343  C00036 + C00005 -> C00149 + C00006 (x0.5)
             R01082  C00149 -> C00122 + C00001 (x0.5)
-            R90105  C00122 + C05819 -> C00042 + C00828 (x0.5)
+            R90105  C00122 + C00004 -> C00042 + C00003 (x0.5)
             R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.5)
             R01197  2 C00138 + C00091 + C00288 -> C00001 + 2 C00139 + C00026 + C00010 (x0.5)
             R00267  C00026 + C00011 + C00005 -> C00311 + C00006 (x0.5)
@@ -63,7 +59,7 @@ REACTION    R00343  C00036 + C00005 -> C00149 + C00006 (x0.5)
             R00354  C00566 -> C00024 + C00036 (x0.5)
             R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0.5)
             R01195  2 C00138 + C00006 -> 2 C00139 + C00005 (x0)
-            R92964  C00828 + C00005 -> C05819 + C00006 (x0)
+            R00112  C00003 + C00005 -> C00004 + C00006 (x0)
             R00004  C00013 + C00001 -> 2 C00009 (x0)
             R00127  C00002 + C00020 -> 2 C00008 (x0)
             R90000  C00011 + C00001 -> C00288 (x0)
@@ -71,7 +67,7 @@ REACTION    R00343  C00036 + C00005 -> C00149 + C00006 (x0.5)
 ENTRY       M-DC-4HB
 SKIP        FALSE
 NAME        Dicarboxylate / 4-Hydroxybutyrate
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -84,14 +80,12 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0.5)
             R00199  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009 (x0.5)
             R00345  C00001 + C00074 + C00288 -> C00001 + C00009 + C00036 (x0.5)
             R00343  C00036 + C00005 -> C00149 + C00006 (x0.5)
             R01082  C00149 -> C00122 + C00001 (x0.5)
-            R90105  C00122 + C05819 -> C00042 + C00828 (x0.5)
+            R90105  C00122 + C00004 -> C00042 + C00003 (x0.5)
             R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.5)
             R09280  C00091 + C00005 -> C00232 + C00006 + C00010 (x0.5)
             R09281  C00232 + C00005 -> C00989 + C00006 (x0.5)
@@ -102,7 +96,7 @@ REACTION    R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0
             R01975  C01144 + C00003 -> C00332 + C00004 (x0.5)
             R00238  C00010 + C00332 -> 2 C00024 (x0.5)
             R01195  2 C00138 + C00006 -> 2 C00139 + C00005 (x0)
-            R92964  C00828 + C00005 -> C05819 + C00006 (x0)
+            R00112  C00003 + C00005 -> C00004 + C00006 (x0)
             R00004  C00013 + C00001 -> 2 C00009 (x0)
             R00127  C00002 + C00020 -> 2 C00008 (x0)
             R90000  C00011 + C00001 -> C00288 (x0)
@@ -110,7 +104,7 @@ REACTION    R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0
 ENTRY       M-3HP-4HB
 SKIP        FALSE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -123,8 +117,6 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
             R00740  C00083 + C00005 -> C00222 + C00010 + C00006 (x1)
             R90100  C00222 + C00005 -> C01013 + C00006 (x1)
@@ -147,7 +139,6 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
             R01082  C00122 + C00001 -> C00149 (x0.5)
             R00216  C00149 + C00006 -> C00022 + C00011 + C00005 (x0.5)
             R01195  2 C00138 + C00006 -> 2 C00139 + C00005 (x0)
-            R92964  C00828 + C00005 -> C05819 + C00006 (x0)
             R00004  C00013 + C00001 -> 2 C00009 (x0)
             R00127  C00002 + C00020 -> 2 C00008 (x0)
             R90000  C00011 + C00001 -> C00288 (x0)
@@ -155,7 +146,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
 ENTRY       M-3HP
 SKIP        FALSE
 NAME        3-Hydroxypropionate Cycle
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -168,8 +159,6 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R00740  C00083 + C00005 -> C00222 + C00010 + C00006 (x0.5)
             R09289  C00222 + C00005 -> C01013 + C00006 (x0.5)
@@ -188,7 +177,6 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R99283  C06028 + C00001 -> C01011 (x0.5)
             R00237  C01011 -> C00024 + C00022 (x0.5)
             R01195  2 C00138 + C00006 -> 2 C00139 + C00005 (x0)
-            R92964  C00828 + C00005 -> C05819 + C00006 (x0)
             R00004  C00013 + C00001 -> 2 C00009 (x0)
             R00127  C00002 + C00020 -> 2 C00008 (x0)
             R90000  C00011 + C00001 -> C00288 (x0)
@@ -196,7 +184,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
 ENTRY       M-C1-1
 SKIP        FALSE
 NAME        C1-1
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -209,8 +197,6 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x0.5)
             R01655  C00234 -> C00445 + C00001 (x0.5)
@@ -223,7 +209,7 @@ REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
 ENTRY       M-C1-3
 SKIP        FALSE
 NAME        C1-3
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -236,8 +222,6 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x0.5)
             R01655  C00234 -> C00445 + C00001 (x0.5)
@@ -248,7 +232,7 @@ REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
 ENTRY       M-C1-4
 SKIP        FALSE
 NAME        C1-4
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -261,8 +245,6 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x1)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x1)
             R01655  C00234 -> C00445 + C00001 (x1)
@@ -274,7 +256,7 @@ REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x1)
 ENTRY       M-C1-5
 SKIP        FALSE
 NAME        C1-5
-TYPE        STANDARD
+TYPE        REDOX
 C_RANGE     1e-6 1e-3
 BOUND       C00002  1e-3
             C00008  1e-4
@@ -287,8 +269,6 @@ BOUND       C00002  1e-3
             C00138  None
             C00399  None
             C00390  None
-            C00828  None
-            C05819  None
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x0.5)
             R01655  C00234 -> C00445 + C00001 (x0.5)

@@ -11,6 +11,7 @@ from toolbox.database import SqliteDatabase
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from pygibbs.kegg import Kegg
 
 ################################################################################################################
 #                                                 MAIN                                                         #        
@@ -21,7 +22,7 @@ def main():
     db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/nist/report.html")
     nist = Nist()
-    nist.T_range = (273.15 + 15, 273.15 + 45)
+    nist.T_range = (273.15 + 24, 273.15 + 40)
     #nist.override_I = 0.25
     nist.override_pMg = 14.0
     
@@ -48,14 +49,20 @@ def main():
     
     estimators['Milo Group Contribution'].override_data(estimators['Alberty'])
     
+    kegg_reactions = Kegg.getInstance().AllReactions()
+    nist = nist.SelectRowsFromNist()
+    
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % key)
-        html_writer.write('<p><b>%s </b>\n' % key)
+        html_writer.write('<p><b>%s</b> ' % key)
         html_writer.insert_toggle(key)
         html_writer.start_div(key)
         num_estimations, rmse = nist.verify_results(html_writer=html_writer, 
                                                     thermodynamics=thermodynamics)
         html_writer.end_div()
+        html_writer.write('Coverage: %d out of %d reaction KEGG reactions</br>\n' % 
+                          (thermodynamics.CalculateCoverage(kegg_reactions), 
+                           len(kegg_reactions)))
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
         logging.info('N = %d, RMSE = %.1f' % (num_estimations, rmse))
 

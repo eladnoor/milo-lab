@@ -3,10 +3,10 @@ from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
 from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
-from pygibbs.alberty import Alberty
 from toolbox.util import _mkdir, calc_rmse, calc_r2
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import R
+from pygibbs.kegg_reaction import Reaction
 from toolbox.database import SqliteDatabase
 import copy
 import csv
@@ -74,13 +74,13 @@ class NistRowData:
             return the set of substrates, products and the direction of the reaction
         """
         try:
-            (left, right) = formula.split(' = ', 1)
+            left, right = formula.split(' = ', 1)
         except ValueError:
             raise KeggParseException("There should be exactly one '=' sign")
         sparse_reaction = {}
-        for (cid, amount) in NistRowData.ParseReactionFormulaSide(left).iteritems():
+        for cid, amount in NistRowData.ParseReactionFormulaSide(left).iteritems():
             sparse_reaction[cid] = -amount
-        for (cid, amount) in NistRowData.ParseReactionFormulaSide(right).iteritems():
+        for cid, amount in NistRowData.ParseReactionFormulaSide(right).iteritems():
             if (cid in sparse_reaction):
                 raise KeggParseException("C%05d appears on both sides of this formula" % cid)
             sparse_reaction[cid] = amount
@@ -447,7 +447,11 @@ class Nist(object):
                 rows.append(nist_row_copy)
             else:
                 rows.append(nist_row_data)
-        return rows   
+        return rows
+    
+    def GetUniqueReactionSet(self):
+        return set([row.sparse for row in self.data])
+            
 
 if __name__ == '__main__':
     #logging.getLogger('').setLevel(logging.DEBUG)
