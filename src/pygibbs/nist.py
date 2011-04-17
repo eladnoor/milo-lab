@@ -112,7 +112,7 @@ class NistRowData:
         return compound_bag
     
     def GetAllCids(self):
-        return self.reaction.get_cids()
+        return set(self.reaction.get_cids())
     
     def PredictReactionEnergy(self, thermodynamics):
         return self.reaction.PredictReactionEnergy(thermodynamics, pH=self.pH,

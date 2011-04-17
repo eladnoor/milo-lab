@@ -83,26 +83,31 @@ for element_annotation in model_annotation.getElementAnnotations():
         if annotation.db == 'KEGG Compound':
             rowdict = {}
             cid = int(annotation.id[1:])
-            rowdict['rdf'] = 'urn:miriam:kegg.compound:' + annotation.id
-            rowdict['element id'] = element_annotation.id
-            rowdict['name'] = species_ids_to_names.get(element_annotation.id, '')
-            rowdict['kegg name'] = kegg.cid2name(cid)
+            rowdict['Quantity Type'] = 'standard chemical potential'
+            rowdict['Miriam ID'] = 'urn:miriam:kegg.compound:' + annotation.id
+            rowdict['SBML Element ID'] = element_annotation.id
+            rowdict['SBML Element Name'] = species_ids_to_names.get(element_annotation.id, '')
+            rowdict['KEGG name'] = kegg.cid2name(cid)
             #rowdict['kegg id'] = annotation.id
-            rowdict['dG0\''] = thermo.cid2dG0_tag(cid)
+            rowdict['Value'] = '%.1f' % thermo.cid2dG0_tag(cid)
+            rowdict['Unit'] = 'kJ/mol'
             rowdicts.append(rowdict)
         if annotation.db == 'KEGG Reaction':
             rowdict = {}
             rid = int(annotation.id[1:])
             reaction = kegg.rid2reaction(rid)
-            rowdict['rdf'] = 'urn:miriam:kegg.reaction:' + annotation.id
-            rowdict['element id'] = element_annotation.id
-            rowdict['name'] = reaction_ids_to_names.get(element_annotation.id, '')
-            rowdict['kegg name'] = reaction.name
+            rowdict['Quantity Type'] = 'standard Gibbs energy of reaction'
+            rowdict['Miriam ID'] = 'urn:miriam:kegg.reaction:' + annotation.id
+            rowdict['SBML Element ID'] = element_annotation.id
+            rowdict['SBML Element Name'] = reaction_ids_to_names.get(element_annotation.id, '')
+            rowdict['KEGG name'] = reaction.name
             #rowdict['kegg id'] = annotation.id
-            rowdict['dG0\''] = reaction.PredictReactionEnergy(thermo)
+            rowdict['Value'] = '%.1f' % reaction.PredictReactionEnergy(thermo)
+            rowdict['Unit'] = 'kJ/mol'
             rowdicts.append(rowdict)
             
-fieldnames=['rdf', 'element id', 'name', 'kegg name', 'dG0\'']            
+fieldnames=['Quantity Type', 'SBML Element Name', 'SBML Element ID', 
+            'Miriam ID', 'KEGG name', 'Value', 'Unit']            
 csv_writer = csv.DictWriter(open(options.csv_output_filename, 'w'), fieldnames)
 csv_writer.writer.writerow(fieldnames)
 csv_writer.writerows(rowdicts)

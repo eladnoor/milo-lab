@@ -493,7 +493,7 @@ class Kegg(Singleton):
             
     def cid2name(self, cid):
         comp = self.cid2compound(cid)
-        if (comp == None):
+        if not comp:
             return None
         else:
             return comp.name

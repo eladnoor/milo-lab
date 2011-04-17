@@ -8,7 +8,6 @@ import sys
 
 from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
-from pygibbs import groups
 from pygibbs.feasibility import thermodynamic_pathway_analysis
 from pygibbs.kegg_utils import write_kegg_pathway
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
@@ -254,7 +253,7 @@ def main():
                     max_reactions=11,
                     thermodynamic_method='MTDF',
                     update_file=update_file)
-    pl.gc.c_range = (1e-6, 1e-2)
+    pl.thermo.c_range = (1e-6, 1e-2)
     
     # Handy reference
     atp = 2
@@ -270,10 +269,17 @@ def main():
     threepg = 197
     pep = 74
     pyruvate = 22
+    succinyl_coa = 91
+    acetyl_coa = 24
     
-    source = {glucose:1, adp:2, nad:2}
-    target = {pyruvate:2, atp:2, nadh:2}
-    name = "MTDF Glucose + 2 ADP + 2 NAD => 2 Pyruvate + 2 ATP + 2 NADH (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
+    source = {succinyl_coa:1}
+    target = {acetyl_coa:2}
+    name = "SCA => 2 ACA (min steps)"
+    pl.thermodynamic_method = 'global'
+    
+    #source = {glucose:1, adp:2, nad:2}
+    #target = {pyruvate:2, atp:2, nadh:2}
+    #name = "MTDF Glucose + 2 ADP + 2 NAD => 2 Pyruvate + 2 ATP + 2 NADH (%g - %g, MTDF = %.1f)" % (pl.gc.c_range[0], pl.gc.c_range[1], pl.maximal_dG)
     pl.find_path(name, source, target)
 
     #source = {}; target = {48:1}
