@@ -95,7 +95,6 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             (pH-2, pH+2) - the pH in which the Keq was measured.
         """
         logging.info("Reverse transforming the NIST data")
-        
         nist_rows = self.nist.SelectRowsFromNist()
         data = self.dissociation.ReverseTranformNistRows(nist_rows)
         
@@ -105,7 +104,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         logging.info("%d out of %d compounds are anchored" % \
                      (len(self.nist_anchors), len(cids_to_estimate)))
         logging.info("%d out of %d NIST measurements can be used" % \
-                     (stoichiometric_matrix.shape[0], len(self.nist.data)))
+                     (stoichiometric_matrix.shape[0], len(nist_rows)))
 
         # squeeze the regression matrix by leaving only unique rows
         unique_rows_S = np.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
@@ -271,7 +270,6 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                             difference = dG0_base - est_dG0_f[i, 0]
                             delta_dG0_f = np.vstack([delta_dG0_f, difference])
                             indices_in_prior.append(i)
-                            break
                 except MissingCompoundFormationEnergy:
                     continue
             

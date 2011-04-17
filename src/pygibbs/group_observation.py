@@ -1,11 +1,12 @@
-from pygibbs.kegg import Kegg
-from pygibbs.group_decomposition import GroupDecompositionError
 import logging
-from toolbox.molecule import Molecule
 import os
 import numpy as np
+from pygibbs.kegg import Kegg
+from pygibbs.group_decomposition import GroupDecompositionError
 from pygibbs.group_vector import GroupVector
 from pygibbs.pseudoisomer import PseudoisomerMap
+from pygibbs.nist_regression import NistRegression
+from toolbox.molecule import Molecule
 
 class GroupObservation(object):
     
@@ -13,7 +14,7 @@ class GroupObservation(object):
         self.groupvec = None
         self.dG0 = None
         self.name = None
-        self.cid = None
+        self.id = None
         self.obs_type = None # can be 'formation', 'acid-base' or 'Mg'
 
     def NetCharge(self):
@@ -27,7 +28,7 @@ class GroupObservation(object):
 
     def ToDatabase(self, db):
         db.Insert('group_observations', list(self.groupvec) +
-                  [self.dG0, self.name, self.cid, self.obs_type])
+                  [self.dG0, self.name, self.id, self.obs_type])
         
 class GroupObervationCollection(object):
     
@@ -48,12 +49,12 @@ class GroupObervationCollection(object):
         else:
             self.FIG_DIR = ''
         
-    def Add(self, groupvec, dG0, name, cid, obs_type):
+    def Add(self, groupvec, dG0, name, id, obs_type):
         obs = GroupObservation()
         obs.groupvec = groupvec
         obs.dG0 = dG0
         obs.name = name
-        obs.cid = cid
+        obs.id = id
         obs.obs_type = obs_type
         self.observations.append(obs)
 
@@ -106,7 +107,7 @@ class GroupObervationCollection(object):
                 if nH_above != nH_below-1:
                     raise Exception("a pKa must represent a difference of exactly 1 hydrogen")
                 fullname = '%s [nH=%d]' % (name, nH_above)
-                self.Add(groupvec, ddG0, fullname, cid, 'acid-base')
+                self.Add(groupvec, ddG0, fullname, "C%05d" % cid, 'acid-base')
             elif nMg_above != nMg_below:
                 if nMg_above != nMg_below-1:
                     raise Exception("a pK_Mg must represent a difference of exactly 1 magnesium")
@@ -170,7 +171,7 @@ class GroupObervationCollection(object):
             raise e
         
         groupvec = decomposition.AsVector()
-        self.Add(groupvec, ps_isomer.dG0, name, ps_isomer.cid, 'formation')
+        self.Add(groupvec, ps_isomer.dG0, name, id="C%05d" % ps_isomer.cid, obs_type='formation')
         self.html_writer.write("Decomposition = %s<br>\n" % decomposition)
         
         gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
@@ -185,11 +186,19 @@ class GroupObervationCollection(object):
             logging.error(s)
             self.html_writer.write(s + '<br>\n')
             
-    def AddNistDatabase(self, nist):
-        nist_rows = nist.SelectRowsFromNist()
-        # TODO reverse tranform all rows
-        # TODO calculate the groupvec for the reaction
-        # TODO add the observations to the database 
+    def AddNistDatabase(self):
+        nist_regression = NistRegression(self.db, self.html_writer)
+        S, dG0, cids = nist_regression.ReverseTransform(use_anchors=False)
+        
+        group_matrix = np.zeros((S.shape[1], 0))
+        for cid in cids:
+            mol = self.kegg.cid2mol(cid)
+            groupvec = self.group_decomposer.Decompose(mol, ignore_protonations=True, strict=True)
+            group_matrix = np.hstack([group_matrix, groupvec])
+        
+        observed_group_matrix = np.dot(S, group_matrix)
+        for r in observed_group_matrix.shape[0]:
+            self.Add(observed_group_matrix[r, :], dG0[r, 0], name="NIST%d" % r, id="", obs_type="reaction")
         
     def ToDatabase(self):
         # This table is used only as an output for checking results
@@ -202,7 +211,7 @@ class GroupObervationCollection(object):
         # the table 'group_observation' will contain all the observed data
         # that is used for training later
         titles = ['%s REAL' % t for t in self.groupvec_titles] + \
-                 ['dG0 REAL', 'name TEXT', 'cid INT', 'obs_type TEXT']
+                 ['dG0 REAL', 'name TEXT', 'id TEXT', 'obs_type TEXT']
         self.db.CreateTable('group_observations', ','.join(titles))
 
         self.db.CreateTable('pseudoisomer_observation', 
@@ -265,7 +274,7 @@ class GroupObervationCollection(object):
         for h, obs_vec in hash2obs_vec.iteritems():
             A.append(obs_vec[0].groupvec)
             
-            all_cids = '; '.join(["%d" % obs.cid for obs in obs_vec])
+            all_cids = '; '.join([obs.id for obs in obs_vec])
             all_names = '; '.join([obs.name for obs in obs_vec])
             if obs_vec[0].obs_type == 'formation':
                 names.append(all_names)

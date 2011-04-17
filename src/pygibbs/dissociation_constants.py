@@ -23,43 +23,46 @@ class DissociationConstants(object):
 
         csv_reader = csv.DictReader(open(filename, 'r'))
         for i, row in enumerate(csv_reader):
-            if not row['cid']:
-                continue # without a CID we cannot match this to the dG0 table
-            cid = int(row['cid'])
-            logging.debug("Parsing row #%d, compound C%05d" % (i, cid))
-
-            nH_below = int(row['nH_below'])
-            nH_above = int(row['nH_above'])
-            nMg_below = int(row['nMg_below'])
-            nMg_above = int(row['nMg_above'])
-            smiles_below = row['smiles_below']
-            smiles_above = row['smiles_above']
-            
-            ref = row['ref']
-            T = float(row['T'] or default_T)
-            diss.SetMinNumHydrogens(cid, nH_above)
-
-            if row['type'] == 'acid-base':
-                pKa = float(row['pK'])
-                if nMg_below != nMg_above:
-                    raise Exception('C%05d has different nMg below and above '
-                                    'the pKa = %.1f' % (cid, pKa))
-                diss.AddpKa(cid, pKa, nH_below, nH_above, nMg_below, ref, T, smiles_below, smiles_above)
-            elif row['type'] == 'Mg':
-                pKMg = float(row['pK'])
-                if nH_below != nH_above:
-                    raise Exception('C%05d has different nH below and above '
-                                    'the pK_Mg = %.1f' % pKMg)
-                try:
-                    diss.AddpKMg(cid, pKMg, nMg_below, nMg_above, nH_below, ref, T, smiles_below, smiles_above)
-                except Exception, e:
-                    raise Exception("In C%05d: %s" % (cid, str(e)))
-            elif row['pK']:
-                raise ValueError('The row about C%05d has a pK although it is not "acid-base" nor "Mg"' % cid)
-            elif nMg_below != nMg_above:
-                raise ValueError('The row about C%05d has different nMgs although it is not "Mg"' % cid)
-            elif nH_below != nH_above:
-                raise ValueError('The row about C%05d has different nHs although it is not "acid-base"' % cid)
+            try:
+                if not row['cid']:
+                    continue # without a CID we cannot match this to the dG0 table
+                cid = int(row['cid'])
+                logging.debug("Parsing row #%d, compound C%05d" % (i, cid))
+    
+                nH_below = int(row['nH_below'])
+                nH_above = int(row['nH_above'])
+                nMg_below = int(row['nMg_below'])
+                nMg_above = int(row['nMg_above'])
+                smiles_below = row['smiles_below']
+                smiles_above = row['smiles_above']
+                
+                ref = row['ref']
+                T = float(row['T'] or default_T)
+                diss.SetMinNumHydrogens(cid, nH_above)
+    
+                if row['type'] == 'acid-base':
+                    pKa = float(row['pK'])
+                    if nMg_below != nMg_above:
+                        raise Exception('C%05d has different nMg below and above '
+                                        'the pKa = %.1f' % (cid, pKa))
+                    diss.AddpKa(cid, pKa, nH_below, nH_above, nMg_below, ref, T, smiles_below, smiles_above)
+                elif row['type'] == 'Mg':
+                    pKMg = float(row['pK'])
+                    if nH_below != nH_above:
+                        raise Exception('C%05d has different nH below and above '
+                                        'the pK_Mg = %.1f' % pKMg)
+                    try:
+                        diss.AddpKMg(cid, pKMg, nMg_below, nMg_above, nH_below, ref, T, smiles_below, smiles_above)
+                    except Exception, e:
+                        raise Exception("In C%05d: %s" % (cid, str(e)))
+                elif row['pK']:
+                    raise ValueError('The row about C%05d has a pK although it is not "acid-base" nor "Mg"' % cid)
+                elif nMg_below != nMg_above:
+                    raise ValueError('The row about C%05d has different nMgs although it is not "Mg"' % cid)
+                elif nH_below != nH_above:
+                    raise ValueError('The row about C%05d has different nHs although it is not "acid-base"' % cid)
+            except ValueError as e:
+                raise ValueError("At row %i: %s" % (i, str(e)))
         
         diss.CalculateAllCharges()
         return diss
@@ -118,26 +121,27 @@ class DissociationConstants(object):
     def GetAllCids(self):
         return set(self.cid2DissociationTable.keys())
 
-    def ReverseTranformNistRows(self, nist_rows):
+    def ReverseTranformNistRows(self, nist_rows, assume_no_pka_by_default=False):
         kegg = Kegg.getInstance()
 
         encountered_cids = self.GetAllCids()
 
-        # For each CID which doesn't have a known pKa or pKMg, assume that
-        # that there are none in the relevant range of pH and pMg.
-        # Therefore, add an empty DissociationTable to each one of them.
-        for nist_row_data in nist_rows:
-            cids_in_reaction = nist_row_data.GetAllCids()
-            for cid in cids_in_reaction.difference(encountered_cids):
-                encountered_cids.add(cid)
-                try:
-                    min_nH, min_charge = kegg.cid2nH_and_charge(cid)
-                    diss = self.GetDissociationTable(cid) # this creates an empty table
-                    diss.min_nH, diss.min_charge = min_nH, min_charge
-                except TypeError:
-                    logging.warning('cannot add %s (C%05d) since nH or charge '
-                                    'cannot be determined' % 
-                                    (kegg.cid2name(cid), cid))
+        if assume_no_pka_by_default:
+            # For each CID which doesn't have a known pKa or pKMg, assume that
+            # that there are none in the relevant range of pH and pMg.
+            # Therefore, add an empty DissociationTable to each one of them.
+            for nist_row_data in nist_rows:
+                cids_in_reaction = nist_row_data.GetAllCids()
+                for cid in cids_in_reaction.difference(encountered_cids):
+                    encountered_cids.add(cid)
+                    try:
+                        min_nH, min_charge = kegg.cid2nH_and_charge(cid)
+                        diss = self.GetDissociationTable(cid) # this creates an empty table
+                        diss.min_nH, diss.min_charge = min_nH, min_charge
+                    except TypeError:
+                        logging.warning('cannot add %s (C%05d) since nH or charge '
+                                        'cannot be determined' % 
+                                        (kegg.cid2name(cid), cid))
             
         all_cids_with_pKa = self.GetAllCids()
 
