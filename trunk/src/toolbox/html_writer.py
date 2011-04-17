@@ -5,7 +5,9 @@ html_writer.py - Construct HTML pages
 
 """
 
-import os, types
+import datetime
+import os
+import types
 import xml.dom.minidom
 from toolbox.util import _mkdir, get_current_svn_revision
 import matplotlib
@@ -27,6 +29,10 @@ class BaseHtmlWriter:
         self.write('<script type="text/javascript" src="expandCollapse.js"></script>\n')
         self.write('</head>\n')
         self.write('<html>\n<body>\n')
+        
+        now = datetime.datetime.now()
+        self.write('<div>Written at %s</div>' % now)
+        
         r = get_current_svn_revision()
         if r:
             self.write('<a href=https://code.google.com/p/milo-lab/source/browse/trunk/?r=%d>milo-lab SVN r%d</a></br>' % (r,r))
