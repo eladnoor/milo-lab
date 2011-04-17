@@ -3,9 +3,8 @@ from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from thermodynamic_constants import J_per_cal
 import pseudoisomer
 import csv, sys
-from pygibbs.pseudoisomers_data import DissociationTable
+from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.kegg import Kegg
-import logging
 from pygibbs.thermodynamic_constants import R
 import pylab
 from toolbox.database import SqliteDatabase
@@ -19,7 +18,7 @@ class Hatzi (Thermodynamics):
     def __init__(self, use_pKa=True):
         Thermodynamics.__init__(self)
         self.use_pKa = use_pKa
-        self.cid2DissociationTable = DissociationTable.FromCSV()
+        self.dissociation = DissociationConstants.FromFile()
         self.cid2pmap_dict = {}
         
         # the conditions in which Hatzimanikatis makes his predictions
@@ -74,26 +73,27 @@ class Hatzi (Thermodynamics):
         charge = self.cid2charge_dict[cid]
         dG0_tag = self.cid2dG0_tag_dict[cid]
         if self.use_pKa:
-            if cid not in self.cid2DissociationTable:
-                diss_table = DissociationTable(cid)
-                diss_table.min_charge = charge
+            diss_table = self.dissociation.GetDissociationTable(cid)
+            if diss_table.min_nH == None:
                 try:
-                    diss_table.min_nH = self.charge2nH(cid, charge)
+                    nH = self.charge2nH(cid, charge)
                 except KeyError:
                     raise MissingCompoundFormationEnergy('The compound C%05d is missing from KEGG' % cid)
                 except ValueError:
-                    diss_table.min_nH = 0
-                self.cid2DissociationTable[cid] = diss_table
+                    nH = 0
+                diss_table.min_nH = nH 
+                diss_table.min_charge = charge
+            else:
+                nH = diss_table.min_nH + (charge - diss_table.min_charge)
             
-            nH = self.cid2DissociationTable[cid].min_nH + (charge - self.cid2DissociationTable[cid].min_charge)
             dG0_hplus = -R * self.T * pylab.log(10) * self.Hatzi_pH
             dG0_tag -= nH*dG0_hplus
             
-            self.cid2DissociationTable[cid].SetTransformedFormationEnergy(
+            diss_table.SetTransformedFormationEnergy(
                 dG0_tag, pH=self.Hatzi_pH, I=self.Hatzi_I, 
                 pMg=self.Hatzi_pMg, T=self.Hatzi_T)
             
-            return self.cid2DissociationTable[cid].GetPseudoisomerMap()
+            return diss_table.GetPseudoisomerMap()
         else:
             pmap = pseudoisomer.PseudoisomerMap()
             pmap.Add(nH=charge, z=charge, nMg=0, dG0=dG0_tag)
@@ -160,4 +160,4 @@ if __name__ == "__main__":
         print "Pseudoisomers:\n", H.cid2PseudoisomerMap(cid)
         print "dG0'_f = %.1f kJ/mol" % H.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
         print "dG0_f = %.1f kJ/mol" % H_nopka.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
-        print "Dissociations:\n", H.cid2DissociationTable[cid]
+        print "Dissociations:\n", H.dissociation.GetDissociationTable(cid)

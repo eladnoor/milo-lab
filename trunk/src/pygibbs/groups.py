@@ -176,6 +176,13 @@ class GroupContribution(Thermodynamics):
             self.groups_data = GroupsData.FromDatabase(self.db)
         self.group_decomposer = GroupDecomposer(self.groups_data)
 
+    def read_training_data_reaction(self):
+        self.html_writer.write('<h2><a name=compounds>List of NIST reactions for training</a>')
+        div_id = self.html_writer.insert_toggle()
+        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.obs_collection.AddNistDatabase()
+        self.html_writer.write('</div>')
+        
     def read_training_data_formation(self, obs_fname="../data/thermodynamics/dG0.csv"):
         """
             Finds all the compounds which have a valid dG0 in the dG0.csv file,
@@ -214,8 +221,9 @@ class GroupContribution(Thermodynamics):
         self.obs_collection = GroupObervationCollection(self.db, 
             self.html_writer, self.group_decomposer)
         if FromFiles:
-            self.read_training_data_pKa()
+            #self.read_training_data_reaction()
             self.read_training_data_formation()
+            self.read_training_data_pKa()
             self.obs_collection.ToDatabase()
         else:
             self.obs_collection.FromDatabase()
