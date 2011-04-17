@@ -19,7 +19,7 @@ class Hatzi (Thermodynamics):
     def __init__(self, use_pKa=True):
         Thermodynamics.__init__(self)
         self.use_pKa = use_pKa
-        self.cid2DissociationTable = DissociationTable.ReadDissociationCsv()
+        self.cid2DissociationTable = DissociationTable.FromCSV()
         self.cid2pmap_dict = {}
         
         # the conditions in which Hatzimanikatis makes his predictions
