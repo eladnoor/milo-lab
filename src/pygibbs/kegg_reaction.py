@@ -146,6 +146,9 @@ class Reaction(object):
                 right.append(Reaction.write_compound_and_coeff(cid, coeff))
         return "%s -> %s" % (' + '.join(left), ' + '.join(right))
 
+    def FullReactionString(self):
+        return self.write_full_reaction(self.sparse)
+
     def __str__(self):
         return self.name + ': ' + Reaction.write_full_reaction(self.sparse)
     
