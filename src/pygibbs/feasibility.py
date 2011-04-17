@@ -1,3 +1,5 @@
+
+import itertools
 import pylab
 import cvxopt.solvers
 import csv, sys
@@ -99,6 +101,14 @@ def linprog(f, A, b, lb=[], ub=[], log_stream=None):
             return pylab.matrix(cpl.solution.get_values()).T
 
 def create_cplex(S, dG0_f, fluxes=None, log_stream=None):
+    """Creates a cplex problem for the stoichiometric model given.
+    
+    Args:
+        S: the stoichiometric matrix.
+        dG0_f: formation energies.
+        fluxes: known fluxes.
+        log_stream: where to write output to.
+    """
     cpl = cplex.Cplex()
     cpl.set_log_stream(log_stream)
     cpl.set_results_stream(None)
@@ -107,11 +117,12 @@ def create_cplex(S, dG0_f, fluxes=None, log_stream=None):
     Nr, Nc = S.shape
     cpl.set_problem_name('LP')
     
-    # name the variables for the dG'_f of each compound
+    # Create variables for the dG'_f of each compound.
     cpl.variables.add(names=["c%d" % c for c in range(Nc)], lb=[-1e6]*Nc, ub=[1e6]*Nc)
 
     for r in xrange(Nr):
-        # name the constraints that describe the dG'_r of each reaction and constrain them to be <= 0
+        # Add constraints that describe the dG'_r of each reaction
+        # constrain them to be <= 0 in the direction specified by the model.
         if not fluxes or fluxes[r] > 0:
             cpl.linear_constraints.add(senses='L', names=["r%d" % r], rhs=[0]) # positive flux: negative dG
         elif fluxes[r] < 0:
@@ -178,6 +189,7 @@ def add_thermodynamic_constraints(cpl, dG0_f, c_range=(1e-6, 1e-2), T=default_T,
         # upper bound: x_i <= dG0_f + R*T*ln(Cmax)
         cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(b_high))
 
+
 def find_mtdf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stream=None):
     """
         Find a distribution of concentration that will satisfy the 'relaxed' thermodynamic constraints.
@@ -214,8 +226,71 @@ def find_mtdf(S, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None, log_stre
 
     return dG_f, concentrations, MTDF
 
+
 def pC_to_range(pC, c_mid=1e-3, ratio=3.0):
     return (c_mid * 10 ** (-ratio/(ratio+1.0) * pC), c_mid * 10 ** (1.0/(ratio+1.0) * pC))
+
+
+def make_pCr_problem(S, dG0_f,
+                     c_mid=1e-3,
+                     ratio=3.0,
+                     T=default_T,
+                     bounds=None,
+                     log_stream=None):
+    """Creates a Cplex problem for finding the pCr.
+    
+    Simply sets up all the constraints. Does not set the objective.
+    
+    Args:
+        S: stoichiometric matrix.
+        dG0_f: deltaG0'-formation values for all compounds (in kJ/mol) (1 x compounds)
+        c_mid: the default concentration to center the pCr on.
+        ratio: the ratio between the distance of the upper bound from c_mid
+            and the lower bound from c_mid (in logarithmic scale)
+        bounds: the concentration bounds for metabolites.
+        log_stream: where to write Cplex logs to.
+    
+    Returns:
+        A cplex.Cplex object for the problem.
+    """
+    Nc = S.shape[1]
+    if Nc != dG0_f.shape[0]:
+        raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
+    if bounds and len(bounds) != Nc:
+        raise Exception("The concentration bounds list must be the same length as the number of compounds")
+
+    cpl = create_cplex(S, dG0_f, log_stream)
+    
+    # Add pC variable.
+    cpl.variables.add(names=['pC'], lb=[0], ub=[1e6])
+    
+    # Add variables for concentration bounds for each metabolite.
+    for c in xrange(Nc):
+        if pylab.isnan(dG0_f[c, 0]):
+            continue # unknown dG0_f - cannot bound this compound's concentration at all
+
+        # dG at the center concentration.
+        dG_f_mid = dG0_f[c, 0] + R*T*pylab.log(c_mid)
+        if bounds == None or bounds[c][0] == None:
+            # lower bound: x_i + r/(1+r) * R*T*ln(10)*pC >= dG0_f + R*T*ln(Cmid) 
+            cpl.linear_constraints.add(senses='G', names=['c%d_lower' % c], rhs=[dG_f_mid])
+            cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'c%d' % c, 1)
+            cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'pC', R*T*pylab.log(10) * ratio / (ratio + 1.0))
+        else:
+            # this compound has a specific lower bound on its activity
+            cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][0]))
+
+        if bounds == None or bounds[c][1] == None:
+            # upper bound: x_i - 1/(1+r) * R*T*ln(10)*pC <= dG0_f + R*T*ln(Cmid)
+            cpl.linear_constraints.add(senses='L', names=['c%d_upper' % c], rhs=[dG_f_mid])
+            cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'c%d' % c, 1)
+            cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'pC', -R*T*pylab.log(10) / (ratio + 1.0))
+        else:
+            # this compound has a specific upper bound on its activity
+            cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][1]))
+
+    return cpl
+
 
 def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stream=None):
     """
@@ -229,39 +304,10 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stre
         output: (concentrations, margin)
     """
     Nc = S.shape[1]
-    if Nc != dG0_f.shape[0]:
-        raise Exception("The S matrix has %d columns, while the dG0_f vector has %d" % (Nc, dG0_f.shape[0]))
-
-    cpl = create_cplex(S, dG0_f, log_stream)
-    if bounds != None and len(bounds) != Nc:
-        raise Exception("The concentration bounds list must be the same length as the number of compounds")
+    cpl = make_pCr_problem(S, dG0_f, c_mid, ratio, T, bounds, log_stream)
     
-    cpl.variables.add(names=['pC'], lb=[0], ub=[1e6])
-    for c in xrange(Nc):
-        if pylab.isnan(dG0_f[c, 0]):
-            continue # unknown dG0_f - cannot bound this compound's concentration at all
-
-        if bounds == None or bounds[c][0] == None:
-            # lower bound: x_i + r/(1+r) * R*T*ln(10)*pC >= dG0_f + R*T*ln(Cmid) 
-            cpl.linear_constraints.add(senses='G', names=['c%d_lower' % c], rhs=[dG0_f[c, 0] + R*T*pylab.log(c_mid)])
-            cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'c%d' % c, 1)
-            cpl.linear_constraints.set_coefficients('c%d_lower' % c, 'pC', R*T*pylab.log(10) * ratio / (ratio + 1.0))
-        else:
-            # this compound has a specific lower bound on its activity
-            cpl.variables.set_lower_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][0]))
-
-        row_upper = pylab.zeros(Nc + 1)
-        row_upper[c] = 1
-        if bounds == None or bounds[c][1] == None:
-            # upper bound: x_i - 1/(1+r) * R*T*ln(10)*pC <= dG0_f + R*T*ln(Cmid)
-            cpl.linear_constraints.add(senses='L', names=['c%d_upper' % c], rhs=[dG0_f[c, 0] + R*T*pylab.log(c_mid)])
-            cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'c%d' % c, 1)
-            cpl.linear_constraints.set_coefficients('c%d_upper' % c, 'pC', -R*T*pylab.log(10) / (ratio + 1.0))
-        else:
-            # this compound has a specific upper bound on its activity
-            cpl.variables.set_upper_bounds('c%d' % c, dG0_f[c, 0] + R*T*pylab.log(bounds[c][1]))
-
-    # Set 'pC' as the objective
+    # Objective: minimize the pC variable.
+    cpl.objective.set_sense(cpl.objective.sense.minimize)
     cpl.objective.set_linear([("pC", 1)])
 
     #cpl.write("../res/test_PCR.lp", "lp")
@@ -273,6 +319,57 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stre
     pCr = cpl.solution.get_values(["pC"])[0]
 
     return dG_f, concentrations, pCr
+
+
+def find_regularized_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stream=None):
+    """
+        Compute the feasibility of a given set of reactions
+    
+        input: S = stoichiometric matrix (reactions x compounds)
+               dG0_f = deltaG0'-formation values for all compounds (in kJ/mol) (1 x compounds)
+               c_mid = the default concentration
+               ratio = the ratio between the distance of the upper bound from c_mid and the lower bound from c_mid (in logarithmic scale)
+        
+        output: (concentrations, margin)
+    """
+    Nc = S.shape[1]
+    cpl = make_pCr_problem(S, dG0_f, c_mid, ratio, T, bounds, log_stream)
+    
+    # Add variables for residuals.
+    
+    var_names = map(lambda x: 'c%d_residual' % x, xrange(Nc))
+    constraint_names = map(lambda x: '%s_constraint' % x, var_names)
+    rhs = [c_mid]*Nc
+    lbs = [-1e6]*Nc
+    ubs = [1e6]*Nc
+    cpl.variables.add(names=var_names, lb=lbs, ub=ubs)
+    cpl.linear_constraints.add(names=constraint_names, senses='E', rhs=rhs)
+    
+    # I WAS HERE
+    dG_varnames = map(lambda x: 'c%d' % x, xrange(Nc))
+    dg_coeffs = map(lambda x: (x[0], x[1], -1.0/R*T), var_names, dG_varnames)
+    cpl.linear_constraints.set_coefficients(dg_coeffs)
+    
+    
+    # Objective: minimize the pC variable.
+    cpl.objective.set_sense(cpl.objective.sense.minimize)
+    cpl.objective.set_linear([("pC", 1)])
+    
+    # Add l2 regulaizer on difference from median.
+    
+    
+    cpl.objective.set_quadratic()
+
+    #cpl.write("../res/test_PCR.lp", "lp")
+    cpl.solve()
+    if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal:
+        raise LinProgNoSolutionException("")
+    dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
+    concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
+    pCr = cpl.solution.get_values(["pC"])[0]
+
+    return dG_f, concentrations, pCr
+
 
 def find_ratio(S, rids, fluxes, cids, dG0_f, cid_up, cid_down, c_range=(1e-6, 1e-2), c_mid=None, 
                T=default_T, cid2bounds={}, log_stream=None):
