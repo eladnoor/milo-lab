@@ -356,9 +356,9 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
         if cid in self.cid2pmap_dict:
             return self.cid2pmap_dict[cid]
         else:
-            raise MissingCompoundFormationEnergy("The compound C%05d does not "
-                "have a value for its formation energy of any of its "
-                "pseudoisomers" % cid, cid)
+            format_str = ("The compound C%05d does not have a value "
+                          "for its formation energy of any of its pseudoisomers")
+            raise MissingCompoundFormationEnergy(format_str % cid, cid)
 
     def SetPseudoisomerMap(self, cid, pmap):
         self.cid2pmap_dict[cid] = pmap

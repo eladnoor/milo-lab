@@ -35,14 +35,16 @@ class ThermodynamicAnalysis(object):
         self.thermo = thermodynamics
         self.kegg = Kegg.getInstance()
 
-    def analyze_pathway(self, filename, insert_toggles=True, write_measured_concentrations=False):
-        self.html_writer.write("<h1>Pathway analysis using Group Contribution Method</h1>\n")
+    def analyze_pathway(self, filename,
+                        insert_toggles=True,
+                        write_measured_concentrations=False):
+        self.html_writer.write("<h1>Thermodynamic Pathway Analysis</h1>\n")
         entry2fields_map = ParsedKeggFile.FromKeggFile(filename)
         
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
             if field_map.GetBoolField('SKIP'):
-                logging.info("skipping pathway: " + key)
+                logging.info("Skipping pathway: %s", key)
                 continue
             try:
                 self.html_writer.write('<p>\n')
@@ -159,6 +161,11 @@ class ThermodynamicAnalysis(object):
             else:
                 mid = int(mid_str)
             S, rids, fluxes, cids = self.kegg.get_module(mid)
+            for i, cid in enumerate(list(cids)):
+                if cid in cid_mapping:
+                    (new_cid, coeff) = cid_mapping[cid]
+                    cids[i] = new_cid
+                    S[:, i] *= coeff
             self.html_writer.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
         else:
             S, rids, fluxes, cids = self.kegg.parse_explicit_module(field_map, cid_mapping) 
@@ -718,7 +725,6 @@ if __name__ == "__main__":
     print 'Reading from public DB %s' % public_db_loc
     db_public = SqliteDatabase(public_db_loc)
     
-
     # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
     # Where: 
     #    F  = 0.1 (kJ/mol)/mV
