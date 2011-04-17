@@ -102,9 +102,11 @@ def write_kegg_pathway(html_writer, reactions, fluxes):
 
     def write_reaction(prefix, reaction, flux=1):
         if (flux == 1):
-            html_writer.write('%sR%05d&nbsp;&nbsp;%s<br>\n' % (prefix, reaction.rid, str(reaction)))
+            html_writer.write('%sR%05d&nbsp;&nbsp;%s<br>\n' % (prefix, reaction.rid,
+                                                               reaction.FullReactionString()))
         else:
-            html_writer.write('%sR%05d&nbsp;&nbsp;%s (x%g)<br>\n' % (prefix, reaction.rid, str(reaction), flux))
+            html_writer.write('%sR%05d&nbsp;&nbsp;%s (x%g)<br>\n' % (prefix, reaction.rid,
+                                                                     reaction.FullReactionString(), flux))
     
     html_writer.write('<p style="font-family: courier; font-size:10pt">')
     html_writer.write('ENTRY' + '&nbsp;'*7 + 'M-PATHOLOGIC<br>\n')
