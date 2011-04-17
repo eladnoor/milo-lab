@@ -1,23 +1,32 @@
-import re
-from thermodynamic_constants import default_T, default_pH, default_I,\
-    default_c0, R
-import pylab
+#!/usr/bin/python
+
 import copy
-from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr,\
-    LinProgNoSolutionException, thermodynamic_pathway_analysis, find_ratio
-from pygibbs.thermodynamic_constants import transform
-import matplotlib
-import matplotlib.pyplot as plt
 import logging
-from toolbox.html_writer import HtmlWriter
-from toolbox.database import SqliteDatabase
+import matplotlib
+import os
+import pylab
+import re
+import sys
+
+import matplotlib.pyplot as plt
+import scipy.io
+
+from copy import deepcopy
+from optparse import OptionParser
+from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr
+from pygibbs.feasibility import LinProgNoSolutionException, thermodynamic_pathway_analysis, find_ratio
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
-from copy import deepcopy
-import scipy.io
+from pygibbs import kegg_utils
 from pygibbs.pseudoisomer import PseudoisomerMap
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from pygibbs.thermodynamic_constants import transform
+from pygibbs.thermodynamic_constants import default_T, default_pH
+from pygibbs.thermodynamic_constants import default_I, default_c0, R
+from toolbox.database import SqliteDatabase
+from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
+
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -406,7 +415,7 @@ class ThermodynamicAnalysis(object):
         self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
         S, rids, fluxes, cids = self.get_reactions(key, field_map)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
-
+        
         thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
 
     def analyze_contour(self, key, field_map):
@@ -651,13 +660,64 @@ class ThermodynamicAnalysis(object):
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
 
-if __name__ == "__main__":
-    db = SqliteDatabase('../res/gibbs.sqlite')
-    db_public = SqliteDatabase('../data/public_data.sqlite')
+
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-s", "--thermodynamics_source",
+                          dest="thermodynamics_source",
+                          type="choice",
+                          choices=['observed_only',
+                                   'hatzi_only',
+                                   'milo_only',
+                                   'milo_merged'],
+                          default="milo_merged",
+                          help="The thermodynamic data to use")
+    opt_parser.add_option("-k", "--kegg_database_location", 
+                          dest="kegg_db_filename",
+                          default="../data/public_data.sqlite",
+                          help="The KEGG database location")
+    opt_parser.add_option("-d", "--database_location", 
+                          dest="db_filename",
+                          default="../res/gibbs.sqlite",
+                          help="The Thermodynamic database location")
+    opt_parser.add_option("-t", "--thermodynamics_filename",
+                          dest="thermodynamics_filename",
+                          default='../data/thermodynamics/dG0.csv',
+                          help="The name of the thermodynamics file to load.")
+    opt_parser.add_option("-i", "--input_filename",
+                          dest="input_filename",
+                          default="../data/thermodynamics/pathways.txt",
+                          help="The file to read for pathways to analyze.")
+    opt_parser.add_option("-o", "--output_filename",
+                          dest="output_filename",
+                          default='../res/thermo_analysis/report.html',
+                          help="Where to write output to.")
+    return opt_parser
+
+
+if __name__ == "__main__":    
+    options, _ = MakeOpts().parse_args(sys.argv)
+    input_filename = os.path.abspath(options.input_filename)
+    output_filename = os.path.abspath(options.output_filename)
+    if not os.path.exists(input_filename):
+        logging.fatal('Input filename %s doesn\'t exist' % input_filename)
+        
+    print 'Will read pathway definitions from %s' % input_filename
+    print 'Will write output to %s' % output_filename
     
-    #thermo = GroupContribution(db, html_writer=html_writer)
-    #thermo.init()
-    #thermo.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
+    thermo_source = options.thermodynamics_source
+    assert thermo_source in ('observed_only', 'hatzi_only', 'milo_only', 'milo_merged')
+    print 'Will load thermodynamic data from source "%s"' % thermo_source
+    
+    db_loc = options.db_filename
+    print 'Reading from DB %s' % db_loc
+    db = SqliteDatabase(db_loc)
+    
+    public_db_loc = options.kegg_db_filename
+    print 'Reading from public DB %s' % public_db_loc
+    db_public = SqliteDatabase(public_db_loc)
+    
 
     # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
     # Where: 
@@ -672,7 +732,12 @@ if __name__ == "__main__":
     #
     # [1] - Thauer 1977
     
-    if True:
+    observed_thermo_fname = options.thermodynamics_filename
+    print 'Loading observed thermodynamic data from %s' % observed_thermo_fname
+    observed_thermo = PsuedoisomerTableThermodynamics.FromCsvFile(
+        observed_thermo_fname)
+    
+    if thermo_source == 'hatzi_only':    
         thermo = PsuedoisomerTableThermodynamics.FromDatabase(db, 'hatzi_thermodynamics')
         thermo.AddPseudoisomer( 139, nH=0,  z=1, nMg=0, dG0=0)      # Ferrodoxin(ox)
         thermo.AddPseudoisomer( 138, nH=0,  z=0, nMg=0, dG0=38.0)   # Ferrodoxin(red)
@@ -685,19 +750,29 @@ if __name__ == "__main__":
         thermo.SetPseudoisomerMap(445, PseudoisomerMap(nH=22, z=0, nMg=0, dG0=65.1)) # 5,10-Methenyl-THF
         thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
         thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
+    elif thermo_source == 'milo_only':
+        thermo = PsuedoisomerTableThermodynamics.FromDatabase(
+            db, 'gc_pseudoisomers')
+    elif thermo_source == 'milo_merged':
+        thermo = PsuedoisomerTableThermodynamics.FromDatabase(
+            db, 'gc_pseudoisomers')
+        thermo.override_data(observed_thermo)
+    elif thermo_source == 'observed_only':
+        thermo = observed_thermo
     else:
-        thermo = PsuedoisomerTableThermodynamics.FromCsvFile('../data/thermodynamics/dG0.csv')
+        logging.fatal('Unknown thermodynamic data source.')
     
     kegg = Kegg.getInstance()
     thermo.bounds = deepcopy(kegg.cid2bounds)
     
-    _mkdir('../res/thermo_analysis')
-    if True:
-        html_writer = HtmlWriter('../res/thermo_analysis/report.html')
-        thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
-        thermo_analyze.analyze_pathway("../data/thermodynamics/pathways.txt")
-    else:
-        html_writer = HtmlWriter('../res/thermo_analysis/report_cf.html')
-        thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
-        thermo_analyze.analyze_pathway("../data/thermodynamics/pathways_carbon_fixation.txt", insert_toggles=False)
+    dirname = os.path.dirname(output_filename)
+    if not os.path.exists(dirname):
+        print 'Making output directory %s' % dirname
+        _mkdir(dirname)
+    
+    print 'Executing thermodynamic pathway analysis'
+    html_writer = HtmlWriter(output_filename)
+    thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
+    thermo_analyze.analyze_pathway(input_filename)
+
     
