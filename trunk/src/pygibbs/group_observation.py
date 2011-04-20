@@ -7,6 +7,7 @@ from pygibbs.group_vector import GroupVector
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.nist_regression import NistRegression
 from toolbox.molecule import Molecule
+from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 
 class GroupObservation(object):
     
@@ -72,7 +73,7 @@ class GroupObervationCollection(object):
             return self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
         except GroupDecompositionError as _e:
             logging.warning('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
-            self.html_writer.write('%s Could not be decomposed<br>\n' % smiles)
+            self.html_writer.write('%s Could not be decomposed</br>\n' % smiles)
 
     def AddDissociationTable(self, cid, diss_table):
         name = self.kegg.cid2name(cid)
@@ -91,9 +92,9 @@ class GroupObervationCollection(object):
             elif nMg_above != nMg_below:
                 s = "nMg = %d -> %d" % (nMg_above, nMg_below)
             logging.info("\t" + s)
-            self.html_writer.write('%s: &#x394;G = %.2f<br>\n' 
+            self.html_writer.write('%s: &#x394;G = %.2f</br>\n' 
                                    % (s, ddG0))
-            self.html_writer.write('SMILES = %s >> %s<br>\n' % (smiles_below, smiles_above))
+            self.html_writer.write('SMILES = %s >> %s</br>\n' % (smiles_below, smiles_above))
             decomposition_below = self.SmilesTGroupvec(smiles_below, 
                             "C%05d_b_H%d_Mg%d" % (cid, nH_below, nMg_below))
             decomposition_above = self.SmilesTGroupvec(smiles_above, 
@@ -101,7 +102,7 @@ class GroupObervationCollection(object):
             if not decomposition_below or not decomposition_above:
                 continue
             groupvec = decomposition_below.AsVector() - decomposition_above.AsVector()
-            self.html_writer.write('<br>\nDecomposition = %s<br>\n' % str(groupvec))
+            self.html_writer.write('</br>\nDecomposition = %s</br>\n' % str(groupvec))
             
             if nH_above != nH_below:
                 if nH_above != nH_below-1:
@@ -123,14 +124,14 @@ class GroupObervationCollection(object):
         self.html_writer.write("<h3>%s, %s</h3>\n" % (ps_isomer.name, ps_isomer.ref))
 
         if ps_isomer.dG0 == None:
-            self.html_writer.write('No data for &#x394;G<sub>f</sub><br>\n')
+            self.html_writer.write('No data for &#x394;G<sub>f</sub></br>\n')
             return
 
         if ps_isomer.Skip():
-            self.html_writer.write('Compound marked as not to be used<br>\n')
+            self.html_writer.write('Compound marked as not to be used</br>\n')
             return
             
-        self.html_writer.write('&#x394;G<sub>f</sub> = %.2f<br>\n' % ps_isomer.dG0)
+        self.html_writer.write('&#x394;G<sub>f</sub> = %.2f</br>\n' % ps_isomer.dG0)
 
         if ps_isomer.cid:
             self.AddPseudoisomer(ps_isomer.cid, ps_isomer.hydrogens, ps_isomer.net_charge,
@@ -138,18 +139,18 @@ class GroupObervationCollection(object):
 
         if ps_isomer.Test():
             self.cid_test_set.add(ps_isomer.cid)
-            self.html_writer.write('Compound marked to be used only for testing (not training)<br>\n')
+            self.html_writer.write('Compound marked to be used only for testing (not training)</br>\n')
             return
         
         elif ps_isomer.Train():
-            self.html_writer.write('Compound marked to be used for training<br>\n')
+            self.html_writer.write('Compound marked to be used for training</br>\n')
         else:
             raise Exception('Unknown usage flag: %' % ps_isomer.use_for)
 
         if not ps_isomer.smiles:
             raise Exception("Cannot use compound '%s' for training if it lacks a SMILES string" % ps_isomer.name)
         try:
-            self.html_writer.write('SMILES = %s<br>\n' % ps_isomer.smiles)
+            self.html_writer.write('SMILES = %s</br>\n' % ps_isomer.smiles)
             mol = ps_isomer.MolNoH()
         except TypeError, e:
             logging.error(e)
@@ -162,7 +163,7 @@ class GroupObervationCollection(object):
             logging.warning('PyBel cannot draw the compound %s',  name)
             self.html_writer.write('WARNING: cannot draw this compound using PyBel\n')
 
-        self.html_writer.write('<br>\n')
+        self.html_writer.write('</br>\n')
 
         try:
             decomposition = self.group_decomposer.Decompose(mol, strict=True)
@@ -172,33 +173,69 @@ class GroupObervationCollection(object):
         
         groupvec = decomposition.AsVector()
         self.Add(groupvec, ps_isomer.dG0, name, id="C%05d" % ps_isomer.cid, obs_type='formation')
-        self.html_writer.write("Decomposition = %s<br>\n" % decomposition)
+        self.html_writer.write("Decomposition = %s</br>\n" % decomposition)
         
         gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
         if ps_isomer.hydrogens != gc_hydrogens:
             s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
                 ps_isomer.hydrogens, gc_hydrogens)
             logging.error(s)
-            self.html_writer.write(s + '<br>\n')
+            self.html_writer.write(s + '</br>\n')
         if ps_isomer.net_charge != gc_charge:
             s = 'ERROR: Charge doesn\'t match: explicit = %d, formula = %d' % (
                 ps_isomer.net_charge, gc_charge)
             logging.error(s)
-            self.html_writer.write(s + '<br>\n')
+            self.html_writer.write(s + '</br>\n')
             
     def AddNistDatabase(self):
-        nist_regression = NistRegression(self.db, self.html_writer)
+        nist_regression = NistRegression(self.db, html_writer=NullHtmlWriter())
         S, dG0, cids = nist_regression.ReverseTransform(use_anchors=False)
         
-        group_matrix = np.zeros((S.shape[1], 0))
+        group_matrix = []
+        good_cids = []
         for cid in cids:
+            name = self.kegg.cid2name(cid)
             mol = self.kegg.cid2mol(cid)
-            groupvec = self.group_decomposer.Decompose(mol, ignore_protonations=True, strict=True)
-            group_matrix = np.hstack([group_matrix, groupvec])
+            min_nH, min_charge = self.kegg.cid2nH_and_charge(cid)
+            self.html_writer.write("<h3>C%05d - %s</h3>\n" % (cid, name))
+            self.html_writer.write("nH = %d, z = %d</br>\n" % (min_nH, min_charge))
+            try:
+                # TODO: the reverse transform converts the dG0' to dG0, where the chosen pseudoisomer
+                # is the one with the minimal number of hydrogens. We must check that the nH
+                # of the decomposition matches that of the entire compound.
+                decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=True, strict=True)
+                groupvec = decomposition.AsVector()
+                self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
+                if decomposition.Hydrogens() != min_nH:
+                    self.html_writer.write("<b>ERROR</b>: decomposition nH (%d) is wrong</br>\n" % decomposition.Hydrogens())
+                group_matrix.append(groupvec)
+                good_cids.append(cid)
+            except GroupDecompositionError as e:
+                self.html_writer.write(str(e) + "</br>\n")
         
-        observed_group_matrix = np.dot(S, group_matrix)
-        for r in observed_group_matrix.shape[0]:
-            self.Add(observed_group_matrix[r, :], dG0[r, 0], name="NIST%d" % r, id="", obs_type="reaction")
+        # calculate the group vectors for each reaction, by multiplying the stoichiometric
+        # matrix by the group matrix. Note that some rows (CIDs) are missing from the group_matrix
+        # and the corresponding rows in S must also be skipped.
+        good_indices = [cids.index(cid) for cid in good_cids]
+        observed_group_matrix = np.dot(S[:, good_indices], np.array(group_matrix))
+
+        for r in xrange(S.shape[0]):
+            name = "NIST%03d" % r
+            sparse = dict([(cids[i], S[r, i]) for i in S[r, :].nonzero()[0]])
+
+            self.html_writer.write("<h3>%s</h3>\n" % name)
+            self.html_writer.write('&#x394;G<sub>r</sub> = %.2f</br>\n' % dG0[r, 0])
+            self.html_writer.write("Reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
+
+            if set(sparse.keys()).issubset(good_cids):
+                groupvec = GroupVector(self.groups_data, observed_group_matrix[r, :])
+                if groupvec: # if nonzero
+                    self.Add(groupvec, dG0[r, 0], name=name, id="", obs_type="reaction")
+                    self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
+                else:
+                    self.html_writer.write("Decompositions are equal on both sides - not using as an example</br>\n")
+            else:
+                self.html_writer.write("Some CIDs cannot be decomposed - not using as an example</br>\n")
         
     def ToDatabase(self):
         # This table is used only as an output for checking results

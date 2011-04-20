@@ -320,17 +320,20 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
             if not cid:
                 continue
             
-            nH = int(row['nH'])
-            z = int(row['z'])
-            nMg = int(row['nMg'])
-            dG0 = float(row['dG0'])
-            thermo.AddPseudoisomer(cid, nH, z, nMg, dG0)
-            ref = row.get('ref', '')
-            if cid in thermo.cid2source_string and thermo.cid2source_string[cid] != ref:
-                if warn_for_conflicting_refs:
-                    logging.warning('There are conflicting references for C%05d ' % cid)
-            else:
-                thermo.cid2source_string[cid] = ref
+            try:
+                nH = int(row['nH'])
+                z = int(row['z'])
+                nMg = int(row['nMg'])
+                dG0 = float(row['dG0'])
+                thermo.AddPseudoisomer(cid, nH, z, nMg, dG0)
+                ref = row.get('ref', '')
+                if cid in thermo.cid2source_string and thermo.cid2source_string[cid] != ref:
+                    if warn_for_conflicting_refs:
+                        logging.warning('There are conflicting references for C%05d ' % cid)
+                else:
+                    thermo.cid2source_string[cid] = ref
+            except ValueError as e:
+                raise ValueError("For C%05d: %s" % (cid, str(e)))
             
         return thermo
     
