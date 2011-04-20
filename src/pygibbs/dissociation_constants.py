@@ -89,7 +89,7 @@ class DissociationConstants(object):
         diss_table = self.GetDissociationTable(cid)
         if not diss_table.min_nH or diss_table.min_nH > min_nH: 
             diss_table.min_nH = min_nH
-        
+            
     def GetDissociationTable(self, cid):
         if cid not in self.cid2DissociationTable:
             diss = DissociationTable(cid)
@@ -159,8 +159,9 @@ class DissociationConstants(object):
         data['pMg'] = np.zeros((0, 1))
         data['T'] = np.zeros((0, 1))
         data['S'] = np.zeros((0, len(data['cids_to_estimate']))) # stoichiometric matrix
+        data['nist_rows'] = np.zeros((0, 1)) # the index of the corresponding row in nist_rows
         
-        for nist_row_data in nist_rows:
+        for nist_row, nist_row_data in enumerate(nist_rows):
             # check that all participating compounds have a known pKa
             cids_in_reaction = nist_row_data.GetAllCids()
             cids_without_pKa = cids_in_reaction.difference(all_cids_with_pKa)
@@ -174,6 +175,7 @@ class DissociationConstants(object):
             data['I'] = np.vstack([data['I'], nist_row_data.I])
             data['pMg'] = np.vstack([data['pMg'], nist_row_data.pMg])
             data['T'] = np.vstack([data['T'], nist_row_data.T])
+            data['nist_rows'] = np.vstack([data['nist_rows'], nist_row])
             ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
                 nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
                 nist_row_data.T)
@@ -370,14 +372,15 @@ class DissociationTable(object):
         
         return comp
     
-    def SetFormationEnergyByNumHydrogens(self, dG0, nH):
+    def SetFormationEnergyByNumHydrogens(self, dG0, nH, nMg=0):
         """ Uses the value of any pseudoisomer to set the base value of dG0 """
-        self.min_dG0 = self.ConvertPseudoisomer(dG0, nH, self.min_nH)
+        self.min_dG0 = self.ConvertPseudoisomer(dG0, nH_from=nH, 
+            nH_to=self.min_nH, nMg_from=nMg, nMg_to=0)
         
-    def SetFormationEnergyByCharge(self, dG0, charge):
+    def SetFormationEnergyByCharge(self, dG0, charge, nMg=0):
         """ Uses the value of any pseudoisomer to set the base value of dG0 """
         nH = self.min_nH + (charge - self.min_charge)
-        self.min_dG0 = self.ConvertPseudoisomer(dG0, nH, self.min_nH)
+        self.SetFormationEnergyByNumHydrogens(dG0, nH, nMg)
     
     def SetTransformedFormationEnergy(self, dG0_tag, pH, I, pMg, T):
         """ Sets the min_dG0 according to a transformed formation energy. """

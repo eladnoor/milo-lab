@@ -1,24 +1,33 @@
-"cid","compound name","dG0","z","nH","nMg","skip"
-1,"H2O",-237.19,0,2,0,"False"
-3,"NAD(ox)",0,-1,26,0,"False"
-7,"O2",16.4,0,0,0,"False"
-9,"Pi",-1096.1,-2,1,0,"False"
-10,"CoA",0,-5,31,0,"False"
-14,"NH3",-26.5,0,3,0,"False"
-16,"FAD(ox)",0,-2,31,0,"False"
-61,"FMN(ox)",0,-2,19,0,"False"
-80,"H+",0,0,0,0,"False"
-59,"sulfate",-744.53,-2,0,0,"False"
-101,"Tetrahydrofolate",0,0,23,0,"False"
-125,"cytochrome c(ox)",0,3,0,0,"False"
-127,"glutathione(ox)",0,-2,30,0,"False"
-139,"ferredoxin(ox)",0,1,0,0,"False"
-147,"Adenine",286.7,1,6,0,"False"
-283,"H2(aq)",17.6,0,0,0,"False"
-288,"carbonate",-527.81,-2,0,0,"False"
-343,"thioredoxin(ox)",0,0,0,0,"False"
-376,"retinal",0,0,28,0,"False"
-387,"guanosine",0,0,13,0,"True"
-399,"ubiquinone(ox)",0,0,90,0,"False"
-475,"cytidine",0,-1,12,0,"True"
-697,"N2",18.7,0,0,0,"False"
+cid,compound name,dG0,z,nH,nMg,use for,ref
+1,H2O,-237.19,0,2,0,test,"Alberty (2003)"
+3,NAD(ox),0,-1,26,0,test,"Alberty (2003)"
+3,NAD(ox),-464.1,1,26,1,skip,"Mazzini (1995)"
+7,O2,16.4,0,0,0,test,"Alberty (2003)"
+9,Pi,-1096.1,-2,1,0,test,"Alberty (2003)"
+9,Pi,-1137.3,-1,2,0,test,"Alberty (2003)"
+9,Pi,-1566.87,0,1,1,test,"Alberty (2003)"
+10,CoA,0,-5,31,0,test,"Alberty (2003)"
+10,CoA,-47.83,-4,32,0,test,"Alberty (2003)"
+14,NH3,-26.5,0,3,0,test,"Alberty (2003)"
+14,NH3,-79.31,1,4,0,test,"Alberty (2003)"
+16,FAD(ox),0,-2,31,0,test,
+61,FMN(ox),0,-2,19,0,test,
+80,H+,0,0,0,0,test,
+59,Sulfate,-744.53,-2,0,0,test,"Alberty (2003)"
+59,Sulfate,-755.91,-1,1,0,test,"Alberty (2003)"
+101,Tetrahydrofolate,0,0,23,0,test,
+125,"cytochrome c(ox)",0,3,0,0,test,
+127,glutathione(ox),0,-2,30,0,test,
+139,ferredoxin(ox),0,1,0,0,test,
+147,Adenine,286.7,1,6,0,test,"Alberty (2003)"
+147,Adenine,310.67,0,5,0,test,"Alberty (2003)"
+283,H2(aq),17.6,0,0,0,test,"Alberty (2003)"
+288,CO2(tot),-527.81,-2,0,0,test,"Alberty (2003)"
+288,CO2(tot),-586.77,-1,1,0,test,"Alberty (2003)"
+288,CO2(tot),-623.11,0,2,0,test,"Alberty (2003)"
+343,thioredoxin(ox),0,0,0,0,test,
+376,retinal,0,0,28,0,test,
+387,guanosine,0,0,13,0,skip,
+399,ubiquinone(ox),0,0,90,0,test,
+475,cytidine,0,-1,12,0,skip,
+697,N2,18.7,0,0,0,skip,"Alberty (2003)"

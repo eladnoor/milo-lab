@@ -58,6 +58,20 @@ class NistRowData:
         except KeggParseException as e:
             raise NistMissingCrucialDataException("cannot use reaction \"%s\", because: %s" % (kegg_reaction, str(e)))
 
+    def Clone(self):
+        other = NistRowData()
+        other.K_tag = self.K_tag
+        other.pH = self.pH
+        other.I = self.I
+        other.T = self.T
+        other.pMg = self.pMg
+        other.dG0_r = self.dG0_r
+        other.evaluation = self.evaluation
+        other.url = self.url
+        other.ref_id = self.ref_id
+        other.reaction = self.reaction.clone()
+        return other
+
     def GetYear(self):
         try:
             year = int(self.ref_id[0:2])
@@ -118,6 +132,26 @@ class NistRowData:
         return self.reaction.PredictReactionEnergy(thermodynamics, pH=self.pH,
             pMg=self.pMg, I=self.I, T=self.T)
             
+    def NormalizeCompounds(self, thermodynamics):
+        """
+            Subtracts the formation energies of known compounds (i.e. those
+            that appear in 'thermodynamics'), and removes them from the reaction.
+            This is useful for algorithms such as linear regression where one
+            would want to fix the values for some of the compounds and estimate
+            only those of the unknown ones.
+        """
+        cids_to_remove = set()
+        for cid, coeff in self.reaction.sparse.iteritems():
+            try:
+                dG0_f_tag = thermodynamics.cid2dG0_tag(cid, 
+                    pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
+                cids_to_remove.add(cid)
+                self.dG0_r -= coeff * dG0_f_tag
+            except MissingCompoundFormationEnergy:
+                continue
+        
+        for cid in cids_to_remove:
+            del self.reaction.sparse[cid]
     
 class Nist(object):
     def __init__(self):

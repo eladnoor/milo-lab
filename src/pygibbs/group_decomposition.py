@@ -56,6 +56,12 @@ class GroupDecomposition(object):
                                                        len(node_sets)))
         return " | ".join(group_strs)
     
+    def __len__(self):
+        counter = 0
+        for _group, node_sets in self.NonEmptyGroups():
+            counter += len(node_sets)
+        return counter
+    
     def AsVector(self):
         """Return the group in vector format.
         

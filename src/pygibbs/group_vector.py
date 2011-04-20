@@ -14,7 +14,7 @@ class GroupVector(list):
         """
         self.groups_data = groups_data
         
-        if iterable:
+        if iterable is not None:
             self.extend(iterable)
     
     def __str__(self):
@@ -50,7 +50,13 @@ class GroupVector(list):
         for i in xrange(len(self.groups_data.all_group_names)):
             if self[i] != other[i]:
                 return False
-        return True 
+        return True
+    
+    def __nonzero__(self):
+        for i in xrange(len(self.groups_data.all_group_names)):
+            if self[i] != 0:
+                return True
+        return False
     
     def NetCharge(self):
         """Returns the net charge."""
