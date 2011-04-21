@@ -191,6 +191,10 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write(self.kegg.vector_to_hypertext(v_total, cids, show_cids=show_cids))
         self.html_writer.write("</li></ul></li>\n")
         
+        # Write the kegg-formatted pathway.
+        reactions = map(self.kegg.rid2reaction, rids)
+        kegg_utils.write_kegg_pathway(self.html_writer, reactions, fluxes)
+        
     def write_metabolic_graph(self, name, S, rids, cids):
         """
             draw a graph representation of the pathway
@@ -422,7 +426,7 @@ class ThermodynamicAnalysis(object):
         self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
         S, rids, fluxes, cids = self.get_reactions(key, field_map)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
-        
+                
         thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
 
     def analyze_contour(self, key, field_map):

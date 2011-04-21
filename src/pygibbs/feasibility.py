@@ -7,6 +7,7 @@ import sys
 
 from matplotlib.font_manager import FontProperties
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
+from pygibbs import pathway_modelling
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggMissingModuleException
 from pygibbs.thermodynamic_constants import R, default_T
@@ -434,9 +435,20 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
     bounds = [thermodynamics.bounds.get(cid, (None, None)) for cid in cids]
     res = {}
     try:
-        res['pCr'] = find_pCr(S, dG0_f, c_mid=thermodynamics.c_mid, ratio=3.0, bounds=bounds)
+        c_mid = thermodynamics.c_mid
+        c_range = thermodynamics.c_range
+        res['pCr'] = find_pCr(S, dG0_f, c_mid=c_mid, ratio=3.0, bounds=bounds)
         #res['PCR2'] = find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=c_mid, bounds=bounds)
-        res['MTDF'] = find_mtdf(S, dG0_f, c_range=thermodynamics.c_range, bounds=bounds)        
+        res['MTDF'] = find_mtdf(S, dG0_f, c_range=c_range, bounds=bounds)
+        
+        path = pathway_modelling.Pathway(S, dG0_f)
+        res['pCr_regularized'] = path.FindPcr_OptimizeConcentrations(
+            c_mid=c_mid, ratio=3.0, bounds=bounds)
+        res['pCr_regularized (dGr < -2.7)'] = path.FindPcr_OptimizeConcentrations(
+            c_mid=c_mid, ratio=3.0, bounds=bounds, max_reaction_dg=-2.7)
+        res['MTDF_regularized'] = path.FindMTDF_OptimizeConcentrations(
+            c_range=c_range, bounds=bounds, c_mid=c_mid)
+        
     except LinProgNoSolutionException:
         html_writer.write('<b>No feasible solution found, cannot calculate the Margin</b>')
     

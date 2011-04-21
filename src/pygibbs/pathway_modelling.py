@@ -5,6 +5,7 @@ import numpy
 import pylab
 
 from cvxmod import atoms
+from pygibbs import kegg
 from pygibbs.thermodynamic_constants import default_T, R
 
 
@@ -184,6 +185,27 @@ class Pathway(object):
 
         return self._RunThermoProblem(dgf_primes, motive_force, problem)
 
+    def FindMTDF_OptimizeConcentrations(self, c_range=1e-3,
+                                        bounds=None, c_mid=1e-3):
+        """Optimize concentrations at optimal pCr.
+        
+        Runs two rounds of optimization to find "optimal" concentrations
+        at the optimal MTDF. First finds the globally optimal MTDF.
+        Then minimizes the l2 norm of deviations of log concentrations
+        from c_mid given the optimal MTDF.
+
+        Args:
+            c_range: a tuple (min, max) for concentrations (in M).
+            bounds: a list of (lower bound, upper bound) tuples for compound
+                concentrations.
+            c_mid: the median concentration.
+ 
+        Returns:
+            A 3 tuple (dGfs, concentrations, MTDF value).
+        """
+        _, _, opt_mtdf = self.FindMtdf(c_range, bounds)
+        return self.FindMtdf_Regularized(c_range, bounds, c_mid, opt_mtdf)
+
     def _MakePcrBounds(self, c_mid, bounds):
         """Make pCr-related bounds on the formation energies.
         
@@ -215,7 +237,7 @@ class Pathway(object):
         return cvxmod.matrix(pcr_lb), cvxmod.matrix(pcr_ub)
 
     def _MakePcrProblem(self, c_mid=1e-3, ratio=3.0,
-                        bounds=None):
+                        bounds=None, max_reaction_dg=None):
         """Create a cvxmod.problem for finding the pCr.
         
         Does not set the objective function... leaves that to the caller.
@@ -226,7 +248,9 @@ class Pathway(object):
                 from c_mid and the lower bound from c_mid (in logarithmic scale).
             bounds: a list of (lower bound, upper bound) tuples for compound
                 concentrations.
-        
+            max_reaction_dg: the maximum reaction dG allowed. Can be used to 
+                enforce more motive force than feasibility.
+                
         Returns:
             A tuple (dgf_var, pcr_var, problem_object).
         """
@@ -236,8 +260,9 @@ class Pathway(object):
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr to flow forward.
+        r_ub = max_reaction_dg or self.DEFAULT_REACTION_UB
         reaction_lb = cvxmod.matrix([self.DEFAULT_REACTION_LB]*self.Nr)
-        reaction_ub = cvxmod.matrix([self.DEFAULT_REACTION_UB]*self.Nr)
+        reaction_ub = cvxmod.matrix([r_ub]*self.Nr)
         
         # Make bounds relating pCr and formation energies.
         pcr_lb, pcr_ub = self._MakePcrBounds(c_mid, bounds)
@@ -262,7 +287,7 @@ class Pathway(object):
         return dgf_primes, pc, problem
     
     def FindPcr(self, c_mid=1e-3, ratio=3.0,
-                bounds=None):
+                bounds=None, max_reaction_dg=None):
         """Compute the pCr using hip-hoptimzation!
         
         Args:
@@ -271,18 +296,21 @@ class Pathway(object):
                 from c_mid and the lower bound from c_mid (in logarithmic scale).
             bounds: a list of (lower bound, upper bound) tuples for compound
                 concentrations.
+            max_reaction_dg: the maximum reaction dG allowed. Can be used to 
+                enforce more motive force than feasibility.
  
         Returns:
             A 3 tuple (dGfs, concentrations, pCr value).
         """
-        dgf_primes, pc, problem = self._MakePcrProblem(c_mid, ratio, bounds)
+        dgf_primes, pc, problem = self._MakePcrProblem(c_mid, ratio, bounds,
+                                                       max_reaction_dg)
         
         # Set the objective and solve.
         problem.objective = cvxmod.minimize(pc)
         return self._RunThermoProblem(dgf_primes, pc, problem)
     
     def FindPcr_Regularized(self, c_mid=1e-3, ratio=3.0,
-                            bounds=None, max_pcr=None):
+                            bounds=None, max_reaction_dg=None, max_pcr=None):
         """Compute the pCr using hip-hoptimzation!
         
         Uses l2 regularization to minimize the log difference of 
@@ -294,13 +322,16 @@ class Pathway(object):
                 from c_mid and the lower bound from c_mid (in logarithmic scale).
             bounds: a list of (lower bound, upper bound) tuples for compound
                 concentrations.
+            max_reaction_dg: the maximum reaction dG allowed. Can be used to 
+                enforce more motive force than feasibility.
             max_pcr: the maximum value of the pCr to return. May be from a 
                 previous, unregularized run.
  
         Returns:
             A 3 tuple (dGfs, concentrations, pCr value).
         """
-        dgf_primes, pc, problem = self._MakePcrProblem(c_mid, ratio, bounds)
+        dgf_primes, pc, problem = self._MakePcrProblem(c_mid, ratio, bounds,
+                                                       max_reaction_dg)
         dg_mids = cvxmod.matrix(self._MakeDgMids(c_mid))
         
         # Set the objective and solve.
@@ -313,6 +344,78 @@ class Pathway(object):
             
         return self._RunThermoProblem(dgf_primes, pc, problem)    
 
+    def FindPcr_OptimizeConcentrations(self, c_mid=1e-3, ratio=3.0,
+                                       bounds=None, max_reaction_dg=None):
+        """Optimize concentrations at optimal pCr.
+        
+        Runs two rounds of optimization to find "optimal" concentrations
+        at the optimal pCr. First finds the globally optimal pCr.
+        Then minimizes the l2 norm of deviations of log concentrations
+        from c_mid given the optimal pCr.
+
+        Args:
+            c_mid: the median concentration.
+            ratio: the ratio between the distance of the upper bound
+                from c_mid and the lower bound from c_mid (in logarithmic scale).
+            bounds: a list of (lower bound, upper bound) tuples for compound
+                concentrations.
+            max_reaction_dg: the maximum reaction dG allowed. Can be used to 
+                enforce more motive force than feasibility.
+ 
+        Returns:
+            A 3 tuple (dGfs, concentrations, pCr value).
+        """
+        _, _, opt_pcr = self.FindPcr(c_mid, ratio, bounds, max_reaction_dg)
+        return self.FindPcr_Regularized(c_mid, ratio, bounds,
+                                        max_reaction_dg=max_reaction_dg,
+                                        max_pcr=opt_pcr)
+
+    def FindPcrEnzymeCost(self, c_mid=1e-3, ratio=3.0,
+                          bounds=None, max_reaction_dg=None,
+                          fluxes=None, km=1e-4, kcat=1e2):
+        """Find the enzymatic cost at the pCr.
+        
+        TODO(flamholz): account for enzyme mass or # of amino acids.
+        
+        Assumption: all enzymes have the same kinetics for all substrates.
+        Lowest substrate concentration is limiting. All other substrates 
+        are ignorable. Enzymes follow Michaelis-Menten kinetics w.r.t. limiting
+        substrate.
+        
+        Args:
+            c_mid: the median concentration.
+            ratio: the ratio between the distance of the upper bound
+                from c_mid and the lower bound from c_mid (in logarithmic scale).
+            bounds: a list of (lower bound, upper bound) tuples for compound
+                concentrations.
+            fluxes: the relative flux through each reaction in the pathway.
+            cofactors: a mapping from compound index to boolean indicating
+                whether it is a cofactor.
+            km: the Km value to use for all enzymes.
+            kcat: the kcat value to use for all enzymes.
+        
+        Returns:
+            A float indicating the projected enzyme cost.
+        """
+        dgs, concentrations, opt_pcr = self.FindPcr_OptimizeConcentrations(
+            c_mid, ratio, bounds, max_reaction_dg)
+        
+        fluxes = fluxes or [1.0]*self.Nr
+        cost = 0.0
+        for i in xrange(self.Nr):
+            rxn = self.S[i, :]
+            substrate_indices = pylab.find(rxn < 0)
+            substrate_concentrations = concentrations[substrate_indices, 0]
+            
+            # Min concentration is rate-limiting.
+            s = min(substrate_concentrations)
+            v = fluxes[i]
+            enzyme_units = v * (km + s) / (kcat*s)
+            
+            cost += enzyme_units
+        
+        return cost
+    
 
 if __name__ == '__main__':
     S = numpy.array([[-1,1,0],[0,-1,1]])
