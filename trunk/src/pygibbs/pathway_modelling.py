@@ -4,6 +4,7 @@ import cvxmod
 import numpy
 import pylab
 
+from cvxmod import atoms
 from pygibbs.thermodynamic_constants import default_T, R
 
 
@@ -15,6 +16,8 @@ class Pathway(object):
     
     DEFAULT_FORMATION_LB = -1e6
     DEFAULT_FORMATION_UB = 1e6
+    DEFAULT_REACTION_LB = -1e3
+    DEFAULT_REACTION_UB = 0.0
     
     def __init__(self, S, formation_energies):
         """Create a pathway object.
@@ -119,8 +122,8 @@ class Pathway(object):
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr to flow forward.
-        reaction_lb = cvxmod.matrix([-1e3]*self.Nr)
-        reaction_ub = cvxmod.matrix([0]*self.Nr)
+        reaction_lb = cvxmod.matrix([self.DEFAULT_REACTION_LB]*self.Nr)
+        reaction_ub = cvxmod.matrix([self.DEFAULT_REACTION_UB]*self.Nr)
         
         # Make the objective and problem.
         motive_force = cvxmod.optvar('B', 1)
@@ -233,8 +236,8 @@ class Pathway(object):
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr to flow forward.
-        reaction_lb = cvxmod.matrix([-1e3]*self.Nr)
-        reaction_ub = cvxmod.matrix([0]*self.Nr)
+        reaction_lb = cvxmod.matrix([self.DEFAULT_REACTION_LB]*self.Nr)
+        reaction_ub = cvxmod.matrix([self.DEFAULT_REACTION_UB]*self.Nr)
         
         # Make bounds relating pCr and formation energies.
         pcr_lb, pcr_ub = self._MakePcrBounds(c_mid, bounds)
@@ -308,7 +311,7 @@ class Pathway(object):
         else:
             problem.objective = cvxmod.minimize(pc + norm2_resid)
             
-        return self._RunThermoProblem(dgf_primes, pc, problem)
+        return self._RunThermoProblem(dgf_primes, pc, problem)    
 
 
 if __name__ == '__main__':
@@ -320,6 +323,14 @@ if __name__ == '__main__':
     path = Pathway(S, dGs)
     dgs, concentrations, pcr = path.FindPcr()
     print 'Take 1', pcr
+    print 'dGs'
+    print dgs
+    print 'concentrations'
+    print concentrations
     
     dgs, concentrations, pcr = path.FindPcr_Regularized(max_pcr=pcr)
-    print 'Take 2', pcr 
+    print 'Take 2 (regularized)', pcr
+    print 'dGs'
+    print dgs
+    print 'concentrations'
+    print concentrations
