@@ -1,16 +1,17 @@
+#!/usr/bin/python
 
-import itertools
-import pylab
 import cvxopt.solvers
-import csv, sys
-from pygibbs.thermodynamics import MissingCompoundFormationEnergy
+import csv
+import pylab
+import sys
+
 from matplotlib.font_manager import FontProperties
-from toolbox.html_writer import HtmlWriter
-from toolbox.database import SqliteDatabase
+from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggMissingModuleException
 from pygibbs.thermodynamic_constants import R, default_T
-import logging
+from toolbox.html_writer import HtmlWriter
+from toolbox.database import SqliteDatabase
 
 try:
     import cplex
@@ -18,13 +19,15 @@ try:
 except ImportError:
     IsCplexInstalled = False
     
+    
 class LinProgNoSolutionException(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
     
-def linprog(f, A, b, lb=[], ub=[], log_stream=None):
+    
+def linprog(f, A, b, lb=None, ub=None, log_stream=None):
     """
         The constraints are:
             A*x <= b
@@ -43,6 +46,9 @@ def linprog(f, A, b, lb=[], ub=[], log_stream=None):
             lb - list of pairs (column_index, lower_bound)
             ub - list of pairs (column_index, upper_bound)
     """
+    lb = lb or []
+    ub = ub or []
+    
     (Nr, Nc) = A.shape
     if (f.shape[0] != Nc or f.shape[1] != 1):
         raise Exception("linprog: 'f' must be a column vector whose length matches the number of columns in 'A'")
@@ -100,6 +106,7 @@ def linprog(f, A, b, lb=[], ub=[], log_stream=None):
         else:
             return pylab.matrix(cpl.solution.get_values()).T
 
+
 def create_cplex(S, dG0_f, fluxes=None, log_stream=None):
     """Creates a cplex problem for the stoichiometric model given.
     
@@ -136,6 +143,7 @@ def create_cplex(S, dG0_f, fluxes=None, log_stream=None):
 
     return cpl
 
+
 def create_cplex_kegg(S, rids, fluxes, cids, log_stream=None):
     cpl = cplex.Cplex()
     cpl.set_log_stream(log_stream)
@@ -162,6 +170,7 @@ def create_cplex_kegg(S, rids, fluxes, cids, log_stream=None):
             cpl.linear_constraints.set_coefficients("R%05d" % rids[r], "C%05d" % cids[c], S[r, c])
 
     return cpl
+
 
 def add_thermodynamic_constraints(cpl, dG0_f, c_range=(1e-6, 1e-2), T=default_T, bounds=None):   
     """
@@ -321,56 +330,6 @@ def find_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stre
     return dG_f, concentrations, pCr
 
 
-def find_regularized_pCr(S, dG0_f, c_mid=1e-3, ratio=3.0, T=default_T, bounds=None, log_stream=None):
-    """
-        Compute the feasibility of a given set of reactions
-    
-        input: S = stoichiometric matrix (reactions x compounds)
-               dG0_f = deltaG0'-formation values for all compounds (in kJ/mol) (1 x compounds)
-               c_mid = the default concentration
-               ratio = the ratio between the distance of the upper bound from c_mid and the lower bound from c_mid (in logarithmic scale)
-        
-        output: (concentrations, margin)
-    """
-    Nc = S.shape[1]
-    cpl = make_pCr_problem(S, dG0_f, c_mid, ratio, T, bounds, log_stream)
-    
-    # Add variables for residuals.
-    
-    var_names = map(lambda x: 'c%d_residual' % x, xrange(Nc))
-    constraint_names = map(lambda x: '%s_constraint' % x, var_names)
-    rhs = [c_mid]*Nc
-    lbs = [-1e6]*Nc
-    ubs = [1e6]*Nc
-    cpl.variables.add(names=var_names, lb=lbs, ub=ubs)
-    cpl.linear_constraints.add(names=constraint_names, senses='E', rhs=rhs)
-    
-    # I WAS HERE
-    dG_varnames = map(lambda x: 'c%d' % x, xrange(Nc))
-    dg_coeffs = map(lambda x: (x[0], x[1], -1.0/R*T), var_names, dG_varnames)
-    cpl.linear_constraints.set_coefficients(dg_coeffs)
-    
-    
-    # Objective: minimize the pC variable.
-    cpl.objective.set_sense(cpl.objective.sense.minimize)
-    cpl.objective.set_linear([("pC", 1)])
-    
-    # Add l2 regulaizer on difference from median.
-    
-    
-    cpl.objective.set_quadratic()
-
-    #cpl.write("../res/test_PCR.lp", "lp")
-    cpl.solve()
-    if cpl.solution.get_status() != cplex.callbacks.SolveCallback.status.optimal:
-        raise LinProgNoSolutionException("")
-    dG_f = pylab.matrix(cpl.solution.get_values(["c%d" % c for c in xrange(Nc)])).T
-    concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
-    pCr = cpl.solution.get_values(["pC"])[0]
-
-    return dG_f, concentrations, pCr
-
-
 def find_ratio(S, rids, fluxes, cids, dG0_f, cid_up, cid_down, c_range=(1e-6, 1e-2), c_mid=None, 
                T=default_T, cid2bounds={}, log_stream=None):
     """
@@ -435,6 +394,7 @@ def find_ratio(S, rids, fluxes, cids, dG0_f, cid_up, cid_down, c_range=(1e-6, 1e
 
     return dG_f, concentrations, log_ratio
 
+
 def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, T=default_T, bounds=None, log_stream=None):
     """ 
         Almost the same as find_pCr, but adds a global restriction on the concentrations (for compounds
@@ -461,11 +421,12 @@ def find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=1e-4, T=default_T, b
 
     return (dG_f, concentrations, pCr)
 
+
 def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_writer):
     Nr, Nc = S.shape
 
     # adjust the directions of the reactions in S to fit the fluxes
-    fluxes = [abs(f) for f in fluxes]
+    fluxes = map(abs, fluxes)
     kegg = Kegg.getInstance()
     
     #kegg.write_reactions_to_html(html_writer, S, rids, fluxes, cids, show_cids=False)
@@ -475,7 +436,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
     try:
         res['pCr'] = find_pCr(S, dG0_f, c_mid=thermodynamics.c_mid, ratio=3.0, bounds=bounds)
         #res['PCR2'] = find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=c_mid, bounds=bounds)
-        res['MTDF'] = find_mtdf(S, dG0_f, c_range=thermodynamics.c_range, bounds=bounds)
+        res['MTDF'] = find_mtdf(S, dG0_f, c_range=thermodynamics.c_range, bounds=bounds)        
     except LinProgNoSolutionException:
         html_writer.write('<b>No feasible solution found, cannot calculate the Margin</b>')
     
@@ -562,7 +523,7 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
                 b_up = x_max
             pylab.plot([b_low, b_up], [Nc - c, Nc - c], '-k', linewidth=0.4)
 
-        if (optimization == 'pCr'):
+        if optimization.startswith('pCr'):
             c_range_opt = pC_to_range(score, c_mid=thermodynamics.c_mid, ratio=3.0)
             pylab.axvspan(c_range_opt[0], c_range_opt[1], facecolor='g', alpha=0.3, figure=conc_fig)
         else:
