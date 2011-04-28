@@ -709,11 +709,11 @@ class GroupContribution(Thermodynamics):
             except ValueError:
                 pass
             try:
-                self.db.Insert('compound_abundance', [cid, "glucose", float(row['Glycerol'])])
+                self.db.Insert('compound_abundance', [cid, "glycerol", float(row['Glycerol'])])
             except ValueError:
                 pass
             try:
-                self.db.Insert('compound_abundance', [cid, "glucose", float(row['Acetate'])])
+                self.db.Insert('compound_abundance', [cid, "acetate", float(row['Acetate'])])
             except ValueError:
                 pass
         self.db.Commit()

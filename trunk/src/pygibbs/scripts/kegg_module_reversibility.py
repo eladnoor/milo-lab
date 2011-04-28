@@ -39,11 +39,17 @@ def main():
     
     cmap = {}
     if not options.ignore_cofactors:
-        print 'Fixing concentrations of co-factors'
-        cmap = reversibility.GetConcentrationMap(kegg)
+        if options.full_metabolites:
+            print 'Fixing concentrations of all known metabolites'
+            cmap = reversibility.GetFullConcentrationMap(G)
+        else:
+            print 'Fixing concentrations of co-factors'
+            cmap = reversibility.GetConcentrationMap(kegg)
     else:
         print 'Not fixing concentrations of co-factors'
-        
+
+    if options.report_mode:
+        print 'Output used metabolites concentrations'
 
     while True:
         mid = GetModuleIdInput()
@@ -59,9 +65,19 @@ def main():
                 rev = reversibility.CalculateReversability(reaction.sparse,
                                                            G, pH=pH, I=I, pMg=pMg,
                                                            T=T, concentration_map=cmap)
-                corrected_reversibility = flux * rev
-        
-                print '\tReversibility %.2g' % corrected_reversibility
+                if rev == None:
+                    dG = G.estimate_dG_reaction(reaction.sparse, pH=pH, pMg=pMg, I=I, T=T, c0=c_mid, media='glucose')
+                    print '\tReversibility: No free compounds, dG = %.2g' % dG
+                else:
+                    corrected_reversibility = flux * rev
+                    print '\tReversibility %.2g' % corrected_reversibility
+                    
+                if options.report_mode:
+                    for cid,s in reaction.sparse.iteritems():
+                        if cid in cmap:
+                            print '(%d C%05d) %s\t: %.2g' % (s, cid, kegg.cid2name(cid), cmap[cid])
+                        else: 
+                            print '(%d C%05d) %s\t: Free concentration' % (s, cid, kegg.cid2name(cid))
             except Exception, e:
                 print '\tCouldn\'t calculate irreversibility'
 
