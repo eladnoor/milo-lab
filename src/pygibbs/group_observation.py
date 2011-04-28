@@ -311,8 +311,8 @@ class GroupObervationCollection(object):
         for h, obs_vec in hash2obs_vec.iteritems():
             A.append(obs_vec[0].groupvec)
             
-            all_cids = '; '.join([obs.id for obs in obs_vec])
-            all_names = '; '.join([obs.name for obs in obs_vec])
+            all_cids = '; '.join([obs.id or "" for obs in obs_vec])
+            all_names = '; '.join([obs.name or "" for obs in obs_vec])
             if obs_vec[0].obs_type == 'formation':
                 names.append(all_names)
             else:

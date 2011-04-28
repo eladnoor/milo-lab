@@ -1,0 +1,86 @@
+# Copyright SRI International 1999-2010, Marine Biological Laboratory 1998-2001, DoubleTwist Inc 1998-1999.  All Rights Reserved.
+#
+# Authors:
+#    Peter D Karp
+#    Tomer  Altman
+#    Ron  Caspi
+#    Carol A Fulcher
+#    Pallavi  Kaipa
+#    Anamika  Kothari
+#    Markus  Krummenacker
+#    Suzanne  Paley
+#    Kate A Dreher
+#    Peifen  Zhang
+#    Sue  Rhee
+#    Anuradha  Pujar
+#    Lukas  Mueller
+#
+# Please see the license agreement regarding the use of and distribution of this file.
+# The format of this file is defined at http://bioinformatics.ai.sri.com/ptools/flatfile-format.html .
+#
+# Species: MetaCyc
+# Database: MetaCyc
+# Version: 14.6
+# File Name: species.dat
+# Date and time generated: December 6, 2010, 11:45:48
+#
+# Attributes:
+#    UNIQUE-ID
+#    TYPES
+#    COMMON-NAME
+#    CITATIONS
+#    COMMENT
+#    CONTACT-EMAIL
+#    CREDITS
+#    DATA-SOURCE
+#    DBLINKS
+#    DOCUMENTATION
+#    GENETIC-CODE
+#    GENOME
+#    HIDE-SLOT?
+#    INSTANCE-NAME-TEMPLATE
+#    MEMBER-SORT-FN
+#    MITOCHONDRIAL-GENETIC-CODE
+#    PGDB-AUTHORS
+#    PGDB-COPYRIGHT
+#    PGDB-FOOTER-CITATION
+#    PGDB-HOME-PAGE
+#    PGDB-LAST-CONSISTENCY-CHECK
+#    PGDB-NAME
+#    PGDB-TIER
+#    PGDB-UNIQUE-ID
+#    RANK
+#    SEQUENCE-SOURCE
+#    STRAIN-NAME
+#    SUBSPECIES-NAME
+#    SYNONYMS
+#
+UNIQUE-ID - META
+TYPES - Multi-Organism-Groupings
+COMMON-NAME - MetaCyc
+CITATIONS - 19850718
+COMMENT - The MetaCyc database contains a collection of metabolic pathways and enzymes from a variety of organisms, primarily microorganisms and plants.
+/MetaCyc is curated on an ongoing basis.
+/
+/See <A HREF="http://www.metacyc.org/"> www.metacyc.org</A> for more information about MetaCyc.
+CONTACT-EMAIL - pkarp@ai.sri.com
+PGDB-AUTHORS - |pkarp|
+PGDB-AUTHORS - |altman|
+PGDB-AUTHORS - |caspi|
+PGDB-AUTHORS - |fulcher|
+PGDB-AUTHORS - |kaipa|
+PGDB-AUTHORS - |kothari|
+PGDB-AUTHORS - |kr|
+PGDB-AUTHORS - |paley|
+PGDB-AUTHORS - |dreher|
+PGDB-AUTHORS - |zhang|
+PGDB-AUTHORS - |rhee|
+PGDB-AUTHORS - |pujar|
+PGDB-AUTHORS - |Mueller|
+PGDB-COPYRIGHT - Copyright SRI International 1999-2010, Marine Biological Laboratory 1998-2001, DoubleTwist Inc 1998-1999.  All Rights Reserved.
+PGDB-FOOTER-CITATION - <A HREF=http://nar.oxfordjournals.org/cgi/reprint/38/suppl_1/D473> Caspi et al, Nucleic Acids Research 38:D473-D479 2010</A>
+PGDB-HOME-PAGE - http://metacyc.org/
+PGDB-LAST-CONSISTENCY-CHECK - 3498580370
+PGDB-NAME - MetaCyc
+PGDB-TIER - 1
+NCBI-TAXONOMY-ID - NIL

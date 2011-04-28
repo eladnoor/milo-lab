@@ -168,6 +168,13 @@ def unparse_metacyc_reaction_formula(sparse, direction='=>'):
 class MetaCycParseException(Exception):
     pass
 
+class MetaCycManyPathwayStartException(Exception):
+    pass
+
+class MetaCycPathwayWithoutStartException(Exception):
+    pass
+
+
 class MetaCycNonCompoundException(Exception):
     pass
 
@@ -177,7 +184,7 @@ class MetaCyc(object):
     def __init__(self, org='ecoli', db=None):
         self.db = db
         self.org = org
-        self.base_dir = '../res/MetaCyc/' + org
+        self.base_dir = '../MetaCyc/' + org
         util._mkdir(self.base_dir)
  
         self.TAR_URL = 'http://brg.ai.sri.com/ecocyc/dist/flatfiles-52983746/' + org + '.tar.gz'
@@ -186,6 +193,7 @@ class MetaCyc(object):
         self.COMPOUND_FILE = self.base_dir + '/14.6/data/compounds.dat'
         self.REACTION_FILE = self.base_dir + '/14.6/data/reactions.dat'
         self.PATHWAY_FILE = self.base_dir + '/14.6/data/pathways.dat'
+        self.REGULATION_FILE = self.base_dir + '/14.6/data/regulation.dat'
         
         if not self.db:
             self.FromFiles()
@@ -200,6 +208,7 @@ class MetaCyc(object):
         self.uid2compound_map = {}
         self.uid2reaction_map = {}
         self.uid2pathway_map = {}
+        self.enzrxn2regulation_map = {}
 
         logging.info("Retrieving COMPOUNDS file and parsing it")
         if (not os.path.exists(self.COMPOUND_FILE)):
@@ -241,6 +250,29 @@ class MetaCyc(object):
                 comp.types = field_map["TYPES"].split('\t')
             
             self.uid2compound_map[uid] = comp
+
+        logging.info("Retrieving REGULATION file and parsing it")
+        if (not os.path.exists(self.REGULATION_FILE)):
+            urllib.urlretrieve(self.TAR_URL, self.TAR_FILE)
+            os.chdir(self.base_dir)
+            os.system('tar xvfz ' + self.org + '.tar.gz')   
+
+        entry2fields_map = parse_metacyc_file(self.REGULATION_FILE)
+        
+        for uid in sorted(entry2fields_map.keys()):
+            field_map = entry2fields_map[uid]
+            
+            reg = Regulation(uid)
+            
+            if ("MODE" in field_map):    
+                reg.mode = field_map["MODE"]
+            if ("REGULATED-ENTITY" in field_map):    
+                reg.regulated = field_map["REGULATED-ENTITY"]
+            if ("REGULATOR" in field_map):    
+                reg.regulator = field_map["REGULATOR"]
+            
+            if reg.regulated != None:
+                self.enzrxn2regulation_map[reg.regulated] = reg
         
         logging.info("Retrieving REACTIONS file and parsing it")
         if (not os.path.exists(self.REACTION_FILE)):
@@ -268,9 +300,12 @@ class MetaCyc(object):
                 rxn.types = field_map["TYPES"].split('\t')
             if ("EC-NUMBER" in field_map):    
                 rxn.ec_number = field_map["EC-NUMBER"]
+            if ("ENZYMATIC-REACTION" in field_map):
+                rxn.enzrxns_list = field_map["ENZYMATIC-REACTION"].split('\t')
             
             self.uid2reaction_map[uid] = rxn
 
+        os.remove('../res/metacyc_pathways_stats.txt')
         logging.info("Retrieving PATHWAYS file and parsing it")
         if (not os.path.exists(self.PATHWAY_FILE)):
             urllib.urlretrieve(self.TAR_URL, self.TAR_FILE)
@@ -279,10 +314,20 @@ class MetaCyc(object):
 
         entry2fields_map = parse_metacyc_file(self.PATHWAY_FILE)
         
+        n_super = 0
+        n_rxns_dict_prob = 0
+        rxn_parse_error = 0
+        dup_rxn_layout = 0
+        unknown_dir = 0
+        no_pred_info = 0
+        no_start = 0
+        mul_start = 0
+        
         for uid in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[uid]
             rxn_direction_map = {}
             if ('Super-Pathways' in field_map['TYPES']):
+                n_super += 1
                 continue
             
             pw = Pathway(uid)
@@ -295,7 +340,14 @@ class MetaCyc(object):
                 pw.preds = field_map["PREDECESSORS"].split('\t')
                 try:
                     pw.UpdateRxnsDict()
-                except MetaCycParseException, e:
+                    if pw.preds == None:
+                        no_pred_info += 1
+                except MetaCycPathwayWithoutStartException, e:
+                    no_start += 1
+                    logging.debug(str(e))
+                    continue
+                except MetaCycManyPathwayStartException, e:
+                    mul_start += 1
                     logging.debug(str(e))
                     continue
             if ("REACTION-LAYOUT" in field_map):
@@ -303,9 +355,11 @@ class MetaCyc(object):
                 for item in items:
                     tokens = re.findall("\(([^ ]+).+DIRECTION :([^\)]+)", item)
                     if (len(tokens) != 1):
+                        rxn_parse_error += 1
                         raise MetaCycParseException("Pathway %s: Cannot parse reaction layout: %s " % (pw.name, item))
                     (rxn, direction) = tokens[0]
                     if (rxn in rxn_direction_map):
+                        dup_rxn_layout += 1
                         raise MetaCycParseException("Pathway %s: Duplicate reaction layout: %s " % (pw.name, item))
                     
                     if (direction == 'L2R'):
@@ -313,11 +367,20 @@ class MetaCyc(object):
                     elif (direction == 'R2L'):
                         rxn_direction_map[rxn] = -1
                     else:
+                        unknown_dir += 1
                         raise MetaCycParseException("Pathway %s: Unknown direction in reaction layout: %s " % (pw.name, item))
                 pw.rxn_dirs = rxn_direction_map
                 
             self.uid2pathway_map[uid] = pw
-                
+        print 'N total pathways: %d' % len(entry2fields_map.keys())
+        print 'N super pathways: %d' % n_super
+        print 'n_rxns_dict_prob: %d' % n_rxns_dict_prob
+        print 'rxn_parse_error: %d' % rxn_parse_error
+        print 'dup_rxn_layout: %d' % dup_rxn_layout
+        print 'unknown_dir: %d' % unknown_dir 
+        print 'No predecessor info: %d' % no_pred_info
+        print 'Pathways without start (circular?): %d' % no_start
+        print 'Pathways with multiple starts: %d' % mul_start
         
     def ToDatabase(self):
         self.db.CreateTable('metacyc_' + self.org + '_compound', 'uid TEXT, name TEXT, all_names TEXT, '
@@ -329,11 +392,16 @@ class MetaCyc(object):
                 comp.mass, comp.formula, comp.inchi, comp.pubchem_id, comp.cas,
                 ';'.join(comp.regulates), ';'.join(comp.types), comp.smiles])
 
+        self.db.CreateTable('metacyc_' + self.org + '_regulation', 'uid TEXT, mode TEXT,  '
+                       'regulates TEXT, regulated TEXT')
+        for uid, reg in self.enzrxn2regulation_map.iteritems():
+            self.db.Insert('metacyc_' + self.org + '_regulation', [reg.uid, reg.mode, reg.regulates, reg.regulated]) 
+
         self.db.CreateTable('metacyc_' + self.org + '_reaction', 'uid TEXT, name TEXT,  '
-                       'ec_number TEXT, types TEXT, equation TEXT')
+                       'ec_number TEXT, types TEXT, enzrxns_list TEXT, equation TEXT')
         for uid, reaction in self.uid2reaction_map.iteritems():
             self.db.Insert('metacyc_' + self.org + '_reaction', [uid, reaction.name, reaction.ec_number, 
-                                                    ';'.join(reaction.types), reaction.equation])
+                                                    ';'.join(reaction.types), ';'.join(reaction.enzrxns_list) if reaction.enzrxns_list != None else None, reaction.equation])
         
         self.db.CreateTable('metacyc_' + self.org + '_pathway', 'uid TEXT, name TEXT,  '
                        'types TEXT, preds TEXT, rxn_dirs TEXT')
@@ -350,18 +418,24 @@ class MetaCyc(object):
         self.uid2compound_map = {}
         self.uid2reaction_map = {}
         self.uid2pathway_map = {}
+        self.enzrxn2regulation_map = {}
 
         for row in self.db.DictReader('metacyc_' + self.org + '_compound'):
             comp = Compound(row['uid'], row['name'], row['all_names'].split(';'), 
                             row['mass'], row['formula'], row['inchi'], row['pubchem_id'],
                             row['cas'], row['regulates'].split(';'), row['types'].split(';'), row['smiles'])
             self.uid2compound_map[row['uid']] = comp
+
+        for row in self.db.DictReader('metacyc_' + self.org + '_regulation'):
+            reg = Regulation(row['uid'], row['mode'], row['regulated'], row['regulates'])
+            self.enzrxn2regulation_map[row['regulated']] = reg
         
         for row in self.db.DictReader('metacyc_' + self.org + '_reaction'):
             try:
                 (sparse, direction) = parse_metacyc_reaction_formula(row['equation'], self.uid2compound_map)
+                enzrxns_list = row['enzrxns_list'].split(';') if row['enzrxns_list'] != None else None
                 reaction = Reaction(uid=row['uid'], name=row['name'], sparse_reaction=sparse, 
-                                 direction=direction, types=row['types'].split(';'), ec_number=row['ec_number'])
+                                 direction=direction, types=row['types'].split(';'), ec_number=row['ec_number'], enzrxns_list=enzrxns_list)
                 self.uid2reaction_map[row['uid']] = reaction
             except MetaCycParseException, e:
                 logging.debug("Cannot parse equation: (%s) for reaction: %s: %s" % (row['equation'], row['uid'], e))
@@ -371,7 +445,7 @@ class MetaCyc(object):
                 pathway = Pathway(uid=row['uid'], name=row['name'], types=row['types'].split(';'), 
                                   preds=row['preds'].split(';'), rxn_dirs=json.loads(row['rxn_dirs']))
                 self.uid2pathway_map[row['uid']] = pathway
-            except MetaCycParseException, e:
+            except (MetaCycParseException, MetaCycPathwayWithoutStartException, MetaCycManyPathwayStartException), e:
                 logging.debug(str(e))
     
     def rxn_uid2sparse_reaction(self, uid):
@@ -414,6 +488,33 @@ class MetaCyc(object):
                 
         return kegg_dict
 
+    def GetRegulationType(self, rxn_id):
+        types = {}
+        
+        if rxn_id not in self.uid2reaction_map:
+            return None
+        
+        rxn = self.uid2reaction_map[rxn_id]
+        
+        if rxn.enzrxns_list == None:
+            return 'No known regulation'
+        
+        for reg in rxn.enzrxns_list:
+            if reg in self.enzrxn2regulation_map:
+                mode = self.enzrxn2regulation_map[reg].mode 
+                types[mode] = 1
+
+        if len(types) == 0:
+            return 'No known regulation'
+        elif len(types) > 1:
+            return 'Mixed regulation'
+        elif types.keys()[0] == '+':
+            return 'Activated'
+        elif types.keys()[0] == '-':
+            return 'Inhibited'
+        
+        return 'No known regulation'
+    
 class Compound(object):
         
     def __init__(self, uid=None, name=None, all_names=None, mass=None,
@@ -441,17 +542,28 @@ class Compound(object):
             
     def Print(self):
         print 'uid=',self.uid,'\nname=',self.name,'\nall_names=',self.all_names,'\nmass=',self.mass,'\nformula=',self.formula,'\ninchi=',self.inchi,'\npubchem_id=',self.pubchem_id,'ncas=',self.cas,'\nregs=',self.regulates,'\ntypes=',self.types,'\nsmiles=',self.smiles,'\n' 
+
+class Regulation(object):
         
+    def __init__(self, uid=None, mode=None, regulated=None, regulates=None):
+
+            self.uid = uid
+            self.mode = mode
+            self.regulated = regulated
+            self.regulates = regulates
+            
 class Reaction(object):
     
-    def __init__(self, uid=None, name=None, sparse_reaction=None, direction=None, types=None, ec_number=None):
+    def __init__(self, uid=None, name=None, sparse_reaction=None, direction=None, types=None, ec_number=None, enzrxns_list=None):
         self.uid = uid
         self.name = name
         self.sparse = sparse_reaction
         self.direction = direction
         self.types = types;
         self.ec_number = ec_number
+        self.enzrxns_list = enzrxns_list
         self.equation = unparse_metacyc_reaction_formula(sparse_reaction, direction)   
+    
     
 class Pathway(object):
     
@@ -480,12 +592,14 @@ class Pathway(object):
             parents = []
             sons = []
             
+            debug_file = open('../res/metacyc_pathways_stats.txt', 'a')
             # Loading pairs to map
             for pair in self.preds:
                 vals =  re.sub('[\(\)]', '', pair).split(' ')
                 if (len(vals) == 1): # Single reaction - no parents. Update children positions
                     if (pw_parent):
-                        raise  MetaCycParseException("More then single starting reaction in pathway " + self.name)
+                        debug_file.write('Multiple starting point: %s\n' % self.name)
+                        raise  MetaCycManyPathwayStartException("More then single starting reaction in pathway " + self.name)
                     pw_parent = vals[0]
                 elif (len(vals) == 2):
                     son,parent = vals[0],vals[1]
@@ -499,8 +613,12 @@ class Pathway(object):
                         
             if (len(pw_parent) == 0):
                 parents_cands = set(parents) - set(sons)
-                if (len(parents_cands) != 1):
-                    raise MetaCycParseException("Expecting single parent, found %d in pathway: %s" % (len(parents_cands), self.name))
+                if (len(parents_cands) > 1):
+                    debug_file.write('Multiple starting point: %s\n' % self.name)
+                    raise MetaCycManyPathwayStartException("Expecting single parent, found %d in pathway: %s" % (len(parents_cands), self.name))
+                elif (len(parents_cands) == 0):
+                    debug_file.write('No starting point: %s\n' % self.name)
+                    raise MetaCycPathwayWithoutStartException("Expecting single parent, none found (circular) in pathway: %s" % self.name)
                 else:
                     pw_parent = parents_cands.pop()
             
@@ -513,10 +631,14 @@ class Pathway(object):
                 if (curr_parent in pairs_map):
                     for child in pairs_map[curr_parent].split(';'):
                         if (child in rxn2position):
+                            debug_file.write('Circular pathway: %s\n' % self.name)
                             logging.debug("Circular pathway: " + self.name)
                         else:
                             rxn2position[child] = rxn2position[curr_parent] + 1
                             parents_q.append(child)
+            debug_file.write('Valid pathway: %s\n' % self.name)
+            
+            debug_file.close()
         return rxn2position
     
 
@@ -529,16 +651,13 @@ class Pathway(object):
 def test():
     db = database.SqliteDatabase('../res/gibbs.sqlite')
     #db = database.SqliteDatabase('../MetaCyc/yanivtest.sqlite')
-    kg = kegg.Kegg.getInstance()
-    ecocyc = MetaCyc('ecoli', db)
-    comps = ecocyc.uid2compound_map
-    rxns = ecocyc.uid2reaction_map
-    pws = ecocyc.uid2pathway_map
-    print '#comps= ',comps.__len__(), '\n#reactions= ', rxns.__len__(),'\n#pathways= ',pws.__len__()
+    for name in ('ecoli', 'meta'):
+        meta = MetaCyc(name, db)
+        comps = meta.uid2compound_map
+        rxns = meta.uid2reaction_map
+        pws = meta.uid2pathway_map
+        print '%s: #comps= ' % name,comps.__len__(), '\n#reactions= ', rxns.__len__(),'\n#pathways= ',pws.__len__()
     
-    
-    
-        
 if __name__ == "__main__":
     test()
  

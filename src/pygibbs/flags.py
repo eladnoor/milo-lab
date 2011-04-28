@@ -21,4 +21,12 @@ def MakeOpts():
                           dest="ignore_cofactors", default=False,
                           help="If True, don't fix co-factor concentrations.")
     
+    opt_parser.add_option("-f", "--full_metabolites", action="store_true",
+                          dest="full_metabolites", default=False,
+                          help="If True, use all known metabolites concentrations.")
+    
+    opt_parser.add_option("-r", "--report_mode", action="store_true",
+                          dest="report_mode", default=False,
+                          help="If True, output used compounds concentrations.")
+    
     return opt_parser

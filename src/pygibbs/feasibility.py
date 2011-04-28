@@ -6,6 +6,7 @@ import pylab
 import sys
 
 from matplotlib.font_manager import FontProperties
+from pygibbs.kegg_errors import KeggMissingModuleException
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy
 from pygibbs import pathway_modelling
 from pygibbs.kegg import Kegg

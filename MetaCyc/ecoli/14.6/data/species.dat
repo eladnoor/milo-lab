@@ -1,0 +1,109 @@
+# Copyright SRI International 1999-2010, Marine Biological Laboratory 1998-2001, DoubleTwist Inc 1998-1999.  All Rights Reserved.
+#
+# Authors:
+#    Peter D. Karp
+#    Ingrid  Keseler
+#    Alexander  Shearer
+#    Carol  Fulcher
+#    Malabika  Sarker
+#    Anamika  Kothari
+#    Suzanne  Paley
+#    Markus  Krummenacker
+#    Tomer  Altman
+#    Ian  Paulsen
+#    Amanda  Mackie
+#    Julio  Collado-Vides
+#    Cesar  Bonavides-Martinez
+#    Socorro  Gama-Castro
+#    Martin  Peralta
+#    Alberto  Santos-Zavaleta
+#    Verena  Weiss
+#    John L Ingraham
+#    Robert  Gunsalus
+#
+# Please see the license agreement regarding the use of and distribution of this file.
+# The format of this file is defined at http://bioinformatics.ai.sri.com/ptools/flatfile-format.html .
+#
+# Species: Escherichia coli K-12 substr. MG1655
+# Database: EcoCyc
+# Version: 14.6
+# File Name: species.dat
+# Date and time generated: December 6, 2010, 12:34:38
+#
+# Attributes:
+#    UNIQUE-ID
+#    TYPES
+#    COMMON-NAME
+#    CITATIONS
+#    COMMENT
+#    CONTACT-EMAIL
+#    CREDITS
+#    DATA-SOURCE
+#    DBLINKS
+#    DOCUMENTATION
+#    GENETIC-CODE
+#    GENOME
+#    HIDE-SLOT?
+#    INSTANCE-NAME-TEMPLATE
+#    MEMBER-SORT-FN
+#    MITOCHONDRIAL-GENETIC-CODE
+#    PGDB-AUTHORS
+#    PGDB-COPYRIGHT
+#    PGDB-FOOTER-CITATION
+#    PGDB-HOME-PAGE
+#    PGDB-LAST-CONSISTENCY-CHECK
+#    PGDB-NAME
+#    PGDB-TIER
+#    PGDB-UNIQUE-ID
+#    RANK
+#    SEQUENCE-SOURCE
+#    STRAIN-NAME
+#    SUBSPECIES-NAME
+#    SYNONYMS
+#
+UNIQUE-ID - ECOLI
+TYPES - TAX-511145
+COMMON-NAME - Escherichia coli
+CITATIONS - 18974181
+COMMENT - EcoCyc is a model-organism database for <i>Escherichia coli</i> K-12 MG1655.  For more information, see URL EcoCyc.org.
+/
+/The <i>E. coli</i> genome sequence used in EcoCyc is GenBank accession number U00096.2.  Despite the
+/involvement of EcoCyc staff in ongoing updates to the U00096 record, some annotation differences may
+/be found between U00096 and EcoCyc, such as due to recent updates to EcoCyc.
+/
+DBLINKS - (NCBI-TAXONOMY-DB "511145" NIL |keseler| 3480866603 NIL NIL)
+GENETIC-CODE - 11
+GENOME - COLI-K12
+MITOCHONDRIAL-GENETIC-CODE - 0
+PGDB-AUTHORS - |pkarp|
+PGDB-AUTHORS - |keseler|
+PGDB-AUTHORS - |shearer|
+PGDB-AUTHORS - |fulcher|
+PGDB-AUTHORS - |sarker|
+PGDB-AUTHORS - |kothari|
+PGDB-AUTHORS - |paley|
+PGDB-AUTHORS - |kr|
+PGDB-AUTHORS - |altman|
+PGDB-AUTHORS - |ipaulsen|
+PGDB-AUTHORS - |amackie|
+PGDB-AUTHORS - |collado|
+PGDB-AUTHORS - |cesar|
+PGDB-AUTHORS - |sgama|
+PGDB-AUTHORS - |martin|
+PGDB-AUTHORS - |santos-zavaleta|
+PGDB-AUTHORS - |weiss|
+PGDB-AUTHORS - |ingraham|
+PGDB-AUTHORS - |gunsalus|
+PGDB-COPYRIGHT - Copyright SRI International 1999-2010, Marine Biological Laboratory 1998-2001, DoubleTwist Inc 1998-1999.  All Rights Reserved.
+PGDB-FOOTER-CITATION - <A HREF=http://nar.oupjournals.org/cgi/content/full/37/suppl_1/D464>Nucleic Acids Research 37:D464-70 2009</A>
+PGDB-LAST-CONSISTENCY-CHECK - 3491846536
+PGDB-NAME - EcoCyc
+PGDB-TIER - 1
+PGDB-UNIQUE-ID - 0
+RANK - |strain|
+STRAIN-NAME - K-12 substr. MG1655
+SYNONYMS - Escherichia coli strain MG1655
+SYNONYMS - Escherichia coli str. K-12 substr. MG1655
+SYNONYMS - Escherichia coli K-12 substr. MG1655
+TAXONOMIC-DOMAIN - BACTERIA
+NCBI-TAXONOMY-ID - 511145

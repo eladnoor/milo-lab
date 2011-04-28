@@ -1,0 +1,138 @@
+# Copyright SRI International 1999-2010, Marine Biological Laboratory 1998-2001, DoubleTwist Inc 1998-1999.  All Rights Reserved.
+#
+# Authors:
+#    Peter D Karp
+#    Tomer  Altman
+#    Ron  Caspi
+#    Carol A Fulcher
+#    Pallavi  Kaipa
+#    Anamika  Kothari
+#    Markus  Krummenacker
+#    Suzanne  Paley
+#    Kate A Dreher
+#    Peifen  Zhang
+#    Sue  Rhee
+#    Anuradha  Pujar
+#    Lukas  Mueller
+#
+# Please see the license agreement regarding the use of and distribution of this file.
+# The format of this file is defined at http://bioinformatics.ai.sri.com/ptools/flatfile-format.html .
+#
+# Species: MetaCyc
+# Database: MetaCyc
+# Version: 14.6
+# File Name: protligandcplxes.dat
+# Date and time generated: December 6, 2010, 11:47:50
+#
+# Attributes:
+#    UNIQUE-ID
+#    TYPES
+#    COMMON-NAME
+#    ABBREV-NAME
+#    CATALYZES
+#    CHARGE
+#    CITATIONS
+#    COFACTORS-OF
+#    COFACTORS-OR-PROSTHETIC-GROUPS-OF
+#    COMMENT
+#    COMPONENT-COEFFICIENTS
+#    COMPONENT-OF
+#    COMPONENTS
+#    CONSENSUS-SEQUENCE
+#    CREDITS
+#    DATA-SOURCE
+#    DBLINKS
+#    DNA-FOOTPRINT-SIZE
+#    DOCUMENTATION
+#    ENZYME-NOT-USED-IN
+#    GO-TERMS
+#    HIDE-SLOT?
+#    IN-MIXTURE
+#    ISOZYME-SEQUENCE-SIMILARITY
+#    LOCATIONS
+#    MEMBER-SORT-FN
+#    MODIFIED-FORM
+#    MOLECULAR-WEIGHT-EXP
+#    MOLECULAR-WEIGHT-KD
+#    MOLECULAR-WEIGHT-SEQ
+#    N+1-NAME
+#    N-1-NAME
+#    N-NAME
+#    NEIDHARDT-SPOT-NUMBER
+#    PI
+#    PROSTHETIC-GROUPS-OF
+#    REGULATED-BY
+#    REGULATES
+#    SPECIES
+#    SYMMETRY
+#    SYNONYMS
+#
+UNIQUE-ID - CPLX-123
+TYPES - Protein-Small-Molecule-Complexes
+COMMON-NAME - PurR-Hypoxanthine transcriptional repressor
+COMPONENTS - PC00033
+COMPONENTS - HYPOXANTHINE
+SPECIES - Escherichia coli K-12 substr. MG1655
+SYNONYMS - PurR-hypoxanthine
+//
+UNIQUE-ID - CPLX0-2781
+TYPES - Protein-Small-Molecule-Complexes
+COMMON-NAME - CysB-O-acetyl-L-serine
+COMPONENTS - PC00040
+COMPONENTS - ACETYLSERINE
+DNA-FOOTPRINT-SIZE - 42
+SPECIES - Escherichia coli K-12 substr. MG1655
+//
+UNIQUE-ID - CPLX0-7541
+TYPES - Protein-Small-Molecule-Complexes
+COMMON-NAME - AlaS-L-alanine
+CITATIONS - 6264314
+CITATIONS - 6264314:EV-COMP-HINF-FN-FROM-SEQ:3491319298:asantos
+CITATIONS - 6264314:EV-EXP-IDA-PURIFIED-PROTEIN-NH:3491319298:asantos
+CITATIONS - 6264314:EV-EXP-IEP:3491319298:asantos
+COMPONENTS - ALAS-MONOMER
+COMPONENTS - L-ALPHA-ALANINE
+SPECIES - Escherichia coli K-12 substr. MG1655
+SYMMETRY - :INVERTED-REPEAT
+//
+UNIQUE-ID - MONOMER-48
+TYPES - Protein-Small-Molecule-Complexes
+COMMON-NAME - BirA-bio-5'-AMP DNA-binding transcriptional repressor
+CITATIONS - 3536662:EV-COMP-HINF-FN-FROM-SEQ:3491258934:asantos
+COMMENT - The "<b>b</b>iotin <b>r</b>epressor," BirA, coordinately represses transcription of the divergent genes that are necessary for the synthesis of biotin |CITS:[6177001][366433]|. BirA is a bifunctional protein that possesses both regulatory and enzymatic activities: it acts as the DNA-binding transcriptional repressor of the biotin operon and also exhibits biotin ligase activity |CITS:[6129246]|.
+/
+/The specific inducer for BirA is  biotinyl-5'-adenylate (bio-5'-AMP). In the presence of bio-5'-AMP, BirA binds to 40-nucleotide-long DNA target sites in the <i>bioA</i>/<i>bioBFCD</i> intergenic region to coordinately repress transcription of <i>bioA</i>p and <i>bioB</i>p |CITS:[9485476][1659455]|. BirA-bio-5'-AMP has been observed to be predominantly monomeric in solution |CITS:[6129246][8373769][9485476]|, whereas more recent studies indicate that dimerization occurs before DNA binding |CITS:[12527300]|. Biotinyl-5'-adenylate |CITS:[10529178]| and biotin |CITS:[11353844][350835]| stimulate dimerization and DNA binding. 
+/
+/The effector bio-5'-AMP is also a substrate in the BirA-mediated biotinylation of the biotin carboxyl carrier protein monomer (apoBCCP), and this relationship results in repression of the biotin operon when the abundance of apoBCCP (and therefore the cellular demand for biotin) is reduced |CITS:[9750231]|.
+/
+/The crystal structure of BirA has been determined by X-ray crystallography to a resolution of 2.3 &Aring; |CITS:[1409631]|, and that of a BirA-biotin complex |CITS:[11353844]| has been solved by several research groups. Crystallization has been described |CITS:[2642476]|, and the implications of the structure with respect to the binding of biotin and ATP have been discussed |CITS:[1409631]|.  
+/
+/The BirA monomer contains three domains: an amino-terminal domain that contains a helix-turn-helix DNA-binding motif; the central domain, which is important for DNA binding and catalysis and contains the binding site for bio-5'-AMP; and the C-terminal domain, the funtion of which has yet to be determinded. Disordered loop structures on the protein surface appear to be involved in binding to biotin, bio-5'-AMP, and/or DNA |CITS:[10497026]| and in protein dimerization |CITS:[11353844]|. A model of binding and reaction progression is presented elsewhere |CITS:[11847279]|.
+COMPONENTS - BIOTINLIG-MONOMER
+COMPONENTS - BIO-5-AMP
+DBLINKS - (PFAM "PF03099" IN-FAMILY |pkarp| 3346700428 NIL NIL)
+DBLINKS - (PDB "1HXD" |Structure| |paley| 3439827725 NIL NIL)
+DNA-FOOTPRINT-SIZE - 40
+LOCATIONS - CCO-CYTOPLASM
+MOLECULAR-WEIGHT-KD - 35.31194799999994    
+MOLECULAR-WEIGHT-SEQ - 35.31194799999994    
+SPECIES - Escherichia coli K-12 substr. MG1655
+SYMMETRY - :INVERTED-REPEAT
+SYNONYMS - DhbB
+SYNONYMS - BioR
+SYNONYMS - B3973
+SYNONYMS - BirA
+SYNONYMS - BirA-bio-5'-AMP
+//
+UNIQUE-ID - MONOMER0-158
+TYPES - Protein-Small-Molecule-Complexes
+COMMON-NAME - MalT-Maltotriose-ATP transcriptional activator
+COMPONENTS - PD00237
+COMPONENTS - MALTOTRIOSE
+COMPONENTS - ATP
+SPECIES - Escherichia coli K-12 substr. MG1655
+SYNONYMS - MalA
+SYNONYMS - B3418
+SYNONYMS - MalT
+SYNONYMS - MalT-maltotriose-ATP
+//
