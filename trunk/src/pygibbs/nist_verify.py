@@ -47,7 +47,9 @@ def main():
     estimators['Hatzimanikatis Group Contribution'] = Hatzi(use_pKa=False)
     estimators['Hatzimanikatis Group Contribution (with pKa)'] = Hatzi(use_pKa=True)
     
-    estimators['Milo Group Contribution'].override_data(estimators['Alberty'])
+    #test_species = PsuedoisomerTableThermodynamics.FromCsvFile(
+    #        '../data/thermodynamics/dG0.csv', label='test')
+    #estimators['Milo Group Contribution'].override_data(test_species)
     
     kegg_reactions = Kegg.getInstance().AllReactions()
     nist_reactions = nist.GetUniqueReactionSet()

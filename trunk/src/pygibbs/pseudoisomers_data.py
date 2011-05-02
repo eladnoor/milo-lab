@@ -87,7 +87,7 @@ class PseudoisomersData(object):
         """Build a PseudoisomersData object from a file."""
         pseudoisomers = []
         for row_dict in csv.DictReader(open(filename)):
-            name = row_dict.get('compound name')
+            name = row_dict.get('name')
             ref = row_dict.get('ref')
             smiles = row_dict.get('smiles')
             use_for = row_dict.get('use for')

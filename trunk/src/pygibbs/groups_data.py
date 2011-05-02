@@ -2,7 +2,6 @@
 
 import csv
 import logging
-import pybel
 import pylab
 from toolbox.molecule import Molecule
 
@@ -194,7 +193,7 @@ class GroupsData(object):
     
     DEFAULTS = {'-OPO3-': INITIAL_P_2,
                 '-OPO2-': MIDDLE_P_2,
-                '-OPO3': FINAL_P_1,
+                '-OPO3': FINAL_P_2,
                 '-OPO3-OPO2-': INITIAL_2_PHOSPHATE,
                 '-OPO2-OPO2-': MIDDLE_2_PHOSPHATE}  
     

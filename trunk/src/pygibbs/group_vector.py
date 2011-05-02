@@ -69,3 +69,4 @@ class GroupVector(list):
     def Magnesiums(self):
         """Returns the number of Mg2+ ions."""
         return int(pylab.dot(self, self.groups_data.all_group_mgs))
+    

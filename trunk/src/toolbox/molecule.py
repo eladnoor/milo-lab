@@ -242,23 +242,26 @@ class Molecule(object):
             Molecule._indigo.setOption('render-comment', comment)
         else:
             Molecule._indigo.setOption('render-comment', '')
-        indigo_mol = Molecule._indigo.loadMolecule(self.ToSmiles())
-        indigo_mol.aromatize()
-        indigo_mol.layout()
-        svg_str = Molecule._renderer.renderToBuffer(indigo_mol).tostring()
-        id = str(uuid.uuid4())
-        i = 0
-        while True:
-            symbol = 'glyph0-%d' % i
-            if svg_str.find('id="' + symbol + '"') != -1:
-                svg_str = svg_str.replace('id="' + symbol + '"', 
-                                          'id="' + id + "_" + symbol + '"')
-                svg_str = svg_str.replace('href="#' + symbol + '"', 
-                                          'href="#' + id + "_" + symbol + '"')
-            else:
-                break
-            i += 1
-        return svg_str
+        try:
+            indigo_mol = Molecule._indigo.loadMolecule(self.ToSmiles())
+            indigo_mol.aromatize()
+            indigo_mol.layout()
+            svg_str = Molecule._renderer.renderToBuffer(indigo_mol).tostring()
+            id = str(uuid.uuid4())
+            i = 0
+            while True:
+                symbol = 'glyph0-%d' % i
+                if svg_str.find('id="' + symbol + '"') != -1:
+                    svg_str = svg_str.replace('id="' + symbol + '"', 
+                                              'id="' + id + "_" + symbol + '"')
+                    svg_str = svg_str.replace('href="#' + symbol + '"', 
+                                              'href="#' + id + "_" + symbol + '"')
+                else:
+                    break
+                i += 1
+            return svg_str
+        except indigo.IndigoException as e:
+            return "<b>Indigo error</b>: %s</br>\n" % str(e)
         
     def Draw(self, show_title=False):
         def expose_cairo(win, event, svg):

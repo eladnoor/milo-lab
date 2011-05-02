@@ -192,11 +192,11 @@ class GroupDecomposer(object):
 
     @staticmethod
     def _InternalPChainSmarts(length):
-        return ''.join(['CO', 'P(=O)([OH,O-])O' * length, 'C'])
+        return ''.join(['[C,S]O', 'P(=O)([OH,O-])O' * length, '[C,S]'])
     
     @staticmethod
     def _TerminalPChainSmarts(length):
-        return ''.join(['[OH,O-]', 'P(=O)([OH,O-])O' * length, 'C'])
+        return ''.join(['[OH,O-]', 'P(=O)([OH,O-])O' * length, '[C,S]'])
 
     @staticmethod
     def AttachMgToPhosphateChain(mol, chain_map, assigned_mgs):
@@ -333,6 +333,13 @@ class GroupDecomposer(object):
 
         return [(pg, group_map[pg]) for pg in groups_data.GroupsData.PHOSPHATE_GROUPS]
 
+    def CreateEmptyGroupDecomposition(self):
+        emptymol = Molecule.FromSmiles("")
+        decomposition = self.Decompose(emptymol, ignore_protonations=True, strict=False)
+        for i, (group, _node_sets) in enumerate(decomposition.groups):
+            decomposition.groups[i] = (group, [])
+        return decomposition
+
     def Decompose(self, mol, ignore_protonations=False, strict=False):
         """
         Decompose a molecule into groups.
@@ -380,7 +387,10 @@ class GroupDecomposer(object):
             elif group.IsCodedCorrection():
                 _AddCorrection(group, group.GetCorrection(mol))
             # Not a phosphate group or expanded correction.
-            else:  
+            else:
+                # TODO: if the 'ignore_protonation' flag is True, this should always
+                # use the pseudogroup with the lowest nH in each category regardless
+                # of the hydrogens in the given Mol.
                 current_groups = []
                 for nodes in mol.FindSmarts(group.smarts): 
                     try:
