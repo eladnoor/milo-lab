@@ -24,7 +24,7 @@ def main():
     nist = Nist()
     nist.T_range = (273.15 + 24, 273.15 + 40)
     #nist.override_I = 0.25
-    nist.override_pMg = 14.0
+    #nist.override_pMg = 14.0
     
     html_writer.write('<p>\n')
     html_writer.write("Total number of reaction in NIST: %d</br>\n" % len(nist.data))
@@ -32,9 +32,9 @@ def main():
                       (nist.T_range[0], nist.T_range[1], len(nist.SelectRowsFromNist())))
     html_writer.write('</p>\n')
 
-    db_tables = {'Alberty': (db_public, 'alberty_pseudoisomers'),
-                 'NIST regression': (db_gibbs, 'nist_regression_pseudoisomers'),
-                 'Milo Group Contribution': (db_gibbs, 'gc_pseudoisomers')}
+    db_tables = {'alberty': (db_public, 'alberty_pseudoisomers'),
+                 'nist_regression': (db_gibbs, 'nist_regression_pseudoisomers'),
+                 'milo_gc': (db_gibbs, 'gc_pseudoisomers')}
 
     estimators = {}
 
@@ -44,8 +44,8 @@ def main():
         else:
             logging.warning('The table %s does not exist in %s' % (table_name, str(db)))
     
-    estimators['Hatzimanikatis Group Contribution'] = Hatzi(use_pKa=False)
-    estimators['Hatzimanikatis Group Contribution (with pKa)'] = Hatzi(use_pKa=True)
+    estimators['hatzi_gc'] = Hatzi(use_pKa=False)
+    estimators['hatzi_gc_pka'] = Hatzi(use_pKa=True)
     
     #test_species = PsuedoisomerTableThermodynamics.FromCsvFile(
     #        '../data/thermodynamics/dG0.csv', label='test')
@@ -60,7 +60,8 @@ def main():
         html_writer.insert_toggle(key)
         html_writer.start_div(key)
         num_estimations, rmse = nist.verify_results(html_writer=html_writer, 
-                                                    thermodynamics=thermodynamics)
+                                                    thermodynamics=thermodynamics,
+                                                    name=key)
         html_writer.end_div()
         html_writer.write('Coverage: %d out of %d KEGG reactions</br>\n' % 
                           (thermodynamics.CalculateCoverage(kegg_reactions), 

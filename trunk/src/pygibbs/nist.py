@@ -333,7 +333,7 @@ class Nist(object):
         #win.open_file(dot_fname)
         #gtk.main()
 
-    def verify_results(self, html_writer, thermodynamics):
+    def verify_results(self, html_writer, thermodynamics, name=None):
         """Calculate all the dG0_r for the reaction from NIST and compare to
            the measured data.
         
@@ -415,14 +415,33 @@ class Nist(object):
         max_x = max(dG0_obs_vec)
         pylab.plot([min_x, max_x], [min_x, max_x], 'k--')
         pylab.axis([-60, 60, -60, 60])
-        html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+        if name:
+            html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_eval")
+        else:
+            html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         
+        for index, xlabel in [(4, 'pH'), (5, 'pMg'), (6, 'I'), (7, 'T')]:
+            fig = pylab.figure()
+            if xlabel == 'T':
+                pylab.plot([(row[index] - 273.15) for row in total_list], [row[0] for row in total_list], '.')
+            else:
+                pylab.plot([row[index] for row in total_list], [row[0] for row in total_list], '.')
+            pylab.title(r'effect of %s' % xlabel, fontsize=14)
+            pylab.ylabel(xlabel, fontsize=14)
+            pylab.ylabel(r'$|\Delta_{obs} G^\circ - \Delta_{est} G^\circ|$ [kJ/mol]', fontsize=14)
+            if name:
+                html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_"+xlabel)
+            else:
+                html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         fig = pylab.figure()
         pylab.hist([(row[1] - row[2]) for row in total_list], bins=pylab.arange(-50, 50, 0.5))
         pylab.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
         pylab.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
         pylab.ylabel(r'no. of measurements', fontsize=14)
-        html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+        if name:
+            html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_hist")
+        else:
+            html_writer.embed_matplotlib_figure(fig, width=400, height=300)
 
         table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "url"]
         dict_list = []

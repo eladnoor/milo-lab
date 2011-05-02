@@ -495,16 +495,16 @@ def main():
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
     else:
-        nist_regression.std_diff_threshold = 10.0
+        nist_regression.std_diff_threshold = 10.0 # the threshold over which to print an analysis of a reaction
         nist_regression.nist.T_range = (298, 314)
         #nist_regression.nist.override_I = 0.25
-        nist_regression.nist.override_pMg = 14.0
+        #nist_regression.nist.override_pMg = 14.0
 
-        nist_anchors = PsuedoisomerTableThermodynamics.FromCsvFile(
-            '../data/thermodynamics/nist_anchors.csv')
-        
-        S, dG0, cids = nist_regression.ReverseTransform(nist_anchors)
-        #S, dG0, cids = nist_regression.ReverseTransform()
+        #nist_anchors = PsuedoisomerTableThermodynamics.FromCsvFile(
+        #    '../data/thermodynamics/nist_anchors.csv')
+        #
+        #S, dG0, cids = nist_regression.ReverseTransform(nist_anchors)
+        S, dG0, cids = nist_regression.ReverseTransform()
 
         #nist_regression.ExportToTextFiles(S, dG0, cids)
         html_writer.write("<h2>NIST regression:</h2>")

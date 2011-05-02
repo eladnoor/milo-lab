@@ -1,0 +1,170 @@
+cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
+2,ATP,-2811.48,-3612.91,-3,13,0,train,"Alberty (2003)",
+8,ADP,-1947.1,-2620.94,-2,13,0,train,"Alberty (2003)",
+20,AMP,-1078.86,-1629.79,-1,13,0,train,"Alberty (2003)",
+22,pyruvate,-472.27,-596.22,-1,3,0,train,"Alberty (2003)",
+25,L-Glutamate,-697.47,-979.89,-1,8,0,train,"Alberty (2003)",
+26,2-Oxoglutarate,-793.41,-1044.06,-2,4,0,train,"Alberty (2003)",
+31,D-Glucose,-915.9,-1262.19,0,12,0,train,"Alberty (2003)",
+33,Acetate,-369.31,-486.01,-1,3,0,train,"Alberty (2003)",
+36,Oxaloacetate,-793.29,,-2,2,0,train,"Alberty (2003)",
+37,Glycine,-379.91,-523,0,5,0,train,"Alberty (2003)",
+41,Alanine,-371,-554.8,0,7,0,train,"Alberty (2003)",
+42,Succinate,-690.44,-908.68,-2,4,0,train,"Alberty (2003)",
+48,Glyoxylate,-468.6,,-1,1,0,train,"Alberty (2003)",
+49,L-Aspartate,-695.88,-934.41,-1,6,0,train,"Alberty (2003)",
+64,L-Glutamine,-528.02,-805,0,10,0,train,"Alberty (2003)",
+65,L-Serine,-510.87,,0,7,0,train,"Alberty (2003)",
+73,L-Methionine,-502.92,,0,11,0,train,"Alberty (2003)",
+74,Phosphoenolpyruvate,-1263.65,-1621.38,-3,2,0,train,"Alberty (2003)",
+78,L-Tryptophan,-114.7,-405.2,0,12,0,train,"Alberty (2003)",
+79,L-Phenylalanine,-207.1,,0,11,0,train,"Alberty (2003)",
+82,L-Tyrosine,-370.7,,0,11,0,train,"Alberty (2003)",
+84,Acetaldehyde,-139,-212.23,0,4,0,train,"Alberty (2003)",
+85,D-Fructose-6-phosphate,-1760.8,-2265.17,-2,11,0,train,"Alberty (2003)",
+89,Sucrose,-1564.7,-2199.87,0,22,0,train,"Alberty (2003)",
+92,Glucose-6-phosphate,-1763.94,-2276.44,-2,11,0,train,"Alberty (2003)",
+93,sn-Glycerol-3-phosphate,-1358.96,-1724.59,-2,7,0,train,"Alberty (2003)",
+95,D-Fructose,-915.51,-1259.38,0,12,0,train,"Alberty (2003)",
+97,L-cysteine,-338.82,,0,7,0,train,"Alberty (2003)",
+103,D-Glucose-1-phosphate,-1756.87,,-2,11,0,train,"Alberty (2003)",
+111,Dihydroxyacetone-P,-1296.26,,-2,5,0,train,"Alberty (2003)",
+116,Glycerol,-497.48,-676.55,0,8,0,train,"Alberty (2003)",
+117,"D-Ribose 5-phosphate",-1595.78,,-2,9,0,train,"Alberty (2006)",
+118,glyceraldehyde-3-phosphate,-1288.6,,-2,5,0,train,"Alberty (2003)",
+119,"D-Ribose 5-phospho 1-diphosphate",-3284.25,,-5,8,0,train,"Alberty (2006)",
+121,D-ribose,-738.79,-1034,0,10,0,train,"Alberty (2003)",
+122,Fumarate,-601.87,-777.39,-2,2,0,train,"Alberty (2003)",
+123,L-Leucine,-352.25,-643.37,0,13,0,train,"Alberty (2003)",
+124,D-Galactose,-908.93,-1255.2,0,12,0,train,"Alberty (2003)",
+147,Adenine,310.67,,0,5,0,train,"Alberty (2003)",
+149,L-Malate,-842.66,,-2,4,0,train,"Alberty (2003)",
+152,L-Asparagine,-525.93,-766.09,0,8,0,train,"Alberty (2003)",
+158,Citrate,-1162.69,-1515.11,-3,5,0,train,"Alberty (2003)",
+159,D-Mannose,-910,-1258.66,0,12,0,train,"Alberty (2003)",
+160,Glycolate,-530.95,,-1,3,0,train,"Alberty (2003)",
+164,Acetoacetate,-482.49,,-1,5,0,train,"Alberty (2006)",
+181,D-Xylose,-750.49,-1045.94,0,10,0,train,"Alberty (2003)","five-membered C4O ring form (xylofuranose)"
+183,L-Valine,-358.65,-611.99,0,11,0,train,"Alberty (2003)",
+184,Glycerone,-451,,0,6,0,train,"Alberty (2006)",
+186,Lactate,-516.72,-686.64,-1,5,0,train,"Alberty (2003)",
+188,L-Threonine,-528.89,,0,9,0,train,"Alberty (2006)",
+197,3-Phospho-D-glycerate,-1502.54,,-3,4,0,train,"Alberty (2003)",
+198,"D-Glucono-1,5-lactone",-903.5,,0,10,0,train,"Alberty (2006)",
+199,D-Ribulose-5P,-1595.32,,-2,9,0,train,"Alberty (2006)",
+207,Acetone,-159.7,-221.71,0,6,0,train,"Alberty (2003)",
+208,Maltose,-1574.69,-2238.06,0,22,0,train,"Alberty (2003)",
+209,oxalate,-673.9,-825.1,-2,0,0,train,"Alberty (2003)",
+212,Adenosine,-194.5,-612.3,0,13,0,train,"Alberty (2003)",
+216,D-Arabinose,-742.23,-1043.79,0,10,0,train,"Alberty (2003)","five-membered C4O ring form (arabinofuranose)"
+218,Methylamine,-39.86,-124.93,1,6,0,train,"Alberty (2003)",
+224,adenosine-5P-Sulfate,-1541.98,,-2,12,0,train,"Alberty (2006)",
+227,Acetyl-phosphate,-1219.39,,-2,3,0,test,"Alberty (2003)","too small"
+233,oxoisocaproate,-445.14,,-1,9,0,train,"Alberty (2006)",
+236,"1,3-bisphosphoglycerate",-2356.14,,-4,4,0,train,"Alberty (2003)",
+243,Lactose,-1567.33,-2233.08,0,22,0,train,"Alberty (2003)",
+246,Butyrate,-352.63,,-1,7,0,train,"Alberty (2003)",
+247,L-Sorbose,-911.95,-1263.3,0,12,0,train,"Alberty (2003)",
+249,Palmitate,-259.4,,-1,31,0,train,"Alberty (2003)",
+252,Isomaltose,-1587.71,-2244.48,0,22,0,train,"Alberty (2006)",
+257,D-Gluconate,-1128.3,,-1,11,0,train,"Thauer (1977)",
+258,D-Glycerate,-661.01,,-1,5,0,train,"Alberty (2006)",
+262,Hypoxanthine,89.5,,0,4,0,train,"Alberty (2003)",
+275,D-Mannose-6P,-1759.87,-2273.71,-2,11,0,train,"Alberty (2006)",
+294,Inosine,-409.15,,0,12,0,train,"Alberty (2006)",
+300,Creatine,-259.2,,0,9,0,train,"Alberty (2003)",
+309,D-Ribulose,-735.94,-1023.02,0,10,0,train,"Alberty (2003)",
+310,D-Xylulose,-746.15,-1029.65,0,10,0,train,"Alberty (2003)",
+311,Isocitrate,-1156.04,,-3,5,0,train,"Alberty (2003)",
+354,"D-Fructose-1,6-bisphosphate",-2601.4,-3343.25,-4,10,0,train,"Alberty (2003)",
+379,Xylitol,-784.09,,0,12,0,train,"Alberty (2006)",
+392,D-Mannitol,-942.61,,0,14,0,train,"Alberty (2003)",
+407,L-Isoleucine,-343.9,,0,13,0,train,"Alberty (2003)",
+417,cis-Aconitate,-917.13,,-3,3,0,train,"Alberty (2003)",
+463,Indole,223.8,97.5,0,7,0,train,"Alberty (2003)",
+476,D-Lyxose,-749.14,,0,10,0,train,"Alberty (2003)",
+491,L-cystine,-666.51,,0,12,0,train,"Alberty (2003)",
+577,D-Glyceraldehyde,-440.02,,0,6,0,train,"Alberty (2006)",
+620,"D-Ribose 1-phosphate",-1587.7,,-2,9,0,train,"Alberty (2006)",
+631,2-Phospho-D-glycerate,-1496.38,,-3,4,0,train,"Alberty (2003)",
+636,D-Mannose-1P,-1754.56,,-2,11,0,train,"Alberty (2006)",
+644,D-Mannitol-1P,-1793.58,,-2,13,0,train,"Alberty (2006)",
+673,Deoxyribose-5P,-1447.92,,-2,9,0,train,"Alberty (2006)",
+791,Creatinine,-23.14,,0,7,0,train,"Alberty (2003)",
+794,D-Sorbitol,-946.36,,0,14,0,train,"Alberty (2006)",
+849,Ethyl-acetate,-337.65,-482,0,8,0,train,"Alberty (2003)",
+1005,O-Phospho-L-serine,-1360.75,,-2,6,0,train,"Alberty (2006)",
+1013,3-Hydroxypropanoate,-518.4,,-1,5,0,train,"Alberty (2003)",
+1083,Trehalose,-1582.76,,0,22,0,train,"Alberty (2006)",
+1096,D-sorbitol-6P,-1793.1,,-2,13,0,train,"Alberty (2006)",
+1112,D-arabinose-5P,-1598.34,,-2,9,0,train,"Alberty (2006)",
+1113,D-galactose-6P,-1756.81,,-2,11,0,train,"Alberty (2006)",
+1127,4-hydroxy-2-oxoglutarate,-971.78,,-2,4,0,train,"Alberty (2006)",
+1236,"D-Glucono-1,5-lactone 6-phosphate",-1746.08,,-2,9,0,train,"Alberty (2006)",
+1384,Maleate,-592.09,,-2,2,0,train,"Alberty (2006)",
+1412,Butanal,-129.87,,0,8,0,train,"Alberty (2006)",
+1507,L-Iditol,-944.73,,0,14,0,train,"Alberty (2006)",
+1845,2-propanol,-185.23,-330.83,0,8,0,train,"Alberty (2003)",
+2037,glycylglycine,-520.2,-734.25,0,8,0,train,"Alberty (2003)",
+2226,methylmaleate,-600.7,,-2,4,0,train,"Alberty (2006)",
+2612,(R)-2-Methylmalate,-843.9,,-2,6,0,train,"Alberty (2006)",
+3196,(S)-2-Hydroxyglutarate,-840.18,,-2,6,0,train,"Alberty (2006)",
+3232,Phosphohydroxypyruvate,-1448.67,,-3,2,0,train,"Alberty (2006)",
+3383,"D-Galactono-1,4-lactone",-905.34,,0,10,0,train,"Alberty (2006)",
+3384,D-Galactose-1-phosphate,-1756.59,,-2,11,0,train,"Alberty (2003)",
+5379,Oxalosuccinate,-1138.88,,-2,4,0,train,"Alberty (2003)",
+5572,Ketoglutaramate,-595.88,,-1,6,0,train,"Alberty (2006)",
+5979,n-propanol,-175.81,,0,8,0,train,"Alberty (2003)",
+5984,"2-Hydroxybutanoic acid",-506.3,,-1,7,0,train,"Thauer (1977)",
+6142,n-Butanol,-171.84,,0,10,0,train,"Alberty (2003)",
+1,H2O,-237.19,-285.83,0,2,0,test,"Alberty (2003)","too small"
+3,NAD+,0,0,-1,26,0,test,"Alberty (2003)",NAD+(-1)=0
+4,NADH,22.65,-31.94,-2,27,0,test,"Alberty (2003)",NAD+(-1)=0
+5,NADPH,-809.19,-29.18,-4,26,0,test,"Alberty (2003)",NAD+(-1)=0
+6,NADP+,-835.18,0,-3,25,0,test,"Alberty (2003)",NAD+(-1)=0
+7,O2(aq),16.4,-11.7,0,0,0,test,"Alberty (2003)","too small"
+9,Orthophosphate,-1096.1,-1299,-2,1,0,test,"Alberty (2003)","too small"
+11,CO2(aq),-386.02,,0,0,0,test,"Thauer (1977)","too small"
+13,pyrophosphate,-1973.86,-2294.87,-3,1,0,test,"Alberty (2003)","too small"
+14,NH3,-26.5,-80.29,0,3,0,test,"Alberty (2003)","too small"
+16,FAD(ox),0,,-2,31,0,test,"Alberty (2003)",FAD(ox)=0
+27,H2O2(aq),-134.03,-191.17,0,2,0,test,"Alberty (2003)","too small"
+58,Formate,-351,-425.55,-1,1,0,test,"Alberty (2003)","too small"
+59,Sulfate,-744.53,-909.27,-2,0,0,test,"Alberty (2006)","too small"
+61,FMN(ox),0,,-2,19,0,test,"Alberty (2003)",FMN(ox)=0
+67,Formaldehyde,-130.54,,0,2,0,test,"Thauer (1977)","too small"
+80,H+,0,0,0,0,0,test,"Alberty (2003)","too small"
+86,Urea,-202.8,-317.65,0,4,0,test,"Alberty (2003)","too small"
+88,Nitrite,-32.2,-104.6,-1,0,0,test,"Alberty (2006)","too small"
+94,Sulfite,-486.5,-635.5,-2,0,0,test,"Alberty (2006)","too small"
+125,"Cytochrome c(ox)",0,,3,0,0,test,"Alberty (2003)","Cytochrome c(ox)=0"
+126,"Cytochrome c(red)",-24.51,,2,0,0,test,"Alberty (2003)","Cytochrome c(ox)=0"
+132,Methanol,-175.31,-245.93,0,4,0,test,"Alberty (2003)","too small"
+138,Ferredoxin(red),38.07,,0,0,0,test,"Alberty (2003)",Ferredoxin(ox)=0
+139,Ferredoxin(ox),0,,1,0,0,test,"Alberty (2003)",Ferredoxin(ox)=0
+237,CO(aq),-119.9,-120.96,0,0,0,test,"Alberty (2003)","too small"
+244,nitrate,-108.74,-205,-1,0,0,test,"Alberty (2006)","too small"
+282,H2(aq),17.6,-4.2,0,2,0,test,"Alberty (2003)","too small"
+283,Sulfide,85.8,33.1,-2,0,0,test,"Alberty (2006)","too small"
+288,CO2(tot),-586.77,-691.99,-1,1,0,test,"Alberty (2003)","too small"
+305,Mg,-455.3,-467,2,0,1,test,"Alberty (2006)","too small"
+342,Thioredoxin(red),69.88,,-2,0,0,test,"Alberty (2003)",Thioredoxin(ox)=0
+343,Thioredoxin(ox),0,,0,0,0,test,"Alberty (2003)",Thioredoxin(ox)=0
+366,Urate,-325.9,,-1,3,0,test,"Alberty (2003)","too small"
+376,retinal,0,,0,28,0,test,"Alberty (2003)",retinal=0
+390,Ubiquinone(red),-89.92,,0,92,0,test,"Alberty (2003)",Ubiquinone(ox)=0
+399,Ubiquinone(ox),0,,0,90,0,test,"Alberty (2003)",Ubiquinone(ox)=0
+469,Ethanol,-181.64,-288.3,0,6,0,test,"Alberty (2003)","too small"
+473,retinol,-27.91,,0,30,0,test,"Alberty (2003)",retinal=0
+543,Dimethylamine,-3.3,,1,8,0,test,"Thauer (1977)","too small"
+565,Trimethylamine,37.2,,1,10,0,test,"Thauer (1977)","too small"
+575,Cyclic-AMP,-790.86,,-1,11,0,test,"Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
+697,N2(aq),18.7,-10.54,0,0,0,test,"Alberty (2003)","too small"
+887,N2O(aq),104.2,82.05,0,0,0,test,"Alberty (2006)","too small"
+1352,FADH2(red),-38.88,,-2,33,0,test,"Alberty (2003)",FAD(ox)=0
+1417,Cyanate,-97.4,,-1,0,0,test,"Alberty (2006)","too small to decompose"
+1438,Methane(aq),-34.33,-89.04,0,4,0,test,"Alberty (2003)","too small"
+1563,Carbamate,-377.65,,-1,2,0,test,"Alberty (2006)","too small to decompose"
+1847,FMNH2(red),-38.88,,-2,21,0,test,"Alberty (2003)",FMN(ox)=0
+5361,Hydrazine,128.03,,0,4,0,test,"Thauer (1977)","too small"
+9306,"Sulfur dioxide",-300.708,,0,0,0,test,"Thauer (1977)","too small"
