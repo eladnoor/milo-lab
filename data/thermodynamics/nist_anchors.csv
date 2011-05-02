@@ -1,6 +1,6 @@
 cid,compound name,dG0,z,nH,nMg,use for,ref
 1,H2O,-237.19,0,2,0,test,"Alberty (2003)"
-3,NAD(ox),0,-1,26,0,test,"Alberty (2003)"
+3,NAD(ox),0,-1,26,0,skip,"Alberty (2003)"
 3,NAD(ox),-464.1,1,26,1,skip,"Mazzini (1995)"
 7,O2,16.4,0,0,0,test,"Alberty (2003)"
 9,Pi,-1096.1,-2,1,0,test,"Alberty (2003)"
@@ -10,8 +10,8 @@ cid,compound name,dG0,z,nH,nMg,use for,ref
 10,CoA,-47.83,-4,32,0,test,"Alberty (2003)"
 14,NH3,-26.5,0,3,0,test,"Alberty (2003)"
 14,NH3,-79.31,1,4,0,test,"Alberty (2003)"
-16,FAD(ox),0,-2,31,0,test,
-61,FMN(ox),0,-2,19,0,test,
+16,FAD(ox),0,-2,31,0,skip,
+61,FMN(ox),0,-2,19,0,skip,
 80,H+,0,0,0,0,test,
 59,Sulfate,-744.53,-2,0,0,test,"Alberty (2003)"
 59,Sulfate,-755.91,-1,1,0,test,"Alberty (2003)"
@@ -25,9 +25,9 @@ cid,compound name,dG0,z,nH,nMg,use for,ref
 288,CO2(tot),-527.81,-2,0,0,test,"Alberty (2003)"
 288,CO2(tot),-586.77,-1,1,0,test,"Alberty (2003)"
 288,CO2(tot),-623.11,0,2,0,test,"Alberty (2003)"
-343,thioredoxin(ox),0,0,0,0,test,
-376,retinal,0,0,28,0,test,
+343,thioredoxin(ox),0,0,0,0,skip,
+376,retinal,0,0,28,0,skip,
 387,guanosine,0,0,13,0,skip,
-399,ubiquinone(ox),0,0,90,0,test,
+399,ubiquinone(ox),0,0,90,0,skip,
 475,cytidine,0,-1,12,0,skip,
 697,N2,18.7,0,0,0,skip,"Alberty (2003)"
