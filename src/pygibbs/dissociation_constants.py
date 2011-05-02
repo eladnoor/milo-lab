@@ -61,8 +61,12 @@ class DissociationConstants(object):
                     raise ValueError('The row about C%05d has different nMgs although it is not "Mg"' % cid)
                 elif nH_below != nH_above:
                     raise ValueError('The row about C%05d has different nHs although it is not "acid-base"' % cid)
+                else:
+                    diss.SetOnlyPseudoisomer(cid, smiles_below, nH_below, nMg_below)
             except ValueError as e:
                 raise ValueError("At row %i: %s" % (i, str(e)))
+            except TypeError as e:
+                raise TypeError("At row %i: %s" % (i, str(e)))
         
         diss.CalculateAllCharges()
         return diss
@@ -79,6 +83,10 @@ class DissociationConstants(object):
         diss_table.AddpKMg(pKMg, nMg_below, nMg_above, nH, 
                           ref, T, smiles_below, smiles_above)
         
+    def SetOnlyPseudoisomer(self, cid, smiles, nH, nMg=0):
+        diss_table = self.GetDissociationTable(cid)
+        diss_table.SetOnlyPseudoisomer(smiles, nH, nMg)
+    
     def SetMinNumHydrogens(self, cid, min_nH):
         """
             Sets the minimal number of hydrogen atoms for a specified CID.
@@ -90,13 +98,22 @@ class DissociationConstants(object):
         if not diss_table.min_nH or diss_table.min_nH > min_nH: 
             diss_table.min_nH = min_nH
             
-    def GetDissociationTable(self, cid):
+    def GetDissociationTable(self, cid, create_if_missing=True):
         if cid not in self.cid2DissociationTable:
-            diss = DissociationTable(cid)
-            self.cid2DissociationTable[cid] = diss
-            return diss
+            if create_if_missing:
+                diss = DissociationTable(cid)
+                self.cid2DissociationTable[cid] = diss
+                return diss
+            else:
+                return None
         else:
             return self.cid2DissociationTable[cid]
+    
+    def GetSmiles(self, cid, nH, nMg=0):
+        if cid not in self.cid2DissociationTable:
+            return None
+        else:
+            return self.GetDissociationTable(cid).GetSmiles(nH, nMg)
     
     def CalculateAllCharges(self):
         for diss_table in self.cid2DissociationTable.values():
@@ -121,7 +138,7 @@ class DissociationConstants(object):
     def GetAllCids(self):
         return set(self.cid2DissociationTable.keys())
 
-    def ReverseTranformNistRows(self, nist_rows, assume_no_pka_by_default=False):
+    def ReverseTranformNistRows(self, nist_rows, cid2nH=None, assume_no_pka_by_default=False):
         kegg = Kegg.getInstance()
 
         encountered_cids = self.GetAllCids()
@@ -178,7 +195,7 @@ class DissociationConstants(object):
             data['nist_rows'] = np.vstack([data['nist_rows'], nist_row])
             ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
                 nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
-                nist_row_data.T)
+                nist_row_data.T, cid2nH=cid2nH)
             data['ddG0_r'] = np.vstack([data['ddG0_r'], ddG])
             
             stoichiometric_row = np.zeros((1, len(data['cids_to_estimate'])))
@@ -197,19 +214,20 @@ class DissociationConstants(object):
         
         return data
     
-    def ReverseTransformReaction(self, reaction, pH, I, pMg, T):
+    def ReverseTransformReaction(self, reaction, pH, I, pMg, T, cid2nH=None):
         """
             Calculates the difference between dG'0_r and dG0_r
         """
-        return sum([coeff * self.ReverseTransformCompound(cid, pH, I, pMg, T) \
-                    for cid, coeff in reaction.iteritems()])
+        ddG0 = 0
+        for cid, coeff in reaction.iteritems():
+            diss = self.GetDissociationTable(cid)
+            if not cid2nH:
+                ddG0 += coeff * diss.GetDeltaDeltaG0(pH, I, pMg, T)
+            else:
+                ddG0 += coeff * diss.GetDeltaDeltaG0(pH, I, pMg, T, nH=cid2nH[cid])
         
-    def ReverseTransformCompound(self, cid, pH, I, pMg, T):
-        """
-            Calculates the difference between dG'0_f and dG0_f
-        """
-        return self.Transform(cid, pH, I, pMg, T)
-    
+        return ddG0
+        
     def GetPseudoisomerMap(self, cid):
         return self.GetDissociationTable(cid).GetPseudoisomerMap()
     
@@ -260,6 +278,11 @@ class DissociationTable(object):
     def __iter__(self):
         return self.ddGs.__iter__()
     
+    def GetSmiles(self, nH=None, nMg=0):
+        if nH == None:
+            nH = self.min_nH
+        return self.smiles_dict.get((nH, nMg), None)
+    
     def ToDatabase(self, db, table_name):
         """
             Write to a table with this structure:
@@ -272,7 +295,8 @@ class DissociationTable(object):
         name = self.kegg.cid2name(self.cid)
         for key, (ddG, ref) in self.ddGs.iteritems():
             (nH_above, nH_below, nMg_above, nMg_below) = key
-            smiles_below, smiles_above = self.smiles_dict.get(key, (None, None))
+            smiles_below = self.GetSmiles(nH_below, nMg_below)
+            smiles_above = self.GetSmiles(nH_above, nMg_above)
             db.Insert(table_name, [self.cid, name, nH_above, nH_below, 
                 nMg_above, nMg_below, smiles_below, smiles_above, ddG, ref])
 
@@ -286,7 +310,8 @@ class DissociationTable(object):
         ddG0 = R * T * np.log(10) * pKa
         key = (nH_above, nH_below, nMg, nMg)
         self.ddGs[key] = (-ddG0, ref) # adding H+ decreases dG0
-        self.smiles_dict[key] = (smiles_above, smiles_below)
+        self.smiles_dict[nH_above, nMg] = smiles_above
+        self.smiles_dict[nH_below, nMg] = smiles_below
         
     def AddpKMg(self, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T, 
                 smiles_below=None, smiles_above=None):
@@ -297,7 +322,18 @@ class DissociationTable(object):
         ddG0 = R * T * np.log(10) * pKMg - dG0_f_Mg
         key = (nH, nH, nMg_above, nMg_below)
         self.ddGs[key] = (-ddG0, ref) # adding Mg+2 decreases dG0
-        self.smiles_dict[key] = (smiles_above, smiles_below)
+        self.smiles_dict[nH, nMg_above] = smiles_above
+        self.smiles_dict[nH, nMg_below] = smiles_below
+    
+    def SetOnlyPseudoisomer(self, smiles, nH, nMg=0):
+        """
+            For compound which have no known pKa or pKMg, this method can be used
+            to set the parameters of the only pseudoisomer.
+        """
+        if len(self.ddGs):
+            raise ValueError("You tried to set the only-pseudoisomer of a compound that has pKas/pKMgs")
+        self.smiles_dict[nH, nMg] = smiles
+        self.min_nH = nH
     
     def GetSingleStep(self, nH_from, nH_to, nMg_from, nMg_to):
         if nH_from == nH_to and nMg_from == nMg_to:
@@ -405,7 +441,7 @@ class DissociationTable(object):
             ' all psuedoisomers')
                 
         pdata = PseudoisomerEntry(net_charge=self.min_charge, hydrogens=self.min_nH,
-            magnesiums=0, smiles="", dG0=self.min_dG0)
+            magnesiums=0, smiles="", dG0=self.min_dG0, cid=self.cid)
         return self.GenerateAllPseudoisomerEntries(pdata)
     
     def GenerateAllPseudoisomerEntries(self, pdata):
@@ -423,13 +459,26 @@ class DissociationTable(object):
                     self.ConvertPseudoisomerEntry(pdata, nH_below, nMg_below)
         
         return pseudoisomers.values()
-    
-    def Transform(self, pH, I, pMg, T):
-        # assume that the dG0_f of the most basic psuedoisomer is 0, 
-        # and calculate the transformed dG'0_f relative to it.
+
+    def GetTransformedDeltaGs(self, pH, I, pMg, T, nH=None):
+        """
+            Return:
+                a list of the pseudoisomers and their transformed dG.
+                each member of the list is a tuple: (nH, z, nMg, dG0')
+            
+            Note:
+                assume that the dG0_f of one of the psuedoisomers
+                (according to the given nH) is 0
+        """ 
+        if nH is None:
+            nH = self.min_nH
+        z = self.min_charge + (nH - self.min_nH)
         
-        dG0_tag_vec = []
-        for pseudoisomer in self.GenerateAll():
+        pdata = PseudoisomerEntry(net_charge=z, hydrogens=nH, magnesiums=0, 
+                                  smiles="", dG0=0)
+        
+        pseudoisomer_matrix = []
+        for pseudoisomer in self.GenerateAllPseudoisomerEntries(pdata):
             nH = pseudoisomer.hydrogens
             nMg = pseudoisomer.magnesiums
             z = pseudoisomer.net_charge
@@ -439,12 +488,31 @@ class DissociationTable(object):
             dG0_tag = dG0 + \
                       nMg * (R*T*np.log(10)*pMg - dG0_f_Mg) + \
                       nH  * (R*T*np.log(10)*pH + DH) - (z**2) * DH
-            dG0_tag_vec.append(dG0_tag)
-        
-        dG0_tag_total = -R * T * log_sum_exp([g / (-R*T) for g in dG0_tag_vec])
-        
-        return dG0_tag_total
-        
+            pseudoisomer_matrix.append((nH, z, nMg, dG0_tag))
+        return pseudoisomer_matrix
+     
+    def GetDeltaDeltaG0(self, pH, I, pMg, T, nH=None):
+        """
+            Return:
+                the transformed ddG0 = dG0'_f - dG0_f
+
+            Note:
+                assume that the dG0_f of one of the psuedoisomers
+                (according to the given nH) is 0
+        """ 
+        pseudoisomer_matrix = self.GetTransformedDeltaGs(pH, I, pMg, T, nH=nH)
+        ddG0_f = -R * T * log_sum_exp([dG0_tag / (-R*T) for (_nH, _z, _nMg, dG0_tag) in pseudoisomer_matrix])
+        return ddG0_f
+    
+    def GetMostAbundantPseudoisomer(self, pH, I, pMg, T):
+        pseudoisomer_matrix = self.GetTransformedDeltaGs(pH, I, pMg, T)
+        pseudoisomer_matrix.sort(key=lambda(x):x[3])
+        nH, _z, nMg, _dG0_tag = pseudoisomer_matrix[0] # return the psuedoisomer with the smallest dG0_tag
+        return (nH, nMg)
+    
+    def Transform(self, pH, I, pMg, T):    
+        return self.min_dG0 + self.GetDeltaDeltaG0(pH, I, pMg, T, nH=self.min_nH)
+    
     def GetPseudoisomerMap(self):
         pmap = PseudoisomerMap()
         for pdata in self.GenerateAll():

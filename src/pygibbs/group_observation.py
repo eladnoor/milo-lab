@@ -4,10 +4,12 @@ import numpy as np
 from pygibbs.kegg import Kegg
 from pygibbs.group_decomposition import GroupDecompositionError
 from pygibbs.group_vector import GroupVector
-from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.nist_regression import NistRegression
 from toolbox.molecule import Molecule
-from toolbox.html_writer import HtmlWriter, NullHtmlWriter
+from toolbox.html_writer import NullHtmlWriter
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from pygibbs.dissociation_constants import DissociationConstants
+from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
 
 class GroupObservation(object):
     
@@ -16,7 +18,7 @@ class GroupObservation(object):
         self.dG0 = None
         self.name = None
         self.id = None
-        self.obs_type = None # can be 'formation', 'acid-base' or 'Mg'
+        self.obs_type = None # can be 'formation', 'reaction', 'acid-base' or 'Mg'
 
     def NetCharge(self):
         return self.groupvec.NetCharge()
@@ -31,6 +33,12 @@ class GroupObservation(object):
         db.Insert('group_observations', list(self.groupvec) +
                   [self.dG0, self.name, self.id, self.obs_type])
         
+    def __hash__(self):
+        return hash(str(self.groupvec))
+    
+    def __eq__(self, other):
+        return self.groupvec == other.groupvec
+        
 class GroupObervationCollection(object):
     
     def __init__(self, db, html_writer, group_decomposer):
@@ -41,8 +49,6 @@ class GroupObervationCollection(object):
         self.observations = []
         self.n_groups = len(self.groups_data.all_groups)
         self.groupvec_titles = ["g%d" % i for i in xrange(self.n_groups)]
-        self.cid2pmap_dict = {}
-        self.cid_test_set = set()
 
         self.html_writer = html_writer
         if html_writer and html_writer.filename:
@@ -75,167 +81,214 @@ class GroupObervationCollection(object):
             logging.warning('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
             self.html_writer.write('%s Could not be decomposed</br>\n' % smiles)
 
-    def AddDissociationTable(self, cid, diss_table):
-        name = self.kegg.cid2name(cid)
-        logging.info("Reading pKa data for C%05d, %s:" % (cid, name))
-        self.html_writer.write('<h3>C%05d - %s</h3>\n' % (cid, name))
-        for key in diss_table:
-            nH_above, nH_below, nMg_above, nMg_below = key
-            ddG0, _ref = diss_table.ddGs[key]
-            smiles_above, smiles_below = diss_table.smiles_dict[key]
-            
-            if not smiles_above or not smiles_below:
-                continue
+    def AddDissociationTable(self):
+        dissociation = DissociationConstants.FromFile()
+        for cid in dissociation.GetAllCids():
+            diss_table =  dissociation.GetDissociationTable(cid)
+            name = self.kegg.cid2name(cid)
+            logging.info("Reading pKa data for C%05d, %s:" % (cid, name))
+            self.html_writer.write('<h3>C%05d - %s</h3>\n' % (cid, name))
+            for key in diss_table:
+                nH_above, nH_below, nMg_above, nMg_below = key
+                ddG0, _ref = diss_table.ddGs[key]
+                smiles_above = diss_table.smiles_dict[nH_above, nMg_above]
+                smiles_below = diss_table.smiles_dict[nH_below, nMg_below]
+                
+                if not smiles_above or not smiles_below:
+                    continue
+        
+                if nH_above != nH_below:
+                    s = "nH = %d -> %d" % (nH_above, nH_below)
+                elif nMg_above != nMg_below:
+                    s = "nMg = %d -> %d" % (nMg_above, nMg_below)
+                logging.info("\t" + s)
+                self.html_writer.write('%s: &#x394;G = %.2f</br>\n' 
+                                       % (s, ddG0))
+                self.html_writer.write('SMILES = %s >> %s</br>\n' % (smiles_below, smiles_above))
+                decomposition_below = self.SmilesTGroupvec(smiles_below, 
+                                "C%05d_b_H%d_Mg%d" % (cid, nH_below, nMg_below))
+                decomposition_above = self.SmilesTGroupvec(smiles_above, 
+                                "C%05d_a_H%d_Mg%d" % (cid, nH_above, nMg_above))
+                if not decomposition_below or not decomposition_above:
+                    continue
+                groupvec = decomposition_below.AsVector() - decomposition_above.AsVector()
+                self.html_writer.write('</br>\nDecomposition = %s</br>\n' % str(groupvec))
+                
+                if nH_above != nH_below:
+                    if nH_above != nH_below-1:
+                        raise Exception("a pKa must represent a difference of exactly 1 hydrogen")
+                    fullname = '%s [nH=%d]' % (name, nH_above)
+                    self.Add(groupvec, ddG0, fullname, "C%05d" % cid, 'acid-base')
+                elif nMg_above != nMg_below:
+                    if nMg_above != nMg_below-1:
+                        raise Exception("a pK_Mg must represent a difference of exactly 1 magnesium")
+                    fullname = '%s [nMg=%d]' % (name, nMg_above)
+                    #self.Add(groupvec, ddG0, fullname, cid, 'Mg')
+                    # TODO: solve the problems with Mg species !!!
+                    # there seems to be a problem in decomposition of ADP:Mg (and maybe other forms that have Mg ions)
+
+    def AddFormationEnergies(self, obs_fname="../data/thermodynamics/formation_energies.csv"):
+        dissociation = DissociationConstants.FromFile()
+        train_species = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname, label='train')
+        for cid in train_species.get_all_cids():
+            pmap = train_species.cid2PseudoisomerMap(cid)
+            pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
+            if len(pmatrix) != 1:
+                raise Exception("C%05d has more than one species in the training set" % cid)
+            nH, charge, nMg, dG0 = pmatrix[0]
+            name = "%s (%d)" % (self.kegg.cid2name(cid), nH)
+            logging.info('Adding the formation energy of %s', name)
+            self.html_writer.write("<h3>%s, %s</h3>\n" % (name, train_species.cid2SourceString(cid)))
+            self.html_writer.write('&#x394;G<sub>f</sub> = %.2f</br>\n' % dG0)
+            smiles = dissociation.GetSmiles(cid, nH=nH, nMg=nMg)
+            if not smiles:
+                raise Exception("%s does not have a SMILES expression in the dissociation constant table" 
+                                % name)
+            self.html_writer.write("SMILES = %s</br>\n" % smiles)
+            mol = Molecule.FromSmiles(smiles)
+            mol.SetTitle(name)
+            try:
+                self.html_writer.write(mol.ToSVG())
+            except (TypeError, IndexError, AssertionError):
+                logging.warning('PyBel cannot draw the compound %s',  name)
+                self.html_writer.write('WARNING: cannot draw this compound using PyBel\n')
     
-            if nH_above != nH_below:
-                s = "nH = %d -> %d" % (nH_above, nH_below)
-            elif nMg_above != nMg_below:
-                s = "nMg = %d -> %d" % (nMg_above, nMg_below)
-            logging.info("\t" + s)
-            self.html_writer.write('%s: &#x394;G = %.2f</br>\n' 
-                                   % (s, ddG0))
-            self.html_writer.write('SMILES = %s >> %s</br>\n' % (smiles_below, smiles_above))
-            decomposition_below = self.SmilesTGroupvec(smiles_below, 
-                            "C%05d_b_H%d_Mg%d" % (cid, nH_below, nMg_below))
-            decomposition_above = self.SmilesTGroupvec(smiles_above, 
-                            "C%05d_a_H%d_Mg%d" % (cid, nH_above, nMg_above))
-            if not decomposition_below or not decomposition_above:
-                continue
-            groupvec = decomposition_below.AsVector() - decomposition_above.AsVector()
-            self.html_writer.write('</br>\nDecomposition = %s</br>\n' % str(groupvec))
+            self.html_writer.write('</br>\n')
+    
+            try:
+                decomposition = self.group_decomposer.Decompose(mol, strict=True)
+            except GroupDecompositionError as e:
+                logging.error('Cannot decompose one of the compounds in the training set: ' + str(mol))
+                raise e
             
-            if nH_above != nH_below:
-                if nH_above != nH_below-1:
-                    raise Exception("a pKa must represent a difference of exactly 1 hydrogen")
-                fullname = '%s [nH=%d]' % (name, nH_above)
-                self.Add(groupvec, ddG0, fullname, "C%05d" % cid, 'acid-base')
-            elif nMg_above != nMg_below:
-                if nMg_above != nMg_below-1:
-                    raise Exception("a pK_Mg must represent a difference of exactly 1 magnesium")
-                fullname = '%s [nMg=%d]' % (name, nMg_above)
-                #self.Add(groupvec, ddG0, fullname, cid, 'Mg')
-                # TODO: solve the problems with Mg species !!!
-                # there seems to be a problem in decomposition of ADP:Mg (and maybe other forms that have Mg ions)
-
-    def AddPseudoisomersData(self, ps_isomer):
-        #name = str(ps_isomer)
-        name = "%s (%d)" % (ps_isomer.name, ps_isomer.net_charge)
-        logging.info('Verifying data for %s', name)
-        self.html_writer.write("<h3>%s, %s</h3>\n" % (ps_isomer.name, ps_isomer.ref))
-
-        if ps_isomer.dG0 == None:
-            self.html_writer.write('No data for &#x394;G<sub>f</sub></br>\n')
-            return
-
-        if ps_isomer.Skip():
-            self.html_writer.write('Compound marked as not to be used</br>\n')
-            return
+            groupvec = decomposition.AsVector()
+            self.Add(groupvec, dG0, name, id="C%05d" % cid, obs_type='formation')
+            self.html_writer.write("Decomposition = %s</br>\n" % decomposition)
             
-        self.html_writer.write('&#x394;G<sub>f</sub> = %.2f</br>\n' % ps_isomer.dG0)
-
-        if ps_isomer.cid:
-            self.AddPseudoisomer(ps_isomer.cid, ps_isomer.hydrogens, ps_isomer.net_charge,
-                                ps_isomer.magnesiums, ps_isomer.dG0)
-
-        if ps_isomer.Test():
-            self.cid_test_set.add(ps_isomer.cid)
-            self.html_writer.write('Compound marked to be used only for testing (not training)</br>\n')
-            return
-        
-        elif ps_isomer.Train():
-            self.html_writer.write('Compound marked to be used for training</br>\n')
-        else:
-            raise Exception('Unknown usage flag: %' % ps_isomer.use_for)
-
-        if not ps_isomer.smiles:
-            raise Exception("Cannot use compound '%s' for training if it lacks a SMILES string" % ps_isomer.name)
-        try:
-            self.html_writer.write('SMILES = %s</br>\n' % ps_isomer.smiles)
-            mol = ps_isomer.MolNoH()
-        except TypeError, e:
-            logging.error(e)
-            raise Exception('Invalid smiles: %s' % ps_isomer.smiles)
-
-        mol.SetTitle(name)
-        try:
-            self.html_writer.write(mol.ToSVG())
-        except (TypeError, IndexError, AssertionError):
-            logging.warning('PyBel cannot draw the compound %s',  name)
-            self.html_writer.write('WARNING: cannot draw this compound using PyBel\n')
-
-        self.html_writer.write('</br>\n')
-
-        try:
-            decomposition = self.group_decomposer.Decompose(mol, strict=True)
-        except GroupDecompositionError as e:
-            logging.error('Cannot decompose one of the compounds in the training set: ' + str(mol))
-            raise e
-        
-        groupvec = decomposition.AsVector()
-        self.Add(groupvec, ps_isomer.dG0, name, id="C%05d" % ps_isomer.cid, obs_type='formation')
-        self.html_writer.write("Decomposition = %s</br>\n" % decomposition)
-        
-        gc_hydrogens, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
-        if ps_isomer.hydrogens != gc_hydrogens:
-            s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
-                ps_isomer.hydrogens, gc_hydrogens)
-            logging.error(s)
-            self.html_writer.write(s + '</br>\n')
-        if ps_isomer.net_charge != gc_charge:
-            s = 'ERROR: Charge doesn\'t match: explicit = %d, formula = %d' % (
-                ps_isomer.net_charge, gc_charge)
-            logging.error(s)
-            self.html_writer.write(s + '</br>\n')
+            gc_nH, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
+            if nH != gc_nH:
+                s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
+                    nH, gc_nH)
+                logging.error(s)
+                self.html_writer.write(s + '</br>\n')
+            if charge != gc_charge:
+                s = 'ERROR: Charge doesn\'t match: explicit = %d, formula = %d' % (
+                    charge, gc_charge)
+                logging.error(s)
+                self.html_writer.write(s + '</br>\n')
             
     def AddNistDatabase(self):
         nist_regression = NistRegression(self.db, html_writer=NullHtmlWriter())
-        S, dG0, cids = nist_regression.ReverseTransform(use_anchors=False)
+        cid2dG0 = {}
+        cid2nH = {} # the nH that is to be used in the reverse trasnform
+        for cid in nist_regression.dissociation.GetAllCids():
+            diss = nist_regression.dissociation.GetDissociationTable(cid)
+            nH, _nMg = diss.GetMostAbundantPseudoisomer(pH=default_pH, I=default_I, pMg=14, T=default_T)
+            cid2nH[cid] = nH
         
+        # override the nH in cid2nH with the pseudoisomer used in the CSV
+        # so it will be consistent with the formation energy table
+        train_species = PsuedoisomerTableThermodynamics.FromCsvFile(
+            '../data/thermodynamics/formation_energies.csv', label='train')
+        for cid in train_species.get_all_cids():
+            pmap = train_species.cid2PseudoisomerMap(cid)
+            pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
+            if len(pmatrix) != 1:
+                raise Exception("C%05d has more than one species in the training set" % cid)
+            cid2nH[cid] = pmatrix[0][0]
+
+        # gather the dG0 for test compounds, so that their contribution
+        # will be subtracted from the reaction dG0 and not used in the regression
+        # of the groups
+        test_species = PsuedoisomerTableThermodynamics.FromCsvFile(
+            '../data/thermodynamics/formation_energies.csv', label='test')
+        for cid in test_species.get_all_cids():
+            pmap = test_species.cid2PseudoisomerMap(cid)
+            pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
+            if len(pmatrix) != 1:
+                raise Exception("C%05d has more than one species in the training set" % cid)
+            nH, _z, _nMg, dG0 = pmatrix[0]
+            cid2nH[cid] = nH
+            cid2dG0[cid] = dG0
+
+        S, dG0, cids = nist_regression.ReverseTransform(cid2nH=cid2nH)
         group_matrix = []
         good_cids = []
-        for cid in cids:
+        good_indices = []
+        anchored_cids = []
+        dG0_correction = np.zeros((len(cids), 1))
+        self.html_writer.write("<h3>The compounds used in NIST and their decompositions:</h3>\n")
+        for i, cid in enumerate(cids):
             name = self.kegg.cid2name(cid)
-            mol = self.kegg.cid2mol(cid)
-            min_nH, min_charge = self.kegg.cid2nH_and_charge(cid)
-            self.html_writer.write("<h3>C%05d - %s</h3>\n" % (cid, name))
-            self.html_writer.write("nH = %d, z = %d</br>\n" % (min_nH, min_charge))
+            self.html_writer.write("<b>C%05d - %s</b></br>\n" % (cid, name))
+            self.html_writer.write("nH = %d</br>\n" % cid2nH[cid])
+            smiles = nist_regression.dissociation.GetSmiles(cid, nH=cid2nH[cid], nMg=0)
+            if smiles:
+                self.html_writer.write("SMILES = %s</br>\n" % smiles)
+                mol = Molecule.FromSmiles(smiles)
+            else:
+                self.html_writer.write("WARNING: no SMILES in the dissociation table, using the KEGG InChI</br>\n")
+                mol = self.kegg.cid2mol(cid)
+                self.html_writer.write("SMILES = %s</br>\n" % mol.ToSmiles())
+            self.html_writer.write(mol.ToSVG() + '</br>\n')
+            
             try:
-                # TODO: the reverse transform converts the dG0' to dG0, where the chosen pseudoisomer
-                # is the one with the minimal number of hydrogens. We must check that the nH
-                # of the decomposition matches that of the entire compound.
-                decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=True, strict=True)
+                decomposition = self.group_decomposer.Decompose(mol, 
+                    ignore_protonations=True, strict=True)
                 groupvec = decomposition.AsVector()
                 self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
-                if decomposition.Hydrogens() != min_nH:
-                    self.html_writer.write("<b>ERROR</b>: decomposition nH (%d) is wrong</br>\n" % decomposition.Hydrogens())
                 group_matrix.append(groupvec)
+                good_indices.append(i)
                 good_cids.append(cid)
             except GroupDecompositionError as e:
-                self.html_writer.write(str(e) + "</br>\n")
+                if cid in cid2dG0:
+                    # If it is impossible to decompose this compound, but its dG0
+                    # is known from the dG0 table, normalize its contribution
+                    # and don't try to use it in the estimation
+                    self.html_writer.write("Anchored: dG0 = %.1f</br>\n" % 
+                                           (cid2dG0[cid]))
+                    dG0_correction[i, 0] = cid2dG0[cid]
+                    anchored_cids.append(cid)
+                else:
+                    self.html_writer.write(str(e) + "</br>\n")
+        
+        # The reverse transform converts the dG0' to dG0, where the chosen pseudoisomer
+        # is the one with the minimal number of hydrogens. In order to correct this 
+        # we need to subtract the difference between the minimal nH pseudoisomer and
+        # the one used in the groupvector.
+        dG0_noanchors = dG0 - np.dot(S, dG0_correction)
         
         # calculate the group vectors for each reaction, by multiplying the stoichiometric
         # matrix by the group matrix. Note that some rows (CIDs) are missing from the group_matrix
         # and the corresponding rows in S must also be skipped.
-        good_indices = [cids.index(cid) for cid in good_cids]
         observed_group_matrix = np.dot(S[:, good_indices], np.array(group_matrix))
 
+        self.html_writer.write("<h3>The reaction used in NIST and their decompositions:</h3>\n")
         for r in xrange(S.shape[0]):
             name = "NIST%03d" % r
             sparse = dict([(cids[i], S[r, i]) for i in S[r, :].nonzero()[0]])
 
-            self.html_writer.write("<h3>%s</h3>\n" % name)
+            self.html_writer.write("<p>\n<b>%s</b></br>\n" % name)
+            self.html_writer.write("Original reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
             self.html_writer.write('&#x394;G<sub>r</sub> = %.2f</br>\n' % dG0[r, 0])
-            self.html_writer.write("Reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
 
-            if set(sparse.keys()).issubset(good_cids):
+            for cid in set(sparse.keys()).intersection(anchored_cids):
+                del sparse[cid]
+            self.html_writer.write("Truncated reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
+            self.html_writer.write('&#x394;G<sub>r</sub> (truncated) = %.2f</br>\n' % dG0_noanchors[r, 0])
+
+            unresolved_cids = set(sparse.keys()).difference(good_cids)
+            if not unresolved_cids:
                 groupvec = GroupVector(self.groups_data, observed_group_matrix[r, :])
                 if groupvec: # if nonzero
-                    self.Add(groupvec, dG0[r, 0], name=name, id="", obs_type="reaction")
+                    self.Add(groupvec, dG0_noanchors[r, 0], name=name, id="", obs_type="reaction")
                     self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
                 else:
                     self.html_writer.write("Decompositions are equal on both sides - not using as an example</br>\n")
             else:
-                self.html_writer.write("Some CIDs cannot be decomposed - not using as an example</br>\n")
+                self.html_writer.write("Some CIDs cannot be decomposed (%s) - not using as an example</br>\n" %
+                                       ', '.join(['C%05d' % cid for cid in unresolved_cids]))
+            self.html_writer.write("</p>\n")
         
     def ToDatabase(self):
         # This table is used only as an output for checking results
@@ -258,23 +311,7 @@ class GroupObervationCollection(object):
         for obs in self.observations:
             obs.ToDatabase(self.db)
         self.db.Commit()
-        
-        for cid in self.cid2pmap_dict.keys():
-            if cid in self.cid_test_set:
-                use_for = 'test'
-            else:
-                use_for = 'train'
-            for nH, z, nMg, dG0 in self.cid2pmap_dict[cid].ToMatrix():
-                self.db.Insert('pseudoisomer_observation', 
-                    [cid, self.kegg.cid2name(cid), nH, z, nMg, dG0, use_for])
-    
-    def SetPseudoisomerMap(self, cid, pmap):
-        self.cid2pmap_dict[cid] = pmap
-
-    def AddPseudoisomer(self, cid, nH, z, nMg, dG0):
-        self.cid2pmap_dict.setdefault(cid, PseudoisomerMap())
-        self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
-
+            
     def FromDatabase(self):
         self.observations = []
         for row in self.db.Execute("SELECT * FROM group_observations"):
@@ -282,13 +319,6 @@ class GroupObervationCollection(object):
             obs.groupvec = GroupVector(self.groups_data, row[0:self.n_groups])
             obs.dG0, obs.name, obs.cid, obs.obs_type = row[self.n_groups:]
             self.observations.append(obs)
-
-        self.cid2pmap_dict = {}
-        for row in self.db.Execute("SELECT * FROM pseudoisomer_observation"):
-            cid, unused_name, nH, z, nMg, dG0, use_for = row
-            self.AddPseudoisomer(cid, nH, z, nMg, dG0)
-            if use_for == 'test':
-                self.cid_test_set.add(cid)
         
     def GetRegressionData(self):
         """ 
@@ -302,21 +332,16 @@ class GroupObervationCollection(object):
         
         hash2obs_vec = {}
         for obs in self.observations:
-            h = str(obs.groupvec)
-            hash2obs_vec.setdefault(h, []).append(obs)
+            hash2obs_vec.setdefault(obs, []).append(obs)
         
         A = []
         b = []
+        obs_types = []
         names = []
         for h, obs_vec in hash2obs_vec.iteritems():
-            A.append(obs_vec[0].groupvec)
-            
-            all_cids = '; '.join([obs.id or "" for obs in obs_vec])
-            all_names = '; '.join([obs.name or "" for obs in obs_vec])
-            if obs_vec[0].obs_type == 'formation':
-                names.append(all_names)
-            else:
-                names.append('pK:(%s) - [%s]' % (h, all_cids))
+            A.append(h.groupvec)
             b.append(np.mean([obs.dG0 for obs in obs_vec]))
+            obs_types.append(h.obs_type)
+            names.append(';'.join([obs.name for obs in obs_vec]))
             
-        return np.matrix(A), np.array(b), names
+        return np.matrix(A), np.array(b), obs_types, names

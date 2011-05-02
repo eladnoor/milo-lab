@@ -117,7 +117,7 @@ class PseudoisomerMap(object):
 
     def ToMatrix(self):
         res = []
-        for ((nH, z, nMg), dG0_list) in self.dgs.iteritems():
+        for (nH, z, nMg), dG0_list in self.dgs.iteritems():
             for dG0 in dG0_list:
                 res.append((nH, z, nMg, dG0))
         return sorted(res)

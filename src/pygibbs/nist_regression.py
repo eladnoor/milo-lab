@@ -45,7 +45,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
         
-    def ReverseTransform(self, anchors=None):
+    def ReverseTransform(self, anchors=None, cid2nH=None):
         """
             Performs the reverse Lagandre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
@@ -69,7 +69,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             self.override_data(anchors)
             self.anchors.update(anchors.get_all_cids())
                
-        data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized)
+        data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized, cid2nH=cid2nH)
         
         stoichiometric_matrix = data['S']
         cids_to_estimate = data['cids_to_estimate']
@@ -503,8 +503,8 @@ def main():
         nist_anchors = PsuedoisomerTableThermodynamics.FromCsvFile(
             '../data/thermodynamics/nist_anchors.csv')
         
-        #S, dG0, cids = nist_regression.ReverseTransform(nist_anchors)
-        S, dG0, cids = nist_regression.ReverseTransform()
+        S, dG0, cids = nist_regression.ReverseTransform(nist_anchors)
+        #S, dG0, cids = nist_regression.ReverseTransform()
 
         #nist_regression.ExportToTextFiles(S, dG0, cids)
         html_writer.write("<h2>NIST regression:</h2>")
