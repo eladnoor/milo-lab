@@ -11,6 +11,7 @@ from toolbox.database import SqliteDatabase
 import copy
 import csv
 import pydot
+from toolbox.plotting import binned_plot
 
 class NistMissingCrucialDataException(Exception):
     pass
@@ -420,19 +421,34 @@ class Nist(object):
         else:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         
-        for index, xlabel in [(4, 'pH'), (5, 'pMg'), (6, 'I'), (7, 'T')]:
-            fig = pylab.figure()
-            if xlabel == 'T':
-                pylab.plot([(row[index] - 273.15) for row in total_list], [row[0] for row in total_list], '.')
-            else:
-                pylab.plot([row[index] for row in total_list], [row[0] for row in total_list], '.')
-            pylab.title(r'effect of %s' % xlabel, fontsize=14)
-            pylab.ylabel(xlabel, fontsize=14)
-            pylab.ylabel(r'$|\Delta_{obs} G^\circ - \Delta_{est} G^\circ|$ [kJ/mol]', fontsize=14)
-            if name:
-                html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_"+xlabel)
-            else:
-                html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+        fig = pylab.figure()
+        binned_plot(x=[row[4] for row in total_list], # pH
+                    y=[row[0] for row in total_list],
+                    bins=[6,8],
+                    y_type='rmse',
+                    figure=fig)
+        pylab.xlim((4, 11))
+        pylab.ylim((0, 12))
+        pylab.title(r'effect of pH', fontsize=14, figure=fig)
+        pylab.xlabel('pH', fontsize=14, figure=fig)
+        pylab.ylabel(r'average $|\Delta_{obs} G^\circ - \Delta_{est} G^\circ|$ [kJ/mol]', fontsize=14, figure=fig)
+        if name:
+            html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_pH")
+        else:
+            html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+        #for index, xlabel in [(4, 'pH'), (5, 'pMg'), (6, 'I'), (7, 'T')]:
+        #    if xlabel == 'T':
+        #        pylab.plot([(row[index] - 273.15) for row in total_list], [row[0] for row in total_list], '.')
+        #    else:
+        #        pylab.plot([row[index] for row in total_list], [row[0] for row in total_list], '.')
+        #    pylab.title(r'effect of %s' % xlabel, fontsize=14)
+        #    pylab.xlabel(xlabel, fontsize=14)
+        #    pylab.ylabel(r'$|\Delta_{obs} G^\circ - \Delta_{est} G^\circ|$ [kJ/mol]', fontsize=14)
+        #    if name:
+        #        html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_"+xlabel)
+        #    else:
+        #        html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+        
         fig = pylab.figure()
         pylab.hist([(row[1] - row[2]) for row in total_list], bins=pylab.arange(-50, 50, 0.5))
         pylab.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)

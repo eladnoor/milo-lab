@@ -57,3 +57,45 @@ def bootstrap(values_map,colors_map, func=pylab.median, reps=10000, sample_frac=
     pylab.ylabel('Fraction')
     
     pylab.legend(loc='upper left')
+
+def binned_plot(x, y, bins, y_type='mean', figure=None, plot_counts=True):
+    bins_array = pylab.array([min(x)-1e-14] + list(sorted(bins)) + [max(x)-1e-14])
+    binned_y = {}
+    for i in xrange(len(x)):
+        bin_index = pylab.find(bins_array < x[i]).max()
+        binned_y.setdefault(bin_index, []).append(y[i])
+    
+    y_count = []
+    y_vec = []
+    for j in xrange(len(bins) + 1):
+        if j in binned_y:
+            binned_y[j] = pylab.array(binned_y[j])
+            y_count.append(len(binned_y[j]))
+            if y_type == 'mean':
+                y_vec.append(pylab.mean(binned_y[j]))
+            elif y_type == 'rmse':
+                y_vec.append(pylab.sqrt(pylab.mean(binned_y[j] ** 2)))
+            elif y_type == 'std':
+                y_vec.append(pylab.std(binned_y[j]))
+        else:
+            y_count.append(0)
+            y_vec.append(0.0)
+    
+    bin_width = bins_array[1:] - bins_array[0:-1]
+    bin_center = (bins_array[1:] + bins_array[0:-1])/2
+    
+    if not figure:
+        figure = pylab.figure()
+    figure.hold(True)
+    pylab.bar(left=bins_array[0:-1], height=y_vec, width=bin_width, figure=figure)
+    for i in xrange(len(bins) + 1):
+        if y_count[i] > 0:
+            pylab.text(bin_center[i], y_vec[i], '%d' % y_count[i], horizontalalignment='center', fontsize='small')
+        
+if __name__ == "__main__":
+    x = [0, 1, 0.5, 1.1, 2.5, 6, 4,  7, 5.5]
+    y = [0.1, 0.2, 0.1, 0.6,   1.2,   1.3, 1.1, 1.4, 0.1, 0.5]
+    bins = [-0.5, 1.5, 3.5, 5.5, 7.5]
+    fig = pylab.figure()
+    binned_plot(x, y, bins, y_type='rmse', figure=fig)
+    pylab.show()
