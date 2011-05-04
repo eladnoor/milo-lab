@@ -442,13 +442,26 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
         #res['PCR2'] = find_unfeasible_concentrations(S, dG0_f, c_range, c_mid=c_mid, bounds=bounds)
         res['MTDF'] = find_mtdf(S, dG0_f, c_range=c_range, bounds=bounds)
         
-        path = pathway_modelling.Pathway(S, dG0_f)
-        res['pCr_regularized'] = path.FindPcr_OptimizeConcentrations(
-            c_mid=c_mid, ratio=3.0, bounds=bounds)
-        res['pCr_regularized (dGr < -2.7)'] = path.FindPcr_OptimizeConcentrations(
-            c_mid=c_mid, ratio=3.0, bounds=bounds, max_reaction_dg=-2.7)
-        res['MTDF_regularized'] = path.FindMTDF_OptimizeConcentrations(
-            c_range=c_range, bounds=bounds, c_mid=c_mid)
+        #path = pathway_modelling.Pathway(S, dG0_f)
+        #res['pCr_regularized'] = path.FindPcr_OptimizeConcentrations(
+        #    c_mid=c_mid, ratio=3.0, bounds=bounds)
+        #res['pCr_regularized (dGr < -2.7)'] = path.FindPcr_OptimizeConcentrations(
+        #    c_mid=c_mid, ratio=3.0, bounds=bounds, max_reaction_dg=-2.7)
+        #res['MTDF_regularized'] = path.FindMTDF_OptimizeConcentrations(
+        #    c_range=c_range, bounds=bounds, c_mid=c_mid)
+        
+        
+        #costs = []
+        #for max_dg in pylab.arange(0.0,-4.25,-0.25):
+        #    c = path.FindPcrEnzymeCost(c_mid=c_mid,
+        #                               ratio=3.0,
+        #                               bounds=bounds,
+        #                               max_reaction_dg=max_dg,
+        #                               fluxes=fluxes)
+        #    costs.append(str(c))
+        
+        #print ', '.join(costs)
+            
         
     except LinProgNoSolutionException:
         html_writer.write('<b>No feasible solution found, cannot calculate the Margin</b>')

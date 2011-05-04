@@ -117,7 +117,6 @@ class ParsedKeggFile(dict):
             logging.warning('Overwriting existing entry for %s', entry)
         self[entry] = EntryDictWrapper(fields)
 
-
     @staticmethod
     def FromKeggFile(filename):
         """Parses a file from KEGG.
@@ -129,6 +128,20 @@ class ParsedKeggFile(dict):
             A dictionary mapping entry names to fields.
         """
         kegg_file = open(filename, 'r')
+        return ParsedKeggFile._FromKeggFileHandle(kegg_file)
+
+    @staticmethod
+    def _FromKeggFileHandle(kegg_file):
+        """Parses a file from KEGG. Uses a file handle directly.
+        
+        For testing.
+    
+        Args:
+            filename: the name of the file to parse.
+        
+        Returns:
+            A dictionary mapping entry names to fields.
+        """
         parsed_file = ParsedKeggFile()
     
         curr_field = ""

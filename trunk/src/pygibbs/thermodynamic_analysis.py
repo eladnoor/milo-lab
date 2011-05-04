@@ -18,6 +18,7 @@ from pygibbs.feasibility import LinProgNoSolutionException, thermodynamic_pathwa
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs import kegg_utils
+from pygibbs.pathway import PathwayData
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import transform
@@ -43,14 +44,17 @@ class ThermodynamicAnalysis(object):
         
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
-            if field_map.GetBoolField('SKIP'):
+            p_data = PathwayData.FromFieldMap(field_map)
+            
+            if p_data.skip:
                 logging.info("Skipping pathway: %s", key)
                 continue
             try:
                 self.html_writer.write('<p>\n')
                 a_name = field_map.GetStringField('NAME')
                 a_type = field_map.GetStringField('TYPE')
-                self.html_writer.write('<h2>%s - %s</h2>\n' % (a_name, a_type))
+                self.html_writer.write('<h2>%s - %s</h2>\n' % (p_data.name,
+                                                               p_data.analysis_type))
                 if insert_toggles:
                     self.html_writer.insert_toggle(key)
                     self.html_writer.start_div(key)
@@ -67,9 +71,8 @@ class ThermodynamicAnalysis(object):
                              'PROTONATION':self.analyze_protonation,
                              'STANDARD':self.analyze_standard_conditions}
 
-            analysis_type = field_map.GetStringField('TYPE')
-            if analysis_type in function_dict:
-                function_dict[analysis_type](key, field_map)     
+            if p_data.analysis_type in function_dict:
+                function_dict[p_data.analysis_type](key, p_data)     
             else:
                 raise Exception("Unknown analysis type: " + analysis_type)
             if insert_toggles:
@@ -98,8 +101,9 @@ class ThermodynamicAnalysis(object):
             raise Exception("The parameter %s appears more than once in %s" % (name, s))
         return float(tokens[0])
 
-    def get_bounds(self, module_name, field_map):
+    def get_bounds(self, module_name, pathway_data):
         cid2bounds = {1: (1, 1)} # the default for H2O is 1
+        field_map = pathway_data.field_map
         if "BOUND" in field_map:
             for line in field_map["BOUND"].strip().split('\t'):
                 tokens = line.split(None)
@@ -141,29 +145,22 @@ class ThermodynamicAnalysis(object):
             l.append(s)
         self.html_writer.write_ul(l)
 
-    def get_reactions(self, module_name, field_map):
+    def get_reactions(self, module_name, pathway_data):
         """
             read the list of reactions from the command file
         """
         # Explicitly map some of the CIDs to new ones.
         # This is useful, for example, when a KEGG module uses unspecific co-factor pairs,
         # like NTP => NDP, and we replace them with ATP => ADP 
-        cid_mapping = {}
-        if "MAP_CID" in field_map:
-            for line in field_map["MAP_CID"].strip().split('\t'):
-                cid_before, cid_after = [int(cid[1:]) for cid in line.split(None, 1)]
-                cid_mapping[cid_before] = (cid_after, 1.0)
+        cid_mapping = pathway_data.cid_mapping
+        field_map = pathway_data.field_map
         
-        if "MODULE" in field_map:
-            mid_str = field_map["MODULE"]
-            if (mid_str[0] == 'M'):
-                mid = int(mid_str[1:])
-            else:
-                mid = int(mid_str)
-            S, rids, fluxes, cids = self.kegg.get_module(mid)
+        mid = pathway_data.kegg_module_id
+        if mid is not None:
+            S, rids, fluxes, cids = self.kegg.get_module(pathway_data.kegg_module_id)
             for i, cid in enumerate(list(cids)):
                 if cid in cid_mapping:
-                    (new_cid, coeff) = cid_mapping[cid]
+                    new_cid, coeff = cid_mapping[cid]
                     cids[i] = new_cid
                     S[:, i] *= coeff
             self.html_writer.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
@@ -192,8 +189,11 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write("</li></ul></li>\n")
         
         # Write the kegg-formatted pathway.
-        reactions = map(self.kegg.rid2reaction, rids)
-        kegg_utils.write_kegg_pathway(self.html_writer, reactions, fluxes)
+        try:
+            reactions = map(self.kegg.rid2reaction, rids)
+            kegg_utils.write_kegg_pathway(self.html_writer, reactions, fluxes)
+        except KeyError, e:
+            logging.warning('Unknown reaction %s', e)
         
     def write_metabolic_graph(self, name, S, rids, cids):
         """
@@ -202,13 +202,13 @@ class ThermodynamicAnalysis(object):
         Gdot = self.kegg.draw_pathway(S, rids, cids)
         self.html_writer.embed_dot(Gdot, name, width=400, height=400)
 
-    def get_conditions(self, field_map):
-        self.thermo.pH = field_map.GetFloatField("PH", self.thermo.pH)
-        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
-        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        self.thermo.pMg = field_map.GetFloatField("PMG", self.thermo.pMg)
-        self.thermo.c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
-        self.thermo.c_mid = field_map.GetFloatField('C_MID', default_value=self.thermo.c_mid)
+    def get_conditions(self, pathway_data):
+        self.thermo.pH = pathway_data.pH or self.thermo.pH
+        self.thermo.I = pathway_data.I or self.thermo.I
+        self.thermo.T = pathway_data.T or self.thermo.T
+        self.thermo.pMg = pathway_data.pMg or self.thermo.pMg
+        self.thermo.c_range = pathway_data.c_range or tuple(self.thermo.c_range)
+        self.thermo.c_mid = pathway_data.c_mid or self.thermo.c_mid
         
         self.html_writer.write('Parameters:</br>\n')
         condition_list = ['pH = %g' % self.thermo.pH,
@@ -219,43 +219,30 @@ class ThermodynamicAnalysis(object):
                           'Default concentration = %g M' % self.thermo.c_mid]
         self.html_writer.write_ul(condition_list)
 
-    def analyze_profile(self, key, field_map):
+    def analyze_profile(self, key, pathway_data):
         self.html_writer.write('<ul>\n')
         self.html_writer.write('<li>Conditions:</br><ol>\n')
         # read the list of conditions from the command file
-        conditions = []
-        for condition in field_map["CONDITIONS"].split('\t'):
-            (media, pH, I, T, c0) = (None, default_pH, default_I, default_T, default_c0)
-            media = re.findall("media=([a-zA-Z_]+)", condition)[0]
-            if (media == 'None'):
-                media = None
-            pH = ThermodynamicAnalysis.get_float_parameter(condition, "pH", default_pH)
-            I = ThermodynamicAnalysis.get_float_parameter(condition, "I", default_I)
-            T = ThermodynamicAnalysis.get_float_parameter(condition, "T", default_T)
-            c0 = ThermodynamicAnalysis.get_float_parameter(condition, "c0", default_c0)
-            conditions.append((media, pH, I, T, c0))
+        for condition in pathway_data.conditions:
+            media, pH, I = condition.media, condition.pH, condition.I
+            T, c0 = condition.T, condition.c0
             self.html_writer.write('<li>Conditions: media = %s, pH = %g, I = %g M, T = %g K, c0 = %g</li>\n' % (media, pH, I, T, c0))
         self.html_writer.write('</ol></li>\n')
-        
-        # read the list of methods for calculating the dG
-        methods = []
-        if field_map.GetBoolField('MILO', default_value=True):
-            methods.append('MILO')
-        if field_map.GetBoolField('HATZI', default_value=False):
-            methods.append('HATZI')
         
         # prepare the legend for the profile graph
         legend = []
         dG_profiles = {}
         params_list = []
-        for (media, pH, I, T, c0) in conditions:
-            for method in methods:
+        for condition in pathway_data.conditions:
+            for method in p.dG_methods:
+                media, pH, I = condition.media, condition.pH, condition.I
+                T, c0 = condition.T, condition.c0
                 plot_key = method + ' dG (media=%s,pH=%g,I=%g,T=%g,c0=%g)' % (str(media), pH, I, T, c0)
                 legend.append(plot_key)
                 dG_profiles[plot_key] = []
                 params_list.append((method, media, pH, I, T, c0, plot_key))
 
-        (S, rids, fluxes, cids) = self.get_reactions(key, field_map)
+        (S, rids, fluxes, cids) = self.get_reactions(key, pathway_data)
         self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
         self.html_writer.write('</ul>')
         self.write_metabolic_graph(key, S, rids, cids)
@@ -307,32 +294,33 @@ class ThermodynamicAnalysis(object):
         pylab.ylabel("dG [kJ/mol]")
         self.html_writer.embed_matplotlib_figure(profile_fig, width=800, heigh=600)
     
-    def analyze_slack(self, key, field_map):
+    def analyze_slack(self, key, pathway_data):
         self.html_writer.write('<ul>\n')
         self.html_writer.write('<li>Conditions:</br><ol>\n')
-        # c_mid the middle value of the margin: min(conc) < c_mid < max(conc) 
-        c_mid = field_map.GetFloatField('C_MID', default_value=1e-3)
-        (pH, I, T) = (default_pH, default_I, default_T)
+        # c_mid the middle value of the margin: min(conc) < c_mid < max(conc)
+        c_mid = 1e-3
+        pH, I, T = default_pH, default_I, default_T
         concentration_bounds = copy.deepcopy(self.kegg.cid2bounds)
-        if ("CONDITIONS" in field_map):
-            pH = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "pH", default_pH)
-            I = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "I", default_I)
-            T = ThermodynamicAnalysis.get_float_parameter(field_map["CONDITIONS"], "T", default_T)
+        if len(pathway_data.conditions) > 1:
+            raise Exception('More than 1 condition listed for SLACK analysis')
+        
+        if pathway_data.conditions:
+            c = pathway_data.conditions[0]
+            pH, I, T = c.pH, c.I, c.T
             self.html_writer.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (pH, I, T))
-            for tokens in re.findall("C([0-9]+)=([0-9\.e\+\-]+)", field_map["CONDITIONS"]):
-                cid = float(tokens[0])
-                conc = float(tokens[1])
-                concentration_bounds[cid] = (conc, conc)
-                self.html_writer.write(', [C%05d] = %g\n' % (cid, conc))
-            self.html_writer.write('</li>\n')
+            
+        if pathway_data.c_mid:
+            c_mid = pathway_data.c_mid
+            
         self.html_writer.write('</ol></li>')
                     
         # The method for how we are going to calculate the dG0
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
         self.html_writer.write('</ul>\n')
         self.write_metabolic_graph(key, S, rids, cids)
-        
+
+        field_map = pathway_data.field_map        
         physiological_pC = field_map.GetFloatField('PHYSIO', default_value=4)
         Nr, Nc = S.shape
 
@@ -420,22 +408,24 @@ class ThermodynamicAnalysis(object):
             self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%g</td>\n' % (rid_str, reaction_str, fluxes[r]))
         self.html_writer.write('</table><br>\n')
 
-    def analyze_margin(self, key, field_map):
-        self.get_conditions(field_map)
-        cid2bounds = self.get_bounds(key, field_map)
+    def analyze_margin(self, key, pathway_data):
+        self.get_conditions(pathway_data)
+        cid2bounds = self.get_bounds(key, pathway_data)
         self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
                 
         thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
 
-    def analyze_contour(self, key, field_map):
-        pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
-        I_list = field_map.GetVFloatField("I", [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4])
-        T = field_map.GetFloatField("T", default_T)
+    def analyze_contour(self, key, pathway_data):
+        field_map = pathway_data.field_map
+        pH_list = pathway_data.pH_values
+        I_list = pathway_data.I_values
+        T = pathway_data.T
+        c0 = pathway_data.c0 or 1.0
+        
         most_abundant = field_map.GetBoolField("ABUNDANT", False)
         formula = field_map.GetStringField("REACTION")
-        c0 = field_map.GetFloatField("C0", 1.0)
         media = field_map.GetStringField("MEDIA", "None")
         if media == "None":
             media = None
@@ -452,12 +442,15 @@ class ThermodynamicAnalysis(object):
         self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
         self.html_writer.write('<br>\n' + self.kegg.sparse_to_hypertext(sparse_reaction) + '<br>\n')
 
-    def analyze_protonation(self, key, field_map):
-        pH_list = field_map.GetVFloatField("PH", [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0])
-        I = field_map.GetFloatField("I", default_I)
-        T = field_map.GetFloatField("T", default_T)
+    def analyze_protonation(self, key, pathway_data):
+        field_map = pathway_data.field_map
+        pH_list = pathway_data.pH_values
+        I = pathway_data.I        
+        T = pathway_data.T
+        
         cid = field_map.GetStringField("COMPOUND")
         cid = int(cid[1:])
+        
         pmatrix = self.thermo.cid2PseudoisomerMap(cid).ToMatrix()
         data = pylab.zeros((len(self.cid), len(pH_list)))
         for j in range(len(pH_list)):
@@ -483,14 +476,14 @@ class ThermodynamicAnalysis(object):
             self.html_writer.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
         self.html_writer.write('</table>')
 
-    def analyze_redox(self, key, field_map):
-        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
-        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(4.0, 10.01, 0.25))
-        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(-3.0, 3.01, 0.5))
-        c_mid = field_map.GetFloatField("C_MID", thermo.c_mid)
+    def analyze_redox(self, key, pathway_data):
+        self.thermo.I = pathway_data.I or self.thermo.I
+        self.thermo.T = pathway_data.T or self.thermo.T 
+        pH_list = pathway_data.pH_values
+        redox_list = pathway_data.redox_values or pylab.arange(-3.0, 3.01, 0.5)
+        c_mid = pathway_data.c_mid or thermo.c_mid
 
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
 
@@ -521,12 +514,14 @@ class ThermodynamicAnalysis(object):
         pylab.title("pCr as a function of pH and Redox state")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
         
-    def analyze_redox2(self, key, field_map):
-        self.thermo.I = field_map.GetFloatField("I", self.thermo.I)
-        self.thermo.T = field_map.GetFloatField("T", self.thermo.T)
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.25))
+    def analyze_redox2(self, key, pathway_data):
+        self.thermo.I = pathway_data.I or self.thermo.I
+        self.thermo.T = pathway_data.T or self.thermo.T 
+        pH_list = pathway_data.pH_values
+        c_range = pathway_data.c_range or tuple(self.thermo.c_range)
+
+        field_map = pathway_data.field_map        
         co2_list = field_map.GetVFloatField("LOG_CO2", pylab.arange(-5.0, -1.99, 0.25))
-        c_range = tuple(field_map.GetVFloatField("C_RANGE", self.thermo.c_range))
         
         self.html_writer.write('Parameters:</br>\n')
         self.html_writer.write('<ul>\n')
@@ -538,7 +533,7 @@ class ThermodynamicAnalysis(object):
         
         self.html_writer.insert_toggle(key)
         self.html_writer.start_div(key)
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
         self.html_writer.end_div()
@@ -595,20 +590,20 @@ class ThermodynamicAnalysis(object):
         pylab.title("minimal $\\log{\\frac{[NADH]}{[NAD+]}}$ required for feasibility")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
         
-    def analyze_redox3(self, key, field_map):
+    def analyze_redox3(self, key, pathway_data):
         self.html_writer.insert_toggle(key)
         self.html_writer.start_div(key)
-        self.get_conditions(field_map)
-        cid2bounds = self.get_bounds(key, field_map)
+        self.get_conditions(pathway_data)
+        cid2bounds = self.get_bounds(key, pathway_data)
         self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
         self.html_writer.end_div()
         self.html_writer.write('</br>\n')
 
-        pH_list = field_map.GetVFloatField("PH", pylab.arange(5.0, 9.01, 0.2))
-        redox_list = field_map.GetVFloatField("REDOX", pylab.arange(0.0, 3.01, 0.2))
+        pH_list = pathway_data.pH_values 
+        redox_list = pathway_data.redox_values or pylab.arange(0.0, 3.01, 0.2)
         
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
@@ -636,7 +631,8 @@ class ThermodynamicAnalysis(object):
                 except LinProgNoSolutionException:
                     ratio_mat[i, j] = cid2bounds[11][1] + 1.0 # i.e. 10 times higher than the upper bound
                     feasibility_mat[i, j] = 1.0
-                
+        
+        field_map = pathway_data.field_map  
         matfile = field_map.GetStringField("MATFILE", "")
         if matfile:
             scipy.io.savemat(matfile, {"pH":pH_mat, "redox":redox_mat, "co2":ratio_mat}, oned_as='column')
@@ -665,9 +661,9 @@ class ThermodynamicAnalysis(object):
         #plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
         #self.html_writer.embed_matplotlib_figure(heatmat_fig, width=640, height=480)
 
-    def analyze_standard_conditions(self, key, field_map):
-        self.get_conditions(field_map)
-        S, rids, fluxes, cids = self.get_reactions(key, field_map)
+    def analyze_standard_conditions(self, key, pathway_data):
+        self.get_conditions(pathway_data)
+        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
 

@@ -156,6 +156,7 @@ class Pathway(object):
 
     def FindMtdf_Regularized(self, c_range=(1e-6, 1e-2), bounds=None,
                              c_mid=1e-3,
+                             min_mtdf=None,
                              max_mtdf=None):
         """Find the MTDF (Maximal Thermodynamic Driving Force).
         
@@ -177,8 +178,15 @@ class Pathway(object):
         
         # Set the objective and solve.
         norm2_resid = cvxmod.norm2(dgf_primes - dg_mids)
-        if max_mtdf is not None:
+        if max_mtdf is not None and min_mtdf is not None:
             problem.constr.append(motive_force <= max_mtdf)
+            problem.constr.append(motive_force >= min_mtdf)
+            problem.objective = cvxmod.minimize(norm2_resid)
+        elif max_mtdf is not None:
+            problem.constr.append(motive_force <= max_mtdf)
+            problem.objective = cvxmod.minimize(norm2_resid)
+        elif min_mtdf is not None:
+            problem.constr.append(motive_force >= min_mtdf)
             problem.objective = cvxmod.minimize(norm2_resid)
         else:
             problem.objective = cvxmod.minimize(motive_force + norm2_resid)
@@ -204,7 +212,8 @@ class Pathway(object):
             A 3 tuple (dGfs, concentrations, MTDF value).
         """
         _, _, opt_mtdf = self.FindMtdf(c_range, bounds)
-        return self.FindMtdf_Regularized(c_range, bounds, c_mid, opt_mtdf)
+        return self.FindMtdf_Regularized(c_range, bounds, c_mid,
+                                         max_mtdf=opt_mtdf)
 
     def _MakePcrBounds(self, c_mid, bounds):
         """Make pCr-related bounds on the formation energies.
@@ -372,7 +381,7 @@ class Pathway(object):
 
     def FindPcrEnzymeCost(self, c_mid=1e-3, ratio=3.0,
                           bounds=None, max_reaction_dg=None,
-                          fluxes=None, km=1e-4, kcat=1e2):
+                          fluxes=None, km=1e-5, kcat=1e2):
         """Find the enzymatic cost at the pCr.
         
         TODO(flamholz): account for enzyme mass or # of amino acids.
@@ -395,13 +404,13 @@ class Pathway(object):
             kcat: the kcat value to use for all enzymes.
         
         Returns:
-            A float indicating the projected enzyme cost.
+            A 3-tuple (total cost, per enzyme cost, concentrations).
         """
         dgs, concentrations, opt_pcr = self.FindPcr_OptimizeConcentrations(
             c_mid, ratio, bounds, max_reaction_dg)
         
         fluxes = fluxes or [1.0]*self.Nr
-        cost = 0.0
+        costs = []
         for i in xrange(self.Nr):
             rxn = self.S[i, :]
             substrate_indices = pylab.find(rxn < 0)
@@ -411,10 +420,9 @@ class Pathway(object):
             s = min(substrate_concentrations)
             v = fluxes[i]
             enzyme_units = v * (km + s) / (kcat*s)
-            
-            cost += enzyme_units
+            costs.append(enzyme_units)
         
-        return cost
+        return sum(costs), costs, concentrations
     
 
 if __name__ == '__main__':
