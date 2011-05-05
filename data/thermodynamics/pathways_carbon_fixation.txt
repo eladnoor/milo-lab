@@ -1,13 +1,13 @@
 ENTRY       R01-CALVIN_NADP
-SKIP        FALSE
+SKIP        TRUE
 NAME        rPP cycle (with NADP)
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-MATFILE     ../res/thermo_analysis/calvin.mat
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r01_calvin.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -33,14 +33,15 @@ REACTION    R00024  C01182 + C00288 -> 2 C00197 (x1)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       R02-rTCA
-SKIP        FALSE
+SKIP        TRUE
 NAME        rTCA cycle
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r02_tca.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -65,14 +66,15 @@ REACTION    R00343  C00036 + C00005 -> C00149 + C00006 (x0.5)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       R03-DC-4HB
-SKIP        FALSE
+SKIP        TRUE
 NAME        Dicarboxylate / 4-Hydroxybutyrate
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r03_DC-4HB.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -101,14 +103,15 @@ REACTION    R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
 ENTRY       R04-3HP-4HB
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r04_3HP-4HB.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -147,10 +150,11 @@ SKIP        FALSE
 NAME        3-Hydroxypropionate Cycle
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r05_3HP.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -185,10 +189,11 @@ SKIP        FALSE
 NAME        C1-1
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r06_C1-1.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -210,10 +215,11 @@ SKIP        FALSE
 NAME        C1-3
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r07_C1-3.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -233,10 +239,11 @@ SKIP        FALSE
 NAME        C1-4
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r08_C1-4.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -257,10 +264,11 @@ SKIP        FALSE
 NAME        C1-5
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r09_C1-5.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
@@ -282,10 +290,11 @@ SKIP        FALSE
 NAME        Ivanovsky pathway
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-3
-            C00008  1e-4
+MATFILE     ../res/thermo_analysis/r10_ivanovsky.mat
+BOUND       C00002  1e-2
+            C00008  5e-4
             C00020  None
-            C00009  1e-3
+            C00009  3e-2
             C00013  None
             C00011  1e-6 1
             C00288  None
