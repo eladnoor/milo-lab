@@ -8,9 +8,6 @@ import pylab
 import re
 import sys
 
-import matplotlib.pyplot as plt
-import scipy.io
-
 from copy import deepcopy
 from optparse import OptionParser
 from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr
@@ -23,11 +20,12 @@ from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import transform
 from pygibbs.thermodynamic_constants import default_T, default_pH
-from pygibbs.thermodynamic_constants import default_I, default_c0, R
+from pygibbs.thermodynamic_constants import default_I, default_c0, R, F
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
-
+import scipy.io
+import matplotlib.pyplot as plt
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -51,8 +49,6 @@ class ThermodynamicAnalysis(object):
                 continue
             try:
                 self.html_writer.write('<p>\n')
-                a_name = field_map.GetStringField('NAME')
-                a_type = field_map.GetStringField('TYPE')
                 self.html_writer.write('<h2>%s - %s</h2>\n' % (p_data.name,
                                                                p_data.analysis_type))
                 if insert_toggles:
@@ -74,7 +70,7 @@ class ThermodynamicAnalysis(object):
             if p_data.analysis_type in function_dict:
                 function_dict[p_data.analysis_type](key, p_data)     
             else:
-                raise Exception("Unknown analysis type: " + analysis_type)
+                raise Exception("Unknown analysis type: " + p_data.analysis_type)
             if insert_toggles:
                 self.html_writer.end_div()
             self.html_writer.write('</p>\n')
@@ -234,7 +230,7 @@ class ThermodynamicAnalysis(object):
         dG_profiles = {}
         params_list = []
         for condition in pathway_data.conditions:
-            for method in p.dG_methods:
+            for method in pathway_data.dG_methods:
                 media, pH, I = condition.media, condition.pH, condition.I
                 T, c0 = condition.T, condition.c0
                 plot_key = method + ' dG (media=%s,pH=%g,I=%g,T=%g,c0=%g)' % (str(media), pH, I, T, c0)
@@ -591,19 +587,16 @@ class ThermodynamicAnalysis(object):
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
         
     def analyze_redox3(self, key, pathway_data):
-        self.html_writer.insert_toggle(key)
-        self.html_writer.start_div(key)
         self.get_conditions(pathway_data)
         cid2bounds = self.get_bounds(key, pathway_data)
         self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
         S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-        self.html_writer.end_div()
         self.html_writer.write('</br>\n')
 
-        pH_list = pathway_data.pH_values 
-        redox_list = pathway_data.redox_values or pylab.arange(0.0, 3.01, 0.2)
+        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.25)
+        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.025)
         
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
@@ -613,9 +606,11 @@ class ThermodynamicAnalysis(object):
             self.thermo.pH = pH
             dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
             for j, redox in enumerate(redox_list):
-                r = 10**(redox)
+                E0 = -0.32 # for NADP+/NADPH (in V)
+                r = pylab.exp(-2*F/(1000*R*default_T) * (redox - E0))
                 cid2bounds[6] = (1e-5, 1e-5) # NADP+
                 cid2bounds[5] = (1e-5*r, 1e-5*r) # NADPH
+                #print redox, pylab.log10(r)
 
                 pH_mat[i, j] = pH
                 redox_mat[i, j] = redox
@@ -646,7 +641,7 @@ class ThermodynamicAnalysis(object):
         plt.xlim(min(pH_list), max(pH_list))
         plt.ylim(min(redox_list), max(redox_list))
         plt.xlabel("pH")
-        plt.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
+        plt.ylabel("$E^'$ (V)")
         plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
 
