@@ -3,6 +3,7 @@ SKIP        FALSE
 NAME        rPP cycle (with NADP)
 TYPE        REDOX
 C_RANGE     1e-6 1e-3
+MATFILE     ../res/thermo_analysis/calvin.mat
 BOUND       C00002  1e-3
             C00008  1e-4
             C00020  None
@@ -276,7 +277,7 @@ REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R00945  C00143 + C00037 + C00001 -> C00101 + C00065 (x0.5)
             R00220  C00065 -> C00022 + C00014 (x0.5)
 ///
-ENTRY       R00-Ivanovsky
+ENTRY       R10-Ivanovsky
 SKIP        FALSE
 NAME        Ivanovsky pathway
 TYPE        REDOX
