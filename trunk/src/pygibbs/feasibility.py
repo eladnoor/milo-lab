@@ -394,6 +394,8 @@ def find_ratio(S, rids, fluxes, cids, dG0_f, cid_up, cid_down, c_range=(1e-6, 1e
     concentrations = pylab.exp((dG_f-dG0_f)/(R*T))
     log_ratio = pylab.log10(concentrations[i_up, 0] / concentrations[i_down, 0])
 
+    del cpl
+
     return dG_f, concentrations, log_ratio
 
 

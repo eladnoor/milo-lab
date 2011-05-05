@@ -595,8 +595,8 @@ class ThermodynamicAnalysis(object):
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
         self.html_writer.write('</br>\n')
 
-        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.25)
-        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.025)
+        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.05)
+        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.005)
         
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
