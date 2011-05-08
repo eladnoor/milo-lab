@@ -54,6 +54,15 @@ def main():
     kegg_reactions = Kegg.getInstance().AllReactions()
     nist_reactions = nist.GetUniqueReactionSet()
     
+    html_writer.write('<p><b>%s</b> ' % 'Hatzi pKa advantage')
+    html_writer.insert_toggle(key)
+    html_writer.start_div(key)
+    nist.two_way_comparison(html_writer=html_writer, 
+                            thermo1=estimators['hatzi_gc'],
+                            thermo2=estimators['hatzi_gc_pka'],
+                            name=key)
+    html_writer.end_div()
+    
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % key)
         html_writer.write('<p><b>%s</b> ' % key)

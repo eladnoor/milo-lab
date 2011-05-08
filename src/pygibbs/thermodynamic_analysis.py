@@ -11,7 +11,7 @@ import sys
 from copy import deepcopy
 from optparse import OptionParser
 from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr
-from pygibbs.feasibility import LinProgNoSolutionException, thermodynamic_pathway_analysis, find_ratio
+from pygibbs.feasibility import LinProgNoSolutionException, find_ratio
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs import kegg_utils
@@ -20,12 +20,14 @@ from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import transform
 from pygibbs.thermodynamic_constants import default_T, default_pH
-from pygibbs.thermodynamic_constants import default_I, default_c0, R, F
+from pygibbs.thermodynamic_constants import default_I, R, F
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
 import scipy.io
 import matplotlib.pyplot as plt
+from pygibbs.pathway_modelling import KeggPathway,\
+    UnsolvableConvexProblemException
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -411,7 +413,29 @@ class ThermodynamicAnalysis(object):
         S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
                 
-        thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
+        #thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
+        dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+        keggpath = KeggPathway(S, rids, fluxes, cids, dG0_f,
+                               cid2bounds=cid2bounds, c_range=self.thermo.c_range)
+        try:
+            dG_f, concentrations, mtdf = keggpath.FindMtdf()
+        except UnsolvableConvexProblemException as e:
+            self.html_writer.write("<b>WARNING: cannot calculate MTDF "
+                                   "because the problem is %s:</b></br>\n" %
+                                   str(e))
+            problem_str = str(e.problem).replace('\n', '</br>\n')
+            self.html_writer.write("%s" % problem_str)
+            return
+        
+        profile_fig = keggpath.PlotProfile(dG_f)
+        pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=profile_fig)
+        self.html_writer.embed_matplotlib_figure(profile_fig)
+        
+        concentration_fig = keggpath.PlotConcentrations(concentrations)
+        pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=concentration_fig)
+        self.html_writer.embed_matplotlib_figure(concentration_fig)
+        
+        keggpath.WriteResultsToHtmlTables(self.html_writer, dG_f, concentrations)
 
     def analyze_contour(self, key, pathway_data):
         field_map = pathway_data.field_map
@@ -594,38 +618,34 @@ class ThermodynamicAnalysis(object):
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
         self.html_writer.write('</br>\n')
-
+        
         pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.05)
         redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.005)
         
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
         ratio_mat = pylab.zeros((len(pH_list), len(redox_list)))
-        feasibility_mat = pylab.zeros((len(pH_list), len(redox_list)))
         for i, pH in enumerate(pH_list):
             self.thermo.pH = pH
             dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
             for j, redox in enumerate(redox_list):
+                pH_mat[i, j] = pH
+                redox_mat[i, j] = redox
+                
                 E0 = -0.32 # for NADP+/NADPH (in V)
                 r = pylab.exp(-2*F/(1000*R*default_T) * (redox - E0))
                 cid2bounds[6] = (1e-5, 1e-5) # NADP+
                 cid2bounds[5] = (1e-5*r, 1e-5*r) # NADPH
-                #print redox, pylab.log10(r)
-
-                pH_mat[i, j] = pH
-                redox_mat[i, j] = redox
+                logging.debug("E = %g, ratio = %.1g" % (redox, r))
                 
+                keggpath = KeggPathway(S, rids, fluxes, cids, dG0_f,
+                                       cid2bounds, c_range=self.thermo.c_range)
                 try:
-                    _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=11, cid_down=1, 
-                        c_range=self.thermo.c_range, T=self.thermo.T, cid2bounds=cid2bounds)
-                    ratio_mat[i, j] = log_ratio
-                    if log_ratio < -5:
-                        feasibility_mat[i, j] = 0.0
-                    else:
-                        feasibility_mat[i, j] = 0.5
-                except LinProgNoSolutionException:
+                    # minimize CO2 concentration
+                    _dGf, _concentrations, min_conc = keggpath.FindMinimalFeasibleConcentration(11)
+                    ratio_mat[i, j] = pylab.log10(min_conc)
+                except UnsolvableConvexProblemException:
                     ratio_mat[i, j] = cid2bounds[11][1] + 1.0 # i.e. 10 times higher than the upper bound
-                    feasibility_mat[i, j] = 1.0
         
         field_map = pathway_data.field_map  
         matfile = field_map.GetStringField("MATFILE", "")
@@ -635,7 +655,6 @@ class ThermodynamicAnalysis(object):
         contour_fig = pylab.figure()
         pylab.hold(True)
         matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
-        plt.contourf(pH_mat, redox_mat, feasibility_mat, [-1.0, 0.25, 0.75, 2.0])
         CS = plt.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-4.5, -1.49, 0.5), colors='k')
         plt.clabel(CS, inline=1, fontsize=7, colors='black')
         plt.xlim(min(pH_list), max(pH_list))
@@ -644,17 +663,6 @@ class ThermodynamicAnalysis(object):
         plt.ylabel("$E^'$ (V)")
         plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
-
-        #heatmat_fig = plt.figure()
-        #plt.pcolor(pH_mat, redox_mat, ratio_mat)
-        #plt.colorbar()
-        #plt.xlim(min(pH_list), max(pH_list))
-        #plt.ylim(min(redox_list), max(redox_list))
-        #plt.clim((cid2bounds[11][0], cid2bounds[11][1]+1.0))
-        #plt.xlabel("pH")
-        #plt.ylabel("$\\log{\\frac{[NADPH]}{[NADP+]}}$")
-        #plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
-        #self.html_writer.embed_matplotlib_figure(heatmat_fig, width=640, height=480)
 
     def analyze_standard_conditions(self, key, pathway_data):
         self.get_conditions(pathway_data)
