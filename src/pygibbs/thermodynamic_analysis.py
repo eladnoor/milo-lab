@@ -7,6 +7,7 @@ import os
 import pylab
 import re
 import sys
+import numpy as np
 
 from copy import deepcopy
 from optparse import OptionParser
@@ -619,8 +620,8 @@ class ThermodynamicAnalysis(object):
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
         self.html_writer.write('</br>\n')
         
-        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.05)
-        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.005)
+        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.25)
+        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.025)
         
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
@@ -650,12 +651,15 @@ class ThermodynamicAnalysis(object):
         field_map = pathway_data.field_map  
         matfile = field_map.GetStringField("MATFILE", "")
         if matfile:
-            scipy.io.savemat(matfile, {"pH":pH_mat, "redox":redox_mat, "co2":ratio_mat}, oned_as='column')
+            scipy.io.savemat(matfile, {"pH":pH_mat, "redox":redox_mat, 
+                "co2":ratio_mat, "S":S, "rids":np.array(rids),
+                "fluxes":np.array(fluxes), "cids":np.array(cids),
+                "dG0_f":dG0_f}, oned_as='column')
         
         contour_fig = pylab.figure()
         pylab.hold(True)
         matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
-        CS = plt.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-4.5, -1.49, 0.5), colors='k')
+        CS = plt.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-4.5, 0.01, 0.5), colors='k')
         plt.clabel(CS, inline=1, fontsize=7, colors='black')
         plt.xlim(min(pH_list), max(pH_list))
         plt.ylim(min(redox_list), max(redox_list))
@@ -680,7 +684,9 @@ def MakeOpts():
                           choices=['observed_only',
                                    'hatzi_only',
                                    'milo_only',
-                                   'milo_merged'],
+                                   'milo_merged',
+                                   'regression',
+                                   'alberty'],
                           default="milo_merged",
                           help="The thermodynamic data to use")
     opt_parser.add_option("-k", "--kegg_database_location", 
@@ -717,7 +723,6 @@ if __name__ == "__main__":
     print 'Will write output to %s' % output_filename
     
     thermo_source = options.thermodynamics_source
-    assert thermo_source in ('observed_only', 'hatzi_only', 'milo_only', 'milo_merged')
     print 'Will load thermodynamic data from source "%s"' % thermo_source
     
     db_loc = options.db_filename
@@ -766,6 +771,9 @@ if __name__ == "__main__":
         thermo = PsuedoisomerTableThermodynamics.FromDatabase(
             db, 'gc_pseudoisomers')
         thermo.override_data(observed_thermo)
+    elif thermo_source == 'regression':
+        thermo = PsuedoisomerTableThermodynamics.FromDatabase(
+            db, 'nist_regression_pseudoisomers')
     elif thermo_source == 'observed_only':
         thermo = observed_thermo
     else:
