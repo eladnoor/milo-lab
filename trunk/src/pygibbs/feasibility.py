@@ -507,8 +507,8 @@ def thermodynamic_pathway_analysis(S, rids, fluxes, cids, thermodynamics, html_w
     
     pylab.grid(True, figure=profile_fig)
     for optimization in res.keys():
-        (dG_f, conc, score) = res[optimization]
-        if (score == None):
+        dG_f, conc, score = res[optimization]
+        if score is None:
             continue
 
         dG_r = pylab.dot(S, dG_f)

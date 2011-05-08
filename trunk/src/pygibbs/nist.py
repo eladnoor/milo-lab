@@ -481,6 +481,51 @@ class Nist(object):
         
         return len(dG0_obs_vec), rmse
     
+    def two_way_comparison(self, html_writer, thermo1, thermo2, name=None):
+        """
+            Compare the estimation errors of two different evaluation methods.
+        
+        Write results to HTML.
+        
+        Args:
+            thermo1: a Thermodynamics object that provides dG estimates.
+            thermo2: a Thermodynamics object that provides dG estimates.
+        """
+        
+        total_list = []
+        
+        for row_data in self.SelectRowsFromNist():
+            try:
+                dG0_pred1 = row_data.PredictReactionEnergy(thermo1)
+                dG0_pred2 = row_data.PredictReactionEnergy(thermo2)
+            except MissingCompoundFormationEnergy:
+                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
+                continue
+                
+            total_list.append([row_data.dG0_r, dG0_pred1, dG0_pred2, 
+                               row_data.reaction, row_data.pH, row_data.pMg, 
+                               row_data.I, row_data.T, row_data.evaluation, 
+                               row_data.url])
+        
+        if not total_list:
+            return 0, 0
+        
+        # plot the profile graph
+        pylab.rcParams['text.usetex'] = False
+        pylab.rcParams['legend.fontsize'] = 12
+        pylab.rcParams['font.family'] = 'sans-serif'
+        pylab.rcParams['font.size'] = 16
+        pylab.rcParams['lines.linewidth'] = 2
+        pylab.rcParams['lines.markersize'] = 3
+        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
+        pylab.rcParams['figure.dpi'] = 100
+        
+        data_mat = pylab.matrix(total_list)
+        fig = pylab.figure()
+        pylab.hold(True)
+        pylab.plot(abs(data_mat[:,0]-data_mat[:,1]), abs(data_mat[:,0]-data_mat[:,2]), '.')
+        html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_corr")
+
     def SelectRowsFromNist(self, reaction=None, check_reverse=True):
         rows = []
         checklist = []
