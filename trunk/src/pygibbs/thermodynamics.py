@@ -10,7 +10,8 @@ from pygibbs.kegg_errors import KeggParseException
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 
 class Thermodynamics(object):
-    def __init__(self):
+    def __init__(self, name="Unknown Thermodynamics"):
+        self.name = name
         self.pH = default_pH
         self.I = default_I
         self.T = default_T
@@ -257,8 +258,8 @@ class Thermodynamics(object):
         
 class ThermodynamicsWithCompoundAbundance(Thermodynamics):
     
-    def __init__(self):
-        Thermodynamics.__init__(self)
+    def __init__(self, name="Unknown ThermodynamicsWithCompoundAbundance"):
+        Thermodynamics.__init__(self, name)
         self.media_list = []
         self.default_c0 = 1 # Molar
         self.cid2conc = {}
@@ -301,12 +302,14 @@ class ThermodynamicsWithCompoundAbundance(Thermodynamics):
     
 class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
     
-    def __init__(self):
-        ThermodynamicsWithCompoundAbundance.__init__(self)
+    def __init__(self, name="Unknown PsuedoisomerTableThermodynamics"):
+        ThermodynamicsWithCompoundAbundance.__init__(self, name)
         self.cid2pmap_dict = {}
     
     @staticmethod
-    def _FromDictReader(reader, label=None, warn_for_conflicting_refs=True):
+    def _FromDictReader(reader, label=None, 
+                        name="Unknown PsuedoisomerTableThermodynamics", 
+                        warn_for_conflicting_refs=True):
         """Internal and for testing only.
         
         Creates a Thermodynamics object from a DictReader.
@@ -318,7 +321,7 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
             warn_for_conflicting_refs - if True, print warnings if two rows
                     with the same CID have different refs.
         """
-        thermo = PsuedoisomerTableThermodynamics()
+        thermo = PsuedoisomerTableThermodynamics(name)
         for row in reader:
             if label and row.get('use for', None) != label:
                 continue
@@ -347,22 +350,28 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
         return thermo
     
     @staticmethod
-    def FromDatabase(db, table_name, label=None):
+    def FromDatabase(db, table_name, label=None, name=None):
         """
             Imports the pseudoisomer maps from a CSV file, with these headers:
             'cid', 'nH', 'z', 'nMg', 'dG0'
         """
+        if name is None:
+            name = "From table " + table_name
         reader = db.DictReader(table_name)
-        return PsuedoisomerTableThermodynamics._FromDictReader(reader, label)
+        return PsuedoisomerTableThermodynamics._FromDictReader(
+                                                    reader, label, name)
 
     @staticmethod
-    def FromCsvFile(filename, label=None):
+    def FromCsvFile(filename, label=None, name=None):
         """
             Imports the pseudoisomer maps from a CSV file, with these headers:
             'cid', 'nH', 'z', 'nMg', 'dG0'
         """
+        if name is None:
+            name = "From file " + filename
         reader = csv.DictReader(open(filename, 'r'))
-        return PsuedoisomerTableThermodynamics._FromDictReader(reader, label)
+        return PsuedoisomerTableThermodynamics._FromDictReader(
+                                                    reader, label, name)
 
     def cid2PseudoisomerMap(self, cid):
         if cid in self.cid2pmap_dict:

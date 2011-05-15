@@ -505,7 +505,6 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 1401,alanine,acid-base,298.15,7,6,0,0,CC(C(=O)[O-])[NH3+],CC(C(=O)[O-])[NH2],9.69,"Lange's handbook"
 1401,alanine,acid-base,298.15,8,7,0,0,CC(C(=O)[OH])[NH3+],CC(C(=O)[O-])[NH3+],2.34,"Lange's handbook"
 1412,Butanal,,298.15,8,8,0,0,[H]C(=O)CCC,,,
-1417,cyanate,acid-base,298.15,1,0,0,0,N#CO,N#C[O-],3.7,"CRC (88th edition)"
 1424,Gallate,acid-base,298.15,6,5,0,0,OC(=O)c1cc(O)c(O)c(O)c1,[O-]C(=O)c1cc(O)c(O)c(O)c1,4.41,"CRC (88th edition)"
 1438,methane,,298.15,4,4,0,0,[CH4],,,
 1454,Toluate,acid-base,298.15,8,7,0,0,Cc1ccc(cc1)C(O)=O,Cc1ccc(cc1)C([O-])=O,4.37,"CRC (88th edition)"
@@ -793,7 +792,7 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 8277,"sebacic acid",acid-base,298.15,18,17,0,0,C(=O)(O)CCCCCCCCC(=O)O,C(=O)(O)CCCCCCCCC(=O)[O-],4.59,"CRC (88th edition)"
 8278,"1,8-octanedioic acid",acid-base,298.15,13,12,0,0,C(=O)(O)CCCCCCC(=O)[O-],C(=O)([O-])CCCCCCC(=O)[O-],5.52,"CRC (88th edition)"
 8278,"1,8-octanedioic acid",acid-base,298.15,14,13,0,0,C(=O)(O)CCCCCCC(=O)O,C(=O)(O)CCCCCCC(=O)[O-],4.52,"CRC (88th edition)"
-8306,hexylamine,acid-base,298.15,17,16,0,0,CCCCCC[NH3+],CCCCCCN,10.56,"CRC (88th edition)"
+8306,hexylamine,acid-base,298.15,16,15,0,0,CCCCCC[NH3+],CCCCCCN,10.56,"CRC (88th edition)"
 8660,atisine,acid-base,298.15,34,33,0,0,,,12.2,"CRC (88th edition)"
 9084,brucine,acid-base,298.15,27,26,0,0,,,6.04,"CRC (88th edition)"
 9084,brucine,acid-base,298.15,26,25,0,0,,,11.07,"CRC (88th edition)"
@@ -930,20 +929,40 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 80040,"2,3,4,6-tetrachlorophenol",acid-base,298.15,2,1,0,0,Oc1c(Cl)cc(Cl)c(Cl)c1Cl,[O-]c1c(Cl)cc(Cl)c(Cl)c1Cl,5.45,"Dolfing (1992)"
 80041,"2,3,5,6-tetrachlorophenol",acid-base,298.15,2,1,0,0,Oc1c(Cl)c(Cl)cc(Cl)c1Cl,[O-]c1c(Cl)c(Cl)cc(Cl)c1Cl,5.48,"Dolfing (1992)"
 80042,"pentachlorophenol",acid-base,298.15,1,0,0,0,Oc1c(Cl)c(Cl)c(Cl)c(Cl)c1Cl,[O-]c1c(Cl)c(Cl)c(Cl)c(Cl)c1Cl,4.50,"Dolfing (1992)"
-1438,"methane",,298.15,4,4,0,0,C,,,"Dolfing (1994)"
-80043,"chloromethane",,298.15,3,3,0,0,CCl,,,"Dolfing (1994)"
-2271,"dichloromethane",,298.15,2,2,0,0,C(Cl)Cl,,,"Dolfing (1994)"
-13827,"trichloromethane",,298.15,1,1,0,0,C(Cl)(Cl)Cl,,,"Dolfing (1994)"
-7561,"tetrachloromethane",,298.15,0,0,0,0,C(Cl)(Cl)(Cl)Cl,,,"Dolfing (1994)"
-80045,"ethane",,298.15,6,6,0,0,CC,,,"Dolfing (1994)"
-18248,"chloroethane",,298.15,5,5,0,0,CCCl,,,"Dolfing (1994)"
-6752,"1,2-dichloroethane",,298.15,4,4,0,0,ClCCCl,,,"Dolfing (1994)"
-18247,"1,2-dichloroethane",,298.15,4,4,0,0,CC(Cl)Cl,,,"Dolfing (1994)"
-19536,"1,1,2-trichloroethane",,298.15,3,3,0,0,ClCC(Cl)Cl,,,"Dolfing (1994)"
-80046,"1,1,2,2-tetrachloroethane",,298.15,2,2,0,0,ClC(Cl)C(Cl)Cl,,,"Dolfing (1994)"
-18246,"1,1,1-trichloroethane",,298.15,3,3,0,0,CC(Cl)(Cl)Cl,,,"Dolfing (1994)"
-14705,"1,1,1,2-tetrachloroethane",,298.15,2,2,0,0,ClCC(Cl)(Cl)Cl,,,"Dolfing (1994)"
-19496,"pentachloroethane",,298.15,1,1,0,0,ClC(Cl)C(Cl)(Cl)Cl,,,"Dolfing (1994)"
-19248,"hexachloroethane",,298.15,0,0,0,0,ClC(Cl)(Cl)C(Cl)(Cl)Cl,,,"Dolfing (1994)"
-80047,"propane",,298.15,8,8,0,0,CCC,,,"Dolfing (1994)",
-80048,"1-chloropropane",,298.15,7,7,0,0,CCCCl,,,"Dolfing (1994)",
+1438,"methane",,298.15,4,4,0,0,C,,,
+80043,"chloromethane",,298.15,3,3,0,0,CCl,,,
+2271,"dichloromethane",,298.15,2,2,0,0,C(Cl)Cl,,,
+13827,"trichloromethane",,298.15,1,1,0,0,C(Cl)(Cl)Cl,,,
+7561,"tetrachloromethane",,298.15,0,0,0,0,C(Cl)(Cl)(Cl)Cl,,,
+80045,"ethane",,298.15,6,6,0,0,CC,,,
+18248,"chloroethane",,298.15,5,5,0,0,CCCl,,,
+6752,"1,2-dichloroethane",,298.15,4,4,0,0,ClCCCl,,,
+18247,"1,2-dichloroethane",,298.15,4,4,0,0,CC(Cl)Cl,,,
+19536,"1,1,2-trichloroethane",,298.15,3,3,0,0,ClCC(Cl)Cl,,,
+80046,"1,1,2,2-tetrachloroethane",,298.15,2,2,0,0,ClC(Cl)C(Cl)Cl,,,
+18246,"1,1,1-trichloroethane",,298.15,3,3,0,0,CC(Cl)(Cl)Cl,,,
+14705,"1,1,1,2-tetrachloroethane",,298.15,2,2,0,0,ClCC(Cl)(Cl)Cl,,,
+19496,"pentachloroethane",,298.15,1,1,0,0,ClC(Cl)C(Cl)(Cl)Cl,,,
+19248,"hexachloroethane",,298.15,0,0,0,0,ClC(Cl)(Cl)C(Cl)(Cl)Cl,,,
+80047,"propane",,298.15,8,8,0,0,CCC,,,
+80048,"1-chloropropane",,298.15,7,7,0,0,CCCCl,,,
+19034,"1,2-dichloropropane",,298.15,6,6,0,0,CC(Cl)CCl,,,
+80049,"1,3-dichloropropane",,298.15,6,6,0,0,C(Cl)CCCl,,,
+14400,"1,2,3-trichloropropane",,298.15,5,5,0,0,C(Cl)C(Cl)CCl,,,
+80050,"butane",,298.15,10,10,0,0,CCCC,,,
+80051,"1-chlorobutane",,298.15,9,9,0,0,CCCCCl,,,
+80052,"2-chlorobutane",,298.15,9,9,0,0,CCC(Cl)C,,,
+80053,"pentane",,298.15,12,12,0,0,CCCCC,,,
+80054,"1-chloropentane",,298.15,11,11,0,0,CCCCCCl,,,
+6547,"ethylene",,298.15,4,4,0,0,C=C,,,
+6793,"chloroethylene",,298.15,3,3,0,0,C=CCl,,,
+6792,"cis-1,2-dichloroethylene",,298.15,2,2,0,0,ClC=CCl,,,
+6791,"trans-1,2-dichloroethylene",,298.15,2,2,0,0,ClC=CCl,,,
+14039,"1,1-dichloroethylene",,298.15,2,2,0,0,C=C(Cl)Cl,,,
+6790,"trichloroethylene",,298.15,1,1,0,0,ClC=C(Cl)Cl,,,
+6789,"tetrachloroethylene",,298.15,0,0,0,0,ClC(Cl)=C(Cl)Cl,,,
+1417,cyanate,acid-base,298.15,1,0,0,0,N#CO,N#C[O-],3.7,"CRC (88th edition)"
+1326,"HCN",,298.15,1,1,0,0,N#C,,,
+1412,"butanal",,298.15,8,8,0,0,CCCC=O,,,
+1755,"thiocyanate",,298.15,0,0,0,0,N#C[S-],,,
+80055,"CH3NHp",,298.15,10,10,0,0,[N+](C)(C)(C)O,,,

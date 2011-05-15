@@ -522,6 +522,8 @@ class GroupContribution(Thermodynamics):
             except GroupMissingTrainDataError as e:
                 self.cid2error[cid] = "Cannot calculate PseudoisomerMap: " + str(e)
                 continue
+        
+        self.KeggErrorReport()
             
     def cid2PseudoisomerMap(self, cid):
         """
@@ -617,6 +619,11 @@ class GroupContribution(Thermodynamics):
         pK_Mg = (dG0_gr_without_Mg + dG0_f_Mg - dG0_gr_with_Mg)/(R*default_T*pylab.log(10))
         return pK_Mg
 
+    def KeggErrorReport(self):
+        error_strings = ['kernel', 'decompose', 'determine', 'provided']
+        query = ' union '.join(["select '" + e + "', count(*) from gc_errors where error like '%%" + e + "%%'" for e in error_strings])
+        self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
+        
 #################################################################################################################
 #                                                   MAIN                                                        #
 #################################################################################################################
@@ -639,9 +646,10 @@ if __name__ == '__main__':
         G = GroupContribution(db=db, html_writer=html_writer)
         G.init()
         logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
-        G.EstimateKeggCids()
-        logging.info("Writing the results to the database")
-        G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
+        #G.EstimateKeggCids()
+        G.KeggErrorReport()
+        #logging.info("Writing the results to the database")
+        #G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
     else:
         G = GroupContribution(db=db)
         G.load_groups("../data/thermodynamics/groups_species.csv")

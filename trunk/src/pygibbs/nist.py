@@ -499,7 +499,7 @@ class Nist(object):
                 dG0_pred1 = row_data.PredictReactionEnergy(thermo1)
                 dG0_pred2 = row_data.PredictReactionEnergy(thermo2)
             except MissingCompoundFormationEnergy:
-                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
+                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.ref_id)
                 continue
                 
             total_list.append([row_data.dG0_r, dG0_pred1, dG0_pred2, 
@@ -520,10 +520,17 @@ class Nist(object):
         pylab.rcParams['figure.figsize'] = [8.0, 6.0]
         pylab.rcParams['figure.dpi'] = 100
         
-        data_mat = pylab.matrix(total_list)
+        data_mat = pylab.array(total_list)
         fig = pylab.figure()
         pylab.hold(True)
-        pylab.plot(abs(data_mat[:,0]-data_mat[:,1]), abs(data_mat[:,0]-data_mat[:,2]), '.')
+        error1 = abs(data_mat[:,0]-data_mat[:,1])
+        error2 = abs(data_mat[:,0]-data_mat[:,2])
+        max_err = max(error1.max(), error2.max())
+        pylab.plot([0, max_err], [0, max_err], 'r--', figure=fig)
+        pylab.plot(error1, error2, '.', figure=fig)
+        pylab.title("Error Comparison per Reaction (in kJ/mol)")
+        pylab.xlabel(thermo1.name, figure=fig)
+        pylab.ylabel(thermo2.name, figure=fig)
         html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_corr")
 
     def SelectRowsFromNist(self, reaction=None, check_reverse=True):
