@@ -222,3 +222,20 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 80040,"2,3,4,6-tetrachlorophenol",-114.3,,0,2,0,train,"Dolfing (1992)",
 80041,"2,3,5,6-tetrachlorophenol",-112.7,,0,2,0,train,"Dolfing (1992)",
 80042,"pentachlorophenol",-112.3,,0,1,0,train,"Dolfing (1992)",
+1438,"methane",-34.74,,0,4,0,test,"Dolfing (1994)","too small"
+80043,"chloromethane",-52.71,,0,3,0,test,"Dolfing (1994)","too small"
+2271,"dichloromethane",-66.11,,0,2,0,test,"Dolfing (1994)","too small"
+13827,"trichloromethane",-66.50,,0,1,0,test,"Dolfing (1994)","too small"
+7561,"tetrachloromethane",-45.10,,0,0,0,test,"Dolfing (1994)","too small"
+80045,"ethane",-17.43,,0,6,0,test,"Dolfing (1994)","too small"
+18248,"chloroethane",-36.83,,0,5,0,train,"Dolfing (1994)",
+6752,"1,2-dichloroethane",-72.93,,0,4,0,train,"Dolfing (1994)",
+18247,"1,1-dichloroethane",-68.69,,0,4,0,train,"Dolfing (1994)",
+19536,"1,1,2-trichloroethane",-77.64,,0,3,0,train,"Dolfing (1994)",
+80046,"1,1,2,2-tetrachloroethane",-88.92,,0,2,0,train,"Dolfing (1994)",
+18246,"1,1,1-trichloroethane",-69.04,,0,3,0,train,"Dolfing (1994)",
+14705,"1,1,1,2-tetrachloroethane",-77.75,,0,2,0,train,"Dolfing (1994)",
+19496,"pentachloroethane",-68.26,,0,1,0,train,"Dolfing (1994)",
+19248,"hexachloroethane",-49.62,,0,0,0,train,"Dolfing (1994)",
+80047,"propane",-7.32,,0,8,0,train,"Dolfing (1994)",
+80048,"1-chloropropane",-44.73,,0,7,0,train,"Dolfing (1994)",
