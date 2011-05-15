@@ -292,13 +292,20 @@ class Kegg(Singleton):
             if row_dict['cid']:
                 cid = int(row_dict['cid'])
                 self.name2cid_map[row_dict['name']] = cid
-                comp = self.cid2compound(cid)
-                comp.all_names.append(row_dict['name'])
+                try:
+                    comp = self.cid2compound(cid)
+                    comp.all_names.append(row_dict['name'])
+                except KeyError:
+                    comp = kegg_compound.Compound(cid)
+                    comp.name = row_dict['name']
+                    comp.all_names = [row_dict['name']]
+                    self.cid2compound_map[cid] = comp
                 if row_dict['inchi']:
                     if comp.inchi:
-                        raise Exception('C%0d already has an InChI' % cid)
+                        raise Exception('C%0d already has an InChI: %s' % (cid, comp.inchi))
                     else:
                         comp.SetInChI(row_dict['inchi'])
+                        self.inchi2cid_map[row_dict['inchi']] = cid
             elif row_dict['inchi']:
                 if row_dict['inchi'] in self.inchi2cid_map:
                     raise Exception("The InChI for compound %s already exists "

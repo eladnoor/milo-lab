@@ -16,7 +16,6 @@ from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
 from pygibbs.groups_data import Group, GroupsData
-from pygibbs.pseudoisomers_data import PseudoisomersData
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs import templates
 from toolbox import util

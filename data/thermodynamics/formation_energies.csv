@@ -168,3 +168,57 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 1847,FMNH2(red),-38.88,,-2,21,0,test,"Alberty (2003)",FMN(ox)=0
 5361,Hydrazine,128.03,,0,4,0,test,"Thauer (1977)","too small"
 9306,"Sulfur dioxide",-300.708,,0,0,0,test,"Thauer (1977)","too small"
+80002,"monochlorobenzene",102.3,,0,5,0,train,"Dolfing (1992)","CAS 68411-45-0"
+80003,"1,2-dichlorobenzene",84.3,,0,4,0,train,"Dolfing (1992)","CAS 95-50-1"
+80004,"1,3-dichlorobenzene",81.8,,0,4,0,train,"Dolfing (1992)","CAS 63697-17-6"
+80005,"1,4-dichlorobenzene",78.3,,0,4,0,train,"Dolfing (1992)","CAS 92-87-5"
+80006,"1,2,3-trichlorobenzene",71.7,,0,3,0,train,"Dolfing (1992)","CAS 87-61-6"
+80007,"1,2,4-trichlorobenzene",60.5,,0,3,0,train,"Dolfing (1992)","CAS 63697-18-7"
+80008,"1,3,5-trichlorobenzene",56.8,,0,3,0,train,"Dolfing (1992)","CAS 63697-19-8"
+80009,"1,2,3,4-tetrachlorobenzene",55.8,,0,2,0,train,"Dolfing (1992)","CAS 63697-20-1"
+80010,"1,2,3,5-tetrachlorobenzene",49.2,,0,2,0,train,"Dolfing (1992)","CAS 63697-21-2"
+80011,"1,2,4,5-tetrachlorobenzene",53.5,,0,2,0,train,"Dolfing (1992)","CAS 95-94-3"
+80012,"pentachlorobenzene",45.7,,0,1,0,train,"Dolfing (1992)","CAS 608-93-5"
+80013,"hexachlorobenzene",46.0,,0,0,0,train,"Dolfing (1992)","CAS 9002-61-3"
+2357,"2-chlorobenzoate",-237.9,,-1,4,0,train,"Dolfing (1992)","CAS 7250-60-4"
+80014,"3-chlorobenzoate",-246.0,,-1,4,0,train,"Dolfing (1992)","CAS 535-80-8"
+2370,"4-chlorobenzoate",-239.5,,-1,4,0,train,"Dolfing (1992)","CAS 74-11-3"
+80015,"2,3-dichlorobenzoate",-269.7,,-1,3,0,train,"Dolfing (1992)","CAS 50-45-3"
+6670,"2,4-dichlorobenzoate",-276.4,,-1,3,0,train,"Dolfing (1992)","CAS 50-84-0"
+80016,"2,5-dichlorobenzoate",-278.7,,-1,3,0,train,"Dolfing (1992)","CAS 50-79-3"
+80017,"2,6-dichlorobenzoate",-262.6,,-1,3,0,train,"Dolfing (1992)","CAS 50-30-6"
+80018,"3,4-dichlorobenzoate",-264.2,,-1,3,0,train,"Dolfing (1992)","CAS 51-44-5"
+80019,"3,5-dichlorobenzoate",-273.5,,-1,3,0,train,"Dolfing (1992)","CAS 51-36-5"
+80020,"2,3,5-trichlorobenzoate",-293.4,,-1,2,0,train,"Dolfing (1992)","CAS 50-73-7"
+80021,"3,4,5-trichlorobenzoate",-281.6,,-1,2,0,train,"Dolfing (1992)",
+80022,"2-bromobenzoate",-209.5,,-1,4,0,train,"Dolfing (1992)",
+80023,"3-bromobenzoate",-203.0,,-1,4,0,train,"Dolfing (1992)",
+80024,"4-bromobenzoate",-196.3,,-1,4,0,train,"Dolfing (1992)",
+2359,"2-fluorobenzoate",-398.7,,-1,4,0,train,"Dolfing (1992)",
+2364,"3-fluorobenzoate",-393.2,,-1,4,0,train,"Dolfing (1992)",
+2371,"4-fluorobenzoate",-388.2,,-1,4,0,train,"Dolfing (1992)",
+80025,"2-iodobenzoate",-146.5,,-1,4,0,train,"Dolfing (1992)",
+80026,"3-iodobenzoate",-144.1,,-1,4,0,train,"Dolfing (1992)",
+80027,"4-iodobenzoate",-141.3,,-1,4,0,train,"Dolfing (1992)",
+80028,"2-amino-5-chlorobenzoate",-215.5,,-1,5,0,train,"Dolfing (1992)","CAS 635-21-2"
+80029,"2-hydroxy-5-chlorobenzoate",-408.9,,-1,4,0,train,"Dolfing (1992)",
+80030,"2-methyl-5-chlorobenzoate",-237.1,,-1,6,0,train,"Dolfing (1992)",
+14219,"2-chlorophenol",-56.8,,0,5,0,train,"Dolfing (1992)",
+14270,"3-chlorophenol",-56.4,,0,5,0,train,"Dolfing (1992)",
+2124,"4-chlorophenol",-53.1,,0,5,0,train,"Dolfing (1992)",
+80031,"2,3-dichlorophenol",-75.2,,0,4,0,train,"Dolfing (1992)",
+2625,"2,4-dichlorophenol",-84.4,,0,4,0,train,"Dolfing (1992)",
+6602,"2,5-dichlorophenol",-84.4,,0,4,0,train,"Dolfing (1992)",
+7096,"2,6-dichlorophenol",-82.6,,0,4,0,train,"Dolfing (1992)",
+14462,"3,4-dichlorophenol",-75.2,,0,4,0,train,"Dolfing (1992)",
+80032,"3,5-dichlorophenol",-86.3,,0,4,0,train,"Dolfing (1992)",
+80033,"2,3,4-trichlorophenol",-87.9,,0,3,0,train,"Dolfing (1992)",
+80034,"2,4,5-trichlorophenol",-97.2,,0,3,0,train,"Dolfing (1992)",
+80035,"2,4,6-trichlorophenol",-104.6,,0,3,0,train,"Dolfing (1992)",
+80036,"2,3,5-trichlorophenol",-97.2,,0,3,0,train,"Dolfing (1992)",
+80037,"2,3,6-trichlorophenol",-97.2,,0,3,0,train,"Dolfing (1992)",
+80038,"3,4,5-trichlorophenol",-86.8,,0,3,0,train,"Dolfing (1992)",
+80039,"2,3,4,5-tetrachlorophenol",-110.0,,0,2,0,train,"Dolfing (1992)",
+80040,"2,3,4,6-tetrachlorophenol",-114.3,,0,2,0,train,"Dolfing (1992)",
+80041,"2,3,5,6-tetrachlorophenol",-112.7,,0,2,0,train,"Dolfing (1992)",
+80042,"pentachlorophenol",-112.3,,0,1,0,train,"Dolfing (1992)",
