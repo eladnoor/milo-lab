@@ -513,14 +513,9 @@ class GroupContribution(Thermodynamics):
                     diss.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
                     self.cid2pmap[cid] = diss.GetPseudoisomerMap()
     
-            except KeggParseException as e:
-                self.cid2error[cid] = "Cannot determine molecular structure: " + str(e)
-                continue
-            except GroupDecompositionError as e:
-                self.cid2error[cid] = "Cannot decompose into groups: " + str(e)
-                continue
-            except GroupMissingTrainDataError as e:
-                self.cid2error[cid] = "Cannot calculate PseudoisomerMap: " + str(e)
+            except (KeggParseException, GroupDecompositionError, 
+                    GroupMissingTrainDataError) as e:
+                self.cid2error[cid] = str(e)
                 continue
         
         self.KeggErrorReport()
@@ -646,10 +641,9 @@ if __name__ == '__main__':
         G = GroupContribution(db=db, html_writer=html_writer)
         G.init()
         logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
-        #G.EstimateKeggCids()
-        G.KeggErrorReport()
-        #logging.info("Writing the results to the database")
-        #G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
+        G.EstimateKeggCids()
+        logging.info("Writing the results to the database")
+        G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
     else:
         G = GroupContribution(db=db)
         G.load_groups("../data/thermodynamics/groups_species.csv")

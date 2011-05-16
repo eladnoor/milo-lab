@@ -182,10 +182,11 @@ class Thermodynamics(object):
             writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
             
     def ToDatabase(self, db, table_name, error_table_name=""):
+        kegg = Kegg.getInstance()
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
                        "dG0 REAL, ref TEXT, anchor BOOL")
         if error_table_name:
-            db.CreateTable(error_table_name, 'cid INT, error TEXT')
+            db.CreateTable(error_table_name, 'cid INT, name TEXT, error TEXT')
         
         for cid in self.get_all_cids():
             ref = self.cid2SourceString(cid)
@@ -194,7 +195,7 @@ class Thermodynamics(object):
                     db.Insert(table_name, [cid, nH, z, nMg, dG0, ref, cid in self.anchors])
             except MissingCompoundFormationEnergy as e:
                 if error_table_name:
-                    db.Insert(error_table_name, [cid, str(e)])
+                    db.Insert(error_table_name, [cid, kegg.cid2name(cid), str(e)])
                 else:
                     logging.warning(str(e))
         db.Commit()
