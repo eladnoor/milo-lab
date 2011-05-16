@@ -558,5 +558,5 @@ def main():
 
     html_writer.close()
     
-if (__name__ == "__main__"):
+if __name__ == "__main__":
     main()
