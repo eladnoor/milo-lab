@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
+import csv
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
-import logging
-import csv
-from toolbox.linear_regression import LinearRegression
-from toolbox.database import SqliteDatabase
-from toolbox.html_writer import HtmlWriter
+import os
+import pylab
+import sys
+
+from optparse import OptionParser
+from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.nist import Nist
 from pygibbs.kegg import Kegg
 from pygibbs.group_decomposition import GroupDecomposer
@@ -15,11 +18,13 @@ from pygibbs.thermodynamics import Thermodynamics,\
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.thermodynamic_constants import default_I, default_pMg, default_T,\
     default_pH
-import os
-from toolbox.util import _mkdir
 from pygibbs import kegg_reaction
+from toolbox.linear_regression import LinearRegression
+from toolbox.database import SqliteDatabase
+from toolbox.html_writer import HtmlWriter
+from toolbox.util import _mkdir
 from toolbox.sparse_kernel import SparseKernel
-from pygibbs.dissociation_constants import DissociationConstants
+
 
 class NistRegression(PsuedoisomerTableThermodynamics):
     
@@ -39,15 +44,41 @@ class NistRegression(PsuedoisomerTableThermodynamics):
     def cid2PseudoisomerMap(self, cid):
         if cid in self.cid2pmap_dict:
             return self.cid2pmap_dict[cid]
-        else:
-            raise MissingCompoundFormationEnergy("The compound C%05d does not have a value for its formation energy of any of its pseudoisomers" % cid, cid)
+        
+        raise MissingCompoundFormationEnergy("The compound C%05d does not have a value for its formation energy of any of its pseudoisomers" % cid, cid)
 
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())
+    
+    def ReverseTransformWithT(self):
+        """Transform preserving temperature data."""
+        logging.info("Reverse transforming the NIST data")
+        nist_rows = self.nist.SelectRowsFromNist()
+        nist_rows_normalized = [row.Clone() for row in nist_rows]               
+        data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized)
+        stoichiometric_matrix = data['S']
+        cids_to_estimate = data['cids_to_estimate']
         
+        logging.info("%d out of %d NIST measurements can be used" %
+                     (stoichiometric_matrix.shape[0], len(nist_rows_normalized)))
+        
+        # for every unique row, calculate the average dG0_r of all the rows that
+        # are the same reaction
+        n_rows = data['S'].shape[0]
+        
+        dG0_r = data['dG0_r']
+        temps = data['T']
+        stoich_temps = stoichiometric_matrix * temps
+        stoich_and_temps = pylab.hstack((stoichiometric_matrix, stoich_temps))
+        
+        print stoich_and_temps.shape
+        
+        return stoich_and_temps, dG0_r, cids_to_estimate
+        
+    
     def ReverseTransform(self, anchors=None, cid2nH=None):
         """
-            Performs the reverse Lagandre transform on all the data in NIST where
+            Performs the reverse Legendre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
             (pH-2, pH+2) - the pH in which the Keq was measured.
             
@@ -75,14 +106,14 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         cids_to_estimate = data['cids_to_estimate']
         
         if anchors:
-            logging.info("%d out of %d compounds are anchored" % \
+            logging.info("%d out of %d compounds are anchored" % 
                          (len(anchors.get_all_cids()), len(cids_to_estimate)))
-        logging.info("%d out of %d NIST measurements can be used" % \
+        logging.info("%d out of %d NIST measurements can be used" %
                      (stoichiometric_matrix.shape[0], len(nist_rows_normalized)))
 
         # squeeze the regression matrix by leaving only unique rows
         unique_rows_S = np.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
-                                      in xrange(stoichiometric_matrix.shape[0])])
+                                   in xrange(stoichiometric_matrix.shape[0])])
 
         logging.info("There are %d unique reactions" % unique_rows_S.shape[0])
         
@@ -91,7 +122,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         n_rows = data['S'].shape[0]
         n_unique_rows = unique_rows_S.shape[0]
         
-        # full_drow_indicesata_mat will contain these columns: dG0, dG0_tag, dG0 - E[dG0], 
+        # full_data_mat will contain these columns: dG0, dG0_tag, dG0 - E[dG0], 
         # dG0_tag - E[dG0_tag], N
         # the averages are over the equivalence set of each reaction (i.e. the 
         # average dG of all the rows in NIST with that same reaction).
@@ -138,7 +169,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         # numpy arrays contains a unique data type for integers and that
         # should be converted to the native type in python.
-        cids_to_estimate = [int(x) for x in cids_to_estimate]
+        cids_to_estimate = map(int, cids_to_estimate)
         return unique_rows_S, unique_data_mat[:, 0:1], cids_to_estimate
 
     def ReactionVector2String(self, stoichiometric_vec, cids):
@@ -187,7 +218,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         for i in xrange(S.shape[0]):
             print i, self.ReactionVector2String(S[i, :], cids)
     
-    def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None):
+    def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None,
+                         store=True):
         rankS = LinearRegression.Rank(S)
         logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
                      (S.shape[0], S.shape[1], S.shape[1]-rankS))
@@ -220,6 +252,9 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                         delta_dG0_f, reduced_row_echlon=False)
             est_dG0_f += np.dot(kerA.T, v)
 
+        if not store:
+            return
+        
         # copy the solution into the diss_tables of all the compounds,
         # and then generate their PseudoisomerMaps.
         for i, cid in enumerate(cids):
@@ -484,10 +519,44 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                                         thermodynamics=self)
 
 
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-k", "--kegg_database_location", 
+                          dest="kegg_db_filename",
+                          default="../data/public_data.sqlite",
+                          help="The KEGG database location")
+    opt_parser.add_option("-d", "--database_location", 
+                          dest="db_filename",
+                          default="../res/gibbs.sqlite",
+                          help="The Thermodynamic database location")
+    opt_parser.add_option("-t", "--thermodynamics_filename",
+                          dest="thermodynamics_filename",
+                          default='../data/thermodynamics/dG0.csv',
+                          help="The name of the thermodynamics file to load.")
+    opt_parser.add_option("-o", "--output_filename",
+                          dest="output_filename",
+                          default='../res/nist/regression.html',
+                          help="Where to write output to.")
+    return opt_parser
+
+
 def main():
-    html_writer = HtmlWriter("../res/nist/regression.html")
-    db = SqliteDatabase('../res/gibbs.sqlite')
-    db_public = SqliteDatabase('../data/public_data.sqlite')
+    options, _ = MakeOpts().parse_args(sys.argv)
+    
+    db_loc = options.db_filename
+    print 'Reading from DB %s' % db_loc
+    db = SqliteDatabase(db_loc)
+    
+    public_db_loc = options.kegg_db_filename
+    print 'Reading from public DB %s' % public_db_loc
+    
+    output_filename = os.path.abspath(options.output_filename)
+    print 'Will write output to %s' % output_filename
+    
+    html_writer = HtmlWriter(output_filename)
+    db = SqliteDatabase(db_loc)
+    db_public = SqliteDatabase(public_db_loc)
     nist_regression = NistRegression(db, html_writer)
     
     if False:

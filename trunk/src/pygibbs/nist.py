@@ -155,10 +155,10 @@ class NistRowData:
             del self.reaction.sparse[cid]
     
 class Nist(object):
-    def __init__(self):
+    def __init__(self, T_range=(298, 314)):
         self.db = SqliteDatabase('../data/public_data.sqlite')
         self.kegg = Kegg.getInstance()
-        self.T_range = (298, 314)
+        self.T_range = T_range
         self.override_I = None
         self.override_pMg = None
         self.FromDatabase()
