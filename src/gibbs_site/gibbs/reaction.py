@@ -106,6 +106,12 @@ class Reaction(object):
         self._all_stored_reactions = None
         self._catalyzing_enzymes = None
         
+    def SwapSides(self):
+        """Swap the sides of this reaction."""
+        tmp = self.reactants
+        self.reactants = self.products
+        self.products = tmp
+        
     def GetConcentrationProfile(self):
         """Get the concentration profile of this reaction."""
         return self._concentration_profile
