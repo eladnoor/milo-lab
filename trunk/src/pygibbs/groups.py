@@ -68,6 +68,7 @@ class GroupContribution(Thermodynamics):
 
         self.kegg = kegg or Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
+        self.sparse_kernel = True
 
         self.group_nullspace = None
         self.group_contributions = None
@@ -229,13 +230,17 @@ class GroupContribution(Thermodynamics):
         self.SaveContributionsToDB()
             
     def RunLinearRegression(self):
-        group_contributions, _nullspace = LinearRegression.LeastSquares(self.group_matrix, self.obs)
-        try:
-            nullspace = SparseKernel(self.group_matrix).Solve()
-        except CplexNotInstalledError:
-            logging.warning("CPLEX is not installed on this system, using a non-sparse"
-                            " method for describing the Kernel of the group matrix")
-            nullspace = _nullspace
+        group_contributions, _nullspace = LinearRegression.LeastSquares(
+                        self.group_matrix, self.obs, reduced_row_echlon=False)
+        
+        nullspace = _nullspace
+        if self.sparse_kernel:
+            try:
+                nullspace = SparseKernel(self.group_matrix).Solve()
+            except CplexNotInstalledError:
+                logging.warning("CPLEX is not installed on this system, using a non-sparse"
+                                " method for describing the Kernel of the group matrix")
+            
         return list(group_contributions.flat), nullspace
     
     def does_table_exist(self, table_name):
@@ -630,6 +635,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
+        #G.sparse_kernel = False
         G.load_groups("../data/thermodynamics/groups_species.csv")
         G.train()
         G.write_regression_report()

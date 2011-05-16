@@ -45,6 +45,7 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 20,AMP,Mg,298.15,12,12,1,0,C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O,C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O.[Mg+2],2.82,"Alberty 2003"
 22,pyruvate,Mg,,3,3,1,0,CC(=O)C(=O)[O-].[Mg+2],CC(=O)C(=O)[O-],1.53,"Smith et al. 2004"
 22,pyruvate,acid-base,298.15,4,3,0,0,CC(=O)C(=O)[OH],CC(=O)C(=O)[O-],2.39,"CRC (88th edition)"
+23,iron,,298.15,0,0,0,0,Fe,,,
 24,acetyl-CoA,acid-base,298.15,36,35,0,0,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C,4.32,"Keire 1992 (assumed same as CoA)"
 24,acetyl-CoA,acid-base,298.15,35,34,0,0,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C,6.31,"Keire 1992 (assumed same as CoA)"
 25,L-glutamate,acid-base,298.15,10,9,0,0,C(CC(=O)[OH])C(C(=O)[OH])[NH3+],C(CC(=O)[OH])C(C(=O)[O-])[NH3+],2.13,"CRC (88th edition)"
@@ -125,6 +126,7 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 85,"D-fructose 6-phosphate",acid-base,296.15,12,11,0,0,O1C(CO)(O)C(O)C(O)C1COP([O-])(O)=O,O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O,6.06,"Robitaille (1990)"
 85,"D-fructose 6-phosphate",Mg,298,11,11,1,0,O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O.[Mg+2],O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O,3.32,"Garcia et al. 1996"
 86,urea,acid-base,298.15,5,4,0,0,,,0.1,"CRC (88th edition)"
+87,sulfur,,298.15,0,0,0,0,S,,,
 88,nitrite,acid-base,298.15,1,0,0,0,N(=O)O,N(=O)[O-],3.23,"Alberty (2003)"
 89,sucrose,,298.15,22,22,0,0,C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@]1(CO)[C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O,,,
 90,catechol,acid-base,298.15,5,4,0,0,Oc1ccccc1[O-],[O-]c1ccccc1[O-],12.6,"CRC (88th edition)"
@@ -194,6 +196,7 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 148,L-Proline,acid-base,298.15,9,8,0,0,C1CC([NH2+]C1)C(=O)[O-],C1CC([NH]C1)C(=O)[O-],10.64,"CRC (88th edition)"
 149,(S)-Malate,acid-base,298.15,6,5,0,0,C(=O)(O)C(O)CC(=O)O,C(=O)([O-])C(O)CC(=O)O,3.4,"CRC (88th edition)"
 149,(S)-Malate,acid-base,298.15,5,4,0,0,C(=O)([O-])C(O)CC(=O)O,C(=O)([O-])C(O)CC(=O)[O-],5.11,"CRC (88th edition)"
+150,molybdenum,,298.15,0,0,0,0,Mo,,,
 152,L-Asparagine,acid-base,293.15,9,8,0,0,[NH2]C(=O)CC(C(=O)[OH])[NH3+],[NH2]C(=O)CC(C(=O)[O-])[NH3+],2.1,"CRC (88th edition)"
 152,L-Asparagine,acid-base,293.15,8,7,0,0,[NH2]C(=O)CC(C(=O)[O-])[NH3+],[NH2]C(=O)CC(C(=O)[O-])[NH2],8.8,"CRC (88th edition)"
 154,palmitoyl-CoA,acid-base,298.15,64,63,0,0,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CCCCCCCCCCCCCCC,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CCCCCCCCCCCCCCC,4.32,"Values taken as is from CoA"
@@ -306,6 +309,7 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 314,pyridoxine,acid-base,298.15,12,11,0,0,Cc1c(c(CO)c(c[nH+]1)CO)O,Cc1c(c(CO)c(cn1)CO)O,5,"Bhat (1994)"
 314,pyridoxine,acid-base,298.15,11,10,0,0,Cc1c(c(CO)c(cn1)CO)O,Cc1c(c(CO)c(cn1)CO)[O-],9,"Bhat (1994)"
 318,L-carnitine,,298.15,15,15,0,0,C[N+](C)(C)C[C@H](O)CC([O-])=O,,,
+320,thiosulfate,,298.15,0,0,0,0,[S-]S(=O)(=O)[O-],,,
 327,L-citrulline,acid-base,298.15,14,13,0,0,C(C[C@@H](C(=O)O)[NH3+])CNC(=N)O,C(C[C@@H](C(=O)[O-])[NH3+])CNC(=N)O,2.43,"CRC (88th edition)"
 327,L-citrulline,acid-base,298.15,13,12,0,0,C(C[C@@H](C(=O)[O-])[NH3+])CNC(=N)O,C(C[C@@H](C(=O)[O-])N)CNC(=N)O,9.69,"CRC (88th edition)"
 332,acetoacetyl-CoA,acid-base,298.15,38,37,0,0,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(=O)C,CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(=O)C,4.32,"CRC (88th edition)"
@@ -577,8 +581,8 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 1996,acetylcholine,,298.15,16,16,0,0,CC(=O)OCC[N+](C)(C)C,,,
 2001,2-propen-1-ol,acid-base,298.15,6,5,0,0,C=CCO,C=CC[O-],15.5,"CRC (88th edition)"
 2022,D-erythrulose,,298.15,8,8,0,0,OC[C@@H](O)C(=O)CO,,,
-2037,glycylglycine,acid-base,298.15,8,7,0,0,[NH3+]CC(=O)NCC(=O)[O-],NCC(=O)NCC(=O)[O-],8.17,"CRC (88th edition)"
 2037,glycylglycine,acid-base,298.15,9,8,0,0,[NH3+]CC(=O)NCC(=O)O,[NH3+]CC(=O)NCC(=O)[O-],3.14,"CRC (88th edition)"
+2037,glycylglycine,acid-base,298.15,8,7,0,0,[NH3+]CC(=O)NCC(=O)[O-],NCC(=O)NCC(=O)[O-],8.17,"CRC (88th edition)"
 2045,L-erythrulose,,298.15,8,8,0,0,OC[C@H](O)C(=O)CO,,,
 2046,L-hyoscyamine,acid-base,294.15,24,23,0,0,,,9.7,"CRC (88th edition)"
 2048,laminaribiose,,298.15,22,22,0,0,OC[C@H]1O[C@@H](O[C@@H]2[C@@H](O)C(O)O[C@H](CO)[C@H]2O)[C@H](O)[C@@H](O)[C@@H]1O,,,

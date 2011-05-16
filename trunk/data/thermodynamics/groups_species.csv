@@ -29,7 +29,7 @@
 "-S",0,-1,"C[S;H0;X1;-1]","1","thiol",
 "-S-S-",0,0,"C[SH0X2R0][SH0X2R0]C","1|2","dithionine",
 "ring -S-S-",0,0,"C[SH0X2R1][SH0X2R1]C","1|2","dithionine",
-"-C(=O)S-",0,0,"[C,c,N,n]C(=O)[SH0X2][C,c,N,n]","1|2|3","thioester",
+"-C(=O)S-",0,0,"C(=O)[SH0X2][C,c,N,n]","0|1|2","thioester",
 "-S-",0,0,"C[SH0X2]C","1","thioether",
 "two fused rings =n<",0,0,"[nR2]","All","participating in two fused aromatic rings",
 "ring =n<",0,0,"[n;H0;X3]","All","double bond and one single bond participating in a ring",
@@ -42,11 +42,12 @@
 "ring =N<",0,0,"[N;H0;X3;R1]=[C,N]",0,"double bond and one single bond participating in a ring",
 "-N-",2,1,"[N;H2;X4;R0;+1]","All",,
 "-N-",1,0,"[N;H1;X3;R0;+0]","All",,
-"ring =N-",1,0,"[N;H1;X3;R1]=[C,N]",0,"participating in a ring",
-"ring =N-",0,0,"[N;H0;X2;R1]=[C,N]",0,"participating in a ring",
+"ring =N-",1,1,"[N;H1;X3;R1;+1]=[C,N]",0,"participating in a ring",
+"ring =N-",0,0,"[N;H0;X2;R1;+0]=[C,N]",0,"participating in a ring",
 "ring -N-",2,1,"[N;H2;X4;R1;+1]","All","participating in a ring",
 "ring -N-",1,0,"[N;H1;X3;R1;+0]","All","participating in a ring",
-"ring -N<",0,0,"[N;H0;X3;R1]","All","participating in a ring",
+"ring -N<",1,1,"[N;H1;X4;R1;+1]","All","participating in a ring",
+"ring -N<",0,0,"[N;H0;X3;R1;+0]","All","participating in a ring",
 "=N",2,1,"[NH2]=[C,c,N,n]",0,,
 "=N",1,0,"[NH1]=[C,c,N,n]",0,,
 "CO-N",2,0,"C(=O)[N;H2;0]","All","primary amine next to keto",
@@ -96,15 +97,15 @@
 "-C-",2,0,"[C;H2;X4]","All","secondary carbon",
 "-C<",1,0,"[C;H1;X4]","All","tertiary carbon",
 ">C<",0,0,"[C;H0;X4]","All","quaternary carbon",
-"three member ring correction",0,0,"*1**1","None","three member ring correction (currently no examples)",
-"amide correction",0,0,"O=CN","None","amide bond correction",
-"thioester correction",0,0,"CSC(=O)C","None","thioester correction (linearly dependent on CoA)",
-"OCCC conjugation correction",0,0,"O=CC=C","None","OCCC conjugation correction",
-"OCCO conjugation correction",0,0,"O=CC=O","None","OCCO conjugation correction",
-"OCCN conjugation correction",0,0,"O=CC=N","None","OCCN conjugation correction (currently no examples)",
-"CCCN conjugation correction",0,0,"C=CC=N","None","CCCN conjugation correction (currently no examples)",
-"CCCC conjugation correction",0,0,"C=CC=C","None","CCCN conjugation correction (currently no examples)",
-"vicinal CL correction",0,0,"Cl~C~C~Cl","None","vicinal Cl correction (not 100% accurate, but currently no examples)",
-"*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)",
-"*Ar",0,0,"c1cccc1","None","aromatic ring correction (expanded in code)",
-"*Har",0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)",
+"three member ring correction",0,0,"*1**1","None","three member ring correction (currently no examples)",skip
+"amide correction",0,0,"O=CN","None","amide bond correction",skip
+"thioester correction",0,0,"CSC(=O)C","None","thioester correction (linearly dependent on CoA)",skip
+"OCCC conjugation correction",0,0,"O=CC=C","None","OCCC conjugation correction",skip
+"OCCO conjugation correction",0,0,"O=CC=O","None","OCCO conjugation correction",skip
+"OCCN conjugation correction",0,0,"O=CC=N","None","OCCN conjugation correction (currently no examples)",skip
+"CCCN conjugation correction",0,0,"C=CC=N","None","CCCN conjugation correction (currently no examples)",skip
+"CCCC conjugation correction",0,0,"C=CC=C","None","CCCN conjugation correction (currently no examples)",skip
+"vicinal Cl correction",0,0,"Cl~C~C~Cl","None","vicinal Cl correction (not 100% accurate, but currently no examples)",skip
+"*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)",skip
+"*Ar",0,0,"c1cccc1","None","aromatic ring correction (expanded in code)",skip
+"*Har",0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)",skip
