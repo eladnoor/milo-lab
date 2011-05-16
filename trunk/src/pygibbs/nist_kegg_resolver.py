@@ -321,9 +321,9 @@ def WriteDataToDB(nist_db, db):
             row_dict['T(K)'] = '303.15'
         if url_id == "T1=62GOL/WAG_1116": # possible huge mistake in NIST
             continue
-        if url_id == "T1=80TER/RAB_994": # type on NIST, where it's written 2 ammonia instead of only 1
+        if url_id == "T1=80TER/RAB_994": # change ammonium carbamate to carbamate
             row_dict['Reaction'] = \
-                "ammonium carbamate(aq) + H2O(l) = ammonia(aq) + carbon dioxide(aq)"
+                "carbamate(aq) + H2O(l) = ammonia(aq) + carbon dioxide(aq)"
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():

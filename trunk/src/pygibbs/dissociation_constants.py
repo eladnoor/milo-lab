@@ -522,7 +522,7 @@ class DissociationTable(object):
 
 ###############################################################################
 
-if (__name__ == '__main__'):
+if __name__ == '__main__':
     db = SqliteDatabase("../res/gibbs.sqlite")
     dissociation = DissociationConstants.FromFile()
     dissociation.ToDatabase(db, 'dissociation_constants')

@@ -865,8 +865,8 @@ cid,name,type,T,nH_below,nH_above,nMg_below,nMg_above,smiles_below,smiles_above,
 15584,phenol,acid-base,298.15,6,5,0,0,Oc1ccccc1,[O-]c1ccccc1,9.99,"CRC (88th edition)"
 16200,"benzeneboronic acid",acid-base,298.15,7,6,0,0,c1ccccc1B(O)O,c1ccccc1B(O)[O-],8.83,"CRC (88th edition)"
 16234,o-nitrobenzoate,acid-base,298.15,5,4,0,0,,,2.17,"CRC (88th edition)"
-16444,benzidine,acid-base,293.15,14,13,0,0,c1cc(cc1c2ccc(cc2)[NH3+])[NH3+],c1cc(cc1c2ccc(cc2)N)[NH3+],3.43,"CRC (88th edition)"
-16444,benzidine,acid-base,293.15,13,12,0,0,c1cc(cc1c2ccc(cc2)N)[NH3+],c1cc(cc1c2ccc(cc2)N)N,4.65,"CRC (88th edition)"
+16444,benzidine,acid-base,293.15,14,13,0,0,c1cc(ccc1c1ccc(cc1)[NH3+])[NH3+],c1cc(ccc1c1ccc(cc1)N)[NH3+],3.43,"CRC (88th edition)"
+16444,benzidine,acid-base,293.15,13,12,0,0,c1cc(ccc1c1ccc(cc1)N)[NH3+],c1cc(ccc1c1ccc(cc1)N)N,4.65,"CRC (88th edition)"
 16485,4-fluorophenol,acid-base,298.15,5,4,0,0,Fc1ccc(O)cc1,Fc1ccc([O-])cc1,9.89,"CRC (88th edition)"
 16512,palmitoylethanolamide,,298.15,37,37,0,0,CCCCCCCCCCCCCCCC(=O)NCCO,,,
 16637,5-Deoxyribose-1-phosphate,acid-base,298.15,10,9,0,0,,,6.69,"Alberty (2003)"
