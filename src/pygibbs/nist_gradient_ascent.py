@@ -572,7 +572,7 @@ def main():
         for rid in grad.kegg.get_all_rids():
             sparse_reaction = grad.kegg.rid2sparse_reaction(rid)
             try:
-                dG0 = grad.reaction_to_dG0(sparse_reaction, pH, I, T, most_abundant=False)
+                dG0 = grad.reaction_to_dG0(sparse_reaction, pH, I, T)
                 print "R%05d: dG0_r = %.2f [kJ/mol]" % (rid, dG0)
                 counter += 1
             except MissingCompoundFormationEnergy as e:

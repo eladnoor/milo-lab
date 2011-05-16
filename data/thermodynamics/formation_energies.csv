@@ -164,7 +164,6 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 1352,FADH2(red),-38.88,,-2,33,0,test,"Alberty (2003)",FAD(ox)=0
 1417,Cyanate,-97.4,,-1,0,0,train,"Alberty (2006)",
 1438,Methane(aq),-34.33,-89.04,0,4,0,test,"Alberty (2003)","too small"
-1563,Carbamate,-377.65,,-1,2,0,test,"Alberty (2006)","too small to decompose"
 1847,FMNH2(red),-38.88,,-2,21,0,test,"Alberty (2003)",FMN(ox)=0
 5361,Hydrazine,128.03,,0,4,0,test,"Thauer (1977)","too small"
 9306,"Sulfur dioxide",-300.708,,0,0,0,test,"Thauer (1977)","too small"

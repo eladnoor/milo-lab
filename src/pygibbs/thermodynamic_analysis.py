@@ -445,14 +445,14 @@ class ThermodynamicAnalysis(object):
         T = pathway_data.T
         c0 = pathway_data.c0 or 1.0
         
-        most_abundant = field_map.GetBoolField("ABUNDANT", False)
         formula = field_map.GetStringField("REACTION")
         media = field_map.GetStringField("MEDIA", "None")
         if media == "None":
             media = None
             
         sparse_reaction = self.kegg.formula_to_sparse(formula)
-        dG_r = self.estimate_dG_reaction(sparse_reaction, pH_list, I_list, T, c0, media, most_abundant)
+        dG_r = self.estimate_dG_reaction(sparse_reaction, 
+                                         pH_list, I_list, T, c0, media)
         contour_fig = pylab.figure()
         
         pH_meshlist, I_meshlist = pylab.meshgrid(pH_list, I_list)
@@ -461,7 +461,8 @@ class ThermodynamicAnalysis(object):
         pylab.xlabel("pH")
         pylab.ylabel("Ionic Strength")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
-        self.html_writer.write('<br>\n' + self.kegg.sparse_to_hypertext(sparse_reaction) + '<br>\n')
+        self.html_writer.write('<br>\n' + 
+            self.kegg.sparse_to_hypertext(sparse_reaction) + '<br>\n')
 
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map

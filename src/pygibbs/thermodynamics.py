@@ -75,8 +75,7 @@ class Thermodynamics(object):
         I = I or self.I
         T = T or self.T
         pMg = pMg or self.pMg
-        return self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, 
-            T=T, most_abundant=False)
+        return self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
     
     def reaction_to_dG0(self, sparse_reaction, pH=None, pMg=None, I=None, T=None):
         """

@@ -68,13 +68,7 @@ class PseudoisomerMap(object):
         """Return true if there are no entries in the map."""
         return len(self.dgs) == 0
     
-    def Transform(self, pH, pMg, I, T, most_abundant=False):
-        """Transform this set of pseudoisomers to a dG value at
-           the specified conditions.
-        """
-        if not self.dgs:
-            raise ValueError("Cannot run Transform on an empty pseudoisomer map")
-        
+    def _Transform(self, pH, pMg, I, T):
         v_dG0 = []
         v_nH  = []
         v_z   = []
@@ -92,12 +86,28 @@ class PseudoisomerMap(object):
         v_nH  = pylab.array(v_nH)
         v_z   = pylab.array(v_z)
         v_nMg  = pylab.array(v_nMg)
+        
+        v_ddG0 = correction_function(v_nH, v_nMg, v_z, pH, pMg, I, T)
+        v_dG0_tag = v_dG0 + v_ddG0
 
-        if most_abundant:
-            return min(dG0 + correction_function(nH, nMg, z, pH, pMg, I, T))
-        else:
-            return array_transform(v_dG0, v_nH, v_nMg, v_z, pH, pMg, I, T)
+        return v_dG0, v_dG0_tag, v_nH, v_z, v_nMg 
+
+    def Transform(self, pH, pMg, I, T):
+        """
+            Transform this set of pseudoisomers to a dG value at the 
+            specified conditions.
+        """
+        if not self.dgs:
+            raise ValueError("Cannot run Transform on an empty pseudoisomer map")
+
+        _v_dG0, v_dG0_tag, _v_nH, _v_z, _v_nMg = self._Transform(pH, pMg, I, T)
+        return -R * T * log_sum_exp(v_dG0_tag / (-R*T))
     
+    def GetMostAbundantPseudoisomer(self, pH, I, pMg, T):
+        v_dG0, v_dG0_tag, v_nH, v_z, v_nMg = self._Transform(pH, pMg, I, T)
+        i = pylab.argmin(v_dG0_tag)
+        return v_dG0[i], v_dG0_tag[i], v_nH[i], v_z[i], v_nMg[i]
+
     def TransformMatrix(self, pH, pMg, I, T):
         """Potentially return multiple results..."""
         if (type(pH) != types.ListType and type(I) != types.ListType):
@@ -155,4 +165,3 @@ class PseudoisomerMap(object):
             return None
         else:
             return (dG0_f_without_Mg + dG0_f_Mg - dG0_f_with_Mg) / (R*T*pylab.log(10))
-        

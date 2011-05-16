@@ -615,8 +615,10 @@ class GroupContribution(Thermodynamics):
         return pK_Mg
 
     def KeggErrorReport(self):
-        error_strings = ['kernel', 'decompose', 'determine', 'provided']
-        query = ' union '.join(["select '" + e + "', count(*) from gc_errors where error like '%%" + e + "%%'" for e in error_strings])
+        error_strings = ['kernel', 'decompose', 'explicit', 'provided']
+        query = ' union '.join(["select '" + e + 
+            "', count(*) from gc_errors where error like '%%" + 
+            e + "%%'" for e in error_strings])
         self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
         
 #################################################################################################################
