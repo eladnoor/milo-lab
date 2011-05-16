@@ -482,6 +482,7 @@ class Pathway(object):
                         dgf_primes, dgf_primes[index_to_minimize], problem)
         return opt_dgs, concentrations, concentrations[index_to_minimize, 0]
 
+
 class KeggPathway(Pathway):
     
     def __init__(self, S, rids, fluxes, cids, formation_energies,
