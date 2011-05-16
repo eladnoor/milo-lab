@@ -29,7 +29,6 @@ def ReactionPage(request):
     if form.cleaned_swap_sides:
         rxn.SwapSides()
         query = rxn.GetQueryString()
-        print 'SWAPPED'
     if form.cleaned_balance_w_water:
         rxn.TryBalanceWithWater()
         query = rxn.GetQueryString()
