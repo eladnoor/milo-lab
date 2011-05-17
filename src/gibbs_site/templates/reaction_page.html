@@ -4,119 +4,53 @@
 
 	<div class="centerize">
 
-	{% if not reaction.is_balanced %}
-		<div class="warning">Reaction is not balanced!
-		{% if reaction.balanced_with_water and balance_with_water_link %}
-		<a href="{{ balance_with_water_link }}">Balance with water</a>?
-		{% endif %}
-		</div>
-		{% else %}
-			{% if not reaction.is_electron_balanced %}
-			<div class="warning">Electrons are not balanced!
-			{% if balance_electrons_link and reaction.can_balance_electrons %}
-			<a href="{{ balance_electrons_link }}">Balance with NADH</a>?
-			{% endif %}
-			</div>
-			{% else %}
-				{% if reaction.contains_co2 %}
-				<div class="warning">
-				Did you mean <a href="{{ replace_co2_link }}">CO<sub>2</sub>(total)</a>?
-				<a href="/faq#aqueousCO2">Learn more &raquo;</a>
-				</div>
-				{% endif %}
-			{% endif %}
-	{% endif %}
+	{% include "reaction_balancing_check.html" %}
 
 	<form id="rxnForm" name="reactionForm" action="/reaction" method="get">
 		<input type="hidden" name="query" value="{{ query }}" />
-		<div class="parsedRxn">
-			{% for compound in reaction.reactants %}
-				{% with "reactants" as reaction_side %}
-					{% include "compound_in_reaction.html" %}
-				{% endwith %}
-				
-				{% if not forloop.last %} + {% endif %}
-			{% endfor %}
-			
-			{% if reaction.missing_atoms %}
-				+
-				{% for atom, count in reaction.missing_atoms %}
-					<span class="missingCount">{{ count }}</span>
-					{% if reaction.balanced_with_water %}
-					<span class="missingAtom">Water</span>
-					{% else %}
-					<span class="missingAtom">{{ atom }}</span>
-					{% endif %}
-				{% endfor %}
-			{% endif %}
-			
-			{% if reaction.missing_electrons and reaction.is_balanced %}
-				+ <span class="missingCount">{{ reaction.missing_electrons }}</span>
-				  <span class="missingAtom">e<sup>-</sup></span>
-			{% endif %}
-			
-			&rarr;
-			{% for compound in reaction.products %}
-				{% with "products" as reaction_side %}
-					{% include "compound_in_reaction.html" %}
-				{% endwith %}
-				
-				{% if not forloop.last %} + {% endif %}
-			{% endfor %}
-			
-			{% if reaction.extra_atoms %}
-				+
-				{% for atom, count in reaction.extra_atoms %}
-					<span class="missingCount">{{ count }}</span>
-					{% if reaction.balanced_with_water %}
-					<span class="missingAtom">Water</span>
-					{% else %}
-					<span class="missingAtom">{{ atom }}</span>
-					{% endif %}
-				{% endfor %}
-			{% endif %}
-			
-			{% if reaction.extra_electrons and reaction.is_balanced %}
-				+ <span class="missingCount">{{ reaction.extra_electrons }}</span>
-				  <span class="missingAtom">e<sup>-</sup></span>
-			{% endif %}
-		</div>
+		{% include "parsed_reaction.html" %}
 		
 		{% if reaction.is_balanced and reaction.is_electron_balanced %}
 			{% include "reaction_result_table.html" %}
+			
+			<div class="buttonSet">
+				<input type="submit" value="Update" name="submit" onclick="form.target = '_self';" />
+				<input type="submit" value="Save" name="submit" onclick="form.target = '_blank';" />
+				<input type="submit" value="Reverse" name="submit" onclick="form.target = '_self';" />
+			</div>
 		{% endif %}
 		
-		{% if reaction.all_compounds %}
-		<table class="compoundInfo">
-			<tr>
-				<th colspan="3">Compound Formation Energies</td>		
-			</tr>
-			<tr>
-				<td>Compound</td>
-				<td>&Delta;<sub>f</sub>G'&deg;</td>
-				<td>Source</td>
-			</tr>
-			{% for compound in reaction.all_compounds %}
-			<tr>
-				<td><a href="{{ compound.compound.link }}">{{ compound.name }}</a></td>
-				<td>
-				{% if compound.transformed_energy != None %}
-				{{ compound.transformed_energy|floatformat:1 }}
-				{% else %}&mdash;
-				{% endif %}
-				</td>
-				<td>
-				{% if compound.compound.dg_source != None %}
-				{{ compound.compound.dg_source }}
-				{% endif %}
-				</td>
-			</tr>
-			{% endfor %}
-		</table>
-		{% endif %}
-	
-		<input type="submit" name="submit" value="Update" onclick="form.target = '_self';"/> <input type="submit" name="submit" value="Save" onclick="form.target = '_blank';"/>
 	</form>
+
+	{% if reaction.all_compounds %}
+	<table class="compoundInfo">
+		<tr>
+			<th colspan="3">Compound Formation Energies</td>		
+		</tr>
+		<tr>
+			<td>Compound</td>
+			<td>&Delta;<sub>f</sub>G'&deg;</td>
+			<td>Source</td>
+		</tr>
+		{% for compound in reaction.all_compounds %}
+		<tr>
+			<td><a href="{{ compound.compound.link }}">{{ compound.name }}</a></td>
+			<td>
+			{% if compound.transformed_energy != None %}
+			{{ compound.transformed_energy|floatformat:1 }}
+			{% else %}&mdash;
+			{% endif %}
+			</td>
+			<td>
+			{% if compound.compound.dg_source != None %}
+			{{ compound.compound.dg_source }}
+			{% endif %}
+			</td>
+		</tr>
+		{% endfor %}
+	</table>
+	{% endif %}
+	
 	
 	</div>
 

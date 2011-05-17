@@ -19,6 +19,7 @@ def ReactionPage(request):
         raise Http404
     
     # Figure out which template to render (based on which submit button they pressed).
+    print form.cleaned_submit
     template_name = _REACTION_TEMPLATES_BY_SUBMIT.get(form.cleaned_submit,
                                                       'reaction_page.html')
 
@@ -26,7 +27,7 @@ def ReactionPage(request):
     query = form.cleaned_query
     if form.cleaned_reactionId:
         query = rxn.GetQueryString()
-    if form.cleaned_swap_sides:
+    if form.cleaned_submit == 'Reverse':
         rxn.SwapSides()
         query = rxn.GetQueryString()
     if form.cleaned_balance_w_water:
