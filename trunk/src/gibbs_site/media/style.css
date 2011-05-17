@@ -114,6 +114,10 @@
 	margin: 15px auto;
 }
 
+.reactionController, .parsedRxn {
+	text-align: center;
+}
+
 table.results, table.compoundInfo, table.speciesInfo,
 table.enzymeInfo, table.reactionsInfo {
 	margin: 10px auto;

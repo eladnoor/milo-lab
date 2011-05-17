@@ -71,4 +71,7 @@ $(document).ready(function(){
 
 	// Enable lightbox where desired.
 	$('a.lightBox').lightBox();
+
+	// Enable buttons where desired.
+	$('.buttonSet').buttonset();
 });

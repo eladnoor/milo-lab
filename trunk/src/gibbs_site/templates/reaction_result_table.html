@@ -1,5 +1,5 @@
 	<table class="results">
-		
+
 		{% if not reaction.standard_concentrations %}
 		<tr>
 			<td width="150px"><strong>Estimated &Delta;<sub>r</sub>G'</strong></td>
@@ -86,7 +86,9 @@
 				{% endifequal %}
 			</td>
 		</tr>
-		<tr class="customConcentrations"><th colspan="3">Reactant Concentrations</th></tr>
+		<tr class="customConcentrations">
+			<th colspan="3">Reactant Concentrations</th>
+		</tr>
 		{% for reactant in reaction.reactants %}
 			<tr class="customConcentrations">
 				<td width="150px">
@@ -108,7 +110,9 @@
 				</td>
 			</tr>
 		{% endfor %}
-		<tr class="customConcentrations"><th colspan="3">Product Concentrations</th></tr>
+		<tr class="customConcentrations">
+			<th colspan="3">Product Concentrations</th>
+		</tr>
 		{% for product in reaction.products %}
 			<tr class="customConcentrations">
 				<td width="150px">
