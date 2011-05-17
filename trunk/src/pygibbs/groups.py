@@ -469,6 +469,8 @@ class GroupContribution(Thermodynamics):
         return pmap
 
     def EstimateKeggCids(self):
+        logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
+        
         # override the data of the 'test' set
         obs_species = PsuedoisomerTableThermodynamics.FromCsvFile(
             '../data/thermodynamics/formation_energies.csv')
@@ -524,6 +526,8 @@ class GroupContribution(Thermodynamics):
                 continue
         
         self.KeggErrorReport()
+        logging.info("Writing the results to the database")
+        G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
             
     def cid2PseudoisomerMap(self, cid):
         """
@@ -635,27 +639,20 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
-        #G.sparse_kernel = False
         G.load_groups("../data/thermodynamics/groups_species.csv")
         G.train()
         G.write_regression_report()
         G.analyze_training_set()
-        logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
         G.EstimateKeggCids()
-        logging.info("Writing the results to the database")
-        G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
     elif sys.argv[1] == 'test':
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
         G.init()
-        logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
         G.EstimateKeggCids()
-        logging.info("Writing the results to the database")
-        G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
     else:
         G = GroupContribution(db=db)
         G.load_groups("../data/thermodynamics/groups_species.csv")
-        G.init()
+        #G.init()
 
         mols = {}
         try:
@@ -695,21 +692,26 @@ if __name__ == '__main__':
             if smarts:
                 print mol.FindSmarts(smarts)
             try:
-                decomposition = G.Mol2Decomposition(mol, ignore_protonations=True)
+                decomposition = G.Mol2Decomposition(mol, ignore_protonations=False)
                 print decomposition.ToTableString()
+                print 'nH =', decomposition.Hydrogens()
+                print 'z =', decomposition.NetCharge()
+                print 'nMg = ', decomposition.Magnesiums()
                 #for groupvec in decomposition.PseudoisomerVectors():
                 #    print groupvec
                 #    try:
                 #        print G.groupvec2val(groupvec)
                 #    except GroupMissingTrainDataError as e:
                 #        print e.Explain(G)
-                pmap = G.GroupDecomposition2PseudoisomerMap(decomposition)
-                print pmap
-                dG0_tag = pmap.Transform(pH=7, pMg=14, I=0.1, T=298.15)
-                print "dG0' = %.1f kJ/mol" % dG0_tag
             except GroupDecompositionError as e:
                 print "Cannot decompose compound to groups: " + str(e)
-            except GroupMissingTrainDataError as e:
-                print e.Explain(G)
+
+            #try:
+            #    pmap = G.GroupDecomposition2PseudoisomerMap(decomposition)
+            #    print pmap
+            #    dG0_tag = pmap.Transform(pH=7, pMg=14, I=0.1, T=298.15)
+            #    print "dG0' = %.1f kJ/mol" % dG0_tag
+            #except GroupMissingTrainDataError as e:
+            #    print e.Explain(G)
             mol.Draw()
                 

@@ -241,7 +241,7 @@ class GroupDecomposer(object):
         return group_map
 
     @staticmethod
-    def FindPhosphateChains(mol, max_length=3, ignore_protonations=False):
+    def FindPhosphateChains(mol, max_length=4, ignore_protonations=False):
         """
         Chain end should be 'OC' for chains that do not really end, but link to carbons.
         Chain end should be '[O-1,OH]' for chains that end in an hydroxyl.
