@@ -3,7 +3,7 @@
       <div class="title">Enzymes</div>
     {% for result in enzyme_results|slice:":5" %}
       <div class="searchResult enzymeResult clearfix">
-        <span class="name"><a href="{{result.value.link}}">{{ result.key }}</a></span>
+        <span class="name"><a href="{{result.value.link}}">{{ result.key }} (EC {{ result.value.ec }})</a></span>
         <span class="reactions">
           <ul>
           {% for reaction in result.value.all_reactions|slice:":3" %}

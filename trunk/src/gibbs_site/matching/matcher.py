@@ -129,6 +129,28 @@ class Matcher(object):
             return [name]
         except Exception, msg:
             return []
+    
+    def _MakeMatchObjects(self, common_names):
+        """Given the list of CommonNames, make the Matches.
+        
+        Args:
+            common_names: a list of CommonNames.
+        
+        Returns:
+            A list of Match objects.
+        """
+        matches = []
+        for name in common_names:
+            compounds = name.compound_set.all()
+            
+            for compound in compounds:
+                matches.append(Match(name, compound, 0.0))
+            
+            enzymes = name.enzyme_set.all()
+            for enzyme in enzymes:
+                matches.append(Match(name, enzyme, 0.0))
+        
+        return matches
         
     def _GetScore(self, query, match):
         """Get the score for a query-match pair.
@@ -198,14 +220,7 @@ class Matcher(object):
         processed_query = self._PreprocessQuery(query)
         name_matches = self._FindNameMatches(processed_query)
         
-        matches = [Match(nm, None, 0.0) for nm in name_matches]
-        for m in matches:
-            compounds = m.key.compound_set.all()
-            enzymes = m.key.enzyme_set.all()
-            if compounds:
-                m.value = compounds[0]
-            elif enzymes:
-                m.value = enzymes[0]
+        matches = self._MakeMatchObjects(name_matches)
         self._ScoreMatches(processed_query, matches)
         matches = self._FilterMatches(matches)
         
