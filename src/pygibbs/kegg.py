@@ -696,7 +696,8 @@ class Kegg(Singleton):
                 del atom_bag[atomtype]
 
         if atom_bag:
-            raise KeggReactionNotBalancedException("Reaction cannot be balanced: " + str(atom_bag))
+            raise KeggReactionNotBalancedException("Reaction cannot be balanced: " 
+                + str(atom_bag) + "\n" + self.sparse_reaction_to_string(sparse_reaction))
         
         return new_sparse
     

@@ -25,9 +25,12 @@
 "-S",1,0,"[C,c,N,n,S][S;H1;X2;+0]","1","thiol",
 "-S",0,-1,"[C,c,N,n,S][S;H0;X1;-1]","1","thiol",
 "-S-",0,0,"[C,c,N,n,S][S;H0;X2][C,c,N,n,S]","1","thioether",
-"CO-OPO3",0,-2,"C(=O)OP(=O)([O-])[O-]","All","phospho-carboxylic acid",
-"CO-OPO3",1,-1,"C(=O)OP(=O)([O-])O","All","phospho-carboxylic acid",
-"CO-OPO3",2,0,"C(=O)OP(=O)([O])O","All","phospho-carboxylic acid",
+"-CO-OPO3",0,-2,"[C;H0;X3](=O)OP(=O)([O-])[O-]","All","phospho-carboxylic acid",
+"-CO-OPO3",1,-1,"[C;H0;X3](=O)OP(=O)([O-])O","All","phospho-carboxylic acid",
+"-CO-OPO3",2,0,"[C;H0;X3](=O)OP(=O)([O])O","All","phospho-carboxylic acid",
+"CO-OPO3",1,-2,"[C;H1;X3](=O)OP(=O)([O-])[O-]","All","formyl phosphate",
+"CO-OPO3",2,-1,"[C;H1;X3](=O)OP(=O)([O-])O","All","formyl phosphate",
+"CO-OPO3",3,0,"[C;H1;X3](=O)OP(=O)([O])O","All","formyl phosphate",
 "ring -OPO3-",0,-1,"O[P;R](=O)([O-])O","All","middle link in a phosphate chain (participating in a ring)",
 "ring -OPO3-",1,0,"O[P;R](=O)(O)O","All","middle link in a phosphate chain (participating in a ring)",
 "*PC",0,0,"P",0,"phosphate chains - (C)harge sensitive",
@@ -40,9 +43,10 @@
 "ring -n=",0,0,"[n;H0;X2;+0]","All","participating in a ring",
 "ring -n-",1,0,"[n;H1;X3;+0]","All","participating in a ring",
 "ring -n-",0,-1,"[n;H0;X2;-1]","All","participating in a ring",
-"two fused rings -N<",0,0,"[N;H0;R2;0]","All","participating in two fused rings",
 "two fused rings -N<",1,1,"[N;H1;R2;+1]","All","participating in two fused rings",
-"ring =N<",0,0,"[N;H0;X3;R1]=[C,N]",0,"double bond and one single bond participating in a ring",
+"two fused rings -N<",0,0,"[N;H0;R2;+0]","All","participating in two fused rings",
+"two fused rings =N<",0,1,"[N;H0;R2;+1]","All","participating in two fused rings",
+"ring =N<",0,1,"[N;H0;X3;R1;+1]=[C,N]",0,"double bond and one single bond participating in a ring",
 "-N-",2,1,"[N;H2;X4;R0;+1]","All",,
 "-N-",1,0,"[N;H1;X3;R0;+0]","All",,
 "ring =N-",1,1,"[N;H1;X3;R1;+1]=[C,c,N,n]",0,"participating in a ring",
@@ -103,14 +107,14 @@
 "-C<",1,0,"[C;H1;X4]","All","tertiary carbon",
 ">C<",0,0,"[C;H0;X4]","All","quaternary carbon",
 "three member ring correction",0,0,"*1**1","None","three member ring correction (currently no examples)",skip
-"amide correction",0,0,"O=CN","None","amide bond correction",skip
+"amide correction",0,0,"O=CN","None","amide bond correction",
 "thioester correction",0,0,"CSC(=O)C","None","thioester correction (linearly dependent on CoA)",skip
-"OCCC conjugation correction",0,0,"O=CC=C","None","OCCC conjugation correction",skip
-"OCCO conjugation correction",0,0,"O=CC=O","None","OCCO conjugation correction",skip
+"OCCC conjugation correction",0,0,"O=CC=C","None","OCCC conjugation correction",
+"OCCO conjugation correction",0,0,"O=CC=O","None","OCCO conjugation correction",
 "OCCN conjugation correction",0,0,"O=CC=N","None","OCCN conjugation correction (currently no examples)",skip
 "CCCN conjugation correction",0,0,"C=CC=N","None","CCCN conjugation correction (currently no examples)",skip
 "CCCC conjugation correction",0,0,"C=CC=C","None","CCCN conjugation correction (currently no examples)",skip
 "vicinal Cl correction",0,0,"Cl~C~C~Cl","None","vicinal Cl correction (not 100% accurate, but currently no examples)",skip
-"*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)",skip
-"*Ar",0,0,"c1cccc1","None","aromatic ring correction (expanded in code)",skip
-"*Har",0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)",skip
+"*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)",
+"*Ar",0,0,"c1cccc1","None","aromatic ring correction (expanded in code)",
+"*Har",0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)",

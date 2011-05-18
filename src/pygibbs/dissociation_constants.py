@@ -7,6 +7,9 @@ from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.pseudoisomers_data import PseudoisomerEntry
 
+class MissingDissociationConstantError(Exception):
+    pass
+
 class DissociationConstants(object):
     
     def __init__(self):
@@ -346,16 +349,17 @@ class DissociationTable(object):
         try:
             if nMg_to == nMg_from+1 or nH_to == nH_from+1:
                 ddG0, ref = self.ddGs[nH_from, nH_to, nMg_from, nMg_to]
-                return (ddG0, ref)
+                return ddG0, ref
             if nMg_from == nMg_to+1:
                 ddG0, ref = self.ddGs[nH_from, nH_to, nMg_to, nMg_from]
-                return (-ddG0, ref)
+                return -ddG0, ref
             if nH_from == nH_to+1:
                 ddG0, ref = self.ddGs[nH_to, nH_from, nMg_from, nMg_to]
-                return (-ddG0, ref)
+                return -ddG0, ref
         except KeyError:
-            raise KeyError('The dissociation constant for C%05d: (nH=%d,nMg=%d) -> '
-                            '(nH=%d,nMg=%d) is missing' % (self.cid, nH_from, nMg_from, nH_to, nMg_to))
+            raise MissingDissociationConstantError(
+                'The dissociation constant for C%05d: (nH=%d,nMg=%d) -> '
+                '(nH=%d,nMg=%d) is missing' % (self.cid, nH_from, nMg_from, nH_to, nMg_to))
 
         raise Exception('A dissociation constant can either represent a'
                 ' change in only one hydrogen or magnesium')

@@ -25,7 +25,8 @@ from toolbox.database import SqliteDatabase
 from toolbox.sparse_kernel import SparseKernel, CplexNotInstalledError
 from toolbox.molecule import Molecule
 from pygibbs.group_observation import GroupObervationCollection
-from pygibbs.dissociation_constants import DissociationConstants
+from pygibbs.dissociation_constants import DissociationConstants,\
+    MissingDissociationConstantError
 
 class GroupMissingTrainDataError(Exception):
     
@@ -69,6 +70,7 @@ class GroupContribution(Thermodynamics):
         self.kegg = kegg or Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
         self.sparse_kernel = True
+        self.verify_kernel_orthogonality = True
 
         self.group_nullspace = None
         self.group_contributions = None
@@ -291,11 +293,12 @@ class GroupContribution(Thermodynamics):
         if self.group_contributions == None or self.group_nullspace == None:
             raise Exception("You need to first Train the system before using it to estimate values")
 
-        v = abs(pylab.dot(self.group_nullspace, pylab.array(groupvec)))
-        k_list = [i for i in pylab.find(v > 1e-10)]
-        if k_list:
-            raise GroupMissingTrainDataError("can't estimate because the input "
-                "is not orthogonal to the kernel", k_list)
+        if self.verify_kernel_orthogonality:
+            v = abs(pylab.dot(self.group_nullspace, pylab.array(groupvec)))
+            k_list = [i for i in pylab.find(v > 1e-10)]
+            if k_list:
+                raise GroupMissingTrainDataError("can't estimate because the input "
+                    "is not orthogonal to the kernel", k_list)
         return pylab.dot(groupvec, self.group_contributions)
     
     def write_regression_report(self, include_raw_data=False, T=default_T, pH=default_pH):        
@@ -482,7 +485,7 @@ class GroupContribution(Thermodynamics):
         for cid in sorted(self.kegg.get_all_cids()):
             try:
                 diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
-                if diss == None:
+                if diss is None:
                     mol = self.kegg.cid2mol(cid)
                     decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
                     nH = decomposition.Hydrogens()
@@ -507,13 +510,13 @@ class GroupContribution(Thermodynamics):
                             mol = Molecule.FromSmiles(smiles)
                             decomposition = self.Mol2Decomposition(mol, ignore_protonations=False)
                             if nH != decomposition.Hydrogens():
-                                self.cid2error[cid] = "The nH of the decomposition (%d) does not match the provided nH (%d)" \
-                                    % (decomposition.Hydrogens(), nH)
-                                continue
+                                raise GroupDecompositionError("The nH of the decomposition (%d) does not match the provided nH (%d)"
+                                    % (decomposition.Hydrogens(), nH))
                         else:
                             mol = self.kegg.cid2mol(cid)
                             decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
                             nH = decomposition.Hydrogens()
+                            nMg = decomposition.Magnesiums()
                         dG0 = self.groupvec2val(decomposition.AsVector())
                         self.cid2source_string[cid] = "Group Contribution"
                 
@@ -521,13 +524,13 @@ class GroupContribution(Thermodynamics):
                     self.cid2pmap[cid] = diss.GetPseudoisomerMap()
     
             except (KeggParseException, GroupDecompositionError, 
-                    GroupMissingTrainDataError) as e:
+                    GroupMissingTrainDataError, MissingDissociationConstantError) as e:
                 self.cid2error[cid] = str(e)
                 continue
         
-        self.KeggErrorReport()
         logging.info("Writing the results to the database")
         G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
+        self.KeggErrorReport()
             
     def cid2PseudoisomerMap(self, cid):
         """
@@ -624,7 +627,7 @@ class GroupContribution(Thermodynamics):
         return pK_Mg
 
     def KeggErrorReport(self):
-        error_strings = ['kernel', 'decompose', 'explicit', 'provided']
+        error_strings = ['kernel', 'decompose', 'explicit', 'provided', 'dissociation']
         query = ' union '.join(["select '" + e + 
             "', count(*) from gc_errors where error like '%%" + 
             e + "%%'" for e in error_strings])
@@ -639,6 +642,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
+        G.verify_kernel_orthogonality = False
         G.load_groups("../data/thermodynamics/groups_species.csv")
         G.train()
         G.write_regression_report()

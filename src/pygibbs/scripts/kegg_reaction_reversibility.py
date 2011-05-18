@@ -3,10 +3,10 @@
 import sys
 from pygibbs import flags
 from pygibbs.thermodynamic_constants import default_T
-from pygibbs.groups import GroupContribution
 from pygibbs import reversibility
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 
 def GetReactionIdInput():
@@ -28,8 +28,8 @@ def main():
 
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg.getInstance()
-    G = GroupContribution(db)
-    G.init()
+    G = PsuedoisomerTableThermodynamics.FromDatabase(
+        db, 'gc_pseudoisomers', name='milo_gc')
     
     print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
            'I=%.2gM, Median concentration=%.2gM' % (T, pH, pMg, I, c_mid))
