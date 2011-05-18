@@ -220,7 +220,7 @@ class GroupContribution(Thermodynamics):
             self.html_writer, self.group_decomposer)
         if FromFiles:
             self.read_training_data_formation()
-            #self.read_training_data_pKa()
+            self.read_training_data_pKa()
             self.read_training_data_reaction()
             self.obs_collection.ToDatabase()
         else:
