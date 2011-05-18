@@ -324,6 +324,7 @@ class Compound(models.Model):
     def _GetCofactorEnzymes(self):
         return self.cofactor_of_enzymes.all()
     
+    first_name = property(FirstName)
     html_formula = property(GetHtmlFormattedFormula)
     link = property(GetLink)
     kegg_link = property(GetKeggLink)
