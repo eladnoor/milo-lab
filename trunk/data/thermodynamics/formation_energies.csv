@@ -121,20 +121,14 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 5984,"2-Hydroxybutanoic acid",-506.3,,-1,7,0,train,"Thauer (1977)",
 6142,n-Butanol,-171.84,,0,10,0,train,"Alberty (2003)",
 1,H2O,-237.19,-285.83,0,2,0,test,"Alberty (2003)","too small"
-3,NAD+,0,0,-1,26,0,test,"Alberty (2003)",NAD+(-1)=0
-4,NADH,22.65,-31.94,-2,27,0,test,"Alberty (2003)",NAD+(-1)=0
-5,NADPH,-809.19,-29.18,-4,26,0,test,"Alberty (2003)",NAD+(-1)=0
-6,NADP+,-835.18,0,-3,25,0,test,"Alberty (2003)",NAD+(-1)=0
 7,O2(aq),16.4,-11.7,0,0,0,test,"Alberty (2003)","too small"
 9,Orthophosphate,-1096.1,-1299,-2,1,0,test,"Alberty (2003)","too small"
 11,CO2(aq),-386.02,,0,0,0,test,"Thauer (1977)","too small"
 13,pyrophosphate,-1973.86,-2294.87,-3,1,0,test,"Alberty (2003)","too small"
 14,NH3,-26.5,-80.29,0,3,0,test,"Alberty (2003)","too small"
-16,FAD(ox),0,,-2,31,0,test,"Alberty (2003)",FAD(ox)=0
 27,H2O2(aq),-134.03,-191.17,0,2,0,test,"Alberty (2003)","too small"
 58,Formate,-351,-425.55,-1,1,0,test,"Alberty (2003)","too small"
 59,Sulfate,-744.53,-909.27,-2,0,0,test,"Alberty (2006)","too small"
-61,FMN(ox),0,,-2,19,0,test,"Alberty (2003)",FMN(ox)=0
 67,Formaldehyde,-130.54,,0,2,0,test,"Thauer (1977)","too small"
 80,H+,0,0,0,0,0,test,"Alberty (2003)","too small"
 86,Urea,-202.8,-317.65,0,4,0,test,"Alberty (2003)","too small"
@@ -151,23 +145,15 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 283,Sulfide,85.8,33.1,-2,0,0,test,"Alberty (2006)","too small"
 288,CO2(tot),-586.77,-691.99,-1,1,0,test,"Alberty (2003)","too small"
 305,Mg,-455.3,-467,2,0,1,test,"Alberty (2006)","too small"
-342,Thioredoxin(red),69.88,,-2,0,0,test,"Alberty (2003)",Thioredoxin(ox)=0
-343,Thioredoxin(ox),0,,0,0,0,test,"Alberty (2003)",Thioredoxin(ox)=0
 366,Urate,-325.9,,-1,3,0,test,"Alberty (2003)","too small"
-376,retinal,0,,0,28,0,test,"Alberty (2003)",retinal=0
-390,Ubiquinone(red),-89.92,,0,92,0,test,"Alberty (2003)",Ubiquinone(ox)=0
-399,Ubiquinone(ox),0,,0,90,0,test,"Alberty (2003)",Ubiquinone(ox)=0
 469,Ethanol,-181.64,-288.3,0,6,0,test,"Alberty (2003)","too small"
-473,retinol,-27.91,,0,30,0,test,"Alberty (2003)",retinal=0
 543,Dimethylamine,-3.3,,1,8,0,test,"Thauer (1977)","too small"
 565,Trimethylamine,37.2,,1,10,0,test,"Thauer (1977)","too small"
 575,Cyclic-AMP,-790.86,,-1,11,0,test,"Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
 697,N2(aq),18.7,-10.54,0,0,0,test,"Alberty (2003)","too small"
 887,N2O(aq),104.2,82.05,0,0,0,test,"Alberty (2006)","too small"
-1352,FADH2(red),-38.88,,-2,33,0,test,"Alberty (2003)",FAD(ox)=0
 1417,Cyanate,-97.4,,-1,0,0,train,"Alberty (2006)",
 1438,Methane(aq),-34.33,-89.04,0,4,0,test,"Alberty (2003)","too small"
-1847,FMNH2(red),-38.88,,-2,21,0,test,"Alberty (2003)",FMN(ox)=0
 5361,Hydrazine,128.03,,0,4,0,test,"Thauer (1977)","too small"
 9306,"Sulfur dioxide",-300.708,,0,0,0,test,"Thauer (1977)","too small"
 80002,"monochlorobenzene",102.3,,0,5,0,train,"Dolfing (1992)","CAS 68411-45-0"
