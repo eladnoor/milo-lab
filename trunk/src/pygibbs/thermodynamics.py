@@ -365,7 +365,7 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
     def FromCsvFile(filename, label=None, name=None):
         """
             Imports the pseudoisomer maps from a CSV file, with these headers:
-            'cid', 'nH', 'z', 'nMg', 'dG0'
+            'cid', 'nH', 'nMg', 'dG0'
         """
         if name is None:
             name = "From file " + filename

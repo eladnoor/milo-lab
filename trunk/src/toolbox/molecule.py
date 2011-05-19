@@ -2,6 +2,7 @@ import pybel, indigo, indigo_renderer, uuid, rsvg, gtk
 import openbabel
 import types
 import re
+import glib
 
 class Molecule(object):
 
@@ -269,10 +270,13 @@ class Molecule(object):
             svg.render_cairo(cr)
             return True
         
-        if show_title:
-            svg = rsvg.Handle(data=self.ToSVG(self.title))
-        else:
-            svg = rsvg.Handle(data=self.ToSVG())
+        try:
+            if show_title:
+                svg = rsvg.Handle(data=self.ToSVG(self.title))
+            else:
+                svg = rsvg.Handle(data=self.ToSVG())
+        except glib.GError:
+            return
         _x, _y, w, h = svg.get_dimension_data()
         win = gtk.Window()
         win.resize(int(w), int(h))

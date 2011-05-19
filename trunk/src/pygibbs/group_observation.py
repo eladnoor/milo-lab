@@ -65,15 +65,15 @@ class GroupObervationCollection(object):
         obs.obs_type = obs_type
         self.observations.append(obs)
 
-    def SmilesTGroupvec(self, smiles, id):
+    def SmilesToGroupvec(self, smiles, id):
         mol = Molecule.FromSmiles(str(smiles))
         mol.RemoveHydrogens()
         mol.SetTitle(id)
         
-        try:
-            self.html_writer.write(mol.ToSVG())
-        except (TypeError, AssertionError): # The Mg ions cannot be drawn by OASA 
-            pass
+        #try:
+        self.html_writer.write(mol.ToSVG())
+        #except (TypeError, AssertionError): # The Mg ions cannot be drawn by OASA 
+        #    pass
         
         try:
             return self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
@@ -98,16 +98,16 @@ class GroupObervationCollection(object):
                     continue
         
                 if nH_above != nH_below:
-                    s = "nH = %d -> %d" % (nH_above, nH_below)
+                    s = "nH = %d -> %d" % (nH_below, nH_above)
                 elif nMg_above != nMg_below:
-                    s = "nMg = %d -> %d" % (nMg_above, nMg_below)
+                    s = "nMg = %d -> %d" % (nMg_below, nMg_above)
                 logging.info("\t" + s)
                 self.html_writer.write('%s: &#x394;G = %.2f</br>\n' 
                                        % (s, ddG0))
                 self.html_writer.write('SMILES = %s >> %s</br>\n' % (smiles_below, smiles_above))
-                decomposition_below = self.SmilesTGroupvec(smiles_below, 
+                decomposition_below = self.SmilesToGroupvec(smiles_below, 
                                 "C%05d_b_H%d_Mg%d" % (cid, nH_below, nMg_below))
-                decomposition_above = self.SmilesTGroupvec(smiles_above, 
+                decomposition_above = self.SmilesToGroupvec(smiles_above, 
                                 "C%05d_a_H%d_Mg%d" % (cid, nH_above, nMg_above))
                 if not decomposition_below or not decomposition_above:
                     continue
@@ -163,7 +163,7 @@ class GroupObervationCollection(object):
             
             groupvec = decomposition.AsVector()
             self.Add(groupvec, dG0, name, id="C%05d" % cid, obs_type='formation')
-            self.html_writer.write("Decomposition = %s</br>\n" % decomposition)
+            self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
             
             gc_nH, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
             if nH != gc_nH:
@@ -219,27 +219,31 @@ class GroupObervationCollection(object):
         dG0_correction = np.zeros((len(cids), 1))
         self.html_writer.write("<h3>The compounds used in NIST and their decompositions:</h3>\n")
         for i, cid in enumerate(cids):
-            name = self.kegg.cid2name(cid)
-            self.html_writer.write("<b>C%05d - %s</b></br>\n" % (cid, name))
-            self.html_writer.write("nH = %d</br>\n" % cid2nH[cid])
-            smiles = nist_regression.dissociation.GetSmiles(cid, nH=cid2nH[cid], nMg=0)
-            if smiles:
+            try:
+                name = self.kegg.cid2name(cid)
+                self.html_writer.write("<b>C%05d - %s</b></br>\n" % (cid, name))
+                self.html_writer.write("nH = %d</br>\n" % cid2nH[cid])
+                smiles = nist_regression.dissociation.GetSmiles(cid, nH=cid2nH[cid], nMg=0)
+                if not smiles:
+                    raise GroupDecompositionError("no SMILES in the dissociation table")
+    
                 self.html_writer.write("SMILES = %s</br>\n" % smiles)
                 mol = Molecule.FromSmiles(smiles)
-            else:
-                self.html_writer.write("WARNING: no SMILES in the dissociation table, using the KEGG InChI</br>\n")
-                mol = self.kegg.cid2mol(cid)
-                self.html_writer.write("SMILES = %s</br>\n" % mol.ToSmiles())
-            self.html_writer.write(mol.ToSVG() + '</br>\n')
+                self.html_writer.write(mol.ToSVG() + '</br>\n')
             
-            try:
                 decomposition = self.group_decomposer.Decompose(mol, 
-                    ignore_protonations=True, strict=True)
+                    ignore_protonations=False, strict=True)
                 groupvec = decomposition.AsVector()
                 self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
                 group_matrix.append(groupvec)
                 good_indices.append(i)
                 good_cids.append(cid)
+                gc_nH = decomposition.Hydrogens()
+                if cid2nH[cid] != gc_nH:
+                    s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
+                        cid2nH[cid], gc_nH)
+                    logging.error(s)
+                    self.html_writer.write(s + '</br>\n')
             except GroupDecompositionError as e:
                 if cid in cid2dG0:
                     # If it is impossible to decompose this compound, but its dG0
@@ -250,7 +254,7 @@ class GroupObervationCollection(object):
                     dG0_correction[i, 0] = cid2dG0[cid]
                     anchored_cids.append(cid)
                 else:
-                    self.html_writer.write(str(e) + "</br>\n")
+                    self.html_writer.write("ERROR:" + str(e) + "</br>\n")
         
         # The reverse transform converts the dG0' to dG0, where the chosen pseudoisomer
         # is the one with the minimal number of hydrogens. In order to correct this 

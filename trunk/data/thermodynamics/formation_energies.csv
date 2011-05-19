@@ -16,7 +16,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 49,L-Aspartate,-695.88,-934.41,-1,6,0,train,"Alberty (2003)",
 64,L-Glutamine,-528.02,-805,0,10,0,train,"Alberty (2003)",
 65,L-Serine,-510.87,,0,7,0,train,"Alberty (2003)",
-73,L-Methionine,-502.92,,0,11,0,train,"Alberty (2003)",
+73,L-Methionine,-502.92,,0,11,0,skip,"Alberty (2003)","might be a mistake?"
 74,Phosphoenolpyruvate,-1263.65,-1621.38,-3,2,0,train,"Alberty (2003)",
 78,L-Tryptophan,-114.7,-405.2,0,12,0,train,"Alberty (2003)",
 79,L-Phenylalanine,-207.1,,0,11,0,train,"Alberty (2003)",
