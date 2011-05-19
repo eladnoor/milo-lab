@@ -5,14 +5,14 @@
 2,"ATP","Mg",,12,12,1,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-]",6.18,"Alberty 2003"
 2,"ATP","Mg",,13,13,1,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",3.63,"Alberty 2003"
 2,"ATP","Mg",,12,12,2,1,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2].[Mg+2]","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2]",2.69,"Alberty 2003"
-3,"NAD+","Mg",,26,26,1,0,,,1.55,"Mazzini 1995"
+3,"NAD+","Mg",,26,26,1,0,"NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O.[Mg+2]","NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",1.55,"Mazzini 1995"
 3,"NAD+","acid-base",298.15,27,26,0,0,"NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)[C@H]1O","NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",3.86,"Domenech 1999"
-4,"NADH","Mg",,27,27,1,0,,,1.58,"Mazzini 1995"
+4,"NADH","Mg",,27,27,1,0,"NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O.[Mg+2]","NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",1.58,"Mazzini 1995"
 4,"NADH","acid-base",298.15,28,27,0,0,"NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)[C@H]1O","NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",3.86,"Domenech 1999 (assumed same as NAD+)"
-5,"NADPH","Mg",,26,26,1,0,,,1.87,"Mazzini 1995"
+5,"NADPH","Mg",,26,26,1,0,"NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])([O-])=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O.[Mg+2]","NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])([O-])=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",1.87,"Mazzini 1995"
 5,"NADPH","acid-base",298.15,28,27,0,0,"NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])(O)=O)[C@@H]2O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)[C@H]1O","NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])(O)=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",3.87,"Domenech 1999 (assumed same as NADPH)"
 5,"NADPH","acid-base",298.15,27,26,0,0,"NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])(O)=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O","NC(=O)C1=CN(C=CC1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])([O-])=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",5.86,"Domenech 1999 (assumed same as NADPH)"
-6,"NADP+","Mg",,25,25,1,0,,,1.81,"Mazzini 1995"
+6,"NADP+","Mg",,25,25,1,0,"NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])([O-])=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O.[Mg+2]","NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])([O-])=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",1.81,"Mazzini 1995"
 6,"NADP+","acid-base",298.15,27,26,0,0,"NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])(O)=O)[C@@H]2O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)[C@H]1O","NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])(O)=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",3.87,"Domenech 1999"
 6,"NADP+","acid-base",298.15,26,25,0,0,"NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])(O)=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O","NC(=O)c1ccc[n+](c1)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OC[C@H]2O[C@H]([C@H](OP([O-])([O-])=O)[C@@H]2O)n2cnc3c(N)ncnc23)[C@@H](O)[C@H]1O",5.86,"Domenech 1999"
 7,"oxygen",,298.15,0,0,0,0,"O=O",,,
@@ -37,15 +37,14 @@
 14,"NH3","acid-base",298.15,4,3,0,0,"[NH4+]","[NH3]",9.25,"CRC (88th edition)"
 15,"UDP","acid-base",298.15,12,11,0,0,"O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O","O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])([O-])=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O",7.18,"Alberty (2003)"
 15,"UDP","acid-base",298.15,11,10,0,0,"O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])([O-])=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O","O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])([O-])=O)O[C@H]([C@@H]1O)n1ccc(=O)[n-]c1=O",10.16,"Alberty (2003)"
-16,"FAD","acid-base",298.15,32,31,0,0,"Cc1cc2nc3c([nH]c(=O)[nH]c3=O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c([NH+])ncnc34)c2cc1C","Cc1cc2nc3c([nH]c(=O)[nH]c3=O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",3.6,"Taken as is from adenosine"
-16,"FAD","acid-base",298.15,31,30,0,0,"Cc1cc2nc3c([nH]c(=O)[nH]c3=O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C","Cc1cc2nc3c([n-]c(=O)[nH]c3=O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",10,"Taken as is from FMN"
-16,"FAD","acid-base",298.15,30,29,0,0,"Cc1cc2nc3c([n-]c(=O)[nH]c3=O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C","Cc1cc2nc3c([n-]c(=O)[n-]c3=O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",12.35,"Taken as is from adenosine"
+16,"FAD","acid-base",298.15,32,31,0,0,"Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c([NH3+])ncnc34)c2cc1C","Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",3.6,"Taken as is from adenosine"
+16,"FAD","acid-base",298.15,31,30,0,0,"Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C","Cc1cc2nc3c(nc(=O)nc3[O-])n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",10,"Taken as is from FMN"
 20,"AMP","acid-base",298.15,14,13,0,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])O","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O",3.99,"Alberty 2003"
 20,"AMP","acid-base",296.15,13,12,0,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])[O-]",6.73,"Alberty 2003"
 20,"AMP","Mg",298.15,12,12,1,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])O.[Mg+2]",2.82,"Alberty 2003"
-21,"S-Adenosyl-L-homocysteine","acid-base",298.15,16,15,0,0,"[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)[nH+]cnc12)C(O)=O","[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)[nH+]cnc12)C([O-])=O",2.22,"taken as is from L-homocysteine"
-21,"S-Adenosyl-L-homocysteine","acid-base",298.15,15,14,0,0,"[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)[nH+]cnc12)C(O)=O","[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)ncnc12)C([O-])=O",4.15,"taken as is from adenine"
-21,"S-Adenosyl-L-homocysteine","acid-base",298.15,14,13,0,0,"[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)ncnc12)C([O-])=O","NC(CCSCC1OC(C(O)C1O)n1cnc2c(N)ncnc12)C([O-])=O",10.86,"taken as is from L-homocysteine"
+21,"S-Adenosyl-L-homocysteine","acid-base",298.15,22,21,0,0,"[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)[nH+]cnc12)C(O)=O","[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)[nH+]cnc12)C([O-])=O",2.22,"taken as is from L-homocysteine"
+21,"S-Adenosyl-L-homocysteine","acid-base",298.15,21,20,0,0,"[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)[nH+]cnc12)C([O-])=O","[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)ncnc12)C([O-])=O",3.6,"taken as is from adenosine"
+21,"S-Adenosyl-L-homocysteine","acid-base",298.15,20,19,0,0,"[NH3+]C(CCSCC1OC(C(O)C1O)n1cnc2c(N)ncnc12)C([O-])=O","NC(CCSCC1OC(C(O)C1O)n1cnc2c(N)ncnc12)C([O-])=O",10.86,"taken as is from L-homocysteine"
 22,"pyruvate","Mg",,3,3,1,0,"CC(=O)C(=O)[O-].[Mg+2]","CC(=O)C(=O)[O-]",1.53,"Smith et al. 2004"
 22,"pyruvate","acid-base",298.15,4,3,0,0,"CC(=O)C(=O)[OH]","CC(=O)C(=O)[O-]",2.39,"CRC (88th edition)"
 23,"iron",,298.15,0,0,0,0,"Fe",,,
@@ -88,9 +87,9 @@
 55,"CMP","acid-base",298.15,13,12,0,0,"c1cn([C@H]2[C@@H]([C@@H]([C@@H](COP(=O)([O-])O)O2)O)O)c(nc1=N)O","c1cn([C@H]2[C@@H]([C@@H]([C@@H](COP(=O)([O-])[O-])O2)O)O)c(nc1=N)O",6.73,"Alberty (2003)"
 58,"formate","acid-base",298.15,2,1,0,0,"C(=O)O","C(=O)[O-]",3.75,"CRC (88th edition)"
 59,"sulfate","acid-base",298.15,1,0,0,0,"OS(=O)(=O)[O-]","[O-]S(=O)(=O)[O-]",1.99,"CRC (88th edition)"
-61,"FMN","acid-base",298.15,19,18,0,0,,,10,"Khan (1973), Mayhew (1999), Heelis (1982), Draper (1968)"
-61,"FMN","acid-base",298.15,21,20,0,0,,,1.89,"Khan (1973)"
-61,"FMN","acid-base",298.15,20,19,0,0,,,6.37,"Khan (1973)"
+61,"FMN","acid-base",298.15,21,20,0,0,"Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP(O)(O)=O)c2cc1C","Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(O)=O)c2cc1C",1.89,"Khan (1973)"
+61,"FMN","acid-base",298.15,20,19,0,0,"Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(O)=O)c2cc1C","Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])([O-])=O)c2cc1C",6.37,"Khan (1973)"
+61,"FMN","acid-base",298.15,19,18,0,0,"Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])([O-])=O)c2cc1C","Cc1cc2nc3c(nc(=O)nc3[O-])n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])([O-])=O)c2cc1C",10,"Khan (1973), Mayhew (1999), Heelis (1982), Draper (1968)"
 62,"L-Arginine","acid-base",298.15,14,13,0,0,"C(CC(C(=O)[O-])[NH2])CNC(=[NH2+])[NH2]","C(CC(C(=O)[O-])[NH2])CNC(=[NH])[NH2]",12.5,"CRC (88th edition)"
 62,"L-Arginine","acid-base",298.15,15,14,0,0,"C(CC(C(=O)[O-])[NH3+])CNC(=[NH2+])[NH2]","C(CC(C(=O)[O-])[NH2])CNC(=[NH2+])[NH2]",8.99,"CRC (88th edition)"
 62,"L-Arginine","acid-base",298.15,16,15,0,0,"C(CC(C(=O)[OH])[NH3+])CNC(=[NH2+])[NH2]","C(CC(C(=O)[O-])[NH3+])CNC(=[NH2+])[NH2]",1.82,"CRC (88th edition)"
@@ -128,7 +127,7 @@
 84,"acetaldehyde",,298.15,4,4,0,0,"CC=O",,,
 85,"D-fructose 6-phosphate","acid-base",296.15,12,11,0,0,"O1C(CO)(O)C(O)C(O)C1COP([O-])(O)=O","O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O",6.06,"Robitaille (1990)"
 85,"D-fructose 6-phosphate","Mg",298,11,11,1,0,"O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O.[Mg+2]","O1C(CO)(O)C(O)C(O)C1COP([O-])([O-])=O",3.32,"Garcia et al. 1996"
-86,"urea","acid-base",298.15,5,4,0,0,,,0.1,"CRC (88th edition)"
+86,"urea",,298.15,4,4,0,0,"NC(N)=O",,,
 87,"sulfur",,298.15,0,0,0,0,"S",,,
 88,"nitrite","acid-base",298.15,1,0,0,0,"N(=O)O","N(=O)[O-]",3.23,"Alberty (2003)"
 89,"sucrose",,298.15,22,22,0,0,"C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O[C@@]1(CO)[C@H]([C@@H]([C@@H](CO)O1)O)O)O)O)O)O",,,
@@ -143,9 +142,9 @@
 94,"sulfite","acid-base",298.15,2,1,0,0,"OS(=O)O","OS(=O)[O-]",1.77,"Thauer (1977)"
 94,"sulfite","acid-base",298.15,1,0,0,0,"OS(=O)[O-]","[O-]S(=O)[O-]",7.24,"CRC (88th edition)"
 95,"D-fructose",,298.15,12,12,0,0,"C(C1C(C(C(O1)(CO)O)O)O)O",,,
-97,"L-cysteine","acid-base",298.15,6,5,0,0,"[S-]CC(C(=O)[O-])[NH3+]","[S-]CC(C(=O)[O-])[NH2]",10.2,"CRC (88th edition)"
-97,"L-cysteine","acid-base",298.15,7,6,0,0,"[SH]CC(C(=O)[O-])[NH3+]","[S-]CC(C(=O)[O-])[NH3+]",8.7,"CRC (88th edition)"
 97,"L-cysteine","acid-base",298.15,8,7,0,0,"[SH]CC(C(=O)[OH])[NH3+]","[SH]CC(C(=O)[O-])[NH3+]",1.5,"CRC (88th edition)"
+97,"L-cysteine","acid-base",298.15,7,6,0,0,"[SH]CC(C(=O)[O-])[NH3+]","[S-]CC(C(=O)[O-])[NH3+]",8.7,"CRC (88th edition)"
+97,"L-cysteine","acid-base",298.15,6,5,0,0,"[S-]CC(C(=O)[O-])[NH3+]","[S-]CC(C(=O)[O-])[NH2]",10.2,"CRC (88th edition)"
 99,"beta-alanine","acid-base",298.15,7,6,0,0,"O=C([O-])CC[NH3+]","O=C([O-])CC[NH2]",10.24,"Lange's handbook"
 99,"beta-alanine","acid-base",298.15,8,7,0,0,"O=C([OH])CC[NH3+]","O=C([O-])CC[NH3+]",3.55,"Lange's handbook"
 100,"propanoyl-CoA","acid-base",298.15,38,37,0,0,"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC","CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC",4.32,"Values taken as is from CoA"
@@ -278,10 +277,10 @@
 250,"pyridoxal","acid-base",298.15,9,8,0,0,"Cc1c(c(C=O)c(cn1)CO)O","Cc1c(c(C=O)c(cn1)CO)[O-]",9,"Taken as is from pyridoxine"
 251,"chorismate",,298.15,8,8,0,0,"OC1C=CC(=CC1OC(=C)C([O-])=O)C([O-])=O",,,
 252,"Isomaltose",,298.15,22,22,0,0,"[H][C@@](O)(CO[C@H]1O[C@H](CO)[C@@H](O)[C@H](O)[C@H]1O)[C@@]([H])(O)[C@]([H])(O)[C@@]([H])(O)C=O",,,
-253,"nicotinate","acid-base",298.15,6,5,0,0,,,2,"CRC (88th edition)"
-253,"nicotinate","acid-base",298.15,5,4,0,0,,,4.82,"CRC (88th edition)"
-255,"riboflavin","acid-base",298.15,21,20,0,0,,,1.7,"CRC (88th edition)"
-255,"riboflavin","acid-base",298.15,20,19,0,0,,,9.69,"CRC (88th edition)"
+253,"nicotinate","acid-base",298.15,6,5,0,0,"OC(=O)c1ccc[nH+]c1","[O-]C(=O)c1ccc[nH+]c1",2,"CRC (88th edition)"
+253,"nicotinate","acid-base",298.15,5,4,0,0,"[O-]C(=O)c1ccc[nH+]c1","[O-]C(=O)c1cccnc1",4.82,"CRC (88th edition)"
+255,"riboflavin","acid-base",298.15,21,20,0,0,"Cc1cc2nc3c([nH+]c(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)CO)c2cc1C","Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)CO)c2cc1C",3.57,"Khan (1973)"
+255,"riboflavin","acid-base",298.15,20,19,0,0,"Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)CO)c2cc1C","Cc1cc2nc3c(nc(=O)nc3[O-])n(C[C@H](O)[C@H](O)[C@H](O)CO)c2cc1C",9.50,"Khan (1973)"
 256,"(R)-lactate","acid-base",298.15,6,5,0,0,"CC(O)C(=O)O","CC(O)C(=O)[O-]",3.86,"CRC (88th edition)"
 257,"gluconate","acid-base",298.15,12,11,0,0,"C(C(C(C(C(C(=O)[OH])O)O)O)O)O","C(C(C(C(C(C(=O)[O-])O)O)O)O)O",3.45,"Reaxys"
 258,"D-glycerate","acid-base",298.15,6,5,0,0,"C(O)C(O)C(=O)O","C(O)C(O)C(=O)[O-]",3.52,"CRC (88th edition)"
@@ -372,7 +371,7 @@
 438,"N-Carbamoyl-L-aspartate",,298.15,6,6,0,0,"NC(=O)NC(CC([O-])=O)C([O-])=O",,,
 440,"5-Methyl-THF",,298.15,25,25,0,0,"C[NH+]1C(CNc2ccc(cc2)C(=O)NC(CCC([O-])=O)C([O-])=O)CNc2nc([NH3+])[nH]c(=O)c12",,,
 441,"L-aspartate-4-semialdehyde",,298.15,7,7,0,0,"C(=O)C[C@H]([NH3+])C([O-])=O",,,
-445,"5,10-Methenyl-THF",,298.15,22,22,0,0,"C12CNc3nc([NH3+])[nH]c(=O)c3[N+]1=CN(C2)c1ccc(cc1)C(=O)NC(CCC([O-])=O)C([O-])=O",,,
+445,"5,10-Methenyl-THF",,298.15,21,21,0,0,"C12CNc3nc([NH3+])[nH]c(=O)c3[N+]1=CN(C2)c1ccc(cc1)C(=O)NC(CCC([O-])=O)C([O-])=O",,,
 446,"D-galactose 1-P","acid-base",296.15,12,11,0,0,,,6.02,"Robitaille (1990)"
 447,"Sedoheptulose 1,7-P","acid-base",296.15,14,13,0,0,,,6.09,"Robitaille (1990)"
 447,"Sedoheptulose 1,7-P","acid-base",296.15,13,12,0,0,,,6.12,"Robitaille (1990)"
@@ -518,16 +517,15 @@
 1177,"inositol 1-P","acid-base",296.15,12,11,0,0,,,6.08,"Robitaille (1990)"
 1182,"ribulose 1,5-P","acid-base",296.15,10,9,0,0,,,6.02,"Robitaille (1990)"
 1182,"ribulose 1,5-P","acid-base",296.15,9,8,0,0,,,6.12,"Robitaille (1990)"
-1185,"nicotinate D-ribonucleotide",,298.15,12,12,0,0,"OC1C(COP([O-])([O-])=O)OC(C]1O)[n+]1cccc(c1)C([O-])=O",,,
+1185,"nicotinate D-ribonucleotide",,298.15,12,12,0,0,"O[C@@H]1[C@@H](COP([O-])([O-])=O)O[C@H]([C@@H]1O)[n+]1cccc(c1)C([O-])=O",,,
 1213,"(R)-methylmalonyl-CoA","acid-base",298.15,38,37,0,0,"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([OH])=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)O","CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([OH])=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)[O-]",4.21,"Alberty (2003)"
 1213,"(R)-methylmalonyl-CoA","acid-base",298.15,37,36,0,0,"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([OH])=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)[O-]","CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([OH])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)[O-]",4.32,"Values taken as is from CoA"
 1213,"(R)-methylmalonyl-CoA","acid-base",298.15,36,35,0,0,"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([OH])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)[O-]","CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(C)C(=O)[O-]",6.31,"Values taken as is from CoA"
 1236,"D-Glucono-1,5-lactone 6-phosphate","acid-base",298.15,10,9,0,0,"C([C@@H]1[C@H]([C@@H]([C@H](C(=O)O1)O)O)O)OP(=O)([O-])O","C([C@@H]1[C@H]([C@@H]([C@H](C(=O)O1)O)O)O)OP(=O)([O-])[O-]",6.42,"Alberty (2003)"
 1337,"XDP","acid-base",298.15,12,11,0,0,,,7.18,"Alberty (2003)"
 1337,"XDP","acid-base",298.15,11,10,0,0,,,8.06,"Alberty (2003)"
-1352,"FADH2","acid-base",298.15,33,32,0,0,,,6.8,"Taken as is from FMNH2"
-1352,"FADH2","acid-base",298.15,34,33,0,0,,,3.6,"Taken as is from adenosine"
-1352,"FADH2","acid-base",298.15,32,31,0,0,,,12.35,"Taken as is from adenosine"
+1352,"FADH2","acid-base",298.15,34,33,0,0,"Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c([NH3+])ncnc34)c2cc1C","Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",3.6,"Taken as is from adenosine"
+1352,"FADH2","acid-base",298.15,33,32,0,0,"Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C","Cc1cc2Nc3c([nH]c(=O)nc3[O-])N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",6.8,"Taken as is from FMNH2"
 1382,"I2",,298.15,0,0,0,0,"II",,,
 1380,"ethylene glycol","acid-base",298.15,6,5,0,0,"OCCO","OCC[O-]",15.1,"CRC (88th edition)"
 1384,"maleate","acid-base",298.15,3,2,0,0,"OC(=O)\C=C/C([O-])=O","[O-]C(=O)\C=C/C([O-])=O",6.23,"CRC (88th edition)"
@@ -589,9 +587,9 @@
 1829,"levothyroxin","acid-base",298.15,10,9,0,0,,,10.1,"CRC (88th edition)"
 1837,"nitroethane","acid-base",298.15,5,4,0,0,,,8.46,"CRC (88th edition)"
 1845,"isopropanol",,298.15,8,8,0,0,"CC(C)O",,,
-1847,"FMNH2","acid-base",298.15,23,22,0,0,,,1.89,"Taken as is from FMN"
-1847,"FMNH2","acid-base",298.15,22,21,0,0,,,6.37,"Taken as is from FMN"
-1847,"FMNH2","acid-base",298.15,21,20,0,0,,,6.8,"Mayhew (1999), Heelis (1982), Draper (1968)"
+1847,"FMNH2","acid-base",298.15,23,22,0,0,"Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP(O)(O)=O)c2cc1C","Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(O)=O)c2cc1C",1.89,"Taken as is from FMN"
+1847,"FMNH2","acid-base",298.15,22,21,0,0,"Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(O)=O)c2cc1C","Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])([O-])=O)c2cc1C",6.37,"Taken as is from FMN"
+1847,"FMNH2","acid-base",298.15,21,20,0,0,"Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])([O-])=O)c2cc1C","Cc1cc2Nc3c([nH]c(=O)nc3[O-])N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])([O-])=O)c2cc1C",6.8,"Mayhew (1999), Heelis (1982), Draper (1968)"
 1857,"thioacetate","acid-base",298.15,4,3,0,0,,,3.33,"CRC (88th edition)"
 1874,"2-iodophenol","acid-base",298.15,5,4,0,0,,,8.51,"CRC (88th edition)"
 1879,"pyroglutamate","acid-base",298.15,7,6,0,0,,,3.32,"CRC (88th edition)"

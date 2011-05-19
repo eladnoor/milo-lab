@@ -2,6 +2,7 @@ import time, calendar, os, csv
 from xml.etree.ElementTree import ElementTree
 import tarfile
 import pylab
+import tkMessageBox
 
 fmt = "%Y-%m-%dT%H:%M:%S"
 
@@ -75,14 +76,14 @@ def CollectData(tar_fname, number_of_plates):
                         MES[plate_id][reading_label][time_in_sec] = time_DATA
     return MES
 
-def WriteCSV(MES, csv_fname):
+def WriteCSV(MES, f):
     """
         Write the data into a directory, each reading-label in its own CSV file.
         The columns of the CSV file are: reading-label, plate, well, time, measurement.
         The rows is ordered according to these columns.
     """
     for reading_label in sorted(MES.keys()):
-        csv_writer = csv.writer(open(csv_fname, 'well'))
+        csv_writer = csv.writer(f)
         csv_writer.writerow(['reading label', 'plate', 'row', 'col', 
                              'time', 'measurement'])
         for plate_id in sorted(MES[reading_label].keys()):
@@ -159,11 +160,43 @@ def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=F
     
     return res_mat[max_i, 0]
 
+################################################################################
+
+import Tkinter, Tkconstants, tkFileDialog
+
+class TkFileDialogExample(Tkinter.Frame):
+    def __init__(self, root):
+        self.MES = None
+        
+        Tkinter.Frame.__init__(self, root)
+    
+        # options for buttons
+        button_opt = {'fill': Tkconstants.BOTH, 'padx': 5, 'pady': 5}
+      
+        # define buttons
+        Tkinter.Button(self, text='input TAR file', command=self.askopenfile).pack(**button_opt)
+        Tkinter.Button(self, text='output CSV file', command=self.asksaveasfile).pack(**button_opt)
+        Tkinter.Button(self, text='Quit', command=self.quit).pack(**button_opt)
+
+    def askopenfile(self):
+        """Returns an opened file in read mode."""
+        tar_fname = tkFileDialog.askopenfile(mode='r', 
+            filetypes=[('all files', '.*'), ('tar files', '.tar'), ('gzip files', '.gz')])
+        self.MES = CollectData(tar_fname, number_of_plates=4)
+
+    def asksaveasfile(self):
+        """Returns an opened file in read mode."""
+        if not self.MES:
+            tkMessageBox.showwarning('Warning', 'First choose a TAR file')
+        else:
+            f = tkFileDialog.asksaveasfile(mode='w')
+            WriteCSV(self.MES, f)
+            f.close()
+
+################################################################################
 
 if __name__ == "__main__":
-    tar_fname = "../data/tecan/PL6-96.tar.gz"
-    csv_fname = "../data/tecan/PL6-96.csv"
-    MES = CollectData(tar_fname, number_of_plates=4)
-    WriteCSV(MES, csv_fname)
-    
+    root = Tkinter.Tk()
+    TkFileDialogExample(root).pack()
+    root.mainloop()
     
