@@ -27,30 +27,30 @@ class TkFileDialogExample(Tkinter.Frame):
 
         
         for c in xrange(self.N_COLS):
-            Tkinter.Label(self, text='%d' % (c+1)).grid(row=1, column=c+1)
+            Tkinter.Label(self, text='%d' % (c+1)).grid(row=4, column=c+1)
         for r in xrange(self.N_ROWS):
-            Tkinter.Label(self, text=chr(ord('A') + r)).grid(row=r+1, column=0, 
+            Tkinter.Label(self, text=chr(ord('A') + r)).grid(row=r+5, column=0, 
                                                              sticky=Tkconstants.E, padx=10)
 
         self.text_matrix = {}
         for r in xrange(self.N_ROWS):
             for c in xrange(self.N_COLS):
                 self.text_matrix[r,c] = Tkinter.Entry(self, width=10)
-                self.text_matrix[r,c].grid(row=r+1, column=c+1, padx=3, pady=3)
+                self.text_matrix[r,c].grid(row=r+5, column=c+1, padx=3, pady=3)
 
         self.button_savepdf = Tkinter.Button(self, text='save to PDF ...',
                                              command=self.asksaveaspdf,
                                              state=Tkconstants.DISABLED)
-        self.button_savepdf.grid(row=self.N_ROWS+1, column=1, columnspan=2, pady=5)
+        self.button_savepdf.grid(row=self.N_ROWS+5, column=1, columnspan=2, pady=5)
 
         self.button_savecsv = Tkinter.Button(self, text='save to CSV ...',
                                              command=self.asksaveascsv,
                                              state=Tkconstants.DISABLED)
-        self.button_savecsv.grid(row=self.N_ROWS+1, column=3, columnspan=2, pady=5)
+        self.button_savecsv.grid(row=self.N_ROWS+5, column=3, columnspan=2, pady=5)
 
-        self.button_savecsv = Tkinter.Button(self, text='Quit',
-                                             command=self.quit)
-        self.button_savecsv.grid(row=self.N_ROWS+1, column=5, columnspan=2, pady=5)
+        self.button_quit = Tkinter.Button(self, text='Quit',
+                                          command=self.quit)
+        self.button_quit.grid(row=self.N_ROWS+5, column=5, columnspan=2, pady=5)
         
     def AskOpenFile(self):
         """
@@ -109,5 +109,7 @@ class TkFileDialogExample(Tkinter.Frame):
 
 if __name__ == "__main__":
     root = Tkinter.Tk()
-    TkFileDialogExample(root).pack()
+    frame = TkFileDialogExample(root)
+    print frame.MES
+    frame.pack()
     root.mainloop()

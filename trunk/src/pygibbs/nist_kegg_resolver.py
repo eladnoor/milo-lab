@@ -324,6 +324,16 @@ def WriteDataToDB(nist_db, db):
         if url_id == "T1=80TER/RAB_994": # change ammonium carbamate to carbamate
             row_dict['Reaction'] = \
                 "carbamate(aq) + H2O(l) = ammonia(aq) + carbon dioxide(aq)"
+        if url_id == "T1=99KAT/UED_1558": # the value in the paper is different
+            row_dict['K \''] = '4 10-4'
+        if url_id == "T1=99KAT/UED_1557":
+            row_dict['K'] = None
+            if row_dict['pH'] == '9.0': # the value in the paper is different
+                row_dict['K\''] = '4 10-3'
+            if row_dict['pH'] == '7.4': # the value in the paper is different
+                row_dict['K\''] = '8 10-3'
+            if row_dict['pH'] == '6.0': # the value in the paper is different
+                row_dict['K\''] = '3 10-2'
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
