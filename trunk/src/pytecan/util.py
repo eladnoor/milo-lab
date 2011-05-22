@@ -1,25 +1,34 @@
-import time, calendar, os, csv
+import time, calendar, csv
 from xml.etree.ElementTree import ElementTree
 import tarfile
 import pylab
-import tkMessageBox
 
 fmt = "%Y-%m-%dT%H:%M:%S"
 
 def RowCol2String(row, col):
     return "%s%02d" % (chr(ord('A') + row), col+1)
 
-def GetPlateFiles(tar_fname, number_of_plates):
+def GetPlateFiles(tar_fname, number_of_plates=None):
     PL = {}
     L = []
     
-    tar = tarfile.open(tar_fname)
+    tar = tarfile.open(tar_fname, 'r')
     
-    for f in tar.getnames():
-        if f[-3:] == 'xml':
-            ts = f[-23:-3] # take only the postfix of the filename - a timestamp
-            ff = tar.extractfile(f)
-            L.append((ts, ff))
+    for fname in tar.getnames():
+        if fname[-3:] == 'xml':
+            ts = fname[-23:-3] # take only the postfix of the filename - a timestamp
+            f = tar.extractfile(fname)
+            L.append((ts, f))
+        elif number_of_plates is None and fname[-3:] == 'txt': # this is a 'tag' file that only the number of plates
+            f = tar.extractfile(fname)
+            try:
+                number_of_plates = int(f.read())
+            except TypeError:
+                raise Exception("the .txt file indicating the number of plates is corrupt")
+            f.close()
+    
+    if number_of_plates is None:
+        raise Exception("cannot determine the number of plates")
     
     for i, (_t, f) in enumerate(sorted(L)):    
         PL.setdefault(i % number_of_plates, []).append(f)
@@ -33,7 +42,7 @@ def ParseReaderFile(fname):
     time_in_sec = None
     well = (0, 0)
     measurement = None
-    DATA = {}
+    plate_values = {}
     for e in xml_reader.getiterator():
         if e.tag == 'Section':
             reading_label = e.attrib['Name']
@@ -41,8 +50,8 @@ def ParseReaderFile(fname):
             TIME = TIME[:19]
             TS = time.strptime(TIME, fmt)
             time_in_sec = calendar.timegm(TS)
-            DATA[reading_label] = {}
-            DATA[reading_label][time_in_sec] = {}
+            plate_values[reading_label] = {}
+            plate_values[reading_label][time_in_sec] = {}
         elif e.tag == 'Well':
             W = e.attrib['Pos']
             well_row = ord(W[0]) - ord('A')
@@ -51,29 +60,29 @@ def ParseReaderFile(fname):
         elif e.tag == 'Multiple':
             if e.attrib['MRW_Position'] == 'Mean':
                 measurement = e.text
-                DATA[reading_label][time_in_sec][well] = float(measurement)
+                plate_values[reading_label][time_in_sec][well] = float(measurement)
         elif e.tag == 'Single':
             measurement = e.text
             if measurement == "OVER":
-                DATA[reading_label][time_in_sec][well] = pylab.nan
+                plate_values[reading_label][time_in_sec][well] = pylab.nan
             else:
-                DATA[reading_label][time_in_sec][well] = float(measurement)
-    return DATA
+                plate_values[reading_label][time_in_sec][well] = float(measurement)
+    return plate_values
 
-def CollectData(tar_fname, number_of_plates):
+def CollectData(tar_fname, number_of_plates=None):
     PL = GetPlateFiles(tar_fname, number_of_plates)
     MES = {}
     
     for plate_id in PL:
         MES[plate_id] = None
         for f in PL[plate_id]:
-            DATA = ParseReaderFile(f)
+            plate_values = ParseReaderFile(f)
             if MES[plate_id] == None:
-                MES[plate_id] = DATA
+                MES[plate_id] = plate_values
             else:
-                for reading_label, label_DATA in DATA.iteritems():
-                    for time_in_sec, time_DATA in label_DATA.iteritems():
-                        MES[plate_id][reading_label][time_in_sec] = time_DATA
+                for reading_label, label_values in plate_values.iteritems():
+                    for time_in_sec, time_values in label_values.iteritems():
+                        MES[plate_id][reading_label][time_in_sec] = time_values
     return MES
 
 def WriteCSV(MES, f):
@@ -82,16 +91,21 @@ def WriteCSV(MES, f):
         The columns of the CSV file are: reading-label, plate, well, time, measurement.
         The rows is ordered according to these columns.
     """
-    for reading_label in sorted(MES.keys()):
-        csv_writer = csv.writer(f)
-        csv_writer.writerow(['reading label', 'plate', 'row', 'col', 
-                             'time', 'measurement'])
-        for plate_id in sorted(MES[reading_label].keys()):
-            for well in sorted(MES[reading_label][plate_id].keys()):
-                for time in sorted(MES[reading_label][plate_id][well].keys()):
-                    csv_writer.writerow([reading_label, plate_id, well[0], 
-                                         well[1], time, 
-                                         MES[reading_label][plate_id][well][time]])
+    initial_time = pylab.inf
+    for plate_id, plate_values in sorted(MES.iteritems()):
+        for reading_label, label_values in sorted(plate_values.iteritems()):
+            initial_time = min([initial_time] + label_values.keys())
+    
+    csv_writer = csv.writer(f)
+    csv_writer.writerow(['plate', 'reading label', 'row', 'col', 
+                         'time', 'measurement'])
+    for plate_id, plate_values in sorted(MES.iteritems()):
+        for reading_label, label_values in sorted(plate_values.iteritems()):
+            for time_in_sec, time_values in sorted(label_values.iteritems()):
+                relative_time_in_hr = (time_in_sec - initial_time)/3600.0
+                for well, value in sorted(time_values.iteritems()):
+                    csv_writer.writerow([plate_id, reading_label, 
+                        well[0], well[1], "%.3f" % relative_time_in_hr, value])
 
 def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=False):
     
@@ -160,43 +174,4 @@ def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=F
     
     return res_mat[max_i, 0]
 
-################################################################################
-
-import Tkinter, Tkconstants, tkFileDialog
-
-class TkFileDialogExample(Tkinter.Frame):
-    def __init__(self, root):
-        self.MES = None
-        
-        Tkinter.Frame.__init__(self, root)
-    
-        # options for buttons
-        button_opt = {'fill': Tkconstants.BOTH, 'padx': 5, 'pady': 5}
-      
-        # define buttons
-        Tkinter.Button(self, text='input TAR file', command=self.askopenfile).pack(**button_opt)
-        Tkinter.Button(self, text='output CSV file', command=self.asksaveasfile).pack(**button_opt)
-        Tkinter.Button(self, text='Quit', command=self.quit).pack(**button_opt)
-
-    def askopenfile(self):
-        """Returns an opened file in read mode."""
-        tar_fname = tkFileDialog.askopenfile(mode='r', 
-            filetypes=[('all files', '.*'), ('tar files', '.tar'), ('gzip files', '.gz')])
-        self.MES = CollectData(tar_fname, number_of_plates=4)
-
-    def asksaveasfile(self):
-        """Returns an opened file in read mode."""
-        if not self.MES:
-            tkMessageBox.showwarning('Warning', 'First choose a TAR file')
-        else:
-            f = tkFileDialog.asksaveasfile(mode='w')
-            WriteCSV(self.MES, f)
-            f.close()
-
-################################################################################
-
-if __name__ == "__main__":
-    root = Tkinter.Tk()
-    TkFileDialogExample(root).pack()
-    root.mainloop()
     

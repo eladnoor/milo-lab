@@ -24,7 +24,7 @@ def main():
     nist = Nist()
     nist.T_range = (273.15 + 24, 273.15 + 40)
     #nist.override_I = 0.25
-    #nist.override_pMg = 14.0
+    nist.override_pMg = 14.0
     
     html_writer.write('<p>\n')
     html_writer.write("Total number of reaction in NIST: %d</br>\n" % len(nist.data))
@@ -51,30 +51,31 @@ def main():
     kegg_reactions = Kegg.getInstance().AllReactions()
     nist_reactions = nist.GetUniqueReactionSet()
     
-    nist.two_way_comparison(html_writer=html_writer, 
-                            thermo1=estimators['alberty'],
-                            thermo2=estimators['nist_regression'],
-                            name=key)
+    if False:
+        nist.two_way_comparison(html_writer=html_writer, 
+                                thermo1=estimators['alberty'],
+                                thermo2=estimators['nist_regression'],
+                                name=key)
 
-    nist.two_way_comparison(html_writer=html_writer, 
-                            thermo1=estimators['alberty'],
-                            thermo2=estimators['milo_gc'],
-                            name=key)
+        nist.two_way_comparison(html_writer=html_writer, 
+                                thermo1=estimators['alberty'],
+                                thermo2=estimators['milo_gc'],
+                                name=key)
 
-    nist.two_way_comparison(html_writer=html_writer, 
-                            thermo1=estimators['alberty'],
-                            thermo2=estimators['hatzi_gc'],
-                            name=key)
+        nist.two_way_comparison(html_writer=html_writer, 
+                                thermo1=estimators['alberty'],
+                                thermo2=estimators['hatzi_gc'],
+                                name=key)
 
-    nist.two_way_comparison(html_writer=html_writer, 
-                            thermo1=estimators['hatzi_gc'],
-                            thermo2=estimators['milo_gc'],
-                            name=key)
-    
-    nist.two_way_comparison(html_writer=html_writer, 
-                            thermo1=estimators['hatzi_gc'],
-                            thermo2=estimators['hatzi_gc_pka'],
-                            name=key)
+        nist.two_way_comparison(html_writer=html_writer, 
+                                thermo1=estimators['hatzi_gc'],
+                                thermo2=estimators['milo_gc'],
+                                name=key)
+        
+        nist.two_way_comparison(html_writer=html_writer, 
+                                thermo1=estimators['hatzi_gc'],
+                                thermo2=estimators['hatzi_gc_pka'],
+                                name=key)
     
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)
