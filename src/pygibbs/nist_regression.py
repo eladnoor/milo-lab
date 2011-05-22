@@ -567,7 +567,7 @@ def main():
         nist_regression.std_diff_threshold = 10.0 # the threshold over which to print an analysis of a reaction
         nist_regression.nist.T_range = (298, 314)
         #nist_regression.nist.override_I = 0.25
-        #nist_regression.nist.override_pMg = 14.0
+        nist_regression.nist.override_pMg = 14.0
 
         #nist_anchors = PsuedoisomerTableThermodynamics.FromCsvFile(
         #    '../data/thermodynamics/nist_anchors.csv')
