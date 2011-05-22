@@ -1,7 +1,7 @@
 cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 2,ATP,-2811.48,-3612.91,-3,13,0,train,"Alberty (2003)",
 8,ADP,-1947.1,-2620.94,-2,13,0,train,"Alberty (2003)",
-20,AMP,-1078.86,-1629.79,-1,13,0,train,"Alberty (2003)",
+20,AMP,-1040.45,-1635.37,-2,12,0,train,"Alberty (2003)",
 22,pyruvate,-472.27,-596.22,-1,3,0,train,"Alberty (2003)",
 23,iron,0,0,0,0,0,test,,"element"
 25,L-Glutamate,-697.47,-979.89,-1,8,0,train,"Alberty (2003)",

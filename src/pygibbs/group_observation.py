@@ -139,7 +139,7 @@ class GroupObervationCollection(object):
             name = "%s (%d)" % (self.kegg.cid2name(cid), nH)
             logging.info('Adding the formation energy of %s', name)
             self.html_writer.write("<h3>%s, %s</h3>\n" % (name, train_species.cid2SourceString(cid)))
-            self.html_writer.write('&#x394;G<sub>f</sub> = %.2f</br>\n' % dG0)
+            self.html_writer.write('&#x394;G<sub>f</sub> = %.2f, nH = %d, nMg = %d</br>\n' % (dG0, nH, nMg))
             smiles = dissociation.GetSmiles(cid, nH=nH, nMg=nMg)
             if not smiles:
                 raise Exception("%s does not have a SMILES expression in the dissociation constant table" 
@@ -220,6 +220,9 @@ class GroupObervationCollection(object):
         dG0_correction = np.zeros((len(cids), 1))
         self.html_writer.write("<h3>The compounds used in NIST and their decompositions:</h3>\n")
         for i, cid in enumerate(cids):
+            if cid == 80: # special case for H+
+                dG0_correction[i, 0] = 0
+                anchored_cids.append(0)
             try:
                 name = self.kegg.cid2name(cid)
                 self.html_writer.write("<b>C%05d - %s</b></br>\n" % (cid, name))
