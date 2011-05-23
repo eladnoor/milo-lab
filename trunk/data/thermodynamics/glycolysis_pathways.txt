@@ -4,6 +4,7 @@ NAME        Glycolysis
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=298.15
 C_MID       0.0001
+C_RANGE     1e-7 1e-2
 REACTION    R01786  C00002 + C00267 -> C00008 + C00668  (x1)
             R02740  C00668 -> C05345  (x1)
             R04779  C00002 + C05345 -> C00008 + C05378  (x1)
@@ -22,12 +23,12 @@ MAP_CID     C00201 C00002
             C05378 C00354
 ///
 ENTRY       M-ED-LATE-PHOSPHORYLATION
-SKIP        FALSE
-NAME        Entner-Doudoroff full, phosphorylating glycerate
+SKIP        TRUE
+NAME        ED phosphorylating glycerate
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
-C_RANGE     1e-6 1e-2
+C_RANGE     1e-7 1e-2
 REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
             R01519  C00198 + C00001 -> C00257 (x1) 
             R01538  C00257 -> C00204 + C00001 (x1)
@@ -44,12 +45,12 @@ MAP_CID     C00201 C00002
             C05378 C00354  
 ///
 ENTRY       M-ED-MID-PHOSPHORYLATION
-SKIP        FALSE
-NAME        Entner-Doudoroff full, phosphorylating KDG
+SKIP        TRUE
+NAME        ED phosphorylating KDG
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
-C_RANGE     1e-6 1e-2
+C_RANGE     1e-7 1e-2
 REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
             R01519  C00198 + C00001 -> C00257 (x1)
             R01538  C00257 -> C00204 + C00001 (x1)
@@ -69,11 +70,11 @@ MAP_CID     C00201 C00002
 ///
 ENTRY       M-ED-FULL
 SKIP        FALSE
-NAME        Entner-Doudoroff full, phosphorylating glucose
+NAME        ED phosphorylating glucose
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
-C_RANGE     1e-6 1e-2
+C_RANGE     1e-7 1e-2
 REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
             R02739  C00668 -> C01172 (x1)
             R02736  C01172 + C00006 -> C01236 + C00005 (x1)
