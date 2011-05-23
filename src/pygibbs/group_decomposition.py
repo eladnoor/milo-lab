@@ -277,9 +277,10 @@ class GroupDecomposer(object):
                 group = groups_data.Group(default.id, group_name, hydrogens,
                                           charge, default.nMg)
                 if group not in chain_map:
-                    logging.warning('This protonation (%d) level is not allowed for terminal phosphate groups.' % hydrogens)
-                    logging.warning('Using the default protonation level (%d) for this name ("%s").' %
-                                    (default.hydrogens, default.name))
+                    #logging.warning('This protonation (%d) level is not allowed for terminal phosphate groups.' % hydrogens)
+                    #logging.warning('Using the default protonation level (%d) for this name ("%s").' %
+                    #                (default.hydrogens, default.name))
+                    raise GroupDecompositionError('The group %s cannot have nH = %d' % (group_name, hydrogens))
                     chain_map[default].append(atoms)
                 else:
                     chain_map[group].append(atoms)

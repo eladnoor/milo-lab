@@ -63,8 +63,8 @@
 "CO-N",1,-1,"C(=O)[N;H1;-1]","All","primary amine next to keto","skip"
 "-N",3,1,"[C,N,O,S,P][N;H3;X4;+1]","1","primary amine",
 "-N",2,0,"[C,N,O,S,P][N;H2;X3;+0]","1","primary amine",
-"[c]-N",2,0,"c[N;H2;X3;+0]","1","primary amine on aromatic ring",
-"[c]-N",3,1,"c[N;H3;X4;+1]","1","primary amine on aromatic ring",
+"ring >c-N",2,0,"c[N;H2;X3;+0]","1","primary amine on aromatic ring",
+"ring >c-N",3,1,"c[N;H3;X4;+1]","1","primary amine on aromatic ring",
 "-N<",1,1,"[N;H1;X4;R0]","All",,
 "-N<",0,0,"[N;H0;X3;R0]","All",,
 "=N-",0,0,"[N;H0;X2;R0]=[C,c,N,n]",0,,
@@ -74,6 +74,7 @@
 "-O(C=O)-",0,0,"[C;H0;X3](=O)[O;H0;X2]","0|1|2","ester",
 "-O(C=O)",0,0,"[C;H1;X3](=O)[O;H0;X2]","0|1|2","ester (terminal)",
 "ring >c=O",0,0,"c=O","0|1","ketone (participating in an aromatic ring)",
+"ring >c-O",1,0,"c[OH]","0|1","hydroxyl (participating in an aromatic ring)",
 "ring >c-O",0,-1,"c[O-]","0|1","hydroxyl (participating in an aromatic ring)",
 "ring >C=O",0,0,"[CR]=O","0|1","ketone (participating in a ring)",
 "-COO",0,-1,"[C,c,N,n]C(=O)[O-]","1|2|3","carboxylic acid (ion)",
