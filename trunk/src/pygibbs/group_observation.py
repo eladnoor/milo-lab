@@ -220,44 +220,40 @@ class GroupObervationCollection(object):
         dG0_correction = np.zeros((len(cids), 1))
         self.html_writer.write("<h3>The compounds used in NIST and their decompositions:</h3>\n")
         for i, cid in enumerate(cids):
-            if cid == 80: # special case for H+
-                dG0_correction[i, 0] = 0
-                anchored_cids.append(0)
-            try:
-                name = self.kegg.cid2name(cid)
-                self.html_writer.write("<b>C%05d - %s</b></br>\n" % (cid, name))
-                self.html_writer.write("nH = %d</br>\n" % cid2nH[cid])
-                smiles = nist_regression.dissociation.GetSmiles(cid, nH=cid2nH[cid], nMg=0)
-                if not smiles:
-                    raise GroupDecompositionError("no SMILES in the dissociation table")
-    
-                self.html_writer.write("SMILES = %s</br>\n" % smiles)
-                mol = Molecule.FromSmiles(smiles)
-                self.html_writer.write(mol.ToSVG() + '</br>\n')
-            
-                decomposition = self.group_decomposer.Decompose(mol, 
-                    ignore_protonations=False, strict=True)
-                groupvec = decomposition.AsVector()
-                self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
-                group_matrix.append(groupvec)
-                good_indices.append(i)
-                good_cids.append(cid)
-                gc_nH = decomposition.Hydrogens()
-                if cid2nH[cid] != gc_nH:
-                    s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
-                        cid2nH[cid], gc_nH)
-                    logging.error(s)
-                    self.html_writer.write(s + '</br>\n')
-            except GroupDecompositionError as e:
-                if cid in cid2dG0:
-                    # If it is impossible to decompose this compound, but its dG0
-                    # is known from the dG0 table, normalize its contribution
-                    # and don't try to use it in the estimation
-                    self.html_writer.write("Anchored: dG0 = %.1f</br>\n" % 
-                                           (cid2dG0[cid]))
-                    dG0_correction[i, 0] = cid2dG0[cid]
-                    anchored_cids.append(cid)
-                else:
+            name = self.kegg.cid2name(cid)
+            self.html_writer.write("<b>C%05d - %s</b></br>\n" % (cid, name))
+            self.html_writer.write("nH = %d</br>\n" % cid2nH[cid])
+            if cid in cid2dG0:
+                # If the compound is marked for "test", normalize its contribution
+                # and don't try to use it in the estimation
+                self.html_writer.write("Anchored: dG0 = %.1f</br>\n" % 
+                                       (cid2dG0[cid]))
+                dG0_correction[i, 0] = cid2dG0[cid]
+                anchored_cids.append(cid)
+            else:
+                try:
+                    smiles = nist_regression.dissociation.GetSmiles(cid, nH=cid2nH[cid], nMg=0)
+                    if not smiles:
+                        raise GroupDecompositionError("no SMILES in the dissociation table")
+        
+                    self.html_writer.write("SMILES = %s</br>\n" % smiles)
+                    mol = Molecule.FromSmiles(smiles)
+                    self.html_writer.write(mol.ToSVG() + '</br>\n')
+                
+                    decomposition = self.group_decomposer.Decompose(mol, 
+                        ignore_protonations=False, strict=True)
+                    groupvec = decomposition.AsVector()
+                    self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
+                    group_matrix.append(groupvec)
+                    good_indices.append(i)
+                    good_cids.append(cid)
+                    gc_nH = decomposition.Hydrogens()
+                    if cid2nH[cid] != gc_nH:
+                        s = 'ERROR: Hydrogen count doesn\'t match: explicit = %d, formula = %d' % (
+                            cid2nH[cid], gc_nH)
+                        logging.error(s)
+                        self.html_writer.write(s + '</br>\n')
+                except GroupDecompositionError as e:
                     self.html_writer.write("ERROR:" + str(e) + "</br>\n")
         
         # The reverse transform converts the dG0' to dG0, where the chosen pseudoisomer
@@ -282,6 +278,13 @@ class GroupObervationCollection(object):
 
             for cid in set(sparse.keys()).intersection(anchored_cids):
                 del sparse[cid]
+            if sparse:
+                min_cid = min(sparse.keys())
+                if sparse[min_cid] > 0: # normalize the reaction direction such that the minimal CID will be on the left
+                    sparse = dict([(cid, -coeff) for (cid, coeff) in sparse.iteritems()])
+                    dG0_noanchors[r, 0] = -dG0_noanchors[r, 0]
+                    observed_group_matrix[r, :] = -observed_group_matrix[r, :]
+            
             self.html_writer.write("Truncated reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
             self.html_writer.write('&#x394;G<sub>r</sub> (truncated) = %.2f</br>\n' % dG0_noanchors[r, 0])
 
