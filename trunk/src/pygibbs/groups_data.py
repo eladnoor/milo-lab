@@ -180,7 +180,7 @@ class GroupsData(object):
     MIDDLE_P_2 = Group('MiddleP2', '-OPO2-', 0, -1, 0)
     FINAL_P_1 = Group('FinalP1', '-OPO3', 1, -1, 0)
     FINAL_P_2 = Group('FinalP2', '-OPO3', 0, -2, 0)
-    #FINAL_P_3 = ('-OPO3',  2,  0)
+    FINAL_P_3 = Group('FinalP3', '-OPO3', 2,  0, 0)
     INITIAL_2_PHOSPHATE = Group('Initial2PChain', '-OPO3-OPO2-', 0, -2, 0)
     MIDDLE_2_PHOSPHATE = Group('Middle2PChain', '-OPO2-OPO2-', 0, -2, 0)
 
@@ -202,7 +202,7 @@ class GroupsData(object):
         MIDDLE_P_1, MIDDLE_P_2,
         INITIAL_2_PHOSPHATE,
         MIDDLE_2_PHOSPHATE,
-        FINAL_P_1, FINAL_P_2,
+        FINAL_P_1, FINAL_P_2, FINAL_P_3,
         MIDDLE_2_P_MG, FINAL_P_MG_2)
 
     MIDDLE_PHOSPHATES_TO_MGS = ((MIDDLE_2_PHOSPHATE, MIDDLE_2_P_MG),)    
