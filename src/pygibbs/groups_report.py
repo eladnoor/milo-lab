@@ -1,5 +1,5 @@
 from toolbox.database import SqliteDatabase
-from toolbox.html_writer import HtmlWriter
+from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.util import lsum
@@ -7,8 +7,76 @@ from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg,\
     default_T
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+from pygibbs.nist import Nist
+from pygibbs.nist_regression import NistRegression
+import logging
+from toolbox.molecule import Molecule
+from pygibbs.groups_data import GroupsData
+from pygibbs.group_decomposition import GroupDecomposer, GroupDecompositionError
+from pygibbs.dissociation_constants import DissociationConstants
 
-def main():
+def test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=False):
+        if diss is None:
+            logging.warning('%s: not in dissociation table' % id)
+            return
+        nH, nMg = diss.GetMostAbundantPseudoisomer(pH=default_pH, I=default_I, pMg=14, T=default_T) 
+        if nMg != 0:
+            logging.warning('%s: default species has nMg = %d' % (id, nMg))
+            return
+        smiles = diss.GetSmiles(nH=nH, nMg=0)
+        if not smiles:
+            if not ignore_missing_smiles:
+                logging.warning('%s: no SMILES in the dissociation table for nH = %d' % (id, nH))
+            return
+
+        logging.debug('%s: nH = %d, smiles = %s' % (id, nH, smiles))
+        mol = Molecule.FromSmiles(smiles)
+    
+        try:
+            decomposition = group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
+        except GroupDecompositionError as e:
+            #logging.error(str(e))
+            return
+        
+        groupvec = decomposition.AsVector()
+        logging.debug("%s: decomposition = %s" % (id, groupvec))
+        gc_nH = decomposition.Hydrogens()
+        if nH != gc_nH:
+            logging.warning('%s: nH doesn\'t match: explicit = %d, decomposition = %d' % (id, nH, gc_nH))
+
+def nist_dissociation_test():
+    """
+        Verifies that all the compounds in NIST are covered by the dissociation table, including SMILES strings.
+    """
+    db = SqliteDatabase('../res/gibbs.sqlite')
+    nist_regression = NistRegression(db, html_writer=NullHtmlWriter())
+    dissociation = nist_regression.dissociation
+    groups_data = GroupsData.FromDatabase(db)
+    group_decomposer = GroupDecomposer(groups_data)
+    kegg = Kegg.getInstance()
+    
+    nist = nist_regression.nist
+    for cid in nist.GetAllCids():
+        id = "C%05d (%s)" % (cid, kegg.cid2name(cid))
+        diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
+        test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=False)
+
+def dissociation_decomposition_test():
+    """
+        Verifies that the decomposition of the compounds in the dissociation table match the nH of each species.
+    """
+    db = SqliteDatabase('../res/gibbs.sqlite')
+    dissociation = DissociationConstants.FromFile()
+    groups_data = GroupsData.FromDatabase(db)
+    group_decomposer = GroupDecomposer(groups_data)
+    kegg = Kegg.getInstance()
+
+    for cid in dissociation.GetAllCids():
+        id = "C%05d (%s)" % (cid, kegg.cid2name(cid))
+        diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
+        test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=True)
+        
+def compare_charges():
     #db_public = SqliteDatabase('../data/public_data.sqlite')
     db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter("../res/groups_report.html")
@@ -54,5 +122,10 @@ def main():
     html_writer.write_table(dict_list, headers=['cid', 'name', 'charge_hatzi', 'charge_milo', 'error'])
     html_writer.close()
     
+def main():
+    nist_dissociation_test()
+    #dissociation_decomposition_test()
+    #compare_charges()
+
 if __name__ == '__main__':
     main()
