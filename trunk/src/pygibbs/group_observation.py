@@ -181,7 +181,7 @@ class GroupObervationCollection(object):
         nist_regression = NistRegression(self.db, html_writer=NullHtmlWriter())
         nist_regression.nist.override_pMg = 14.0
         cid2dG0 = {}
-        cid2nH = {} # the nH that is to be used in the reverse trasnform
+        cid2nH = {} # the nH that is to be used in the reverse transform
         for cid in nist_regression.dissociation.GetAllCids():
             diss = nist_regression.dissociation.GetDissociationTable(cid)
             nH, _nMg = diss.GetMostAbundantPseudoisomer(pH=default_pH, I=default_I, pMg=14, T=default_T)
