@@ -116,7 +116,7 @@ class NistRowData:
             else:
                 amount = tokens[0]
                 cid = tokens[1]
-            if (cid[0] != 'C'):
+            if cid[0] != 'C':
                 raise KeggParseException("Compound ID does not start with a C: " + cid)
             try:
                 cid = int(cid[1:])
@@ -355,8 +355,9 @@ class Nist(object):
         total_list = []
         
         for row_data in self.SelectRowsFromNist():
-            unknown_set = set(row_data.GetAllCids()).difference(known_cid_set)
-            if unknown_set:
+            row_cids = set(row_data.GetAllCids())
+            unknown_cids = row_cids.difference(known_cid_set)
+            if unknown_cids:
                 logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.ref_id)
                 continue
             
@@ -525,12 +526,15 @@ class Nist(object):
         pylab.hold(True)
         error1 = abs(data_mat[:,0]-data_mat[:,1])
         error2 = abs(data_mat[:,0]-data_mat[:,2])
+        rmse1 = pylab.sqrt(pylab.mean(error1**2))
+        rmse2 = pylab.sqrt(pylab.mean(error2**2))
+        
         max_err = max(error1.max(), error2.max())
         pylab.plot([0, max_err], [0, max_err], 'r--', figure=fig)
         pylab.plot(error1, error2, '.', figure=fig)
         pylab.title("Error Comparison per Reaction (in kJ/mol)")
-        pylab.xlabel(thermo1.name, figure=fig)
-        pylab.ylabel(thermo2.name, figure=fig)
+        pylab.xlabel(thermo1.name + " (RMSE = %.1f)" % rmse1, figure=fig)
+        pylab.ylabel(thermo2.name + " (RMSE = %.1f)" % rmse2, figure=fig)
         html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_corr")
 
     def SelectRowsFromNist(self, reaction=None, check_reverse=True):

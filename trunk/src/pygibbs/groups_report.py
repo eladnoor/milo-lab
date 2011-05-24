@@ -17,8 +17,9 @@ from pygibbs.dissociation_constants import DissociationConstants
 
 def test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=False):
         if diss is None:
-            logging.warning('%s: not in dissociation table' % id)
+            logging.warning('%s: does not appear in the dissociation table' % id)
             return
+        
         nH, nMg = diss.GetMostAbundantPseudoisomer(pH=default_pH, I=default_I, pMg=14, T=default_T) 
         if nMg != 0:
             logging.warning('%s: default species has nMg = %d' % (id, nMg))
@@ -58,8 +59,11 @@ def nist_dissociation_test():
     nist = nist_regression.nist
     for cid in nist.GetAllCids():
         id = "C%05d (%s)" % (cid, kegg.cid2name(cid))
-        diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
-        test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=False)
+        if kegg.cid2compound(cid).get_atom_bag() is None:
+            logging.debug('%s: has no explicit formula' % id)
+        else:
+            diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
+            test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=False)
 
 def dissociation_decomposition_test():
     """
@@ -73,8 +77,11 @@ def dissociation_decomposition_test():
 
     for cid in dissociation.GetAllCids():
         id = "C%05d (%s)" % (cid, kegg.cid2name(cid))
-        diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
-        test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=True)
+        if kegg.cid2compound(cid).get_atom_bag() is None:
+            logging.debug('%s: has no explicit formula' % id)
+        else:
+            diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
+            test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=True)
         
 def compare_charges():
     #db_public = SqliteDatabase('../data/public_data.sqlite')

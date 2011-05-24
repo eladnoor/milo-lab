@@ -51,7 +51,7 @@ def main():
     kegg_reactions = Kegg.getInstance().AllReactions()
     nist_reactions = nist.GetUniqueReactionSet()
     
-    if False:
+    if True:
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['nist_regression'],
