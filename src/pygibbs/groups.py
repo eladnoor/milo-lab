@@ -471,12 +471,25 @@ class GroupContribution(Thermodynamics):
         pmap.Squeeze()
         return pmap
 
-    def EstimateKeggCids(self):
+    def EstimateKeggCids(self, override_all_observed_compounds=False):
+        """
+            Uses the Group Contributions to estimate the entire set of compounds in KEGG,
+            and then writes the results to the database as 'gc_pseudoisomers' table
+            
+            Options:
+                override_all_observed_compounds - If True, any observed formation energy is 
+                    used instead of the GC estimation. If False, only 'test' compounds are used.
+        """
         logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
         
         # override the data of the 'test' set
-        obs_species = PsuedoisomerTableThermodynamics.FromCsvFile(
-            '../data/thermodynamics/formation_energies.csv')
+        if override_all_observed_compounds:
+            obs_species = PsuedoisomerTableThermodynamics.FromCsvFile(
+                '../data/thermodynamics/formation_energies.csv')
+        else:
+            obs_species = PsuedoisomerTableThermodynamics.FromCsvFile(
+                '../data/thermodynamics/formation_energies.csv', label='test')
+            
         obs_cids = obs_species.get_all_cids()
 
         dissociation = DissociationConstants.FromFile()

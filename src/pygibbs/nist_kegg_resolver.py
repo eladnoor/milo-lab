@@ -38,6 +38,8 @@ def parse_single_reactant(s, compound_aliases):
     tmp = re.findall('^(\d+) (.*)', s)
     if tmp:
         count, name = tmp[0]
+        if name == 'H+':
+            return None
         if name in compound_aliases:
             return count + " " + compound_aliases[name]
     
@@ -48,7 +50,9 @@ def parse_reaction_side(s, compound_aliases):
     missing_names = []
     for r in s.split(' + '):
         try:
-            res.append(parse_single_reactant(r, compound_aliases))
+            reactant = parse_single_reactant(r, compound_aliases)
+            if reactant is not None:
+                res.append(reactant)
         except MissingCompoundsFromKeggException as e:
             missing_names += e.names
     if missing_names:
@@ -334,6 +338,12 @@ def WriteDataToDB(nist_db, db):
                 row_dict['K\''] = '8 10-3'
             if row_dict['pH'] == '6.0': # the value in the paper is different
                 row_dict['K\''] = '3 10-2'
+        if url_id == "T1=62HAL/FEN_1446": # replace (S)-methylmalonyl-CoA with methylmalonyl-CoA
+            row_dict['Reaction'] = \
+                "ATP(aq) + propanoyl-CoA(aq) + carbon dioxide(aq) = ADP(aq) + phosphate(aq) + methylmalonyl-CoA(aq)"
+        if url_id == "T1=65KAZ/GRO_1447": # replace (S)-methylmalonyl-CoA with methylmalonyl-CoA
+            row_dict['Reaction'] = \
+                "ATP(aq) + propanoyl-CoA(aq) + carbon dioxide(aq) = ADP(aq) + phosphate(aq) + methylmalonyl-CoA(aq)"
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():

@@ -86,7 +86,7 @@ class GroupObervationCollection(object):
         for cid in dissociation.GetAllCids():
             diss_table =  dissociation.GetDissociationTable(cid)
             name = self.kegg.cid2name(cid)
-            logging.info("Reading pKa data for C%05d, %s:" % (cid, name))
+            logging.debug("Reading pKa data for C%05d, %s:" % (cid, name))
             self.html_writer.write('<h3>C%05d - %s</h3>\n' % (cid, name))
             for key in diss_table:
                 nH_above, nH_below, nMg_above, nMg_below = key
@@ -101,7 +101,7 @@ class GroupObervationCollection(object):
                     s = "nH = %d -> %d" % (nH_below, nH_above)
                 elif nMg_above != nMg_below:
                     s = "nMg = %d -> %d" % (nMg_below, nMg_above)
-                logging.info("\t" + s)
+                logging.debug("\t" + s)
                 self.html_writer.write('%s: &#x394;G = %.2f</br>\n' 
                                        % (s, ddG0))
                 self.html_writer.write('SMILES = %s >> %s</br>\n' % (smiles_below, smiles_above))
@@ -137,7 +137,7 @@ class GroupObervationCollection(object):
                 raise Exception("C%05d has more than one species in the training set" % cid)
             nH, charge, nMg, dG0 = pmatrix[0]
             name = "%s (%d)" % (self.kegg.cid2name(cid), nH)
-            logging.info('Adding the formation energy of %s', name)
+            logging.debug('Adding the formation energy of %s', name)
             self.html_writer.write("<h3>%s, %s</h3>\n" % (name, train_species.cid2SourceString(cid)))
             self.html_writer.write('&#x394;G<sub>f</sub> = %.2f, nH = %d, nMg = %d</br>\n' % (dG0, nH, nMg))
             smiles = dissociation.GetSmiles(cid, nH=nH, nMg=nMg)

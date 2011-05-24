@@ -644,7 +644,7 @@ class Kegg(Singleton):
                 
         return sparse_reaction
     
-    def BalanceReaction(self, sparse_reaction, balance_water=False):
+    def BalanceReaction(self, sparse_reaction, balance_water=False, balance_hydrogens=False):
         """
             Checks whether a reaction is balanced.
             If balance_water=True and there is an imbalance of oxygen or hydrogen atoms, BalanceReaction
@@ -687,8 +687,13 @@ class Kegg(Singleton):
             atom_bag['e-'] = atom_bag.get('e-', 0) - 10 * atom_bag['O'] # account for the 10 electrons in each added water molecule
             atom_bag['O'] = 0
         
-        if atom_bag.get('H', 0) != 0:
-            new_sparse[80] = new_sparse.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
+        if balance_hydrogens:
+            if atom_bag.get('H', 0) != 0:
+                new_sparse[80] = new_sparse.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
+                atom_bag['H'] = 0
+        else:
+            if 80 in new_sparse:
+                del new_sparse[80]
             atom_bag['H'] = 0
         
         for atomtype in atom_bag.keys():
