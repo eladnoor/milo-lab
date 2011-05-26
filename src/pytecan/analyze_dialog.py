@@ -91,70 +91,66 @@ class TkFileDialogExample(Tkinter.Frame):
         """
             Writes the plots to a PDF file
         """
-        f = tkFileDialog.asksaveasfile(mode='w', filetypes=[('pdf file', '.pdf')])
-        f.write("<enter plots here>\n")
-        f.write("plate ID = %s\n" % self.selected_plate_id)
-        f.write("reading label = %s\n" % self.GetLabel())
-        for r in xrange(self.N_ROWS):
-            for c in xrange(self.N_COLS):
-                f.write("r=%d, c=%d, text=%s\n" % (r, c, self.text_matrix[r,c].get()))
+        f = tkFileDialog.asksaveasfile(mode='w', filetypes=[('PDf file', '.pdf')])
+        self.DrawPlots(f)
         f.close()
+        if tkMessageBox.askyesno('Job completed', 
+                                 'The program has finished writing to the PDF file.\n'
+                                 'Would you like to quit?'):
+            self.quit()
 
     def asksaveascsv(self):
         """
             Writes the raw data to a CSV file
         """
-        f = tkFileDialog.asksaveasfile(mode='w')
+        f = tkFileDialog.asksaveasfile(mode='w', filetypes=[('CSV file', '.csv')])
         WriteCSV(self.MES, f)
         f.close()
+        if tkMessageBox.askyesno('Job completed', 
+                                 'The program has finished writing to the CSV file.\n'
+                                 'Would you like to quit?'):
+            self.quit()
 
-    @staticmethod
-    def GetData(reading_label, plate_id, row, col, MES):
+    def GetData(self, plate_id, reading_label, row, col):
         """
             When the experimental data is broken into more than one XLS sheet, this method
             concatenates the data into one series and returns it as if it was from one source.
         """
         well = (row, col)
-        time_list = sorted(MES[plate_id][reading_label].keys())
+        time_list = sorted(self.MES[plate_id][reading_label].keys())
         if not time_list:
             return None, None
-        value_list = [MES[plate_id][reading_label][time][well] for time in time_list]
+        value_list = [self.MES[plate_id][reading_label][time][well] for time in time_list]
         time_list = [(time - time_list[0])/3600.0 for time in time_list]
         
         return pylab.array(time_list), pylab.array(value_list)
 
-    def DrawPlots(self, MES):
+    def DrawPlots(self, file_handle):
         linewidth = 1
-        plot_growth_rate = True
+        plot_growth_rate = False
         fit_window_size = 3 # hours
         fit_start_threshold = 0.03
 
-        plots = [] # list of [(title, (t_min, t_max), (y_min, y_max), y_label, vlegend)]
-                   # vlegend: list of [(label, color, style (solid/dashed), list of wells [(plate_id, row, col)]]
-        t_min=8
-        t_max = 20 # in hours
+        plots = []  # list of [(title, (t_min, t_max), (y_min, y_max), y_label, vlegend)]
+                    # vlegend: list of [(label, color, style (solid/dashed), list of wells [(plate_id, row, col)]]
+        t_range = (0, 20) # in hours 
         OD_min = 0
         OD_range = (3e-2, 1e0)
         
-        # Replace this code with something that will create a "plots" list from
-        # the entries in the GUI.
-        
-        #colors = ['green', 'cyan', 'blue', 'magenta']
-        #row_labels = ['w', 'm', 's', '21']
-        #column_labels = ['M9' , '5mM' , '15mM' ,'30mM']
-        #plate_labels=['Glucose','Succinate','Succinate+aTC']
-        # 
-        #for p in [0, 1, 2]:
-        #    for r in xrange(4): #8 for single rows
-        #        vlegend = []
-        #        for c in xrange(4):
-        #            cells = [(p, r*2, c+4*i) for i in xrange(3)]
-        #            vlegend.append((column_labels[c], colors[c], 'solid', cells))
-        #            cells = [(p, r*2+1, c+4*i) for i in xrange(3)]
-        #            vlegend.append((column_labels[c] + '_ba', colors[c], 'dashed', cells))
-        #        plots.append((plate_labels[p] + ' ' + row_labels[r], (t_min, t_max), OD_range, 'OD600', vlegend))
+        plate_id = self.selected_plate_id
+        reading_label = self.GetLabel()
+
+        colors = ['green', 'cyan', 'blue', 'magenta', 'red', 'orange', 'pink']
+        vlegend = []
+        for row in xrange(self.N_ROWS):
+            for col in xrange(self.N_COLS):
+                label = self.text_matrix[row, col].get()
+                if label:
+                    vlegend.append((label, colors.pop(), 'solid', [(plate_id, row, col)]))
                 
-        pp = PdfPages("C:/Python26/Data/Yehudit.pdf")
+        plots.append(('plot title', t_range, OD_range, reading_label, vlegend))
+                
+        pp = PdfPages(file_handle)
         for plot_title, t_range, y_range, y_label, data_series in plots:
             sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
             fig = pylab.figure()
@@ -166,7 +162,7 @@ class TkFileDialogExample(Tkinter.Frame):
             label2line = []
             for label, color, linestyle, cells in data_series:
                 for plate_id, row, col in cells:
-                    time, values = TkFileDialogExample.GetData(y_label, plate_id, row, col, MES)
+                    time, values = self.GetData(plate_id, y_label, row, col)
                     if not len(time):
                         continue
                     if OD_min:
@@ -189,7 +185,6 @@ class TkFileDialogExample(Tkinter.Frame):
             pylab.yscale('log')
             pylab.axis([t_range[0], t_range[1], y_range[0], y_range[1]])
             pp.savefig(fig)
-        
         pp.close()
 
 ################################################################################
