@@ -385,7 +385,16 @@ class Nist(object):
         
         if not dG0_obs_vec:
             return 0, 0
+
+        unique_reaction_dict = {}
+        for error, _dG0_obs, _dG0_est, reaction, _pH, _pMg, _I, _T, _eval, _url in total_list: 
+            unique_reaction_dict.setdefault(reaction, []).append((error)**2)
+        unique_mean_sqr_error = [pylab.mean(sqr_error_list) for sqr_error_list in unique_reaction_dict.values()]
+        unique_rmse = pylab.sqrt(pylab.mean(unique_mean_sqr_error))
         
+        r2 = calc_r2(dG0_obs_vec, dG0_est_vec)
+        rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
+
         # plot the profile graph
         pylab.rcParams['text.usetex'] = False
         pylab.rcParams['legend.fontsize'] = 12
@@ -401,15 +410,13 @@ class Nist(object):
         
         colors = ['purple', 'orange', 'lightgreen', 'red', 'cyan']
         for e in sorted(evaluation_map.keys()):
-            (measured, predicted) = evaluation_map[e]
+            measured, predicted = evaluation_map[e]
             label = '%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), calc_rmse(measured, predicted))
             c = colors.pop(0)
             pylab.plot(measured, predicted, marker='.', linestyle='None', markerfacecolor=c, markeredgecolor=c, markersize=5, label=label)
         
         pylab.legend(loc='upper left')
         
-        r2 = calc_r2(dG0_obs_vec, dG0_est_vec)
-        rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
         pylab.title(r'N = %d, RMSE = %.1f [kJ/mol], r$^2$ = %.2f' % (len(dG0_obs_vec), rmse, r2), fontsize=14)
         pylab.xlabel(r'$\Delta_{obs} G^\circ$ [kJ/mol]', fontsize=14)
         pylab.ylabel(r'$\Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
@@ -480,7 +487,7 @@ class Nist(object):
             dict_list.append(d)
         html_writer.write_table(dict_list, table_headers)
         
-        return len(dG0_obs_vec), rmse
+        return len(dG0_obs_vec), unique_rmse
     
     def two_way_comparison(self, html_writer, thermo1, thermo2, name=None):
         """

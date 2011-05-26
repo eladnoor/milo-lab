@@ -1,26 +1,21 @@
 #!/usr/bin/python
 
-import logging
 import pylab
 import sys
 
 from pygibbs import flags
-from pygibbs.thermodynamic_constants import R, default_I, default_pH
-from pygibbs.thermodynamic_constants import default_pMg, default_T
-from pygibbs.groups import GroupContribution
+from pygibbs.thermodynamic_constants import default_T, R
 from pygibbs import reversibility
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.database import SqliteDatabase
-from toolbox.html_writer import HtmlWriter
-
 
 def GetReactionIdInput():
     while True:
         try:
             print 'KEGG compound ID:',
             return int(raw_input())
-        except Exception, e:
+        except Exception:
             print 'KEGG compound IDs should be integers.'
 
 

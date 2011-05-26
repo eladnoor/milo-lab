@@ -2,7 +2,7 @@
 
 import pylab
 import types
-from thermodynamic_constants import R, default_T, correction_function, array_transform
+from thermodynamic_constants import R, default_T, correction_function
 from toolbox.util import log_sum_exp
 from pygibbs.thermodynamic_constants import dG0_f_Mg
 
