@@ -1,4 +1,7 @@
-from util import CollectData, WriteCSV
+from util import CollectData, WriteCSV, FitGrowth
+from matplotlib.backends.backend_pdf import PdfPages
+import sys
+import pylab
 
 ################################################################################
 
@@ -27,30 +30,30 @@ class TkFileDialogExample(Tkinter.Frame):
 
         
         for c in xrange(self.N_COLS):
-            Tkinter.Label(self, text='%d' % (c+1)).grid(row=4, column=c+1)
+            Tkinter.Label(self, text='%d' % (c+1)).grid(row=1, column=c+1)
         for r in xrange(self.N_ROWS):
-            Tkinter.Label(self, text=chr(ord('A') + r)).grid(row=r+5, column=0, 
+            Tkinter.Label(self, text=chr(ord('A') + r)).grid(row=r+1, column=0, 
                                                              sticky=Tkconstants.E, padx=10)
 
         self.text_matrix = {}
         for r in xrange(self.N_ROWS):
             for c in xrange(self.N_COLS):
                 self.text_matrix[r,c] = Tkinter.Entry(self, width=10)
-                self.text_matrix[r,c].grid(row=r+5, column=c+1, padx=3, pady=3)
+                self.text_matrix[r,c].grid(row=r+1, column=c+1, padx=3, pady=3)
 
         self.button_savepdf = Tkinter.Button(self, text='save to PDF ...',
                                              command=self.asksaveaspdf,
                                              state=Tkconstants.DISABLED)
-        self.button_savepdf.grid(row=self.N_ROWS+5, column=1, columnspan=2, pady=5)
+        self.button_savepdf.grid(row=self.N_ROWS+1, column=1, columnspan=2, pady=5)
 
         self.button_savecsv = Tkinter.Button(self, text='save to CSV ...',
                                              command=self.asksaveascsv,
                                              state=Tkconstants.DISABLED)
-        self.button_savecsv.grid(row=self.N_ROWS+5, column=3, columnspan=2, pady=5)
+        self.button_savecsv.grid(row=self.N_ROWS+1, column=3, columnspan=2, pady=5)
 
         self.button_quit = Tkinter.Button(self, text='Quit',
-                                          command=self.quit)
-        self.button_quit.grid(row=self.N_ROWS+5, column=5, columnspan=2, pady=5)
+                                             command=self.quit)
+        self.button_quit.grid(row=self.N_ROWS+1, column=5, columnspan=2, pady=5)
         
     def AskOpenFile(self):
         """
@@ -105,11 +108,93 @@ class TkFileDialogExample(Tkinter.Frame):
         WriteCSV(self.MES, f)
         f.close()
 
+    @staticmethod
+    def GetData(reading_label, plate_id, row, col, MES):
+        """
+            When the experimental data is broken into more than one XLS sheet, this method
+            concatenates the data into one series and returns it as if it was from one source.
+        """
+        well = (row, col)
+        time_list = sorted(MES[plate_id][reading_label].keys())
+        if not time_list:
+            return None, None
+        value_list = [MES[plate_id][reading_label][time][well] for time in time_list]
+        time_list = [(time - time_list[0])/3600.0 for time in time_list]
+        
+        return pylab.array(time_list), pylab.array(value_list)
+
+    def DrawPlots(self, MES):
+        linewidth = 1
+        plot_growth_rate = True
+        fit_window_size = 3 # hours
+        fit_start_threshold = 0.03
+
+        plots = [] # list of [(title, (t_min, t_max), (y_min, y_max), y_label, vlegend)]
+                   # vlegend: list of [(label, color, style (solid/dashed), list of wells [(plate_id, row, col)]]
+        t_min=8
+        t_max = 20 # in hours
+        OD_min = 0
+        OD_range = (3e-2, 1e0)
+        
+        # Replace this code with something that will create a "plots" list from
+        # the entries in the GUI.
+        
+        #colors = ['green', 'cyan', 'blue', 'magenta']
+        #row_labels = ['w', 'm', 's', '21']
+        #column_labels = ['M9' , '5mM' , '15mM' ,'30mM']
+        #plate_labels=['Glucose','Succinate','Succinate+aTC']
+        # 
+        #for p in [0, 1, 2]:
+        #    for r in xrange(4): #8 for single rows
+        #        vlegend = []
+        #        for c in xrange(4):
+        #            cells = [(p, r*2, c+4*i) for i in xrange(3)]
+        #            vlegend.append((column_labels[c], colors[c], 'solid', cells))
+        #            cells = [(p, r*2+1, c+4*i) for i in xrange(3)]
+        #            vlegend.append((column_labels[c] + '_ba', colors[c], 'dashed', cells))
+        #        plots.append((plate_labels[p] + ' ' + row_labels[r], (t_min, t_max), OD_range, 'OD600', vlegend))
+                
+        pp = PdfPages("C:/Python26/Data/Yehudit.pdf")
+        for plot_title, t_range, y_range, y_label, data_series in plots:
+            sys.stderr.write("Plotting %s (%s) ... \n" % (plot_title, y_label))
+            fig = pylab.figure()
+            pylab.title(plot_title)
+            pylab.xlabel('Time (hr)')
+            pylab.ylabel(y_label)
+            
+            label2legend = {}
+            label2line = []
+            for label, color, linestyle, cells in data_series:
+                for plate_id, row, col in cells:
+                    time, values = TkFileDialogExample.GetData(y_label, plate_id, row, col, MES)
+                    if not len(time):
+                        continue
+                    if OD_min:
+                        values -= OD_min
+                    line = pylab.plot(time, values, color, linestyle=linestyle, linewidth=linewidth)
+                    if label not in label2legend:
+                        label2line.append((line, label))
+                        label2legend[label] = label
+                        if plot_growth_rate:
+                            label2legend[label] += ", T(min) = "
+                    
+                    if plot_growth_rate:
+                        growth_rate = FitGrowth(time, values, fit_window_size, fit_start_threshold)
+                        if growth_rate > 1e-10:
+                            label2legend[label] += "%.0f  " % (60.0 * pylab.log(2.0) / growth_rate)
+                        else:
+                            label2legend[label] += "0  "
+        
+            pylab.legend([a[0] for a in label2line], [label2legend[a[1]] for a in label2line], loc='lower right')
+            pylab.yscale('log')
+            pylab.axis([t_range[0], t_range[1], y_range[0], y_range[1]])
+            pp.savefig(fig)
+        
+        pp.close()
+
 ################################################################################
 
 if __name__ == "__main__":
     root = Tkinter.Tk()
-    frame = TkFileDialogExample(root)
-    print frame.MES
-    frame.pack()
+    TkFileDialogExample(root).pack()
     root.mainloop()
