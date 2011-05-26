@@ -7,7 +7,6 @@ from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg,\
     default_T
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
-from pygibbs.nist import Nist
 from pygibbs.nist_regression import NistRegression
 import logging
 from toolbox.molecule import Molecule
@@ -130,9 +129,9 @@ def compare_charges():
     html_writer.close()
     
 def main():
-    nist_dissociation_test()
+    #nist_dissociation_test()
     #dissociation_decomposition_test()
-    #compare_charges()
+    compare_charges()
 
 if __name__ == '__main__':
     main()
