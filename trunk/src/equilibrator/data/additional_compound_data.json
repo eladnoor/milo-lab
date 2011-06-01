@@ -111,6 +111,12 @@
     	"details_link": "/faq#aqueousCO2"
     },
     {
+        "CID": "C00345",
+        "names": [
+            "6-Phosphogluconate",
+        ]
+    },
+    {
         "CID": "C00354",
         "names": [
             "F1,6BP" 
