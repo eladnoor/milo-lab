@@ -42,6 +42,9 @@ class ValueSource(models.Model):
     # The name of the source.
     name = models.CharField(max_length=100)
     
+    # A citation name for the source. May be null.
+    citation = models.CharField(max_length=4096, null=True)
+    
     # A link explaining the source.
     link = models.URLField(null=True)
     
@@ -133,10 +136,7 @@ class Compound(models.Model):
     
     # InChI representation of the compound.
     inchi = models.CharField(max_length=2048, null=True)
-    
-    # InChI string with chirality fields removed.
-    achiral_inchi = models.CharField(max_length=2048, null=True)
-    
+        
     # A list of common names of the compound, used for searching.
     common_names = models.ManyToManyField(CommonName)
     
@@ -172,18 +172,6 @@ class Compound(models.Model):
     def __init__(self, *args, **kwargs):        
         super(Compound, self).__init__(*args, **kwargs)
         self._all_species = None
-    
-    def save(self):
-        """Custom save-time behavior."""
-        if self.inchi:
-            self.achiral_inchi = inchi.AchiralInchi(self.inchi)
-        
-        super(Compound, self).save()
-    
-    def clean(self):
-        """Custom save-time behavior."""
-        if self.inchi:
-            self.achiral_inchi = inchi.AchiralInchi(self.inchi)
     
     def HasData(self):
         """Has enough data to display."""
