@@ -7,20 +7,20 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     (r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT }),
-    (r'^$', 'gibbs_site.gibbs.main_page.MainPage'),
-    (r'^about', 'gibbs_site.gibbs.info_pages.AboutPage'),
-    (r'^faq', 'gibbs_site.gibbs.info_pages.FAQPage'),
-    (r'^classic_reactions', 'gibbs_site.gibbs.info_pages.ClassicReactions'),
-    (r'^compound', 'gibbs_site.gibbs.compound_page.CompoundPage'),
-    (r'^download', 'gibbs_site.gibbs.info_pages.DownloadPage'),
-    (r'^enzyme', 'gibbs_site.gibbs.enzyme_page.EnzymePage'),
-    (r'^reaction', 'gibbs_site.gibbs.reaction_page.ReactionPage'),
-    (r'^graph_reaction', 'gibbs_site.gibbs.reaction_graph.ReactionGraph'),
-    (r'^search', 'gibbs_site.gibbs.search_results_page.ResultsPage'),
-    (r'^suggest', 'gibbs_site.gibbs.suggest.SuggestJson'),
-    (r'^robots\.txt', 'gibbs_site.gibbs.info_pages.Robots'),
+    (r'^$', 'equilibrator.gibbs.main_page.MainPage'),
+    (r'^about', 'equilibrator.gibbs.info_pages.AboutPage'),
+    (r'^faq', 'equilibrator.gibbs.info_pages.FAQPage'),
+    (r'^classic_reactions', 'equilibrator.gibbs.info_pages.ClassicReactions'),
+    (r'^compound', 'equilibrator.gibbs.compound_page.CompoundPage'),
+    (r'^download', 'equilibrator.gibbs.info_pages.DownloadPage'),
+    (r'^enzyme', 'equilibrator.gibbs.enzyme_page.EnzymePage'),
+    (r'^reaction', 'equilibrator.gibbs.reaction_page.ReactionPage'),
+    (r'^graph_reaction', 'equilibrator.gibbs.reaction_graph.ReactionGraph'),
+    (r'^search', 'equilibrator.gibbs.search_results_page.ResultsPage'),
+    (r'^suggest', 'equilibrator.gibbs.suggest.SuggestJson'),
+    (r'^robots\.txt', 'equilibrator.gibbs.info_pages.Robots'),
     # Example:
-    # (r'^gibbs_site/', include('gibbs_site.foo.urls')),
+    # (r'^equilibrator/', include('equilibrator.foo.urls')),
 
     # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
     # to INSTALLED_APPS to enable admin documentation:

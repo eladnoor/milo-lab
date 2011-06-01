@@ -84,7 +84,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'gibbs_site.urls'
+ROOT_URLCONF = 'equilibrator.urls'
 
 TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, 'templates'),
