@@ -3,6 +3,8 @@
 import logging
 import re
 
+from itertools import imap
+
 
 def NormalizeNames(name_str):
     """Normalize a KEGG-style list of names."""
@@ -48,6 +50,60 @@ def NormalizeReactions(reactions_str, verbose=False):
 def NormalizeOrganisms(organisms_str):
     """Normalize a KEGG-style list of organism names."""
     return organisms_str.split('\t')
+
+
+def ParseOrthologyMapping(orthology_str):
+    """Parses the orthology string to a mapping.
+    
+    Args:
+        orthology_str: the orthology string in the KEGG file.
+    
+    Returns:
+        A mapping from orthology IDs to names.
+    """
+    splitted = orthology_str.split('\t')
+    pattern = re.compile('^(K\d{5})  (.*)$')
+    
+    d = {}
+    for match in imap(pattern.match, splitted):
+        if not match:
+            continue
+        
+        groups = match.groups()
+        orthology_id = groups[0]
+        int_orthology_id = int(orthology_id[1:])
+        name = groups[1]
+        d[int_orthology_id] = name
+    return d
+
+
+def ParseOrganismToGeneMapping(genes_str):
+    """Parses the genes string to a mapping.
+    
+    TODO(flamholz): Keep open reading frame data as well.
+    
+    Args:
+        genes_str: the orthology string in the KEGG file.
+    
+    Returns:
+        A mapping from organisms to gene names.
+    """
+    splitted = genes_str.split('\t')
+    pattern = re.compile('^([A-Z]{3}): (.*)$')
+    
+    d = {}
+    for match in imap(pattern.match, splitted):
+        if not match:
+            continue
+        
+        groups = match.groups()
+        organism_id = groups[0]
+        parens_pattern = re.compile('\w+\((\w+)\)')
+        gene_ids = parens_pattern.findall(groups[1])
+        if gene_ids:
+            d[organism_id] = gene_ids
+    
+    return d
 
 
 class EntryDictWrapper(dict):
