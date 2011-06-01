@@ -223,7 +223,8 @@ class Kegg(Singleton):
                 reaction.ec_list, reaction.equation])
          
         self.db.CreateTable('kegg_enzyme', 'ec TEXT, all_names TEXT, title TEXT, rid_list TEXT, '
-                            'substrate TEXT, product TEXT, cofactor TEXT, organism_list TEXT')
+                            'substrate TEXT, product TEXT, cofactor TEXT, organism_list TEXT, '
+                            'orthology_map TEXT, genes_map TEXT')
         for enz in self.ec2enzyme_map.values():
             self.db.Insert('kegg_enzyme', enz.ToDBRow())
 

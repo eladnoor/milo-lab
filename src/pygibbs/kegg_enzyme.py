@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import re
+import json
 
 from pygibbs import kegg_parser
 
@@ -10,7 +11,8 @@ class Enzyme(object):
     
     def __init__(self, ec_class, title=None, names=None,
                  reactions=None, substrates=None, products=None,
-                 cofactors=None, organisms=None):
+                 cofactors=None, organisms=None, orthology=None,
+                 genes=None):
         """Initialize the enzyme class.
         
         Args:
@@ -22,6 +24,8 @@ class Enzyme(object):
             products: the products of the enzyme, if defined.
             cofactors: cofactors used by the enzyme.
             organisms: the organisms this enzyme is found in, if defined.
+            orthology: the mapping dictionary from orthology IDs to names.
+            genes: the mapping from organisms to a list of gene names.
             
         Attributes:
             ec
@@ -32,6 +36,8 @@ class Enzyme(object):
             products
             cofactors
             organisms
+            orthology
+            genes
         """
         self.ec = ec_class
         self.title = title
@@ -41,6 +47,8 @@ class Enzyme(object):
         self.products = products
         self.cofactors = cofactors
         self.organisms = organisms or []
+        self.orthology = orthology or {}
+        self.genes = genes or {}
 
     @staticmethod
     def ProcessEC(ec_str):
@@ -84,6 +92,13 @@ class Enzyme(object):
         if 'ORGANISM' in entry_dict:
             enz.organisms = kegg_parser.NormalizeOrganisms(
                 entry_dict.get('ORGANISM'))
+        if 'ORTHOLOGY' in entry_dict:
+            enz.orthology = kegg_parser.ParseOrthologyMapping(
+                entry_dict.get('ORTHOLOGY'))
+        if 'GENES' in entry_dict:
+            enz.genes = kegg_parser.ParseOrganismToGeneMapping(
+                entry_dict.get('GENES'))
+        
         enz.substrates = Enzyme.GetCompoundIds(entry_dict.get('SUBSTRATE', None))
         enz.products = Enzyme.GetCompoundIds(entry_dict.get('PRODUCT', None))
         enz.cofactors = Enzyme.GetCompoundIds(entry_dict.get('COFACTOR', None))
@@ -138,6 +153,14 @@ class Enzyme(object):
             enz.cofactors = enz.cofactors.split(', ')
             
         enz.title = row_dict.get('title', None)
+        
+        orthology = row_dict.get('orthology_map')
+        genes = row_dict.get('genes_map')
+        if orthology:
+            enz.orthology = json.loads(orthology)
+        if genes:
+            enz.genes = json.loads(genes)
+        
         return enz
 
     def ToDBRow(self):
@@ -166,6 +189,16 @@ class Enzyme(object):
             row.append(', '.join(self.organisms))
         else:
             row.append(None)
+            
+        if self.orthology:
+            row.append(json.dumps(self.orthology))
+        else:
+            row.append(None)
+            
+        if self.genes:
+            row.append(json.dumps(self.genes))
+        else:
+            row.append(None)
         
         return row
 
@@ -184,7 +217,9 @@ class Enzyme(object):
                 'substrates': self.substrates,
                 'products': self.products,
                 'cofactors': self.cofactors,
-                'organisms': self.organisms}
+                'organisms': self.organisms,
+                'orthology': self.orthology,
+                'genes': self.genes}
 
     def __str__(self):
         """String representation of the enzyme."""
