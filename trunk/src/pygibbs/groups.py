@@ -27,6 +27,8 @@ from toolbox.molecule import Molecule
 from pygibbs.group_observation import GroupObervationCollection
 from pygibbs.dissociation_constants import DissociationConstants,\
     MissingDissociationConstantError
+from pygibbs.thermodynamic_errors import MissingReactionEnergy
+from pygibbs.group_vector import GroupVector
 
 class GroupMissingTrainDataError(Exception):
     
@@ -544,6 +546,31 @@ class GroupContribution(Thermodynamics):
         logging.info("Writing the results to the database")
         G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
         self.KeggErrorReport()
+
+    def VerifyReaction(self, sparse):
+        """
+            Inherited from Thermodynamics.
+            In this case, should check that the total reaction groupvec is orthogonal to 
+            the kernel.
+        """
+        total_groupvec = GroupVector()
+        for cid, coeff in sparse.iteritems():
+            mol = self.kegg.cid2mol(cid)
+            decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
+            total_groupvec += decomposition.AsVector() * coeff
+        
+        try:
+            # this will practically check that the overall
+            #  reaction groupvec is orthogonal to the kernel
+            self.groupvec2val(total_groupvec)
+        except GroupMissingTrainDataError:
+            raise MissingReactionEnergy()
+        
+    def EstimateKeggRids(self, pH=None, pMg=None, I=None ,T=None):
+        for rid in sorted(self.kegg.get_all_rids()):
+            reaction = self.kegg.rid2reaction(rid)
+            dG0_r = reaction.PredictReactionEnergy(self)
+            print rid, dG0_r
             
     def cid2PseudoisomerMap(self, cid):
         """
@@ -665,7 +692,8 @@ if __name__ == '__main__':
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
         G.init()
-        G.EstimateKeggCids()
+        #G.EstimateKeggCids()
+        G.EstimateKeggRids()
     else:
         G = GroupContribution(db=db)
         G.load_groups("../data/thermodynamics/groups_species.csv")

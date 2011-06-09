@@ -87,8 +87,21 @@ class Thermodynamics(object):
                 The biochemical dG'0_r (i.e. transformed changed in Gibbs free 
                 energy of reaction)
         """
+        self.VerifyReaction(sparse_reaction)
         return sum([coeff * self.cid2dG0_tag(cid, pH, pMg, I, T) for 
-                    (cid, coeff) in sparse_reaction.iteritems()])
+                    cid, coeff in sparse_reaction.iteritems()])
+    
+    def VerifyReaction(self, sparse_reaction):
+        """
+            Input:
+                A reaction in sparse representation
+            
+            Raises a MissingReactionEnergy exception in case something is preventing
+            this reaction from having a delta-G prediction. For example, if one of the
+            compounds has a non-trivial reference point (such as guanosine=0) but that
+            reference point is not balanced throughout the reaction.
+        """
+        pass
     
     def cid_to_bounds(self, cid, use_default=True):
         curr_c_min, curr_c_max = self.bounds.get(cid, (None, None))
