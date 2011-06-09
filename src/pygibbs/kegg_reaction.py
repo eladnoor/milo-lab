@@ -95,8 +95,7 @@ class Reaction(object):
 
     def PredictReactionEnergy(self, thermodynamics, 
                               pH=None, pMg=None, I=None ,T=None):
-        return sum([coeff * thermodynamics.cid2dG0_tag(cid, pH, pMg, I, T)
-                    for cid, coeff in self.sparse.iteritems()])
+        return thermodynamics.reaction_to_dG0(self.sparse, pH=pH, pMg=pMg, I=I, T=T)
     
     def HashableReactionString(self):
         """

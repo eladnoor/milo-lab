@@ -2,6 +2,7 @@ from util import CollectData, WriteCSV, FitGrowth
 from matplotlib.backends.backend_pdf import PdfPages
 import sys
 import pylab
+import logging
 
 ################################################################################
 
@@ -12,16 +13,18 @@ class TkFileDialogExample(Tkinter.Frame):
         self.MES = None
         self.N_ROWS = 8
         self.N_COLS = 12
+        self.selected_plate_id = None
         
         Tkinter.Frame.__init__(self, root)
     
         self.button_input = Tkinter.Button(self, text='select result file ...', command=self.AskOpenFile)
         self.button_input.grid(row=0, column=1, columnspan=2, pady=15)
 
-        self.button_plate = Tkinter.Button(self, text='select plate: ', command=self.SelectPlate)
-        self.button_plate.grid(row=0, column=3, columnspan=2, sticky=Tkconstants.E)
+        self.label_plate = Tkinter.Label(self, text='select plate ID: ')
+        self.label_plate.grid(row=0, column=3, columnspan=2, sticky=Tkconstants.E)
         self.list_plate_ids = Tkinter.Listbox(self, height=3)
         self.list_plate_ids.grid(row=0, column=5, columnspan=2, sticky=Tkconstants.W)
+        self.list_plate_ids.bind("<Button-1>", self.SelectPlate)
         
         self.label_label = Tkinter.Label(self, text='select reading label: ')
         self.label_label.grid(row=0, column=7, columnspan=2, sticky=Tkconstants.E)
@@ -62,9 +65,8 @@ class TkFileDialogExample(Tkinter.Frame):
         tar_fname = tkFileDialog.askopenfilename(
             filetypes=[('gzip files', '.gz'), ('tar files', '.tar'), ('all files', '.*')])
         if tar_fname:
-            print "Collecting data from %s ..." % (tar_fname),
+            logging.debug("Collecting data from: %s" % (tar_fname))
             self.MES = CollectData(tar_fname)
-            print "[DONE]"
             if self.MES:
                 self.button_savepdf.configure(state=Tkconstants.ACTIVE)
                 self.button_savecsv.configure(state=Tkconstants.ACTIVE)
@@ -74,9 +76,15 @@ class TkFileDialogExample(Tkinter.Frame):
                 for item in sorted(self.MES.keys()):
                     self.list_plate_ids.insert(Tkconstants.END, item)
 
-    def SelectPlate(self):
-        selection = int(self.list_plate_ids.curselection()[0])
+    def SelectPlate(self, event=None):
+        try:
+            selection = int(self.list_plate_ids.curselection()[0])
+        except IndexError:
+            self.selected_plate_id = None
+            return
+        
         self.selected_plate_id = self.list_plate_ids.get(selection)
+        logging.debug("Selected plate: %s" % self.selected_plate_id)
         
         # populate the reading label list
         self.list_labels.delete(0, Tkconstants.END)
@@ -190,6 +198,9 @@ class TkFileDialogExample(Tkinter.Frame):
 ################################################################################
 
 if __name__ == "__main__":
+    logger = logging.getLogger('')
+    logger.setLevel(logging.DEBUG)
+    
     root = Tkinter.Tk()
     TkFileDialogExample(root).pack()
     root.mainloop()

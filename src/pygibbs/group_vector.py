@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import pylab
+from types import FloatType
 
 class GroupVector(list):
     """A vector of groups."""
@@ -58,6 +59,12 @@ class GroupVector(list):
                 return True
         return False
     
+    def __mul__(self, other):
+        if type(other) == FloatType:
+            return GroupVector(self.groups_data, [x*other for x in self])
+        else:
+            raise ValueError("A GroupVector can only be multiplied by a scalar")
+        
     def NetCharge(self):
         """Returns the net charge."""
         return int(pylab.dot(self, self.groups_data.all_group_charges))
