@@ -80,6 +80,10 @@ class GroupContribution(Thermodynamics):
         
         self.cid2pmap = None
         self.cid2error = None
+        self.cid2groupvec = None
+        
+        self.PMAP_TABLE_NAME = 'gc_pseudoisomers'
+        self.ERROR_TABLE_NAME = 'gc_errors'
             
     def write_gc_tables(self):
         table_names = ["groups", "contribution", "observation"]
@@ -97,6 +101,7 @@ class GroupContribution(Thermodynamics):
         self.LoadContributionsFromDB()
         self.load_concentrations()
         self.load_training_data()
+        self.FromDatabase(self.db, table_name=self.PMAP_TABLE_NAME)
         
     def save_cid2pmap(self):
         logging.info('Calculating the table of chemical formation energies for all KEGG compounds')
@@ -497,6 +502,18 @@ class GroupContribution(Thermodynamics):
         dissociation = DissociationConstants.FromFile()
         self.cid2pmap = {}
         self.cid2error = {}
+        self.cid2groupvec = {}
+        
+        # if the CID is not in the dissociation table (i.e. the pKa values are
+        # not known) then use the group contributions to find them and the 
+        # formation energy of each psuedoisomer.
+        #
+        # otherwise, try to see if the formation energy is observed, and use
+        # the value from there (depending of the 'override_all_observed_compounds'
+        # flag). If there is no observed value, use Group Contribution to find
+        # the value for the most abundant pseudoisomer at default conditions and
+        # use the pKa values to calculate the other pseudoisomers.
+        
         for cid in sorted(self.kegg.get_all_cids()):
             try:
                 diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
@@ -506,18 +523,21 @@ class GroupContribution(Thermodynamics):
                     nH = decomposition.Hydrogens()
                     z = decomposition.NetCharge()
                     nMg = decomposition.Magnesiums()
-                    dG0 = self.groupvec2val(decomposition.AsVector())
+                    groupvec = decomposition.AsVector()
+                    dG0 = self.groupvec2val(groupvec)
                     self.cid2pmap[cid] = PseudoisomerMap(nH=nH, z=z, nMg=nMg, dG0=dG0)
                     self.cid2source_string[cid] = "Group Contribution"
+                    self.cid2groupvec[cid] = groupvec
                 else:
-                    if cid in obs_cids:
+                    if cid in obs_cids: # use an observed value of dG0 formation
                         pmap = obs_species.cid2PseudoisomerMap(cid)
                         pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
                         if len(pmatrix) != 1:
                             raise Exception("C%05d has more than one species in the training set" % cid)
                         nH, _z, nMg, dG0 = pmatrix[0]
                         self.cid2source_string[cid] = obs_species.cid2SourceString(cid)
-                    else:
+                        self.cid2groupvec[cid] = GroupVector(self.groups_data)
+                    else: # do not use an observed value of dG0 formation
                         nH, nMg = diss.GetMostAbundantPseudoisomer(
                             pH=default_pH, I=default_I, pMg=14, T=default_T)
                         smiles = diss.GetSmiles(nH=nH, nMg=nMg)
@@ -527,13 +547,15 @@ class GroupContribution(Thermodynamics):
                             if nH != decomposition.Hydrogens():
                                 raise GroupDecompositionError("The nH of the decomposition (%d) does not match the provided nH (%d)"
                                     % (decomposition.Hydrogens(), nH))
-                        else:
+                        else: # if the dissociation table doesn't contain a SMILES string, use the one from KEGG
                             mol = self.kegg.cid2mol(cid)
                             decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
                             nH = decomposition.Hydrogens()
                             nMg = decomposition.Magnesiums()
-                        dG0 = self.groupvec2val(decomposition.AsVector())
+                        groupvec = decomposition.AsVector()
+                        dG0 = self.groupvec2val(groupvec)
                         self.cid2source_string[cid] = "Group Contribution"
+                        self.cid2groupvec[cid] = groupvec
                 
                     diss.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
                     self.cid2pmap[cid] = diss.GetPseudoisomerMap()
@@ -544,33 +566,89 @@ class GroupContribution(Thermodynamics):
                 continue
         
         logging.info("Writing the results to the database")
-        G.ToDatabase(db, table_name='gc_pseudoisomers', error_table_name='gc_errors')
+        G.ToDatabase(self.db, table_name=self.PMAP_TABLE_NAME, 
+                     error_table_name=self.ERROR_TABLE_NAME)
+        self.db.CreateTable('gc_groupvector', 'cid TEXT, groupvec TEXT')
+        for cid, groupvec in self.cid2groupvec.iteritems():
+            self.db.Insert('gc_groupvector', [cid, groupvec.ToString()])
+        self.db.Commit()
         self.KeggErrorReport()
 
+    def FromDatabase(self, db, table_name):
+        self.cid2pmap = {}
+        self.cid2source_string = {}
+        
+        for row in db.DictReader(table_name):
+            cid = int(row['cid'])
+            if not cid:
+                continue
+            if cid not in self.cid2pmap:
+                self.cid2pmap[cid] = PseudoisomerMap()
+            
+            try:
+                nH = int(row['nH'])
+                z = int(row['z'])
+                nMg = int(row['nMg'])
+                dG0 = float(row['dG0'])
+                self.cid2pmap[cid].Add(nH=nH, z=z, nMg=nMg, dG0=dG0)
+                ref = row.get('ref', '')
+                
+                self.cid2source_string[cid] = ref
+                if cid in self.cid2source_string and self.cid2source_string[cid] != ref:
+                    logging.warning('There are conflicting references for C%05d ' % cid)
+                else:
+                    self.cid2source_string[cid] = ref
+            except ValueError as e:
+                raise ValueError("For C%05d: %s" % (cid, str(e)))
+
+        self.cid2error = {}            
+        for row in db.DictReader(self.ERROR_TABLE_NAME):
+            cid = int(row['cid'])
+            if not cid:
+                continue
+            self.cid2error[cid] = row['error']
+
+        self.cid2groupvec = {}
+        for row in self.db.DictReader('gc_groupvector'):
+            cid = int(row['cid'])
+            groupvec = GroupVector.FromString(self.groups_data, row['groupvec'])
+            self.cid2groupvec[cid] = groupvec
+    
+    def Reaction2GroupVector(self, sparse):
+        total_groupvec = GroupVector(self.groups_data)
+        for cid, coeff in sparse.iteritems():
+            if cid not in self.cid2groupvec: # one of the compounds has no observed or estimated formation energy
+                raise MissingReactionEnergy("C%05d has no GroupVector" % cid, sparse)
+            groupvec = self.cid2groupvec[cid]
+            total_groupvec += groupvec * coeff
+        return total_groupvec
+    
     def VerifyReaction(self, sparse):
         """
             Inherited from Thermodynamics.
             In this case, should check that the total reaction groupvec is orthogonal to 
             the kernel.
         """
-        total_groupvec = GroupVector()
-        for cid, coeff in sparse.iteritems():
-            mol = self.kegg.cid2mol(cid)
-            decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
-            total_groupvec += decomposition.AsVector() * coeff
-        
+        groupvec = self.Reaction2GroupVector(sparse)
         try:
             # this will practically check that the overall
-            #  reaction groupvec is orthogonal to the kernel
-            self.groupvec2val(total_groupvec)
-        except GroupMissingTrainDataError:
-            raise MissingReactionEnergy()
+            # reaction groupvec is orthogonal to the kernel
+            self.groupvec2val(groupvec)
+        except GroupMissingTrainDataError as e:
+            raise MissingReactionEnergy(e.Explain(self), sparse)
         
     def EstimateKeggRids(self, pH=None, pMg=None, I=None ,T=None):
         for rid in sorted(self.kegg.get_all_rids()):
             reaction = self.kegg.rid2reaction(rid)
-            dG0_r = reaction.PredictReactionEnergy(self)
-            print rid, dG0_r
+            try:
+                dG0_r = reaction.PredictReactionEnergy(self)
+                print "R%05d = %7.2f" % (rid, dG0_r)#, dG0_r2
+            except MissingCompoundFormationEnergy as e:
+                print "R%05d: Missing the formation energy of C%05d (%s)" % (rid, e.cid, self.kegg.cid2name(e.cid))
+            except MissingReactionEnergy as e:
+                print "R%05d: MissingReactionEnergy %s" % (rid, str(e))
+            except KeyError as e:
+                print "R%05d: KeyError %s" % (rid, str(e))
             
     def cid2PseudoisomerMap(self, cid):
         """
@@ -581,7 +659,7 @@ class GroupContribution(Thermodynamics):
         if cid in self.cid2pmap:
             return self.cid2pmap[cid]
         else:
-            raise MissingCompoundFormationEnergy(self.cid2error[cid])
+            raise MissingCompoundFormationEnergy(self.cid2error[cid], cid)
         
     def SaveContributionsToDB(self):
         logging.info("storing the group contribution data in the database")
@@ -703,8 +781,10 @@ if __name__ == '__main__':
         try:
             cid = int(sys.argv[1])
             mols[G.kegg.cid2smiles(cid)] = G.kegg.cid2mol(cid)
+            ignore_protonations = True
         except ValueError:
             mols['smiles'] = Molecule.FromSmiles(sys.argv[1])
+            ignore_protonations = False
         
         #mols['ATP'] = Molecule.FromSmiles('C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
         #mols['Tryptophan'] = Molecule.FromSmiles("c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
@@ -737,7 +817,7 @@ if __name__ == '__main__':
             if smarts:
                 print mol.FindSmarts(smarts)
             try:
-                decomposition = G.Mol2Decomposition(mol, ignore_protonations=False)
+                decomposition = G.Mol2Decomposition(mol, ignore_protonations=ignore_protonations)
                 print decomposition.ToTableString()
                 print 'nH =', decomposition.Hydrogens()
                 print 'z =', decomposition.NetCharge()

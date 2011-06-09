@@ -93,7 +93,8 @@ class Compound(object):
             return self.mol
         
         raise kegg_errors.KeggParseException(
-             "C%05d doesn't have an explicit molecular structure" % self.cid)
+             "C%05d (%s) doesn't have an explicit molecular structure" % 
+             (self.cid, self.name))
 
     @staticmethod
     def FromDBRow(row_dict):

@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import pylab
-from types import FloatType
 
 class GroupVector(list):
     """A vector of groups."""
@@ -17,9 +16,12 @@ class GroupVector(list):
         
         if iterable is not None:
             self.extend(iterable)
+        else:
+            for _ in xrange(len(self.groups_data.all_group_names)):
+                self.append(0)
     
     def __str__(self):
-        """Return a string representation of this group vector."""
+        """Return a sparse string representation of this group vector."""
         group_strs = []
         
         for i, name in enumerate(self.groups_data.all_group_names):
@@ -30,21 +32,23 @@ class GroupVector(list):
     def __iadd__(self, other):
         for i in xrange(len(self.groups_data.all_group_names)):
             self[i] += other[i]
+        return self
 
     def __isub__(self, other):
         for i in xrange(len(self.groups_data.all_group_names)):
             self[i] -= other[i]
+        return self
             
     def __add__(self, other):
         result = GroupVector(self.groups_data)
         for i in xrange(len(self.groups_data.all_group_names)):
-            result.append(self[i] + other[i])
+            result[i] = self[i] + other[i]
         return result
 
     def __sub__(self, other):
         result = GroupVector(self.groups_data)
         for i in xrange(len(self.groups_data.all_group_names)):
-            result.append(self[i] - other[i])
+            result[i] = self[i] - other[i]
         return result
     
     def __eq__(self, other):
@@ -60,10 +64,12 @@ class GroupVector(list):
         return False
     
     def __mul__(self, other):
-        if type(other) == FloatType:
-            return GroupVector(self.groups_data, [x*other for x in self])
-        else:
-            raise ValueError("A GroupVector can only be multiplied by a scalar")
+        try:
+            c = float(other)
+            return GroupVector(self.groups_data, [x*c for x in self])
+        except ValueError:
+            raise ValueError("A GroupVector can only be multiplied by a scalar"
+                             ", given " + str(other))
         
     def NetCharge(self):
         """Returns the net charge."""
@@ -76,4 +82,12 @@ class GroupVector(list):
     def Magnesiums(self):
         """Returns the number of Mg2+ ions."""
         return int(pylab.dot(self, self.groups_data.all_group_mgs))
+    
+    def ToString(self):
+        return ','.join([str(x) for x in self])
+    
+    @staticmethod
+    def FromString(groups_data, s):
+        v = [float(x) for x in s.split(',')]
+        return GroupVector(groups_data, v)
     

@@ -27,6 +27,7 @@
 10,"CoA","acid-base",298.15,34,33,0,0,"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCS","CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS",4.32,"Keire 1992"
 10,"CoA","acid-base",298.15,33,32,0,0,"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS","CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS",6.31,"Keire 1992"
 10,"CoA","acid-base",298.15,32,31,0,0,"CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCS","CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCC[S-]",9.83,"Keire 1992"
+11,"CO2",,298.15,0,0,0,0,"O=C=O",,,
 13,"PPi","acid-base",298.15,4,3,0,0,"P(=O)([OH])([OH])OP(=O)([OH])[OH]","P(=O)([OH])([O-])OP(=O)([OH])[OH]",0.91,"CRC (88th edition)"
 13,"PPi","acid-base",298.15,3,2,0,0,"P(=O)([OH])([O-])OP(=O)([OH])[OH]","P(=O)([OH])([O-])OP(=O)([OH])[O-]",2.1,"CRC (88th edition)"
 13,"PPi","acid-base",298.15,2,1,0,0,"P(=O)([OH])([O-])OP(=O)([OH])[O-]","P(=O)([O-])([O-])OP(=O)([OH])[O-]",6.7,"CRC (88th edition)"
@@ -58,6 +59,7 @@
 27,"H2O2",,298.15,2,2,0,0,"OO",,,
 29,"UDP-glucose",,298.15,22,22,0,0,"OCC1OC(OP([O-])(=O)OP([O-])(=O)OCC2OC(C(O)C2O)n2ccc(=O)nc2O)C(O)C(O)C1O",,,
 31,"D-glucose",,298.15,12,12,0,0,"OCC1OC(O)C(O)C(O)C1O",,,
+34,"Manganese",,298.15,0,0,0,0,"Mn",,,
 33,"acetate","acid-base",298.15,4,3,0,0,"CC(=O)[OH]","CC(=O)[O-]",4.76,"CRC (88th edition)"
 35,"GDP","acid-base",298.15,13,12,0,0,"Nc1nc2n(cnc2c(O)n1)C1OC(COP([O-])(=O)OP([O-])(O)=O)C(O)C1O","Nc1nc2n(cnc2c(O)n1)C1OC(COP([O-])(=O)OP([O-])([O-])=O)C(O)C1O",7.18,"Alberty (2003)"
 35,"GDP","acid-base",298.15,12,11,0,0,"Nc1nc2n(cnc2c(O)n1)C1OC(COP([O-])(=O)OP([O-])([O-])=O)C(O)C1O","Nc1nc2n(cnc2c([O-])n1)C1OC(COP([O-])(=O)OP([O-])([O-])=O)C(O)C1O",9.89,"Alberty (2003)"
@@ -194,6 +196,8 @@
 135,"L-Histidine","acid-base",298.15,11,10,0,0,"O=C([OH])C([NH3+])Cc1c[nH]c[nH+]1","O=C([O-])C([NH3+])Cc1c[nH]c[nH+]1",1.8,"CRC (88th edition)"
 135,"L-Histidine","acid-base",298.15,10,9,0,0,"O=C([O-])C([NH3+])Cc1c[nH]c[nH+]1","O=C([O-])C([NH3+])Cc1c[nH]c[n]1",6.04,"CRC (88th edition)"
 135,"L-Histidine","acid-base",298.15,9,8,0,0,"O=C([O-])C([NH3+])Cc1c[nH]c[n]1","O=C([O-])C([NH2])Cc1c[nH]c[n]1",9.33,"CRC (88th edition)"
+138,"Ferredoxin(red)",,298.15,0,0,0,0,,,,
+139,"Ferredoxin(ox)",,298.15,0,0,0,0,,,,
 140,"N-Acetyl-D-glucosamine",,298.15,15,15,0,0,"CC(=O)NC1C(O)OC(CO)C(O)C1O",,,
 143,"5,10-Methylene-THF",,298.15,23,23,0,0,"C12CNc3nc([NH3+])[nH]c(=O)c3[NH+]1CN(C2)c1ccc(cc1)C(=O)NC(CCC([O-])=O)C([O-])=O",,,
 144,"GMP","acid-base",298.15,13,12,0,0,"Nc1nc2n(cnc2c(O)n1)C1OC(COP([O-])([OH])=O)C(O)C1O","Nc1nc2n(cnc2c(O)n1)C1OC(COP([O-])([O-])=O)C(O)C1O",6.73,"Alberty (2003)"
@@ -310,6 +314,7 @@
 273,"5-dehydro-D-fructose",,298.15,10,10,0,0,"OCC(=O)[C@@H](O)[C@H](O)C(=O)CO",,,
 275,"D-mannose 6-phosphate","acid-base",296.15,12,11,0,0,"C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])O","C(C1C(C(C(C(O1)O)O)O)O)OP(=O)([O-])[O-]",6.05,"Robitaille (1990)"
 279,"D-Erythrose 4-phosphate",,298.15,7,7,0,0,"C(=O)C(O)C(O)COP([O-])([O-])=O",,,
+282,"H2",,298.15,2,2,0,0,"[H][H]",,,
 283,"hydrogen sulfide","acid-base",298.15,1,0,0,0,"[SH-1]","[S-2]",12.92,"CRC (88th edition)"
 283,"hydrogen sulfide","acid-base",298.15,2,1,0,0,"[SH2]","[SH-1]",7,"CRC (88th edition)"
 288,"HCO3-","acid-base",298.15,1,0,0,0,"C(=O)([O-])O","C(=O)([O-])[O-]",10.33,"CRC (88th edition)"
@@ -322,6 +327,7 @@
 299,"uridine","acid-base",298.15,12,11,0,0,"c1cn(C2C(C(C(CO)O2)O)O)c(O)nc1(=O)","c1cn(C2C(C(C(CO)O2)O)O)c([O-])nc1(=O)",9.3,"Christensen (1970b)"
 300,"creatine","acid-base",298.15,10,9,0,0,"C(=O)(O)CN(C)C(=[NH2+])[NH2]","C(=O)([O-])CN(C)C(=[NH2+])[NH2]",2.67,"Reaxys"
 300,"creatine","acid-base",298.15,9,8,0,0,"C(=O)([O-])CN(C)C(=[NH2+])[NH2]","C(=O)([O-])CN(C)C(=N)[NH2]",14.3,"CRC (88th edition)"
+305,"Mg",,298.15,0,0,0,0,"Mg",,,
 309,"D-ribulose",,298.15,10,10,0,0,"C([C@H]([C@H](C(=O)CO)O)O)O",,,
 310,"D-xylulose",,298.15,10,10,0,0,"C([C@@H]([C@H](C(=O)CO)O)O)O",,,
 311,"isocitrate","acid-base",298.15,8,7,0,0,"C(=O)(O)C(O)C(C(=O)(O))CC(=O)O","C(=O)([O-])C(O)C(C(=O)(O))CC(=O)O",3.29,"Alberty (2003)"
