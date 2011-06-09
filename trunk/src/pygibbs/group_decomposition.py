@@ -69,9 +69,9 @@ class GroupDecomposition(object):
         why this function returns consistent values for all compounds.
         """
         group_vec = group_vector.GroupVector(self.groups_data)
-        for unused_group, node_sets in self.groups:
-            group_vec.append(len(node_sets))
-        group_vec.append(1) # The origin
+        for i, (unused_group, node_sets) in enumerate(self.groups):
+            group_vec[i] = len(node_sets)
+        group_vec[-1] = 1 # The origin
         return group_vec
     
     def NonEmptyGroups(self):

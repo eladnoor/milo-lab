@@ -3,7 +3,6 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 8,ADP,-1947.1,-2620.94,-2,13,0,train,"Alberty (2003)",
 20,AMP,-1040.45,-1635.37,-2,12,0,train,"Alberty (2003)",
 22,pyruvate,-472.27,-596.22,-1,3,0,train,"Alberty (2003)",
-23,iron,0,0,0,0,0,test,,"element"
 25,L-Glutamate,-697.47,-979.89,-1,8,0,train,"Alberty (2003)",
 26,2-Oxoglutarate,-793.41,-1044.06,-2,4,0,train,"Alberty (2003)",
 31,D-Glucose,-915.9,-1262.19,0,12,0,train,"Alberty (2003)",
@@ -126,7 +125,9 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 11,CO2(aq),-386.02,,0,0,0,test,"Thauer (1977)","too small"
 13,pyrophosphate,-1973.86,-2294.87,-3,1,0,test,"Alberty (2003)","too small"
 14,NH3,-26.5,-80.29,0,3,0,test,"Alberty (2003)","too small"
+23,iron,0,0,0,0,0,test,,"element"
 27,H2O2(aq),-134.03,-191.17,0,2,0,test,"Alberty (2003)","too small"
+34,Manganese,0,0,0,0,0,test,,"element"
 58,Formate,-351,-425.55,-1,1,0,test,"Alberty (2003)","too small"
 59,Sulfate,-744.53,-909.27,-2,0,0,test,"Alberty (2006)","too small"
 67,Formaldehyde,-130.54,,0,2,0,test,"Thauer (1977)","too small"
