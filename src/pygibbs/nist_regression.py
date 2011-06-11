@@ -64,8 +64,6 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         # for every unique row, calculate the average dG0_r of all the rows that
         # are the same reaction
-        n_rows = data['S'].shape[0]
-        
         dG0_r = data['dG0_r']
         temps = data['T']
         stoich_temps = stoichiometric_matrix * temps
@@ -546,7 +544,6 @@ def main():
     
     db_loc = options.db_filename
     print 'Reading from DB %s' % db_loc
-    db = SqliteDatabase(db_loc)
     
     public_db_loc = options.kegg_db_filename
     print 'Reading from public DB %s' % public_db_loc

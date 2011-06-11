@@ -272,7 +272,7 @@ class GroupsData(object):
                 charge = row['CHARGE']
                 smarts = row['SMARTS']
                 focal_atoms = row['FOCAL_ATOMS']
-                remark = row['REMARK']
+                _remark = row['REMARK']
                 
                 focal_atoms = FocalSet(focal_atoms)
                 if protons:

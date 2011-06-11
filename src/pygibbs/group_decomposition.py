@@ -451,12 +451,10 @@ def main():
     coa = 'C1C=CN(C=C1C(=O)N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OCC3C(C(C(O3)N4C=NC5=C4N=CN=C5N)O)O)O)O'
     glucose = 'C(C1C(C(C(C(O1)O)O)O)O)O'
     mgatp = 'C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2].[Mg+2]'
-    ctp = 'C1=CN(C(=O)N=C1N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O'
 
     smiless = [
                ('ATP', atp),
                ('CoA', coa), ('Glucose', glucose), ('MgAtp', mgatp),
-               #('CTP', ctp)
                ]
     mols = [(name, Molecule.FromSmiles(s)) for name, s in smiless]
 

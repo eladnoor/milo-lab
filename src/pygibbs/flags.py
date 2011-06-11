@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from pygibbs.thermodynamic_constants import R, default_I, default_pH
-from pygibbs.thermodynamic_constants import default_pMg, default_T
+from pygibbs.thermodynamic_constants import default_I, default_pH, \
+    default_pMg
 from optparse import OptionParser
 
 

@@ -1,5 +1,5 @@
 import sys
-import libsbml
+import libsbml #@UnresolvedImport
 import semanticSBML.annotate
 import csv
 from toolbox.database import SqliteDatabase

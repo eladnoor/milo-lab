@@ -70,7 +70,7 @@ class Stoichiometric_LP(object):
         for cid, coeff in sparse.iteritems():
             try:
                 self.cpl.linear_constraints.set_coefficients("C%05d_mass_balance" % cid, name, coeff)
-            except cplex.exceptions.CplexSolverError:
+            except cplex.exceptions.CplexSolverError: #@UndefinedVariable
                 print 'CID:', cid
 
     def export(self, fname):
@@ -252,7 +252,7 @@ class Stoichiometric_LP(object):
     def solve(self, export_fname=None):
         try:
             self.cpl.solve()
-        except cplex.exceptions.CplexSolverError:
+        except cplex.exceptions.CplexSolverError: #@UndefinedVariable
             return False
             
         if not self.milp:
