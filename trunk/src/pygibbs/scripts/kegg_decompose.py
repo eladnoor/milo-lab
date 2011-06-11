@@ -1,13 +1,10 @@
 #!/usr/bin/python
 
-import pylab
 import sys
 
 from pygibbs import flags
-from pygibbs.thermodynamic_constants import default_T, R
-from pygibbs import reversibility
+from pygibbs.thermodynamic_constants import default_T
 from pygibbs.kegg import Kegg
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.database import SqliteDatabase
 from pygibbs.groups import GroupContribution
 from pygibbs.group_decomposition import GroupDecompositionError

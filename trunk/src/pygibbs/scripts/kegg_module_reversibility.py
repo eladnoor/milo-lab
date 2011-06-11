@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import logging
-import pylab
 import sys
 
 from pygibbs import flags
@@ -17,7 +15,7 @@ def GetModuleIdInput():
         try:
             print 'KEGG module ID:',
             return int(raw_input())
-        except Exception, e:
+        except Exception:
             print 'KEGG module IDs should be integers.'
 
 
@@ -78,7 +76,7 @@ def main():
                             print '(%d C%05d) %s\t: %.2g' % (s, cid, kegg.cid2name(cid), cmap[cid])
                         else: 
                             print '(%d C%05d) %s\t: Free concentration' % (s, cid, kegg.cid2name(cid))
-            except Exception, e:
+            except Exception:
                 print '\tCouldn\'t calculate irreversibility'
 
 

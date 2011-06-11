@@ -1,4 +1,6 @@
-import pybel, indigo, indigo_renderer, uuid, rsvg, gtk
+import pybel
+import indigo, indigo_renderer
+import uuid, rsvg, gtk
 import openbabel
 import types
 import re
@@ -275,7 +277,7 @@ class Molecule(object):
                 svg = rsvg.Handle(data=self.ToSVG(self.title))
             else:
                 svg = rsvg.Handle(data=self.ToSVG())
-        except glib.GError:
+        except glib.GError: #@UndefinedVariable
             return
         _x, _y, w, h = svg.get_dimension_data()
         win = gtk.Window()

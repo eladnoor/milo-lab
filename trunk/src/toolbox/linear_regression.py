@@ -1,5 +1,5 @@
 import logging
-from pylab import np, find, array
+from pylab import np, find
 
 class LinearRegression(object):
     

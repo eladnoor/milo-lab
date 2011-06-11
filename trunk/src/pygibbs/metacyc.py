@@ -3,10 +3,8 @@ import logging
 import urllib
 import re
 from toolbox import util, database
-from pygibbs import kegg
 import json
 from collections import deque
-from pygibbs import kegg_utils
 from pygibbs.kegg_errors import KeggNonCompoundException
 from toolbox.molecule import Molecule
 

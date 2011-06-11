@@ -8,7 +8,6 @@ import sys
 from copy import deepcopy
 from matplotlib.font_manager import FontProperties
 from optparse import OptionParser
-from pygibbs import kegg_utils
 from pygibbs import pathway_modelling
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_parser import ParsedKeggFile
@@ -17,6 +16,7 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
+from pygibbs.pseudoisomer import PseudoisomerMap
 
 
 class PathwayComparison(object):
@@ -72,7 +72,7 @@ class PathwayComparison(object):
                     new_cid, coeff = cid_mapping[cid]
                     cids[i] = new_cid
                     S[:, i] *= coeff
-            self.html_writer.write('<h3>Module <a href=http://www.genome.jp/dbget-bin/www_bget?M%05d>M%05d</a></h3>\n' % (mid, mid))       
+            self.html_writer.write('<h3>Module %s</h3>' % module_name)       
         else:
             S, rids, fluxes, cids = self.kegg.parse_explicit_module(field_map, cid_mapping) 
         

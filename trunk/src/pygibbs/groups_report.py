@@ -3,7 +3,7 @@ from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.util import lsum
-from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg,\
+from pygibbs.thermodynamic_constants import default_I, default_pH,\
     default_T
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
@@ -34,8 +34,7 @@ def test_dissociation_table(diss, group_decomposer, id, ignore_missing_smiles=Fa
     
         try:
             decomposition = group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
-        except GroupDecompositionError as e:
-            #logging.error(str(e))
+        except GroupDecompositionError:
             return
         
         groupvec = decomposition.AsVector()

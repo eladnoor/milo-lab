@@ -10,7 +10,6 @@ import os
 import types
 import xml.dom.minidom
 from toolbox.util import _mkdir, get_current_svn_revision
-import matplotlib
 
 class BaseHtmlWriter:
     def __init__(self):

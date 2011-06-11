@@ -3,8 +3,6 @@ from pygibbs.pseudoisomer import PseudoisomerMap
 from optparse import OptionParser
 from toolbox.database import SqliteDatabase
 import sys
-import csv
-
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""

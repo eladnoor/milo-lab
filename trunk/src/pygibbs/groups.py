@@ -29,6 +29,7 @@ from pygibbs.dissociation_constants import DissociationConstants,\
     MissingDissociationConstantError
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.group_vector import GroupVector
+from optparse import OptionParser
 
 class GroupMissingTrainDataError(Exception):
     
@@ -638,17 +639,25 @@ class GroupContribution(Thermodynamics):
             raise MissingReactionEnergy(e.Explain(self), sparse)
         
     def EstimateKeggRids(self, pH=None, pMg=None, I=None ,T=None):
+        counters = {'ok':0, 'formation':0, 'reaction':0, 'key':0}
         for rid in sorted(self.kegg.get_all_rids()):
             reaction = self.kegg.rid2reaction(rid)
             try:
                 dG0_r = reaction.PredictReactionEnergy(self)
                 print "R%05d = %7.2f" % (rid, dG0_r)#, dG0_r2
+                counters['ok'] += 1
             except MissingCompoundFormationEnergy as e:
                 print "R%05d: Missing the formation energy of C%05d (%s)" % (rid, e.cid, self.kegg.cid2name(e.cid))
+                counters['formation'] += 1
             except MissingReactionEnergy as e:
                 print "R%05d: MissingReactionEnergy %s" % (rid, str(e))
+                counters['reaction'] += 1
             except KeyError as e:
                 print "R%05d: KeyError %s" % (rid, str(e))
+                counters['key'] += 1
+        
+        for k, v in counters.iteritems():
+            print k, v
             
     def cid2PseudoisomerMap(self, cid):
         """
@@ -750,14 +759,69 @@ class GroupContribution(Thermodynamics):
             "', count(*) from gc_errors where error like '%%" + 
             e + "%%'" for e in error_strings])
         self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
-        
+
+    def AnalyzeSingleCompound(self, mol, ignore_protonations=False):
+        smarts = None
+        if smarts:
+            print mol.FindSmarts(smarts)
+        try:
+            decomposition = G.Mol2Decomposition(mol, ignore_protonations=ignore_protonations)
+            print decomposition.ToTableString()
+            print 'nH =', decomposition.Hydrogens()
+            print 'z =', decomposition.NetCharge()
+            print 'nMg = ', decomposition.Magnesiums()
+        except GroupDecompositionError as e:
+            print "Cannot decompose compound to groups: " + str(e)
+
+        mol.Draw()
+
+
 #################################################################################################################
 #                                                   MAIN                                                        #
 #################################################################################################################
-    
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-c", "--compound", action="store", type="int",
+                          dest="cid", default=None,
+                          help="The KEGG ID of a compound")
+    opt_parser.add_option("-r", "--reaction", action="store", type="int",
+                          dest="rid", default=None,
+                          help="The KEGG ID of a reaction")
+    opt_parser.add_option("-s", "--smiles", action="store", type="string",
+                          dest="smiles", default=None,
+                          help="A smiles string of a compound")
+    opt_parser.add_option("-t", "--test",
+                          dest="test", default=False,
+                          help="A flag that indicates running in TEST mode")
+    return opt_parser
+
 if __name__ == '__main__':
+    options, _ = MakeOpts().parse_args(sys.argv)
     db = SqliteDatabase('../res/gibbs.sqlite')
-    if len(sys.argv) < 2:
+    if options.test:
+        G = GroupContribution(db=db)
+        G.init()
+        #G.EstimateKeggCids()
+        G.EstimateKeggRids()
+    elif options.cid is not None or options.smiles is not None:
+        G = GroupContribution(db=db)
+        G.load_groups("../data/thermodynamics/groups_species.csv")
+        if options.cid is not None:
+            print 'Analyzing C%05d (%s):' % (options.cid, G.kegg.cid2name(options.cid))
+            G.AnalyzeSingleCompound(G.kegg.cid2mol(options.cid),
+                                    ignore_protonations=True)
+        else:
+            print 'Analyzing SMILES %s:' % (options.smiles)
+            G.AnalyzeSingleCompound(Molecule.FromSmiles(options.smiles),
+                                    ignore_protonations=False)
+    elif options.rid is not None:
+        G = GroupContribution(db=db)
+        G.init()
+        reaction = G.kegg.rid2reaction(options.rid)
+        dG0_r = reaction.PredictReactionEnergy(G)
+        print "R%05d = %.2f" % (options.rid, dG0_r)  
+    else:
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
         G.verify_kernel_orthogonality = False
@@ -766,77 +830,4 @@ if __name__ == '__main__':
         G.write_regression_report()
         G.analyze_training_set()
         G.EstimateKeggCids()
-    elif sys.argv[1] == 'test':
-        html_writer = HtmlWriter('../res/groups.html')
-        G = GroupContribution(db=db, html_writer=html_writer)
-        G.init()
-        #G.EstimateKeggCids()
-        G.EstimateKeggRids()
-    else:
-        G = GroupContribution(db=db)
-        G.load_groups("../data/thermodynamics/groups_species.csv")
-        #G.init()
 
-        mols = {}
-        try:
-            cid = int(sys.argv[1])
-            mols[G.kegg.cid2smiles(cid)] = G.kegg.cid2mol(cid)
-            ignore_protonations = True
-        except ValueError:
-            mols['smiles'] = Molecule.FromSmiles(sys.argv[1])
-            ignore_protonations = False
-        
-        #mols['ATP'] = Molecule.FromSmiles('C(C1C(C(C(n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O')
-        #mols['Tryptophan'] = Molecule.FromSmiles("c1ccc2c(c1)c(CC(C(=O)O)[NH3+])c[nH]2")
-        #mols['Adenine'] = Molecule.FromSmiles('c1nc2c([NH2])[n]c[n-]c2n1')
-        #mols['Glutamate'] = Molecule.FromSmiles('C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)OP(=O)([O-])[O-])O)O)O)O')
-        #mols['Acetyl-CoA [nH=36]'] = Molecule.FromSmiles('CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)[nH+]cnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
-        #mols['Acetyl-CoA [nH=35]'] = Molecule.FromSmiles('CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])(O)=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
-        #mols['Acetyl-CoA [nH=34]'] = Molecule.FromSmiles('CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C')
-
-        #mols['acetamide [nH=5]'] = Molecule.FromSmiles('CC(=O)N')
-        #mols['acetamide [nH=4]'] = Molecule.FromSmiles('CC(=O)[NH-]')
-        
-        #mols['sparteine [nH=27]'] = Molecule.FromSmiles('[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2C[NH+]2CCCC[C@]12[H]')
-        #mols['sparteine [nH=28]'] = Molecule.FromSmiles('[H][C@@]12CCCC[NH+]1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
-        #mols['sparteine [nH=26]'] = Molecule.FromSmiles('[H][C@@]12CCCCN1C[C@@H]1C[C@H]2CN2CCCC[C@]12[H]')
-        #mols['acetyl-CoA a'] = kegg.cid2mol(24)
-        #mols['acetyl-CoA b'] = Molecule.FromSmiles("CC(C)(COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)n2cnc3c(N)ncnc23)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C")
-        #mols['acetyl-CoA c'] = Molecule.FromSmiles("CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12")
-        #mols['glycylglycine'] = Molecule.FromSmiles('C(C(=O)NCC(=O)[O-])[NH3+]')
-        #mols['N-Acetylornithine'] = kegg.cid2mol(437)
-        #mols['Sinapoyl-CoA'] = kegg.cid2mol(411)
-        
-        #smarts = 'C(=O)[N;H1;0]C'
-        smarts = None
-        
-        for key, mol in mols.iteritems():
-            #mol.SetTitle(key)
-            print '-'*100
-            print key
-            if smarts:
-                print mol.FindSmarts(smarts)
-            try:
-                decomposition = G.Mol2Decomposition(mol, ignore_protonations=ignore_protonations)
-                print decomposition.ToTableString()
-                print 'nH =', decomposition.Hydrogens()
-                print 'z =', decomposition.NetCharge()
-                print 'nMg = ', decomposition.Magnesiums()
-                #for groupvec in decomposition.PseudoisomerVectors():
-                #    print groupvec
-                #    try:
-                #        print G.groupvec2val(groupvec)
-                #    except GroupMissingTrainDataError as e:
-                #        print e.Explain(G)
-            except GroupDecompositionError as e:
-                print "Cannot decompose compound to groups: " + str(e)
-
-            #try:
-            #    pmap = G.GroupDecomposition2PseudoisomerMap(decomposition)
-            #    print pmap
-            #    dG0_tag = pmap.Transform(pH=7, pMg=14, I=0.1, T=298.15)
-            #    print "dG0' = %.1f kJ/mol" % dG0_tag
-            #except GroupMissingTrainDataError as e:
-            #    print e.Explain(G)
-            mol.Draw()
-                
