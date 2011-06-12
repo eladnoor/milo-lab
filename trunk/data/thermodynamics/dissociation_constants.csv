@@ -414,7 +414,7 @@
 455,"Nicotinamide D-ribonucleotide","acid-base",298.15,15,14,0,0,,,6.44,"Alberty (2003)"
 463,"Indole",,298.15,7,7,0,0,"c1ccc2[nH]ccc2c1",,,
 468,"Estrone","acid-base",298.15,22,21,0,0,"[H][C@]12CC[C@]3(C)C(=O)CC[C@@]3([H])[C@]1([H])CCc1cc(O)ccc21","[H][C@]12CC[C@]3(C)C(=O)CC[C@@]3([H])[C@]1([H])CCc1cc([O-])ccc21",10.34,"Hurwitz 1977"
-469,"Ethanol","acid-base",298.15,6,5,0,0,"CCO","CC[O-]",15.5,"CRC (88th edition)"
+469,"Ethanol",,298.15,6,6,0,0,"CCO",,,
 473,"Retinol",,298.15,30,30,0,0,"CC(\C=C\C=C(C)\C=C\C1=C(C)CCCC1(C)C)=C/CO",,,
 474,"Ribitol",,298.15,12,12,0,0,"OC[C@H](O)[C@H](O)[C@H](O)CO",,,
 475,"cytidine","acid-base",298.15,14,13,0,0,"c1cn([C@H]2[C@@H]([C@@H]([C@@H](CO)O2)O)O)c([nH+]c1=N)O","c1cn(C2C(C(C(CO)O2)O)O)c(nc1=N)O",4.08,"Christensen (1970b)"
@@ -605,7 +605,7 @@
 1352,"FADH2","acid-base",298.15,34,33,0,0,"Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c([NH3+])ncnc34)c2cc1C","Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",3.6,"Taken as is from adenosine"
 1352,"FADH2","acid-base",298.15,33,32,0,0,"Cc1cc2Nc3c([nH]c(=O)nc3O)N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C","Cc1cc2Nc3c([nH]c(=O)nc3[O-])N(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",6.8,"Taken as is from FMNH2"
 1382,"I2",,298.15,0,0,0,0,"II",,,
-1380,"ethylene glycol","acid-base",298.15,6,5,0,0,"OCCO","OCC[O-]",15.1,"CRC (88th edition)"
+1380,"ethylene glycol",,298.15,6,6,0,0,"OCCO",,,
 1384,"maleate","acid-base",298.15,4,3,0,0,"OC(=O)\C=C/C(O)=O","OC(=O)\C=C/C([O-])=O",1.92,"CRC (88th edition)"
 1384,"maleate","acid-base",298.15,3,2,0,0,"OC(=O)\C=C/C([O-])=O","[O-]C(=O)\C=C/C([O-])=O",6.23,"CRC (88th edition)"
 1401,"alanine","acid-base",298.15,7,6,0,0,"CC(C(=O)[O-])[NH3+]","CC(C(=O)[O-])[NH2]",9.69,"Lange's handbook"
@@ -685,7 +685,7 @@
 1987,"2-aminophenol","acid-base",293.15,7,6,0,0,"Nc1ccccc1O","Nc1ccccc1[O-]",9.97,"CRC (88th edition)"
 1988,"2-nitrophenol","acid-base",298.15,5,4,0,0,,,7.23,"CRC (88th edition)"
 1996,"acetylcholine",,298.15,16,16,0,0,"CC(=O)OCC[N+](C)(C)C",,,
-2001,"2-propen-1-ol","acid-base",298.15,6,5,0,0,"C=CCO","C=CC[O-]",15.5,"CRC (88th edition)"
+2001,"2-propen-1-ol",,298.15,6,6,0,0,"C=CCO",,,
 2022,"D-erythrulose",,298.15,8,8,0,0,"OC[C@@H](O)C(=O)CO",,,
 2037,"glycylglycine","acid-base",298.15,9,8,0,0,"[NH3+]CC(=O)NCC(=O)O","[NH3+]CC(=O)NCC(=O)[O-]",3.14,"CRC (88th edition)"
 2037,"glycylglycine","acid-base",298.15,8,7,0,0,"[NH3+]CC(=O)NCC(=O)[O-]","NCC(=O)NCC(=O)[O-]",8.17,"CRC (88th edition)"
@@ -843,7 +843,7 @@
 5945,"L-Arginine phosphate","acid-base",298.15,15,14,0,0,"C(=O)([O-])[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])(O)=O","C(=O)([O-])[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])([O-])=O",4.5,
 5945,"L-Arginine phosphate","acid-base",298.15,14,13,0,0,"C(=O)([O-])[C@@H]([NH3+])CCCNC(=[NH2+])NP([O-])([O-])=O","C(=O)([O-])[C@@H](N)CCCNC(=[NH2+])NP([O-])([O-])=O",9.6,
 5945,"L-Arginine phosphate","acid-base",298.15,13,12,0,0,"C(=O)([O-])[C@@H](N)CCCNC(=[NH2+])NP([O-])([O-])=O","C(=O)([O-])[C@@H](N)CCCNC(=N)NP([O-])([O-])=O",11.2,
-5986,"2-propynol","acid-base",298.15,4,3,0,0,"C#CCO","C#CC[O-]",13.6,"CRC (88th edition)"
+5986,"2-propynol",,298.15,4,4,0,0,"C#CCO",,,
 5979,"n-propanol",,298.15,8,8,0,0,"CCCO",,,
 5984,"2-hydroxybutanoate",,298.15,7,7,0,0,"CCC(O)C(=O)[O-]",,,
 6019,"D-arabino-Hex-3-ulose 6-phosphate",,298.15,11,11,0,0,"C(O)(CO)C(=O)C(O)C(O)COP([O-])([O-])=O",,,
@@ -932,7 +932,7 @@
 7474,"pilocarpine","acid-base",298.15,18,17,0,0,,,1.6,"CRC (88th edition)"
 7474,"pilocarpine","acid-base",298.15,17,16,0,0,,,6.9,"CRC (88th edition)"
 7480,"3,7-dimethylxanthine","acid-base",291.15,8,7,0,0,,,7.89,"CRC (88th edition)"
-7490,"2,2,2-trichloroethanol","acid-base",298.15,3,2,0,0,"C(Cl)(Cl)(Cl)CO","C(Cl)(Cl)(Cl)C[O-]",12.24,"CRC (88th edition)"
+7490,"2,2,2-trichloroethanol",,298.15,3,3,0,0,"C(Cl)(Cl)(Cl)CO",,,
 7525,"ketamine","acid-base",298.15,17,16,0,0,,,7.5,"CRC (88th edition)"
 7527,"benzocaine","acid-base",298.15,12,11,0,0,,,2.5,"CRC (88th edition)"
 7536,"amobarbital","acid-base",298.15,18,17,0,0,,,8,"CRC (88th edition)"
@@ -1134,9 +1134,9 @@
 14039,"1,1-dichloroethylene",,298.15,2,2,0,0,"C=C(Cl)Cl",,,
 6790,"trichloroethylene",,298.15,1,1,0,0,"ClC=C(Cl)Cl",,,
 6789,"tetrachloroethylene",,298.15,0,0,0,0,"ClC(Cl)=C(Cl)Cl",,,
-1417,"cyanate","acid-base",298.15,1,0,0,0,"N#CO","N#C[O-]",3.7,"CRC (88th edition)"
+1417,"cyanate","acid-base",298.15,1,0,0,0,,,3.7,"CRC (88th edition)"
 1326,"HCN",,298.15,1,1,0,0,"N#C",,,
 1412,"butanal",,298.15,8,8,0,0,"CCCC=O",,,
-1755,"thiocyanate",,298.15,0,0,0,0,"N#C[S-]",,,
+1755,"thiocyanate",,298.15,0,0,0,0,,,,
 80055,"CH3NHp",,298.15,10,10,0,0,"[N+](C)(C)(C)O",,,
 80056,"s-aminomethyldihydro-lipoate",,298.15,19,19,0,0,"[O-]C(=O)CCCCC(S)CCSC[NH3+]",,,

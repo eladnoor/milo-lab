@@ -153,7 +153,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 575,Cyclic-AMP,-790.86,,-1,11,0,test,"Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
 697,N2(aq),18.7,-10.54,0,0,0,test,"Alberty (2003)","too small"
 887,N2O(aq),104.2,82.05,0,0,0,test,"Alberty (2006)","too small"
-1417,Cyanate,-97.4,,-1,0,0,train,"Alberty (2006)",
+1417,Cyanate,-97.4,,-1,0,0,test,"Alberty (2006)","too weird (resonance between C=N and C#N)"
 1438,Methane(aq),-34.33,-89.04,0,4,0,test,"Alberty (2003)","too small"
 5361,Hydrazine,128.03,,0,4,0,test,"Thauer (1977)","too small"
 9306,"Sulfur dioxide",-300.708,,0,0,0,test,"Thauer (1977)","too small"
@@ -246,5 +246,5 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 1417,"cyanate",-97.3,,-1,0,0,skip,"Wagman (1982)","duplicate of Alberty (2006)"
 1326,"HCN",119.6,,0,1,0,test,"Wagman (1982)","too small"
 1412,"butanal",-119.5,,0,8,0,skip,"Wagman (1982)","conflicts with Alberty (2006)"
-1755,"thiocyanate",92.6,,-1,0,0,train,"Wagman (1982)",
+1755,"thiocyanate",92.6,,-1,0,0,test,"Wagman (1982)","too weird (resonance between S=C=[N-] and [S-]C#N)"
 80055,"CH3NHp",37.4,,1,10,0,train,"Wagman (1982)",

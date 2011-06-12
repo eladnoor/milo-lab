@@ -771,9 +771,24 @@ class GroupContribution(Thermodynamics):
             print "Cannot decompose compound to groups: " + str(e)
         mol.Draw()
 
-    def EstimateDissociation(self, mol):
+    def EstimateCompoundDissociation(self, mol):
         pmap = self.Mol2PseudoisomerMap(mol, ignore_protonations=True)
-        print pmap
+        print "PsuedoisomerMap:\n", pmap
+        print "Dissociation Table:"
+        for nH_below, nH_above, pKa in pmap.GetAllpKas():
+            print "[nH=%d -> nH=%d] : pKa = %.1f" % (nH_below, nH_above, pKa)
+
+    def EstimateGroupDissociation(self):
+        name2group_list = {}
+        for i, group in enumerate(self.groups_data.groups):
+            dG0 = self.group_contributions[i]
+            name2group_list.setdefault(group.name, []).append((group, dG0))
+        
+        for name, group_list in name2group_list.iteritems():
+            if len(group_list) > 1:
+                print '-' * 50
+                for group, dG0 in group_list:
+                    print group, dG0
 
 #################################################################################################################
 #                                                   MAIN                                                        #
@@ -790,9 +805,12 @@ def MakeOpts():
     opt_parser.add_option("-s", "--smiles", action="store", type="string",
                           dest="smiles", default=None,
                           help="A smiles string of a compound")
-    opt_parser.add_option("-t", "--test",
+    opt_parser.add_option("-t", "--test", action="store_true",
                           dest="test", default=False,
-                          help="A flag that indicates running in TEST mode")
+                          help="A flag for running in TEST mode")
+    opt_parser.add_option("-p", "--pka", action="store_true",
+                          dest="pka", default=False,
+                          help="A flag for running a pKa analysis of the groups")
     return opt_parser
 
 if __name__ == '__main__':
@@ -803,25 +821,30 @@ if __name__ == '__main__':
         G.init()
         #G.EstimateKeggCids()
         G.EstimateKeggRids()
-    elif options.smiles is not None:
-        G = GroupContribution(db=db)
-        G.load_groups("../data/thermodynamics/groups_species.csv")
-        print 'Analyzing SMILES %s:' % (options.smiles)
-        G.AnalyzeSingleCompound(Molecule.FromSmiles(options.smiles),
-                                ignore_protonations=False)
-    elif options.cid is not None:
+    elif options.pka:
         G = GroupContribution(db=db)
         G.init()
-        print 'Analyzing C%05d (%s):' % (options.cid, G.kegg.cid2name(options.cid))
-        G.EstimateDissociation(G.kegg.cid2mol(options.cid))
-        G.AnalyzeSingleCompound(G.kegg.cid2mol(options.cid),
-                                ignore_protonations=True)
-    elif options.rid is not None:
-        G = GroupContribution(db=db)
-        G.init()
-        reaction = G.kegg.rid2reaction(options.rid)
-        dG0_r = reaction.PredictReactionEnergy(G)
-        print "R%05d = %.2f" % (options.rid, dG0_r)  
+        G.EstimateGroupDissociation()
+    elif options.smiles or options.cid or options.rid:
+        if options.smiles:
+            G = GroupContribution(db=db)
+            G.load_groups("../data/thermodynamics/groups_species.csv")
+            print 'Analyzing SMILES %s:' % (options.smiles)
+            G.AnalyzeSingleCompound(Molecule.FromSmiles(options.smiles),
+                                    ignore_protonations=False)
+        if options.cid:
+            G = GroupContribution(db=db)
+            G.init()
+            print 'Analyzing C%05d (%s):' % (options.cid, G.kegg.cid2name(options.cid))
+            G.EstimateCompoundDissociation(G.kegg.cid2mol(options.cid))
+            G.AnalyzeSingleCompound(G.kegg.cid2mol(options.cid),
+                                    ignore_protonations=True)
+        if options.rid:
+            G = GroupContribution(db=db)
+            G.init()
+            reaction = G.kegg.rid2reaction(options.rid)
+            dG0_r = reaction.PredictReactionEnergy(G)
+            print "R%05d = %.2f" % (options.rid, dG0_r)
     else:
         html_writer = HtmlWriter('../res/groups.html')
         G = GroupContribution(db=db, html_writer=html_writer)
