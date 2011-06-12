@@ -158,6 +158,20 @@ class PseudoisomerMap(object):
         else:
             return (dG0_f_deprotonated - dG0_f_protonated) / (R*T*pylab.log(10))
         
+    def GetAllpKas(self, nMg=0, T=default_T):
+        """
+            Returns:
+                a list of tuples with (nH_below, nH_above, pKa) for each 
+                protonation which could be calculated
+        """
+        res = []
+        for curr_nH, curr_z, curr_nMg in self.dgs.keys():
+            if nMg == curr_nMg:
+                pKa = self.GetpKa(curr_nH, curr_z, curr_nMg, T)
+                if pKa is not None:
+                    res.append((curr_nH, curr_nH-1, pKa))
+        return sorted(res, reverse=True)
+        
     def GetpK_Mg(self, nH, z, nMg, T=default_T):
         dG0_f_without_Mg = self.GetdG0(nH, z-2, nMg-1, T)
         dG0_f_with_Mg = self.GetdG0(nH, z, nMg, T)
