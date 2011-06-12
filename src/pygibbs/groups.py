@@ -518,7 +518,7 @@ class GroupContribution(Thermodynamics):
         for cid in sorted(self.kegg.get_all_cids()):
             try:
                 diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
-                if diss is None:
+                if diss is None: # TODO: change so that the pKas will be estimated as well
                     mol = self.kegg.cid2mol(cid)
                     decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
                     nH = decomposition.Hydrogens()
@@ -761,20 +761,19 @@ class GroupContribution(Thermodynamics):
         self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
 
     def AnalyzeSingleCompound(self, mol, ignore_protonations=False):
-        smarts = None
-        if smarts:
-            print mol.FindSmarts(smarts)
         try:
-            decomposition = G.Mol2Decomposition(mol, ignore_protonations=ignore_protonations)
+            decomposition = self.Mol2Decomposition(mol, ignore_protonations=ignore_protonations)
             print decomposition.ToTableString()
             print 'nH =', decomposition.Hydrogens()
             print 'z =', decomposition.NetCharge()
             print 'nMg = ', decomposition.Magnesiums()
         except GroupDecompositionError as e:
             print "Cannot decompose compound to groups: " + str(e)
-
         mol.Draw()
 
+    def EstimateDissociation(self, mol):
+        pmap = self.Mol2PseudoisomerMap(mol, ignore_protonations=True)
+        print pmap
 
 #################################################################################################################
 #                                                   MAIN                                                        #
@@ -804,17 +803,19 @@ if __name__ == '__main__':
         G.init()
         #G.EstimateKeggCids()
         G.EstimateKeggRids()
-    elif options.cid is not None or options.smiles is not None:
+    elif options.smiles is not None:
         G = GroupContribution(db=db)
         G.load_groups("../data/thermodynamics/groups_species.csv")
-        if options.cid is not None:
-            print 'Analyzing C%05d (%s):' % (options.cid, G.kegg.cid2name(options.cid))
-            G.AnalyzeSingleCompound(G.kegg.cid2mol(options.cid),
-                                    ignore_protonations=True)
-        else:
-            print 'Analyzing SMILES %s:' % (options.smiles)
-            G.AnalyzeSingleCompound(Molecule.FromSmiles(options.smiles),
-                                    ignore_protonations=False)
+        print 'Analyzing SMILES %s:' % (options.smiles)
+        G.AnalyzeSingleCompound(Molecule.FromSmiles(options.smiles),
+                                ignore_protonations=False)
+    elif options.cid is not None:
+        G = GroupContribution(db=db)
+        G.init()
+        print 'Analyzing C%05d (%s):' % (options.cid, G.kegg.cid2name(options.cid))
+        G.EstimateDissociation(G.kegg.cid2mol(options.cid))
+        G.AnalyzeSingleCompound(G.kegg.cid2mol(options.cid),
+                                ignore_protonations=True)
     elif options.rid is not None:
         G = GroupContribution(db=db)
         G.init()
