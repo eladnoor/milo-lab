@@ -10,6 +10,7 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.nist import NistRowData
 import pylab
 from pygibbs.kegg_errors import KeggParseException
+from pygibbs.hatzimanikatis import Hatzi
 
 
 def GetSparseReactionInput():
@@ -20,7 +21,7 @@ def GetSparseReactionInput():
             reaction = NistRowData.ParseReactionFormula(kegg_reaction, kegg_reaction)
             return reaction
         except KeggParseException:
-            print 'KEGG reaction IDs should be integers.'
+            print 'KEGG compound IDs should be integers (e.g. 2 + 1 = 8 + 9)'
 
 
 def main():
@@ -31,17 +32,11 @@ def main():
     T = default_T
 
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg = Kegg.getInstance()
-    thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-        db, 'gc_pseudoisomers', name='milo_gc')
+    thermo_list = []
+    thermo_list += [PsuedoisomerTableThermodynamics.FromDatabase(
+        db, 'gc_pseudoisomers', name='milo_gc')]
+    thermo_list += [Hatzi(use_pKa=False)]
     
-    cmap = {}
-    if not options.ignore_cofactors:
-        print 'Fixing concentrations of co-factors'
-        cmap = reversibility.GetConcentrationMap(kegg)
-    else:
-        print 'Not fixing concentrations of co-factors'
-
     print ('Parameters: T=%f K, pMg=%.2g, '
            'I=%.2gM, Median concentration=%.2gM' % (T, pMg, I, c_mid))
     
@@ -49,11 +44,15 @@ def main():
         try:
             reaction = GetSparseReactionInput()
             print 'Reaction: %s' % reaction.HashableReactionString()
-            pH_range = pylab.arange(5, 10.001, 0.1)
-            dG0 = []
-            for pH in pH_range:
-                dG0.append(reaction.PredictReactionEnergy(thermo, pH=pH, pMg=pMg, I=I, T=T))
-            pylab.plot(pH_range, dG0, '-')
+            pH_range = pylab.arange(4, 10.001, 0.1)
+            dG0_matrix = []
+            for thermo in thermo_list:
+                dG0 = []
+                for pH in pH_range:
+                    dG0.append(reaction.PredictReactionEnergy(thermo, pH=pH, pMg=pMg, I=I, T=T))
+                dG0_matrix.append(dG0)
+            dG0_matrix = pylab.array(dG0_matrix)
+            pylab.plot(pH_range, dG0_matrix.T, '-')
             pylab.show()
                 
         except Exception, e:
