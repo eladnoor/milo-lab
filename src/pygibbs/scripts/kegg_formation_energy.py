@@ -9,6 +9,7 @@ from pygibbs import reversibility
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.database import SqliteDatabase
+from pygibbs.nist_verify import LoadAllEstimators
 
 def GetReactionIdInput():
     while True:
@@ -40,6 +41,9 @@ def main():
     thermo.override_data(observed_thermo)
     kegg = Kegg.getInstance()
     
+    estimators = LoadAllEstimators()
+    estimators['old estimate'] = thermo
+    
     print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
            'I=%.2gmM, Median concentration=%.2gM' % (T, pH, pMg, I, c_mid))
     
@@ -58,12 +62,12 @@ def main():
             print '\tKegg ID: C%05d' % cid
             print '\tFormula: %s' % compound.formula
             print '\tInChI: %s' % compound.inchi
-            print '\tConcentration: %.2e' % cmap.get(cid, c_mid)
-            dG0_tag = thermo.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T)
-            dG_tag = dG0_tag + R*T*pylab.log(cmap.get(cid, c_mid))
-            
-            print '\tStandard Transformed Formation Energy: %.1f' % dG0_tag
-            print '\tTransformed Formation Energy: %.1f' % dG_tag
+            conc = cmap.get(cid, c_mid)
+            print '\tConcentration: %.2e' % conc
+            for key, thermo in estimators.iteritems():
+                dG0_tag = thermo.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T)
+                dG_tag = dG0_tag + R*T*pylab.log(conc)
+                print '\t%s estimated dG0\'f at 1M (and at %gM): %.1f (%.1f)' % (key, conc, dG0_tag, dG_tag)
         except Exception, e:
             print 'Error: ', e
 

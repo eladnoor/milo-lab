@@ -65,7 +65,6 @@ class ThermodynamicAnalysis(object):
             function_dict = {'PROFILE':self.analyze_profile,
                              'SLACK':self.analyze_slack,
                              'MARGIN':self.analyze_margin,
-                             'CONTOUR':self.analyze_contour,
                              'REDOX':self.analyze_redox3,
                              'PROTONATION':self.analyze_protonation,
                              'STANDARD':self.analyze_standard_conditions}
@@ -437,32 +436,6 @@ class ThermodynamicAnalysis(object):
         self.html_writer.embed_matplotlib_figure(concentration_fig)
         
         keggpath.WriteResultsToHtmlTables(self.html_writer, dG_f, concentrations)
-
-    def analyze_contour(self, key, pathway_data):
-        field_map = pathway_data.field_map
-        pH_list = pathway_data.pH_values
-        I_list = pathway_data.I_values
-        T = pathway_data.T
-        c0 = pathway_data.c0 or 1.0
-        
-        formula = field_map.GetStringField("REACTION")
-        media = field_map.GetStringField("MEDIA", "None")
-        if media == "None":
-            media = None
-            
-        sparse_reaction = self.kegg.formula_to_sparse(formula)
-        dG_r = self.estimate_dG_reaction(sparse_reaction, 
-                                         pH_list, I_list, T, c0, media)
-        contour_fig = pylab.figure()
-        
-        pH_meshlist, I_meshlist = pylab.meshgrid(pH_list, I_list)
-        CS = pylab.contour(pH_meshlist.T, I_meshlist.T, dG_r)       
-        pylab.clabel(CS, inline=1, fontsize=10)
-        pylab.xlabel("pH")
-        pylab.ylabel("Ionic Strength")
-        self.html_writer.embed_matplotlib_figure(contour_fig, width=800, height=600)
-        self.html_writer.write('<br>\n' + 
-            self.kegg.sparse_to_hypertext(sparse_reaction) + '<br>\n')
 
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map

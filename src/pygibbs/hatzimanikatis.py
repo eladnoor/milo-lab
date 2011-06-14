@@ -10,6 +10,7 @@ import pylab
 from toolbox.database import SqliteDatabase
 from pygibbs.pseudoisomer import PseudoisomerMap
 from toolbox.util import _mkdir
+from pygibbs.kegg_reaction import Reaction
 
 HATZI_CSV_FNAME = "../data/thermodynamics/hatzimanikatis_cid.csv"
 
@@ -143,11 +144,11 @@ if __name__ == "__main__":
     #sparse_reaction = {408:-1, 6:-1, 4092:1, 5:1}
     #sparse_reaction = {588:-1, 1:-1, 114:1, 9:1}
     #sparse_reaction = {1:-1, 3:-1, 149:-1, 288:1, 4:1, 80:2, 22:1}
-    sparse_reaction = {408:-1, 6:-1, 4092:1, 5:1}
+    react = Reaction("reaction", {408:-1, 6:-1, 4092:1, 5:1})
     
     #sys.stdout.write("The dG0_r of PPi + H20 <=> 2 Pi: \n\n")
     
-    sparse_reaction = H.kegg.BalanceReaction(sparse_reaction, balance_water=False)
+    sparse_reaction = H.kegg.BalanceReaction(react, balance_water=False)
     print H.kegg.sparse_reaction_to_string(sparse_reaction)
     
     sys.stdout.write("%5s | %5s | %6s | %6s\n" % ("pH", "I", "T", "dG0_r"))

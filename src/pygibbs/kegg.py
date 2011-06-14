@@ -21,6 +21,7 @@ from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
 from toolbox.molecule import Molecule
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+from pygibbs.kegg_reaction import Reaction
     
 class Kegg(Singleton):
 
@@ -111,20 +112,19 @@ class Kegg(Singleton):
             
             equation_value = field_map.GetStringField("EQUATION", default_value="<=>")
             try:
-                (sparse, direction) = kegg_utils.parse_reaction_formula(equation_value)
-                r = kegg_reaction.Reaction(key, sparse, rid=int(key[1:]),
-                                           direction=direction)
-                self.rid2reaction_map[r.rid] = r
+                reaction = Reaction.FromFormula(equation_value)
+                reaction.SetNames(key)
+                reaction.rid = int(key[1:])
+                self.rid2reaction_map[reaction.rid] = reaction
 
                 if "ENZYME" in field_map:
-                    r.ec_list = ";".join(field_map.GetStringListField('ENZYME'))
+                    reaction.ec_list = ";".join(field_map.GetStringListField('ENZYME'))
                 if "NAME" in field_map:
-                    r.names = kegg_parser.NormalizeNames(field_map["NAME"])
-                    r.name = r.names[0]
+                    reaction.SetNames(kegg_parser.NormalizeNames(field_map["NAME"]))
                 if "DEFINITION" in field_map:
-                    r.definition = field_map["DEFINITION"]
+                    reaction.definition = field_map["DEFINITION"]
                 if "EQUATION" in field_map:
-                    r.equation = field_map["EQUATION"]
+                    reaction.equation = field_map["EQUATION"]
             except (kegg_errors.KeggParseException,
                     kegg_errors.KeggNonCompoundException,
                     ValueError):
@@ -362,7 +362,8 @@ class Kegg(Singleton):
                     for (f) in re.findall('\(x([0-9\.]+)\)', remainder):
                         flux = float(f)
                 
-                spr, _direction = kegg_utils.parse_reaction_formula(left_clause + " => " + right_clause)
+                reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
+                spr = reaction.sparse
                 for old_cid, (new_cid, factor) in cid_mapping.iteritems():
                     if old_cid in spr:
                         coeff = spr[old_cid]
@@ -406,7 +407,8 @@ class Kegg(Singleton):
                 logging.debug("module %s contains an unknown RID (R%05d)" % (module_name, rid))
                 continue
             
-            (spr_module, unused_direction_module) = kegg_utils.parse_reaction_formula(left_clause + " => " + right_clause)
+            reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
+            spr_module = reaction.sparse
             spr_rid = self.rid2reaction(rid).sparse
             
             directions = []
@@ -605,10 +607,10 @@ class Kegg(Singleton):
     def get_bounds(self, cid):
         return self.cid2bounds.get(cid, (None, None))
     
-    def sparse_reaction_to_string(self, sparse_reaction, cids=False, common_names=True):
+    def reaction2string(self, reaction, cids=False, common_names=True):
         left = []
         right = []
-        for (cid, coeff) in sparse_reaction.iteritems():
+        for cid, coeff in reaction.sparse.iteritems():
             if (cids and not common_names):
                 compound = "C%05d" % cid
             elif (cids and common_names):
@@ -627,25 +629,7 @@ class Kegg(Singleton):
         
         return " + ".join(left) + " = " + " + ".join(right)
     
-    def formula_to_sparse(self, formula):
-        """
-            translates a formula to a sparse-reaction
-        """
-        (sparse_reaction, direction) = kegg_utils.parse_reaction_formula(formula)
-        
-        try:
-            sparse_reaction = self.BalanceReaction(sparse_reaction, balance_water=True)
-        except kegg_errors.KeggReactionNotBalancedException as e:
-            raise kegg_errors.KeggReactionNotBalancedException(
-                "Unbalanced reaction (" + formula + "): " + str(e))
-        
-        if direction in ['<-', '<=']:
-            for cid in sparse_reaction.keys():
-                sparse_reaction[cid] = -sparse_reaction[cid]
-                
-        return sparse_reaction
-    
-    def BalanceReaction(self, sparse_reaction, balance_water=False, balance_hydrogens=False):
+    def BalanceReaction(self, reaction, balance_water=False, balance_hydrogens=False):
         """
             Checks whether a reaction is balanced.
             If balance_water=True and there is an imbalance of oxygen or hydrogen atoms, BalanceReaction
@@ -657,44 +641,44 @@ class Kegg(Singleton):
                 The balanced reaction in case it is possible or the original
                 reaction in case it cannot be checked
         """
-        new_sparse = dict(sparse_reaction)
+        new_reaction = reaction.clone()
         
         atom_bag = {}
         try:
-            for cid, coeff in new_sparse.iteritems():
+            for cid, coeff in new_reaction.sparse.iteritems():
                 comp = self.cid2compound(cid)
                 cid_atom_bag = comp.get_atom_bag()
                 if cid_atom_bag == None:
                     logging.debug("C%05d has no explicit formula, cannot check if this reaction is balanced" % cid)
-                    return new_sparse
+                    return new_reaction
                 try:
                     cid_atom_bag['e-'] = comp.get_num_electrons()
                 except KeggParseException:
-                    return new_sparse
+                    return new_reaction
                 
                 if not cid_atom_bag['e-']:
-                    return new_sparse
+                    return new_reaction
                 
                 for atomicnum, count in cid_atom_bag.iteritems():
                     atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
                     
         except KeyError as e:
             logging.warning(str(e) + ", cannot check if this reaction is balanced")
-            return new_sparse
+            return new_reaction
     
         if balance_water and atom_bag.get('O', 0) != 0:
-            new_sparse[1] = new_sparse.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)
+            new_reaction.sparse[1] = new_reaction.sparse.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)
             atom_bag['H'] = atom_bag.get('H', 0) - 2 * atom_bag['O'] # account for the 2 hydrogens in each added water molecule
             atom_bag['e-'] = atom_bag.get('e-', 0) - 10 * atom_bag['O'] # account for the 10 electrons in each added water molecule
             atom_bag['O'] = 0
         
         if balance_hydrogens:
             if atom_bag.get('H', 0) != 0:
-                new_sparse[80] = new_sparse.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
+                new_reaction.sparse[80] = new_reaction.sparse.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
                 atom_bag['H'] = 0
         else:
-            if 80 in new_sparse:
-                del new_sparse[80]
+            if 80 in new_reaction.sparse:
+                del new_reaction.sparse[80]
             atom_bag['H'] = 0
         
         for atomtype in atom_bag.keys():
@@ -703,9 +687,9 @@ class Kegg(Singleton):
 
         if atom_bag:
             raise KeggReactionNotBalancedException("Reaction cannot be balanced: " 
-                + str(atom_bag) + "\n" + self.sparse_reaction_to_string(sparse_reaction))
+                + str(atom_bag) + "\n" + self.reaction2string(reaction))
         
-        return new_sparse
+        return new_reaction
     
     def insert_data_to_db(self, cursor):
         cursor.execute("DROP TABLE IF EXISTS kegg_compound")
@@ -1055,14 +1039,20 @@ class KeggPathologic(object):
             line = rest.strip()
             
             if (command == 'SETR'):
-                (reaction_id, formula) = line.split(':')
-                rid = int(reaction_id.strip()[1:])
+                reaction_id, formula = line.split(':')
                 try:
-                    (spr, direction) = kegg_utils.parse_reaction_formula(formula.strip())
+                    reaction = Reaction.FromFormula(formula.strip())
                 except kegg_errors.KeggParseException:
                     raise Exception("Syntax error in update file: " + line)
-                rxns = self.create_reactions("R%05d" % rid, direction, spr, rid, weight=1)
-                html_writer.write("<li><b>Set Reaction,</b> R%05d : %s" % (rid, self.sparse_to_hypertext(spr, show_cids=True, direction=direction)))
+                
+                rid = int(reaction_id.strip()[1:])
+                reaction.SetNames("R%05d" % rid)
+                reaction.rid = rid
+
+                rxns = self.create_reactions(reaction, weight=1)
+                
+                html_writer.write("<li><b>Set Reaction,</b> R%05d : %s" % (rid, 
+                    reaction.to_hypertext(show_cids=True)))
                 #ver = rxns[0].verify(self.cid2atom_bag)
                 #if ver != None:
                 #    html_writer.write(' <b>WARNING: %s' % ver)
@@ -1082,12 +1072,13 @@ class KeggPathologic(object):
                     html_writer.write("<li><b>Cofactor,</b> %s" % name)
                 else:
                     try:
-                        spr, direction = kegg_utils.parse_reaction_formula(line.strip())
+                        reaction = Reaction.FromFormula(line.strip())
                     except kegg_errors.KeggParseException:
                         raise Exception("Syntax error in update file: " + line)
-                    self.cofactor_reaction_list.append((spr, direction))
-                    self.cofactors = self.cofactors.union(spr.keys())
-                    html_writer.write("<li><b>Cofactor Reaction,</b> %s" % (self.sparse_to_hypertext(spr, show_cids=True, direction=direction)))
+                    self.cofactor_reaction_list.append((reaction.sparse, reaction.direction))
+                    self.cofactors = self.cofactors.union(reaction.get_cids())
+                    html_writer.write("<li><b>Cofactor Reaction,</b> " + 
+                                      reaction.to_hypertext(show_cids=True))
     
         html_writer.write('</ul>\n')
         update_file.close()
@@ -1122,23 +1113,25 @@ class KeggPathologic(object):
         
         self.reactions = all_reactions
         
-    def create_reactions(self, name, direction, sparse_reaction, rid=None, weight=1):
+    def create_reactions(self, reaction, weight=1):
         """Creates Reaction objects needed according to the sign of the arrow."""
-        spr = deepcopy(sparse_reaction)
-        if (80 in spr):
-            del spr[80]
-        res = []
+        if 80 in reaction.sparse:
+            del reaction.sparse[80]
         
-        if (direction not in ["<=", "=>", "<=>"]):
+        res = []
+        if reaction.direction not in ["<=", "=>", "<=>"]:
             raise kegg_errors.KeggParseException(
                 "Direction must be either =>, <= or <=>")
-        if (direction in ["=>", "<=>"]):
-            res.append(kegg_reaction.Reaction([name + "_F"], spr,
-                                              rid=rid, weight=weight))
-        if (direction in ["<=", "<=>"]):
-            res.append(kegg_reaction.Reaction(
-                [name + "_R"], KeggPathologic.reverse_sparse_reaction(spr),
-                rid=rid, weight=weight))
+        if reaction.direction in ["=>", "<=>"]:
+            r_forward = reaction.clone()
+            r_forward.SetNames("R%05d_F" % reaction.rid)
+            r_forward.weight = weight
+            res.append(r_forward)
+        if reaction.direction in ["<=", "<=>"]:
+            r_reverse = reaction.reverse()
+            r_reverse.SetNames("R%05d_F" % reaction.rid)
+            r_reverse.weight = weight
+            res.append(r_reverse)
         return res
     
     def add_compound(self, name, cid=None, formula=None, inchi=None):

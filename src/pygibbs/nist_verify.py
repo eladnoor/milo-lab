@@ -13,25 +13,9 @@ from pygibbs.nist import Nist
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.kegg import Kegg
 
-################################################################################################################
-#                                                 MAIN                                                         #        
-################################################################################################################
-
-def main():
+def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
     db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
-    html_writer = HtmlWriter("../res/nist/report.html")
-    nist = Nist()
-    nist.T_range = (273.15 + 24, 273.15 + 40)
-    #nist.override_I = 0.25
-    nist.override_pMg = 14.0
-    
-    html_writer.write('<p>\n')
-    html_writer.write("Total number of reaction in NIST: %d</br>\n" % len(nist.data))
-    html_writer.write("Total number of reaction in range %.1fK < T < %.1fK: %d</br>\n" % \
-                      (nist.T_range[0], nist.T_range[1], len(nist.SelectRowsFromNist())))
-    html_writer.write('</p>\n')
-
     db_tables = {'alberty': (db_public, 'alberty_pseudoisomers', 'Alberty'),
                  'nist_regression': (db_gibbs, 'nist_regression_pseudoisomers', 'NIST regression'),
                  'milo_gc': (db_gibbs, 'gc_pseudoisomers', 'Milo Group Contribution')}
@@ -47,35 +31,56 @@ def main():
     
     estimators['hatzi_gc'] = Hatzi(use_pKa=False)
     estimators['hatzi_gc_pka'] = Hatzi(use_pKa=True)
+    return estimators
+
+################################################################################################################
+#                                                 MAIN                                                         #        
+################################################################################################################
+
+def main():
+    estimators = LoadAllEstimators()
+    html_writer = HtmlWriter("../res/nist/report.html")
+    nist = Nist()
+    nist.T_range = (273.15 + 24, 273.15 + 40)
+    #nist.override_I = 0.25
+    #nist.override_pMg = 14.0
+    #nist.override_T = 298.15
+    
+    html_writer.write('<p>\n')
+    html_writer.write("Total number of reaction in NIST: %d</br>\n" % len(nist.data))
+    html_writer.write("Total number of reaction in range %.1fK < T < %.1fK: %d</br>\n" % \
+                      (nist.T_range[0], nist.T_range[1], len(nist.SelectRowsFromNist())))
+    html_writer.write('</p>\n')
+
     
     kegg_reactions = Kegg.getInstance().AllReactions()
     nist_reactions = nist.GetUniqueReactionSet()
     
-    if True:
+    if False:
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['nist_regression'],
-                                name=key)
+                                name='Alberty vs. NIST')
 
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['milo_gc'],
-                                name=key)
+                                name='Alberty vs. Noor')
 
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['hatzi_gc'],
-                                name=key)
+                                name='Alberty vs. Jankowski')
 
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['hatzi_gc'],
                                 thermo2=estimators['milo_gc'],
-                                name=key)
+                                name='Jankowski vs. Noor')
         
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['hatzi_gc'],
                                 thermo2=estimators['hatzi_gc_pka'],
-                                name=key)
+                                name='Jankowski without pKa vs. with pKa')
     
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)

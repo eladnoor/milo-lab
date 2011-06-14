@@ -4,6 +4,7 @@ import re
 from pygibbs import kegg_errors, kegg_reaction
 from pylab import find
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
+from pygibbs.kegg_reaction import Reaction
 
 ##
 ## TODO(flamholz): Not all these utilities are specific to KEGG.
@@ -71,7 +72,8 @@ def parse_reaction_formula(formula):
     for cid, count in parse_reaction_formula_side(right).iteritems():
         sparse_reaction[cid] = sparse_reaction.get(cid, 0) + count 
 
-    return (sparse_reaction, direction)
+    reaction = Reaction('reaction', sparse_reaction, direction=direction)
+    return reaction
 
 def unparse_reaction_formula(sparse, direction='=>'):
     """
