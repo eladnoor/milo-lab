@@ -161,6 +161,7 @@ class Nist(object):
         self.T_range = T_range
         self.override_I = None
         self.override_pMg = None
+        self.override_T = None
         self.FromDatabase()
         self.BalanceReactions(balance_water=True)
 
@@ -354,6 +355,8 @@ class Nist(object):
         evaluation_map = {}
         total_list = []
         
+        eval_to_label = {'A':'high quality', 'B':'low quality', 'C':'low quality', 'D':'low quality'}
+        
         for row_data in self.SelectRowsFromNist():
             row_cids = set(row_data.GetAllCids())
             unknown_cids = row_cids.difference(known_cid_set)
@@ -361,7 +364,7 @@ class Nist(object):
                 logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.ref_id)
                 continue
             
-            label = row_data.evaluation
+            label = eval_to_label[row_data.evaluation]
             
             if label not in evaluation_map:
                 evaluation_map[label] = ([], [])
@@ -392,37 +395,35 @@ class Nist(object):
         unique_mean_sqr_error = [pylab.mean(sqr_error_list) for sqr_error_list in unique_reaction_dict.values()]
         unique_rmse = pylab.sqrt(pylab.mean(unique_mean_sqr_error))
         
-        r2 = calc_r2(dG0_obs_vec, dG0_est_vec)
         rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
 
         # plot the profile graph
         pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 12
+        pylab.rcParams['legend.fontsize'] = 10
         pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 16
-        pylab.rcParams['lines.linewidth'] = 2
+        pylab.rcParams['font.size'] = 12
+        pylab.rcParams['lines.linewidth'] = 1
         pylab.rcParams['lines.markersize'] = 3
-        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
+        pylab.rcParams['figure.figsize'] = [6.0, 6.0]
         pylab.rcParams['figure.dpi'] = 100
         
         fig = pylab.figure()
         pylab.hold(True)
         
-        colors = ['purple', 'orange', 'lightgreen', 'red', 'cyan']
-        for e in sorted(evaluation_map.keys()):
-            measured, predicted = evaluation_map[e]
-            label = '%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), calc_rmse(measured, predicted))
+        colors = ['green', 'orange']
+        for label in sorted(evaluation_map.keys()):
+            measured, predicted = evaluation_map[label]
             c = colors.pop(0)
             pylab.plot(measured, predicted, marker='.', linestyle='None', markerfacecolor=c, markeredgecolor=c, markersize=5, label=label)
         
-        pylab.legend(loc='upper left')
+        pylab.legend(loc='lower right')
         
-        pylab.title(r'N = %d, RMSE = %.1f [kJ/mol], r$^2$ = %.2f' % (len(dG0_obs_vec), rmse, r2), fontsize=14)
-        pylab.xlabel(r'$\Delta_{obs} G^\circ$ [kJ/mol]', fontsize=14)
-        pylab.ylabel(r'$\Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
-        min_x = min(dG0_obs_vec)
-        max_x = max(dG0_obs_vec)
-        pylab.plot([min_x, max_x], [min_x, max_x], 'k--')
+        pylab.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (unique_rmse), fontsize=14)
+        pylab.xlabel(r'observed $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
+        pylab.ylabel(r'estimated $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
+        #min_x = min(dG0_obs_vec)
+        #max_x = max(dG0_obs_vec)
+        pylab.plot([-60, 60], [-60, 60], 'k--')
         pylab.axis([-60, 60, -60, 60])
         if name:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_eval")
@@ -556,12 +557,14 @@ class Nist(object):
                 continue 
             if checklist and nist_row_data.reaction not in checklist:
                 continue
-            if self.override_pMg or self.override_I:
+            if self.override_pMg or self.override_I or self.override_T:
                 nist_row_copy = copy.deepcopy(nist_row_data)
                 if self.override_pMg:
                     nist_row_copy.pMg = self.override_pMg
                 if self.override_I:
                     nist_row_copy.I = self.override_I
+                if self.override_T:
+                    nist_row_copy.T = self.override_T
                 rows.append(nist_row_copy)
             else:
                 rows.append(nist_row_data)

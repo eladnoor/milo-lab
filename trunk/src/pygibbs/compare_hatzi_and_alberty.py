@@ -7,6 +7,7 @@ from thermodynamic_constants import R
 import logging
 import sys
 from toolbox.database import SqliteDatabase
+from pygibbs.kegg_reaction import Reaction
 
 A = Alberty()
 H = Hatzi()
@@ -23,25 +24,25 @@ def pH_dependence():
     T_mid = []
     T_tolerance = []
     
-    analyze_this_reaction += [{2:-1, 31:-1, 8:1, 92:1}] # Glucose kinase
+    analyze_this_reaction += [Reaction(['glucose kinase'], {2:-1, 31:-1, 8:1, 92:1})]
     I_mid += [0.01]
     I_tolerance += [0.02]
     T_mid += [303.1]
     T_tolerance += [0.1]
     
-    analyze_this_reaction += [{1:-1, 1005:-1, 9:1, 65:1}] # L-serine kinase
+    analyze_this_reaction += [Reaction(['L-serine kinase'], {1:-1, 1005:-1, 9:1, 65:1})]
     I_mid += [0.25]
     I_tolerance += [0.01]
     T_mid += [311.15]
     T_tolerance += [0.1]
     
-    analyze_this_reaction += [{1:-1, 13:-1, 9:2}] # PPi hydrolase
+    analyze_this_reaction += [Reaction(['pyrophosphatase'], {1:-1, 13:-1, 9:2}, rid=4)]
     I_mid += [0.05]
     I_tolerance += [0.05]
     T_mid += [298.1]
     T_tolerance += [15]
     
-    analyze_this_reaction += [{354:-1, 111:1, 118:1}] # Fructose bisphosphate aldolase
+    analyze_this_reaction += [Reaction(['Fructose bisphosphate aldolase'], {354:-1, 111:1, 118:1})]
     I_mid += [0.01]
     I_tolerance += [0.011]
     T_mid += [300]
@@ -54,37 +55,36 @@ def pH_dependence():
     pylab.rcParams['font.size'] = 6
     pylab.rcParams['lines.linewidth'] = 0.5
     pylab.rcParams['lines.markersize'] = 3       
-    for i in range(len(analyze_this_reaction)):
+    for i, reaction in enumerate(analyze_this_reaction):
         pylab.subplot(2,2,i+1)
         
         logging.info("Compound parameters from Alberty's table:")
-        for cid in analyze_this_reaction[i].keys():
+        for cid in reaction.get_cids():
             A.cid2PseudoisomerMap(cid).Display()
         
         logging.info("Compound parameters from Hatzimanikatis' table:")
-        for cid in analyze_this_reaction[i].keys():
+        for cid in reaction.get_cids():
             H.cid2PseudoisomerMap(cid).Display()
         
         M_obs = []
         sys.stdout.write("%5s | %5s | %5s | %6s | %6s | %s\n" % ("Match", "pH", "I", "T", "dG0(N)", "link"))
         for row in nist.data:
-            if (analyze_this_reaction[i] != None and analyze_this_reaction[i] != row[6]):
+            if (reaction != None and reaction != row.reaction):
                 continue
             try:
-                sparse_reaction = row[6]
                 #evaluation = row[3] # A, B, C, D
-                [Keq, T, I, pH] = row[8:12]
-                dG0_N = -R*T*pylab.log(Keq)
-                if (analyze_this_reaction[i] == sparse_reaction and abs(I-I_mid[i])<I_tolerance[i] and abs(T-T_mid[i])<T_tolerance[i]):
-                    M_obs.append([pH, dG0_N])
+                if (reaction == row.reaction and 
+                    abs(row.I-I_mid[i]) < I_tolerance[i] and 
+                    abs(row.T-T_mid[i]) < T_tolerance[i]):
+                    M_obs.append([row.pH, row.dG0_r])
                     sys.stdout.write(" ***  | ")
                 else:
                     sys.stdout.write("      | ")
-                sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f | %s\n" % (pH, I, T, dG0_N, row[0]))
+                sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f | %s\n" % (row.pH, row.I, row.T, row.dG0_r, row.ref_id))
             except MissingCompoundFormationEnergy:
                 continue
-        if (len(M_obs) == 0):
-            sys.stderr.write("There are now data points matching this reaction with the specifice I and T")
+        if len(M_obs) == 0:
+            sys.stderr.write("There are now data points matching this reaction with the specific I and T")
             continue
         M_obs = pylab.matrix(M_obs)
         
@@ -97,9 +97,9 @@ def pH_dependence():
         for pH in pH_range:
             predictions = []
             for predictor in [A, H]:
-                predictions.append(predictor.reaction_to_dG0(sparse_reaction, pH, I=I_low, T=T_mid[i]))
-                predictions.append(predictor.reaction_to_dG0(sparse_reaction, pH, I=I_mid[i], T=T_mid[i]))
-                predictions.append(predictor.reaction_to_dG0(sparse_reaction, pH, I=I_high, T=T_mid[i]))
+                predictions.append(reaction.PredictReactionEnergy(predictor, pH=pH, I=I_low ,T=T_mid[i]))
+                predictions.append(reaction.PredictReactionEnergy(predictor, pH=pH, I=I_mid[i] ,T=T_mid[i]))
+                predictions.append(reaction.PredictReactionEnergy(predictor, pH=pH, I=I_high ,T=T_mid[i]))
             M_est.append(predictions)
         M_est = pylab.matrix(M_est)
         
@@ -126,7 +126,7 @@ def pH_dependence():
             pylab.xlabel('pH')
         if (i == 0 or i == 2):
             pylab.ylabel(r"$\Delta_r G'^\circ$ [kJ/mol]")
-        s_title = gc.kegg.sparse_reaction_to_string(sparse_reaction, cids=False) + "\n"
+        s_title = gc.kegg.reaction2string(reaction, cids=False) + "\n"
         s_title += "($I = %.2f \pm %.2f$ $M$, $T = %.1f \pm %.1f$ $K$)" % (I_mid[i], I_tolerance[i], T_mid[i]-273.15, T_tolerance[i])
         pylab.title(s_title, fontsize=5)
     pylab.savefig('../res/compare_pH.pdf', format='pdf')
@@ -134,20 +134,20 @@ def pH_dependence():
 def map_rid_to_nist_rowids():
     rid_to_nist_rowids = {}
     for rid in gc.kegg.get_all_rids():
-        sparse_reaction = gc.kegg.rid2sparse_reaction(rid)
+        reaction = gc.kegg.rid2reaction(rid)
         for rowid in range(len(nist.data)):
             row = nist.data[rowid]
-            if (sparse_reaction == row[6]):
+            if reaction == row.reaction:
                 rid_to_nist_rowids[rid] = rid_to_nist_rowids.get(rid, []) + [rowid]
     return rid_to_nist_rowids
 
-def calculate_uncertainty(sparse_reaction, min_C, max_C, T):
+def calculate_uncertainty(reaction, min_C, max_C, T):
     N_subs = 0
     N_prod = 0
-    for (cid, coeff) in sparse_reaction.iteritems():
-        if (cid == 1 or cid == 80): # uncertainty in H2O and H+ are ignored
+    for cid, coeff in reaction.sparse.iteritems():
+        if cid == 1 or cid == 80: # uncertainty in H2O and H+ are ignored
             continue
-        if (coeff > 0):
+        if coeff > 0:
             N_prod += coeff
         else:
             N_subs -= coeff
@@ -176,19 +176,18 @@ def uncertainty_comparison():
         rid_to_nist_rowids = map_rid_to_nist_rowids()
         data_mat = []
         for (rid, rowids) in rid_to_nist_rowids.iteritems():
-            sparse_reaction = gc.kegg.rid2sparse_reaction(rid)
+            reaction = gc.kegg.rid2reaction(rid)
             try:
                 error_mat = []
                 for rowid in rowids:
                     row = nist.data[rowid]
                     #evaluation = row[3] # A, B, C, D
-                    [Keq, T, I, pH] = row[8:12]
-                    dG0_obs = -R*T*pylab.log(Keq)
-                    dG0_est = [predictor.reaction_to_dG0(sparse_reaction, pH, I, T) for predictor in [A, H]]
-                    error_mat.append([(dG0_obs - x) for x in dG0_est])
+                    dG0_est = [reaction.PredictReactionEnergy(predictor, pH=row.pH, I=row.I, T=row.T)
+                               for predictor in [A, H]]
+                    error_mat.append([(row.dG0_r - x) for x in dG0_est])
                 error_mat = pylab.array(error_mat)
                 rmse = pylab.sqrt(pylab.mean(error_mat**2, 0))
-                (ddG_min, ddG_max) = calculate_uncertainty(sparse_reaction, min_C=10**min_C, max_C=10**max_C, T=300)
+                (ddG_min, ddG_max) = calculate_uncertainty(reaction, min_C=10**min_C, max_C=10**max_C, T=300)
                 data_mat.append([ddG_max - ddG_min, rmse[0], rmse[1], rmse[2]])
             except MissingCompoundFormationEnergy:
                 continue

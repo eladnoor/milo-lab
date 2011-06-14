@@ -10,12 +10,7 @@ class Reaction(object):
     def __init__(self, names, sparse_reaction,
                  rid=None, direction='<=>', weight=1):
         """Initialize the reaction."""
-        if type(names) == types.ListType:
-            self.names = names
-            self.name = names[0]
-        elif type(names) == types.StringType:
-            self.names = [names]
-            self.name = names
+        self.SetNames(names)
         self.sparse = sparse_reaction
         if rid == None:
             self.rid = Reaction.free_rid
@@ -27,6 +22,14 @@ class Reaction(object):
         self.definition = None
         self.equation = None
         self.ec_list = '-.-.-.-'
+
+    def SetNames(self, names):
+        if type(names) == types.ListType:
+            self.names = names
+            self.name = names[0]
+        elif type(names) == types.StringType:
+            self.names = [names]
+            self.name = names
 
     def clone(self):
         reaction = Reaction(self.names, self.sparse)
@@ -58,14 +61,18 @@ class Reaction(object):
     @staticmethod
     def FromDBRow(row_dict):
         """Build a Reaction from a database row."""
-        (sparse, direction) = kegg_utils.parse_reaction_formula(row_dict['equation'])
+        reaction = Reaction.FromFormula(row_dict['equation'])
         names = row_dict['all_names'].split(';')
-        reaction = Reaction(names=names, sparse_reaction=sparse, 
-                            rid=row_dict['rid'], direction=direction)
+        reaction.SetNames(names)
+        reaction.rid = row_dict['rid']
         reaction.equation = row_dict['equation']
         reaction.definition = row_dict['definition']
         reaction.ec_list = row_dict['ec_list']
         return reaction
+
+    @staticmethod
+    def FromFormula(formula):
+        return kegg_utils.parse_reaction_formula(formula)
 
     def replace_compound(self, replace_cid, with_cid):
         """Replace one CID with another in this reaction.
@@ -91,11 +98,11 @@ class Reaction(object):
     def Balance(self, balance_water=False):
         from pygibbs.kegg import Kegg
         kegg = Kegg.getInstance()
-        self.sparse = kegg.BalanceReaction(self.sparse, balance_water)
+        self.sparse = kegg.BalanceReaction(self, balance_water).sparse
 
     def PredictReactionEnergy(self, thermodynamics, 
                               pH=None, pMg=None, I=None ,T=None):
-        return thermodynamics.reaction_to_dG0(self.sparse, pH=pH, pMg=pMg, I=I, T=T)
+        return thermodynamics.reaction_to_dG0(self, pH=pH, pMg=pMg, I=I, T=T)
     
     def HashableReactionString(self):
         """

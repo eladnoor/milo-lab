@@ -77,7 +77,7 @@ class Thermodynamics(object):
         pMg = pMg or self.pMg
         return self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
     
-    def reaction_to_dG0(self, sparse_reaction, pH=None, pMg=None, I=None, T=None):
+    def reaction_to_dG0(self, reaction, pH=None, pMg=None, I=None, T=None):
         """
             Input:
                 A reaction in sparse representation and the aqueous conditions 
@@ -87,9 +87,9 @@ class Thermodynamics(object):
                 The biochemical dG'0_r (i.e. transformed changed in Gibbs free 
                 energy of reaction)
         """
-        self.VerifyReaction(sparse_reaction)
+        self.VerifyReaction(reaction)
         return sum([coeff * self.cid2dG0_tag(cid, pH, pMg, I, T) for 
-                    cid, coeff in sparse_reaction.iteritems()])
+                    cid, coeff in reaction.sparse.iteritems()])
     
     def VerifyReaction(self, sparse_reaction):
         """
