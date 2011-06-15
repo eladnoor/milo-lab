@@ -51,6 +51,7 @@ class Kegg(Singleton):
         self.name2cid_map = {}
         self.cid2compound_map = {}
         self.rid2reaction_map = {}
+        self.reaction2rid_map = {}
         self.rid2enzyme_map = {}
         self.ec2enzyme_map = {}
         self.inchi2cid_map = {}
@@ -130,6 +131,9 @@ class Kegg(Singleton):
                     ValueError):
                 logging.debug("Cannot parse reaction formula: " + equation_value)
                 pass
+
+        for reaction in set(self.rid2reaction_map.values()):
+            self.reaction2rid_map[reaction] = reaction.rid 
 
         logging.info("Retrieving INCHI file and parsing it")
         if (not os.path.exists(self.INCHI_FILE)):
@@ -260,6 +264,9 @@ class Kegg(Singleton):
         for row_dict in self.db.DictReader('kegg_reaction'):
             reaction = kegg_reaction.Reaction.FromDBRow(row_dict)
             self.rid2reaction_map[reaction.rid] = reaction
+
+        for reaction in set(self.rid2reaction_map.values()):
+            self.reaction2rid_map[reaction] = reaction.rid 
            
         for row_dict in self.db.DictReader('kegg_enzyme'):
             enzyme = kegg_enzyme.Enzyme.FromDBRow(row_dict)
@@ -483,6 +490,9 @@ class Kegg(Singleton):
             return self.rid2reaction_map[int(rid[1:])]
         else:
             raise KeyError("Reaction ID must be integer (e.g. 22) or string (e.g. 'R00022')")
+    
+    def reaction2rid(self, reaction):
+        return self.reaction2rid_map.get(reaction, None)
 
     def rid2link(self, rid):
         return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % rid

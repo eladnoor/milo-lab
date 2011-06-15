@@ -63,7 +63,7 @@ def main():
     pylab.rcParams['legend.fontsize'] = 8
     pylab.rcParams['font.family'] = 'sans-serif'
     pylab.rcParams['font.size'] = 12
-    pylab.rcParams['lines.linewidth'] = 2
+    pylab.rcParams['lines.linewidth'] = 1
     pylab.rcParams['lines.markersize'] = 3
     pylab.rcParams['figure.figsize'] = [6.0, 6.0]
     pylab.rcParams['figure.dpi'] = 100        
@@ -74,7 +74,6 @@ def main():
     print 'Reaction: %s' % reaction.FullReactionString()
     
     pH_range = pylab.arange(4, 10.001, 0.1)
-    dG0_matrix = []
     for key, thermo in estimators.iteritems():
         print key, 'dG0 at pH=7: %.2f' % reaction.PredictReactionEnergy(thermo, 
                 pH=7.0, pMg=options.pMg, I=options.I, T=options.T)
@@ -82,24 +81,37 @@ def main():
         for pH in pH_range:
             dG0.append(reaction.PredictReactionEnergy(thermo, 
                 pH=pH, pMg=options.pMg, I=options.I, T=options.T))
-        dG0_matrix.append(dG0)
-    dG0_matrix = pylab.array(dG0_matrix)
-    pylab.plot(pH_range, dG0_matrix.T, '-', figure=fig)
+        pylab.plot(pH_range, dG0, '-', figure=fig, label=thermo.name)
 
     nist = Nist()
-    nist_rows_forward = nist.SelectRowsFromNist(reaction, check_reverse=False)
-    nist_dG0s = [row.dG0_r for row in nist_rows_forward]
-    nist_pHs = [row.pH for row in nist_rows_forward]
-    nist_rows_reverse = nist.SelectRowsFromNist(reaction.reverse(), check_reverse=False)
-    nist_dG0s += [-row.dG0_r for row in nist_rows_reverse]
-    nist_pHs += [row.pH for row in nist_rows_reverse]
+    evaluation_map = {}
+    eval_to_label = {'A':'high quality', 'B':'low quality', 'C':'low quality', 'D':'low quality'}
+    label_to_color = {'high quality':'purple', 'low quality':'orange'}
 
-    pylab.plot(nist_pHs, nist_dG0s, 'ko', figure=fig, linewidth=2)
+    nist_rows = nist.SelectRowsFromNist(reaction, check_reverse=True)
+    if nist_rows:
+        for row_data in nist_rows:
+            label = eval_to_label[row_data.evaluation]
+            if label not in evaluation_map:
+                evaluation_map[label] = ([], [])
+            evaluation_map[label][0].append(row_data.pH)
+            if row_data.reaction == reaction:
+                evaluation_map[label][1].append(row_data.dG0_r)
+            else:
+                evaluation_map[label][1].append(-row_data.dG0_r)
+    
+        for label in sorted(evaluation_map.keys()):
+            data = evaluation_map[label]
+            c = label_to_color[label]
+            pylab.plot(data[0], data[1], marker='.', linestyle='None', 
+                       markerfacecolor=c, markeredgecolor=c, 
+                       markersize=5, label=label)
+
     pylab.xlabel('pH')
     pylab.ylabel(r'$\Delta_r G^\circ$')
     pylab.title(kegg.reaction2string(reaction), fontsize=10)
-    
-    pylab.legend(estimators.keys() + ['NIST measurements'], loc='lower left')
+    pylab.legend(loc='lower left')
+
     if not options.output:
         pylab.show()
     else:

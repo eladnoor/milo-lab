@@ -410,11 +410,12 @@ class Nist(object):
         fig = pylab.figure()
         pylab.hold(True)
         
-        colors = ['green', 'orange']
-        for label in sorted(evaluation_map.keys()):
+        colors = ['purple', 'orange']
+        for i, label in enumerate(sorted(evaluation_map.keys())):
             measured, predicted = evaluation_map[label]
-            c = colors.pop(0)
-            pylab.plot(measured, predicted, marker='.', linestyle='None', markerfacecolor=c, markeredgecolor=c, markersize=5, label=label)
+            pylab.plot(measured, predicted, marker='.', linestyle='None', 
+                       markerfacecolor=colors[i], markeredgecolor=colors[i], 
+                       markersize=5, label=label)
         
         pylab.legend(loc='lower right')
         
@@ -445,18 +446,6 @@ class Nist(object):
             html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_pH")
         else:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300)
-        #for index, xlabel in [(4, 'pH'), (5, 'pMg'), (6, 'I'), (7, 'T')]:
-        #    if xlabel == 'T':
-        #        pylab.plot([(row[index] - 273.15) for row in total_list], [row[0] for row in total_list], '.')
-        #    else:
-        #        pylab.plot([row[index] for row in total_list], [row[0] for row in total_list], '.')
-        #    pylab.title(r'effect of %s' % xlabel, fontsize=14)
-        #    pylab.xlabel(xlabel, fontsize=14)
-        #    pylab.ylabel(r'$|\Delta_{obs} G^\circ - \Delta_{est} G^\circ|$ [kJ/mol]', fontsize=14)
-        #    if name:
-        #        html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_"+xlabel)
-        #    else:
-        #        html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         
         fig = pylab.figure()
         pylab.hist([(row[1] - row[2]) for row in total_list], bins=pylab.arange(-50, 50, 0.5))
@@ -468,7 +457,7 @@ class Nist(object):
         else:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300)
 
-        table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "pH", "pMg", "I", "T", "eval.", "url"]
+        table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "rid", "pH", "pMg", "I", "T", "eval.", "url"]
         dict_list = []
         for row in sorted(total_list, reverse=True):
             d = {}
@@ -476,6 +465,7 @@ class Nist(object):
             d['dG\'0 (obs)'] = '%.1f' % row[1]
             d['dG\'0 (est)'] = '%.1f' % row[2]
             d['reaction'] = row[3].to_hypertext(show_cids=False)
+            d['rid'] = self.kegg.reaction2rid(row[3]) or 'N/A'
             d['pH'] = '%.1f' % row[4]
             d['pMg'] = '%.1f' % row[5]
             d['I'] = '%.2f' % row[6]
@@ -523,27 +513,26 @@ class Nist(object):
         pylab.rcParams['text.usetex'] = False
         pylab.rcParams['legend.fontsize'] = 12
         pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 16
+        pylab.rcParams['font.size'] = 12
         pylab.rcParams['lines.linewidth'] = 2
         pylab.rcParams['lines.markersize'] = 3
-        pylab.rcParams['figure.figsize'] = [8.0, 6.0]
+        pylab.rcParams['figure.figsize'] = [6.0, 6.0]
         pylab.rcParams['figure.dpi'] = 100
         
         data_mat = pylab.array(total_list)
         fig = pylab.figure()
         pylab.hold(True)
-        error1 = abs(data_mat[:,0]-data_mat[:,1])
-        error2 = abs(data_mat[:,0]-data_mat[:,2])
-        rmse1 = pylab.sqrt(pylab.mean(error1**2))
-        rmse2 = pylab.sqrt(pylab.mean(error2**2))
+        error1 = data_mat[:,0]-data_mat[:,1]
+        error2 = data_mat[:,0]-data_mat[:,2]
         
         max_err = max(error1.max(), error2.max())
-        pylab.plot([0, max_err], [0, max_err], 'r--', figure=fig)
+        min_err = min(error1.min(), error2.min())
+        pylab.plot([min_err, max_err], [min_err, max_err], 'k--', figure=fig)
         pylab.plot(error1, error2, '.', figure=fig)
         pylab.title("Error Comparison per Reaction (in kJ/mol)")
-        pylab.xlabel(thermo1.name + " (RMSE = %.1f)" % rmse1, figure=fig)
-        pylab.ylabel(thermo2.name + " (RMSE = %.1f)" % rmse2, figure=fig)
-        html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_corr")
+        pylab.xlabel(thermo1.name, figure=fig)
+        pylab.ylabel(thermo2.name, figure=fig)
+        html_writer.embed_matplotlib_figure(fig, width=200, height=200, name=name+"_corr")
 
     def SelectRowsFromNist(self, reaction=None, check_reverse=True):
         rows = []
