@@ -56,31 +56,31 @@ def main():
     kegg_reactions = Kegg.getInstance().AllReactions()
     nist_reactions = nist.GetUniqueReactionSet()
     
-    if False:
+    if True:
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['nist_regression'],
-                                name='Alberty vs. NIST')
+                                name='alberty_vs_nist')
 
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['milo_gc'],
-                                name='Alberty vs. Noor')
+                                name='alberty_vs_noor')
 
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['hatzi_gc'],
-                                name='Alberty vs. Jankowski')
+                                name='alberty_vs_jankowski')
 
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['hatzi_gc'],
                                 thermo2=estimators['milo_gc'],
-                                name='Jankowski vs. Noor')
+                                name='jankowski_vs_noor')
         
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['hatzi_gc'],
                                 thermo2=estimators['hatzi_gc_pka'],
-                                name='Jankowski without pKa vs. with pKa')
+                                name='jankowski_pka')
     
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)

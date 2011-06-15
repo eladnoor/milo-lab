@@ -179,7 +179,7 @@ class GroupObervationCollection(object):
             
     def AddNistDatabase(self):
         nist_regression = NistRegression(self.db, html_writer=NullHtmlWriter())
-        nist_regression.nist.override_pMg = 14.0
+        #nist_regression.nist.override_pMg = 14.0
         cid2dG0 = {}
         cid2nH = {} # the nH that is to be used in the reverse transform
         for cid in nist_regression.dissociation.GetAllCids():
