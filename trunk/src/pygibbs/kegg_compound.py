@@ -4,7 +4,6 @@ import logging
 import re
 
 from pygibbs import kegg_errors
-from pygibbs import kegg_utils
 from toolbox.molecule import Molecule
 from pygibbs.kegg_errors import KeggParseException
 
@@ -228,9 +227,14 @@ class Compound(object):
             n_protons += count * Molecule.GetAtomicNum(elem)
         return n_protons
 
+    @staticmethod
+    def cid2link(cid):
+        return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % cid
+
     def get_link(self):
         """Returns a link to KEGG for this compound."""
-        return kegg_utils.cid2link(self.cid)
+        return Compound.cid2link(self.cid)
+        
     kegg_link = property(get_link)
 
     def get_string_cid(self):

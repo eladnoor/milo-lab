@@ -1,104 +1,12 @@
 #!/usr/bin/python
 
-import re
-from pygibbs import kegg_errors, kegg_reaction
-from pylab import find
+import pylab, logging
+from pygibbs import kegg_errors
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
-from pygibbs.kegg_reaction import Reaction
 
 ##
-## TODO(flamholz): Not all these utilities are specific to KEGG.
+# TODO: (flamholz): Not all these utilities are specific to KEGG.
 ##
-
-def cid2link(cid):
-    """Returns the KEGG link for this compound."""
-    return "http://www.genome.jp/dbget-bin/www_bget?cpd:C%05d" % cid
-
-def parse_reaction_formula_side(s):
-    """ 
-        Parses the side formula, e.g. '2 C00001 + C00002 + 3 C00003'
-        Ignores stoichiometry.
-        
-        Returns:
-            The set of CIDs.
-    """
-    if s.strip() == "null":
-        return {}
-    
-    compound_bag = {}
-    for member in re.split('\s+\+\s+', s):
-        tokens = member.split(None, 1)
-        if len(tokens) == 1:
-            amount = 1
-            key = member
-        else:
-            try:
-                amount = float(tokens[0])
-            except ValueError:
-                raise kegg_errors.KeggParseException(
-                    "Non-specific reaction: %s" % s)
-            key = tokens[1]
-            
-        if key[0] != 'C':
-            raise kegg_errors.KeggNonCompoundException(
-                "Compound ID doesn't start with C: %s" % key)
-        try:
-            cid = int(key[1:])
-            compound_bag[cid] = compound_bag.get(cid, 0) + amount
-        except ValueError:
-            raise kegg_errors.KeggParseException(
-                "Non-specific reaction: %s" % s)
-    
-    return compound_bag
-
-def parse_reaction_formula(formula):
-    """ 
-        Parses a two-sided formula such as: 2 C00001 => C00002 + C00003 
-        
-        Return:
-            The set of substrates, products and the direction of the reaction
-    """
-    tokens = re.findall("([^=^<]+) (<*=>*) ([^=^>]+)", formula)
-    if len(tokens) != 1:
-        raise kegg_errors.KeggParseException(
-            "Cannot parse this formula: %s" % formula)
-    
-    left, direction, right = tokens[0] # the direction: <=, => or <=>
-    
-    sparse_reaction = {}
-    for cid, count in parse_reaction_formula_side(left).iteritems():
-        sparse_reaction[cid] = sparse_reaction.get(cid, 0) - count 
-
-    for cid, count in parse_reaction_formula_side(right).iteritems():
-        sparse_reaction[cid] = sparse_reaction.get(cid, 0) + count 
-
-    reaction = Reaction('reaction', sparse_reaction, direction=direction)
-    return reaction
-
-def unparse_reaction_formula(sparse, direction='=>'):
-    """
-        Converts a reaction in sparse representation (keys are CIDs of reactants,
-        values are stoichiometric coefficients) into a string representation.
-        
-        Result:
-            A KEGG formatted string representation of the reaction
-    """
-    s_left = []
-    s_right = []
-    for cid, count in sparse.iteritems():
-        show_string = "C%05d" % cid
-        
-        if count > 0:
-            if count == 1:
-                s_right.append(show_string)
-            else:
-                s_right.append('%d %s' % (count, show_string))
-        elif count < 0:
-            if count == -1:
-                s_left.append(show_string)
-            else:
-                s_left.append('%d %s' % (-count, show_string))
-    return ' + '.join(s_left) + ' ' + direction + ' ' + ' + '.join(s_right)
 
 def write_kegg_pathway(html_writer, reactions, fluxes):
 
@@ -126,9 +34,65 @@ def write_kegg_pathway(html_writer, reactions, fluxes):
     html_writer.write('///<br></p>\n')
     
 def write_module_to_html(html_writer, S, rids, fluxes, cids):
+    from pygibbs.kegg_reaction import Reaction
+    
     reactions = []
     for r in xrange(S.shape[0]):
-        sparse = dict([(cids[c], S[r,c]) for c in find(S[r,:])])
-        reaction = kegg_reaction.Reaction('R%05d' % rids[r], sparse, rid=rids[r])
+        sparse = dict([(cids[c], S[r,c]) for c in pylab.find(S[r,:])])
+        reaction = Reaction('R%05d' % rids[r], sparse, rid=rids[r])
         reactions.append(reaction)
     write_kegg_pathway(html_writer, reactions, fluxes)
+    
+def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False):
+    """
+        Balances a reaction
+        
+        Arguments:
+            If balance_water=True and there is an imbalance of oxygen atoms, Balance
+            changes the reaction by adding H2O until it is balanced.
+            If balance_hydrogens=True then H+ are used to balance the amount of hydrogen atoms.
+        
+        If the reaction cannot be balanced, raises KeggReactionNotBalancedException
+    """
+    atom_bag = {}
+    try:
+        for cid, coeff in sparse.iteritems():
+            comp = kegg.cid2compound(cid)
+            cid_atom_bag = comp.get_atom_bag()
+            if cid_atom_bag == None:
+                logging.debug("C%05d has no explicit formula, cannot check if this reaction is balanced" % cid)
+                return
+            try:
+                cid_atom_bag['e-'] = comp.get_num_electrons()
+            except kegg_errors.KeggParseException:
+                return
+            
+            for atomicnum, count in cid_atom_bag.iteritems():
+                atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
+                
+    except KeyError as e:
+        logging.warning(str(e) + ", cannot check if this reaction is balanced")
+        return
+
+    if balance_water and atom_bag.get('O', 0) != 0:
+        sparse[1] = sparse.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)
+        atom_bag['H'] = atom_bag.get('H', 0) - 2 * atom_bag['O'] # account for the 2 hydrogens in each added water molecule
+        atom_bag['e-'] = atom_bag.get('e-', 0) - 10 * atom_bag['O'] # account for the 10 electrons in each added water molecule
+        atom_bag['O'] = 0
+    
+    if balance_hydrogens:
+        if atom_bag.get('H', 0) != 0:
+            sparse[80] = sparse.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
+            atom_bag['H'] = 0
+    else:
+        if 80 in sparse:
+            del sparse[80]
+        atom_bag['H'] = 0
+    
+    for atomtype in atom_bag.keys():
+        if atom_bag[atomtype] == 0:
+            del atom_bag[atomtype]
+
+    if atom_bag:
+        raise kegg_errors.KeggReactionNotBalancedException("Reaction cannot be balanced: " 
+            + str(atom_bag))

@@ -3,7 +3,7 @@ from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException
 from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
-from toolbox.util import _mkdir, calc_rmse, calc_r2
+from toolbox.util import _mkdir, calc_rmse
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import R
 from pygibbs.kegg_reaction import Reaction
@@ -100,7 +100,12 @@ class NistRowData:
                 raise KeggParseException("C%05d appears on both sides of this formula" % cid)
             sparse_reaction[cid] = amount
         
-        return Reaction([name], sparse_reaction, None, '=>')
+        reaction = Reaction([name], sparse_reaction, None, '=>')
+        
+        kegg = Kegg.getInstance()
+        rid = kegg.reaction2rid(reaction) or kegg.reaction2rid(reaction.reverse())
+        reaction.rid = rid
+        return reaction
     
     @staticmethod
     def ParseReactionFormulaSide(s):
@@ -163,7 +168,7 @@ class Nist(object):
         self.override_pMg = None
         self.override_T = None
         self.FromDatabase()
-        self.BalanceReactions(balance_water=True)
+        self.BalanceReactions()
 
     def FromDatabase(self):
         self.data = []
@@ -179,7 +184,7 @@ class Nist(object):
             except NistMissingCrucialDataException:
                 continue
         
-    def BalanceReactions(self, balance_water=False):
+    def BalanceReactions(self, balance_water=True):
         for row in self.data:
             row.reaction.Balance(balance_water)
 
@@ -465,7 +470,10 @@ class Nist(object):
             d['dG\'0 (obs)'] = '%.1f' % row[1]
             d['dG\'0 (est)'] = '%.1f' % row[2]
             d['reaction'] = row[3].to_hypertext(show_cids=False)
-            d['rid'] = self.kegg.reaction2rid(row[3]) or 'N/A'
+            if row[3].rid is not None:
+                d['rid'] = '<a href="%s">R%05d</a>' % (row[3].get_link(), row[3].rid)
+            else:
+                d['rid'] = ''
             d['pH'] = '%.1f' % row[4]
             d['pMg'] = '%.1f' % row[5]
             d['I'] = '%.2f' % row[6]

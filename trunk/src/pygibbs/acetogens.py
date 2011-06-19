@@ -3,6 +3,7 @@ from pygibbs.thermodynamic_constants import R
 from pylab import log, zeros, pinv, dot, plot, show, figure, NaN, isnan, find
 import csv
 from pygibbs.kegg_utils import unparse_reaction_formula
+from pygibbs.kegg_reaction import Reaction
 
 G = GroupContribution(sqlite_name="gibbs.sqlite", html_name="acetogens")
 G.init()
@@ -110,9 +111,10 @@ csv_out = csv.writer(open('../res/acetogens_reactions.csv', 'w'))
 csv_out.writerow(["RID", "EC", "REACTION", "dG0 measured", "dG0 calculated", "pH", "I", "T"])
 for r in xrange(len(reactions)):
     (rid, ec, sparse, dG0, pH, I, T) = reactions[r]
+    reaction = Reaction(ec, sparse, rid=rid)
     dG0_calculated = dot(S[r, :], dG0_f)
-    if (r in known_rows):
-        csv_out.writerow([rid, ec, unparse_reaction_formula(sparse), '%.1f' % dG0, '%.1f' % dG0_calculated, pH, I, T])
+    if r in known_rows:
+        csv_out.writerow([rid, ec, reaction.FullReactionString(), '%.1f' % dG0, '%.1f' % dG0_calculated, pH, I, T])
     else:
-        csv_out.writerow([rid, ec, unparse_reaction_formula(sparse), 'N/A', '%.1f' % dG0_calculated, pH, I, T])
+        csv_out.writerow([rid, ec, reaction.FullReactionString(), 'N/A', '%.1f' % dG0_calculated, pH, I, T])
 
