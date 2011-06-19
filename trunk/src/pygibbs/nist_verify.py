@@ -56,7 +56,7 @@ def main():
     kegg_reactions = Kegg.getInstance().AllReactions()
     nist_reactions = nist.GetUniqueReactionSet()
     
-    if True:
+    if False:
         nist.two_way_comparison(html_writer=html_writer, 
                                 thermo1=estimators['alberty'],
                                 thermo2=estimators['nist_regression'],
@@ -81,6 +81,11 @@ def main():
                                 thermo1=estimators['hatzi_gc'],
                                 thermo2=estimators['hatzi_gc_pka'],
                                 name='jankowski_pka')
+        
+    if True:
+        estimators['alberty'].CompareOverKegg(html_writer, 
+                                              other=estimators['nist_regression'],
+                                              fig_name='kegg_compare_alberty_vs_nist')
     
     for key, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)

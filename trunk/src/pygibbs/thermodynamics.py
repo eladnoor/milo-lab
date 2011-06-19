@@ -6,8 +6,11 @@ import json
 from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
-from pygibbs.kegg_errors import KeggParseException
-from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+from pygibbs.kegg_errors import KeggParseException,\
+    KeggReactionNotBalancedException
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
+    MissingReactionEnergy
+from toolbox.util import calc_r2
 
 class Thermodynamics(object):
     def __init__(self, name="Unknown Thermodynamics"):
@@ -267,7 +270,65 @@ class Thermodynamics(object):
         for reaction in list_or_reactions:
             if reaction.get_cids().issubset(covered_cids):
                 covered_counter += 1
-        return covered_counter 
+        return covered_counter
+    
+    def CompareOverKegg(self, html_writer, other, fig_name=None):
+        """
+            Compare the estimation errors of two different evaluation methods
+            by calculating all the KEGG reactions which both self and other 
+            can estimate, and comparing using a XY plot.
+        
+            Write results to HTML.
+        """
+        
+        total_list = []
+        kegg = Kegg.getInstance()
+        
+        for rid in sorted(kegg.get_all_rids()):
+            reaction = kegg.rid2reaction(rid)
+            try:
+                reaction.Balance()
+                dG0_self =  reaction.PredictReactionEnergy(self, 
+                            pH=self.pH, pMg=self.pMg, I=self.I ,T=self.T)
+                dG0_other = reaction.PredictReactionEnergy(other,
+                            pH=self.pH, pMg=self.pMg, I=self.I ,T=self.T)
+            except (MissingCompoundFormationEnergy, MissingReactionEnergy, 
+                    KeggReactionNotBalancedException, KeyError):
+                continue
+                
+            total_list.append({'self':dG0_self, 'other':dG0_other, 'rid':rid, 
+                               'reaction':reaction})
+        
+        if not total_list:
+            return 0, 0
+        
+        # plot the profile graph
+        pylab.rcParams['text.usetex'] = False
+        pylab.rcParams['legend.fontsize'] = 12
+        pylab.rcParams['font.family'] = 'sans-serif'
+        pylab.rcParams['font.size'] = 12
+        pylab.rcParams['lines.linewidth'] = 2
+        pylab.rcParams['lines.markersize'] = 6
+        pylab.rcParams['figure.figsize'] = [6.0, 6.0]
+        pylab.rcParams['figure.dpi'] = 100
+        
+        vec_dG0_self = pylab.array([x['self'] for x in total_list])
+        vec_dG0_other = pylab.array([x['other'] for x in total_list])
+        vec_rid = [x['rid'] for x in total_list]
+        
+        fig = pylab.figure()
+        pylab.hold(True)
+        max_dG0 = max(vec_dG0_self.max(), vec_dG0_other.max())
+        min_dG0 = min(vec_dG0_self.min(), vec_dG0_other.min())
+        pylab.plot([min_dG0, max_dG0], [min_dG0, max_dG0], 'k--', figure=fig)
+        pylab.plot(vec_dG0_self, vec_dG0_other, '.', figure=fig)
+        for i, rid in enumerate(vec_rid):
+            pylab.text(vec_dG0_self[i], vec_dG0_other[i], '%d' % rid, fontsize=6)
+        r2 = calc_r2(vec_dG0_self, vec_dG0_other)
+        pylab.title("$\Delta_r G^{'\circ}$ comparison per reaction, $r^2$ = %.2f" % r2)
+        pylab.xlabel(self.name + ' (in kJ/mol)', figure=fig)
+        pylab.ylabel(other.name + ' (in kJ/mol)', figure=fig)
+        html_writer.embed_matplotlib_figure(fig, width=200, height=200, name=fig_name)
         
 class ThermodynamicsWithCompoundAbundance(Thermodynamics):
     
@@ -429,5 +490,6 @@ if __name__ == "__main__":
     T = PsuedoisomerTableThermodynamics.FromCsvFile(
         '../data/thermodynamics/alberty_pseudoisomers.csv')
     #T.test()
-    kegg_num_reactions = len(Kegg.getInstance().AllReactions())
-    print T.CalculateKeggCoverage(), kegg_num_reactions
+    all_reactions = Kegg.getInstance().AllReactions()
+    print "Alberty coverage over KEGG: ", T.CalculateCoverage(all_reactions)
+    print "Out of %d reactions" % len(all_reactions)
