@@ -148,16 +148,16 @@ if __name__ == "__main__":
     
     #sys.stdout.write("The dG0_r of PPi + H20 <=> 2 Pi: \n\n")
     
-    sparse_reaction = H.kegg.BalanceReaction(react, balance_water=False)
-    print H.kegg.sparse_reaction_to_string(sparse_reaction)
+    react.Balance()
+    print react.FullReactionString()
     
     sys.stdout.write("%5s | %5s | %6s | %6s\n" % ("pH", "I", "T", "dG0_r"))
     for pH in arange(5, 10.01, 0.25):
         H.pH = pH
         sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f\n" % 
-                         (H.pH, H.I, H.T, H.reaction_to_dG0(sparse_reaction)))
+                         (H.pH, H.I, H.T, react.PredictReactionEnergy(H)))
 
-    for cid in sparse_reaction.keys():
+    for cid in react.get_cids():
         print '-'*50
         print "C%05d - %s:" % (cid, H.kegg.cid2name(cid))
         print H.kegg.cid2inchi(cid)

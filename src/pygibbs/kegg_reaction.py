@@ -2,6 +2,8 @@
 import kegg_utils
 import hashlib
 import types
+from pygibbs import kegg_errors
+import re
 
 class Reaction(object):
     """A reaction from KEGG."""
@@ -69,10 +71,69 @@ class Reaction(object):
         reaction.definition = row_dict['definition']
         reaction.ec_list = row_dict['ec_list']
         return reaction
+    
+    @staticmethod
+    def parse_reaction_formula_side(s):
+        """ 
+            Parses the side formula, e.g. '2 C00001 + C00002 + 3 C00003'
+            Ignores stoichiometry.
+            
+            Returns:
+                The set of CIDs.
+        """
+        if s.strip() == "null":
+            return {}
+        
+        compound_bag = {}
+        for member in re.split('\s+\+\s+', s):
+            tokens = member.split(None, 1)
+            if len(tokens) == 1:
+                amount = 1
+                key = member
+            else:
+                try:
+                    amount = float(tokens[0])
+                except ValueError:
+                    raise kegg_errors.KeggParseException(
+                        "Non-specific reaction: %s" % s)
+                key = tokens[1]
+                
+            if key[0] != 'C':
+                raise kegg_errors.KeggNonCompoundException(
+                    "Compound ID doesn't start with C: %s" % key)
+            try:
+                cid = int(key[1:])
+                compound_bag[cid] = compound_bag.get(cid, 0) + amount
+            except ValueError:
+                raise kegg_errors.KeggParseException(
+                    "Non-specific reaction: %s" % s)
+        
+        return compound_bag
 
     @staticmethod
     def FromFormula(formula):
-        return kegg_utils.parse_reaction_formula(formula)
+        """ 
+            Parses a two-sided formula such as: 2 C00001 => C00002 + C00003 
+            
+            Return:
+                The set of substrates, products and the direction of the reaction
+        """
+        tokens = re.findall("([^=^<]+) (<*=>*) ([^=^>]+)", formula)
+        if len(tokens) != 1:
+            raise kegg_errors.KeggParseException(
+                "Cannot parse this formula: %s" % formula)
+        
+        left, direction, right = tokens[0] # the direction: <=, => or <=>
+        
+        sparse_reaction = {}
+        for cid, count in Reaction.parse_reaction_formula_side(left).iteritems():
+            sparse_reaction[cid] = sparse_reaction.get(cid, 0) - count 
+    
+        for cid, count in Reaction.parse_reaction_formula_side(right).iteritems():
+            sparse_reaction[cid] = sparse_reaction.get(cid, 0) + count 
+    
+        reaction = Reaction('reaction', sparse_reaction, direction=direction)
+        return reaction
 
     def replace_compound(self, replace_cid, with_cid):
         """Replace one CID with another in this reaction.
@@ -95,13 +156,31 @@ class Reaction(object):
         """Returns the KEGG IDs of the products and reactants."""
         return set(self.sparse.keys())
 
-    def Balance(self, balance_water=False):
+    @staticmethod
+    def BalanceSparseReaction(sparse, balance_water=False, balance_hydrogens=False):
         from pygibbs.kegg import Kegg
         kegg = Kegg.getInstance()
-        self.sparse = kegg.BalanceReaction(self, balance_water).sparse
+        kegg_utils.balance_reaction(kegg, sparse, balance_water, balance_hydrogens)
 
+    def Balance(self, balance_water=False, balance_hydrogens=False):
+        """
+            Balances a reaction
+            
+            Arguments:
+                If balance_water=True and there is an imbalance of oxygen atoms, Balance
+                changes the reaction by adding H2O until it is balanced.
+                If balance_hydrogens=True then H+ are used to balance the amount of hydrogen atoms.
+            
+            If the reaction cannot be balanced, raises KeggReactionNotBalancedException
+        """
+        Reaction.BalanceSparseReaction(self.sparse, balance_water, balance_hydrogens)
+        
     def PredictReactionEnergy(self, thermodynamics, 
                               pH=None, pMg=None, I=None ,T=None):
+        pH = pH or thermodynamics.pH
+        pMg = pMg or thermodynamics.pMg
+        I = I or thermodynamics.I
+        T = T or thermodynamics.T
         return thermodynamics.reaction_to_dG0(self, pH=pH, pMg=pMg, I=I, T=T)
     
     def HashableReactionString(self):
@@ -114,7 +193,7 @@ class Reaction(object):
         """
         sort_key = lambda r: r[0]
         make_str = lambda r: '%d %.2f' % r
-        is_not_hydrogen = lambda r: r[0] != 'C00080'
+        is_not_hydrogen = lambda r: r[0] != 80
         
         reactants_strs = map(make_str,
                              sorted(filter(is_not_hydrogen, self.iteritems()),

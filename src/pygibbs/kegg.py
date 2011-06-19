@@ -6,20 +6,17 @@ import pylab
 import re
 import sqlite3
 import urllib
+from copy import deepcopy
+
+from toolbox import util
+from toolbox.database import SqliteDatabase
+from toolbox.singletonmixin import Singleton
+from toolbox.molecule import Molecule
 
 from pygibbs import kegg_compound
 from pygibbs import kegg_enzyme
 from pygibbs import kegg_errors
 from pygibbs import kegg_parser
-from pygibbs import kegg_reaction
-from pygibbs import kegg_utils
-from toolbox import util
-from copy import deepcopy
-from toolbox.database import SqliteDatabase
-from toolbox.singletonmixin import Singleton
-from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
-    KeggParseException
-from toolbox.molecule import Molecule
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.kegg_reaction import Reaction
     
@@ -262,7 +259,7 @@ class Kegg(Singleton):
                 self.inchi2cid_map[compound.inchi] = compound.cid
         
         for row_dict in self.db.DictReader('kegg_reaction'):
-            reaction = kegg_reaction.Reaction.FromDBRow(row_dict)
+            reaction = Reaction.FromDBRow(row_dict)
             self.rid2reaction_map[reaction.rid] = reaction
 
         for reaction in set(self.rid2reaction_map.values()):
@@ -365,7 +362,7 @@ class Kegg(Singleton):
                 rid = rid_clause.split(',')[0]
                 rid = int(rid[1:])
                 flux = 1
-                if (remainder != ""):
+                if remainder != "":
                     for (f) in re.findall('\(x([0-9\.]+)\)', remainder):
                         flux = float(f)
                 
@@ -523,7 +520,8 @@ class Kegg(Singleton):
 
     @staticmethod
     def cid2link(cid):
-        return kegg_utils.cid2link(cid)
+        """Returns the KEGG link for this compound."""
+        return kegg_compound.Compound.cid2link(cid)
         
     def cid2formula(self, cid):
         return self.cid2compound(cid).formula
@@ -638,68 +636,6 @@ class Kegg(Singleton):
                 left.append("%g" % (-coeff) + " " + compound)
         
         return " + ".join(left) + " = " + " + ".join(right)
-    
-    def BalanceReaction(self, reaction, balance_water=False, balance_hydrogens=False):
-        """
-            Checks whether a reaction is balanced.
-            If balance_water=True and there is an imbalance of oxygen or hydrogen atoms, BalanceReaction
-            changes the sparse_reaction by adding H2O and H+ until it is balanced.
-            
-            If the reaction cannot be balanced, raises KeggReactionNotBalancedException
-            
-            Returns:
-                The balanced reaction in case it is possible or the original
-                reaction in case it cannot be checked
-        """
-        new_reaction = reaction.clone()
-        
-        atom_bag = {}
-        try:
-            for cid, coeff in new_reaction.sparse.iteritems():
-                comp = self.cid2compound(cid)
-                cid_atom_bag = comp.get_atom_bag()
-                if cid_atom_bag == None:
-                    logging.debug("C%05d has no explicit formula, cannot check if this reaction is balanced" % cid)
-                    return new_reaction
-                try:
-                    cid_atom_bag['e-'] = comp.get_num_electrons()
-                except KeggParseException:
-                    return new_reaction
-                
-                if not cid_atom_bag['e-']:
-                    return new_reaction
-                
-                for atomicnum, count in cid_atom_bag.iteritems():
-                    atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
-                    
-        except KeyError as e:
-            logging.warning(str(e) + ", cannot check if this reaction is balanced")
-            return new_reaction
-    
-        if balance_water and atom_bag.get('O', 0) != 0:
-            new_reaction.sparse[1] = new_reaction.sparse.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)
-            atom_bag['H'] = atom_bag.get('H', 0) - 2 * atom_bag['O'] # account for the 2 hydrogens in each added water molecule
-            atom_bag['e-'] = atom_bag.get('e-', 0) - 10 * atom_bag['O'] # account for the 10 electrons in each added water molecule
-            atom_bag['O'] = 0
-        
-        if balance_hydrogens:
-            if atom_bag.get('H', 0) != 0:
-                new_reaction.sparse[80] = new_reaction.sparse.get(80, 0) - atom_bag['H'] # balance the number of hydrogens by adding C00080 (H+)
-                atom_bag['H'] = 0
-        else:
-            if 80 in new_reaction.sparse:
-                del new_reaction.sparse[80]
-            atom_bag['H'] = 0
-        
-        for atomtype in atom_bag.keys():
-            if atom_bag[atomtype] == 0:
-                del atom_bag[atomtype]
-
-        if atom_bag:
-            raise KeggReactionNotBalancedException("Reaction cannot be balanced: " 
-                + str(atom_bag) + "\n" + self.reaction2string(reaction))
-        
-        return new_reaction
     
     def insert_data_to_db(self, cursor):
         cursor.execute("DROP TABLE IF EXISTS kegg_compound")

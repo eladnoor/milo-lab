@@ -191,8 +191,9 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
                 total_rxns += 1
                 
             try:
-                sparse = kegg.rid2sparse_reaction(rid)
-                sparse = kegg.BalanceReaction(sparse, balance_water=True)
+                reaction = kegg.rid2reaction(rid)
+                reaction.Balance(balance_water=True)
+                sparse = reaction.sparse
                 
                 # delta G r = CalculateReversabilitydeltaG(sparse, G, c_mid, pH, pMg, I, T,                                             concentration_map=cmap)
                 r = CalculateReversability(sparse, G, c_mid, pH, pMg, I, T,
