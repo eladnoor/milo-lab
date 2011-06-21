@@ -9,14 +9,15 @@ from pygibbs.thermodynamic_constants import dG0_f_Mg
 class PseudoisomerMap(object):
     """A map from pseudoisomers to dG values."""
     
-    def __init__(self, nH=None, z=None, nMg=None, dG0=None):
+    def __init__(self, nH=None, z=None, nMg=None, dG0=None, ref=''):
         self.dgs = {}
+        self.refs = {}
         
         if (nH != None and
             z != None and
             nMg != None and
             dG0 != None):
-            self.Add(nH, z, nMg, dG0)
+            self.Add(nH, z, nMg, dG0, ref)
     
     @staticmethod
     def _MakeGroupVectorKey(groupvector):
@@ -38,23 +39,20 @@ class PseudoisomerMap(object):
     def _MakeKey(nH, z, nMg):
         return (nH, z, nMg)
     
-    def AddAll(self, pmap_dict):
-        for key, value in pmap_dict.iteritems():
-            self.AddKey(key, value)
+    def AddKey(self, key, dG0, ref=None):
+        """For when you don't have a group vector."""
+        self.dgs.setdefault(key, []).append(dG0)
+        self.refs[key] = ref # stores only the ref for the last added dG0
     
-    def Add(self, nH, z, nMg, dG0):
+    def Add(self, nH, z, nMg, dG0, ref=''):
         """For when you don't have a group vector."""
         key = self._MakeKey(nH, z, nMg)
-        self.dgs.setdefault(key, []).append(dG0)
+        self.AddKey(key, dG0, ref)
     
-    def AddKey(self, key, dG0):
-        """For when you don't have a group vector."""
-        self.dgs.setdefault(key, []).append(dG0)
-    
-    def AddGroupVector(self, groupvector, dG0):
+    def AddGroupVector(self, groupvector, dG0, ref=''):
         """Add a GroupVector with a dG0 value to the map."""
         key = self._MakeGroupVectorKey(groupvector)
-        self.dgs.setdefault(key, []).append(dG0)
+        self.AddKey(key, dG0, ref)
     
     def Squeeze(self, T=default_T):
         """Groups together all pseudoisomers that have the same key"""
@@ -143,11 +141,16 @@ class PseudoisomerMap(object):
         for nH, z, nMg, dG0 in self.ToMatrix():
             print "C%05d | %2d | %2d | %3d | %6.2f" % (cid, nH, z, nMg, dG0)
     
+    def GetRef(self, nH, z, nMg):
+        key = self._MakeKey(nH, z, nMg)
+        return self.refs.get(key, None)
+
     def GetdG0(self, nH, z, nMg, T=default_T):
-        if (nH, z, nMg) not in self.dgs:
+        key = self._MakeKey(nH, z, nMg)
+        if key not in self.dgs:
             return None
         
-        dG0_list = self.dgs[nH, z, nMg]
+        dG0_list = self.dgs[key]
         return -(R*T) * log_sum_exp([x/(-R*T) for x in dG0_list])
     
     def GetpKa(self, nH, z, nMg, T=default_T):

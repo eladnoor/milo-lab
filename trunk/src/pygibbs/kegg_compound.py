@@ -264,7 +264,9 @@ class Compound(object):
         if self.pmap:
             d['species'] = []
             for nH, z, nMg, dG0 in self.pmap.ToMatrix():
-                d['species'].append({"nH":nH, "z":z, "nMg":nMg, "dG0_f":dG0})
+                ref = self.pmap.GetRef(nH, z, nMg)
+                d['species'].append({"nH":nH, "z":z, "nMg":nMg, 
+                                     "dG0_f":dG0, "ref":ref})
             d['source'] = self.pmap_source
         elif self.pmap_error:
             d['error'] = self.pmap_error
