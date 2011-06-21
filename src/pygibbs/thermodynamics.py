@@ -199,15 +199,19 @@ class Thermodynamics(object):
     def ToDatabase(self, db, table_name, error_table_name=""):
         kegg = Kegg.getInstance()
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
-                       "dG0 REAL, ref TEXT, anchor BOOL")
+                       "dG0 REAL, compound_ref TEXT, pseudoisomer_ref, "
+                       "anchor BOOL")
         if error_table_name:
             db.CreateTable(error_table_name, 'cid INT, name TEXT, error TEXT')
         
         for cid in self.get_all_cids():
-            ref = self.cid2SourceString(cid)
+            compound_ref = self.cid2SourceString(cid)
             try:
-                for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
-                    db.Insert(table_name, [cid, nH, z, nMg, dG0, ref, cid in self.anchors])
+                pmap = self.cid2PseudoisomerMap(cid)
+                for nH, z, nMg, dG0 in pmap.ToMatrix():
+                    pseudo_ref = pmap.GetRef(nH, z, nMg)
+                    db.Insert(table_name, [cid, nH, z, nMg, dG0, compound_ref, 
+                                           pseudo_ref, cid in self.anchors])
             except MissingCompoundFormationEnergy as e:
                 if error_table_name:
                     db.Insert(error_table_name, [cid, kegg.cid2name(cid), str(e)])
@@ -411,13 +415,14 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
                 z = int(row['z'])
                 nMg = int(row['nMg'])
                 dG0 = float(row['dG0'])
-                thermo.AddPseudoisomer(cid, nH, z, nMg, dG0)
-                ref = row.get('ref', '')
-                if cid in thermo.cid2source_string and thermo.cid2source_string[cid] != ref:
+                compound_ref = row.get('compound_ref', '')
+                pseudo_ref = row.get('pseudoisomer_ref', '')
+                thermo.AddPseudoisomer(cid, nH, z, nMg, dG0, pseudo_ref)
+                if cid in thermo.cid2source_string and thermo.cid2source_string[cid] != compound_ref:
                     if warn_for_conflicting_refs:
                         logging.warning('There are conflicting references for C%05d ' % cid)
                 else:
-                    thermo.cid2source_string[cid] = ref
+                    thermo.cid2source_string[cid] = compound_ref
             except ValueError as e:
                 raise ValueError("For C%05d: %s" % (cid, str(e)))
             
@@ -458,9 +463,9 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
     def SetPseudoisomerMap(self, cid, pmap):
         self.cid2pmap_dict[cid] = pmap
 
-    def AddPseudoisomer(self, cid, nH, z, nMg, dG0):
+    def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=''):
         self.cid2pmap_dict.setdefault(cid, PseudoisomerMap())
-        self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0)
+        self.cid2pmap_dict[cid].Add(nH, z, nMg, dG0, ref)
 
     def get_all_cids(self):
         return sorted(self.cid2pmap_dict.keys())

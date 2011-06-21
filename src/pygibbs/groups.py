@@ -227,8 +227,8 @@ class GroupContribution(Thermodynamics):
         self.obs_collection = GroupObervationCollection(self.db, 
             self.html_writer, self.group_decomposer)
         if FromFiles:
-            self.read_training_data_formation()
             self.read_training_data_pKa()
+            self.read_training_data_formation()
             self.read_training_data_reaction()
             self.obs_collection.ToDatabase()
         else:
@@ -526,7 +526,8 @@ class GroupContribution(Thermodynamics):
                     nMg = decomposition.Magnesiums()
                     groupvec = decomposition.AsVector()
                     dG0 = self.groupvec2val(groupvec)
-                    self.cid2pmap[cid] = PseudoisomerMap(nH=nH, z=z, nMg=nMg, dG0=dG0)
+                    self.cid2pmap[cid] = PseudoisomerMap(nH=nH, z=z, nMg=nMg, 
+                                            dG0=dG0, ref="Group Contribution")
                     self.cid2source_string[cid] = "Group Contribution"
                     self.cid2groupvec[cid] = groupvec
                 else:
@@ -538,7 +539,7 @@ class GroupContribution(Thermodynamics):
                         nH, _z, nMg, dG0 = pmatrix[0]
                         self.cid2source_string[cid] = obs_species.cid2SourceString(cid)
                         self.cid2groupvec[cid] = GroupVector(self.groups_data)
-                    else: # do not use an observed value of dG0 formation
+                    else: # use group contribution to get the dG0 of the most abundant pseudoisomer
                         nH, nMg = diss.GetMostAbundantPseudoisomer(
                             pH=default_pH, I=default_I, pMg=14, T=default_T)
                         smiles = diss.GetSmiles(nH=nH, nMg=nMg)

@@ -443,25 +443,34 @@ class DissociationTable(object):
         if self.min_dG0 == None:
             raise Exception('The base formation energy has to be set before generating'
             ' all psuedoisomers')
-                
+            
         pdata = PseudoisomerEntry(net_charge=self.min_charge, hydrogens=self.min_nH,
             magnesiums=0, smiles="", dG0=self.min_dG0, cid=self.cid)
         return self.GenerateAllPseudoisomerEntries(pdata)
     
     def GenerateAllPseudoisomerEntries(self, pdata):
+        # Having nMg=0 is not necessary but makes everything easier,
+        # therefore I assume it is.
+        if pdata.magnesiums != 0:
+            raise ValueError("Must start with nMg=0 when generating all pseudoisomers")
+        
         pseudoisomers = {}
         pseudoisomers[pdata.hydrogens, pdata.magnesiums] = pdata.Clone()
 
-        for nH_above, nH_below, nMg_above, nMg_below in self.ddGs.keys():
+        for (nH_above, nH_below, nMg_above, nMg_below), (_ddG0, ref) in self.ddGs.iteritems():
+            if nH_below == nH_above + 1: # this is a pKa
+                nMg = nMg_below # it doesn't matter which, since nMg_below == nMg_above
+                if nH_below > pdata.hydrogens: 
+                    nH = nH_below # creating a pseudoisomer with more nH than pdata
+                elif nH_above < pdata.hydrogens:
+                    nH = nH_above # creating a pseudoisomer with less nH than pdata
+            elif nMg_below == nMg_above + 1:
+                nH = nH_below # it doesn't matter which, since nH_below == nH_above
+                nMg = nMg_below # since we always start from nMg=0 and go up
+                    
+            pseudoisomers[nH, nMg] = self.ConvertPseudoisomerEntry(pdata, nH, nMg)
+            pseudoisomers[nH, nMg].ref = ref
             
-            if (nH_above, nMg_above) not in pseudoisomers:
-                pseudoisomers[nH_above, nMg_above] = \
-                    self.ConvertPseudoisomerEntry(pdata, nH_above, nMg_above)
-
-            if (nH_below, nMg_below) not in pseudoisomers:
-                pseudoisomers[nH_below, nMg_below] = \
-                    self.ConvertPseudoisomerEntry(pdata, nH_below, nMg_below)
-        
         return pseudoisomers.values()
 
     def GetTransformedDeltaGs(self, pH, I, pMg, T, nH=None):
@@ -521,7 +530,8 @@ class DissociationTable(object):
         pmap = PseudoisomerMap()
         for pdata in self.GenerateAll():
             pmap.Add(nH=pdata.hydrogens, z=pdata.net_charge, 
-                     nMg=pdata.magnesiums, dG0=pdata.dG0)
+                     nMg=pdata.magnesiums, dG0=pdata.dG0,
+                     ref=pdata.ref)
         return pmap
 
 ###############################################################################

@@ -1,4 +1,4 @@
-cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
+cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 2,ATP,-2811.48,-3612.91,-3,13,0,train,"Alberty (2003)",
 8,ADP,-1947.1,-2620.94,-2,13,0,train,"Alberty (2003)",
 20,AMP,-1040.45,-1635.37,-2,12,0,train,"Alberty (2003)",
@@ -22,7 +22,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 82,L-Tyrosine,-370.7,,0,11,0,train,"Alberty (2003)",
 84,Acetaldehyde,-139,-212.23,0,4,0,train,"Alberty (2003)",
 85,D-Fructose-6-phosphate,-1760.8,-2265.17,-2,11,0,train,"Alberty (2003)",
-87,sulfur,0,0,0,0,0,test,,"element"
+87,sulfur,0,0,0,0,0,test,"Element",
 89,Sucrose,-1564.7,-2199.87,0,22,0,train,"Alberty (2003)",
 92,Glucose-6-phosphate,-1763.94,-2276.44,-2,11,0,train,"Alberty (2003)",
 93,sn-Glycerol-3-phosphate,-1358.96,-1724.59,-2,7,0,train,"Alberty (2003)",
@@ -40,7 +40,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 124,D-Galactose,-908.93,-1255.2,0,12,0,train,"Alberty (2003)",
 147,Adenine,310.67,,0,5,0,train,"Alberty (2003)",
 149,L-Malate,-842.66,,-2,4,0,train,"Alberty (2003)",
-150,molybdenum,0,0,0,0,0,test,,"element"
+150,molybdenum,0,0,0,0,0,test,"Element",
 152,L-Asparagine,-525.93,-766.09,0,8,0,train,"Alberty (2003)",
 158,Citrate,-1162.69,-1515.11,-3,5,0,train,"Alberty (2003)",
 159,D-Mannose,-910,-1258.66,0,12,0,train,"Alberty (2003)",
@@ -125,9 +125,9 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",ref,remark
 11,CO2(aq),-386.02,,0,0,0,test,"Thauer (1977)","too small"
 13,pyrophosphate,-1973.86,-2294.87,-3,1,0,test,"Alberty (2003)","too small"
 14,NH3,-26.5,-80.29,0,3,0,test,"Alberty (2003)","too small"
-23,iron,0,0,0,0,0,test,,"element"
+23,iron,0,0,0,0,0,test,"Element",
 27,H2O2(aq),-134.03,-191.17,0,2,0,test,"Alberty (2003)","too small"
-34,Manganese,0,0,0,0,0,test,,"element"
+34,Manganese,0,0,0,0,0,test,"Element",
 58,Formate,-351,-425.55,-1,1,0,test,"Alberty (2003)","too small"
 59,Sulfate,-744.53,-909.27,-2,0,0,test,"Alberty (2006)","too small"
 67,Formaldehyde,-130.54,,0,2,0,test,"Thauer (1977)","too small"
