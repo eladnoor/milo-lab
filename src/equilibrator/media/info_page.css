@@ -4,6 +4,11 @@ body {
   font-family: helevetica;
 }
 
+a {
+  color: #0066CC;
+  text-decoration: none;
+}
+
 .logoSmall {
   width: 100%;
   text-align: center;
@@ -41,4 +46,9 @@ body {
 .faqAnswer {
   padding-left: 10px;
   border-left: dashed 1px black;
+}
+
+#footer {
+  margin-top: 50px;
+  text-align: center;
 }
