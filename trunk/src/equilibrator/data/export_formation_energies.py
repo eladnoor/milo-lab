@@ -3,6 +3,7 @@
 import csv
 import sys
 import json
+import logging
 
 from util import django_utils
 from optparse import OptionParser
@@ -36,11 +37,18 @@ def GenFormationEnergyData(pH=constants.DEFAULT_PH,
         dG = compound.DeltaG(pH=pH, ionic_strength=ionic_strength)
         if dG:
             dG = round(dG, 3)
+        
+        if dG is not None and not compound.dg_source:
+            logging.error('%s has a dg but no source' % compound)
+            
         d = {KEGG_ID: compound.kegg_id,
              NAME: compound.FirstName(),
              FORMATION: dG,
              INCHI: compound.inchi,
-             SOURCE: compound.dg_source.name}
+             SOURCE: None}
+        if dG is not None:
+            d[SOURCE] = compound.dg_source.name
+        
         dicts.append(d)
     return dicts
 
@@ -53,32 +61,41 @@ def MakeOpts():
     opt_parser.add_option("-i", "--ionic_strength", dest="ionic_strength",
                           type="float", default=constants.DEFAULT_IONIC_STRENGTH,
                           help="The ionic strength, M")
-    opt_parser.add_option("-c", "--output_csv", dest="output_csv",
-                          type="string", default="formation_energies.csv",
+    opt_parser.add_option("-c", "--output_name", dest="output_name",
+                          type="string", default="compound_formation_energies",
                           help="The name of the file to write csv output to.")
-    opt_parser.add_option("-j", "--output_json", dest="output_json",
-                          type="string", default="formation_energies.json",
-                          help="The name of the file to write json output to.")
     return opt_parser
+
+
+def WriteHeader(dict_writer, row_order=ROW_ORDER):
+    """writeheader() is new in Python 2.7"""
+    if hasattr(dict_writer, 'writeheader'):
+        dict_writer.writeheader()
+    else:
+        dict_writer.writer.writerow(ROW_ORDER)
 
 
 def main():
     options, _ = MakeOpts().parse_args(sys.argv)
     print 'Using pH = %.2f and ionic strength = %.3f' % (options.pH,
                                                          options.ionic_strength)
-    print 'Will write csv output to %s' % options.output_csv
-    print 'Will write json output to %s' % options.output_json
+    output_name = '%s_pH%.2f_is%.3f' % (options.output_name, options.pH,
+                                    options.ionic_strength)
+    output_tsv_name = output_name + '.tsv'
+    output_json_name = output_name + '.json'
+    print 'Will write tsv output to %s' % output_tsv_name
+    print 'Will write json output to %s' % output_json_name
 
     dicts = GenFormationEnergyData(pH=options.pH,
                                    ionic_strength=options.ionic_strength)
     sorted_data = sorted(dicts, key=lambda x: (x[KEGG_ID], x[SOURCE]))
-    csv_file = open(options.output_csv, 'w')
-    writer = csv.DictWriter(csv_file, ROW_ORDER)
-    writer.writeheader()
+    csv_file = open(output_tsv_name, 'w')
+    writer = csv.DictWriter(csv_file, ROW_ORDER, dialect=csv.excel_tab)
+    WriteHeader(writer, ROW_ORDER)
     writer.writerows(sorted_data)
     csv_file.close()
     
-    json_file = open(options.output_json, 'w')
+    json_file = open(output_json_name, 'w')
     json.dump(sorted_data, json_file, sort_keys=True, indent=4)
     json_file.close()
     

@@ -8,13 +8,54 @@
 	<body>
 		<div class="container">
 			<div class="logoSmall"><a href="/"><img src="/media/images/equilibrator_logo_small.png" /></a></div>
-			<div class="section about">
-				<div class="title">Download eQuilibrator<sub>&beta;</sub> Data</div>
-        
-        <p>eQuilibrator data is available for download in several forms and formats. </p>
+      <div class="title">Download eQuilibrator<sub>&beta;</sub> Data</div>
 
-        <p></p>
+			<div class="section">
+        <div class="title">Formats</div>
+        
+        <p>eQuilibrator data is available for download in several formats. 
+          <ul>
+            <li>
+            JSON: the <a href="http://www.json.org">JavaScript Object Notation</a> format is a
+            lightly structured hierarchical format that is easily parsed in most programming languages.
+            </li>
+            <li>
+            TSV: Tab-Separated Value format is a flat format that is mostly unstructured, easy to parse
+            and easy to view in Excel and other spreadsheet programs. We use the
+            <a href="http://www.semanticsbml.org/semanticSBML/default/sbtab_handling">SBTab</a> dialect of 
+            TSV which helps provide some structure.
+            </li>
+          </ul>
+        </p>
+
 			</div>
+			
+			<div class="section">
+        <div class="title">Compound Formation Energies</div>
+        
+        <p>
+        The standard formation energies of biochemical compounds are available for downlaod in varying pH
+        and ionic strength levels. These can be used to compute reaction equilibrium constants and free energies
+        for various reactant concentrations.
+        </p>
+
+      </div>
+
+      <div class="section">
+        <div class="title">Reaction Energies</div>
+        
+        <p>
+        The standard change in Gibb's free energies of biochemical reactions are available for downlaod in varying pH
+        and ionic strength levels. Apparent equilibrium constants are also given for those conditions.
+        </p>
+
+      </div>
+      
+      <div class="section">
+        <div class="title">Pseudoisomer Formation Energies</div>
+
+      </div>
+
 			
     <div id="footer">
     {% include "about_links.html" %}
