@@ -8,19 +8,22 @@ django_utils.SetupDjango()
 
 from gibbs import models
 
+BASE_URL = 'http://equilibrator.weizmann.ac.il'
+LINK_FORMAT = BASE_URL + '%s\n'
+
 def main():
-    urls = ['http://milolab.webfactional.com/\n',
-            'http://milolab.webfactional.com/faq\n',
-            'http://milolab.webfactional.com/about\n']
+    urls = [BASE_URL + '/\n',
+            BASE_URL + '/faq\n',
+            BASE_URL + '/about\n']
     
     for compound in models.Compound.objects.all():
-        urls.append('http://milolab.webfactional.com%s\n' % compound.link)
+        urls.append(LINK_FORMAT % compound.link)
         
     for reaction in models.StoredReaction.objects.all():
-        urls.append('http://milolab.webfactional.com%s\n' % reaction.link)
+        urls.append(LINK_FORMAT % reaction.link)
     
     for enzyme in models.Enzyme.objects.all():
-        urls.append('http://milolab.webfactional.com%s\n' % enzyme.link)
+        urls.append(LINK_FORMAT % enzyme.link)
     
     
     f = open('sitemap.txt', 'w')
