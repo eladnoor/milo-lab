@@ -61,7 +61,7 @@ def MakeOpts():
     opt_parser.add_option("-i", "--ionic_strength", dest="ionic_strength",
                           type="float", default=constants.DEFAULT_IONIC_STRENGTH,
                           help="The ionic strength, M")
-    opt_parser.add_option("-c", "--output_name", dest="output_name",
+    opt_parser.add_option("-o", "--output_name", dest="output_name",
                           type="string", default="compound_formation_energies",
                           help="The name of the file to write csv output to.")
     return opt_parser
