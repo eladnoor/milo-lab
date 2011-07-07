@@ -785,7 +785,7 @@ class GroupContribution(Thermodynamics):
             dG0 = self.group_contributions[i]
             name2group_list.setdefault(group.name, []).append((group, dG0))
         
-        for name, group_list in name2group_list.iteritems():
+        for _name, group_list in name2group_list.iteritems():
             if len(group_list) > 1:
                 print '-' * 50
                 for group, dG0 in group_list:

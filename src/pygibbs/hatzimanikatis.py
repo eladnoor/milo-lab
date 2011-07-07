@@ -1,16 +1,17 @@
-from pylab import arange
-from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
-from thermodynamic_constants import J_per_cal
-import pseudoisomer
 import csv, sys
+import numpy as np
+from matplotlib import pyplot
+
+from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
+from pygibbs.thermodynamic_constants import J_per_cal
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamic_constants import R
-import pylab
 from toolbox.database import SqliteDatabase
 from pygibbs.pseudoisomer import PseudoisomerMap
 from toolbox.util import _mkdir
 from pygibbs.kegg_reaction import Reaction
+from toolbox.linear_regression import LinearRegression
 
 HATZI_CSV_FNAME = "../data/thermodynamics/hatzimanikatis_cid.csv"
 
@@ -35,7 +36,7 @@ class Hatzi (Thermodynamics):
 
         # for some reason, Hatzimanikatis doesn't indicate that H+ is zero,
         # so we add it here
-        H_pmap = pseudoisomer.PseudoisomerMap()
+        H_pmap = PseudoisomerMap()
         H_pmap.Add(0, 0, 0, 0)
         self.SetPseudoisomerMap(80, H_pmap)
 
@@ -90,7 +91,7 @@ class Hatzi (Thermodynamics):
             else:
                 nH = diss_table.min_nH + (charge - diss_table.min_charge)
             
-            dG0_hplus = -R * self.T * pylab.log(10) * self.Hatzi_pH
+            dG0_hplus = -R * self.T * np.log(10) * self.Hatzi_pH
             dG0_tag -= nH*dG0_hplus
             
             diss_table.SetTransformedFormationEnergy(
@@ -99,7 +100,7 @@ class Hatzi (Thermodynamics):
             
             return diss_table.GetPseudoisomerMap()
         else:
-            pmap = pseudoisomer.PseudoisomerMap()
+            pmap = PseudoisomerMap()
             pmap.Add(nH=charge, z=charge, nMg=0, dG0=dG0_tag)
             return pmap
 
@@ -125,7 +126,60 @@ class Hatzi (Thermodynamics):
     def get_all_cids(self):
         return sorted(self.cid2dG0_tag_dict.keys())
         
+
+def TestGroupMatrix():
+    group_filename = '../data/thermodynamics/hatzimanikatis_groups.csv'
+    all_group_names = []
+    sparse_matrix = []
+    dG_vector = []
+    line_no = 0
+    for row in csv.DictReader(open(group_filename)):
+        line_no += 1
+        if row['est_dG'] == "None":
+            continue
+        dG_vector.append(float(row['est_dG']))
+
+        sparse_groupvec = []
+        if row['groups'] != "":
+            for token in row['groups'].split(' | '):
+                try:
+                    [group_name, coeff] = token.split(' : ', 1)
+                except ValueError:
+                    raise Exception("cannot parse this token (line %d): %s\n" % 
+                                    (line_no, token))
+                coeff = float(coeff)
+                if group_name not in all_group_names:
+                    all_group_names.append(group_name)
+                group_index = all_group_names.index(group_name)
+                sparse_groupvec.append((group_index, coeff))
+        sparse_matrix.append(sparse_groupvec)
+        
+    full_matrix = np.zeros((len(sparse_matrix), len(all_group_names)))
+    for i in range(len(sparse_matrix)):
+        for j, coeff in sparse_matrix[i]:
+            full_matrix[i, j] = coeff
+    dG_vector = np.array(dG_vector, ndmin=2).T
+    
+    #print full_matrix.shape
+    #print LinearRegression.Rank(full_matrix)
+    #print dG_vector.shape
+    
+    #augmented_matrix = np.hstack([full_matrix, dG_vector])
+    #_U, s, _V = np.linalg.svd(augmented_matrix, full_matrices=False)
+    #print sorted(s)
+    
+    contributions, _K = LinearRegression.LeastSquares(full_matrix, dG_vector)
+    for i, group_name in enumerate(all_group_names):
+        print "%s,%.3f" % (group_name, contributions[i, 0])
+        
+    pyplot.plot(dG_vector, dG_vector-np.dot(full_matrix, contributions), '.')
+    pyplot.show()
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        TestGroupMatrix()
+        sys.exit(0)
+    
     _mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     H_nopka = Hatzi()
@@ -152,7 +206,7 @@ if __name__ == "__main__":
     print react.FullReactionString()
     
     sys.stdout.write("%5s | %5s | %6s | %6s\n" % ("pH", "I", "T", "dG0_r"))
-    for pH in arange(5, 10.01, 0.25):
+    for pH in np.arange(5, 10.01, 0.25):
         H.pH = pH
         sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f\n" % 
                          (H.pH, H.I, H.T, react.PredictReactionEnergy(H)))

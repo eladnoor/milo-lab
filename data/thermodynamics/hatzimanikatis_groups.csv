@@ -1,0 +1,1355 @@
+"groups","est_dG"
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | OCCC : 1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",3.67
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C=O : 1",2.30
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ethanol : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | acetaldehyde : 1",5.78
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | Origin : -1 | heteroaromatic : -1 | >CH- : -1 | -CH3 : -2 | ring -CH2- : 1 | NADH : 1 | H : 1 | acetone : 1",0.94
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | OCCC : 1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",3.67
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",5.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",5.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring -CH< : 3 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -4 | ring -CH2- : 2 | NADH : 1 | H : 1 | ring >C< : 1",3.57
+"ring -N< : 1 | ring -CH< : 4 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -5 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C< : 1",1.77
+"ring -N< : 1 | ring -CH< : 3 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -4 | ring -CH2- : 2 | NADH : 1 | H : 1 | ring >C< : 1",3.57
+"ring -N< : 1 | ring -CH< : 2 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -3 | ring -CH2- : 2 | NADH : 1 | H : 1 | ring >C< : 1",3.81
+"ring -N< : 1 | ring -CH< : 3 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -4 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C< : 1",2.01
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring -CH< : 2 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -3 | ring -CH2- : 2 | NADH : 1 | H : 1 | ring >C< : 1",3.81
+"ring -CH< : 2 | ring -N< : 1 | ring -O- : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -3 | ring -CH2- : 2 | NADH : 1 | H : 1 | ring >C< : 1",3.81
+"ring -N< : 1 | ring -CH< : 2 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -3 | ring -CH2- : 2 | NADH : 1 | H : 1 | ring >C< : 1",3.81
+"ring -N< : 1 | ring -CH< : 3 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -4 | ring -CH2- : 2 | NADH : 1 | H : 1 | ring >C< : 1",3.57
+"ring -N< : 1 | ring -CH< : 3 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -4 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C< : 1",2.01
+"ring -N< : 1 | ring -CH< : 3 | ring =CH- : -1 | ring -O- : 1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -4 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C< : 1",2.01
+"ring -CH< : 4 | ring -N< : 1 | ring -O- : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -2 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -3 | ring -CH2- : 2 | NADH : 1 | H : 1",4.70
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C=O : 1",2.30
+"ring -CH< : -1 | ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C=O : 1",2.30
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | -CH=O : 1 | OCCO : 1 | H : 1",7.68
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | H : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | H : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",5.22
+"ring =CH- : -1 | ring =N- : -1 | -OH : -1 | >C=O : 1 | heteroaromatic : -3 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | ring -NH- : 1 | CCCN : 1 | CCNC : 3",5.31
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | H : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | OCCC : 2 | heteroaromatic : -1 | >CH- : -2 | ring -CH2- : 1 | NADH : 1 | H : 1 | =C< : 2",13.88
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | H : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -CH2- : 1 | dbl sgl ring =N< : -1 | >C=O : -1 | heteroaromatic : -1 | >C< : 1 | >CH- : -1 | -CH3 : -1 | -S- : -1 | thioester : -1 | H2O : -1 | -COO : 1 | ring -CH2- : 1 | NADH : 1 | -SH : 1 | COA : 1 | H : 2",-2.71
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | H2O : -1 | >CH- : -1 | -COO : -1 | ring -CH2- : 1 | NADH : 1 | -CH3 : 1 | OCCO : 1 | H : 1 | HCO3 : 1",0.48
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | H2O : -1 | >CH- : -1 | -COO : -1 | ring -CH2- : 1 | NADH : 1 | -CH3 : 1 | OCCO : 1 | H : 1 | HCO3 : 1",0.48
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : 1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -2 | -COO : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | H : 1 | HCO3 : 1",2.29
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : 1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -2 | -COO : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | HCO3 : 1",-0.17
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | ring -O- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring -O-CO- : 1",-2.00
+"ring -N< : 1 | ring -CH< : -2 | ring =CH- : -1 | ring -O- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring -O-CO- : 1 | >CH- : 1",-1.76
+"ring -CH< : -1 | ring -N< : 1 | ring -O- : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring -O-CO- : 1",-2.00
+"ring -CH< : -5 | ring -N< : 1 | ring -O- : -1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | H : 2 | >CH- : 4 | -COO : 1",-7.48
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | ring >C=O : 1 | NADH : 1 | H : 1",2.30
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C=O : 1",2.30
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C=O : 1",2.30
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | ring >C=O : 1 | NADH : 1 | H : 1",2.30
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | OCCC : 1 | heteroaromatic : -1 | ring -CH2- : 1 | ring >C=O : 1 | NADH : 1 | H : 1",0.75
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",5.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",5.22
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C=O : 1",2.30
+"ring -CH< : 3 | ring -N< : 1 | ring -O- : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -4 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C< : 1",2.01
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",5.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | -CH=O : 1 | OCCO : 1 | H : 1",7.68
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | OCCC : 1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",3.67
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+"ring -CH< : -1 | ring -N< : 1 | ring -O- : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring -O-CO- : 1",-2.00
+"ring -CH< : -3 | ring -N< : 1 | ring -O- : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 2 | heteroaromatic : -1 | ring >C< : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | >CH- : 2",5.51
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1",3.76
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | OCCC : 1 | heteroaromatic : -1 | ring -CH2- : 1 | >CH- : -1 | NADH : 1 | H : 1",2.21
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | OCCC : 1 | heteroaromatic : -1 | ring -CH2- : 1 | >CH- : -1 | NADH : 1 | H : 1",2.21
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1 | OCCO : 1",7.68
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | ring -CH2- : 1 | >CH- : -1 | NADH : 1 | H : 1 | OCCN : 1",0.74
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | OCCC : 1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -CH=O : 1",3.67
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | H : 1",6.22
+"ring -N< : 1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | OCCO : 1",6.22
+,0.00
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | formate : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | HCO3 : 1",-3.93
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | -CH3 : 1 | -SH : -1 | COA : -1 | acetaldehyde : -1 | ring -CH2- : 1 | NADH : 1 | -S- : 1 | thioester : 1 | H : 1",-4.70
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | orthophosphate : -1 | -CH=O : -1 | ring -CH2- : 1 | NADH : 1 | -CO-OPO3- : 1",-0.36
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | orthophosphate : -1 | -CH=O : -1 | ring -CH2- : 1 | NADH : 1 | -CO-OPO3- : 1",-0.36
+"ring -N< : 1 | ring =CH- : -1 | -OPO2- : 1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | orthophosphate : -1 | -CH=O : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -COO : 1",-2.99
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | Origin : -1 | heteroaromatic : -1 | -SH : -1 | COA : -1 | -CH=O : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | -S- : 1 | thioester : 1",-4.05
+"ring >C= : -1 | =N- : -1 | OCCC : 1 | CCCN : -2 | CCNC : -1 | ring -CH< : 1 | -CH2- : -2 | -NH- : 1 | =CH- : 2",-1.47
+"two fused rings >C= : -2 | ring =CH- : -3 | ring =N- : -1 | ring >C=O : -1 | aromatic ring fused to nonaromatic ring >C=  : 2 | aromatic ring =CH- : 3 | OCCN : -1 | CCCN : -1 | CCNC : -1 | CCCC : -1 | -OH : 1 | -CH2- : -2 | =CH- : 2 | ring -NH- : 1 | aromatic ring =C< : 1",2.60
+"ring -N< : 1 | ring -CH< : -1 | ring =C< : 1 | dbl sgl ring =N< : -1 | OCCC : 2 | heteroaromatic : -1 | NADH : 1 | H : 1",4.78
+"ring -CH2- : -1 | amide : 1 | ring -NH- : 1 | ring =N- : -1 | OCCN : -1 | OCNC : -1 | ring =CH- : 1 | OCCC : 2",-7.09
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | -NH3 : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | NH4 : 1 | OCCO : 1 | H : 1",8.69
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | -NH3 : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | NH4 : 1 | OCCO : 1 | H : 1",8.69
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | -NH3 : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | NH4 : 1 | OCCO : 1 | H : 1",8.69
+"ring -N< : 1 | ring =CH- : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | -NH3 : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | NH4 : 1 | -CH=O : 1 | OCCO : 1 | H : 1",10.15
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | >CH- : -1 | -NH3 : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | NH4 : 1 | H : 1",6.23
+"-COO : -1 | -CH2- : 2 | Origin : -1 | ring -CH< : -1 | ring -CH2- : -2 | ring -S- : -2 | H2O : -1 | >CH- : 1 | -S- : 1 | -SH : 1 | HCO3 : 1",3.23
+"ring -CH< : -1 | ring -N< : 1 | ring =CH- : -1 | ring =N- : 1 | ring =C< : 1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | ring -NH- : -1 | NADH : 1 | H : 1 | OCCN : 1",-2.43
+"ring -CH2- : -1 | ring =C< : -1 | CCNC : -2 | ring =CH- : 1 | heteroaromatic : 1 | ring -CH< : 1",-3.53
+"ring -CH< : -1 | ring -N< : 1 | ring =CH- : -1 | ring =N- : 1 | ring =C< : 1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | ring -NH- : -1 | CCNC : 1 | NADH : 1 | H : 1",0.59
+"ring -N< : 1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | two fused rings -N< : -1 | CCNC : 1 | NADH : 1 | two fused rings =N< : 1",1.92
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | Origin : 1 | heteroaromatic : -1 | >CH- : -1 | -NH2- : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | -NH3 : 1 | H : 1",9.21
+"ring -N< : 1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | two fused rings -N< : -1 | CCNC : 1 | NADH : 1 | two fused rings =N< : 1",1.92
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | Origin : 1 | heteroaromatic : -1 | >CH- : -1 | -NH2- : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | H : 1 | -NH3 : 1",9.21
+"ring -N< : 1 | ring =CH- : -1 | -CH2- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | Origin : 1 | heteroaromatic : -1 | -NH< : -1 | H2O : -1 | ring -CH2- : 1 | NADH : 1 | OCCO : 1 | -NH3 : 1 | H : 1",3.12
+,0.00
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | Origin : -1 | heteroaromatic : -1 | -SH : -2 | ring -CH2- : 1 | NADH : 1 | H : 1 | -S-S- : 1",2.92
+"ring -CH< : 2 | ring -N< : 1 | ring =CH- : -1 | -CH2- : -2 | dbl sgl ring =N< : -1 | >C=O : -1 | heteroaromatic : -1 | >CH- : -2 | -SH : -2 | -NH- : -1 | ring -CH2- : 3 | NADH : 1 | H : 1 | ring >C=O : 1 | ring -S- : 2 | ring -NH- : 1",-4.71
+"-CH2- : -1 | ring =N- : -2 | -CH3 : -1 | ring -CH< : -1 | amide : 1 | ring -NH- : 2 | OCCN : -1 | OCNC : -1 | NCCN : -1 | CCNC : -1 | ring -CH2- : 2 | -NH- : -1 | OCCC : 1 | two fused rings -N< : 1 | two fused rings >CH- : 1",-0.76
+"ring -N< : 1 | ring -CH< : 1 | ring =CH- : -1 | -CH2- : -2 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -1 | -SH : -2 | ring -CH2- : 3 | NADH : 1 | H : 1 | ring -S- : 2",1.55
+"ring -N< : 1 | ring -CH< : 1 | ring =CH- : -1 | -CH2- : -2 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | >CH- : -1 | -SH : -2 | ring -CH2- : 3 | NADH : 1 | H : 1 | ring -S- : 2",1.55
+"COA : -1",0.00
+"H2O2 : -1 | -Sneg : -1 | -S-OH : 1 | H2O : 1",-4.94
+"-CH2- : -1 | acetaldehyde : -1 | >CH- : 2 | -CH3 : 1 | -OH : 1",-3.21
+"formaldehyde : -1 | >CH- : 1 | -OH : 1",-5.22
+"-CH2- : 1 | two fused rings -N< : -1 | two fused rings >CH- : -1 | ring -CH2- : -2 | ring -N< : -1 | ring -NH- : 1 | >CH- : 1 | -NH- : 1 | H2O : -1 | -OH : 1 | ring -CH< : 1",-0.05
+"-CH2- : 1 | ring -CH2- : -2 | two fused rings >CH- : -1 | ring -N< : -1 | two fused rings -N< : -1 | ring -NH- : 2 | ring =N- : -1 | ring =C< : -1 | >CH- : 1 | -NH- : 1 | OCCC : 1 | heteroaromatic : -1 | H2O : -1 | ring -CH< : 1 | ring >C=O : 1 | OCNC : 1",2.06
+"-NH3 : -1 | ring -N< : -1 | ring -NH- : 1 | =NH : -1 | -NH- : 1 | =NH2 : 1",-0.07
+"-NH3 : -1 | ring -N< : -1 | ring -NH- : 1 | =NH : -1 | -NH- : 1 | =NH2 : 1",-0.07
+">C< : -1 | -CH2- : -2 | -OH : -1 | -NH- : -1 | >CH- : 1 | ring -CH2- : 2 | ring -NH- : -1 | ring -CH< : -1 | two fused rings -N< : 1 | two fused rings >CH- : 1 | ring -N< : 1 | H2O : 1",1.47
+">C< : -1 | -CH2- : -1 | -OH : -1 | formaldehyde : 1 | >CH- : 1",6.64
+">C< : -1 | -CH2- : -2 | -OH : -1 | -NH- : -1 | >CH- : 1 | ring -CH2- : 2 | ring -NH- : -1 | ring -CH< : -1 | two fused rings -N< : 1 | two fused rings >CH- : 1 | ring -N< : 1 | H2O : 1",1.47
+">C< : -1 | -CH2- : -1 | -OH : -1 | formaldehyde : 1 | >CH- : 1",6.64
+"-CH2- : -2 | >CH- : 1 | -CH3 : 1",-1.81
+"-CO-OPO3- : -1 | amide : 1 | Origin : -1 | -NH3 : -1 | orthophosphate : 1 | H : 2 | >C=O : 1 | -NH- : 1",-8.98
+,0.00
+"ring -CH< : -3 | ring -O- : -1 | ring >C< : -1 | >CH- : 3 | >C=O : 1",1.75
+"ring -CH< : -3 | ring -O- : -1 | ring >C< : -1 | >CH- : 3 | >C=O : 1",1.75
+">CH- : -3 | -CH=O : -1 | ring -CH< : 4 | ring -O- : 1",-2.08
+,0.00
+">CH- : -3 | >C=O : -1 | ring -CH< : 3 | ring -O- : 1 | ring >C< : 1",-1.75
+"-CO-OPO3- : -1 | Origin : -1 | ring -NH- : -1 | orthophosphate : 1 | H : 1 | >C=O : 1 | amide : 1 | ring -N< : 1",-0.28
+"-OH : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | -O-CO- : 1",-3.61
+"-OH : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | -O-CO- : 1",-3.61
+"-OH : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | -O-CO- : 1",-3.61
+"-OH : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | -O-CO- : 1",-3.61
+"orthophosphate : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | Origin : 1 | H : -1 | -SH : 1 | COA : 1 | -CO-OPO3- : 1",3.69
+"orthophosphate : -1 | H : -1 | -CH=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | formylphosphate : 1",1.13
+"orthophosphate : -1 | >C=O : -1 | -COO : -1 | OCCO : -1 | H : -1 | formate : 1 | -CO-OPO3- : 1",-1.36
+"-OPO2- : -1 | -CH3 : 1 | >C=O : 1 | -SH : -1 | COA : -1 | acetate : -1 | orthophosphate : 1 | -S- : 1 | thioester : 1",0.48
+"-CH2- : 1 | -CH3 : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1",7.06
+"-OH : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | -O-CO- : 1",-3.61
+"-OH : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | -O-CO- : 1",-3.61
+,0.00
+"COA : 1",0.00
+"COA : 1",0.00
+"orthophosphate : -1 | H : -1 | -O- : -1 | -OH : 1 | Origin : 1 | -OPO3 : 1",-0.80
+"orthophosphate : -1 | H : -1 | -O- : -1 | -OH : 1 | Origin : 1 | -OPO3 : 1",-0.80
+,0.00
+"-OH : -1 | -OPO3- : -1 | -O- : 1 | -OPO3 : 1",-1.70
+"-OH : -1 | -OPO3- : -1 | -OPO3 : 1 | -O- : 1",-1.70
+"-OH : -1 | -OPO3- : -1 | -OPO3 : 1 | -O- : 1",-1.70
+"-OH : -1 | -OPO3- : -1 | -OPO3 : 1 | -O- : 1",-1.70
+"Origin : 1",0.00
+"Origin : 1",0.00
+"Origin : 1",0.00
+"orthophosphate : -1 | H : -1 | -O- : -1 | -OH : 1 | Origin : 1 | -OPO3 : 1",-0.80
+"orthophosphate : -1 | H : -1 | -O- : -1 | -OH : 1 | Origin : 1 | -OPO3 : 1",-0.80
+"orthophosphate : -1 | H : -1 | -O- : -1 | -OH : 1 | Origin : 1 | -OPO3 : 1",-0.80
+"orthophosphate : -1 | H : -1 | -O- : -1 | -OH : 1 | Origin : 1 | -OPO3 : 1",-0.80
+"orthophosphate : -1 | H : -1 | -OH : 1 | ring -CH< : 5 | -O- : -1 | ring -O- : 1 | -CH=O : -1 | >CH- : -4 | Origin : 1 | -OPO3 : 1",-3.12
+"orthophosphate : -1 | H : -1 | -O- : -1 | -OH : 1 | Origin : 1 | -OPO3 : 1",-0.80
+,0.00
+"-OH : -1 | -OPO3- : -1 | -O- : 1 | -OPO3 : 1",-1.70
+"orthophosphate : -1 | H : -1 | ring -N< : -1 | Origin : 1 | ring -NH- : 1 | -OPO3 : 1",1.58
+"orthophosphate : -1 | H : -1 | ring -N< : -1 | ring -NH- : 1 | Origin : 1 | -OPO3 : 1",1.58
+"orthophosphate : -1 | H : -1 | ring -N< : -1 | ring -NH- : 1 | Origin : 1 | -OPO3 : 1",1.58
+"orthophosphate : -1 | H : -1 | ring -N< : -1 | ring -NH- : 1 | Origin : 1 | -OPO3 : 1",1.58
+"ring =N- : -1 | Origin : -1 | -OPO3 : -1 | orthophosphate : 1 | dbl sgl ring =N< : 1",1.36
+"orthophosphate : -1 | H : -1 | ring -N< : -1 | ring -NH- : 1 | Origin : 1 | -OPO3 : 1",1.58
+"orthophosphate : -1 | H : -1 | ring -N< : -1 | ring -NH- : 1 | Origin : 1 | -OPO3 : 1",1.58
+"-OPO2- : -1 | -OPO3 : -1 | Origin : -1 | ring -NH- : -1 | pyrophosphate : 1 | ring -N< : 1",-3.01
+"-OPO2- : -1 | -OPO3 : -1 | Origin : -1 | ring -NH- : -1 | pyrophosphate : 1 | ring -N< : 1",-3.01
+,0.00
+"-OPO2- : -1 | -OPO3 : -1 | Origin : -1 | ring -NH- : -1 | pyrophosphate : 1 | ring -N< : 1",-3.01
+"-OPO2- : -1 | -OPO3 : -1 | Origin : -1 | ring -NH- : -1 | pyrophosphate : 1 | ring -N< : 1",-3.01
+"pyrophosphate : -1 | -OPO3 : 1 | ring -N< : -1 | ring -NH- : 1 | Origin : 1 | -OPO2- : 1",3.01
+"orthophosphate : -1 | H : -1 | ring -N< : -1 | ring -NH- : 1 | Origin : 1 | -OPO3 : 1",1.58
+"dbl sgl ring =N< : -1 | ring =N- : 1 | -NH2 : -1 | H : 1 | -NH- : 1",-10.40
+,0.00
+"-OH : -1 | Origin : -1 | -OPO3 : -1 | orthophosphate : 1 | H : 1 | -O- : 1",0.80
+">CH- : 1 | -CH2- : 1 | -SH : -1 | Origin : -1 | =CH- : -2 | OCCC : -1 | -S- : 1",-7.84
+">CH- : 1 | -CH2- : 1 | -SH : -1 | Origin : -1 | =CH- : -2 | OCCC : -1 | -S- : 1",-7.84
+">CH- : 1 | -CH2- : 1 | -SH : -1 | Origin : -1 | =CH- : -2 | OCCC : -1 | -S- : 1",-7.84
+">CH- : 1 | -CH2- : 1 | -SH : -1 | Origin : -1 | =CH- : -2 | OCCC : -1 | -S- : 1",-7.84
+">CH- : 1 | -CH2- : 1 | -SH : -1 | Origin : -1 | =CH- : -2 | OCCC : -1 | CCCC : -1 | -S- : 1",-3.02
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+">CH- : -1 | -CH2- : 1 | -CH=O : -1 | >C=O : 1 | OCCO : 1",1.00
+">C=O : -1 | OCCO : -1 | ring -CH< : -1 | ring >C=O : 1 | >CH- : 1",-3.92
+">C=O : -1 | -CH2- : -1 | -CH=O : 1 | >CH- : 1",1.46
+,0.00
+,0.00
+,0.00
+"-OH : -1 | -OPO2- : -1 | -OPO3 : 1",-4.50
+"-OH : -1 | -OPO2- : -1 | -OPO3 : 1",-4.50
+"-OH : -1 | -OPO3 : 1 | -OPO2- : -1",-4.50
+"-OH : -1 | -OPO2- : -1 | -OPO3 : 1",-4.50
+"-OH : -1 | -OPO2- : -1 | -OPO3 : 1 | COA : 1",-4.50
+"-COO : -1 | H : -1 | -OPO2- : -1 | -CO-OPO3- : 1",2.63
+">C=O : -1 | -CH3 : -1 | OCCO : -1 | -OPO2- : -1 | -OPO3 : 1 | =C< : 1 | =CH2 : 1 | OCCC : 1",4.61
+">C=O : -1 | -CH3 : -1 | OCCO : -1 | -OPO2- : -1 | -OPO3 : 1 | =C< : 1 | =CH2 : 1 | OCCC : 1",4.61
+"-OH : -1 | -OPO2- : -1 | -OPO3 : 1",-4.50
+"pyrophosphate : -1 | -OH : -1 | orthophosphate : 1 | H : 1 | -OPO3 : 1",-3.07
+"H : -1 | -OPO2- : -1 | Origin : 1 | acetate : -1 | -CO-OPO3- : 1 | -CH3 : 1",4.17
+"H : -1 | -COO : -1 | -OPO2- : -1 | -CO-OPO3- : 1",2.63
+"-COO : -1 | H : -1 | -OPO2- : -1 | -CO-OPO3- : 1",2.63
+"-NH- : 1 | -NH2 : -1 | -OPO2- : -1 | H : 1 | -OPO2 : 1",1.93
+"-NH2 : -1 | -OPO2- : -1 | H : 1 | -NH- : 1 | -OPO2 : 1",1.93
+"ring =NH- : -1 | -OPO2- : -1 | H : 1 | dbl sgl ring =N< : 1 | -OPO2 : 1",2.60
+"-NH- : -1 | -NH2 : 1 | ring =NH- : -1 | dbl sgl ring =N< : 1",0.67
+,0.00
+,0.00
+"-NH- : 1 | -NH2 : -1 | -OPO2- : -1 | H : 1 | -OPO2 : 1",1.93
+"-NH- : 1 | -NH2 : -1 | -OPO2- : -1 | H : 1 | -OPO2 : 1",1.93
+"-NH- : 1 | -NH2 : -1 | -OPO2- : -1 | H : 1 | -OPO2 : 1",1.93
+,0.00
+"H : -1 | ring =N- : -1 | ring =NH- : 1",9.73
+,0.00
+"ring =CH- : 1 | ring -N< : 1 | heteroaromatic : 2 | ring -CH2- : -1 | dbl sgl ring =N< : -1 | NCCN : -2 | CCNC : -2 | H : 1",0.45
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+"-OPO3 : 1 | -OH : -1 | -OPO2- : -1",-4.50
+"-OPO3 : -2 | Origin : -1 | -OPO2- : -1 | -OPO3- : 1 | pyrophosphate : 1",1.07
+"sulfate : -1 | H : -1 | -OPO2- : -1 | -OPO3 : -1 | pyrophosphate : 1 | -SO4 : 1",12.57
+"sulfate : -1 | -OPO2- : -1 | -OPO3 : -1 | H2O : -1 | orthophosphate : 2 | H : 1 | -SO4 : 1",7.18
+"-OH : -1 | Origin : -1 | -OPO2- : -2 | -OPO3 : -1 | pyrophosphate : 1 | -OPO3- : 1",-3.43
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+,0.00
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+"-OPO2- : -1 | -OPO3 : -2 | Origin : -1 | pyrophosphate : 1 | -OPO3- : 1",1.07
+"-OPO3- : -1 | ring -N< : 1 | ring -NH- : -1 | -OPO3 : 1",-4.08
+"orthophosphate : -1 | >C=O : -1 | -CH3 : -1 | OCCO : -1 | H : -1 | -OPO2- : -2 | -OPO3 : 1 | pyrophosphate : 1 | =C< : 1 | =CH2 : 1 | OCCC : 1",3.18
+"ring -N< : -1 | ring =N- : -1 | -OH : -1 | -OPO3 : 1 | -OPO2- : -1 | heteroaromatic : -2 | H : -1 | dbl sgl ring =N< : 1 | ring -NH- : 1 | CCCN : 1 | CCNC : 3",-2.95
+"ring -N< : -1 | ring =N- : -1 | -OH : -1 | -OPO3 : 1 | -OPO2- : -1 | heteroaromatic : -2 | H : -1 | dbl sgl ring =N< : 1 | ring -NH- : 1 | CCCN : 1 | CCNC : 3",-2.95
+,0.00
+"-O-CO- : -1 | -OH : 1 | Origin : 1 | H2O : -1 | H : 1 | -COO : 1",-2.14
+"-O-CO- : -1 | Origin : 1 | H2O : -1 | H : 1 | -COO : 1 | -OH : 1",-2.14
+"-OPO3 : -1 | H2O : -1 | orthophosphate : 1 | H : 1 | -OH : 1",-2.32
+"-OH : 1 | -OPO3 : -1 | H2O : -1 | orthophosphate : 1 | H : 1",-2.32
+"-OPO3 : -1 | -OH : 1 | H2O : -1 | orthophosphate : 1 | H : 1",-2.32
+"-OH : 1 | -OPO3 : -1 | H2O : -1 | orthophosphate : 1 | H : 1",-2.32
+"-OPO3 : -1 | -OH : 1 | H2O : -1 | orthophosphate : 1 | H : 1",-2.32
+"-OPO3 : -1 | -OH : 1 | H2O : -1 | orthophosphate : 1 | H : 1",-2.32
+"-OPO3 : -1 | -OH : 1 | H2O : -1 | orthophosphate : 1 | H : 1",-2.32
+"-OPO3 : -1 | H2O : -1 | orthophosphate : 1 | H : 1 | -OH : 1",-2.32
+"-OPO3 : -1 | H2O : -1 | orthophosphate : 1 | H : 1 | -OH : 1",-2.32
+"pyrophosphate : -1 | H2O : -1 | orthophosphate : 2 | H : 2",-5.39
+"ring -CH< : 2 | two fused rings >CH- : -2 | ring -O- : -1 | ring -OPO2- : -1 | -OH : 1 | H2O : -1 | -OPO3 : 1",-7.73
+"methanol : -1 | ring -CH< : 2 | ring -O- : -1 | -OH : 1 | two fused rings >CH- : -2 | ring -OPO2- : -1 | -OPO3- : 1 | -CH3 : 1",-6.17
+"H2O : -1 | -OH : 2 | -O- : -1 | Origin : 1",-3.11
+"H2O : -1 | -O- : -1 | -OH : 2 | Origin : 1",-3.11
+"ring -N< : -1 | -OH : 1 | Origin : 1 | H2O : -1 | ring -NH- : 1",-0.73
+"ring -N< : -1 | ring =CH- : -1 | dbl sgl ring =N< : 1 | heteroaromatic : -2 | H : -1 | ring -CH2- : 1 | NCCN : 2 | CCNC : 2",-0.45
+,0.00
+"ring -N< : -1 | -OH : 1 | Origin : 1 | H2O : -1 | ring -NH- : 1",-0.73
+"-OH : 1 | -S- : -1 | Origin : 1 | H2O : -1 | -SH : 1",5.67
+"ring -CH< : 2 | ring -O- : -1 | two fused rings >CH- : -2 | -OH : 2 | threemember : -1 | H2O : -1",0.37
+"-NH- : -1 | >C=O : -1 | -COO : 1 | amide : -1 | Origin : 1 | H2O : -1 | -NH3 : 1",-0.46
+"H2O : -1 | -CH2- : -1 | -CH3 : -1 | -O-CO- : -1 | H : 1 | -COO : 1 | ethanol : 1",-2.05
+">C=O : -1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | -COO : 1 | -NH3 : 1",-0.46
+">C=O : -1 | -OH : -1 | amide : -1 | -NH- : -1 | H2O : -1 | H : 1 | hydroxylamine : 1 | -COO : 1",-1.14
+">C=O : -1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | -NH3 : 1 | -COO : 1",-0.46
+">C=O : -1 | amide : -1 | -NH2 : -1 | H2O : -1 | NH4 : 1 | -COO : 1",-4.72
+">C=O : -1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | -COO : 1 | -NH3 : 1",-0.46
+">C=O : -1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | -COO : 1 | -NH3 : 1",-0.46
+"-COO : 1 | >C=O : -1 | -OH : -1 | amide : -1 | -NH- : -1 | H2O : -1 | H : 1 | hydroxylamine : 1",-1.14
+"H : -1 | carbamate : -1 | H2O : -1 | NH4 : 1 | HCO3 : 1",2.69
+"-COO : 1 | >C=O : -1 | -NH2 : 1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | H : 1",-1.70
+">C=O : -1 | -COO : 1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | H : 1 | -NH2 : 1",-1.70
+">C=O : -1 | -COO : 1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | -NH3 : 1",-0.46
+"-COO : 1 | >C=O : -1 | amide : -1 | -NH- : -1 | Origin : 1 | H2O : -1 | -NH3 : 1",-0.46
+"-CH2- : -2 | >C=O : -1 | amide : -1 | -NH- : -1 | H2O : -1 | >CH- : 1 | -NH3 : 1 | acetate : 1",-3.81
+">C=O : -1 | -CH3 : -1 | amide : -1 | -NH- : -1 | H2O : -1 | -NH3 : 1 | acetate : 1",-2.00
+"-CH3 : -1 | >C=O : -1 | amide : -1 | -NH- : -1 | H2O : -1 | -NH3 : 1 | acetate : 1",-2.00
+">C=O : -1 | -CH3 : -1 | amide : -1 | -NH- : -1 | H2O : -1 | -NH3 : 1 | acetate : 1",-2.00
+"-CH3 : -1 | >C=O : -1 | amide : -1 | -NH- : -1 | H2O : -1 | -NH3 : 1 | acetate : 1",-2.00
+"-CH3 : -1 | >C=O : -1 | amide : -1 | -NH- : -1 | H2O : -1 | -NH3 : 1 | acetate : 1",-2.00
+">C=O : -1 | -COO : 1 | -CH3 : -1 | amide : -1 | -NH- : -1 | H2O : -1 | methylamine : 1",-0.11
+"ring -CH< : -1 | ring -CH2- : -1 | -COO : 1 | ring >C=O : -2 | ring -NH- : -2 | H2O : -1 | H : 1 | >CH- : 1 | -CH2- : 1 | >C=O : 1 | -NH- : 1 | -NH2 : 1",-5.28
+"ring -CH< : -1 | ring >C=O : -2 | -COO : 1 | ring -NH- : -2 | H2O : -1 | H : 1 | >CH- : 1 | >C=O : 1 | -NH- : 1 | -NH2 : 1",-3.72
+"ring >C=O : -1 | two fused rings >CH- : -1 | -COO : 1 | two fused rings -N< : -1 | H2O : -1 | H : 1 | >CH- : 1 | ring -NH- : 1",-9.58
+">C=O : -1 | amide : -2 | -NH- : -1 | -NH2 : -1 | H2O : -1 | urea : 1 | -OH : 1",10.95
+"H : -1 | ring =N- : -1 | ring =C< : -1 | -NH2 : -1 | heteroaromatic : -1 | H2O : -1 | NH4 : 1 | ring >C=O : 1 | amide : 1 | ring -NH- : 1 | OCCC : 1 | CCNC : 1",-8.48
+"H : -1 | ring >C=O : 1 | ring =N- : -1 | ring =C< : -1 | -NH2 : -1 | amide : 1 | OCNC : -1 | CCCN : -1 | H2O : -1 | NH4 : 1 | ring -NH- : 1 | OCCC : 1",-5.14
+"H : -1 | ring >C=O : 1 | ring =CH- : 1 | ring =N- : -1 | ring =C< : -2 | -CH3 : -1 | -NH2 : -1 | amide : 1 | OCNC : -1 | CCCN : -1 | H2O : -1 | ring -NH- : 1 | OCCC : 1 | methylamine : 1",4.69
+"two fused rings =N< : -1 | two fused rings >CH- : -1 | ring =CH- : -1 | ring -CH2- : -1 | ring -N< : -1 | ring -NH- : 1 | -CH2- : 1 | amide : 1 | CCNC : -1 | H2O : -1 | H : 1 | ring -CH< : 1 | -CH=O : 1 | -N< : 1",-0.61
+"sulfate : -1 | -OPO2- : -1 | -OPO3 : -1 | H2O : -1 | orthophosphate : 2 | H : 1 | -SO4 : 1",7.18
+"-OPO2- : -1 | H2O : -1 | orthophosphate : 1 | H : 1",-6.82
+">C=O : -1 | -CH2- : -1 | -COO : -1 | OCCO : -1 | -OPO2- : -1 | -OPO3 : 1 | OCCC : 1 | H2O : -1 | =C< : 1 | =CH2 : 1 | HCO3 : 1",-1.13
+"pyrophosphate : -1 | >C=O : -1 | -CH2- : -1 | -COO : -1 | OCCO : -1 | H2O : -1 | orthophosphate : 1 | -OPO3 : 1 | =C< : 1 | =CH2 : 1 | OCCC : 1 | H : 1 | HCO3 : 1",0.29
+">CH- : -1 | -OH : -1 | formaldehyde : 1",5.22
+"ring -CH< : -3 | ring -O- : -1 | ring -CH2- : -1 | -OH : -1 | acetaldehyde : 1 | >CH- : 1 | -CH=O : 1",1.68
+"-OH : -1 | -CH2- : 1 | >CH- : -2 | Origin : 1 | -CH=O : 1",2.56
+"ring >C< : -1 | ring -O- : -1 | ring -CH< : -3 | -CH2- : 1 | -OH : -1 | Origin : 1 | >C=O : 1 | >CH- : 1 | -CH=O : 1",4.31
+"ring >C< : -1 | ring -CH< : -3 | ring -O- : -1 | -CH2- : 1 | -OH : -1 | Origin : 1 | >CH- : 1 | -CH=O : 1 | >C=O : 1",4.31
+"ring >C< : -1 | ring -O- : -1 | ring -CH< : -3 | -CH2- : 2 | -OH : -1 | Origin : 1 | >C=O : 2",2.85
+"-CH2- : -1 | >CH- : -1 | -OH : -1 | Origin : 1 | -CH3 : 1 | -CH=O : 1",0.75
+"ring -CH< : -5 | ring -O- : -1 | -OH : -1 | Origin : 1 | >CH- : 1 | -CH=O : 1 | -CH2- : 2 | >C=O : 1",3.42
+">CH- : -1 | -CH2- : -1 | -OH : -1 | -CH3 : 1 | Origin : 1 | -CH=O : 1",0.75
+"-CH2- : -1 | >CH- : -1 | -OH : -1 | Origin : 1 | -CH3 : 1 | -CH=O : 1",0.75
+"-CH2- : 1 | >CH- : -2 | -OH : -1 | Origin : 1 | -CH=O : 1",2.56
+"-CH2- : -1 | >CH- : -1 | -OH : -1 | Origin : 1 | -CH3 : 1 | -CH=O : 1",0.75
+">CH- : -1 | -OH : -1 | formaldehyde : 1",5.22
+">CH- : -2 | -CH2- : 1 | -OH : -1 | Origin : 1 | -CH=O : 1 | OCCO : 1",5.02
+"ring -CH< : 2 | >CH- : -2 | ring >C< : -1 | -OH : -1 | ring -CH2- : -1 | >C=O : 1 | -CH3 : 1 | Origin : 1 | OCCO : 1",1.08
+"ring -CH< : 2 | >CH- : -2 | ring >C< : -1 | -OH : -1 | ring -CH2- : -1 | >C=O : 1 | Origin : 1 | -CH3 : 1 | OCCO : 1",1.08
+"-CH2- : -1 | >CH- : -5 | -OH : -1 | Origin : 1 | -CH3 : 1 | ring -CH< : 5 | ring -O- : 1",-1.57
+">C< : -1 | -CH2- : -1 | -COO : -1 | -OH : -1 | >C=O : 1 | OCCO : 1 | acetate : 1",1.63
+"-OH : 1 | -CH2- : 1 | >C< : 1 | -CH3 : -1 | >C=O : -2 | -S- : -1 | thioester : -1 | -COO : 1 | OCCO : -1 | H2O : -1 | -SH : 1 | COA : 1 | H : 1",-8.93
+">CH- : -1 | -CH2- : -1 | -OH : -1 | Origin : 1 | OCCO : 1 | -CH3 : 1 | -CH=O : 1",3.21
+">C< : -1 | -COO : -1 | -CH2- : -1 | -OH : -1 | >C=O : 1 | OCCO : 1 | acetate : 1",1.63
+"-OH : -1 | -CH2- : -1 | >CH- : -1 | -CH3 : 1 | Origin : 1 | -CH=O : 1 | OCCO : 1",3.21
+">C< : -1 | >CH- : -1 | -OH : -1 | Origin : 1 | >C=O : 1 | OCCO : 1 | -CH2- : 1",4.98
+"ring =C< : -1 | -CH2- : -1 | ring =CH- : 1 | >CH- : -1 | -NH3 : -1 | Origin : 1 | H2O : -1 | NH4 : 1 | >C=O : 1 | -CH3 : 1 | OCCO : 1",4.44
+"=CH- : -2 | OCCC : -2 | H2O : -1 | >CH- : 1 | -CH2- : 1 | -OH : 1",-0.61
+">C< : -1 | -CH2- : -1 | -OH : -1 | =C< : 1 | =CH- : 1 | OCCC : 2 | H2O : 1",1.47
+">CH- : -2 | -OH : -1 | =C< : 1 | =CH- : 1 | OCCC : 2 | H2O : 1",0.05
+">CH- : -2 | -CH2- : 1 | >C< : 1",-1.42
+"ring -CH2- : -1 | -OH : -1 | ring >C< : -1 | ring =C< : 1 | ring =CH- : 1 | OCCC : 2 | H2O : 1",-8.48
+">CH- : -1 | -CH2- : -1 | -OH : -1 | =C< : 1 | =CH2 : 1 | OCCC : 1 | H2O : 1",-0.87
+"-OH : -1 | -CH2- : -1 | >CH- : -1 | =CH- : 2 | OCCC : 1 | H2O : 1",2.16
+"dbl sgl ring =N< : -1 | ring =N- : 1 | -OH : -1 | -CH2- : -1 | ring -NH- : -1 | >CH- : -1 | CCCN : -1 | CCNC : -3 | H : 1 | ring -N< : 1 | =CH- : 2 | OCCC : 1 | heteroaromatic : 2 | H2O : 1",0.61
+"-OH : -1 | -CH2- : -1 | >CH- : -1 | =CH- : 2 | OCCC : 1 | H2O : 1",2.16
+">CH- : 1 | -CH=O : -1 | -OH : 1 | Origin : -1 | ring =CH- : -1 | ring =C< : 1",-2.78
+">CH- : -1 | -CH2- : -1 | -OH : -1 | =CH- : 2 | OCCC : 2 | H2O : 1",0.61
+">C< : -1 | -CH2- : -1 | -OH : -1 | =C< : 1 | =CH- : 1 | OCCC : 2 | H2O : 1",1.47
+"-COO : -1 | -CH2- : -1 | >CH- : -2 | -NH3 : -1 | ring -CH2- : 1 | ring >C=O : 1 | ring -CH< : 2 | amide : 1 | ring -NH- : 1 | H2O : 1",-4.48
+"-COO : -1 | -CH2- : -1 | >CH- : -2 | -NH3 : -1 | ring -CH2- : 1 | ring >C=O : 1 | ring -CH< : 2 | amide : 1 | ring -NH- : 1 | H2O : 1",-4.48
+">CH- : -1 | -CH2- : -2 | -COO : -1 | -NH3 : -1 | ring -CH< : 1 | ring -CH2- : 2 | ring >C=O : 1 | amide : 1 | ring -NH- : 1 | H2O : 1",-2.68
+"ring =C< : -1 | =CH- : -2 | ring =CH- : -1 | OCCC : -1 | CCCC : -1 | heteroaromatic : -1 | H2O : -1 | ring -CH< : 1 | ring >C=O : 1 | -CH2- : 2 | OCNC : 1",-2.77
+">C< : -1 | >CH- : -1 | -OH : -1 | =C< : 2 | OCCC : 2 | H2O : 1",0.91
+"-OH : -1 | -CH2- : -1 | >CH- : -1 | =CH- : 2 | OCCC : 1 | H2O : 1",2.16
+"ring -CH< : 1 | ring =CH- : -2 | -OH : 1 | ring -CH2- : 1 | CCCC : -1 | H2O : -1",11.11
+">CH- : -1 | -CH2- : -1 | -NH3 : -1 | NH4 : 1 | =CH- : 2 | OCCC : 2",3.08
+">CH- : -2 | -NH3 : -1 | NH4 : 1 | =C< : 1 | =CH- : 1 | OCCC : 2",2.52
+"-CH2- : -1 | >CH- : -1 | -NH3 : -1 | NH4 : 1 | =CH- : 2 | OCCC : 1 | CCCC : 1",-0.19
+"-CH2- : -1 | >CH- : -1 | -NH3 : -1 | NH4 : 1 | =CH- : 2 | OCCC : 1 | CCCC : 1",-0.19
+"-CH2- : -2 | -NH3 : -1 | NH4 : 1 | =CH- : 1 | =CH2 : 1 | OCCC : 1",2.16
+">CH- : -1 | -NH- : -1 | -CH2- : -1 | Origin : 1 | -NH2 : 1 | =CH- : 2 | OCCC : 2",7.34
+"-NH- : -1 | -CH2- : -1 | >CH- : -1 | Origin : 1 | -NH2 : 1 | =CH- : 2 | OCCC : 2",7.34
+"-NH2 : 1 | -CH2- : -1 | >CH- : -1 | -NH- : -1 | Origin : 1 | OCCC : 2 | =CH- : 2",7.34
+">CH- : -1 | -OH : -1 | >C=O : -1 | amide : -2 | -NH- : -1 | -NH2 : -1 | -CH=O : 1 | OCCO : 1 | urea : 1",4.24
+">CH- : -1 | -OH : -1 | -S- : -1 | thioester : -1 | Origin : 1 | -SH : 1 | -CH=O : 1 | OCCO : 1",10.27
+"ring -CH< : -2 | -OH : -1 | ring -O- : 1 | -OPO2- : -2 | -OPO3 : -1 | -CH2- : -1 | pyrophosphate : 1 | two fused rings >CH- : 2 | ring -OPO2- : 1 | ring -CH2- : 1",1.05
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+"CCCC : 1",-4.82
+"-CH2- : 1 | >CH- : -1 | -CH=O : -1 | >C=O : 1",-1.46
+"-CH=O : -1 | >CH- : -4 | ring -CH< : 5 | ring -O- : 1",-2.32
+"ring -CH< : -2 | ring >C< : 1 | -CH2- : 1",-0.89
+"ring -CH< : -2 | -CH2- : 1 | ring >C< : 1",-0.89
+"ring -CH< : -2 | ring >C< : 1 | -CH2- : 1",-0.89
+"-CH2- : 1 | ring -CH< : -4 | ring -O- : -1 | >CH- : 2 | >C=O : 1",0.62
+"-CH=O : -1 | >CH- : -3 | ring >C< : 1 | ring -CH< : 2 | ring -O- : 1 | ring -CH2- : 1",-1.41
+"ring -CH< : -2 | -CH2- : 1 | ring >C< : 1",-0.89
+"ring -CH< : -5 | ring -O- : -1 | -CH2- : 1 | >C=O : 1 | >CH- : 3",0.86
+"-CH2- : 1 | ring -CH< : -2 | ring >C< : 1",-0.89
+"-CH2- : 1 | ring -CH< : -2 | ring >C< : 1",-0.89
+"ring -CH< : -2 | ring >C< : 1 | -CH2- : 1",-0.89
+"ring -CH< : -2 | ring >C< : 1 | -CH2- : 1",-0.89
+">CH- : -1 | -CH2- : 1 | -CH=O : -1 | >C=O : 1",-1.46
+"ring -CH< : -5 | ring -O- : -1 | -CH2- : 1 | >C=O : 1 | >CH- : 3",0.86
+"ring -CH< : -2 | ring >C< : 1 | ring -CH2- : 1",0.67
+"ring -CH< : -2 | -CH2- : 1 | ring >C< : 1",-0.89
+">CH- : -3 | >C=O : -1 | ring -CH< : 3 | ring -O- : 1 | ring >C< : 1",-1.75
+"-CH2- : -1 | >C=O : -1 | OCCO : -1 | =CH- : 1 | =C< : 1 | -OH : 1 | OCCC : 1 | CCCC : 1",4.95
+"-CH2- : -1 | -CH3 : 1 | =CH2 : -1 | =CH- : 1",0.66
+">CH- : -1 | =C< : 1 | -CH3 : 1 | =CH2 : -1 | OCCC : 1",-1.45
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+,0.00
+"-CH2- : 2 | >CH- : -1 | -CH3 : -1",1.81
+"-CH2- : -2 | >CH- : 1 | -CH3 : 1",-1.81
+,0.00
+"NH4 : -1 | -OH : -1 | -NH3 : 1 | H2O : 1",-2.47
+"ring -CH< : -1 | ring -O-CO- : -1 | ring =CH- : -2 | -CH2- : -1 | -COO : 1 | OCCC : 1 | H : 1 | =CH- : 4 | CCCC : 1",-0.18
+"ring >C< : -1 | ring -O-CO- : -1 | ring =CH- : -2 | -CH2- : -1 | -COO : 1 | OCCC : 1 | H : 1 | =C< : 1 | =CH- : 3 | CCCC : 1",0.39
+"ring >C=O : -2 | amide : -2 | ring -NH- : -1 | OCCO : -1 | H : 1 | ring =N- : 1 | ring =C< : 1 | -COO : 1 | OCCN : 1 | heteroaromatic : 1",-1.57
+"aromatic ring =C< : -2 | >C=O : -1 | =CH- : -2 | -OH : -1 | OCCC : -1 | CCCC : -1 | aromatic ring fused to nonaromatic ring >C=  : 2 | ring -O- : 1 | ring >C=O : 1 | ring -CH< : 1 | ring -CH2- : 1",-8.37
+"H : -1 | -COO : -1 | Origin : -1 | -OH : -1 | -OPO2- : -2 | pyrophosphate : 1 | -O-CO- : 1",-6.10
+"-OPO2- : -2 | -CH3 : 1 | >C=O : 1 | -SH : -1 | COA : -1 | H : -1 | acetate : -1 | pyrophosphate : 1 | -S- : 1 | thioester : 1",-0.95
+"-OPO2- : -2 | >C=O : 1 | -SH : -1 | Origin : -1 | COA : -1 | H : -1 | -COO : -1 | pyrophosphate : 1 | -S- : 1 | thioester : 1",-2.49
+"-OPO2- : -2 | >C=O : 1 | -SH : -1 | Origin : -1 | COA : -1 | H : -1 | -COO : -1 | pyrophosphate : 1 | -S- : 1 | thioester : 1",-2.49
+"-OPO2- : -1 | >C=O : 1 | -SH : -1 | Origin : -1 | COA : -1 | -COO : -1 | orthophosphate : 1 | -S- : 1 | thioester : 1",-1.06
+"-OPO2- : -1 | >C=O : 1 | -SH : -1 | Origin : -1 | COA : -1 | -COO : -1 | orthophosphate : 1 | -S- : 1 | thioester : 1",-1.06
+"NH4 : -1 | -COO : -1 | -NH2 : 1 | -OPO2- : -1 | orthophosphate : 1 | >C=O : 1 | amide : 1 | H : 1",-2.09
+"formate : -1 | -OPO2- : -1 | -NH- : -1 | amide : 1 | orthophosphate : 1 | -CH=O : 1 | -N< : 1",-0.87
+"ring =N- : 1 | ring >C=O : -1 | ring =C< : 1 | -OPO2- : -1 | amide : -1 | ring -NH- : -1 | Origin : -1 | OCCC : -1 | CCNC : -1 | heteroaromatic : 1 | -NH3 : -1 | orthophosphate : 1 | H : 2 | -NH- : 1",-2.59
+"-NH3 : -1 | Origin : -1 | >C=O : -1 | amide : -2 | -NH- : 1 | -NH2 : -1 | -OPO2- : -2 | pyrophosphate : 1 | =C< : 1 | =NH2 : 1",-0.12
+"-COO : 1 | -CH3 : -1 | HCO3 : -1 | -OPO2- : -1 | -CH2- : 1 | orthophosphate : 1 | H : 1",-1.07
+"H : -2 | ring =N- : -2 | amide : 1 | ring -NH- : 2 | OCCN : -1 | OCNC : -1 | NCCN : -1 | CCNC : -1 | electron : -2 | OCCC : 1",10.25
+"H : -2 | ring =N- : -2 | amide : 1 | ring -NH- : 2 | OCCN : -1 | OCNC : -1 | NCCN : -1 | CCNC : -1 | electron : -2 | OCCC : 1",10.25
+"H : -2 | ring =C< : -4 | ring >C=O : -2 | OCCC : -4 | electron : -2 | aromatic ring =C< : 6 | -OH : 2",-2.64
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | H : -1 | electron : -2 | ring -CH2- : 1 | NADH : 1",14.80
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | H : -1 | electron : -2 | ring -CH2- : 1 | NADH : 1",14.80
+"H : -2 | ring -CH< : -2 | >C=O : 1 | ring -CH2- : -2 | ring >C=O : -1 | ring -S- : -2 | ring -NH- : -1 | electron : -2 | >CH- : 2 | -CH2- : 2 | -SH : 2 | -NH- : 1",19.51
+"H : -2 | -CH=O : -1 | OCCC : -1 | electron : -2 | -CH2- : 1 | -OH : 1",11.13
+"H : -2 | -S-S- : -1 | Origin : 1 | electron : -2 | -SH : 2",11.88
+"H2 : -1 | S : -1 | H2S : 1",-10.87
+"H : -1 | H2 : -2 | sulfite : -1 | H2O : 3 | S : 1",-42.79
+"H : -1 | H2 : -3 | sulfite : -1 | H2O : 3 | H2S : 1",-53.66
+"sulfate : -1 | H : -1 | H2 : -1 | H2O : 1 | sulfite : 1",0.46
+"sulfate : -1 | H : -2 | H2 : -3 | H2O : 4 | S : 1",-42.34
+"sulfate : -1 | H : -2 | H2 : -4 | H2O : 4 | H2S : 1",-53.20
+"H : -2 | H2 : -4 | S2O3H : -1 | H2O : 3 | H2S : 2",-58.45
+"H : -2 | H2 : -2 | S2O3H : -1 | H2O : 3 | S : 2",-36.71
+"H : -1 | H2 : -1 | sulfite : -3 | H2O : 3 | S3O6 : 1",-15.29
+"H2 : -1 | S3O6 : -1 | H : 1 | sulfite : 1 | S2O3H : 1",-33.59
+"H : -1 | H2 : -1 | S2O3H : -1 | sulfite : 1 | H2S : 1",-4.79
+"H2 : -1 | -SO3 : -2 | -S-S- : -1 | Origin : -1 | H : 2 | S2O3H : 2",-26.85
+"H : -2 | H2 : -3 | N2 : -1 | NH4 : 2",-35.97
+"H : -2 | H2 : -3 | nitrite : -2 | H2O : 4 | N2 : 1",-198.04
+"H : -2 | H2 : -3 | nitrite : -1 | NH4 : 1 | H2O : 2",-117.00
+"H2 : -1 | nitric acid : -1 | H2O : 1 | nitrite : 1",-43.18
+"H : -2 | H2 : -4 | nitric acid : -1 | NH4 : 1 | H2O : 3",-160.19
+"H : -2 | H2 : -5 | nitric acid : -2 | H2O : 6 | N2 : 1",-284.41
+"H : -2 | H2 : -0.5 | nitrite : -1 | electron : -1 | H2O : 1 | HNO : 1",-19.01
+"H2 : -1 | HNO : -2 | H : 1 | H2O : 1 | nitrous oxide : 1 | electron : 2",-75.81
+"H2 : -1 | nitrous oxide : -1 | H : 1 | H2O : 1 | N2 : 1",-84.21
+"O2 : -2 | H2 : -1 | H : 2 | O2s : 2",-17.31
+"O2 : -1 | H2 : -1 | H2O2 : 1",-40.18
+"H2O2 : -1 | H2 : -1 | H2O : 2",-85.53
+"O2 : -1 | H2 : -2 | H2O : 2",-125.71
+"H2 : -1 | HCO3 : -1 | formate : 1 | H2O : 1",-4.53
+"H : -1 | H2 : -2 | HCO3 : -1 | formaldehyde : 1 | H2O : 2",-3.20
+"H : -1 | H2 : -3 | HCO3 : -1 | methanol : 1 | H2O : 2",-18.10
+"H : -1 | H2 : -4 | HCO3 : -1 | H2O : 3 | methane : 1",-45.30
+"H : -1 | H2 : -4 | HCO3 : -2 | H2O : 4 | acetate : 1",-41.81
+"-COO : -1 | -CH2- : -1 | -NH3 : -1 | Origin : -1 | H2 : -1 | NH4 : 1 | acetate : 1",-23.74
+"methanol : -1 | H2 : -1 | H2O : 1 | methane : 1",-27.20
+"H2 : -1 | ethanol : -1 | H2O : 1 | ethane : 1",-21.52
+"H2 : -1 | -CH2- : -2 | -OH : -2 | Origin : -1 | H2O : 1 | ethanol : 1",-24.57
+"formaldehyde : -1 | H2 : -1 | methanol : 1",-14.91
+"acetaldehyde : -1 | H2 : -1 | ethanol : 1",-14.25
+"acetone : -1 | H2 : -1 | >CH- : 1 | -CH3 : 2 | -OH : 1 | Origin : 1",-9.41
+"H2 : -1 | -CH2- : 1 | -CH=O : -1 | -OH : 1",-13.69
+"H2 : -1 | =CH- : -1 | =CH2 : -1 | OCCC : -1 | -CH2- : 1 | -CH3 : 1",-24.36
+"H2 : -1 | =CH- : -2 | OCCC : -1 | -CH2- : 2",-25.02
+"H2 : -1 | =CH- : -2 | OCCC : -2 | -CH2- : 2",-23.47
+">CH- : -1 | -OH : -1 | H2 : -1 | -CH2- : 1 | H2O : 1",-22.85
+"H2 : -1 | -CH2- : 1 | >CH- : -1 | -OH : -1 | H2O : 1",-22.85
+"H2 : -1 | >CH- : -1 | -CH2- : 1 | -OH : -1 | H2O : 1",-22.85
+"-COO : -1 | -CH2- : -1 | -OH : -1 | Origin : -1 | H2 : -1 | H2O : 1 | acetate : 1",-26.20
+"H2 : -1 | -CH2- : -1 | -S< : -1 | -CH3 : 1 | Origin : 1 | H : 1 | -S- : 1",-32.14
+">C=O : -2 | -COO : -2 | -CH3 : -1 | Origin : -1 | OCCO : -2 | H2 : -2 | H2O : -1 | -CH2- : 3 | -OH : 1 | HCO3 : 2",-47.16
+">C=O : -1 | OCCO : -1 | H2 : -1 | acetate : -1 | HCO3 : 1 | -CH2- : 2",-27.00
+">C=O : -1 | -COO : 1 | -CH3 : -1 | OCCO : -1 | H2 : -1 | HCO3 : -1 | H2O : 1 | >CH- : 1 | -CH2- : 1 | -OH : 1",-8.94
+">C=O : -1 | -COO : 1 | -CH3 : -1 | OCCO : -1 | H2 : -1 | HCO3 : -1 | =CH- : 2 | OCCC : 2 | H2O : 2",-8.33
+">C=O : -1 | -COO : 1 | -CH3 : -1 | OCCO : -1 | H2 : -2 | HCO3 : -1 | -CH2- : 2 | H2O : 2",-31.80
+"H2 : -2 | -CH2- : 1 | >C=O : -1 | H2O : 1",-35.08
+">C=O : -1 | -CH2- : 1 | OCCO : -1 | H2 : -2 | H2O : 1",-37.54
+"H2 : -1 | >C=O : -1 | >CH- : 1 | -OH : 1",-12.23
+">C=O : -1 | OCCO : -1 | H2 : -1 | >CH- : 1 | -OH : 1",-14.69
+">C=O : -1 | -COO : -1 | -CH3 : -1 | Origin : -1 | OCCO : -1 | H2 : -1 | H2O : -1 | HCO3 : 1 | ethanol : 1",-18.53
+">C=O : -1 | -CH3 : -1 | OCCO : -1 | H2 : -1 | H2O : 1 | =CH- : 1 | =CH2 : 1 | OCCC : 1",-13.18
+">C=O : -1 | OCCO : -1 | H2 : -2 | -CH2- : 1 | H2O : 1",-37.54
+">C=O : -2 | -COO : -2 | Origin : -1 | OCCO : -2 | H2 : -1 | H2O : -2 | >CH- : 2 | -OH : 2 | HCO3 : 2",-26.11
+">C=O : -2 | -COO : -2 | Origin : -1 | OCCO : -2 | H2 : -2 | H2O : -1 | formate : 1 | >CH- : 2 | -OH : 2 | HCO3 : 1",-30.65
+"H : -1 | H2 : -2 | -CH2- : 1 | -COO : -1 | -OH : 1 | H2O : 1",-12.35
+"H : -1 | -COO : -1 | -CH2- : 1 | H2 : -2 | -OH : 1 | H2O : 1",-12.35
+"H : -2 | H2 : -2 | acetate : -2 | >CH- : 1 | >C=O : 1 | -CH3 : 2 | -OH : 1 | Origin : 1 | H2O : 2",1.73
+"H : -2 | H2 : -3 | acetate : -2 | >CH- : 2 | -CH3 : 2 | -OH : 2 | Origin : 1 | H2O : 2",-10.49
+"H : -1 | acetate : -2 | acetone : 1 | HCO3 : 1",7.33
+"H : -1 | H2 : -1 | acetate : -2 | >CH- : 1 | -CH3 : 2 | -OH : 1 | Origin : 1 | HCO3 : 1",-2.08
+"H : -1 | H2 : -2 | acetate : -1 | -CH2- : 2 | H2O : 2",-20.73
+"formate : -1 | H : -1 | H2 : -1 | formaldehyde : 1 | H2O : 1",1.34
+"formate : -1 | H : -1 | H2 : -2 | methanol : 1 | H2O : 1",-13.57
+"formate : -1 | H : -1 | H2 : -3 | H2O : 2 | methane : 1",-40.77
+"H : -1 | H2 : -2 | acetate : -1 | H2O : 1 | ethanol : 1",-10.72
+"H : -1 | H2 : -2 | acetate : -2 | H2O : 2 | -CH2- : 2 | -COO : 1 | -CH3 : 1 | Origin : 1",-19.19
+"H : -1 | -CH2- : 2 | H2 : -2 | acetate : -1 | H2O : 2",-20.73
+"formate : -1 | H2O : -1 | H2 : 1 | HCO3 : 1",4.53
+"H2O : -4 | acetate : -1 | H : 1 | H2 : 4 | HCO3 : 2",41.81
+"H2O : -2 | acetate : -2 | >C=O : 1 | -COO : 1 | -CH3 : 1 | Origin : 1 | OCCO : 1 | H2 : 3 | HCO3 : 1",49.62
+"H2O : -1 | acetate : -1 | HCO3 : 1 | methane : 1",-3.49
+"-COO : -1 | -CH2- : -1 | -CH3 : -1 | Origin : -1 | H2O : -3 | H : 1 | H2 : 3 | HCO3 : 1 | acetate : 1",29.73
+"-COO : -1 | -CH2- : -1 | -CH3 : -1 | Origin : -1 | H2O : -7 | H : 2 | H2 : 7 | HCO3 : 3",71.54
+"H2O : -10 | -CH2- : -2 | -COO : -1 | -CH3 : -1 | Origin : -1 | H : 3 | H2 : 10 | HCO3 : 4",102.82
+"-COO : -2 | -CH2- : -2 | Origin : -1 | H2O : -8 | H : 2 | H2 : 7 | HCO3 : 4",65.80
+"H2O : -2 | -CH2- : -2 | -COO : -1 | -CH3 : -1 | Origin : -1 | H : 1 | H2 : 2 | acetate : 2",19.19
+"H2O : -4 | -CH2- : -4 | -COO : -1 | -CH3 : -1 | Origin : -1 | H : 2 | H2 : 4 | acetate : 3",39.91
+">C=O : -1 | -COO : -1 | -CH3 : -1 | Origin : -1 | OCCO : -1 | H2O : -2 | H : 1 | H2 : 1 | HCO3 : 1 | acetate : 1",-7.81
+">C=O : -1 | -COO : -1 | -CH3 : -1 | Origin : -1 | OCCO : -1 | H2O : -6 | H : 2 | H2 : 5 | HCO3 : 3",34.00
+"-COO : -1 | -CH=O : -1 | Origin : -1 | OCCO : -1 | H2O : -2 | formate : 1 | H : 1 | H2 : 1 | HCO3 : 1",-5.07
+"-COO : -1 | -CH=O : -1 | Origin : -1 | OCCO : -1 | H2O : -3 | H : 1 | H2 : 2 | HCO3 : 2",-0.54
+">C=O : -1 | OCCO : -1 | H2O : -2 | H : 1 | H2 : 1 | HCO3 : 1",-6.27
+">C=O : -1 | OCCO : -1 | H2O : -2 | H : 1 | H2 : 1 | HCO3 : 1",-6.27
+">C=O : -1 | -CH2- : -1 | -COO : -2 | Origin : -1 | OCCO : -1 | H2O : -3 | H : 1 | H2 : 1 | HCO3 : 2 | acetate : 1",-13.55
+">CH- : -1 | -COO : -1 | -CH3 : -1 | -OH : -1 | Origin : -1 | H2O : -2 | H : 1 | H2 : 2 | HCO3 : 1 | acetate : 1",6.88
+"H2O : -3 | >CH- : -1 | -CH2- : -1 | -COO : -2 | -OH : -1 | Origin : -1 | H : 1 | H2 : 2 | HCO3 : 2 | acetate : 1",1.13
+">C< : -1 | -COO : -1 | -OH : -1 | H2O : -3 | H : 1 | H2 : 2 | HCO3 : 2",5.90
+">CH- : -2 | -CH2- : 1 | -COO : -1 | -OH : -1 | H2O : -3 | H : 1 | H2 : 2 | HCO3 : 2",4.48
+"H2O : -1 | -CH2- : -1 | -COO : -1 | -CH3 : -1 | >CH- : -1 | -OH : -1 | Origin : -1 | H : 1 | H2 : 1 | acetate : 2",-3.67
+"H2O : -2 | -CH3 : -1 | =CH- : -2 | -COO : -1 | Origin : -1 | OCCC : -1 | H : 1 | H2 : 1 | acetate : 2",-5.83
+"H2O : -3 | -COO : -1 | =CH- : -1 | =CH2 : -1 | Origin : -1 | OCCC : -1 | H : 1 | H2 : 2 | HCO3 : 1 | acetate : 1",5.37
+"-COO : -2 | =CH- : -2 | Origin : -1 | OCCC : -2 | H2O : -4 | H : 1 | H2 : 2 | HCO3 : 2 | acetate : 1",0.52
+"-COO : -1 | -CH2- : -1 | -OH : -1 | Origin : -1 | H2O : -2 | formate : 1 | H : 1 | H2 : 2 | HCO3 : 1",11.08
+"formaldehyde : -1 | H2O : -1 | formate : 1 | H : 1 | H2 : 1",-1.34
+"acetaldehyde : -1 | H2O : -1 | H : 1 | H2 : 1 | acetate : 1",-3.53
+"-CH=O : -1 | H2O : -1 | H : 1 | -COO : 1 | H2 : 1",-1.34
+">CH- : -1 | -CH2- : -1 | -CH=O : -1 | -OH : -2 | >C=O : 1 | -COO : 1 | -CH3 : 1 | OCCO : 1 | H : 1 | H2 : 1",-11.31
+">CH- : -1 | -CH2- : -1 | -CH=O : -1 | -OH : -2 | Origin : -1 | H2O : -2 | H : 2 | H2 : 2 | HCO3 : 1 | acetate : 1",-19.12
+">CH- : -1 | -CH2- : -1 | -CH=O : -1 | -OH : -2 | Origin : -1 | H2O : -6 | H : 3 | H2 : 6 | HCO3 : 3",22.69
+"ring -CH< : -12 | ring -O- : -3 | -CH2- : -3 | -OH : -12 | Origin : 2 | >C=O : 5 | -COO : 5 | -CH3 : 5 | OCCO : 5 | H : 5 | H2 : 5",-45.21
+"ring -CH< : -4 | ring -O- : -1 | -CH2- : -1 | -OH : -4 | >C=O : 1 | -COO : 1 | -CH3 : 1 | OCCO : 1 | H : 2 | H2 : 1 | acetate : 1",-34.21
+"ring -CH< : -5 | ring -O- : -1 | -CH2- : -1 | -OH : -5 | Origin : 1 | >C=O : 2 | -COO : 2 | -CH3 : 2 | OCCO : 2 | H : 2 | H2 : 2",-17.75
+"H2O : -4 | ring -CH< : -5 | ring -O- : -1 | -CH2- : -1 | -OH : -5 | Origin : -1 | H : 4 | H2 : 4 | HCO3 : 2 | acetate : 2",-33.37
+"H2O : -2 | ring -CH< : -5 | ring -O- : -1 | -CH2- : -1 | -OH : -5 | >C=O : 1 | -COO : 1 | -CH3 : 1 | OCCO : 1 | H : 3 | H2 : 3 | HCO3 : 1 | acetate : 1",-25.56
+"H2O : -12 | ring -CH< : -5 | ring -O- : -1 | -CH2- : -1 | -OH : -5 | Origin : -1 | H : 6 | H2 : 12 | HCO3 : 6",50.26
+"ring -CH< : -15 | ring -O- : -3 | >CH- : -3 | -OH : -18 | -CH2- : -3 | Origin : 4 | >C=O : 7 | -COO : 7 | -CH3 : 7 | OCCO : 7 | H : 7 | H2 : 7",-61.99
+">CH- : -4 | -OH : -5 | -CH2- : -1 | H2O : -1 | >C=O : 1 | -CH3 : 1 | OCCO : 1 | H : 2 | H2 : 2 | HCO3 : 1 | acetate : 1",-26.54
+">CH- : -4 | -OH : -5 | -COO : 1 | -CH2- : -1 | Origin : 1 | >C=O : 2 | -CH3 : 2 | OCCO : 2 | H : 1 | H2 : 1 | H2O : 1",-18.73
+">CH- : -12 | -OH : -15 | -COO : 2 | -CH2- : -3 | Origin : 2 | H2O : -3 | >C=O : 5 | -CH3 : 5 | OCCO : 5 | H : 5 | H2 : 8 | HCO3 : 3",-22.19
+">CH- : -24 | -OH : -30 | -COO : 5 | -CH2- : -6 | Origin : 5 | >C=O : 11 | -CH3 : 11 | OCCO : 11 | H : 8 | H2 : 11 | HCO3 : 3",-78.38
+"methanol : -1 | H2O : -1 | formate : 1 | H : 1 | H2 : 2",13.57
+"methanol : -1 | H2O : -2 | H : 1 | H2 : 3 | HCO3 : 1",18.10
+"H2O : -1 | ethanol : -1 | H : 1 | H2 : 2 | acetate : 1",10.72
+"-CH2- : -2 | -OH : -2 | Origin : -1 | H : 1 | H2 : 1 | acetate : 1",-13.85
+">CH- : -1 | -CH2- : -2 | -OH : -3 | >C=O : 1 | -COO : 1 | -CH3 : 1 | OCCO : 1 | H : 1 | H2 : 2",2.37
+">CH- : -1 | -CH2- : -2 | -OH : -3 | Origin : -1 | H2O : -2 | H : 2 | H2 : 3 | HCO3 : 1 | acetate : 1",-5.44
+"-COO : -2 | -CH2- : -2 | -NH3 : -2 | Origin : -2 | H2O : -4 | NH4 : 2 | H : 1 | H2 : 2 | HCO3 : 2 | acetate : 1",-5.66
+">CH- : -1 | -CH2- : -2 | -COO : -2 | -NH3 : -1 | Origin : -1 | H2O : -3 | NH4 : 1 | H : 1 | H2 : 1 | HCO3 : 1 | acetate : 2",-6.94
+">CH- : -1 | -COO : -1 | -CH3 : -1 | -NH3 : -1 | Origin : -1 | H2O : -3 | NH4 : 1 | H : 1 | H2 : 2 | HCO3 : 1 | acetate : 1",9.34
+">CH- : -1 | -NH3 : -1 | H2O : -3 | NH4 : 1 | H : 1 | H2 : 2 | HCO3 : 1",10.88
+"NH4 : -2 | H : 2 | H2 : 3 | N2 : 1",35.97
+"NH4 : -1 | H2O : -2 | H : 2 | H2 : 3 | nitrite : 1",117.00
+"NH4 : -1 | H2O : -3 | H : 2 | H2 : 4 | nitric acid : 1",160.19
+"H2O : -1 | nitrite : -1 | H2 : 1 | nitric acid : 1",43.18
+"H2S : -1 | H2 : 1 | S : 1",10.87
+"H2O : -4 | H2S : -1 | sulfate : 1 | H : 2 | H2 : 4",53.20
+"H2O : -4 | S : -1 | sulfate : 1 | H : 2 | H2 : 3",42.34
+"H2O : -5 | S2O3H : -1 | electron : -2 | sulfate : 2 | H2 : 5",71.23
+"H : -2 | H2O : -3 | S2O3H : -1 | electron : -2 | H2 : 3 | sulfite : 2",72.14
+"H : -2 | Fe2 : -2 | H2 : 1 | Fe3 : 2",58.77
+"-CH3 : 1 | Origin : 1 | acetate : -1 | -COO : 1",1.54
+"-CO-OPO3- : -1 | -CH3 : -1 | Origin : -1 | -OPO2- : 1 | H : 1 | acetate : 1",-4.17
+"orthophosphate : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | Origin : 1 | H : -1 | -SH : 1 | COA : 1 | -CO-OPO3- : 1",3.69
+"-CH3 : 1 | >C=O : 1 | -SH : -1 | COA : -1 | ethanol : -1 | -S- : 1 | thioester : 1 | H2 : 2",18.02
+"acetate : -1 | ethanol : -2 | H2O : 2 | -CH2- : 4 | -COO : 1 | -CH3 : 1 | Origin : 1",-18.47
+"acetate : -1 | ethanol : -1 | H2O : 1 | -CH2- : 2 | -COO : 1 | -CH3 : 1 | Origin : 1",-8.47
+"H2O : -2 | ring -CH< : -5 | ring -O- : -1 | -CH2- : 1 | -OH : -5 | H : 3 | H2 : 2 | HCO3 : 2 | -COO : 1 | -CH3 : 1",-52.55
+"H2 : -1 | Fe3 : -2 | H : 2 | Fe2 : 2",-58.77
+"H2 : -1 | -CH2- : 1 | -CH3 : 1 | =CH- : -1 | =CH2 : -1 | OCCC : -1",-24.36
+"H2 : -4 | CO2 : -2 | H : 1 | H2O : 2 | acetate : 1",-43.50
+"H : -4 | H2 : -1 | nitrite : -2 | electron : -2 | H2O : 2 | HNO : 2",-38.02
+"H2 : -1 | -OPO2- : -1 | -SO4 : -1 | -OPO3 : 1 | sulfite : 1",-20.36
+"H2 : -4 | CO2 : -1 | H2O : 2 | methane : 1",-46.15
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | Origin : -1 | heteroaromatic : -1 | -SH : -1 | COA : -1 | -COO : -1 | OCCO : -1 | ring -CH2- : 1 | NADH : 1 | -S- : 1 | thioester : 1 | CO2 : 1",-8.14
+"-CH3 : 1 | -COO : 1 | Origin : 1 | acetate : -1",1.54
+"orthophosphate : -1 | -OPO2- : 1 | -CH=O : -1 | amide : -1 | -N< : -1 | -NH- : 1 | formate : 1",0.87
+"orthophosphate : -1 | -OPO2- : 1 | >C=O : -1 | -COO : 1 | -S- : -1 | thioester : -1 | Origin : 1 | -SH : 1 | COA : 1",1.06
+"-CO-OPO3- : -1 | amide : -1 | -NH2 : -1 | Origin : -1 | -OPO2- : 1 | H : 1 | carbamate : 1",-2.97
+"orthophosphate : -1 | H : -2 | -NH3 : 1 | >C=O : -1 | amide : -1 | -NH- : -1 | Origin : 1 | -CO-OPO3- : 1",8.98
+"-CO-OPO3- : -1 | -OPO2- : 1 | H : 1 | -COO : 1",-2.63
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | orthophosphate : -1 | -CH=O : -1 | ring -CH2- : 1 | NADH : 1 | -CO-OPO3- : 1",-0.36
+"orthophosphate : -1 | H : -1 | >CH- : -1 | >C=O : -1 | -OH : -2 | -CH2- : -1 | Origin : 1 | -CO-OPO3- : 1 | -CH3 : 1 | H2O : 1 | -CH=O : 1",-12.53
+"-CH2- : -1 | -CH3 : 1 | -SH : -1 | COA : -1 | -S- : 1 | thioester : 1",-7.06
+"ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | -CH3 : 1 | -SH : -1 | COA : -1 | acetaldehyde : -1 | ring -CH2- : 1 | NADH : 1 | -S- : 1 | thioester : 1 | H : 1",-4.70
+"-SH : -1 | Origin : -1 | COA : -1 | -COO : -1 | OCCO : -1 | -S- : 1 | thioester : 1 | formate : 1",-5.05
+"orthophosphate : -1 | -OPO2- : 1 | -CH3 : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | -SH : 1 | COA : 1 | acetate : 1",-0.48
+"-OPO2- : -1 | H2O : -1 | orthophosphate : 1 | H : 1",-6.82
+"-OPO2- : -2 | H2O : -1 | pyrophosphate : 1",-8.24
+,0.00
+">C=O : -1 | -COO : 1 | -S- : -1 | thioester : -1 | Origin : 1 | H2O : -1 | -SH : 1 | COA : 1 | H : 1",-5.76
+"-CH3 : -1 | >C=O : -1 | -S- : -1 | thioester : -1 | H2O : -1 | -SH : 1 | COA : 1 | H : 1 | acetate : 1",-7.30
+"=CH- : -2 | OCCC : 2 | two fused aromatic rings >C= : -2 | aromatic ring =C< : -4 | -OH : -2 | -CH2- : 2 | aromatic ring fused to nonaromatic ring >C=  : 2 | ring >C=O : 2 | ring =C< : 2",6.53
+"=CH- : -2 | OCCC : 2 | two fused aromatic rings >C= : -2 | aromatic ring =C< : -3 | aromatic ring =CH- : -1 | -OH : -2 | -CH2- : 2 | aromatic ring fused to nonaromatic ring >C=  : 2 | ring >C=O : 2 | ring =C< : 1 | ring =CH- : 1",5.31
+"-OH : -1 | -OPO2- : -1 | -OPO3 : 1",-4.50
+"ring -CH< : 1 | ring -O- : 1 | -CH2- : -1 | -OPO3- : -1 | -OPO2- : -1 | >CH- : -1 | >C< : -1 | Origin : 1 | ring >C< : 1 | ring -CH2- : 1 | ring -OPO2- : 2",26.77
+"-CH2- : -1 | -OH : 1 | aromatic ring fused to nonaromatic ring >C=  : -2 | ring >C=O : -2 | ring =C< : -2 | OCCC : -4 | -CH=O : 1 | OCCO : 1 | two fused aromatic rings >C= : 2 | aromatic ring =C< : 4",-13.85
+"-CH2- : -1 | -OH : 1 | aromatic ring fused to nonaromatic ring >C=  : -2 | ring >C=O : -2 | aromatic ring =CH- : 1 | ring =C< : -1 | ring =CH- : -1 | OCCC : -4 | -CH=O : 1 | OCCO : 1 | two fused aromatic rings >C= : 2 | aromatic ring =C< : 3",-12.63
+"formate : -4 | H : -4 | H2O : 2 | CO2 : 3 | methane : 1",-24.64
+"formate : -1 | H : -1 | H2 : 1 | CO2 : 1",5.38
+"H2 : -4 | CO2 : -1 | H2O : 2 | methane : 1",-46.15
+"ring -CH< : -5 | ring -O- : -1 | -CH2- : -1 | -OH : -5 | Origin : -1 | CO2 : 3 | methane : 3",-83.12
+"H2O : -2 | ring -CH< : -5 | ring -O- : -1 | -CH2- : -1 | -OH : -5 | Origin : -1 | H : 2 | H2 : 4 | acetate : 2 | CO2 : 2",-31.68
+"H2O : -2 | ring -CH< : -5 | ring -O- : -1 | -CH2- : -1 | -OH : -5 | Origin : -1 | formate : 2 | H : 4 | H2 : 2 | acetate : 2",-42.43
+"H : -1 | acetate : -1 | CO2 : 1 | methane : 1",-2.65
+"H2 : -4 | CO2 : -1 | H2O : 2 | methane : 1",-46.15
+"formate : -4 | H : -4 | H2O : 2 | CO2 : 3 | methane : 1",-24.64
+"methanol : -4 | H : 1 | HCO3 : 1 | H2O : 1 | methane : 3",-63.49
+"-CH3 : 1 | >C=O : 1 | -SH : -1 | COA : -1 | H : -1 | acetate : -1 | -S- : 1 | thioester : 1 | H2O : 1",7.30
+"ring -N< : 1 | >C=O : -1 | -S- : -1 | thioester : -1 | H2O : -1 | ring -NH- : -1 | -SH : 1 | COA : 1 | H2 : 1 | CO2 : 1",14.74
+"-SH : -1 | ring -NH- : 1 | ring -N< : -1 | -S- : 1",-6.41
+"-S- : -1 | -CH3 : -1 | Origin : -1 | -SH : -1 | methane : 1 | -S-S- : 1",-6.89
+"H2 : -1 | -S-S- : -1 | Origin : 1 | -SH : 2",-11.38
+"H2 : -1 | CO2 : -1 | -NH3 : -1 | amide : 1 | -NH- : 1 | H : 1 | H2O : 1 | -CH=O : 1",-6.11
+"H : -1 | -NH- : -1 | ring -NH- : -1 | -NH3 : 1 | ring -N< : 1",8.70
+"H : -1 | -CH=O : -1 | >CH- : -1 | -NH- : -1 | amide : -1 | ring -N< : -1 | CCNC : 1 | H2O : 1 | dbl sgl ring =N< : 1 | two fused rings -N< : 1 | two fused rings >CH- : 1 | ring =CH- : 1",-3.18
+"dbl sgl ring =N< : -1 | ring -NH- : -1 | ring =N- : 1 | amide : -1 | CCNC : -1 | ring -N< : 1 | H : 1 | OCNC : 1 | CCCN : 1 | CCCC : 1",1.25
+"H2 : -1 | dbl sgl ring =N< : -1 | ring =CH- : -1 | CCNC : -1 | H : 1 | ring -N< : 1 | ring -CH2- : 1",-10.42
+">CH- : 1 | ring -NH- : -1 | ring =N- : 1 | two fused rings -N< : -1 | two fused rings >CH- : -1 | ring -CH2- : -2 | -CH3 : 1 | amide : -1 | -NH- : 1 | ring =CH- : 1 | OCNC : 1 | CCCN : 1 | CCCC : 1",1.21
+"-SH : -1 | ring -NH- : 1 | ring -N< : -1 | -S- : 1",-6.41
+"methanol : -1 | -SH : -1 | H2O : 1 | -S- : 1 | -CH3 : 1",-8.92
+"methanol : -1 | ring -NH- : -1 | -CH3 : 1 | H2O : 1 | ring -N< : 1",-2.52
+"ring -NH- : 1 | ring =N- : -1 | -CH3 : -1 | >CH- : -1 | -NH- : -1 | amide : 1 | ring =CH- : -1 | OCNC : -1 | CCCN : -1 | CCCC : -1 | ring -CH2- : 2 | two fused rings -N< : 1 | two fused rings >CH- : 1",-1.21
+"H : -1 | ring -N< : -1 | ring =N- : -1 | amide : 1 | ring -NH- : 1 | OCNC : -1 | CCCN : -1 | CCCC : -1 | CCNC : 1 | dbl sgl ring =N< : 1",-1.25
+"H2O : -1 | dbl sgl ring =N< : -1 | >CH- : 1 | two fused rings -N< : -1 | two fused rings >CH- : -1 | ring =CH- : -1 | amide : 1 | -NH- : 1 | CCNC : -1 | H : 1 | -CH=O : 1 | ring -N< : 1",3.18
+"-NH3 : -1 | -NH- : 1 | ring -NH- : 1 | ring -N< : -1 | H : 1",-8.70
+"methylamine : -1 | -SH : -1 | NH4 : 1 | -S- : 1 | -CH3 : 1",-3.56
+"-CH3 : -1 | -NH2- : -1 | Origin : -1 | -SH : -1 | methylamine : 1 | -S- : 1",-2.34
+"-NH< : -1 | -SH : -1 | -NH2- : 1 | -S- : 1",-0.04
+,0.00
+"ring -N< : 1 | ring -CH< : -1 | ring =CH- : -1 | -OH : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | ring -CH2- : 1 | NADH : 1 | H : 1 | ring >C=O : 1",2.30
+"ring -CH< : -1 | ring -N< : 1 | ring =C< : 1 | dbl sgl ring =N< : -1 | OCCC : 2 | heteroaromatic : -1 | H : 1",4.78
+"two fused rings -N< : -1 | ring -N< : 1 | CCNC : 1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | two fused rings =N< : 1",1.92
+"ethanol : -1 | ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | H : 1 | acetaldehyde : 1 | ring -CH2- : 1",5.78
+">CH- : -1 | -NH3 : -1 | H2O : -1 | ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | >C=O : 1 | heteroaromatic : -1 | NH4 : 1 | OCCO : 1 | H : 1 | ring -CH2- : 1",8.69
+"ethanol : -1 | ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | H : 1 | acetaldehyde : 1 | ring -CH2- : 1",5.78
+">CH- : -1 | -NH3 : -1 | H2O : -1 | ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | NH4 : 1 | >C=O : 1 | OCCO : 1 | H : 1 | ring -CH2- : 1",8.69
+"ring -CH2- : 1 | ring >C=O : 1 | ring -CH< : -1 | -OH : -1 | ring -N< : 1 | ring =CH- : -1 | dbl sgl ring =N< : -1 | heteroaromatic : -1 | H : 1",2.30
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 6 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 2 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | dbl sgl ring =N< : 1 | >C=O : 1 | amide : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 3",-529.59
+"ring -N< : 2 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 5 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 2 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | ring -CH2- : 1 | >C=O : 1 | amide : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2 | NADH : 1",-524.32
+"ring -CH< : 8 | ring -N< : 2 | ring -O- : 2 | two fused rings >C= : 2 | ring =CH- : 5 | -OPO3 : 1 | ring =N- : 3 | -OH : 3 | -CH2- : 2 | ring =C< : 2 | -OPO3- : 1 | -NH2 : 2 | -OPO2- : 1 | ring -CH2- : 1 | >C=O : 1 | amide : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2 | NADH : 1",-736.82
+"ring -CH< : 8 | ring -N< : 1 | ring -O- : 2 | two fused rings >C= : 2 | ring =CH- : 6 | -OPO3 : 1 | ring =N- : 3 | -OH : 3 | -CH2- : 2 | ring =C< : 2 | -OPO3- : 1 | -NH2 : 2 | -OPO2- : 1 | dbl sgl ring =N< : 1 | >C=O : 1 | amide : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 3",-742.09
+"O2 : 1",3.92
+"orthophosphate : 1",-261.97
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 6 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 2 | -SH : 1 | amide : 2 | -NH- : 2 | Origin : 1 | heteroaromatic : 2 | COA : 1",-751.99
+"pyrophosphate : 1",-480.93
+"NH4 : 1",-18.97
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 2 | ring =CH- : 2 | -OH : 2 | -CH2- : 1 | -OPO2- : 1 | -OPO3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-605.77
+"ring -N< : 2 | two fused rings >C= : 4 | aromatic ring fused to nonaromatic ring >C=  : 2 | -CH2- : 3 | aromatic ring =CH- : 2 | >CH- : 3 | ring -NH- : 3 | ring >C=O : 2 | aromatic ring =C< : 2 | -OH : 5 | -CH3 : 2 | -OPO3- : 1 | -OPO2- : 1 | ring -CH< : 4 | ring -O- : 1 | ring =CH- : 2 | ring =N- : 3 | ring =C< : 1 | -NH2 : 1 | amide : 2 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",-538.18
+">C=O : 2 | >CH- : 3 | RW : 3 | -COO : 1 | -NH3 : 1 | amide : 2 | -NH- : 2 | Origin : 1","None"
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring =C< : 1 | -OH : 2 | -NH2 : 1 | -CH2- : 1 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 2",-257.85
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring =C< : 1 | -OH : 2 | -NH2 : 1 | -CH2- : 3 | -S- : 1 | >CH- : 1 | -COO : 1 | -NH3 : 1 | Origin : 1 | heteroaromatic : 2",-76.11
+">C=O : 1 | -COO : 1 | -CH3 : 1 | Origin : 1 | OCCO : 1",-112.69
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 6 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-785.83
+">C=O : 1 | -CH2- : 2 | -COO : 2 | Origin : 1 | OCCO : 1",-188.9
+"H2O2 : 1",-32.05
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 1 | ring =N- : 2 | ring -O- : 1 | ring >C=O : 1 | ring =C< : 1 | -OH : 2 | -NH2 : 1 | -CH2- : 1 | -OPO2- : 1 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-516.3
+">C=O : 1 | -CH2- : 1 | -COO : 2 | Origin : 1 | OCCO : 1",-190.52
+"-COO : 1 | -CH2- : 1 | -NH3 : 1 | Origin : 1",-87.73
+"ring -CH< : 3 | ring -CH2- : 1 | ring -O- : 1 | -CH2- : 1 | RW : 2 | -OH : 1 | -O- : 1 | Origin : 1","None"
+"-COO : 2 | -CH2- : 2 | Origin : 1",-162.96
+"ring -CH< : 9 | ring -O- : 2 | ring >C=O : 2 | ring =CH- : 2 | -OH : 5 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | >C=O : 1 | -CH3 : 1 | amide : 3 | ring -N< : 1 | ring -NH- : 1 | -NH- : 1 | Origin : 1 | OCCC : 1",-756.9
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 1 | ring =N- : 2 | ring -O- : 1 | ring >C=O : 1 | ring =C< : 1 | -OH : 2 | -NH2 : 1 | -CH2- : 1 | -OPO2- : 2 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-724.3
+"-COO : 1 | -CH=O : 1 | Origin : 1 | OCCO : 1",-111.04
+">CH- : 1 | -CH2- : 1 | -COO : 2 | -NH3 : 1 | Origin : 1",-165.75
+">CH- : 2 | >C=O : 2 | -CH2- : 4 | -SH : 1 | -COO : 2 | -NH3 : 1 | amide : 2 | -NH- : 2 | Origin : 1",-220.95
+"ring -CH< : 9 | ring -O- : 2 | ring >C=O : 2 | ring =CH- : 2 | -OH : 6 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-762.55
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 1 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 1 | -NH2 : 1 | -OPO2- : 1 | -SO4 : 1 | Origin : 1 | heteroaromatic : 2",-580.35
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 2 | ring =N- : 1 | -CH2- : 1 | ring =C< : 1 | -OPO3 : 1 | -NH2 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-345.38
+"formate : 1",-83.9
+"sulfate : 1",-177.97
+"ring -N< : 1 | aromatic ring fused to nonaromatic ring >C=  : 2 | two fused rings >C= : 2 | -CH2- : 2 | aromatic ring =CH- : 2 | >CH- : 3 | ring -NH- : 3 | aromatic ring =C< : 2 | ring >C=O : 2 | -OH : 3 | -CH3 : 2 | -OPO3 : 1 | amide : 2 | Origin : 1 | OCCC : 1",-346.33
+"-CH2- : 3 | >CH- : 1 | -COO : 1 | -NH3 : 1 | -NH- : 1 | =C< : 1 | -NH2 : 1 | =NH2 : 1 | Origin : 1",-73.77
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 2 | ring =N- : 1 | -CH2- : 1 | ring =C< : 1 | -OPO2- : 2 | -NH2 : 1 | -OPO3 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-761.38
+">CH- : 1 | -CH2- : 2 | -COO : 1 | -NH3 : 1 | >C=O : 1 | amide : 1 | -NH2 : 1 | Origin : 1",-121.69
+"formaldehyde : 1",-31.2
+">CH- : 1 | -COO : 1 | -CH2- : 2 | -NH3 : 1 | -S- : 1 | -CH3 : 1 | Origin : 1",-75.91
+"-OPO3 : 1 | =C< : 1 | -COO : 1 | =CH2 : 1 | Origin : 1 | OCCC : 1",-316.08
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 2 | ring =CH- : 2 | -OH : 2 | -CH2- : 1 | -OPO2- : 2 | -OPO3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-813.77
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring =C< : 1 | aromatic ring =CH- : 4 | -CH2- : 1 | ring =CH- : 1 | ring -NH- : 1 | >CH- : 1 | -COO : 1 | -NH3 : 1 | Origin : 1 | heteroaromatic : 1",-25
+"aromatic ring =C< : 1 | -CH2- : 1 | aromatic ring =CH- : 5 | >CH- : 1 | -COO : 1 | -NH3 : 1 | Origin : 1",-51.05
+"H : 1",-9.53
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 2 | ring -O- : 1 | ring >C=O : 1 | -OH : 2 | -CH2- : 1 | -OPO2- : 2 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-729.58
+">CH- : 1 | -COO : 1 | -CH2- : 1 | -NH3 : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -OH : 1 | Origin : 1",-90.53
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 7 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 3 | -COO : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-863.66
+"acetaldehyde : 1",-33.4
+"ring -CH< : 3 | ring -O- : 1 | -CH2- : 2 | ring >C< : 1 | -OH : 4 | -OPO3 : 1 | Origin : 1",-431.67
+"urea : 1",-48.7
+"ring >C< : 1 | -O- : 1 | ring -O- : 2 | ring -CH< : 8 | -CH2- : 3 | -OH : 8 | Origin : 1",-377.65
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 8 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 3 | -COO : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-862.04
+"-OPO3 : 1 | -CH2- : 2 | >CH- : 1 | -OH : 2 | Origin : 1",-328.68
+"-CH2- : 2 | -COO : 1 | -NH3 : 1 | Origin : 1",-86.11
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 7 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-784.21
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 2 | ring -O- : 1 | ring >C=O : 1 | -OH : 2 | -CH2- : 1 | -OPO2- : 1 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-521.58
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 2 | ring =CH- : 2 | -OH : 2 | -CH2- : 1 | -OPO3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-397.77
+"ring >C=O : 2 | ring =CH- : 2 | amide : 2 | ring -NH- : 2 | Origin : 1 | OCCC : 1",-61.07
+">C=O : 1 | -COO : 1 | -CH2- : 1 | -CH3 : 1 | Origin : 1 | OCCO : 1",-111.07
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 2 | ring =N- : 1 | -CH2- : 1 | ring =C< : 1 | -OPO2- : 1 | -NH2 : 1 | -OPO3 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-553.38
+"-CH2- : 2 | >N< : 1 | -CH3 : 3 | -OH : 1 | Origin : 1",12.19
+">CH- : 1 | -CH2- : 2 | -OH : 3 | Origin : 1",-116.18
+"-OPO3 : 1 | -CH2- : 1 | ring -CH< : 4 | ring -O- : 1 | -OH : 3 | Origin : 1",-394.12
+"ring -CH< : 4 | ring -O- : 1 | -OPO2- : 1 | -OH : 2 | -CH2- : 1 | -OPO3 : 2 | Origin : 1",-814.62
+"ring -CH< : 4 | ring -O- : 1 | -CH2- : 1 | -OH : 4 | Origin : 1",-181.62
+">CH- : 2 | -CH2- : 1 | -COO : 1 | -NH3 : 1 | -CH3 : 2 | Origin : 1",-84.87
+">CH- : 4 | >C=O : 4 | -CH2- : 8 | -S-S- : 1 | -COO : 4 | -NH3 : 2 | amide : 4 | -NH- : 4 | Origin : 1",-434.73
+"-OPO2- : 1 | -OPO3 : 1 | -CH2- : 2 | =C< : 1 | -CH3 : 1 | =CH2 : 1 | Origin : 1",-439.84
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 2 | ring -O- : 1 | ring >C=O : 1 | -OH : 2 | -CH2- : 1 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-313.58
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 3 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring -CH2- : 1 | ring =C< : 1 | -NH2 : 1 | -CH2- : 1 | -OH : 1 | -OPO2- : 2 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 2",-634.01
+"methanol : 1",-41.9
+">CH- : 1 | -COO : 1 | -CH3 : 1 | -NH3 : 1 | Origin : 1",-87.92
+"ring =C< : 1 | -CH2- : 1 | ring =CH- : 2 | ring =N- : 1 | >CH- : 1 | ring -NH- : 1 | -COO : 1 | -NH3 : 1 | Origin : 1 | heteroaromatic : 1",-45.63
+"ring -CH< : 6 | -OH : 6 | Origin : 1",-219.96
+"two fused rings >C= : 2 | ring -N< : 1 | ring =N- : 2 | ring -CH< : 4 | ring =CH- : 1 | ring >C=O : 1 | ring =C< : 1 | ring -O- : 1 | -NH2 : 1 | -OH : 2 | -CH2- : 1 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-308.3
+"aromatic ring =C< : 1 | aromatic ring =CH- : 5 | -OH : 1 | Origin : 1",-9.9
+"two fused rings >C= : 2 | ring =C< : 1 | ring =N- : 3 | ring -NH- : 1 | -NH2 : 1 | ring =CH- : 2 | Origin : 1 | heteroaromatic : 2",78.85
+"ring -CH< : 1 | -COO : 1 | ring -CH2- : 3 | ring -NH- : 1 | Origin : 1",-62.54
+">CH- : 1 | -CH2- : 1 | -COO : 1 | -NH3 : 1 | >C=O : 1 | amide : 1 | -NH2 : 1 | Origin : 1",-123.31
+"ring =C< : 1 | ring =CH- : 4 | >C=O : 1 | ring =N- : 1 | amide : 1 | -NH2 : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",5.55
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 20 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-763.15
+">CH- : 1 | -CH2- : 2 | -COO : 1 | -NH3 : 1 | -SH : 1 | Origin : 1",-81.77
+">C< : 1 | -CH2- : 2 | -COO : 3 | -OH : 1 | Origin : 1",-280.44
+"-COO : 1 | -CH2- : 1 | -OH : 1 | Origin : 1",-122.98
+"-COO : 1 | -CH2- : 1 | -CH3 : 1 | Origin : 1",-85.13
+"aromatic ring =C< : 1 | -CH2- : 1 | aromatic ring =CH- : 5 | >C=O : 1 | -COO : 1 | Origin : 1 | OCCO : 1",-75.82
+">C=O : 1 | -COO : 1 | -CH2- : 1 | -OH : 1 | Origin : 1 | OCCO : 1",-148.92
+"-CO-OPO3- : 1 | amide : 1 | -NH2 : 1 | Origin : 1",-310.26
+">CH- : 2 | -COO : 1 | -NH3 : 1 | -CH3 : 2 | Origin : 1",-86.49
+">C=O : 1 | -CH2- : 2 | -OH : 2 | Origin : 1",-108.16
+">CH- : 2 | -COO : 1 | -NH3 : 1 | -CH3 : 1 | -OH : 1 | Origin : 1",-124.34
+"hydroxylamine : 1",-38.9
+"ring -CH< : 4 | ring -O-CO- : 1 | -CH2- : 1 | -OH : 4 | Origin : 1",-216.02
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 3 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring -CH2- : 1 | ring =C< : 1 | -NH2 : 1 | -CH2- : 1 | -OH : 1 | -OPO2- : 1 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 2",-426.01
+"acetone : 1",-38.52
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring =C< : 1 | -OH : 3 | -NH2 : 1 | -CH2- : 1 | Origin : 1 | heteroaromatic : 2",-45.35
+">CH- : 1 | -CH2- : 2 | -COO : 2 | -NH3 : 1 | Origin : 1",-164.13
+"-CH2- : 1 | -COO : 1 | -CH=O : 1 | Origin : 1",-111.88
+"-CO-OPO3- : 1 | -CH3 : 1 | Origin : 1",-301.65
+"-CH2- : 2 | -COO : 1 | -CH=O : 1 | Origin : 1",-110.26
+"ring -CH2- : 2 | ring -CH< : 6 | -OPO3- : 1 | ring -O- : 2 | RW : 2 | -OH : 1 | -CH2- : 2 | -O- : 1 | ring =CH- : 1 | ring =C< : 1 | -CH3 : 1 | ring >C=O : 2 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1","None"
+"-OPO2- : 1 | -OPO3 : 1 | -CH2- : 1 | =CH- : 1 | =C< : 1 | -CH3 : 2 | Origin : 1",-439.18
+"-CO-OPO3- : 1 | >CH- : 1 | -CH2- : 1 | -OH : 1 | -OPO3 : 1 | Origin : 1",-586.8
+"ring -CH< : 3 | ring >C=O : 1 | ring =CH- : 2 | ring -O- : 1 | ring -CH2- : 1 | ring =N- : 1 | ring =C< : 1 | -CH2- : 1 | -OH : 1 | -NH2 : 1 | -OPO3 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-305.54
+"two fused rings >C= : 2 | ring =N- : 2 | ring -NH- : 2 | ring >C=O : 1 | ring =C< : 1 | ring =CH- : 1 | -NH2 : 1 | amide : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",28.4
+"ring -CH< : 1 | ring -CH2- : 2 | ring -S- : 2 | -CH2- : 4 | >C=O : 1 | amide : 1 | -NH2 : 1 | Origin : 1",-21.54
+"-CH2- : 14 | -COO : 1 | -CH3 : 1 | Origin : 1",-64.07
+"ring -CH< : 2 | ring =CH- : 3 | -O- : 1 | ring =C< : 1 | -OH : 1 | =C< : 1 | -COO : 2 | =CH2 : 1 | Origin : 1 | OCCC : 2 | CCCC : 1",-169.49
+">CH- : 1 | -COO : 1 | -CH3 : 1 | -OH : 1 | Origin : 1",-123.17
+">CH- : 4 | -OH : 5 | -COO : 1 | -CH2- : 1 | Origin : 1",-268.66
+">CH- : 1 | -COO : 1 | -CH2- : 1 | -OH : 2 | Origin : 1",-159.4
+"aromatic ring =C< : 1 | aromatic ring =CH- : 5 | -CH=O : 1 | Origin : 1 | OCCC : 1",-0.35
+"two fused rings >C= : 2 | ring >C=O : 1 | ring =N- : 2 | ring -NH- : 2 | ring =CH- : 2 | amide : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",23.12
+">CH- : 1 | -CH2- : 2 | -COO : 1 | -NH3 : 1 | -OH : 1 | Origin : 1",-122.53
+"-CH2- : 1 | -CH=O : 1 | -OH : 1 | Origin : 1",-70.28
+"ring -CH< : 3 | ring -O- : 1 | >CH- : 2 | ring >C< : 1 | -OH : 5 | ring -CH2- : 1 | >C=O : 1 | -COO : 1 | -CH2- : 1 | -CH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-326.4
+">CH- : 2 | >C=O : 2 | -OH : 4 | -CH2- : 2 | Origin : 1",-209.4
+"-OPO3 : 1 | -CH2- : 1 | >CH- : 2 | -OH : 2 | -CH=O : 1 | Origin : 1",-355.62
+"two fused rings >CH- : 3 | ring -CH2- : 8 | two fused rings >C< : 2 | two fused rings >C= : 1 | -CH3 : 2 | ring >C=O : 2 | ring =CH- : 1 | Origin : 1 | OCCC : 1",-18.43
+"H2 : 1",4.21
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 2 | ring -O- : 1 | ring >C=O : 1 | -OH : 3 | -CH2- : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-101.08
+"ring =C< : 1 | ring =CH- : 1 | -COO : 1 | ring >C=O : 2 | amide : 2 | ring -NH- : 2 | Origin : 1 | OCCC : 2",-142.48
+"ring >C< : 1 | -COO : 1 | ring -CH2- : 2 | -OH : 4 | ring -CH< : 3 | Origin : 1",-221.05
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 2 | ring =CH- : 2 | -OH : 3 | -CH2- : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-185.27
+"-N< : 1 | -CH2- : 1 | =C< : 1 | -CH3 : 1 | -COO : 1 | -NH2 : 1 | =NH2 : 1 | Origin : 1",-65.59
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 2 | ring =N- : 1 | -CH2- : 3 | ring =C< : 1 | -OPO3- : 1 | -NH2 : 1 | -OPO2- : 1 | >N< : 1 | -CH3 : 3 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-479.69
+">CH- : 2 | -CH2- : 1 | -COO : 3 | -OH : 1 | Origin : 1",-279.02
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 6 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 3 | -COO : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | OCCO : 1 | heteroaromatic : 2",-862.82
+"-CH2- : 3 | >CH- : 1 | -COO : 1 | -NH3 : 1 | >C=O : 1 | amide : 2 | -NH- : 1 | -NH2 : 1 | Origin : 1",-123.87
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring =C< : 1 | aromatic ring =CH- : 4 | -CH2- : 1 | ring =CH- : 1 | ring -NH- : 1 | >C=O : 1 | -COO : 1 | Origin : 1 | OCCO : 1 | heteroaromatic : 1",-49.77
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 7 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 4 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-812.61
+"ring -CH< : 5 | ring -O- : 1 | -COO : 1 | -OH : 4 | Origin : 1",-261.5
+"ring -CH< : 1 | ring -CH2- : 1 | -COO : 1 | ring >C=O : 2 | amide : 2 | ring -NH- : 2 | Origin : 1",-151.52
+">CH- : 2 | >C=O : 2 | -CH2- : 2 | RW : 2 | -SH : 2 | amide : 1 | -NH- : 1 | Origin : 1","None"
+"ring -CH< : 2 | >C=O : 1 | ring -CH2- : 2 | ring >C=O : 1 | RW : 2 | ring -S- : 2 | amide : 1 | ring -NH- : 1 | Origin : 1","None"
+"-OPO3 : 1 | -CH2- : 1 | >CH- : 4 | -OH : 4 | -COO : 1 | Origin : 1",-481.16
+">CH- : 1 | -COO : 1 | -CH=O : 1 | -CH3 : 1 | Origin : 1",-112.07
+"-OPO3 : 1 | -CH2- : 1 | ring -CH< : 5 | ring -O- : 1 | -OH : 3 | -NH3 : 1 | Origin : 1",-395.53
+"ring >C< : 1 | ring -O- : 1 | ring -CH< : 3 | -CH2- : 2 | -OH : 3 | -OPO3 : 2 | Origin : 1",-644.17
+"ring -CH< : 10 | -O- : 1 | -OH : 8 | ring -O- : 2 | -CH2- : 2 | Origin : 1",-376.76
+"two fused rings >C= : 2 | ring -N< : 1 | ring =N- : 2 | ring -CH< : 3 | ring =CH- : 1 | ring >C=O : 1 | ring =C< : 1 | ring -O- : 1 | ring -CH2- : 1 | -NH2 : 1 | -CH2- : 1 | -OH : 1 | -OPO2- : 1 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-476.46
+"two fused rings >C= : 2 | ring -N< : 1 | ring =N- : 2 | ring -CH< : 3 | ring =CH- : 1 | ring >C=O : 1 | ring =C< : 1 | ring -O- : 1 | ring -CH2- : 1 | -NH2 : 1 | -CH2- : 1 | -OH : 1 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-268.46
+"ring -CH< : 3 | ring -O- : 1 | ring -CH2- : 1 | ring >C=O : 2 | ring =CH- : 1 | ring =C< : 1 | -CH2- : 1 | -OH : 1 | -CH3 : 1 | -OPO2- : 1 | -OPO3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-566.34
+"ring -CH< : 3 | ring -O- : 1 | ring -CH2- : 1 | ring >C=O : 2 | ring =CH- : 1 | ring =C< : 1 | -CH2- : 1 | -OH : 1 | -CH3 : 1 | -OPO3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-358.34
+"-OPO3 : 1 | -CH2- : 2 | -NH3 : 1 | Origin : 1",-257.01
+"two fused rings >C= : 2 | ring >C=O : 3 | amide : 4 | ring -NH- : 4 | Origin : 1 | OCCC : 1",-90.93
+"dbl sgl ring =N< : 1 | ring =C< : 5 | -CH2- : 3 | ring =CH- : 2 | -CH3 : 2 | ring -S- : 1 | ring =N- : 2 | -NH2 : 1 | -OH : 1 | Origin : 1 | heteroaromatic : 2",52.18
+"two fused rings >C= : 2 | ring =N- : 1 | ring >C=O : 2 | ring -NH- : 3 | ring =CH- : 1 | amide : 2 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-27.73
+"two fused rings >C= : 2 | ring -N< : 1 | ring =N- : 2 | ring -CH< : 4 | ring =CH- : 1 | ring >C=O : 1 | ring =C< : 1 | ring -O- : 1 | -NH2 : 1 | -OH : 3 | -CH2- : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-95.8
+"ring >C=O : 1 | ring -CH2- : 5 | Origin : 1",-14.2
+"=C< : 1 | -CH2- : 1 | =CH- : 1 | -COO : 3 | Origin : 1 | OCCC : 2",-222.28
+"aromatic ring =C< : 1 | =CH- : 2 | aromatic ring =CH- : 5 | -COO : 1 | Origin : 1 | OCCC : 1 | CCCC : 1",-32.27
+">CH- : 1 | -COO : 1 | -CH2- : 3 | >C=O : 1 | -CH3 : 1 | -NH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-115.26
+">CH- : 1 | -CH2- : 1 | -COO : 2 | >C=O : 1 | amide : 2 | -NH- : 1 | -NH2 : 1 | Origin : 1",-203.96
+">CH- : 1 | -CH2- : 2 | -NH- : 1 | -COO : 2 | =CH- : 1 | =NH2 : 1 | Origin : 1",-157.18
+">CH- : 1 | -CH2- : 1 | -COO : 1 | -NH3 : 1 | -CH=O : 1 | Origin : 1",-113.05
+"ring -CH< : 4 | dbl sgl ring =N< : 1 | ring -O- : 1 | ring =CH- : 4 | -OH : 2 | ring =C< : 1 | -CH2- : 1 | >C=O : 1 | -OPO3 : 1 | amide : 1 | -NH2 : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-337.74
+"ring -CH< : 3 | ring -O- : 1 | ring -CH2- : 1 | ring >C=O : 2 | ring =CH- : 1 | ring =C< : 1 | -CH2- : 1 | -OH : 1 | -CH3 : 1 | -OPO2- : 2 | -OPO3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-774.34
+"two fused rings >CH- : 3 | two fused rings >C< : 1 | ring -CH2- : 6 | ring >C=O : 1 | -CH3 : 1 | aromatic ring fused to nonaromatic ring >C=  : 2 | aromatic ring =CH- : 3 | aromatic ring =C< : 1 | -OH : 1 | Origin : 1",-16.98
+"ring =C< : 2 | ring >C< : 1 | =CH- : 6 | ring -CH2- : 3 | -CH3 : 5 | =C< : 2 | -CH2- : 1 | -OH : 1 | Origin : 1 | CCCC : 4",70.9
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 3 | ring =N- : 1 | -CH2- : 1 | ring =C< : 1 | -NH2 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-132.88
+"ring -CH< : 4 | -OH : 4 | ring -CH2- : 1 | ring -O- : 1 | Origin : 1",-180.06
+"aromatic ring =C< : 4 | aromatic ring =CH- : 2 | -O- : 2 | -OH : 1 | -CH3 : 2 | =CH- : 2 | -COO : 1 | Origin : 1 | OCCC : 1 | CCCC : 1",-121.41
+"-CH2- : 2 | >N< : 1 | >CH- : 1 | -CH3 : 3 | -OH : 1 | -COO : 1 | Origin : 1",-65.83
+"ring >C< : 1 | -O- : 2 | ring -O- : 3 | ring -CH< : 13 | -CH2- : 4 | -OH : 11 | Origin : 1",-536.13
+"ring =C< : 1 | ring -CH2- : 1 | ring =CH- : 1 | -COO : 1 | ring -CH< : 3 | -OH : 3 | Origin : 1 | OCCC : 1",-171.29
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 9 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 2 | ring =C< : 1 | -OH : 6 | -NH2 : 1 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | Origin : 1 | heteroaromatic : 2",-622.63
+">CH- : 1 | -COO : 1 | >C=O : 2 | amide : 4 | -NH- : 2 | -NH2 : 2 | Origin : 1",-166.94
+"ring -CH< : 9 | ring -O- : 2 | ring >C=O : 1 | ring =CH- : 2 | -OH : 6 | ring =N- : 1 | -CH2- : 2 | ring =C< : 1 | -OPO3- : 1 | -NH2 : 1 | -OPO2- : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-710.16
+"ring >C< : 1 | ring -CH< : 2 | ring -O- : 1 | -CH2- : 1 | -OH : 4 | ring -CH2- : 1 | Origin : 1",-180.95
+">CH- : 1 | -COO : 1 | -CH2- : 3 | -NH3 : 2 | Origin : 1",-85.66
+">CH- : 3 | -OH : 5 | -CH2- : 2 | Origin : 1",-189.02
+">C=O : 1 | -CH=O : 1 | -CH3 : 1 | Origin : 1 | OCCO : 1",-59.99
+"-COO : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >CH- : 1 | -NH2 : 1 | -OH : 1 | Origin : 1",-83.86
+">CH- : 2 | -COO : 2 | -OH : 2 | Origin : 1",-239.04
+"aromatic ring =C< : 1 | aromatic ring =CH- : 5 | -CH2- : 1 | -OH : 1 | Origin : 1",-8.28
+">C=O : 2 | >CH- : 3 | RW : 3 | -CO-OPO3- : 1 | -NH3 : 1 | amide : 2 | -NH- : 2 | Origin : 1","None"
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 2 | ring =N- : 1 | -CH2- : 3 | ring =C< : 1 | -OPO3- : 1 | -NH2 : 1 | -OPO2- : 1 | -NH3 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-536.39
+"ring -N< : 1 | ring -CH< : 2 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 2 | ring =N- : 3 | two fused rings >CH- : 2 | -OH : 1 | ring =C< : 1 | ring -OPO2- : 1 | ring -CH2- : 1 | -NH2 : 1 | Origin : 1 | heteroaromatic : 2",-191.87
+">CH- : 1 | -CH2- : 1 | -CH=O : 1 | -OH : 2 | Origin : 1",-106.7
+"-CH2- : 6 | >CH- : 1 | -SH : 2 | >C=O : 1 | amide : 1 | -NH2 : 1 | Origin : 1",-27.35
+"-S- : 1 | -CH3 : 2 | Origin : 1",1.47
+"-COO : 1 | -CH2- : 1 | -NH- : 1 | =C< : 1 | -NH2 : 1 | =NH2 : 1 | Origin : 1",-75.84
+"ring -CH< : 3 | ring >C=O : 1 | -CH2- : 10 | =CH- : 2 | ring -CH2- : 1 | -OH : 2 | >CH- : 1 | -COO : 1 | -CH3 : 1 | Origin : 1",-135.27
+"ring -CH< : 3 | ring >C=O : 1 | -CH2- : 8 | =CH- : 4 | ring -CH2- : 1 | -OH : 2 | >CH- : 1 | -COO : 1 | -CH3 : 1 | Origin : 1",-112.91
+"-CH2- : 2 | >N< : 1 | -CH3 : 3 | -OPO3 : 1 | Origin : 1",-200.31
+"aromatic ring =C< : 3 | -OH : 2 | aromatic ring =CH- : 3 | -O- : 1 | =CH- : 2 | -CH3 : 1 | -CH2- : 1 | Origin : 1 | CCCC : 1",-51.81
+"-OPO3 : 1 | -CH2- : 1 | >CH- : 1 | -COO : 1 | -OH : 1 | Origin : 1",-371.9
+">CH- : 1 | -COO : 1 | -OH : 1 | >C=O : 1 | amide : 2 | -NH- : 1 | -NH2 : 1 | Origin : 1",-163.98
+"ring -CH< : 4 | ring -O- : 1 | -OPO3 : 1 | -OH : 3 | -CH2- : 1 | Origin : 1",-394.12
+">CH- : 1 | -CH2- : 2 | -COO : 2 | >C=O : 1 | -CH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-193.73
+"-OPO3 : 1 | >CH- : 1 | -COO : 1 | -CH2- : 1 | -OH : 1 | Origin : 1",-371.9
+"-CH2- : 3 | -COO : 1 | >C=O : 1 | -CH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-114.09
+"ring -CH< : 5 | -OH : 4 | ring -O- : 1 | >C=O : 1 | -CH3 : 1 | -CH2- : 1 | amide : 1 | -NH- : 1 | Origin : 1",-212.63
+"-OPO3 : 2 | ring -CH< : 5 | ring -O- : 1 | -OH : 3 | -CH2- : 1 | Origin : 1",-643.28
+"ring -CH< : 3 | ring -O- : 1 | ring -CH2- : 1 | -OPO3 : 1 | -CH2- : 1 | -OH : 2 | Origin : 1",-354.28
+"-OPO3 : 1 | -CH2- : 1 | ring -CH< : 3 | ring -O- : 1 | ring -CH2- : 1 | -OH : 2 | Origin : 1",-354.28
+"ring -CH< : 7 | ring -O- : 2 | ring -CH2- : 1 | ring >C=O : 3 | ring =CH- : 1 | ring =C< : 1 | -CH2- : 1 | -OH : 3 | -CH3 : 2 | -OPO3- : 1 | -OPO2- : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-680.33
+"ring -CH< : 3 | ring >C=O : 1 | ring =CH- : 2 | ring -O- : 1 | ring -CH2- : 1 | ring =N- : 1 | ring =C< : 1 | -CH2- : 1 | -OH : 1 | -NH2 : 1 | -OPO2- : 1 | -OPO3 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-513.54
+"ring -CH< : 1 | ring -CH2- : 2 | ring -S- : 2 | -CH2- : 4 | -COO : 1 | Origin : 1",-63.98
+">CH- : 1 | -COO : 1 | -CH2- : 1 | -NH3 : 1 | -OH : 1 | Origin : 1",-124.15
+"ring =C< : 1 | =CH- : 2 | ring =CH- : 2 | ring =N- : 1 | ring -NH- : 1 | -COO : 1 | Origin : 1 | OCCC : 1 | CCCC : 1 | heteroaromatic : 1",-26.85
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 6 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 2 | -CH=O : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-784.18
+">CH- : 1 | >C=O : 1 | -CH3 : 2 | -OH : 1 | Origin : 1",-72.12
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | -NO2 : 1 | -SO4 : 1 | Origin : 1","None"
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 2 | ring >C=O : 1 | ring -CH2- : 1 | ring =C< : 2 | -NH2 : 1 | >C=O : 1 | >CH- : 1 | -CH3 : 1 | -OH : 1 | amide : 1 | Origin : 1 | OCCC : 1 | OCCN : 1 | CCNC : 2",-34.72
+"ring -CH< : 8 | ring -O- : 2 | ring -CH2- : 1 | ring >C=O : 2 | ring =CH- : 1 | ring =C< : 1 | -CH2- : 2 | -OH : 5 | -CH3 : 1 | -OPO3- : 1 | -OPO2- : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-723.12
+"ring -CH< : 1 | ring -CH2- : 5 | -OH : 1 | Origin : 1",-20.76
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 6 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 3 | =CH- : 2 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",-761.78
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring =C< : 1 | -OH : 3 | -NH2 : 1 | -CH2- : 6 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 2 | -SH : 1 | amide : 2 | -NH- : 2 | Origin : 1 | heteroaromatic : 2",-539.49
+"ring -CH< : 2 | -O- : 1 | ring =CH- : 3 | ring =C< : 1 | -OH : 1 | =C< : 1 | -COO : 2 | =CH2 : 1 | Origin : 1 | OCCC : 2 | CCCC : 1",-169.49
+"two fused rings >CH- : 3 | two fused rings >C< : 2 | ring -CH2- : 7 | ring >C< : 1 | -CH3 : 2 | ring -CH< : 1 | >C=O : 1 | -OH : 3 | two fused rings >C= : 1 | -CH2- : 1 | ring =CH- : 1 | ring >C=O : 1 | Origin : 1 | OCCC : 1",-130.78
+"two fused rings >CH- : 3 | two fused rings >C< : 2 | ring -CH2- : 7 | ring >C< : 1 | -CH3 : 2 | ring -CH< : 1 | >C=O : 1 | -OH : 2 | two fused rings >C= : 1 | -CH=O : 1 | ring =CH- : 1 | ring >C=O : 1 | Origin : 1 | OCCO : 1 | OCCC : 1",-118.84
+"ring >C< : 1 | ring -CH< : 3 | ring -O- : 1 | -CH2- : 1 | -OH : 4 | -COO : 1 | Origin : 1",-262.39
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 10 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 3 | -CH3 : 2 | >C=O : 4 | -S-S- : 1 | -COO : 2 | -NH3 : 1 | amide : 4 | -NH- : 4 | Origin : 1 | heteroaromatic : 2",-965.77
+"-COO : 2 | =C< : 2 | -CH3 : 2 | Origin : 1 | OCCC : 2",-145.2
+">CH- : 1 | -CH=O : 1 | -CH3 : 1 | -OH : 1 | Origin : 1",-70.47
+"ring -CH< : 2 | two fused rings >CH- : 2 | ring -O- : 2 | ring >C=O : 1 | ring =CH- : 2 | ring =N- : 1 | ring -OPO2- : 1 | -CH2- : 1 | ring =C< : 1 | -OH : 1 | -NH2 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-280.96
+"two fused rings >CH- : 3 | two fused rings >C< : 1 | ring -CH2- : 6 | ring -CH< : 1 | -CH3 : 1 | aromatic ring fused to nonaromatic ring >C=  : 2 | -OH : 2 | aromatic ring =CH- : 3 | aromatic ring =C< : 1 | Origin : 1",-23.54
+"-CH2- : 3 | >CH- : 1 | -COO : 2 | -NH3 : 1 | Origin : 1",-162.51
+"=C< : 2 | -COO : 2 | -OH : 2 | Origin : 1 | OCCC : 2",-220.9
+">CH- : 1 | -CH2- : 1 | -COO : 1 | -NH3 : 1 | -O-CO- : 1 | -CH3 : 1 | Origin : 1",-161.6
+"-CH2- : 3 | -COO : 1 | -OH : 1 | Origin : 1",-119.74
+"-CH2- : 2 | -COO : 1 | -OH : 1 | Origin : 1",-121.36
+">CH- : 3 | -OH : 4 | >C=O : 1 | -COO : 1 | -CH2- : 1 | Origin : 1",-260.64
+"-COO : 1 | -CH2- : 2 | >C=O : 1 | -CH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-115.71
+"ring -CH< : 10 | -O- : 1 | ring -O- : 2 | -OH : 8 | -CH2- : 2 | Origin : 1",-376.76
+">CH- : 1 | -CH2- : 2 | -COO : 2 | -OH : 1 | Origin : 1",-199.38
+"ring >C< : 1 | ring -CH< : 3 | ring -O- : 1 | -CH2- : 2 | -OH : 4 | -OPO3 : 1 | Origin : 1",-431.67
+">CH- : 4 | -OH : 5 | -CH2- : 2 | -OPO3 : 1 | Origin : 1",-437.94
+"-OPO3 : 1 | ring -CH< : 5 | ring -O- : 1 | -OH : 3 | -CH3 : 1 | Origin : 1",-394.55
+">CH- : 2 | >C=O : 1 | -OH : 3 | -CH2- : 2 | -OPO3 : 1 | Origin : 1",-393.5
+"ring -CH< : 4 | ring -O- : 1 | ring =C< : 1 | ring >C=O : 2 | -OH : 2 | ring =CH- : 1 | -COO : 1 | -CH2- : 1 | -OPO3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 2",-479.18
+"-CH2- : 3 | >C< : 1 | -COO : 1 | -CH3 : 1 | -OH : 1 | -OPO3 : 1 | Origin : 1",-370.27
+">CH- : 3 | -OH : 3 | -CH2- : 1 | -CH=O : 1 | -OPO3 : 1 | Origin : 1",-392.04
+"-OPO3 : 1 | -CH2- : 1 | ring -CH< : 5 | ring -O- : 1 | -OH : 4 | Origin : 1",-430.78
+">CH- : 1 | -COO : 2 | -CH2- : 1 | -OH : 1 | >C=O : 1 | Origin : 1 | OCCO : 1",-226.94
+"-OPO3 : 1 | -CH2- : 1 | >C=O : 1 | >CH- : 3 | -OH : 3 | -CH3 : 1 | Origin : 1",-393.69
+"-OPO2- : 1 | -OPO3 : 1 | -CH2- : 3 | >C< : 1 | -CH3 : 1 | -OH : 1 | -COO : 1 | Origin : 1",-578.27
+">CH- : 1 | -COO : 1 | -CH=O : 1 | -OH : 1 | Origin : 1",-149.92
+">C=O : 1 | -COO : 1 | -CH2- : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -OH : 1 | Origin : 1 | OCCO : 1",-115.3
+"-CH2- : 2 | >CH- : 2 | -NH3 : 2 | -CH3 : 1 | -COO : 1 | Origin : 1",-85.85
+">CH- : 1 | -COO : 1 | -CH2- : 1 | -CH3 : 1 | -OH : 1 | Origin : 1",-121.55
+"ring -CH< : 6 | -OPO3- : 1 | -OH : 4 | -OPO3 : 1 | -CH2- : 2 | >CH- : 1 | -O-CO- : 2 | RW : 2 | Origin : 1","None"
+"ring -CH< : 11 | -O- : 1 | -OH : 9 | ring -O- : 1 | -CH2- : 1 | Origin : 1",-378.44
+"-OPO3 : 1 | -CH2- : 1 | ring -CH< : 4 | ring -O-CO- : 1 | -OH : 3 | Origin : 1",-428.52
+">CH- : 1 | -CH2- : 7 | -S- : 1 | -SH : 1 | -NH3 : 1 | -COO : 1 | Origin : 1",-64.9
+"aromatic ring =C< : 4 | aromatic ring =CH- : 2 | -CH2- : 1 | >C=O : 1 | aromatic -I : 2 | -COO : 1 | -OH : 1 | Origin : 1 | OCCO : 1",-78.06
+"ring -CH< : 6 | -OPO3- : 1 | -OH : 5 | -CH2- : 2 | >CH- : 1 | -O-CO- : 2 | RW : 2 | Origin : 1","None"
+"ring -N< : 2 | two fused rings >C= : 4 | aromatic ring fused to nonaromatic ring >C=  : 2 | -CH2- : 3 | ring =N- : 5 | aromatic ring =CH- : 2 | >CH- : 3 | ring >C=O : 2 | aromatic ring =C< : 2 | -OH : 5 | -CH3 : 2 | -OPO3- : 1 | -OPO2- : 1 | ring -CH< : 4 | ring -O- : 1 | ring =CH- : 2 | ring =C< : 1 | -NH2 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCN : 1 | OCNC : 1 | NCCN : 1 | CCNC : 1 | heteroaromatic : 2",-529.37
+"-CH2- : 2 | -OH : 2 | Origin : 1",-79.76
+"-COO : 2 | =CH- : 2 | Origin : 1 | OCCC : 2",-143.7
+"-CH2- : 2 | -CH=O : 1 | -CH3 : 1 | Origin : 1",-30.81
+"aromatic ring =C< : 4 | aromatic ring =CH- : 2 | -COO : 1 | -OH : 3 | Origin : 1 | OCCC : 1",-171.49
+"ring =CH- : 3 | ring -NH- : 1 | ring =N- : 1 | Origin : 1 | heteroaromatic : 1",33.78
+"-CH2- : 12 | =CH- : 4 | -COO : 1 | -CH3 : 1 | Origin : 1",-16.11
+"ring >C< : 1 | -O- : 3 | ring -O- : 4 | ring -CH< : 18 | -CH2- : 5 | -OH : 14 | Origin : 1",-694.61
+">CH- : 2 | -COO : 1 | -OH : 3 | -CH2- : 1 | Origin : 1",-195.82
+"dbl sgl ring =N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 2 | -OH : 1 | ring =C< : 1 | -OPO3 : 2 | -CH2- : 1 | ring -NH- : 1 | -NH2 : 1 | Origin : 1 | CCCN : 1 | CCNC : 3",-478.33
+"ring -CH< : 12 | -OPO3- : 2 | ring -O- : 3 | -CH2- : 3 | -OH : 5 | RW : 3 | Origin : 1","None"
+"ring >C< : 1 | ring -CH< : 3 | ring -O- : 1 | -CH2- : 2 | -OH : 5 | Origin : 1",-219.17
+"ring -CH< : 5 | -OH : 4 | ring -O- : 1 | -CH3 : 1 | Origin : 1",-182.05
+"-OPO3- : 1 | -CH2- : 3 | >CH- : 1 | -COO : 1 | -NH3 : 1 | -NH- : 1 | =C< : 1 | -NH2 : 1 | =NH2 : 1 | Origin : 1",-307.77
+"aromatic ring fused to nonaromatic ring >C=  : 4 | ring -N< : 1 | aromatic ring =CH- : 7 | ring -NH- : 1 | aromatic ring =C< : 1 | -CH3 : 1 | -OH : 1 | Origin : 1",51.67
+"≡C- : 1 | ≡N : 1 | -Sneg : 1 | Origin : 1",22.2
+"two fused rings >C= : 2 | ring -N< : 1 | ring -CH< : 4 | ring =CH- : 1 | ring =N- : 1 | ring >C=O : 2 | ring -O- : 1 | -OH : 3 | -CH2- : 1 | amide : 2 | ring -NH- : 2 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-151.93
+"ring -CH< : 3 | -OH : 3 | ring -CH2- : 1 | ring -O- : 1 | Origin : 1",-143.4
+">CH- : 1 | -CH2- : 2 | -COO : 1 | -NH3 : 1 | -CH3 : 1 | Origin : 1",-84.68
+">CH- : 1 | -CH3 : 2 | -OH : 1 | Origin : 1",-43.72
+"ring -N< : 1 | aromatic ring fused to nonaromatic ring >C=  : 2 | two fused rings >C= : 2 | -CH2- : 2 | aromatic ring =CH- : 2 | ring =N- : 2 | >CH- : 3 | aromatic ring =C< : 2 | ring >C=O : 2 | -OH : 3 | -CH3 : 2 | -OPO3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCN : 1 | OCNC : 1 | NCCN : 1 | CCNC : 1",-337.52
+">CH- : 1 | -COO : 1 | -CH2- : 3 | -NH3 : 1 | -CH3 : 1 | Origin : 1",-83.06
+"-SO3 : 1 | -CH2- : 2 | -NH- : 1 | =C< : 1 | -NH2 : 1 | =NH2 : 1 | Origin : 1",-114.87
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring =C< : 1 | aromatic ring =CH- : 4 | -CH2- : 1 | ring =CH- : 1 | ring -NH- : 1 | >CH- : 1 | -COO : 1 | -OH : 1 | Origin : 1 | heteroaromatic : 1",-60.25
+">CH- : 1 | >C=O : 1 | -CH2- : 2 | -OH : 3 | Origin : 1",-144.58
+"ring =C< : 2 | ring >C< : 1 | =CH- : 6 | ring -CH2- : 3 | -CH3 : 5 | =C< : 2 | -CH=O : 1 | Origin : 1 | OCCC : 1 | CCCC : 4",78.83
+">C< : 1 | -COO : 1 | -CH2- : 1 | -CH3 : 1 | -NH3 : 1 | -OH : 1 | Origin : 1",-125.76
+"-CH2- : 1 | -COO : 1 | -CH3 : 1 | >C=O : 1 | Origin : 1",-113.53
+"-CH2- : 6 | >CH- : 1 | -SH : 2 | -COO : 1 | Origin : 1",-69.79
+"=C< : 1 | =CH- : 1 | -COO : 2 | -CH3 : 1 | Origin : 1 | OCCC : 2",-144.45
+"ring -CH< : 1 | ring -CH2- : 2 | -COO : 1 | ring >C=O : 1 | amide : 1 | ring -NH- : 1 | Origin : 1",-110.12
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 9 | ring =CH- : 1 | ring =N- : 2 | ring -O- : 2 | ring >C=O : 1 | ring =C< : 1 | -OH : 6 | -NH2 : 1 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-673.08
+">CH- : 1 | =C< : 1 | -COO : 2 | -CH3 : 1 | =CH2 : 1 | Origin : 1 | OCCC : 1",-143.75
+"=C< : 1 | -N< : 1 | -NH- : 1 | =NH2 : 1 | -CH2- : 1 | -CH3 : 1 | -OPO2 : 1 | -COO : 1 | Origin : 1",-262.13
+"formylphosphate : 1",-302.57
+"-COO : 2 | =CH- : 4 | Origin : 1 | OCCC : 2 | CCCC : 1",-122.92
+"aromatic ring =C< : 3 | aromatic ring =CH- : 3 | -NO2 : 2 | -OH : 1 | Origin : 1","None"
+"ring -CH< : 12 | -OPO3- : 2 | ring -O- : 3 | -CH2- : 3 | -OH : 4 | RW : 3 | -O-CO- : 1 | >CH- : 2 | -NH3 : 1 | -CH3 : 2 | Origin : 1","None"
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 6 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 2 | -CH3 : 3 | >C=O : 3 | -COO : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-863.85
+">C=O : 1 | ring =CH- : 3 | -CH3 : 1 | ring =N- : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | heteroaromatic : 1",3.35
+"-CH2- : 2 | >CH- : 1 | >N< : 1 | -O-CO- : 1 | -CH3 : 4 | -COO : 1 | Origin : 1",-103.28
+"ring =C< : 2 | ring >C< : 1 | =CH- : 6 | ring -CH2- : 3 | -CH3 : 6 | =C< : 2 | -CH2- : 15 | -O-CO- : 1 | Origin : 1 | CCCC : 4",56.13
+"ring >C< : 1 | -O- : 1 | ring -O- : 2 | ring -CH< : 8 | -CH2- : 3 | -OH : 7 | -OPO3 : 1 | Origin : 1",-590.15
+">C=O : 1 | -COO : 1 | -CH3 : 1 | Origin : 1 | OCCO : 1",-112.69
+">C< : 1 | -COO : 2 | -CH2- : 1 | -CH3 : 1 | -OH : 1 | Origin : 1",-202.61
+">C< : 1 | >CH- : 1 | -COO : 2 | -CH3 : 2 | -OH : 1 | Origin : 1",-202.8
+">N< : 1 | -CH2- : 2 | -CH3 : 3 | >C=O : 1 | -COO : 1 | Origin : 1",-57.81
+"ring =C< : 1 | ring -CH2- : 1 | ring =CH- : 1 | -COO : 1 | ring -CH< : 2 | ring >C=O : 1 | -OH : 2 | Origin : 1 | OCCC : 2",-166.28
+"ring =C< : 1 | ring -CH2- : 1 | ring =CH- : 1 | -COO : 1 | ring >C=O : 1 | ring -CH< : 2 | -OH : 2 | Origin : 1 | OCCC : 1",-164.73
+"aromatic ring =C< : 3 | -OH : 1 | aromatic ring =CH- : 3 | -O- : 1 | =CH- : 2 | -CH3 : 1 | -CH=O : 1 | Origin : 1 | OCCC : 1 | CCCC : 1",-43.88
+"ring =C< : 3 | ring =CH- : 1 | ring =N- : 2 | -NH2 : 1 | -CH3 : 1 | aromatic ring =CH- : 5 | aromatic ring =C< : 1 | -CH2- : 1 | -NH- : 1 | Origin : 1 | heteroaromatic : 1",92.06
+"ring =C< : 4 | ring =CH- : 5 | ring =N- : 2 | -NH2 : 2 | -CH3 : 1 | -CH2- : 1 | >C=O : 1 | dbl sgl ring =N< : 1 | amide : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",64.84
+">CH- : 1 | -COO : 1 | -CH2- : 2 | >C=O : 1 | -CH3 : 2 | -S- : 1 | amide : 1 | -NH- : 1 | Origin : 1",-105.51
+"-CH2- : 1 | -COO : 1 | -NH- : 1 | =CH- : 1 | =NH2 : 1 | Origin : 1",-80.78
+"aromatic ring =C< : 1 | =CH- : 1 | aromatic ring =CH- : 5 | =C< : 1 | -COO : 1 | -OH : 1 | Origin : 1 | OCCC : 1 | CCCC : 1",-70.87
+"-OPO3- : 1 | -CH2- : 3 | >CH- : 1 | -COO : 1 | -NH3 : 1 | -NH- : 2 | =C< : 1 | =NH2 : 1 | -OPO2 : 1 | Origin : 1",-504.31
+"aromatic ring =C< : 4 | -O- : 3 | aromatic ring =CH- : 2 | ring -CH< : 5 | -CH3 : 2 | ring -O- : 1 | =CH- : 2 | -OH : 4 | -CH2- : 1 | -COO : 1 | Origin : 1 | OCCC : 1 | CCCC : 1",-279.89
+"=C< : 1 | -CH2- : 2 | -COO : 2 | =CH2 : 1 | Origin : 1 | OCCC : 1",-141.94
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 2 | ring >C=O : 1 | ring -CH2- : 1 | ring =C< : 2 | -NH2 : 1 | >CH- : 2 | -OH : 2 | -CH3 : 1 | amide : 1 | Origin : 1 | OCCC : 1 | CCNC : 2",-39.72
+">CH- : 1 | -O-CO- : 1 | -CH2- : 16 | >N< : 1 | -COO : 1 | -CH3 : 4 | Origin : 1",-80.6
+">CH- : 1 | -O-CO- : 1 | -CH2- : 3 | >N< : 1 | -COO : 1 | -CH3 : 4 | Origin : 1",-101.66
+">CH- : 2 | -CH3 : 2 | -OH : 2 | Origin : 1",-80.14
+">C< : 1 | -COO : 1 | -CH2- : 2 | -NH3 : 1 | -OH : 2 | Origin : 1",-161.99
+">CH- : 1 | >C=O : 1 | -COO : 1 | -OH : 2 | -CH2- : 1 | Origin : 1",-187.8
+"aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH=O : 1 | -OH : 1 | Origin : 1 | OCCC : 1",-39.83
+"-CO-OPO3- : 1 | -CH2- : 1 | >CH- : 1 | -COO : 1 | -NH3 : 1 | Origin : 1",-380.65
+">CH- : 1 | -COO : 1 | -CH2- : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -OH : 1 | -CH3 : 1 | >C=O : 1 | amide : 1 | -NH- : 1 | Origin : 1",-120.13
+"ring -CH< : 4 | dbl sgl ring =N< : 1 | ring -O- : 1 | ring =CH- : 4 | -OH : 3 | ring =C< : 1 | -CH2- : 1 | >C=O : 1 | amide : 1 | -NH2 : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-125.24
+"-OPO2 : 1 | -NH- : 2 | =C< : 1 | =NH2 : 1 | -CH2- : 1 | -COO : 1 | Origin : 1",-272.38
+"two fused rings >C= : 2 | ring >C=O : 4 | amide : 4 | ring -NH- : 4 | Origin : 1 | OCCO : 1 | OCCC : 1",-118.57
+">CH- : 2 | -COO : 2 | -NH2- : 1 | -CH3 : 2 | Origin : 1",-157.39
+"-OPO3 : 1 | -CH2- : 1 | >C=O : 1 | -COO : 1 | Origin : 1 | OCCO : 1",-361.42
+"two fused rings >C= : 2 | ring -NH- : 3 | ring >C=O : 2 | ring =N- : 1 | ring =C< : 1 | -COO : 1 | amide : 2 | Origin : 1 | OCCC : 1 | OCCN : 1 | heteroaromatic : 1",-110.61
+"aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 1 | -OH : 2 | Origin : 1",-47.76
+"ring -CH< : 3 | ring -O-CO- : 1 | >CH- : 1 | -OH : 4 | -CH2- : 1 | Origin : 1",-215.78
+"-OPO3 : 1 | -CH2- : 2 | >C=O : 1 | >CH- : 1 | -OH : 2 | Origin : 1",-357.08
+">CH- : 2 | -NH- : 2 | -CH2- : 4 | -COO : 3 | =C< : 1 | =NH2 : 1 | -NH3 : 1 | Origin : 1",-224.81
+"ring -CH< : 3 | ring -O- : 1 | >CH- : 2 | ring >C< : 1 | -OH : 6 | ring -CH2- : 1 | >C=O : 1 | -COO : 1 | -CH2- : 2 | amide : 1 | -NH- : 1 | Origin : 1",-362.63
+">CH- : 3 | -CH2- : 4 | >C=O : 3 | -COO : 2 | -CH3 : 1 | -OH : 1 | -NH3 : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1",-291.21
+">CH- : 1 | >C=O : 1 | -COO : 2 | -OH : 1 | Origin : 1 | OCCO : 1",-228.56
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring =C< : 1 | -OH : 2 | -NH2 : 1 | -CH2- : 1 | -OPO2- : 3 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 2",-881.85
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring =C< : 1 | aromatic ring =CH- : 4 | >CH- : 2 | ring =CH- : 1 | ring -NH- : 1 | -OH : 2 | -CH2- : 1 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 1",-267.57
+">CH- : 1 | -CH2- : 1 | -COO : 1 | aromatic ring =C< : 1 | >C=O : 1 | aromatic ring =CH- : 5 | -CH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-80.65
+"ring -CH< : 5 | -OH : 5 | ring -O- : 1 | >C=O : 1 | -CH2- : 2 | amide : 1 | -NH- : 1 | Origin : 1",-248.86
+"ring =C< : 1 | -COO : 1 | ring -CH2- : 3 | ring =N- : 1 | Origin : 1 | OCCN : 1",-60.71
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 1 | ring =N- : 1 | ring =C< : 2 | -CH2- : 1 | -OH : 3 | -CH3 : 1 | -NH2 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-133.29
+">CH- : 2 | -COO : 2 | -CH3 : 1 | -NH3 : 1 | Origin : 1",-165.94
+"-CH2- : 2 | >C=O : 2 | -COO : 1 | -CH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1 | OCCO : 1",-141.65
+"-CH2- : 2 | >C=O : 1 | >CH- : 1 | -CH3 : 1 | -NH3 : 1 | -COO : 1 | Origin : 1",-113.08
+"ring -CH< : 1 | ring >C=O : 1 | ring -NH- : 1 | -CH2- : 2 | ring =N- : 1 | ring =CH- : 1 | -COO : 1 | Origin : 1 | OCNC : 1",-86.31
+"ring -CH< : 1 | ring >C=O : 2 | -CH2- : 1 | -COO : 1 | amide : 2 | ring -NH- : 2 | Origin : 1",-153.08
+"aromatic ring =C< : 1 | -CH2- : 2 | aromatic ring =CH- : 5 | -O-CO- : 1 | -COO : 1 | amide : 1 | -NH- : 1 | Origin : 1",-127.36
+"two fused rings >CH- : 4 | ring -CH2- : 9 | two fused rings >C< : 2 | -CH3 : 2 | ring >C=O : 2 | Origin : 1",-36.26
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring =C< : 1 | -OH : 2 | -NH- : 1 | -CH2- : 2 | >CH- : 1 | -OPO3 : 1 | -COO : 2 | Origin : 1 | heteroaromatic : 2",-408.89
+"-OPO3 : 1 | =C< : 1 | -COO : 1 | =CH2 : 1 | Origin : 1 | OCCC : 1",-316.08
+">C=O : 1 | -COO : 1 | -CH2- : 3 | -NH3 : 1 | Origin : 1 | OCCO : 1",-110.43
+">CH- : 2 | -COO : 2 | -NH3 : 1 | -OH : 1 | Origin : 1",-203.79
+"two fused rings >C= : 2 | dbl sgl ring =N< : 1 | ring =N- : 2 | ring -CH< : 4 | ring -CH2- : 1 | ring >C=O : 1 | ring =C< : 1 | ring -O- : 1 | -NH2 : 1 | -OH : 2 | -CH2- : 1 | -OPO3- : 1 | -CH3 : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCN : 1 | NCCN : 1 | CCNC : 1",-305.35
+"-COO : 1 | -CH2- : 2 | -S< : 1 | -CH3 : 2 | Origin : 1",-65.26
+"ring =C< : 2 | >C=O : 1 | ring =N- : 1 | ring -NH- : 1 | -NH2 : 2 | ring =CH- : 1 | amide : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",0.09
+"-CH2- : 12 | =CH- : 4 | -COO : 1 | -CH3 : 1 | Origin : 1 | CCCC : 1",-20.93
+"-COO : 1 | >C=O : 1 | -CH2- : 2 | >CH- : 1 | -OH : 2 | Origin : 1 | OCCO : 1",-183.72
+"ring -CH< : 1 | ring -O-CO- : 1 | ring =CH- : 2 | -CH2- : 1 | -COO : 1 | Origin : 1 | OCCC : 1",-132.27
+"=C< : 1 | =CH- : 3 | -CH3 : 1 | -COO : 2 | Origin : 1 | OCCC : 2 | CCCC : 1",-123.67
+">CH- : 2 | -NH2- : 1 | -CH2- : 3 | -COO : 2 | -CH3 : 1 | -NH- : 1 | =C< : 1 | -NH2 : 1 | =NH2 : 1 | Origin : 1",-143.24
+"ring -CH< : 5 | ring -O- : 1 | -OPO3 : 1 | -OH : 3 | >C=O : 1 | -CH3 : 1 | -CH2- : 1 | amide : 1 | -NH- : 1 | Origin : 1",-425.13
+"ring -CH< : 5 | -OH : 3 | ring -O- : 1 | >C=O : 1 | -CH3 : 1 | -CH2- : 1 | -OPO3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-425.13
+"ring -CH< : 8 | ring -O- : 2 | ring -CH2- : 1 | ring >C=O : 2 | ring =CH- : 1 | ring =C< : 1 | -CH2- : 1 | -OH : 3 | -CH3 : 2 | -OPO3- : 1 | -OPO2- : 1 | -NH3 : 1 | amide : 2 | ring -N< : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1",-651.64
+">CH- : 1 | >C< : 1 | -COO : 1 | -OH : 2 | -CH3 : 2 | Origin : 1",-161.2
+"ring =C< : 2 | -CH2- : 2 | ring -S- : 1 | ring =N- : 1 | -CH3 : 1 | ring =CH- : 1 | -OH : 1 | Origin : 1 | heteroaromatic : 1",-7.11
+"two fused rings >CH- : 3 | ring -CH2- : 8 | two fused rings >C< : 2 | two fused rings >C= : 1 | -CH3 : 2 | ring >C=O : 1 | ring =CH- : 1 | ring -CH< : 1 | -OH : 1 | Origin : 1",-23.44
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 3 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 7 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 2 | -CH3 : 2 | >C=O : 3 | -COO : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-900.08
+"aromatic ring =C< : 4 | aromatic ring =CH- : 2 | -CH2- : 1 | >CH- : 1 | aromatic -I : 2 | -COO : 1 | -OH : 2 | Origin : 1",-88.54
+"two fused rings >CH- : 4 | ring -CH2- : 9 | two fused rings >C< : 2 | -CH3 : 2 | ring -CH< : 2 | -OH : 2 | Origin : 1",-49.38
+"two fused rings >CH- : 4 | ring -CH2- : 9 | two fused rings >C< : 2 | -CH3 : 2 | ring >C=O : 1 | ring -CH< : 1 | -OH : 1 | Origin : 1",-42.82
+">CH- : 1 | -CH2- : 5 | -COO : 3 | >C=O : 2 | amide : 1 | -NH- : 1 | Origin : 1 | OCCO : 1",-294.26
+"-OPO3 : 1 | -CH2- : 2 | >CH- : 2 | -OH : 2 | >C=O : 1 | -COO : 1 | Origin : 1 | OCCO : 1",-432.64
+">CH- : 2 | -CH2- : 5 | -COO : 3 | >C=O : 1 | -NH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-269.49
+"ring >C< : 1 | ring -O-CO- : 1 | ring =CH- : 2 | -CH2- : 1 | -CH3 : 1 | -COO : 1 | Origin : 1 | OCCC : 1",-133.59
+"ring -CH< : 3 | ring >C=O : 1 | -CH2- : 10 | =CH- : 2 | ring -CH2- : 1 | -OH : 1 | >C=O : 1 | -COO : 1 | -CH3 : 1 | Origin : 1 | OCCC : 1",-128.8
+"ring -CH< : 3 | ring >C=O : 1 | -CH2- : 8 | =CH- : 4 | ring -CH2- : 1 | -OH : 1 | >C=O : 1 | -COO : 1 | -CH3 : 1 | Origin : 1 | OCCC : 1",-106.44
+"ring -N< : 1 | ring -CH< : 4 | ring =C< : 2 | ring =CH- : 1 | ring -O- : 1 | -NH2 : 2 | ring =N- : 1 | -OH : 2 | >C=O : 1 | -CH2- : 1 | -OPO3 : 1 | amide : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-336.61
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 3 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 9 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 2 | -CH3 : 3 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-817.39
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 9 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 4 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-809.37
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 8 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 3 | =CH- : 2 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",-758.54
+">CH- : 4 | -OH : 5 | >C=O : 1 | -CH2- : 2 | -OPO3 : 1 | Origin : 1",-466.34
+"two fused rings >CH- : 4 | two fused rings >C< : 2 | ring -CH2- : 8 | ring >C< : 1 | -CH3 : 2 | ring >C=O : 2 | >C=O : 1 | -OH : 2 | -CH2- : 1 | Origin : 1",-142.05
+"two fused rings >CH- : 4 | two fused rings >C< : 2 | ring -CH2- : 8 | ring >C< : 1 | -CH3 : 2 | ring >C=O : 1 | >C=O : 1 | -OH : 3 | -CH2- : 1 | ring -CH< : 1 | Origin : 1",-148.61
+"two fused rings >CH- : 4 | two fused rings >C< : 2 | ring -CH2- : 9 | ring >C< : 1 | -CH3 : 2 | >C=O : 1 | -OH : 3 | -CH2- : 1 | ring -CH< : 1 | Origin : 1",-115.33
+"two fused rings >CH- : 4 | two fused rings >C< : 2 | ring -CH2- : 9 | ring >C< : 1 | -CH3 : 2 | >C=O : 1 | -OH : 2 | -CH2- : 1 | ring >C=O : 1 | Origin : 1",-108.77
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 3 | ring =CH- : 2 | ring =N- : 2 | ring -O- : 1 | ring -CH2- : 1 | ring >C=O : 1 | -CH2- : 1 | -OH : 2 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1 | heteroaromatic : 1",-61.24
+"-CH2- : 3 | >C=O : 1 | -COO : 2 | Origin : 1 | OCCO : 1",-187.28
+"two fused rings -N< : 1 | two fused rings >CH- : 1 | ring -CH< : 2 | ring >C=O : 1 | ring -S- : 1 | ring >C< : 1 | -COO : 1 | -CH3 : 2 | >C=O : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >CH- : 1 | -NH2 : 1 | -OH : 1 | amide : 1 | -NH- : 1 | Origin : 1",-120.89
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 2 | ring =N- : 1 | -OPO3 : 1 | -CH2- : 1 | ring =C< : 1 | -NH2 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-345.38
+"=C< : 1 | -NH- : 2 | =NH2 : 1 | -CH2- : 3 | -OPO2 : 1 | >CH- : 1 | -COO : 1 | -NH3 : 1 | Origin : 1",-270.31
+">CH- : 1 | -COO : 1 | -CH2- : 1 | -OH : 1 | -CH3 : 1 | Origin : 1",-121.55
+"-CH2- : 3 | -CH3 : 1 | -OH : 1 | Origin : 1",-40.29
+"ring -CH< : 5 | ring -O- : 1 | -OPO3 : 1 | -NH3 : 1 | -CH2- : 1 | -OH : 3 | Origin : 1",-395.53
+">CH- : 2 | -CH2- : 1 | -OH : 2 | -CH3 : 1 | >C=O : 1 | -COO : 1 | Origin : 1 | OCCO : 1",-183.91
+"ring >C< : 3 | ring -O- : 3 | ring -CH< : 9 | -O- : 2 | -CH2- : 6 | -OH : 11 | Origin : 1",-537.91
+">C=O : 1 | >C< : 1 | -COO : 1 | -CH3 : 2 | -OH : 1 | Origin : 1 | OCCO : 1",-150.72
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 5 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 2 | -CH2- : 6 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 3 | ring -CH2- : 2 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | OCCC : 1 | CCCC : 1 | heteroaromatic : 2",-745.11
+"ring >C< : 1 | ring -CH< : 3 | ring -O- : 1 | -CH2- : 1 | -OH : 5 | ring -CH2- : 1 | Origin : 1",-217.61
+"ring -N< : 1 | ring -CH< : 5 | two fused rings >C= : 2 | ring =CH- : 3 | ring -O- : 1 | ring =N- : 3 | -OH : 3 | ring =C< : 2 | -OPO3 : 1 | -CH2- : 6 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 3 | ring -CH2- : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",-790.69
+"ring >C< : 1 | ring -O- : 1 | ring -CH< : 4 | -CH2- : 2 | -OH : 6 | Origin : 1",-255.83
+"aromatic ring =C< : 5 | >C=O : 1 | aromatic ring =CH- : 7 | =CH- : 2 | -OH : 3 | Origin : 1 | OCCC : 2 | CCCC : 1",-65.96
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring -O- : 1 | aromatic ring =CH- : 7 | ring >C=O : 1 | ring -CH< : 1 | aromatic ring =C< : 3 | ring -CH2- : 1 | -OH : 2 | Origin : 1 | OCCC : 1",-74.33
+">CH- : 3 | >C=O : 1 | -OH : 4 | -CH2- : 2 | -OPO3 : 1 | Origin : 1",-429.92
+"ring -CH< : 2 | ring =CH- : 3 | -O- : 1 | ring =C< : 1 | =C< : 1 | -COO : 2 | =CH2 : 1 | -NH3 : 1 | Origin : 1 | OCCC : 2 | CCCC : 1",-134.24
+"HCO3 : 1",-140.26
+"-CH3 : 1 | -CH2- : 1 | -CH=O : 1 | Origin : 1",-32.43
+"-CH2- : 2 | >CH- : 5 | -OH : 7 | Origin : 1",-261.86
+"-OH : 4 | -CH2- : 2 | >CH- : 2 | Origin : 1",-152.6
+"ring =CH- : 4 | ring >C= : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | =N- : 1 | -OH : 1 | ring >C=O : 1 | Origin : 1 | OCCC : 2 | CCCN : 2 | CCNC : 1",30.38
+"ring =CH- : 4 | ring -CH< : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -NH- : 1 | -OH : 1 | ring >C=O : 1 | Origin : 1 | OCCC : 2",8.1
+"two fused rings >C= : 2 | ring -N< : 1 | ring =CH- : 3 | ring =N- : 1 | ring >C=O : 1 | aromatic ring fused to nonaromatic ring >C=  : 2 | -CH3 : 1 | aromatic ring =CH- : 4 | Origin : 1 | OCCC : 1 | OCCN : 1 | CCCN : 1 | CCNC : 1 | CCCC : 1",69.88
+"ring >C=O : 2 | ring =C< : 1 | -COO : 1 | ring =N- : 1 | amide : 2 | ring -NH- : 2 | Origin : 1 | OCCN : 1 | OCNC : 1",-146.69
+"ring >C=O : 2 | ring -CH< : 1 | -COO : 1 | amide : 3 | ring -NH- : 3 | Origin : 1",-162.82
+"-COO : 2 | -CH2- : 2 | -CH3 : 1 | -NH< : 1 | Origin : 1",-151.11
+"≡N : 1 | ≡C- : 1 | -S-OH : 1 | Origin : 1",41.9
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | ring -CH2- : 3 | two fused rings >CH- : 1 | two fused rings >C= : 2 | ring -N< : 1 | two fused rings -N< : 1 | ring -NH- : 1 | ring =N- : 2 | ring =C< : 2 | -NH2 : 1 | -OH : 1 | >C=O : 4 | -COO : 5 | >CH- : 4 | -CH2- : 8 | amide : 4 | -NH- : 4 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-402.4
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | -CH2- : 9 | ring -CH< : 1 | ring -CH2- : 1 | two fused rings >C= : 2 | -NH- : 5 | ring -NH- : 3 | ring =N- : 1 | ring =C< : 1 | -NH2 : 1 | ring >C=O : 1 | >C=O : 4 | -COO : 5 | >CH- : 4 | amide : 4 | Origin : 1 | OCCC : 2 | OCNC : 1",-420.61
+"aromatic ring =CH- : 5 | aromatic ring =C< : 1 | -NH2 : 1 | Origin : 1",33.64
+"-CH3 : 4 | >N< : 1 | -CH2- : 2 | -O-CO- : 1 | Origin : 1",-25.26
+"-CH2- : 4 | >N< : 1 | >CH- : 1 | -CH3 : 4 | -COO : 1 | -O-CO- : 1 | Origin : 1",-100.04
+"ring -CH< : 30 | -O- : 6 | ring -O- : 6 | -CH2- : 6 | -OH : 18 | Origin : 1",-950.88
+"ring -CH< : 40 | -OH : 26 | ring -O- : 8 | -CH2- : 8 | -O- : 7 | Origin : 1",-1327.64
+"ring -CH< : 35 | -O- : 7 | ring -O- : 7 | -CH2- : 7 | -OH : 21 | Origin : 1",-1109.36
+"ring -CH< : 35 | -OH : 23 | ring -O- : 7 | -CH2- : 7 | -O- : 6 | Origin : 1",-1169.16
+"ring -CH< : 70 | -OH : 44 | ring -O- : 14 | -CH2- : 14 | -O- : 13 | Origin : 1",-2278.52
+"ring -CH< : 40 | -O- : 8 | ring -O- : 8 | -CH2- : 8 | -OH : 24 | Origin : 1",-1267.84
+"ring -CH< : 30 | -OH : 20 | ring -O- : 6 | -CH2- : 6 | -O- : 5 | Origin : 1",-1010.68
+"ring -CH< : 15 | -O- : 3 | ring -O- : 3 | -CH2- : 4 | -OH : 14 | -CH=O : 1 | >CH- : 4 | Origin : 1",-691.4
+"-OH : 11 | ring -CH< : 10 | -O- : 2 | ring -O- : 2 | -CH2- : 3 | -CH=O : 1 | >CH- : 4 | Origin : 1",-532.92
+"-COO : 1 | =CH- : 1 | -CH3 : 1 | =C< : 1 | -OPO3 : 1 | Origin : 1 | OCCC : 1",-313.8
+"ring -CH< : 9 | ring -O- : 2 | ring >C=O : 2 | ring =CH- : 2 | -OH : 4 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | >C=O : 1 | -CH3 : 2 | -COO : 1 | =CH- : 1 | =C< : 1 | -O- : 1 | amide : 3 | ring -N< : 1 | ring -NH- : 1 | -NH- : 1 | Origin : 1 | OCCC : 2",-798.4
+"-CH3 : 2 | -CH2- : 5 | =CH- : 2 | -O-CO- : 1 | Origin : 1 | OCCC : 1",-50.45
+">CH- : 3 | >C=O : 2 | -CH2- : 10 | -S- : 1 | -COO : 2 | -NH3 : 1 | -CH3 : 2 | -O-CO- : 1 | amide : 2 | -NH- : 2 | Origin : 1",-279.24
+"-CH3 : 2 | -CH2- : 4 | =CH- : 2 | -O-CO- : 1 | Origin : 1 | OCCC : 1",-52.07
+">CH- : 3 | >C=O : 2 | -CH2- : 9 | -S- : 1 | -COO : 2 | -NH3 : 1 | -CH3 : 2 | -O-CO- : 1 | amide : 2 | -NH- : 2 | Origin : 1",-280.86
+"-CH3 : 2 | >C=O : 1 | =CH- : 2 | -CH2- : 4 | Origin : 1 | OCCC : 1",-5.17
+">CH- : 3 | >C=O : 3 | -CH2- : 9 | -S- : 1 | -COO : 2 | -NH3 : 1 | -CH3 : 2 | amide : 2 | -NH- : 2 | Origin : 1",-233.96
+"-CH3 : 1 | -CH2- : 4 | =CH- : 2 | -CH=O : 1 | Origin : 1 | OCCC : 1",-3.52
+">CH- : 3 | >C=O : 2 | -CH2- : 9 | -S- : 1 | -COO : 2 | -NH3 : 1 | -CH3 : 1 | -CH=O : 1 | amide : 2 | -NH- : 2 | Origin : 1",-232.31
+"-CH3 : 1 | >C=O : 1 | =CH- : 2 | aromatic ring =C< : 1 | aromatic ring =CH- : 5 | Origin : 1 | OCCC : 1 | CCCC : 1",18.78
+">CH- : 3 | >C=O : 3 | -CH2- : 5 | -S- : 1 | -COO : 2 | -NH3 : 1 | -CH3 : 1 | aromatic ring =C< : 1 | aromatic ring =CH- : 5 | amide : 2 | -NH- : 2 | Origin : 1",-205.19
+">CH- : 1 | -COO : 1 | -NH3 : 1 | -CH2- : 1 | -OPO3 : 1 | Origin : 1",-336.65
+"ring -CH2- : 2 | ring =C< : 1 | -CH2- : 1 | -COO : 1 | ring -N< : 1 | -NH2 : 1 | ring =NH- : 1 | Origin : 1",-34.91
+"ring -CH2- : 2 | ring =C< : 1 | -CH2- : 1 | -COO : 1 | ring -N< : 1 | -NH2 : 1 | dbl sgl ring =N< : 1 | -OPO2 : 1 | Origin : 1",-230.78
+"ring =CH- : 2 | ring =N- : 3 | two fused rings >C= : 2 | ring =C< : 1 | -NH2 : 1 | ring -N< : 1 | ring -CH< : 4 | -OH : 2 | ring -O- : 1 | -OPO2- : 2 | -OPO3 : 1 | -CH2- : 1 | Origin : 1 | heteroaromatic : 2",-673.85
+"ring =CH- : 2 | two fused rings >C= : 2 | ring =C< : 1 | -NH2 : 1 | ring =N- : 3 | ring -N< : 1 | ring -CH< : 4 | -OH : 2 | ring -O- : 1 | -CH2- : 1 | -OPO2- : 1 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 2",-465.85
+"-NH2 : 1 | =NH2 : 1 | =C< : 1 | -NH- : 1 | -CH2- : 2 | -COO : 1 | Origin : 1",-74.22
+"=NH2 : 1 | =C< : 1 | -NH- : 2 | -CH2- : 2 | -COO : 1 | -OPO2 : 1 | Origin : 1",-270.76
+"ring -CH2- : 1 | two fused rings >C= : 2 | ring =CH- : 1 | ring =C< : 1 | -NH2 : 1 | ring =N- : 2 | dbl sgl ring =N< : 1 | ring -CH< : 4 | -OH : 2 | ring -O- : 1 | -CH2- : 1 | -OPO2- : 1 | -OPO3 : 1 | ring -NO= : 1 | Origin : 1 | NCCN : 2 | CCNC : 2","None"
+"ring =CH- : 2 | two fused rings >C= : 2 | ring =C< : 1 | -NH2 : 1 | ring =N- : 2 | ring -N< : 1 | ring -CH< : 4 | -OH : 2 | ring -O- : 1 | -CH2- : 1 | -OPO2- : 2 | -OPO3 : 1 | ring -NO= : 1 | Origin : 1 | heteroaromatic : 2","None"
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 2 | ring =CH- : 5 | -OH : 2 | -CH2- : 1 | -OPO2- : 1 | ring -N< : 2 | ring =N- : 1 | amide : 2 | ring -NH- : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-302.07
+"aromatic ring =CH- : 3 | aromatic ring =C< : 3 | -NO2 : 2 | -SO4 : 1 | Origin : 1","None"
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | -NO2 : 1 | -OH : 1 | Origin : 1","None"
+"aromatic ring =CH- : 2 | aromatic ring =C< : 4 | -O-CO- : 1 | -OH : 3 | -CH2- : 2 | -CH3 : 1 | Origin : 1 | OCCC : 1",-164.1
+"-CH3 : 1 | -CH2- : 2 | -OH : 1 | Origin : 1",-41.91
+"-CH2- : 2 | >C=O : 1 | -CH3 : 1 | -OPO3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-286.61
+"-CH2- : 2 | >C=O : 1 | -CH3 : 1 | -OH : 1 | amide : 1 | -NH- : 1 | Origin : 1",-74.11
+"-OPO2 : 1 | -NH- : 2 | =C< : 1 | =NH2 : 1 | -CH2- : 2 | -SO3 : 1 | Origin : 1",-311.41
+"ring =C< : 1 | ring =CH- : 2 | -NH2 : 1 | ring =N- : 3 | two fused rings >C= : 2 | ring -CH< : 3 | ring -CH2- : 1 | ring -O- : 1 | -CH2- : 1 | -OH : 1 | -OPO3 : 1 | ring -N< : 1 | Origin : 1 | heteroaromatic : 2",-218.01
+"two fused rings >C= : 2 | ring -CH2- : 1 | ring >C=O : 1 | ring =N- : 2 | ring =C< : 1 | -NH2 : 1 | dbl sgl ring =N< : 1 | ring -CH< : 2 | ring -O- : 2 | -CH2- : 1 | -OH : 1 | two fused rings >CH- : 2 | ring -OPO2- : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCN : 1 | NCCN : 1 | CCNC : 1",-257.28
+"-CH2- : 2 | -OPO3 : 1 | -OH : 1 | Origin : 1",-292.26
+"ring =CH- : 4 | ring =N- : 1 | ring =C< : 1 | -CH3 : 1 | >C=O : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",14.16
+"ring =CH- : 5 | two fused rings >C= : 2 | ring =N- : 3 | ring -CH2- : 1 | ring =C< : 2 | -NH2 : 1 | dbl sgl ring =N< : 2 | ring -CH< : 8 | ring -O- : 2 | -OH : 4 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | -CH3 : 1 | >C=O : 1 | Origin : 1 | OCCC : 1 | NCCN : 2 | CCNC : 2 | heteroaromatic : 1",-530.96
+"ring =CH- : 4 | dbl sgl ring =N< : 1 | ring =C< : 1 | -CH3 : 1 | >C=O : 1 | ring -CH< : 4 | ring -O- : 1 | -OH : 2 | -CH2- : 1 | -OPO3 : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-329.13
+"-NH3 : 1 | -CH2- : 1 | >C=O : 1 | amide : 1 | -NH2 : 1 | Origin : 1",-45.29
+"aromatic ring =CH- : 9 | aromatic ring =C< : 3 | -OH : 1 | -CH2- : 1 | -COO : 1 | >CH- : 1 | >C=O : 1 | amide : 1 | -NH- : 1 | Origin : 1 | OCCC : 1",-86.43
+"aromatic ring =CH- : 9 | aromatic ring =C< : 3 | -OH : 1 | -CH2- : 2 | >C=O : 2 | -COO : 1 | >CH- : 1 | amide : 2 | -NH- : 2 | Origin : 1 | OCCC : 1",-117.01
+">C=O : 3 | -CH2- : 2 | aromatic ring =C< : 1 | aromatic ring =CH- : 5 | >CH- : 1 | -CH3 : 1 | amide : 3 | -NH- : 2 | -NH2 : 1 | Origin : 1",-68.79
+">CH- : 1 | -CH2- : 1 | >C=O : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -OH : 2 | -CH3 : 1 | amide : 2 | -NH- : 2 | Origin : 1",-110.73
+"aromatic ring =CH- : 5 | aromatic ring =C< : 1 | >C=O : 1 | -CH2- : 1 | -NH3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-5.23
+"-COO : 1 | -CH2- : 4 | >CH- : 1 | -NH3 : 2 | Origin : 1",-84.04
+">C=O : 2 | >CH- : 1 | -CH2- : 3 | aromatic ring =C< : 2 | aromatic ring =CH- : 10 | -O-CO- : 1 | amide : 3 | -NH2 : 1 | -NH- : 2 | Origin : 1",-78.82
+">C=O : 1 | -NH3 : 1 | >CH- : 1 | -CH2- : 1 | aromatic ring =C< : 1 | aromatic ring =CH- : 5 | amide : 1 | -NH2 : 1 | Origin : 1",-8.61
+">CH- : 1 | -CH2- : 2 | -COO : 1 | -NH3 : 1 | >C=O : 1 | -OH : 1 | amide : 1 | -NH- : 1 | Origin : 1",-154.73
+"aromatic ring =CH- : 5 | aromatic ring =C< : 1 | -CH2- : 1 | >C=O : 1 | >CH- : 1 | -COO : 2 | ring -CH< : 2 | ring -S- : 1 | -CH3 : 2 | ring >C< : 1 | ring -NH- : 1 | amide : 1 | -NH- : 1 | Origin : 1",-143.65
+"ring -S- : 1 | ring -NH- : 1 | -CH3 : 2 | ring >C< : 1 | ring -CH< : 2 | -COO : 2 | >CH- : 1 | -NH3 : 1 | Origin : 1",-150.92
+"-COO : 1 | -CH2- : 2 | >C=O : 1 | aromatic ring =C< : 1 | aromatic ring =CH- : 5 | amide : 1 | -NH- : 1 | Origin : 1",-80.46
+"-CH3 : 1 | >C=O : 1 | -CH2- : 1 | -COO : 1 | amide : 1 | -NH- : 1 | Origin : 1",-117.33
+">CH- : 1 | -COO : 1 | -CH2- : 3 | -CH3 : 2 | >C=O : 1 | amide : 1 | -NH- : 1 | Origin : 1",-112.66
+"-CH3 : 2 | -CH2- : 2 | >C=O : 1 | >CH- : 1 | -COO : 1 | amide : 1 | -NH- : 1 | Origin : 1",-114.28
+"ring =CH- : 2 | two fused rings >C= : 2 | ring =N- : 3 | ring =C< : 1 | -NH2 : 1 | ring -N< : 1 | ring -CH< : 4 | ring -O- : 1 | -OH : 2 | -CH2- : 1 | -OPO2- : 1 | -SO4 : 1 | Origin : 1 | heteroaromatic : 2",-367.85
+"-OH : 1 | -CH2- : 2 | >C=O : 1 | -OPO3 : 1 | Origin : 1",-320.66
+"-OH : 2 | >C=O : 1 | -CH2- : 2 | -OPO3 : 1 | >CH- : 2 | -CH3 : 1 | Origin : 1",-355.65
+"-COO : 1 | >C=O : 1 | -CH2- : 2 | >CH- : 5 | -OH : 6 | Origin : 1 | OCCO : 1",-329.4
+"ring -CH2- : 2 | ring -CH< : 2 | -OH : 3 | ring >C=O : 1 | ring >C< : 1 | -COO : 1 | Origin : 1",-214.49
+"-CH2- : 4 | -COO : 1 | -NH3 : 2 | >CH- : 1 | Origin : 1",-84.04
+"dbl sgl ring =N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 2 | -OH : 3 | ring =C< : 1 | -OPO3 : 1 | -CH2- : 9 | ring -NH- : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 2 | -CH3 : 3 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | CCCN : 1 | CCNC : 3",-825.37
+"-COO : 2 | -CH2- : 1 | WF : 1 | >CH- : 2 | -NH3 : 1 | Origin : 1","None"
+"ring -CH2- : 1 | ring >C=O : 1 | ring -CH< : 2 | WF : 1 | -COO : 1 | amide : 1 | ring -NH- : 1 | Origin : 1","None"
+">C=O : 3 | >CH- : 1 | >C< : 1 | -OH : 2 | -CH2- : 7 | -CH3 : 2 | -NH3 : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1",-168.34
+">C=O : 3 | >CH- : 1 | >C< : 1 | -OH : 2 | -CH2- : 5 | -CH3 : 2 | =CH- : 1 | =CH2 : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | OCCC : 1",-147.21
+"ring -N< : 1 | ring -CH< : 4 | ring =C< : 2 | ring =CH- : 1 | ring -O- : 1 | -NH2 : 1 | ring =N- : 1 | -OH : 2 | >C=O : 1 | -CH2- : 2 | -OPO3 : 1 | >CH- : 1 | -COO : 2 | amide : 1 | -NH- : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 1",-487.65
+"-CH2- : 3 | -COO : 1 | -NH3 : 1 | Origin : 1",-84.49
+"-OH : 4 | -CH=O : 1 | >CH- : 3 | -CH2- : 1 | Origin : 1",-179.54
+"-OH : 4 | -CH2- : 1 | >C=O : 1 | >CH- : 3 | -CH3 : 1 | Origin : 1",-181.19
+"-CH3 : 1 | -CH2- : 5 | -COO : 1 | Origin : 1",-78.65
+"ring =CH- : 2 | two fused rings >C= : 2 | ring =N- : 3 | ring =C< : 1 | -NH2 : 1 | ring -N< : 1 | ring -CH< : 4 | ring -O- : 1 | -OH : 2 | -OPO3 : 1 | -CH2- : 11 | -OPO2- : 1 | -OPO3- : 1 | -CH3 : 3 | >C< : 1 | >CH- : 1 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-777.73
+"aromatic ring =CH- : 14 | aromatic ring =C< : 4 | >C=O : 3 | -CH2- : 2 | -OH : 1 | >CH- : 1 | amide : 3 | -NH- : 3 | Origin : 1 | OCCC : 1",-34.51
+"ring -CH< : 10 | -CH2- : 2 | -OPO3 : 1 | -OH : 7 | ring -O- : 2 | -O- : 1 | Origin : 1",-589.26
+"two fused rings >C= : 2 | ring =CH- : 2 | ring =N- : 3 | ring =C< : 1 | -NH2 : 1 | ring -N< : 1 | ring -CH< : 2 | ring -O- : 2 | two fused rings >CH- : 2 | -CH2- : 1 | -OH : 1 | Origin : 1 | heteroaromatic : 2 | threemember : 1",10.97
+"-CH=O : 1 | -CH3 : 1 | >CH- : 4 | -OH : 4 | Origin : 1",-179.73
+"carbamate : 1",-95.7
+"dbl sgl ring =N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 2 | -OH : 2 | ring =C< : 1 | -CH2- : 7 | -OPO3 : 1 | ring -NH- : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 4 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | CCCN : 1 | CCNC : 3",-820.59
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 3 | ring =C< : 1 | -CH2- : 7 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 2 | -CH3 : 3 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-820.63
+">CH- : 3 | >C=O : 1 | -OH : 4 | -COO : 1 | -CH2- : 1 | Origin : 1 | OCCO : 1",-258.18
+"RW : 1 | -SH : 1 | Origin : 1","None"
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 8 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 3 | >C=O : 3 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | heteroaromatic : 2",-782.59
+"-CH2- : 1 | -COO : 1 | >C=O : 1 | RW : 1 | -S- : 1 | thioester : 1 | Origin : 1","None"
+"-CH3 : 1 | >C=O : 1 | RW : 1 | -S- : 1 | thioester : 1 | Origin : 1","None"
+">C=O : 1 | RW : 1 | -CH2- : 2 | -CH3 : 1 | >CH- : 1 | -OH : 1 | -S- : 1 | thioester : 1 | Origin : 1","None"
+">C=O : 2 | RW : 1 | -CH2- : 2 | -CH3 : 1 | -S- : 1 | thioester : 1 | Origin : 1","None"
+"aromatic ring =CH- : 9 | aromatic ring =C< : 3 | -OH : 1 | -CH2- : 2 | >C=O : 3 | >CH- : 1 | amide : 3 | -NH- : 2 | -NH2 : 1 | Origin : 1 | OCCC : 1",-74.57
+"aromatic ring =CH- : 5 | aromatic ring =C< : 1 | -COO : 1 | -CH2- : 1 | Origin : 1",-49.88
+"aromatic ring =CH- : 5 | aromatic ring =C< : 1 | -CH2- : 1 | >C=O : 1 | ring -CH< : 2 | ring >C=O : 1 | two fused rings >CH- : 1 | ring -S- : 1 | -COO : 1 | -CH3 : 2 | ring >C< : 1 | two fused rings -N< : 1 | amide : 1 | -NH- : 1 | Origin : 1",-86.91
+"-COO : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -NH- : 1 | ring =C< : 2 | ring =CH- : 1 | ring =N- : 3 | two fused rings >C= : 2 | ring >C=O : 1 | -NH2 : 1 | -CH2- : 1 | amide : 1 | ring -NH- : 1 | Origin : 1 | OCCC : 2 | CCNC : 1 | heteroaromatic : 1",-0.82
+"two fused rings >C= : 2 | ring =N- : 3 | ring >C=O : 1 | ring =CH- : 1 | ring =C< : 2 | -NH2 : 1 | -CH2- : 3 | -NH- : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >C=O : 1 | >CH- : 1 | -COO : 2 | amide : 2 | ring -NH- : 1 | Origin : 1 | OCCC : 2 | CCNC : 1 | heteroaromatic : 1",-107.8
+"-CH2- : 3 | -NH- : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >C=O : 1 | >CH- : 1 | -COO : 2 | ring -CH2- : 1 | two fused rings >C= : 2 | ring >C=O : 1 | ring =C< : 1 | ring -NH- : 3 | ring =N- : 1 | ring -CH< : 1 | -NH2 : 1 | amide : 2 | Origin : 1 | OCCC : 2 | CCNC : 1",-113.97
+"two fused rings =N< : 1 | two fused rings >C= : 2 | two fused rings >CH- : 1 | ring =CH- : 1 | ring >C=O : 1 | ring -CH2- : 2 | ring -N< : 1 | ring -NH- : 2 | ring =N- : 1 | aromatic ring =C< : 2 | ring =C< : 1 | aromatic ring =CH- : 4 | -NH2 : 1 | >C=O : 1 | >CH- : 1 | -CH2- : 2 | -COO : 2 | amide : 2 | -NH- : 1 | Origin : 1 | OCCC : 2 | CCNC : 2",-97
+"two fused rings -N< : 1 | two fused rings >C= : 2 | two fused rings >CH- : 1 | ring -CH2- : 3 | ring >C=O : 1 | ring -N< : 1 | ring -NH- : 2 | ring =N- : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >C=O : 1 | >CH- : 1 | -CH2- : 2 | -COO : 2 | ring =C< : 1 | -NH2 : 1 | amide : 2 | -NH- : 1 | Origin : 1 | OCCC : 2 | CCNC : 1",-93.65
+"two fused rings >C= : 2 | ring -NH- : 3 | ring >C=O : 1 | ring =N- : 1 | ring -CH< : 1 | ring -CH2- : 1 | ring =C< : 1 | -CH2- : 3 | -NH2 : 1 | aromatic ring =C< : 2 | -CH=O : 1 | aromatic ring =CH- : 4 | >C=O : 1 | >CH- : 1 | -COO : 2 | amide : 3 | -N< : 1 | -NH- : 1 | Origin : 1 | OCCC : 2 | CCNC : 1",-144.77
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | ring -N< : 1 | ring >C=O : 1 | ring -CH2- : 1 | ring =C< : 1 | ring -CH< : 1 | -CH3 : 1 | -NH2 : 1 | -CH2- : 3 | -NH- : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >C=O : 1 | >CH- : 1 | -COO : 2 | amide : 2 | Origin : 1 | OCCC : 2 | CCNC : 1",-101.7
+"two fused rings >C= : 2 | ring -N< : 1 | ring >C=O : 1 | ring -CH< : 1 | =CH- : 1 | ring -NH- : 2 | ring =N- : 1 | ring -CH2- : 1 | -CH2- : 3 | =NH : 1 | ring =C< : 1 | -NH- : 2 | -NH2 : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >C=O : 1 | >CH- : 1 | -COO : 2 | amide : 2 | Origin : 1 | OCCC : 2 | CCNC : 1",-106.95
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 2 | ring >C=O : 1 | ring -CH2- : 1 | ring =C< : 2 | -NH2 : 1 | -CH2- : 3 | -NH- : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | >C=O : 1 | >CH- : 1 | -COO : 2 | amide : 2 | Origin : 1 | OCCC : 2 | CCNC : 2",-109.12
+"ring >C< : 4 | ring -O- : 4 | ring -CH< : 12 | -O- : 3 | -CH2- : 8 | -OH : 14 | Origin : 1",-697.28
+"H2O : 1",-56.69
+"ring -CH< : 5 | ring -O- : 1 | -CH2- : 1 | -OH : 5 | Origin : 1",-218.28
+"two fused rings -N< : 1 | two fused rings >CH- : 1 | ring -CH< : 2 | ring >C=O : 1 | ring -S- : 1 | ring >C< : 1 | -COO : 1 | -NH2 : 1 | -CH3 : 2 | Origin : 1",-85.89
+"≡CH : 1 | ≡N : 1 | Origin : 1",28.6
+"≡C- : 1 | ≡N : 1 | -Oneg : 1 | Origin : 1",-23.3
+"oxalate : 1",-161
+"ethane : 1",-4.07
+"acetate : 1",-88.29
+"ethanol : 1",-43.44
+"-CH3 : 3 | -OH : 1 | >N< : 1 | Origin : 1",8.95
+"-CH2- : 2 | -OH : 6 | >CH- : 4 | Origin : 1",-225.44
+"-CH2- : 2 | -COO : 1 | -CH3 : 1 | Origin : 1",-83.51
+"-CH2- : 3 | -COO : 1 | -CH3 : 1 | Origin : 1",-81.89
+"-COO : 1 | =CH- : 1 | =CH2 : 1 | Origin : 1 | OCCC : 1",-64.98
+"-CH3 : 1 | =CH- : 2 | -COO : 1 | Origin : 1 | OCCC : 1",-62.7
+"-CH2- : 1 | -COO : 1 | -CH3 : 1 | >CH- : 1 | -OH : 1 | Origin : 1",-121.55
+"ring -CH< : 10 | -O- : 1 | ring -O- : 2 | -CH2- : 2 | -OH : 8 | Origin : 1",-376.76
+">CH- : 1 | -COO : 1 | -CH2- : 1 | -NH3 : 1 | -SH : 1 | Origin : 1",-83.39
+">CH- : 2 | -CH2- : 2 | -COO : 2 | -NH3 : 2 | -S-S- : 1 | Origin : 1",-159.61
+">CH- : 2 | -COO : 1 | -NH3 : 1 | -CH2- : 1 | -CH3 : 2 | Origin : 1",-84.87
+"ring >C= : 1 | ring -N< : 1 | =NH : 1 | ring -CH2- : 1 | -CH3 : 1 | ring >C=O : 1 | amide : 1 | ring -NH- : 1 | Origin : 1",-6.19
+"-NH3 : 1 | -CH2- : 2 | -SO3 : 1 | Origin : 1",-126.76
+"methylamine : 1",-9.55
+"-CH3 : 2 | -NH2- : 1 | Origin : 1",-1.35
+"-CH3 : 3 | -NH< : 1 | Origin : 1",4.55
+"ring =CH- : 5 | ring =N- : 1 | Origin : 1 | heteroaromatic : 1",44.52
+">CH- : 1 | -CH2- : 1 | -COO : 2 | -OH : 1 | Origin : 1",-201
+"-O-CO- : 1 | -CH2- : 1 | -CH3 : 2 | Origin : 1",-80.98
+"ring -CH< : 5 | ring -O- : 1 | -OPO3 : 1 | -OH : 4 | -CH2- : 1 | Origin : 1",-430.78
+"-OPO3 : 1 | -CH2- : 1 | >CH- : 1 | -CH=O : 1 | -OH : 1 | Origin : 1",-319.2
+">C=O : 1 | -CH2- : 2 | -NH3 : 1 | -COO : 1 | amide : 1 | -NH- : 1 | Origin : 1",-118.31
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring =CH- : 2 | aromatic ring =CH- : 4 | ring -NH- : 1 | Origin : 1 | heteroaromatic : 1",54.41
+">CH- : 1 | >C=O : 1 | -CH2- : 1 | -COO : 3 | Origin : 1 | OCCO : 1",-268.54
+"CO2 : 1",-92.26
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =N- : 3 | ring -O- : 1 | ring =C< : 1 | -OH : 2 | -NH2 : 1 | -CH2- : 1 | thiomid_phos : 1 | -OPO2- : 1 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 2","None"
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 4 | ring =CH- : 2 | ring =NH- : 1 | ring -O- : 1 | ring =N- : 2 | ring =C< : 1 | -OH : 2 | -NH2 : 1 | -CH2- : 1 | thiomid_phos : 1 | -OPO3 : 1 | Origin : 1 | heteroaromatic : 2","None"
+"cmonox : 1",-28.66
+"methane : 1",-8.21
+"N2 : 1",4.47
+"ring =C< : 4 | ring >C=O : 2 | -CH3 : 12 | -O- : 2 | -CH2- : 15 | =CH- : 8 | =C< : 8 | Origin : 1 | OCCC : 4",142.5
+"aromatic ring =C< : 6 | -OH : 2 | -CH3 : 12 | -O- : 2 | -CH2- : 15 | =CH- : 8 | =C< : 8 | Origin : 1",120.8
+"ring -N< : 1 | ring -CH< : 4 | two fused rings >C= : 2 | ring =CH- : 2 | ring -O- : 1 | ring =N- : 3 | -OH : 2 | ring =C< : 1 | -CH2- : 6 | -OPO3 : 1 | -NH2 : 1 | -OPO3- : 1 | -OPO2- : 1 | >C< : 1 | >CH- : 1 | -CH3 : 2 | >C=O : 3 | =CH- : 1 | =CH2 : 1 | amide : 2 | -NH- : 2 | -S- : 1 | thioester : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",-764.06
+"aromatic ring =CH- : 6 | Origin : 1 | Hydrocarbon : 1",33.26
+"ClO3 : 1",-0.8
+"ClO2 : 1",4.1
+"-CH2- : 4 | -COO : 1 | -CH3 : 1 | Origin : 1",-80.27
+"ring -CH< : 5 | ring -O- : 1 | >CH- : 1 | -OH : 6 | -CH2- : 1 | Origin : 1",-254.7
+"Fe2 : 1",-18.85
+"Fe3 : 1",-1.1
+"sulfite : 1",-126.15
+"S : 1",0
+"-CH2- : 1 | >CH- : 1 | -COO : 1 | -CH3 : 2 | Origin : 1",-83.7
+"HNO : 1",11.82
+"nitrite : 1",-8.9
+"nitric acid : 1",-26.61
+"nitrous oxide : 1",18.26
+"N2H4 : 1",30.6
+"O2s : 1",6.9
+"S2O3H : 1",-122.7
+"S2O4 : 1",-143.5
+"S3O6 : 1",-229
+"-SO3 : 2 | -S-S- : 1 | Origin : 1",-241.82
+"H2S : 1",-6.66
+"SO2 : 1",-71.9
+"ring -CH2- : 3 | Origin : 1 | Hydrocarbon : 1 | threemember : 1",27.62
+"ring -CH2- : 8 | two fused rings >CH- : 1 | two fused rings >C< : 1 | -CH3 : 1 | Origin : 1 | Hydrocarbon : 1",24.18
+"≡N : 2 | ≡C- : 4 | Origin : 1",102.2
+"ring -CH< : 4 | ring -O- : 1 | ring >C=O : 1 | ring =CH- : 2 | -OH : 2 | ring =N- : 1 | -CH2- : 1 | ring =C< : 1 | -OPO3 : 1 | -NH2 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-345.38
+"two fused aromatic rings >C= : 2 | aromatic ring =C< : 4 | aromatic ring =CH- : 4 | -OH : 2 | -CH2- : 15 | =CH- : 8 | =C< : 8 | -CH3 : 10 | Origin : 1",180.27
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring >C=O : 2 | aromatic ring =CH- : 4 | ring =C< : 2 | -CH2- : 15 | =CH- : 8 | =C< : 8 | -CH3 : 10 | Origin : 1 | OCCC : 4",206.06
+"aromatic ring fused to nonaromatic ring >C=  : 2 | ring >C=O : 2 | aromatic ring =CH- : 4 | ring =C< : 1 | ring =CH- : 1 | -CH2- : 15 | =CH- : 8 | =C< : 8 | -CH3 : 9 | Origin : 1 | OCCC : 4",206.47
+"two fused aromatic rings >C= : 2 | aromatic ring =C< : 3 | aromatic ring =CH- : 5 | -OH : 2 | -CH2- : 15 | =CH- : 8 | =C< : 8 | -CH3 : 9 | Origin : 1",181.9
+"ring >C=O : 1 | ring =N- : 1 | ring =C< : 1 | ring =CH- : 2 | ring -CH< : 4 | ring -O- : 1 | -CH2- : 3 | -OPO3- : 1 | -OPO2- : 1 | -NH2 : 1 | -OH : 4 | >CH- : 1 | >C< : 1 | -OPO3 : 1 | -CH3 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-858.59
+"ring >C=O : 1 | ring =N- : 1 | ring =C< : 1 | ring =CH- : 2 | ring -CH< : 4 | ring -O- : 1 | -CH2- : 3 | -OPO3- : 1 | -OPO2- : 1 | -NH2 : 1 | -OH : 5 | >CH- : 1 | >C< : 1 | -CH3 : 1 | amide : 1 | ring -N< : 1 | Origin : 1 | OCNC : 1 | CCCN : 1",-646.09
+"-CH2- : 1 | ring >C< : 1 | ring -CH< : 1 | ring -CH2- : 1 | ring -OPO2- : 2 | -OH : 2 | -CH3 : 1 | ring -O- : 1 | Origin : 1",-486.44
+"chloromethane : 1",-12.6
+"dichloromethane : 1",-15.8
+"trichloromethane : 1",-15.9
+"tetrachloromethane : 1",-10.8
+"-CH3 : 1 | -CH2- : 1 | primary -Cl : 1 | Origin : 1",-13.73
+"-CH2- : 2 | primary -Cl : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-18.24
+"primary Cl2 : 2 | -CH3 : 1 | >CH- : 1 | Origin : 1",-15.65
+"primary Cl2 : 2 | >CH- : 1 | primary -Cl : 1 | -CH2- : 1 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-20.16
+"primary Cl2 : 4 | >CH- : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 2",-20.16
+"primary Cl3 : 3 | -CH3 : 1 | >C< : 1 | Origin : 1",-13.18
+"primary Cl3 : 3 | >C< : 1 | -CH2- : 1 | primary -Cl : 1 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-17.69
+"primary Cl3 : 3 | >C< : 1 | primary Cl2 : 2 | >CH- : 1 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 2",-17.69
+"primary Cl3 : 6 | >C< : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 3",-13.3
+"-CH3 : 2 | -CH2- : 1 | Origin : 1 | Hydrocarbon : 1",-2
+"-CH2- : 2 | -CH3 : 1 | primary -Cl : 1 | Origin : 1",-12.11
+"-CH3 : 1 | -CH2- : 1 | primary -Cl : 1 | >CH- : 1 | secondary -Cl : 1 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-16.93
+"-CH2- : 3 | primary -Cl : 2 | Origin : 1",-18.54
+"-CH2- : 2 | primary -Cl : 2 | >CH- : 1 | secondary -Cl : 1 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",-21.44
+"-CH3 : 2 | -CH2- : 2 | Origin : 1 | Hydrocarbon : 1",-0.38
+"-CH2- : 3 | -CH3 : 1 | primary -Cl : 1 | Origin : 1",-10.49
+"-CH2- : 1 | -CH3 : 2 | >CH- : 1 | secondary -Cl : 1 | Origin : 1",-10.8
+"-CH2- : 3 | -CH3 : 2 | Origin : 1 | Hydrocarbon : 1",1.24
+"-CH2- : 4 | -CH3 : 1 | primary -Cl : 1 | Origin : 1",-8.87
+"=CH2 : 2 | Origin : 1 | Hydrocarbon : 1",17.42
+"=CH2 : 1 | =CH- : 1 | secondary -Cl : 1 | Origin : 1",9.47
+"=CH- : 2 | secondary -Cl : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",7.12
+"=CH- : 2 | secondary -Cl : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",7.12
+"secondary Cl2 : 2 | =CH2 : 1 | =C< : 1 | Origin : 1",8.21
+"=CH- : 1 | secondary -Cl : 1 | secondary Cl2 : 2 | =C< : 1 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",5.86
+"secondary Cl2 : 4 | =C< : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 2",6.52
+"aromatic ring =CH- : 5 | aromatic ring =C< : 1 | tertiary -Cl : 1 | Origin : 1",24.22
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | tertiary -Cl : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",20.78
+"aromatic ring =C< : 2 | tertiary -Cl : 2 | aromatic ring =CH- : 4 | Origin : 1",18.86
+"aromatic ring =C< : 2 | tertiary -Cl : 2 | aromatic ring =CH- : 4 | Origin : 1",18.86
+"aromatic ring =CH- : 3 | aromatic ring =C< : 3 | tertiary -Cl : 3 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",17.34
+"aromatic ring =C< : 3 | tertiary -Cl : 3 | aromatic ring =CH- : 3 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",15.42
+"aromatic ring =C< : 3 | tertiary -Cl : 3 | aromatic ring =CH- : 3 | Origin : 1",13.5
+"aromatic ring =CH- : 2 | aromatic ring =C< : 4 | tertiary -Cl : 4 | Origin : 1 | BinaryVicinalCl : 3 | DistinctVicinalCl : 3",13.9
+"aromatic ring =C< : 4 | tertiary -Cl : 4 | aromatic ring =CH- : 2 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",11.98
+"aromatic ring =C< : 4 | tertiary -Cl : 4 | aromatic ring =CH- : 2 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",11.98
+"aromatic ring =CH- : 1 | aromatic ring =C< : 5 | tertiary -Cl : 5 | Origin : 1 | BinaryVicinalCl : 4 | DistinctVicinalCl : 4",10.46
+"aromatic ring =C< : 6 | tertiary -Cl : 6 | Origin : 1 | BinaryVicinalCl : 6 | DistinctVicinalCl : 6",8.94
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | -COO : 1 | tertiary -Cl : 1 | Origin : 1 | OCCC : 1",-58.41
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | -COO : 1 | tertiary -Cl : 1 | Origin : 1 | OCCC : 1",-58.41
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | tertiary -Cl : 1 | Origin : 1 | OCCC : 1",-58.41
+"aromatic ring =CH- : 3 | aromatic ring =C< : 3 | -COO : 1 | tertiary -Cl : 2 | Origin : 1 | OCCC : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-61.85
+"aromatic ring =C< : 3 | -COO : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 2 | Origin : 1 | OCCC : 1",-63.77
+"aromatic ring =CH- : 3 | aromatic ring =C< : 3 | -COO : 1 | tertiary -Cl : 2 | Origin : 1 | OCCC : 1",-63.77
+"aromatic ring =C< : 3 | -COO : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 2 | Origin : 1 | OCCC : 1",-63.77
+"aromatic ring =CH- : 3 | aromatic ring =C< : 3 | -COO : 1 | tertiary -Cl : 2 | Origin : 1 | OCCC : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-61.85
+"aromatic ring =CH- : 3 | aromatic ring =C< : 3 | -COO : 1 | tertiary -Cl : 2 | Origin : 1 | OCCC : 1",-63.77
+"aromatic ring =CH- : 2 | aromatic ring =C< : 4 | -COO : 1 | tertiary -Cl : 3 | Origin : 1 | OCCC : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-67.21
+"aromatic ring =CH- : 2 | aromatic ring =C< : 4 | -COO : 1 | tertiary -Cl : 3 | Origin : 1 | OCCC : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",-65.29
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -Br : 1 | Origin : 1 | OCCC : 1",-48.53
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -Br : 1 | Origin : 1 | OCCC : 1",-48.53
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -Br : 1 | Origin : 1 | OCCC : 1",-48.53
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -F : 1 | Origin : 1 | OCCC : 1",-94.03
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -F : 1 | Origin : 1 | OCCC : 1",-94.03
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -F : 1 | Origin : 1 | OCCC : 1",-94.03
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -I : 1 | Origin : 1 | OCCC : 1",-34.43
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -I : 1 | Origin : 1 | OCCC : 1",-34.43
+"aromatic ring =C< : 2 | -COO : 1 | aromatic ring =CH- : 4 | aromatic -I : 1 | Origin : 1 | OCCC : 1",-34.43
+"aromatic ring =C< : 3 | -COO : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 1 | -NH2 : 1 | Origin : 1 | OCCC : 1",-54.35
+"aromatic ring =C< : 3 | -COO : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 1 | -OH : 1 | Origin : 1 | OCCC : 1",-97.89
+"aromatic ring =C< : 3 | -COO : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 1 | -CH3 : 1 | Origin : 1 | OCCC : 1",-60.04
+"aromatic ring =CH- : 4 | aromatic ring =C< : 2 | -OH : 1 | tertiary -Cl : 1 | Origin : 1",-15.26
+"aromatic ring =C< : 2 | -OH : 1 | aromatic ring =CH- : 4 | tertiary -Cl : 1 | Origin : 1",-15.26
+"aromatic ring =C< : 2 | -OH : 1 | aromatic ring =CH- : 4 | tertiary -Cl : 1 | Origin : 1",-15.26
+"aromatic ring =CH- : 3 | aromatic ring =C< : 3 | -OH : 1 | tertiary -Cl : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-18.7
+"aromatic ring =C< : 3 | -OH : 1 | tertiary -Cl : 2 | aromatic ring =CH- : 3 | Origin : 1",-20.62
+"aromatic ring =C< : 3 | -OH : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 2 | Origin : 1",-20.62
+"aromatic ring =C< : 3 | tertiary -Cl : 2 | aromatic ring =CH- : 3 | -Oneg : 1 | Origin : 1",-11.92
+"aromatic ring =C< : 3 | -OH : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 2 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-18.7
+"aromatic ring =C< : 3 | -OH : 1 | aromatic ring =CH- : 3 | tertiary -Cl : 2 | Origin : 1",-20.62
+"aromatic ring =CH- : 2 | aromatic ring =C< : 4 | -OH : 1 | tertiary -Cl : 3 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",-22.14
+"aromatic ring =C< : 4 | -OH : 1 | aromatic ring =CH- : 2 | tertiary -Cl : 3 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-24.06
+"aromatic ring =C< : 4 | tertiary -Cl : 3 | aromatic ring =CH- : 2 | -Oneg : 1 | Origin : 1",-17.28
+"aromatic ring =C< : 4 | -OH : 1 | aromatic ring =CH- : 2 | tertiary -Cl : 3 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-24.06
+"aromatic ring =C< : 4 | tertiary -Cl : 3 | aromatic ring =CH- : 2 | -Oneg : 1 | Origin : 1 | BinaryVicinalCl : 1 | DistinctVicinalCl : 1",-15.36
+"aromatic ring =C< : 4 | -OH : 1 | aromatic ring =CH- : 2 | tertiary -Cl : 3 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",-22.14
+"aromatic ring =CH- : 1 | aromatic ring =C< : 5 | -OH : 1 | tertiary -Cl : 4 | Origin : 1 | BinaryVicinalCl : 3 | DistinctVicinalCl : 3",-25.58
+"aromatic ring =C< : 5 | tertiary -Cl : 4 | aromatic ring =CH- : 1 | -Oneg : 1 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",-18.8
+"aromatic ring =C< : 5 | tertiary -Cl : 4 | aromatic ring =CH- : 1 | -Oneg : 1 | Origin : 1 | BinaryVicinalCl : 2 | DistinctVicinalCl : 2",-18.8
+"aromatic ring =C< : 6 | tertiary -Cl : 5 | -Oneg : 1 | Origin : 1 | BinaryVicinalCl : 4 | DistinctVicinalCl : 4",-20.32
+"-SO3 : 1 | -CH2- : 2 | -SH : 1 | Origin : 1",-121.26
+"-SO3 : 1 | -CH2- : 2 | -S- : 1 | -CH3 : 1 | Origin : 1",-115.39
+"-CH3 : 1 | -SH : 1 | Origin : 1",-4.39
+"two fused rings >C= : 2 | ring -NH- : 3 | ring >C=O : 1 | ring =N- : 1 | ring -CH< : 6 | ring =C< : 1 | >CH- : 6 | -NH2 : 1 | -NH- : 2 | -CH3 : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 7 | -OH : 5 | -O- : 1 | ring -O- : 1 | -OPO3- : 1 | >C=O : 1 | -COO : 3 | amide : 2 | Origin : 1 | OCCC : 1 | CCNC : 1",-651.22
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | ring -N< : 1 | ring >C=O : 1 | ring -CH< : 6 | ring =C< : 1 | -CH3 : 3 | -NH2 : 1 | >CH- : 6 | -NH- : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 7 | -OH : 5 | -O- : 1 | ring -O- : 1 | -OPO3- : 1 | >C=O : 1 | -COO : 3 | amide : 2 | Origin : 1 | OCCC : 1 | CCNC : 1",-638.95
+"ring =C< : 2 | ring =CH- : 2 | -CH2- : 12 | -O- : 1 | ring -O- : 1 | aromatic ring =C< : 2 | -NH3 : 1 | aromatic ring =CH- : 4 | >C=O : 3 | >CH- : 4 | -COO : 5 | amide : 3 | -NH- : 3 | Origin : 1 | heteroaromatic : 1",-466.4
+"ring =C< : 2 | ring =CH- : 2 | -CH2- : 12 | ring -O- : 1 | -O- : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH=O : 1 | >C=O : 3 | >CH- : 4 | -COO : 5 | amide : 4 | -NH- : 4 | Origin : 1 | heteroaromatic : 1",-494.35
+"two fused rings >C= : 2 | ring -NH- : 3 | ring >C=O : 1 | ring =N- : 1 | ring -CH< : 6 | ring =C< : 1 | >CH- : 5 | -NH2 : 1 | -NH- : 1 | -CH3 : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 5 | -OH : 5 | -O- : 1 | ring -O- : 1 | -OPO3- : 1 | -COO : 2 | amide : 1 | Origin : 1 | OCCC : 1 | CCNC : 1",-544.24
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | ring >C=O : 1 | ring -CH< : 6 | ring =C< : 1 | -CH=O : 1 | -CH3 : 2 | -NH2 : 1 | >CH- : 5 | -NH- : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 5 | -OH : 5 | -O- : 1 | ring -O- : 1 | -OPO3- : 1 | -COO : 2 | amide : 2 | ring -N< : 1 | Origin : 1 | OCCC : 1 | CCNC : 1",-573.02
+"dbl sgl ring =N< : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 5 | >CH- : 4 | -OH : 5 | -O- : 1 | ring -CH< : 6 | ring -O- : 1 | -OPO3- : 1 | -COO : 2 | two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | two fused rings -N< : 1 | ring >C=O : 1 | ring =C< : 1 | two fused rings >CH- : 1 | ring =CH- : 1 | -CH3 : 2 | -NH2 : 1 | amide : 1 | Origin : 1 | OCCC : 1 | CCNC : 2",-529.04
+"ring -N< : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 5 | >CH- : 4 | -OH : 5 | -O- : 1 | ring -CH< : 6 | ring -O- : 1 | -OPO3- : 1 | -COO : 2 | two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | two fused rings -N< : 1 | ring >C=O : 1 | ring =C< : 1 | two fused rings >CH- : 1 | ring -CH2- : 1 | -CH3 : 2 | -NH2 : 1 | amide : 1 | Origin : 1 | OCCC : 1 | CCNC : 1",-525.72
+"aromatic ring =CH- : 3 | aromatic ring =C< : 1 | aromatic ring fused to nonaromatic ring >C=  : 2 | ring -N< : 1 | ring =CH- : 1 | two fused rings >C= : 2 | ring =N- : 1 | ring >C=O : 2 | -OH : 4 | -CH2- : 6 | >CH- : 6 | -OPO3- : 1 | >C=O : 2 | -CH3 : 1 | -COO : 3 | amide : 3 | ring -NH- : 1 | -NH- : 2 | Origin : 1 | OCCC : 1 | OCNC : 1 | CCCN : 1 | CCCC : 1",-653.72
+"aromatic ring =CH- : 3 | aromatic ring =C< : 1 | aromatic ring fused to nonaromatic ring >C=  : 2 | ring -N< : 1 | ring -CH2- : 1 | two fused rings >C= : 2 | ring >C=O : 2 | -OH : 4 | -CH2- : 6 | >CH- : 6 | -OPO3- : 1 | >C=O : 2 | -CH3 : 1 | -COO : 3 | amide : 4 | ring -NH- : 2 | -NH- : 2 | Origin : 1 | OCCC : 1",-661.18
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | ring -N< : 1 | ring >C=O : 1 | ring -CH< : 6 | ring =C< : 1 | -CH3 : 3 | -NH2 : 1 | >CH- : 5 | -NH- : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 5 | -OH : 5 | -O- : 1 | ring -O- : 1 | -OPO3- : 1 | -COO : 2 | amide : 1 | Origin : 1 | OCCC : 1 | CCNC : 1",-531.97
+"ring -N< : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 7 | >CH- : 5 | -OH : 5 | -O- : 1 | ring -CH< : 6 | ring -O- : 1 | -OPO3- : 1 | >C=O : 1 | -COO : 3 | two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | two fused rings -N< : 1 | ring >C=O : 1 | ring =C< : 1 | two fused rings >CH- : 1 | ring -CH2- : 1 | -CH3 : 2 | -NH2 : 1 | amide : 2 | -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 1",-632.7
+"dbl sgl ring =N< : 1 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 7 | >CH- : 5 | -OH : 5 | -O- : 1 | ring -CH< : 6 | ring -O- : 1 | -OPO3- : 1 | >C=O : 1 | -COO : 3 | two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | two fused rings -N< : 1 | ring >C=O : 1 | ring =C< : 1 | two fused rings >CH- : 1 | ring =CH- : 1 | -CH3 : 2 | -NH2 : 1 | amide : 2 | -NH- : 1 | Origin : 1 | OCCC : 1 | CCNC : 2",-636.02
+"two fused rings >C= : 2 | ring -NH- : 2 | ring =N- : 1 | ring >C=O : 1 | ring -CH< : 6 | ring =C< : 1 | -CH=O : 1 | -CH3 : 2 | -NH2 : 1 | >CH- : 6 | -NH- : 2 | aromatic ring =C< : 2 | aromatic ring =CH- : 4 | -CH2- : 7 | -OH : 5 | -O- : 1 | ring -O- : 1 | -OPO3- : 1 | >C=O : 1 | -COO : 3 | amide : 3 | ring -N< : 1 | Origin : 1 | OCCC : 1 | CCNC : 1",-680
+">C=O : 1 | -CH3 : 1 | >CH- : 2 | -OPO3 : 1 | -COO : 1 | -CH2- : 6 | -SH : 1 | amide : 1 | -NH- : 1 | Origin : 1",-353.81
+">C=O : 1 | -CH3 : 1 | >CH- : 2 | -OPO3 : 1 | -COO : 1 | -CH2- : 8 | -S-S- : 1 | -SO3 : 1 | amide : 1 | -NH- : 1 | Origin : 1",-467.89
+"ring -CH< : 10 | -O- : 1 | ring -O- : 2 | -CH2- : 2 | -OH : 8 | Origin : 1",-376.76
+"ring -CH< : 10 | -CH2- : 2 | -OH : 8 | ring -O- : 2 | -O- : 1 | Origin : 1",-376.76
+"electron : 1","None"
+"two fused rings >CH- : 4 | ring -CH2- : 9 | two fused rings >C< : 2 | -CH3 : 2 | ring -CH< : 1 | -OH : 1 | ring >C=O : 1 | Origin : 1",-42.82
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 6 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 1 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | dbl sgl ring =N< : 1 | >C=O : 1 | -CH3 : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 3",-520.98
+"ring -N< : 2 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 5 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 1 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | ring -CH2- : 1 | >C=O : 1 | -CH3 : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",-515.71
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 6 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 1 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | dbl sgl ring =N< : 1 | -COO : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 3",-572.03
+"ring -N< : 2 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 5 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 1 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | ring -CH2- : 1 | -COO : 1 | Origin : 1 | OCCC : 1 | heteroaromatic : 2",-566.76
+"ring -N< : 1 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 6 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 2 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | dbl sgl ring =N< : 1 | =C< : 1 | WdblS : 1 | Origin : 1 | heteroaromatic : 3","None"
+"ring -N< : 2 | two fused rings >C= : 2 | ring -CH< : 8 | ring =CH- : 5 | ring =N- : 3 | ring -O- : 2 | ring =C< : 2 | -OH : 4 | -NH2 : 2 | -CH2- : 2 | -OPO3- : 1 | -OPO2- : 1 | ring -CH2- : 1 | =C< : 1 | WdblS : 1 | Origin : 1 | heteroaromatic : 2","None"
+"aromatic ring =CH- : 5 | aromatic ring =C< : 1 | -CH2- : 2 | >C=O : 1 | -CH3 : 2 | >CH- : 1 | -O-CO- : 1 | amide : 1 | -NH- : 1 | Origin : 1",-74.88
+"ring -CH< : 15 | -O- : 2 | ring -O- : 3 | -CH2- : 3 | -OH : 11 | Origin : 1",-535.24
+"ring -O- : 2 | ring -CH< : 8 | -O- : 1 | -OH : 8 | ring >C< : 1 | -CH2- : 3 | Origin : 1",-377.65
