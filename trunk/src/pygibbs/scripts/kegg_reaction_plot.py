@@ -2,8 +2,7 @@
 
 import sys
 import pylab
-from pygibbs.thermodynamic_constants import default_T, default_pH, default_I,\
-    default_pMg
+from pygibbs.thermodynamic_constants import default_T, default_I, default_pMg
 from pygibbs.kegg import Kegg
 from pygibbs.nist import NistRowData, Nist
 from pygibbs.kegg_errors import KeggParseException

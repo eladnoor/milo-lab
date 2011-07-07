@@ -1,15 +1,10 @@
-
 import json
 import sys
-
 from optparse import OptionParser
 from pygibbs.kegg import Kegg
-from toolbox.database import SqliteDatabase
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.nist_verify import LoadAllEstimators
 
-
-def MakeOpts():
+def MakeOpts(estimators):
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
     opt_parser.add_option("-c", "--compounds_out_filename",
@@ -27,8 +22,7 @@ def MakeOpts():
     opt_parser.add_option("-t", "--thermo_estimator",
                           dest="thermo_estimator",
                           default="milo_gc",
-                          help="options are: milo_gc, alberty, "
-                          "nist_regression, hatzi_gc, hatzi_gc_pka")
+                          help="options are: " + ', '.join(estimators.keys()))
     return opt_parser
 
 
@@ -40,10 +34,10 @@ def WriteJSONFile(objects, filename):
     
 
 def ExportJSONFiles():
-    options, _ = MakeOpts().parse_args(sys.argv)
-    print "Using the thermodynamic estimations of: " + options.thermo_estimator
-
     estimators = LoadAllEstimators()
+    options, _ = MakeOpts(estimators).parse_args(sys.argv)
+    
+    print "Using the thermodynamic estimations of: " + options.thermo_estimator
     thermo = estimators[options.thermo_estimator]
 
     # Make sure we have all the data.
