@@ -2,6 +2,7 @@ import csv, re, sys
 from pylab import arange, NaN, isfinite
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs import pseudoisomer
+from toolbox.database import SqliteDatabase
 
 class Alberty(Thermodynamics):
     def read_alberty_mathematica(self, fname):
@@ -33,10 +34,12 @@ class Alberty(Thermodynamics):
                 nMg = 0
                 
                 alberty_name_to_pmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
-                alberty_name_to_pmap[alberty_name].Add(nH, z, nMg, dG0)
+                alberty_name_to_pmap[alberty_name].Add(nH, z, nMg, dG0, 
+                                                       ref='Alberty 2006')
                 if isfinite(dH0):
                     alberty_name_to_hmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
-                    alberty_name_to_hmap[alberty_name].Add(nH, z, nMg, dH0)
+                    alberty_name_to_hmap[alberty_name].Add(nH, z, nMg, dH0, 
+                                                           ref='Alberty 2006')
             
         return alberty_name_to_pmap, alberty_name_to_hmap
         
@@ -77,11 +80,5 @@ class Alberty(Thermodynamics):
     
 if __name__ == '__main__':
     A = Alberty()
-    A.I = 0.25
-    A.T = 300;
-    sparse_reaction = {13:-1, 1:-1, 9:2}
-    sys.stdout.write("The dG0_r of PPi + H20 <=> 2 Pi: \n\n")
-    sys.stdout.write("%5s | %5s | %6s | %6s\n" % ("pH", "I", "T", "dG0_r"))
-    for pH in arange(5, 9.01, 0.25):
-        A.pH = pH
-        sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f\n" % (A.pH, A.I, A.T, A.reaction_to_dG0(sparse_reaction)))
+    db_public = SqliteDatabase('../data/public_data.sqlite')
+    A.ToDatabase(db_public, 'alberty_pseudoisomers')

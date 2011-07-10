@@ -621,6 +621,10 @@ def main():
         html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
         nist_regression.FindKernel(S, cids, sparse=True)
+        # TODO: the first vectors in the kernel should be the element preserving
+        # reactions (i.e. for the oxygen vector, the coeff in each column should
+        # be the number of oxygen atoms in that compounds). 
+        
 
     html_writer.close()
     

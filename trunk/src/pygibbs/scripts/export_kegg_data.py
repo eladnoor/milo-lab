@@ -42,7 +42,8 @@ def ExportJSONFiles():
 
     # Make sure we have all the data.
     kegg = Kegg.getInstance()
-    kegg.AddThermodynamicData(thermo)
+    kegg.AddThermodynamicData(estimators['alberty'], priority=1)
+    kegg.AddThermodynamicData(thermo, priority=2)
     
     print 'Exporting KEGG compounds as JSON.'
     print 'Output filename:', options.compounds_out_filename    
