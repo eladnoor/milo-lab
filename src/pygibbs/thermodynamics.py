@@ -199,7 +199,7 @@ class Thermodynamics(object):
     def ToDatabase(self, db, table_name, error_table_name=""):
         kegg = Kegg.getInstance()
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
-                       "dG0 REAL, compound_ref TEXT, pseudoisomer_ref, "
+                       "dG0 REAL, compound_ref TEXT, pseudoisomer_ref TEXT, "
                        "anchor BOOL")
         if error_table_name:
             db.CreateTable(error_table_name, 'cid INT, name TEXT, error TEXT')

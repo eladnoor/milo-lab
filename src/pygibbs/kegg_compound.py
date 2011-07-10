@@ -56,19 +56,22 @@ class Compound(object):
         self.from_kegg = from_kegg
         self.pubchem_id = None
         self.cas = ""
-        self.pmap = None
-        self.pmap_source = None
+        self.pmaps = []
         self.pmap_error = None
         
-    def AddThermodynamicData(self, pseudoisomer_map, source_string=None):
+    def AddThermodynamicData(self, pseudoisomer_map, priority=1, source_string=None):
         """Add thermodynamic data.
         
         Args:
             pseudoisomer_map: a pseudoisomer.PseudoisomerMap object.
             source_string: a string denoting the source of the thermodynamic data.
         """
-        self.pmap = pseudoisomer_map
-        self.pmap_source = source_string
+        d = {'species':[], 'priority':priority, 'source':source_string}
+        for nH, z, nMg, dG0 in pseudoisomer_map.ToMatrix():
+            ref = pseudoisomer_map.GetRef(nH, z, nMg)
+            d['species'].append({"nH":nH, "z":z, "nMg":nMg, 
+                                 "dG0_f":dG0, "ref":ref})
+        self.pmaps.append(d)
     
     def SetThermodynamicError(self, error_string):
         """Sets an explanatory error for why there's no thermodynamic data.
@@ -261,13 +264,8 @@ class Compound(object):
         except KeggParseException:
             d['num_electrons'] = None
         
-        if self.pmap:
-            d['species'] = []
-            for nH, z, nMg, dG0 in self.pmap.ToMatrix():
-                ref = self.pmap.GetRef(nH, z, nMg)
-                d['species'].append({"nH":nH, "z":z, "nMg":nMg, 
-                                     "dG0_f":dG0, "ref":ref})
-            d['source'] = self.pmap_source
+        if self.pmaps:
+            d['pmaps'] = self.pmaps
         elif self.pmap_error:
             d['error'] = self.pmap_error
             
