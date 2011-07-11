@@ -1,4 +1,4 @@
-from util import CollectData, WriteCSV, FitGrowth
+from util import CollectData, WriteCSV, WriteToSqlite, FitGrowth
 from matplotlib.backends.backend_pdf import PdfPages
 import sys
 import pylab
@@ -7,6 +7,7 @@ import logging
 ################################################################################
 
 import Tkinter, Tkconstants, tkFileDialog, tkMessageBox
+import sqlite3
 
 class TkFileDialogExample(Tkinter.Frame):
     def __init__(self, root):
@@ -116,6 +117,19 @@ class TkFileDialogExample(Tkinter.Frame):
         f.close()
         if tkMessageBox.askyesno('Job completed', 
                                  'The program has finished writing to the CSV file.\n'
+                                 'Would you like to quit?'):
+            self.quit()
+
+    def asksaveassqlite(self):
+        """
+            Writes the raw data to a CSV file
+        """
+        f = tkFileDialog.asksaveasfile(mode='w', filetypes=[('SQLITE file', '.sqlite')])
+        comm = sqlite3.connect(f)
+        WriteToSqlite(self.MES, comm)
+        f.close()
+        if tkMessageBox.askyesno('Job completed', 
+                                 'The program has finished writing to the SQLITE file.\n'
                                  'Would you like to quit?'):
             self.quit()
 
