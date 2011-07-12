@@ -3,7 +3,7 @@ import os
 import types
 import logging
 import MySQLdb
-from _mysql_exceptions import ProgrammingError
+from _mysql_exceptions import ProgrammingError, OperationalError
 
 class Database(object):
     """Abstract base Database class."""
@@ -181,20 +181,20 @@ class SqliteDatabase(SQLDatabase):
 class MySQLDatabase(SQLDatabase):
     """
         To grant privileges to more users and IP addresses use the following command:
-            GRANT ALL PRIVILEGES ON *.* TO <remoteuser>@123.123.123.123 IDENTIFIED BY "<userpassword>";
+            GRANT ALL PRIVILEGES ON *.* TO <remoteuser>@'%' IDENTIFIED BY "<userpassword>";
         
     """
     
     def __init__(self, host, user, passwd, db):
-        self.comm = MySQLdb.connect(host='eladpc1', user='eladn', 
-                                    passwd='a1a1a1', db='tecan')
+        self.comm = MySQLdb.connect(host=host, user=user, 
+                                    passwd=passwd, db=db)
         
     def Execute(self, command, arguments=None):
         try:
             cursor = self.comm.cursor()
             cursor.execute(command, args=arguments)
             return cursor.fetchall()
-        except ProgrammingError as e:
+        except (ProgrammingError, OperationalError) as e:
             if not arguments:
                 logging.error('Failed to execute database command: %s' % command)
             else:
