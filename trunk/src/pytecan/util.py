@@ -91,54 +91,48 @@ def WriteCSV(MES, f):
         The columns of the CSV file are: reading-label, plate, well, time, measurement.
         The rows is ordered according to these columns.
     """
-    initial_time = pylab.inf
-    for plate_id, plate_values in sorted(MES.iteritems()):
-        for reading_label, label_values in sorted(plate_values.iteritems()):
-            initial_time = min([initial_time] + label_values.keys())
-    
+    init_time = GetExpInitTime(MES)
     csv_writer = csv.writer(f)
     csv_writer.writerow(['plate', 'reading label', 'row', 'col', 
                          'time', 'measurement'])
     for plate_id, plate_values in sorted(MES.iteritems()):
         for reading_label, label_values in sorted(plate_values.iteritems()):
             for time_in_sec, time_values in sorted(label_values.iteritems()):
-                relative_time_in_hr = (time_in_sec - initial_time)/3600.0
+                relative_time_in_hr = (time_in_sec - init_time)/3600.0
                 for well, value in sorted(time_values.iteritems()):
                     csv_writer.writerow([plate_id, reading_label, 
                         well[0], well[1], "%.3f" % relative_time_in_hr, value])
-                    
-def GetExpDate(MES):
+
+def GetExpInitTime(MES):
     all_time_values = []
     for plate_values in sorted(MES.values()):
         for label_values in sorted(plate_values.values()):
             all_time_values += label_values.keys()
-    minimum_time = min(all_time_values)
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(minimum_time))
-                    
-def WriteToSqlite(MES, comm, exp_id=None):
-    for unused_row in comm.execute("SELECT name FROM sqlite_master WHERE name='tecan_readings'"):
-        # table exists
-        break
+    if all_time_values:
+        return min(all_time_values)
     else:
-        # table does not exist, create it
-        comm.execute('CREATE TABLE tecan_readings (exp_id TEXT, plate INT, '
-                     'reading_label TEXT, row INT, col INT, time INT, measurement REAL)')
+        raise ValueError("The experiment has no data, cannot find the init time")
+                                
+def GetExpDate(MES):
+    init_time = GetExpInitTime(MES)
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(init_time))
+                    
+def WriteToSqlite(MES, db, exp_id=None):
+    db.CreateTable('tecan_readings', 'exp_id TEXT, plate INT, '
+                 'reading_label TEXT, row INT, col INT, time INT, measurement REAL')
 
     if not exp_id:
         exp_id = GetExpDate(MES)
 
-    initial_time = pylab.inf
-    for plate_id, plate_values in sorted(MES.iteritems()):
-        for reading_label, label_values in sorted(plate_values.iteritems()):
-            initial_time = min([initial_time] + label_values.keys())
-    
+    db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
+
     for plate_id, plate_values in sorted(MES.iteritems()):
         for reading_label, label_values in sorted(plate_values.iteritems()):
             for time_in_sec, time_values in sorted(label_values.iteritems()):
                 for well, value in sorted(time_values.iteritems()):
-                    comm.execute('INSERT INTO tecan_readings VALUES(?,?,?,?,?,?,?)', 
-                        [exp_id, plate_id, reading_label, well[0], well[1], time_in_sec, value])
-    comm.commit()
+                    db.Insert('tecan_readings', [exp_id, plate_id, 
+                        reading_label, well[0], well[1], time_in_sec, value])
+    return exp_id
 
 def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=False):
     
