@@ -66,7 +66,8 @@ class PathwayComparison(object):
         field_map = pathway_data.field_map
         
         if pathway_data.kegg_module_id is not None:
-            S, rids, fluxes, cids = self.kegg.get_module(pathway_data.kegg_module_id)
+            mid = pathway_data.kegg_module_id
+            S, rids, fluxes, cids = self.kegg.get_module(mid)
             for i, cid in enumerate(list(cids)):
                 if cid in cid_mapping:
                     new_cid, coeff = cid_mapping[cid]
@@ -112,7 +113,7 @@ class PathwayComparison(object):
         pylab.ylabel('Cost per flux unit (log10)', figure=fig)
         pylab.xlabel('Reaction coordinate', figure=fig)
         pylab.semilogy(range(len(costs[0])), costs_array.T, '-*', figure=fig)
-        self.html_writer.embed_matplotlib_figure(fig, width=800, height=600)
+        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
     
     def PlotConcentrations(self, max_dGs, concentrations, cids):
         # Headers, axis labels, ticks for cids
@@ -150,23 +151,12 @@ class PathwayComparison(object):
                     0, ncompounds+1],
                    figure=conc_fig)
         
-        self.html_writer.embed_matplotlib_figure(conc_fig, width=800, height=600)
+        self.html_writer.embed_matplotlib_figure(conc_fig, width=640, height=480)
     
-    def CompareMtdf(self, target_mtdf=None):
-        # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 10
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 5
-        pylab.rcParams['figure.figsize'] = [8.0, 4.0]
-        pylab.rcParams['figure.dpi'] = 100
-        
-        #pylab.grid(True)
-        
+    def CompareMtdf(self, target_mtdf=None):        
         n_pathways = len(self.pathways)
         for i, (name, pathway_data) in enumerate(self.pathways.iteritems()):
+            logging.info('Analyzing pathway %s', name)
             self.html_writer.write('<div margin="20px"><div><b>%s</b></div>' % name)
             self.GetConditions(pathway_data)
             S, rids, fluxes, cids = self.GetReactions(name, pathway_data)
@@ -237,8 +227,8 @@ class PathwayComparison(object):
             pylab.legend(['Standard conditions', 'MTDF'], 'lower left')
             fname = '%s-profile-fig' % name
             
-            html_writer.embed_matplotlib_figure(profile_fig, width=480,
-                                                height=360, name=fname)
+            html_writer.embed_matplotlib_figure(profile_fig, width=640, height=480,
+                                                name=fname)
 
             # Give all compounds with unknown dG0_f the middle concentration value
             conc[nan_indices] = self.thermo.c_mid
@@ -280,22 +270,13 @@ class PathwayComparison(object):
             pylab.axis([x_min, x_max, y_min, y_max], figure=conc_fig)
             
             fname = '%s-mtdf-conc-fig' % name
-            html_writer.embed_matplotlib_figure(conc_fig, width=480,
-                                                height=360, name=fname)
+            html_writer.embed_matplotlib_figure(conc_fig, width=640, height=480,
+                                                name=fname)
 
             self.html_writer.write('</div>')
         
     def CompareMinimalEnzymeBurden(self):
         # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 10
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 5
-        pylab.rcParams['figure.figsize'] = [16.0, 4.0]
-        pylab.rcParams['figure.dpi'] = 100
-        
         burdens = {}
         max_dGs = pylab.arange(0.0,-12.25,-0.25)
         
@@ -368,7 +349,7 @@ class PathwayComparison(object):
         pylab.xlabel("-Max dG [kJ/mol]", figure=fig)
         
         name = 'enzyme-burden'
-        self.html_writer.embed_matplotlib_figure(fig, width=800, height=600,
+        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480,
                                                  name=name)
 
 
@@ -475,6 +456,7 @@ if __name__ == "__main__":
     
     kegg = Kegg.getInstance()
     thermo.bounds = deepcopy(kegg.cid2bounds)
+    thermo.c_range = (1e-7,1e-1)
     
     dirname = os.path.dirname(output_filename)
     if not os.path.exists(dirname):
