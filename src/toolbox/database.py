@@ -2,6 +2,8 @@ import sqlite3, csv
 import os
 import types
 import logging
+import MySQLdb
+from _mysql_exceptions import ProgrammingError
 
 class Database(object):
     """Abstract base Database class."""
@@ -31,16 +33,19 @@ class SQLDatabase(Database):
     def Commit(self):
         raise NotImplementedError("Commit not implemented")
     
+    def Insert(self, table_name, list):
+        raise NotImplementedError("Commit not implemented")
+
     def CreateTable(self, table_name, columns, drop_if_exists=True):
         if drop_if_exists:
             self.Execute("DROP TABLE IF EXISTS %s" % table_name)
-        elif self.DoesTableExist(table_name):
-            return
+        #elif self.DoesTableExist(table_name):
+        #    return
         
         if type(columns) == types.ListType:
             columns = ','.join(['%s TEXT' % col for col in columns])    
         
-        self.Execute("CREATE TABLE %s (%s)" % (table_name, columns))
+        self.Execute("CREATE TABLE IF NOT EXISTS %s (%s)" % (table_name, columns))
     
     def CreateIndex(self, index_name, table_name, columns, unique=True, drop_if_exists=True):
         if drop_if_exists:
@@ -50,14 +55,8 @@ class SQLDatabase(Database):
         else:
             self.Execute("CREATE INDEX %s ON %s (%s)" % (index_name, table_name, columns))
             
-    def Insert(self, table_name, list):
-        sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, ','.join(["?"]*len(list)))
-        return self.Execute(sql_command, list)
-    
     def DoesTableExist(self, table_name):
-        for unused_row in self.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
-            return True
-        return False
+        raise NotImplementedError("DoesTableExist not implemented")
     
     def Query2String(self, query, column_names=None):
         s = ""
@@ -160,6 +159,15 @@ class SqliteDatabase(SQLDatabase):
                               command)
                 raise e
         
+    def Insert(self, table_name, list):
+        sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, ','.join(["?"]*len(list)))
+        return self.Execute(sql_command, list)
+    
+    def DoesTableExist(self, table_name):
+        for unused_row in self.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
+            return True
+        return False
+
     def Commit(self):
         self.comm.commit()
 
@@ -169,3 +177,47 @@ class SqliteDatabase(SQLDatabase):
     
     def __str__(self):
         return '<SqliteDatabase: %s>' % self.filename
+
+class MySQLDatabase(SQLDatabase):
+    """
+        To grant privileges to more users and IP addresses use the following command:
+            GRANT ALL PRIVILEGES ON *.* TO <remoteuser>@123.123.123.123 IDENTIFIED BY "<userpassword>";
+        
+    """
+    
+    def __init__(self, host, user, passwd, db):
+        self.comm = MySQLdb.connect(host='eladpc1', user='eladn', 
+                                    passwd='a1a1a1', db='tecan')
+        
+    def Execute(self, command, arguments=None):
+        try:
+            cursor = self.comm.cursor()
+            cursor.execute(command, args=arguments)
+            return cursor.fetchall()
+        except ProgrammingError as e:
+            if not arguments:
+                logging.error('Failed to execute database command: %s' % command)
+            else:
+                logging.error('Failed to execute database command: %s - %s' % \
+                              (command, str(arguments)))
+            raise e
+
+    def Insert(self, table_name, list):
+        sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, 
+                            ','.join(["'" + str(x) + "'" for x in list]))
+        return self.Execute(sql_command)
+        
+    def Commit(self):
+        self.comm.commit()
+        
+    def __del__(self):
+        self.comm.commit()
+        self.comm.close()
+        
+    def __str__(self):
+        return '<MySQLDatabase: %s>' % self.filename
+
+    def DoesTableExist(self, table_name):
+        for unused_row in self.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
+            return True
+        return False
