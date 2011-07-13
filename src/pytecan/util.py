@@ -117,9 +117,9 @@ def GetExpDate(MES):
     init_time = GetExpInitTime(MES)
     return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(init_time))
                     
-def WriteToSqlite(MES, db, exp_id=None):
-    db.CreateTable('tecan_readings', 'exp_id TEXT, plate INT, '
-                 'reading_label TEXT, row INT, col INT, time INT, measurement REAL')
+def WriteToDatabase(MES, db, exp_id=None):
+    #db.CreateTable('tecan_readings', 'exp_id TEXT, plate INT, '
+    #             'reading_label TEXT, row INT, col INT, time INT, measurement REAL')
 
     if not exp_id:
         exp_id = GetExpDate(MES)

@@ -1,4 +1,4 @@
-from util import CollectData, WriteCSV, WriteToSqlite, FitGrowth
+from util import CollectData, WriteCSV, WriteToDatabase, FitGrowth
 from matplotlib.backends.backend_pdf import PdfPages
 import sys
 import pylab
@@ -126,7 +126,7 @@ class TkFileDialogExample(Tkinter.Frame):
         """
         f = tkFileDialog.asksaveasfile(mode='w', filetypes=[('SQLITE file', '.sqlite')])
         comm = sqlite3.connect(f)
-        WriteToSqlite(self.MES, comm)
+        WriteToDatabase(self.MES, comm)
         f.close()
         if tkMessageBox.askyesno('Job completed', 
                                  'The program has finished writing to the SQLITE file.\n'
