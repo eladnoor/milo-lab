@@ -173,6 +173,7 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
     
     rxns_map = {}
     total_rxns_map = {}
+    rxn_reversibilities = []
     
     debug_file = open('../res/kegg_' + id + '_' + ('constrained_' if len(cmap) > 0 else 'non_constrained_') + 'rev.txt', 'w')
     debug_file.write("Module\tPosition\tReaction Name\tDefinition\tEC list\tEquation\tRev IND\n")
@@ -197,9 +198,9 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
                 reaction.Balance(balance_water=True)
                 sparse = reaction.sparse
                 
-                # delta G r = CalculateReversabilitydeltaG(sparse, G, c_mid, pH, pMg, I, T,                                             concentration_map=cmap)
+                # delta G r = CalculateReversabilitydeltaG(sparse, G, c_mid, pH, pMg, I, T, concentration_map=cmap)
                 r = CalculateReversability(sparse, G, c_mid, pH, pMg, I, T,
-                                                 concentration_map=cmap)
+                                           concentration_map=cmap)
                 if r == None:
                     if rid not in rxns_map:
                         rxns_map[rid] = 1
@@ -208,6 +209,7 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
                 
                 r *= flux
                 
+                rxn_reversibilities.append((abs(r), rid))
                 has_thermo_data = 1
                 #r = abs(r)
                 
@@ -245,6 +247,7 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
                         non_balanced += 1
                     #print 'Reaction cannot be balanced, uid: %s' % rxn
                     continue
+        
         if has_thermo_data == 1:
             n_pathways_with_thermo_data += 1
                 
@@ -266,7 +269,10 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
                             rel_histogram['Not first'].append(r)
                 if (first_r == curr_max):
                         n_first_max += 1
-                                    
+    
+    rxn_reversibilities.sort(reverse=True)
+    print rxn_reversibilities[:20]
+                                        
     debug_file.close()
     
     debug_file = open('../res/kegg_' + id + '_' + ('constrained_' if len(cmap) > 0 else 'non_constrained_') + 'rev_stats.txt', 'w')
@@ -791,8 +797,9 @@ def meta_regulated_rxns_cumul_plots(org, id, thermo):
     pylab.savefig('../res/' + org + id +  '_regulation.png', figure=fig1, format='png')
 
 def calc_palsson_rxns_irrev(org, fig_name, rxns_file, comp2cid_file, thermo, c_mid, pH, pMg, I, T, cmap, xlim=40):
-
-    html_writer = HtmlWriter('../res/' + org + '_' + fig_name + '_model_rev.html')
+    html_fname = '../res/' + org + '_' + fig_name + '_model_rev.html'
+    logging.info('Writing HTML output to %s', html_fname)
+    html_writer = HtmlWriter(html_fname)
     kegg = Kegg.getInstance()
 
     histogram = {}
@@ -936,7 +943,9 @@ class IrrevParseException(Exception):
     pass
 
 def calc_cons_rxns_corr(thermo, name):
-    html_writer = HtmlWriter('../res/' + name + '_rev_pair_corr.html')
+    html_fname = '../res/' + name + '_rev_pair_corr.html'
+    logging.info('Writing HTML output to %s', html_fname)
+    html_writer = HtmlWriter(html_fname)
     kegg = Kegg.getInstance()
     c_mid = 1e-3
     #c_mid = 5e-5
@@ -1011,9 +1020,9 @@ def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, kegg, cmap, id)
         for i, (rid, flux) in enumerate(rid_flux_list):
             try:
                 sparse = kegg.rid2sparse_reaction(rid)
-                sparse = kegg.BalanceReaction(sparse, balance_water=True)
+                Reaction.BalanceSparseReaction(sparse, balance_water=True)
                 r = CalculateReversability(sparse, G, c_mid, pH, pMg, I, T,
-                                                  concentration_map=cmap)
+                                           concentration_map=cmap)
                 if r == None:
                     only_currency += 1
                     continue
