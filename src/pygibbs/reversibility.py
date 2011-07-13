@@ -9,6 +9,7 @@ import pylab
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggNonCompoundException,\
     KeggReactionNotBalancedException
+from pygibbs.kegg_reaction import Reaction
 from toolbox.plotting import cdf,bootstrap
 from SOAPpy import WSDL 
 from pygibbs.metacyc import MetaCyc,MetaCycNonCompoundException
@@ -116,7 +117,8 @@ def CalculateReversability(sparse, thermo, c_mid=1e-3, pH=default_pH,
                            pMg=default_pMg, I=default_I, T=default_T,
                            concentration_map=None):
     cmap = concentration_map or {}
-    dG0 = thermo.reaction_to_dG0(sparse, pH, pMg, I, T)
+    rxn = Reaction("Unknown", sparse)
+    dG0 = thermo.reaction_to_dG0(rxn, pH, pMg, I, T)
     
     cfactor = ConcentrationFactor(sparse, cmap, c_mid)
     sum_abs_s = sum([abs(x) for k, x in sparse.iteritems()
@@ -671,7 +673,9 @@ def calculate_metacyc_regulation_reversibility_histogram(thermo, c_mid, pH, pMg,
 
     
 def main(thermo, name):
-    html_writer = HtmlWriter('../res/' + name + '_reversibility.html')
+    html_fname = '../res/' + name + '_reversibility.html'
+    logging.info('Writing HTML output to %s', html_fname)
+    html_writer = HtmlWriter(html_fname)
     kegg = Kegg.getInstance()
     c_mid = 1e-3
     #c_mid = 5e-5
@@ -989,7 +993,9 @@ def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, kegg, cmap, id)
     only_currency = 0
     non_balanced = 0
 
-    debug_file = open('../res/kegg_' + id + '_' + ('constrained_' if len(cmap) > 0 else 'non_constrained_') + 'rev_pairs.txt', 'w')
+    fname = '../res/kegg_' + id + '_' + ('constrained_' if len(cmap) > 0 else 'non_constrained_') + 'rev_pairs.txt'
+    logging.info('Writing output to %s', fname)
+    debug_file = open(fname, 'w')
     debug_file.write('Module\tRxn 1\tIrrev 1\tRxn 2\tIrrev 2\n')
         
     for mid, rid_flux_list in kegg.mid2rid_map.iteritems():
