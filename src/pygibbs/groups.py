@@ -72,7 +72,7 @@ class GroupContribution(Thermodynamics):
 
         self.kegg = kegg or Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
-        self.sparse_kernel = True
+        self.sparse_kernel = False
         self.verify_kernel_orthogonality = True
 
         self.group_nullspace = None
@@ -353,67 +353,65 @@ class GroupContribution(Thermodynamics):
 
     def analyze_training_set(self):
         n_obs = self.group_matrix.shape[0]
-        val_names = []
-        val_obs = []
-        val_est = []
-        val_err = []
-        deviations = []
+        deviations = [] # a list of all the data about every example
+        loo_deviations = [] # a list of only the examples which are included in the LOO test
         
         for i in xrange(n_obs):
+            row = {'name':self.obs_names[i], 'obs':self.obs[i]}
             # skip the cross-validation of the pKa values since group
             # contribution is not meant to give any real prediction for pKas
             # except the mean of the class of pKas.
             if self.obs_types[i] not in ['formation', 'reaction']:
                 continue
-            logging.info('Cross validation, leaving-one-out: ' + self.obs_names[i])
             
+            row['fit'] = pylab.dot(self.group_matrix[i, :], self.group_contributions)
+            row['fit_resid'] = row['fit']-row['obs'] 
+            deviations.append(row)
+            logging.info('Fit Error = %.1f' % (row['fit_resid']))
+
             # leave out the row corresponding with observation 'i'
+            logging.info('Cross validation, leaving-one-out: ' + self.obs_names[i])
             subset = range(n_obs)
             subset.pop(i)
-            
             group_contributions, nullspace = LinearRegression.LeastSquares(
                 self.group_matrix[subset, :], self.obs[subset])
             
             if nullspace.shape[0] > self.group_nullspace.shape[0]:
-                logging.warning('# example %d is not linearly dependent in the other examples' % i)
-                deviations.append((None, self.obs_names[i], "%.1f" % self.obs[i], "-", "-", 
-                                   "linearly independent example", "-"))
+                logging.warning('example %d is not linearly dependent in the other examples' % i)
                 continue
-            
-            orig_estimation = pylab.dot(self.group_matrix[i, :], self.group_contributions)
-            estimation = pylab.dot(self.group_matrix[i, :], group_contributions)[0, 0]
-            error = self.obs[i] - estimation
-            
-            val_names.append(self.obs_names[i])
-            val_obs.append(self.obs[i])
-            val_est.append(estimation)
-            val_err.append(error)
-            logging.info('Error = %.1f' % error)
-            deviations.append((abs(error), self.obs_names[i], 
-                               "%.1f" % self.obs[i], 
-                               "%.1f" % estimation,
-                               "%.1f" % error, "",
-                               "%.1f" % orig_estimation))
+            row['loo'] = pylab.dot(self.group_matrix[i, :], group_contributions)[0, 0]
+            row['loo_resid'] = row['loo'] - row['obs']
+            loo_deviations.append(row)
+            logging.info('LOO Error = %.1f' % row['loo_resid'])
         
         logging.info("writing the table of estimation errors for each compound")
         self.html_writer.write('<h2><a name=compounds>Cross Validation Table</a>')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
 
-        rmse = util.calc_rmse(val_obs, val_est)
+        rmse = util.calc_rmse([row['obs'] for row in loo_deviations], 
+                              [row['loo'] for row in loo_deviations],)
         self.html_writer.write('<div><b>rmse(pred) = %.2f kJ/mol</b></div>\n' % rmse)
         logging.info("The RMSE of the predictions is %.2f kJ/mol" % rmse)
 
-        self.html_writer.write('<table border="1">')
-        self.html_writer.write('  <tr><td>Compound Name</td>'
-                        '<td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
-                        '<td>&#x394;<sub>f</sub>G<sub>est</sub> [kJ/mol]</td>'
-                        '<td>Error [kJ/mol]</td>'
-                        '<td>Remark</td><td>&#x394;<sub>f</sub>G<sub>orig est</sub> [kJ/mol]</td></tr>\n')
-        deviations.sort(reverse=True)
-        for _, name, obs, est, err, remark, orig in deviations:
-            self.html_writer.write('  <tr><td>' + '</td><td>'.join([name, obs, est, err, remark, orig]) + '</td></tr>\n')
-        self.html_writer.write('</table>\n')
+        self.html_writer.table_start()
+        deviations.sort(key=lambda(x):abs(x['fit_resid']), reverse=True)
+        headers = ['Compound Name',
+                   '&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
+                   '&#x394;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',
+                   'Residual [kJ/mol]',
+                   '&#x394;<sub>f</sub>G<sub>LOO</sub> [kJ/mol]',
+                   'Leave-one-out Residual [kJ/mol]']
+        self.html_writer.table_writerow(headers)
+        for row in deviations:
+            table_row = [row['name']]
+            table_row += ['%.1f' % row[key] for key in ['obs', 'fit', 'fit_resid']]
+            if 'loo' in row:
+                table_row += ['%.1f' % row[key] for key in ['loo', 'loo_resid']]
+            else:
+                table_row += ['N/A', 'N/A']
+            self.html_writer.table_writerow(table_row)
+        self.html_writer.table_end()
         self.html_writer.write('</div>\n')
         
         logging.info("Plotting graphs for observed vs. estimated")
@@ -422,12 +420,13 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
 
         obs_vs_est_fig = pylab.figure()
-        pylab.plot(val_obs, val_est, '.')
-        pylab.xlabel('Observed (obs)')
-        pylab.ylabel('Estimated (est)')
+        pylab.plot(pylab.array([row['obs'] for row in deviations]),
+                   pylab.array([row['fit'] for row in deviations]), '.')
+        pylab.xlabel('Observation')
+        pylab.ylabel('Estimation')
         pylab.hold(True)
-        for i in xrange(len(val_names)):
-            pylab.text(val_obs[i], val_est[i], val_names[i], fontsize=4)
+        for row in deviations:
+            pylab.text(row['obs'], row['fit'], row['name'], fontsize=4)
         self.html_writer.write('<h3><a name="obs_vs_est">Observed vs. Estimated</a></h3>\n')
         self.html_writer.embed_matplotlib_figure(obs_vs_est_fig, width=1000, height=800)
 
@@ -437,13 +436,14 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
         
         obs_vs_err_fig = pylab.figure()
-        pylab.plot(val_obs, val_err, '+')
-        pylab.xlabel('Observed (obs)')
-        pylab.ylabel('Estimation error (est - obs)')
+        pylab.plot(pylab.array([row['obs'] for row in deviations]), 
+                   pylab.array([row['fit_resid'] for row in deviations]), '+')
+        pylab.xlabel('Observation')
+        pylab.ylabel('Residual')
         pylab.hold(True)
-        for i in xrange(len(val_names)):
-            pylab.text(val_obs[i], val_err[i], val_names[i], fontsize=4)
-        self.html_writer.write('<h3><a name="obs_vs_err">Observed vs. Error</a></h3>\n')
+        for row in deviations:
+            pylab.text(row['obs'], row['fit_resid'], row['name'], fontsize=4)
+        self.html_writer.write('<h3><a name="obs_vs_err">Observation vs. Residual</a></h3>\n')
         self.html_writer.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
         self.html_writer.write('</div>\n')
 

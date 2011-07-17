@@ -86,6 +86,15 @@ class BaseHtmlWriter:
             self.write('<tr><td>' + '</td><td>'.join(values) + '</td></tr>\n')
         self.write("</table>\n")
         
+    def table_start(self, border=1):
+        self.write('<table border=%d>\n' % border)
+
+    def table_writerow(self, values):
+        self.write('<tr><td>' + '</td><td>'.join(values) + '</td></tr>\n')
+    
+    def table_end(self):
+        self.write("</table>\n")
+        
     def insert_toggle(self, div_id=None):
         if not div_id:
             div_id = "DIV%05d" % self.div_counter

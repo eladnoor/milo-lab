@@ -35,7 +35,7 @@ class SparseKernel(object):
         
         try:
             self.cpl = Cplex()
-        except NameError:
+        except NameError, CplexSolverError:
             raise CplexNotInstalledError()
             
         self.cpl.set_problem_name('find_kernel')
