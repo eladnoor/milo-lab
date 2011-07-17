@@ -33,6 +33,9 @@ class TestReactionParser(unittest.TestCase):
         '(S)-malate => (S)-lactate':
         query_parser.ParsedReactionQuery([(1, '(S)-malate')],
                                          [(1, '(S)-lactate')]),
+        'NADH + 1/2 O2 <=> NAD+ + H2O':
+        query_parser.ParsedReactionQuery([(1, 'NADH'), (0.5, 'O2')],
+                                         [(1, 'NAD+'), (1, 'H2O')]),
         # Unicode arrow thingy
         u'Oxaloacetate + Acetyl-CoA + H2O → Citrate + CoA-SH':
         query_parser.ParsedReactionQuery([(1, 'Oxaloacetate'), (1, 'Acetyl-CoA'), (1, 'H2O')],
