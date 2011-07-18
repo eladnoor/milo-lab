@@ -762,7 +762,7 @@
 3044,"(R,R)-butane-2,3-diol",,298.15,10,10,0,0,"C[C@@H](O)[C@@H](C)O",,,
 3059,"2-Hydroxymethylserine",,298.15,9,9,0,0,"C(C(CO)(C(=O)[O-])[NH3+])O",,,
 3067,"3-hydroxybenzaldehyde","acid-base",298.15,6,5,0,0,"c1cc(cc(c1)O)C=O","c1cc(cc(c1)[O-])C=O",8.98,"CRC (88th edition)"
-3082,"4-phospho-L-aspartate",,298.15,6,6,0,0,"[NH3+][C@@H](CC(=O)OP([O-])([O-])=O)C([O-])=O",,,
+3082,"4-phospho-L-aspartate",,298.15,7,6,0,0,"[NH3+]C(CC(=O)OP([O-])([OH])=O)C([O-])=O","[NH3+]C(CC(=O)OP([O-])([O-])=O)C([O-])=O",6.77,"taken from glycerate-1,3P"
 3166,"phosphoguanidinoacetate",,298.15,6,6,0,0,"[O-]C(=O)CNC(=[NH2+])NP([O-])([O-])=O",,,
 3167,"Phosphonoacetaldehyde",,298.15,3,3,0,0,"C(=O)CP([O-])([O-])=O",,,
 3173,"S-methylthioglycolate","acid-base",298.15,6,5,0,0,"CSCC(O)=O","CSCC([O-])=O",3.66,"CRC (88th edition)"

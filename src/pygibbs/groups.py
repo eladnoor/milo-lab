@@ -364,7 +364,7 @@ class GroupContribution(Thermodynamics):
             if self.obs_types[i] not in ['formation', 'reaction']:
                 continue
             
-            row['fit'] = pylab.dot(self.group_matrix[i, :], self.group_contributions)
+            row['fit'] = pylab.dot(self.group_matrix[i, :], self.group_contributions)[0, 0]
             row['fit_resid'] = row['fit']-row['obs'] 
             deviations.append(row)
             logging.info('Fit Error = %.1f' % (row['fit_resid']))
@@ -373,13 +373,13 @@ class GroupContribution(Thermodynamics):
             logging.info('Cross validation, leaving-one-out: ' + self.obs_names[i])
             subset = range(n_obs)
             subset.pop(i)
-            group_contributions, nullspace = LinearRegression.LeastSquares(
+            loo_group_contributions, loo_nullspace = LinearRegression.LeastSquares(
                 self.group_matrix[subset, :], self.obs[subset])
             
-            if nullspace.shape[0] > self.group_nullspace.shape[0]:
+            if loo_nullspace.shape[0] > self.group_nullspace.shape[0]:
                 logging.warning('example %d is not linearly dependent in the other examples' % i)
                 continue
-            row['loo'] = pylab.dot(self.group_matrix[i, :], group_contributions)[0, 0]
+            row['loo'] = pylab.dot(self.group_matrix[i, :], loo_group_contributions)[0, 0]
             row['loo_resid'] = row['loo'] - row['obs']
             loo_deviations.append(row)
             logging.info('LOO Error = %.1f' % row['loo_resid'])
@@ -389,10 +389,19 @@ class GroupContribution(Thermodynamics):
         div_id = self.html_writer.insert_toggle()
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
 
-        rmse = util.calc_rmse([row['obs'] for row in loo_deviations], 
-                              [row['loo'] for row in loo_deviations],)
-        self.html_writer.write('<div><b>rmse(pred) = %.2f kJ/mol</b></div>\n' % rmse)
-        logging.info("The RMSE of the predictions is %.2f kJ/mol" % rmse)
+        obs_vec = pylab.array([row['obs'] for row in deviations])
+        fit_vec = pylab.array([row['fit'] for row in deviations])
+        resid_vec = pylab.array([row['fit_resid'] for row in deviations])
+        rmse = pylab.rms_flat(resid_vec)
+        
+        #loo_vec = pylab.array([row['loo'] for row in loo_deviations])
+        loo_resid_vec = pylab.array([row['loo_resid'] for row in loo_deviations])
+        loo_rmse = pylab.rms_flat(loo_resid_vec)
+
+        self.html_writer.write('<div><b>fit_rmse(pred) = %.2f kJ/mol</b></div>\n' % rmse)
+        logging.info("Goodness of fit: RMSE = %.2f kJ/mol" % rmse)
+        self.html_writer.write('<div><b>loo_rmse(pred) = %.2f kJ/mol</b></div>\n' % loo_rmse)
+        logging.info("Leave-one-out test: RMSE = %.2f kJ/mol" % loo_rmse)
 
         self.html_writer.table_start()
         deviations.sort(key=lambda(x):abs(x['fit_resid']), reverse=True)
@@ -420,13 +429,13 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
 
         obs_vs_est_fig = pylab.figure()
-        pylab.plot(pylab.array([row['obs'] for row in deviations]),
-                   pylab.array([row['fit'] for row in deviations]), '.')
+        pylab.plot(obs_vec, fit_vec, '.')
         pylab.xlabel('Observation')
         pylab.ylabel('Estimation')
         pylab.hold(True)
         for row in deviations:
-            pylab.text(row['obs'], row['fit'], row['name'], fontsize=4)
+            if abs(row['fit_resid']) > 2*rmse:
+                pylab.text(row['obs'], row['fit'], row['name'], fontsize=4)
         self.html_writer.write('<h3><a name="obs_vs_est">Observed vs. Estimated</a></h3>\n')
         self.html_writer.embed_matplotlib_figure(obs_vs_est_fig, width=1000, height=800)
 
@@ -436,13 +445,13 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
         
         obs_vs_err_fig = pylab.figure()
-        pylab.plot(pylab.array([row['obs'] for row in deviations]), 
-                   pylab.array([row['fit_resid'] for row in deviations]), '+')
+        pylab.plot(obs_vec, resid_vec, '.')
         pylab.xlabel('Observation')
         pylab.ylabel('Residual')
         pylab.hold(True)
         for row in deviations:
-            pylab.text(row['obs'], row['fit_resid'], row['name'], fontsize=4)
+            if abs(row['fit_resid']) > 2*rmse:
+                pylab.text(row['obs'], row['fit_resid'], row['name'], fontsize=4)
         self.html_writer.write('<h3><a name="obs_vs_err">Observation vs. Residual</a></h3>\n')
         self.html_writer.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
         self.html_writer.write('</div>\n')
