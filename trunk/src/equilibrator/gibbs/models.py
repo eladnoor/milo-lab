@@ -105,7 +105,7 @@ class Specie(models.Model):
     formation_energy = models.FloatField()
     
     # The source of this value.
-    formation_energy_source = models.ForeignKey(ValueSource)
+    formation_energy_source = models.ForeignKey(ValueSource, null=True)
     
     def Transform(self,
                   pH=constants.DEFAULT_PH,
@@ -130,6 +130,71 @@ class Specie(models.Model):
     
     def __unicode__(self):
         return self.kegg_id
+    
+class SpeciesGroup(models.Model):
+    # The ID of the compound in KEGG.
+    kegg_id = models.CharField(max_length=10)
+    
+    # The species in this group.
+    species = models.ManyToManyField(Specie)
+    
+    # The priority of this group.
+    priority = models.IntegerField()
+    
+    # The source of these values.
+    formation_energy_source = models.ForeignKey(ValueSource)
+    
+    def __init__(self, *args, **kwargs):        
+        super(SpeciesGroup, self).__init__(*args, **kwargs)
+        self._all_species = None
+            
+    def GetSpecies(self):
+        """Gets the list of SpeciesFormationEnergies, potentially caching."""
+        if not self._all_species:
+            self._all_species = self.species.all()
+        return self._all_species
+    all_species = property(GetSpecies)
+
+    def StashTransformedSpeciesEnergies(self, ph, pmg, ionic_strength):
+        """Stash the transformed species formation energy in each one."""
+        for species in self.all_species:
+            species.transformed_energy = species.Transform(
+                pH=ph, pMg=pmg, ionic_strength=ionic_strength)
+
+    def DeltaG(self, pH=constants.DEFAULT_PH,
+               pMg=constants.DEFAULT_PMG,
+               ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
+        """Get a deltaG estimate for this group of species.
+        
+        Args:
+            pH: the PH to estimate at.
+            ionic_strength: the ionic strength to estimate at.
+            temp: the temperature to estimate at.
+        
+        Returns:
+            The estimated delta G in the given conditions or None.
+        """
+        if not self.all_species:
+            # No data...
+            return None
+        
+        # Shorter names are handy!
+        _i_s = ionic_strength
+        _r = constants.R
+        _t = constants.DEFAULT_TEMP
+
+        # Compute per-species transforms, scaled down by R*T.
+        transform = lambda x: x.Transform(pH=pH, pMg=pMg, ionic_strength=_i_s)
+        scaled_transforms = [(-transform(s) / (_r * _t))
+                             for s in self.all_species]
+        
+        # Numerical issues: taking a sum of exp(v) for |v| quite large.
+        # Use the fact that we take a log later to offset all values by a 
+        # constant (the minimum value).
+        offset = min(scaled_transforms)
+        scaled_offset_transforms = [(st - offset) for st in scaled_transforms]
+        sum_exp = sum(numpy.exp(scaled_offset_transforms))
+        return - _r * _t * (offset + numpy.log(sum_exp))
 
 
 class Compound(models.Model):
@@ -161,8 +226,8 @@ class Compound(models.Model):
     # The number of electrons.
     num_electrons = models.IntegerField(null=True)
     
-    # Estimates of Delta G for this compound.
-    species = models.ManyToManyField(Specie)
+    # The various estimates of Delta G for this compound.
+    species_groups = models.ManyToManyField(SpeciesGroup)
     
     # Replace this compound with another one.
     replace_with = models.ForeignKey('self', null=True)
@@ -174,7 +239,27 @@ class Compound(models.Model):
 
     def __init__(self, *args, **kwargs):        
         super(Compound, self).__init__(*args, **kwargs)
-        self._all_species = None
+        self._species_group_to_use = None
+        self._priority = None
+    
+    def GetSpeciesGroupPriorities(self):
+        """Get the priorities of species groups available."""
+        return [sg.priority for sg in self.all_species_groups]
+    
+    def SetSpeciesGroupPriority(self, priority):
+        """Set the priority of the species group to use."""
+        for sg in self.species_groups.all():
+            if sg.priority == priority:
+                self._species_group_to_use = sg
+                break
+    
+    def SetHighestPriority(self):
+        """Set the priority to the highest one."""
+        ps = self.GetSpeciesGroupPriorities()
+        if not ps:
+            return
+        
+        self.SetSpeciesGroupPriority(min(ps))
     
     def HasData(self):
         """Has enough data to display."""
@@ -193,23 +278,6 @@ class Compound(models.Model):
         names = list(self.common_names.all())
         return names[0].name
     
-    def ShortestName(self):
-        """Returns the shortest name of this compound.
-        
-        DEPRECATED: This method returns strange names that people tend not to 
-        recognize. 
-        
-        TODO(flamholz): Delete when possible.
-        """
-        shortest_len = 10000
-        shortest_name = None
-        for name in self.common_names.all():
-            if len(name.name) < shortest_len:
-                shortest_name = name.name
-                shortest_len = len(name.name)
-                
-        return shortest_name
-    
     def DeltaG(self, pH=constants.DEFAULT_PH,
                pMg=constants.DEFAULT_PMG,
                ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
@@ -223,27 +291,10 @@ class Compound(models.Model):
         Returns:
             The estimated delta G in the given conditions or None.
         """
-        if not self.all_species:
-            # No data...
-            return None
+        if not self._species_group_to_use:
+            self.SetHighestPriority()
         
-        # Shorter names are handy!
-        _i_s = ionic_strength
-        _r = constants.R
-        _t = constants.DEFAULT_TEMP
-
-        # Compute per-species transforms, scaled down by R*T.
-        transform = lambda x: x.Transform(pH=pH, pMg=pMg, ionic_strength=_i_s)
-        scaled_transforms = [(-transform(s) / (_r * _t))
-                             for s in self.all_species]
-        
-        # Numerical issues: taking a sum of exp(v) for |v| quite large.
-        # Use the fact that we take a log later to offset all values by a 
-        # constant (the minimum value).
-        offset = min(scaled_transforms)
-        scaled_offset_transforms = [(st - offset) for st in scaled_transforms]
-        sum_exp = sum(numpy.exp(scaled_offset_transforms))
-        return - _r * _t * (offset + numpy.log(sum_exp))
+        return self._species_group_to_use.DeltaG(pH, pMg, ionic_strength)
 
     def GetAtomBag(self):
         """Returns a dictionary of atoms and their counts for this compound."""
@@ -295,10 +346,16 @@ class Compound(models.Model):
     
     def GetSpecies(self):
         """Gets the list of SpeciesFormationEnergies, potentially caching."""
-        if not self._all_species:
-            self._all_species = self.species.all()
-        return self._all_species
-    
+        if self._species_group_to_use:
+            return self._species_group_to_use.all_species
+        
+        # TODO(flamholz): Should we return something here?
+        return None
+
+    def GetSpeciesGroups(self):
+        """Gets the list of SpeciesFormationEnergies, potentially caching."""
+        return self.species_groups.all()
+
     def _GetDGSource(self):
         """Returns the source of the dG data."""
         if not self.all_species:
@@ -322,6 +379,7 @@ class Compound(models.Model):
     small_image_url = property(GetSmallImageUrl)
     all_common_names = property(lambda self: self.common_names.all())
     all_species = property(GetSpecies)
+    all_species_groups = property(GetSpeciesGroups)
     substrate_of = property(_GetSubstrateEnzymes)
     product_of = property(_GetProductEnzymes)
     cofactor_of = property(_GetCofactorEnzymes)
@@ -330,9 +388,8 @@ class Compound(models.Model):
     
     def StashTransformedSpeciesEnergies(self, ph, pmg, ionic_strength):
         """Stash the transformed species formation energy in each one."""
-        for species in self.all_species:
-            species.transformed_energy = species.Transform(
-                pH=ph, pMg=pmg, ionic_strength=ionic_strength)
+        for sg in self.all_species_groups:
+            sg.StashTransformedSpeciesEnergies(ph, pmg, ionic_strength)
     
     def __unicode__(self):
         """Return a single string identifier of this Compound."""
