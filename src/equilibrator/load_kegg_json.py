@@ -65,26 +65,48 @@ COMPOUND_FILE = 'data/kegg_compounds.json'
 REACTION_FILE = 'data/kegg_reactions.json'
 ENZYME_FILE = 'data/kegg_enzymes.json'
 
-def AddAllSpeciesToCompound(compound, species_dicts, source):
-    print 'Writing data from source %s for compound %s' % (source.name,
-                                                           compound.kegg_id)
+def MakeSpeciesGroup(pmap, source, compound):
+    print 'Writing data from source %s' % (source.name)
     
-    compound.species.clear()
-    for sdict in species_dicts:
+    if 'priority' not in pmap or 'species' not in pmap:
+        logging.error('Malformed pmap field for %s', compound.kegg_id)
+        return None
+        
+    sg = models.SpeciesGroup(kegg_id=compound.kegg_id,
+                             priority=pmap['priority'],
+                             formation_energy_source=source)
+    sg.save()
+    
+    for sdict in pmap['species']:
         specie = models.Specie(kegg_id=compound.kegg_id,
                                number_of_hydrogens=sdict['nH'],
                                number_of_mgs=sdict['nMg'],
                                net_charge=sdict['z'],
-                               formation_energy=sdict['dG0_f'],
-                               formation_energy_source=source)
+                               formation_energy=sdict['dG0_f'])
         specie.save()
-        compound.species.add(specie)
-
+        sg.species.add(specie)
+        
+    return sg
+        
+def AddPmapToCompound(pmap, compound):
+    source_string = pmap.get('source')
+    my_source = GetSource(source_string)
+    if not my_source:
+        logging.error('Failed to parse source %s', source_string)
+        return 
+    
+    compound.species_groups.clear()
+    sg = MakeSpeciesGroup(pmap, my_source, compound)
+    if sg is not None:
+        compound.species_groups.add(sg)
+    compound.save()
+    
 
 def GetSource(source_string):
     if not source_string:
         return None
     
+    # TODO(flamholz): do this better... from a data file or something
     lsource = source_string.lower()
     if lsource.startswith('alberty'):
         return models.ValueSource.Alberty()
@@ -101,6 +123,7 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     for cd in parsed_json:
         try:
             cid = cd['CID']
+            print 'Handling compound', cid
             
             formula = cd.get('formula')
             mass = cd.get('mass')
@@ -128,19 +151,14 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             c.save()
 
             # Add the thermodynamic data.
-            species = cd.get('species')
-            if not species:
+            pmaps = cd.get('pmaps')
+            if not pmaps:
                 error = cd.get('error')
                 if error:
                     c.no_dg_explanation = error
             else:
-                source_string = cd.get('source')
-                my_source = GetSource(source_string)
-                if not my_source:
-                    logging.error('Couldn\'t get source for %s' % my_source)
-                    logging.error(cd)
-                else:
-                    AddAllSpeciesToCompound(c, species, my_source)
+                for pmap in pmaps:
+                    AddPmapToCompound(pmap, c)
             
             # Add the common names.
             names = GetOrCreateNames(cd['names'])            
@@ -148,6 +166,8 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
                 c.common_names.add(n)
             c.save()        
         except Exception, e:
+            import sys,traceback
+            traceback.print_exc(file=sys.stdout)
             logging.warning(e)
             continue
         

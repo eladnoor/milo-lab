@@ -105,7 +105,24 @@ class Reaction(object):
         self._stored_reaction = None
         self._all_stored_reactions = None
         self._catalyzing_enzymes = None
+        self._SetCompoundPriorities()
+    
+    def _SetCompoundPriorities(self):
+        """Returns a set of (int, SpeciesGroup) tuples for the reaction."""
+        compounds = [c.compound for c in self.reactants] + [c.compound for c in self.products]
+        sentinel = 1<<10;
+        get_min_priority = lambda c: min(c.GetSpeciesGroupPriorities() + [sentinel])
+        min_priorities = map(get_min_priority, compounds)
+        priority_to_use = max(min_priorities)
         
+        # Someone is missing data!
+        if priority_to_use == sentinel:
+            return
+        
+        for c in compounds:
+            c.SetSpeciesGroupPriority(priority_to_use)
+         
+    
     def SwapSides(self):
         """Swap the sides of this reaction."""
         tmp = self.reactants
