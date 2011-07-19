@@ -85,6 +85,10 @@ class ValueSource(models.Model):
     @staticmethod
     def GroupContribution():
         return ValueSource._GetOrCreate('Estimated using group contribution')
+    
+    def __eq__(self, other):
+        """Equality operator."""
+        return self.name == other.name 
 
 
 class Specie(models.Model):
@@ -360,6 +364,15 @@ class Compound(models.Model):
     def GetSpeciesGroups(self):
         """Gets the list of SpeciesGroups."""
         return self.species_groups.all()
+    
+    def GetUniqueSpeciesGroups(self):
+        """Iterator of unique species groups."""
+        sources_set = set()
+        for sg in self.all_species_groups:
+            source = sg.formation_energy_source
+            if source not in sources_set:
+                sources_set.add(source)
+                yield sg
 
     def _GetDGSource(self):
         """Returns the source of the dG data."""
@@ -386,6 +399,7 @@ class Compound(models.Model):
     all_common_names = property(lambda self: self.common_names.all())
     all_species = property(GetSpecies)
     all_species_groups = property(GetSpeciesGroups)
+    unique_species_groups = property(GetUniqueSpeciesGroups)
     substrate_of = property(_GetSubstrateEnzymes)
     product_of = property(_GetProductEnzymes)
     cofactor_of = property(_GetCofactorEnzymes)
