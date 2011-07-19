@@ -291,10 +291,7 @@ class Compound(models.Model):
         Returns:
             The estimated delta G in the given conditions or None.
         """
-        if not self._species_group_to_use:
-            self.SetHighestPriority()
-        
-        return self._species_group_to_use.DeltaG(pH, pMg, ionic_strength)
+        return self._species_group.DeltaG(pH, pMg, ionic_strength)
 
     def GetAtomBag(self):
         """Returns a dictionary of atoms and their counts for this compound."""
@@ -344,6 +341,14 @@ class Compound(models.Model):
         
         return re.sub(r'(\d+)', r'<sub>\1</sub>', self.formula)
     
+    def GetSpeciesGroupToUse(self):
+        """Gets the SpeciesGroup to use, potentially caching."""
+        if self._species_group_to_use:
+            return self._species_group_to_use
+        
+        self.SetHighestPriority()
+        return self._species_group_to_use
+    
     def GetSpecies(self):
         """Gets the list of SpeciesFormationEnergies, potentially caching."""
         if self._species_group_to_use:
@@ -353,15 +358,15 @@ class Compound(models.Model):
         return None
 
     def GetSpeciesGroups(self):
-        """Gets the list of SpeciesFormationEnergies, potentially caching."""
+        """Gets the list of SpeciesGroups."""
         return self.species_groups.all()
 
     def _GetDGSource(self):
         """Returns the source of the dG data."""
-        if not self.all_species:
+        if not self._species_group:
             return None
         
-        return self.all_species[0].formation_energy_source        
+        return self._species_group.formation_energy_source        
     
     def _GetSubstrateEnzymes(self):
         return self.substrate_for_enzymes.all()
@@ -372,6 +377,7 @@ class Compound(models.Model):
     def _GetCofactorEnzymes(self):
         return self.cofactor_of_enzymes.all()
     
+    _species_group = property(GetSpeciesGroupToUse)
     first_name = property(FirstName)
     html_formula = property(GetHtmlFormattedFormula)
     link = property(GetLink)

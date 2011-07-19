@@ -27,6 +27,7 @@ def LoadAdditionalCompoundData(json_filename=DEFAULT_COMPOUND_DATA_FILENAME):
     for cd in parsed_json:
         try:
             cid = cd['CID']
+            
             compound = models.Compound.objects.get(kegg_id=cid)
             
             note = cd.get('note')

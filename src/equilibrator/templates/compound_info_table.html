@@ -47,7 +47,12 @@
 		<td>&Delta;<sub>f</sub>G'&deg;</td>
 		<td>Source</td>
 	</tr>
-	{% for specie in compound.all_species %}
+	{% for sg in compound.all_species_groups %}
+	<tr>
+		<td colspan="4">{{ sg.formation_energy_source }} priority {{ sg.priority }}
+		</td>
+	</tr>
+	{% for specie in sg.all_species %}
 	<tr>
 		<td>{{ specie.net_charge }}</td>
 		<td>{{ specie.formation_energy|floatformat:1 }}</td>
@@ -57,8 +62,9 @@
 					N/A
 			{% endif %}
 		</td>
-		<td>{{ specie.formation_energy_source }}</td>
+		<td>{{ sg.formation_energy_source }}</td>
 	</tr>
+	{% endfor %}
 	{% endfor %}
 </table>
 {% endif %}
