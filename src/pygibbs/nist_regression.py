@@ -9,7 +9,8 @@ import pylab
 import sys
 
 from optparse import OptionParser
-from pygibbs.dissociation_constants import DissociationConstants
+from pygibbs.dissociation_constants import DissociationConstants,\
+    MissingDissociationConstantError
 from pygibbs.nist import Nist
 from pygibbs.kegg import Kegg
 from pygibbs.group_decomposition import GroupDecomposer
@@ -245,6 +246,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                             indices_in_prior.append(i)
                 except MissingCompoundFormationEnergy:
                     continue
+                except MissingDissociationConstantError as e:
+                    raise Exception("")
             
             v, _ = LinearRegression.LeastSquares(kerA.T[indices_in_prior,:], 
                         delta_dG0_f, reduced_row_echlon=False)
@@ -580,7 +583,7 @@ def main():
         alberty.ToDatabase(db, 'alberty')
         
         # Train the formation energies using linear regression
-        nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=alberty)
+        nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=None)
         nist_regression.ToDatabase(db, 'nist_regression_pseudoisomers')
         
         html_writer.write('<h3>Regression results:</h3>\n')
@@ -620,7 +623,7 @@ def main():
         plt.plot(data[:,0], data[:,1], '.')
         html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
-        nist_regression.FindKernel(S, cids, sparse=True)
+        #nist_regression.FindKernel(S, cids, sparse=True)
         # TODO: the first vectors in the kernel should be the element preserving
         # reactions (i.e. for the oxygen vector, the coeff in each column should
         # be the number of oxygen atoms in that compounds). 

@@ -323,7 +323,9 @@ def WriteDataToDB(nist_db, db):
             continue
         if url_id == "T1=74UEB/BLA_161" and row_dict['T(K)'] == '203.15': # typo in NIST, verified using original paper
             row_dict['T(K)'] = '303.15'
-        if url_id == "T1=62GOL/WAG_1116": # possible huge mistake in NIST
+        if url_id == "T1=62GOL/WAG_1116": # Inconsistent with the original paper and with Alberty
+            continue
+        if url_id == "T1=62GOL/WAG_289": # Inconsistent with the original paper and with Alberty
             continue
         if url_id == "T1=80TER/RAB_994": # change ammonium carbamate to carbamate
             row_dict['Reaction'] = \
