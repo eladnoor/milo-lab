@@ -85,7 +85,7 @@ class NistRowData:
     
     @staticmethod
     def ParseReactionFormula(name, formula):
-        """ parse a two-sided formula such as: 2 C00001 => C00002 + C00003 
+        """ parse a two-sided formula such as: 2 C00001 = C00002 + C00003 
             return the set of substrates, products and the direction of the reaction
         """
         try:
@@ -396,9 +396,9 @@ class Nist(object):
 
         unique_reaction_dict = {}
         for error, _dG0_obs, _dG0_est, reaction, _pH, _pMg, _I, _T, _eval, _url in total_list: 
-            unique_reaction_dict.setdefault(reaction, []).append((error)**2)
-        unique_mean_sqr_error = [pylab.mean(sqr_error_list) for sqr_error_list in unique_reaction_dict.values()]
-        unique_rmse = pylab.sqrt(pylab.mean(unique_mean_sqr_error))
+            unique_reaction_dict.setdefault(reaction, []).append(error)
+        unique_rmse_list = [pylab.rms_flat(error_list) for error_list in unique_reaction_dict.values()]
+        unique_rmse = pylab.rms_flat(unique_rmse_list)
         
         rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
 
@@ -446,7 +446,7 @@ class Nist(object):
         pylab.ylim((0, 12))
         pylab.title(r'effect of pH', fontsize=14, figure=fig)
         pylab.xlabel('pH', fontsize=14, figure=fig)
-        pylab.ylabel(r'average $|\Delta_{obs} G^\circ - \Delta_{est} G^\circ|$ [kJ/mol]', fontsize=14, figure=fig)
+        pylab.ylabel(r'RMS ($\Delta_{obs} G^\circ - \Delta_{est} G^\circ$) [kJ/mol]', fontsize=14, figure=fig)
         if name:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_pH")
         else:
