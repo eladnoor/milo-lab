@@ -85,7 +85,8 @@ def MakeSpeciesGroup(pmap, source, compound):
                                formation_energy=sdict['dG0_f'])
         specie.save()
         sg.species.add(specie)
-        
+    
+    sg.save()
     return sg
         
 def AddPmapToCompound(pmap, compound):
@@ -95,12 +96,9 @@ def AddPmapToCompound(pmap, compound):
         logging.error('Failed to parse source %s', source_string)
         return 
     
-    compound.species_groups.clear()
     sg = MakeSpeciesGroup(pmap, my_source, compound)
     if sg is not None:
-        compound.species_groups.add(sg)
-    compound.save()
-    
+        compound.species_groups.add(sg)    
 
 def GetSource(source_string):
     if not source_string:
@@ -120,7 +118,7 @@ def GetSource(source_string):
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(open(kegg_json_filename))
     
-    for cd in parsed_json:
+    for i, cd in enumerate(parsed_json):
         try:
             cid = cd['CID']
             print 'Handling compound', cid
@@ -164,10 +162,10 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             names = GetOrCreateNames(cd['names'])            
             for n in names:
                 c.common_names.add(n)
-            c.save()        
+            c.save()
         except Exception, e:
             import sys,traceback
-            traceback.print_exc(file=sys.stdout)
+            traceback.print_exc(file=sys.stderr)
             logging.warning(e)
             continue
         
