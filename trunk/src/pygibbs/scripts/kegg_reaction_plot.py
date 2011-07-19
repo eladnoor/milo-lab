@@ -53,29 +53,30 @@ def main():
     print "reaction:", args[-1]
 
     estimators = LoadAllEstimators()
-    del estimators['alberty']
-    del estimators['nist_regression']
-    del estimators['hatzi_gc_pka']
     
     pylab.rcParams['text.usetex'] = False
     pylab.rcParams['legend.fontsize'] = 8
     pylab.rcParams['font.family'] = 'sans-serif'
     pylab.rcParams['font.size'] = 12
     pylab.rcParams['lines.linewidth'] = 2
-    pylab.rcParams['lines.markersize'] = 10
-    pylab.rcParams['lines.markeredgewidth'] = 0
+    pylab.rcParams['lines.markersize'] = 5
+    pylab.rcParams['lines.markeredgewidth'] = 1
     pylab.rcParams['figure.figsize'] = [5.0, 5.0]
     pylab.rcParams['figure.dpi'] = 100
     
     colors = {}
-    colors['nist'] = [64.0/255, 111.0/255, 29.0/255, 1.0] # greenish
-    colors['hatzi_gc'] = [54.0/255, 182.0/255, 202.0/255, 1.0] # cyanish
-    colors['milo_gc'] = [202.0/255, 101.0/255, 54.0/255, 1.0] # orangish
+    colors['hatzi_gc'] = [54.0/255, 101.0/255, 202.0/255, 1.0]
+    colors['milo_gc'] = [202.0/255, 101.0/255, 54.0/255, 1.0]
+    colors['alberty'] = [202.0/255, 54.0/255, 101.0/255, 1.0]
+    colors['nist_regression'] = [101.0/255, 202.0/255, 54.0/255, 1.0]
     
     fig = pylab.figure()
     
     fig.hold(True)
-    reaction = GetSparseReactionInput(args[-1], kegg)
+    if options.rid is None:
+        reaction = GetSparseReactionInput(args[-1], kegg)
+    else:
+        reaction = kegg.rid2reaction(options.rid)
     reaction.Balance()
     print 'Reaction: %s' % reaction.FullReactionString()
 
@@ -95,13 +96,15 @@ def main():
             else:
                 dG0_list.append(-row_data.dG0_r)
     
-        pylab.plot(pH_list, dG0_list, marker='.', linestyle='None',
-                   label='measured data', markerfacecolor=colors['nist'])
+        pylab.plot(pH_list, dG0_list, marker='+', linestyle='None',
+                   label='measured data', markeredgecolor='black')
         pH_max = max(pH_list + [pH_max])
         pH_min = min(pH_list + [pH_min])
     
     pH_range = pylab.arange(pH_min-0.1, pH_max+0.1, 0.02)
     for key, thermo in estimators.iteritems():
+        if key not in colors:
+            continue
         print key, 'dG0 at pH=7: %.2f' % reaction.PredictReactionEnergy(thermo, 
                 pH=7.0, pMg=options.pMg, I=options.I, T=options.T)
         dG0 = []

@@ -74,7 +74,7 @@ def binned_plot(x, y, bins, y_type='mean', figure=None, plot_counts=True):
             if y_type == 'mean':
                 y_vec.append(pylab.mean(binned_y[j]))
             elif y_type == 'rmse':
-                y_vec.append(pylab.sqrt(pylab.mean(binned_y[j] ** 2)))
+                y_vec.append(pylab.rms_flat(binned_y[j]))
             elif y_type == 'std':
                 y_vec.append(pylab.std(binned_y[j]))
         else:
