@@ -38,6 +38,15 @@ class GroupObservation(object):
     
     def __eq__(self, other):
         return self.groupvec == other.groupvec
+    
+    def Normalize(self):
+        if not self.groupvec.__nonzero__():
+            return
+        for v in self.groupvec:
+            if v != 0:
+                self.groupvec = self.groupvec * (1.0 / v)
+                self.dG0 *= (1.0 / v)
+                return
         
 class GroupObervationCollection(object):
     
@@ -63,6 +72,7 @@ class GroupObervationCollection(object):
         obs.name = name
         obs.id = id
         obs.obs_type = obs_type
+        obs.Normalize()
         self.observations.append(obs)
 
     def SmilesToGroupvec(self, smiles, id):
@@ -273,17 +283,14 @@ class GroupObervationCollection(object):
             sparse = dict([(cids[i], S[r, i]) for i in S[r, :].nonzero()[0]])
 
             self.html_writer.write("<p>\n<b>%s</b></br>\n" % name)
-            self.html_writer.write("Original reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
+            chemical_reaction = " + ".join(['%g <a href="%s" title="C%05d">%s</a> [nH=%d]' % 
+                (coeff, self.kegg.cid2link(cid), cid, self.kegg.cid2name(cid), cid2nH[cid]) 
+                for (cid, coeff) in sparse.iteritems()])
+            self.html_writer.write("Chemical reaction: " + chemical_reaction + "</br>\n")
             self.html_writer.write('&#x394;G<sub>r</sub> = %.2f</br>\n' % dG0[r, 0])
 
             for cid in set(sparse.keys()).intersection(anchored_cids):
                 del sparse[cid]
-            if sparse:
-                min_cid = min(sparse.keys())
-                if sparse[min_cid] > 0: # normalize the reaction direction such that the minimal CID will be on the left
-                    sparse = dict([(cid, -coeff) for (cid, coeff) in sparse.iteritems()])
-                    dG0_noanchors[r, 0] = -dG0_noanchors[r, 0]
-                    observed_group_matrix[r, :] = -observed_group_matrix[r, :]
             
             self.html_writer.write("Truncated reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
             self.html_writer.write('&#x394;G<sub>r</sub> (truncated) = %.2f</br>\n' % dG0_noanchors[r, 0])

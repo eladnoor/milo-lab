@@ -35,7 +35,7 @@
 13,"PPi","Mg",298.15,0,0,1,0,"P(=O)([O-])([O-])OP(=O)([O-])[O-].[Mg+2]","P(=O)([O-])([O-])OP(=O)([O-])[O-]",5.4,"Leopoldo de Meis (1983)"
 13,"PPi","Mg",298.15,1,1,1,0,"P(=O)([O-])([O-])OP(=O)([OH])[O-].[Mg+2]","P(=O)([O-])([O-])OP(=O)([OH])[O-]",3.06,"Leopoldo de Meis (1983)"
 13,"PPi","Mg",298.15,0,0,2,1,"P(=O)([O-])([O-])OP(=O)([O-])[O-].[Mg+2].[Mg+2]","P(=O)([O-])([O-])OP(=O)([O-])[O-].[Mg+2]",2.34,"Leopoldo de Meis (1983)"
-14,"NH3","acid-base",298.15,4,3,0,0,"[NH4+]","[NH3]",9.25,"CRC (88th edition)"
+14,"ammonia","acid-base",298.15,4,3,0,0,"[NH4+]","[NH3]",9.25,"CRC (88th edition)"
 15,"UDP","acid-base",298.15,12,11,0,0,"O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)nc1O","O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])([O-])=O)O[C@H]([C@@H]1O)n1ccc(=O)nc1O",7.18,"Alberty (2003)"
 15,"UDP","acid-base",298.15,11,10,0,0,"O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])([O-])=O)O[C@H]([C@@H]1O)n1ccc(=O)nc1O","O[C@@H]1[C@@H](COP([O-])(=O)OP([O-])([O-])=O)O[C@H]([C@@H]1O)n1ccc(=O)nc1[O-]",10.16,"Alberty (2003)"
 16,"FAD","acid-base",298.15,32,31,0,0,"Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c([NH3+])ncnc34)c2cc1C","Cc1cc2nc3c(nc(=O)nc3O)n(C[C@H](O)[C@H](O)[C@H](O)COP([O-])(=O)OP([O-])(=O)OC[C@H]3O[C@H]([C@H](O)[C@@H]3O)n3cnc4c(N)ncnc34)c2cc1C",3.6,"Taken as is from adenosine"
@@ -762,7 +762,7 @@
 3044,"(R,R)-butane-2,3-diol",,298.15,10,10,0,0,"C[C@@H](O)[C@@H](C)O",,,
 3059,"2-Hydroxymethylserine",,298.15,9,9,0,0,"C(C(CO)(C(=O)[O-])[NH3+])O",,,
 3067,"3-hydroxybenzaldehyde","acid-base",298.15,6,5,0,0,"c1cc(cc(c1)O)C=O","c1cc(cc(c1)[O-])C=O",8.98,"CRC (88th edition)"
-3082,"4-phospho-L-aspartate",,298.15,7,6,0,0,"[NH3+]C(CC(=O)OP([O-])([OH])=O)C([O-])=O","[NH3+]C(CC(=O)OP([O-])([O-])=O)C([O-])=O",6.77,"taken from glycerate-1,3P"
+3082,"4-phospho-L-aspartate","acid-base",298.15,7,6,0,0,"[NH3+]C(CC(=O)OP([O-])([OH])=O)C([O-])=O","[NH3+]C(CC(=O)OP([O-])([O-])=O)C([O-])=O",6.77,"taken from glycerate-1,3P"
 3166,"phosphoguanidinoacetate",,298.15,6,6,0,0,"[O-]C(=O)CNC(=[NH2+])NP([O-])([O-])=O",,,
 3167,"Phosphonoacetaldehyde",,298.15,3,3,0,0,"C(=O)CP([O-])([O-])=O",,,
 3173,"S-methylthioglycolate","acid-base",298.15,6,5,0,0,"CSCC(O)=O","CSCC([O-])=O",3.66,"CRC (88th edition)"
@@ -803,7 +803,7 @@
 3758,"dopamine","acid-base",298.15,12,11,0,0,"[NH3+]CCc1ccc(O)c(O)c1","NCCc1ccc(O)c(O)c1",8.9,"CRC (88th edition)"
 3758,"dopamine","acid-base",298.15,11,10,0,0,"NCCc1ccc(O)c(O)c1","NCCc1ccc(O)c([O-])c1",10.6,"CRC (88th edition)"
 3783,"D-galactosamine 1-P","acid-base",296.15,14,13,0,0,"C([C@@H]1[C@@H]([C@@H]([C@H]([C@@H](O1)OP(=O)([O-])O)[NH3+])O)O)O","C([C@@H]1[C@@H]([C@@H]([C@H]([C@@H](O1)OP(=O)([O-])[O-])[NH3+])O)O)O",5.4,"Robitaille (1990)"
-3794,"adenylosuccinate","acid-base",298.15,15,14,0,0,"OC1C(COP([O-])(O)=O)OC(C1O)n1cnc2c(NC(CC([O-])=O)C([O-])=O)ncnc12","OC1C(COP([O-])([O-])=O)OC(C1O)n1cnc2c(NC(CC([O-])=O)C([O-])=O)ncnc12",6.73,"taken as is from AMP"
+3794,"adenylosuccinate","acid-base",298.15,15,14,0,0,"OC1C(COP([O-])([OH])=O)OC(C1O)n1cnc2c(NC(CC([O-])=O)C([O-])=O)ncnc12","OC1C(COP([O-])([O-])=O)OC(C1O)n1cnc2c(NC(CC([O-])=O)C([O-])=O)ncnc12",6.73,"taken as is from AMP"
 3882,"piperine","acid-base",291.15,20,19,0,0,,,12.22,"CRC (88th edition)"
 3943,"2,4-Diaminopentanoate",,298.15,13,13,0,0,"CC([NH3+])CC([NH3+])C([O-])=O",,,
 3981,"2-Hydroxyethylenedicarboxylate",,298.15,2,2,0,0,"[O-]C(=O)\C=C(/O)C([O-])=O",,,

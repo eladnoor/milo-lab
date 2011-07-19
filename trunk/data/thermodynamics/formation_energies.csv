@@ -124,7 +124,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 9,Orthophosphate,-1096.1,-1299,-2,1,0,test,"Alberty (2003)","too small"
 11,CO2(aq),-386.02,,0,0,0,test,"Thauer (1977)","too small"
 13,pyrophosphate,-1973.86,-2294.87,-3,1,0,test,"Alberty (2003)","too small"
-14,NH3,-26.5,-80.29,0,3,0,test,"Alberty (2003)","too small"
+14,ammonia,-79.31,-132.51,1,4,0,test,"Alberty (2003)","too small"
 23,iron,0,0,0,0,0,test,"Element",
 27,H2O2(aq),-134.03,-191.17,0,2,0,test,"Alberty (2003)","too small"
 34,Manganese,0,0,0,0,0,test,"Element",
