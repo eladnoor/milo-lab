@@ -54,6 +54,9 @@ class ValueSource(models.Model):
     def __unicode__(self):
         return self.name
     
+    def __str__(self):
+        return self.name
+    
     @staticmethod
     def _GetOrCreate(name):
         """Gets or creates a ValueSource object with the given name from the DB.
@@ -88,6 +91,12 @@ class ValueSource(models.Model):
     
     def __eq__(self, other):
         """Equality operator."""
+        if not other:
+            return False
+        
+        if not hasattr(other, 'name'):
+            return False
+        
         return self.name == other.name 
 
 
@@ -379,6 +388,7 @@ class Compound(models.Model):
         if not self._species_group:
             return None
         
+        print self._species_group.formation_energy_source
         return self._species_group.formation_energy_source        
     
     def _GetSubstrateEnzymes(self):
