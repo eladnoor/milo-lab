@@ -163,13 +163,14 @@ class SpeciesGroup(models.Model):
             
     def GetSpecies(self):
         """Gets the list of SpeciesFormationEnergies, potentially caching."""
-        if not self._all_species:
+        if self._all_species is None:
             self._all_species = self.species.all()
         return self._all_species
     all_species = property(GetSpecies)
 
     def StashTransformedSpeciesEnergies(self, ph, pmg, ionic_strength):
         """Stash the transformed species formation energy in each one."""
+        print "Stashing transformed"
         for species in self.all_species:
             species.transformed_energy = species.Transform(
                 pH=ph, pMg=pmg, ionic_strength=ionic_strength)
@@ -252,6 +253,7 @@ class Compound(models.Model):
 
     def __init__(self, *args, **kwargs):        
         super(Compound, self).__init__(*args, **kwargs)
+        self._all_species_groups = None
         self._species_group_to_use = None
         self._priority = None
     
@@ -372,6 +374,11 @@ class Compound(models.Model):
 
     def GetSpeciesGroups(self):
         """Gets the list of SpeciesGroups."""
+        if self._all_species_groups is None:
+            self._all_species_groups = self.species_groups.all()
+            
+        return self._all_species_groups
+        
         return self.species_groups.all()
     
     def GetUniqueSpeciesGroups(self):
