@@ -2,8 +2,8 @@ from scipy import stats
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs import thermodynamics
-from pygibbs.thermodynamic_constants import R, default_I, default_pH
-from pygibbs.thermodynamic_constants import default_pMg, default_T
+from pygibbs.thermodynamic_constants import R, default_I, default_pH,\
+    default_pMg, default_T
 from pygibbs.groups import GroupContribution
 import pylab
 from pygibbs.kegg import Kegg
@@ -12,23 +12,20 @@ from pygibbs.kegg_errors import KeggNonCompoundException,\
 from pygibbs.kegg_reaction import Reaction
 from toolbox.plotting import cdf,bootstrap
 from SOAPpy import WSDL 
-from pygibbs.metacyc import MetaCyc,MetaCycNonCompoundException
+from pygibbs.metacyc import MetaCyc, MetaCycNonCompoundException
 from toolbox import util
 import logging
 import matplotlib
-import pygibbs.kegg_utils
 import re
-import math
-from pygibbs.hatzimanikatis import Hatzi
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 import numpy
 import random
+from pygibbs.nist_verify import LoadAllEstimators
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/dG0_test.html')
-    kegg = Kegg.getInstance()
-    G = GroupContribution(db, html_writer=html_writer, kegg=kegg)
+    G = GroupContribution(db, html_writer=html_writer)
     G.init()
     
     wsdl = 'http://soap.genome.jp/KEGG.wsdl'
@@ -73,10 +70,11 @@ WATER = 1
 HPLUS = 80
 
 
-def GetConcentrationMap(kegg_handle):
+def GetConcentrationMap():
+    kegg = Kegg.getInstance()
     cmap = {}    
-    for cid in kegg_handle.get_all_cids():
-        lower, upper = kegg_handle.get_bounds(cid)
+    for cid in kegg.get_all_cids():
+        lower, upper = kegg.get_bounds(cid)
         if lower and upper:
             # In the file we got this data from lower = upper 
             cmap[cid] = lower
@@ -107,7 +105,7 @@ def GetFullConcentrationMap(G):
 def ConcentrationFactor(sparse_reaction,
                         concentration_map,
                         c_mid):
-    factor = 0
+    factor = 0.0
     for cid, stoic in sparse_reaction.iteritems():
         concentration = concentration_map.get(cid, None) or c_mid
         factor += pylab.log(concentration) * stoic
@@ -120,13 +118,14 @@ def CalculateReversability(sparse, thermo, c_mid=1e-3, pH=default_pH,
     rxn = Reaction("Unknown", sparse)
     dG0 = thermo.reaction_to_dG0(rxn, pH, pMg, I, T)
     
-    cfactor = ConcentrationFactor(sparse, cmap, c_mid)
+    ln_Gamma = ConcentrationFactor(sparse, cmap, c_mid)
     sum_abs_s = sum([abs(x) for k, x in sparse.iteritems()
                      if k not in cmap])
-    if (sum_abs_s == 0):
+    if sum_abs_s == 0:
         return None
     else:
-        return (2 / pylab.log(10)) * ((-dG0/(R*T) - cfactor) / sum_abs_s)
+        return -(2 / (sum_abs_s * pylab.log(10))) * (ln_Gamma + dG0/(R*T))
+        
 
 def CalculateReversabilityV2(sparse, thermo, c_mid=1e-3, pH=default_pH, 
                            pMg=default_pMg, I=default_I, T=default_T,
@@ -151,7 +150,8 @@ def CalculateReversabilitydeltaG(sparse, thermo, c_mid=1e-3, pH=default_pH,
     
     return dG0 + R * T * cfactor
 
-def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
+def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, cmap, id):
+    kegg = Kegg.getInstance()
     histogram = {}
     histogram['Not first'] = []
     histogram['Rest'] = []
@@ -435,7 +435,9 @@ def plot_bootstrap_stats(histogram, title=''):
 
 
 
-def calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg, metacyc, cmap, id):
+def calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, metacyc, cmap, id):
+    
+    kegg = Kegg.getInstance()
     histogram = {}
     histogram['Not first'] = []
     histogram['Rest'] = []
@@ -610,7 +612,8 @@ def calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg
     
     return histogram,rel_histogram,(float(n_first_max)/n_valid),reg_hist
 
-def calculate_metacyc_regulation_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg, metacyc, cmap, id):
+def calculate_metacyc_regulation_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, metacyc, cmap, id):
+    kegg = Kegg.getInstance()
     histogram = {}
     
     
@@ -678,18 +681,16 @@ def calculate_metacyc_regulation_reversibility_histogram(thermo, c_mid, pH, pMg,
     return histogram
 
     
-def main(thermo, name):
+def analyse_reversibility(thermo, name):
     html_fname = '../res/' + name + '_reversibility.html'
     logging.info('Writing HTML output to %s', html_fname)
     html_writer = HtmlWriter(html_fname)
-    kegg = Kegg.getInstance()
-    c_mid = 1e-3
-    #c_mid = 5e-5
-    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
-    # pMG14 pH, pMg, I, T = (7.0, 14.0, 0.1, 298.15)
+    c_mid = 1e-4
+    cmap = GetConcentrationMap()
+    pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
     
-    (histogram,rel_histogram,perc_first_max) = calculate_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg,
-                                                  cmap=GetConcentrationMap(kegg), id=name)
+    histogram, rel_histogram, perc_first_max = calculate_reversibility_histogram(
+        thermo, c_mid, pH, pMg, I, T, cmap=cmap, id=name)
     
     html_writer.write('<h1>' + name + ': Constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     # deltaG plot fig1 = plot_histogram(histogram, html_writer, title='With constraints on co-factors', legend_loc='lower right' , xlim=80)
@@ -706,8 +707,8 @@ def main(thermo, name):
     html_writer.embed_matplotlib_figure(fig1_rel, width=640, height=480)
     pylab.savefig('../res/' + name + '_kegg_reversibility1_rel.png', figure=fig1_rel, format='png')
     
-    (histogram,rel_histogram, perc_first_max) = calculate_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg,
-                                                  cmap={}, id=name)
+    histogram, rel_histogram, perc_first_max = calculate_reversibility_histogram(
+        thermo, c_mid, pH, pMg, I, T, cmap={}, id=name)
 
     html_writer.write('<h1>' + name + ': Non constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     fig2 = plot_histogram(histogram, html_writer, title='No constraints on co-factors', xlim=20)
@@ -718,7 +719,7 @@ def main(thermo, name):
     html_writer.embed_matplotlib_figure(fig2_rel, width=640, height=480)
     pylab.savefig('../res/' + name + '_kegg_reversibility2_rel.png', figure=fig2_rel, format='png')
 
-    #(histogram,rel_histogram,perc_first_max) = calculate_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg,
+    #(histogram,rel_histogram,perc_first_max) = calculate_reversibility_histogram(thermo, c_mid, pH, pMg, I, T,
     #                                              cmap=GetFullConcentrationMap(thermo), id=(name + '_full'))
     
     #html_writer.write('<h1>' + name + ': Constrained metabolites</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
@@ -735,13 +736,12 @@ def metacyc_data(org, id, thermo, max_pathway_length_for_fig=8):
     html_writer = HtmlWriter('../res/' + org + '_' + id + '_reversibility.html')
     kegg = Kegg.getInstance()
     metacyc_inst = MetaCyc(org, db)
-    c_mid = 1e-3
-    #c_mid = 5e-5
-    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
-    #pMG14 pH, pMg, I, T = (7.0, 14.0, 0.1, 298.15)
+    c_mid = 1e-4
+    cmap = GetConcentrationMap()
+    pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
     
-    (histogram,rel_histogram,perc_first_max, reg_hist) = calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg, metacyc_inst,
-                                                  cmap=GetConcentrationMap(kegg), id=(org + '_' + id))
+    (histogram,rel_histogram,perc_first_max, reg_hist) = calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, metacyc_inst,
+                                                  cmap=cmap, id=(org + '_' + id))
     
     html_writer.write('<h1>Constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     # deltaG plot fig1 = plot_histogram(histogram, html_writer, title=('%s pathways: With constraints on co-factors' % org), legend_loc='lower right' , xlim=80)
@@ -766,7 +766,7 @@ def metacyc_data(org, id, thermo, max_pathway_length_for_fig=8):
     html_writer.embed_matplotlib_figure(fig1_rel, width=640, height=480)
     pylab.savefig('../res/' + org + '_' + id + '_reversibility1_rel.png', figure=fig1_rel, format='png')
     
-    (histogram,rel_histogram,perc_first_max, reg_hist) = calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg, metacyc_inst,
+    (histogram,rel_histogram,perc_first_max, reg_hist) = calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, metacyc_inst,
                                                   cmap={}, id=(org + '_' + id))
     
     html_writer.write('<h1>Non constrained co-factors</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
@@ -783,13 +783,12 @@ def meta_regulated_rxns_cumul_plots(org, id, thermo):
     html_writer = HtmlWriter('../res/' + org + id + '_regulation.html')
     kegg = Kegg.getInstance()
     metacyc_inst = MetaCyc(org, db)
-    c_mid = 1e-3
-    #c_mid = 5e-5
-    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
-    #pMG14 pH, pMg, I, T = (7.0, 14.0, 0.1, 298.15)
+    c_mid = 1e-4
+    cmap = GetConcentrationMap()
+    pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
     
-    histogram = calculate_metacyc_regulation_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, kegg, metacyc_inst,
-                                                  cmap=GetConcentrationMap(kegg), id=(org + id))
+    histogram = calculate_metacyc_regulation_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, metacyc_inst,
+                                                  cmap=cmap, id=(org + id))
     
     html_writer.write('<h1>Constrained co-factors</h1>')
     fig1 = plot_histogram(histogram, html_writer, title=('%s Reactions: With constraints on co-factors' % org), xlim=20, min_to_show=5, xmin=0, legend_loc='lower right')
@@ -946,18 +945,12 @@ def calc_cons_rxns_corr(thermo, name):
     html_fname = '../res/' + name + '_rev_pair_corr.html'
     logging.info('Writing HTML output to %s', html_fname)
     html_writer = HtmlWriter(html_fname)
-    kegg = Kegg.getInstance()
-    c_mid = 1e-3
-    #c_mid = 5e-5
-    pH, pMg, I, T = (7.0, 3.0, 0.1, 298.15)
-    # pMG14 pH, pMg, I, T = (7.0, 14.0, 0.1, 298.15)
+    c_mid = 1e-4
+    cmap = GetConcentrationMap()
+    pH, pMg, I, T = (7.0, 3.0, 0.25, 298.15)
     
-    (first, second) = get_reversibility_consecutive_pairs(thermo, c_mid, pH, pMg, I, T, kegg,
-                                                  cmap=GetConcentrationMap(kegg), id=name)
-    
-    
-    
-        
+    (first, second) = get_reversibility_consecutive_pairs(thermo, c_mid, pH, pMg, I, T,
+                                                  cmap=cmap, id=name)
     html_writer.write('<h1>' + name + ': Constrained co-factors</h1><br>')
     
     fig1 = cons_pairs_dot_plot (first, second, xlim=50)
@@ -993,7 +986,7 @@ def cons_pairs_dot_plot(first, second, xlim=30):
     
     return fig
  
-def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, kegg, cmap, id):
+def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, cmap, id):
     first = []
     second = []
 
@@ -1001,6 +994,7 @@ def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, kegg, cmap, id)
     misses = 0
     only_currency = 0
     non_balanced = 0
+    kegg = Kegg.getInstance()
 
     fname = '../res/kegg_' + id + '_' + ('constrained_' if len(cmap) > 0 else 'non_constrained_') + 'rev_pairs.txt'
     logging.info('Writing output to %s', fname)
@@ -1059,28 +1053,103 @@ def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, kegg, cmap, id)
 
     return first,second
 
-if __name__ == "__main__":
+def compare_reversibility_to_dG0(thermo, name):
+    html_fname = '../res/' + name + '_rev_vs_dG.html'
+    logging.info('Writing HTML output to %s', html_fname)
+    html_writer = HtmlWriter(html_fname)
+    kegg = Kegg.getInstance()
+    c_mid = 1e-4
+    #cmap = GetConcentrationMap()
+    cmap = {1: 1}
+    pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
+    
+    K_range = (1e-6, 1e6)
+    
+    # plot the profile graph
+    pylab.rcParams['text.usetex'] = False
+    pylab.rcParams['legend.fontsize'] = 10
+    pylab.rcParams['font.family'] = 'sans-serif'
+    pylab.rcParams['font.size'] = 14
+    pylab.rcParams['lines.linewidth'] = 1
+    pylab.rcParams['lines.markersize'] = 6
+    pylab.rcParams['figure.figsize'] = [6.0, 6.0]
+    pylab.rcParams['figure.dpi'] = 100
+    
+    fig1 = pylab.figure()
+    pylab.xlabel(r"$K^'$", figure=fig1)
+    pylab.ylabel(r"$\gamma = \left( K^' / \Gamma(1) \right)^{2/N}$", figure=fig1)
+    pylab.axvspan(1e3, K_range[1], ymin=0, ymax=1, color='lightgrey')
+    pylab.axvspan(K_range[0], 1e-3, ymin=0, ymax=1, color='lightgrey')
+    data_mat = pylab.zeros((0, 3))
+    
+    #reactions = []
+    #reactions.append(kegg.rid2reaction[1068]) # aldolase
+    #reactions.append(kegg.rid2reaction[24]) # aldolase
+    #for reaction in
+    reactions = kegg.AllReactions() 
+    
+    for reaction in reactions:
+        if reaction.rid % 10 != 1:
+            continue
+        try:
+            #rname = reaction.name
+            rname = None
+            reaction.Balance(balance_water=True)
+            dG0 = thermo.reaction_to_dG0(reaction, pH, pMg, I, T)
+            Keq = pylab.exp(-dG0/(R*T))
+            r = CalculateReversability(reaction.sparse, thermo, c_mid, pH, pMg, 
+                                       I, T, concentration_map=cmap)
+            if r is None:
+                continue
+            gamma = 10**r
+            #if Keq < 1e6 and Keq > 1e3 and gamma < 1e1 and gamma > 1e-1:
+            if Keq < 1e6 and Keq > 1e-6:
+                if (Keq > 1e3 or Keq < 1e-3) and (gamma < 1e3 and gamma > 1e-3): 
+                    data_mat = pylab.vstack([data_mat, [Keq, gamma, 0]])
+                else:
+                    data_mat = pylab.vstack([data_mat, [Keq, gamma, 1]])
+                if rname is not None:
+                    pylab.text(Keq, gamma, rname, fontsize=3, figure=fig1)
+        except (MissingCompoundFormationEnergy, KeggReactionNotBalancedException):
+            pass
+
+    #pylab.scatter(x=data_mat[:,0], y=data_mat[:,1], s=6, c=data_mat[:,2], figure=fig1)
+    i_blue = pylab.find(data_mat[:,2] == 1)
+    i_red = pylab.find(data_mat[:,2] == 0)
+    pylab.plot(data_mat[i_blue,0], data_mat[i_blue,1], 'b.', figure=fig1)
+    pylab.plot(data_mat[i_red,0], data_mat[i_red,1], 'r.', figure=fig1)
+    
+    #pylab.plot([data_mat[:,1].min(), data_mat[:,1].max()],
+    #           [data_mat[:,1].min(), data_mat[:,1].max()],
+    #           'k:', figure=fig1)
+    pylab.xscale('log')
+    pylab.yscale('log')
+    pylab.ylim((1e-6, 1e6))
+    pylab.xlim(K_range)
+    pylab.savefig("../res/" + name + ".svg", figure=fig1, format='svg')
+
+def main():
     #logging.getLogger('').setLevel(logging.DEBUG)
     #try_kegg_api()
-
-    db = SqliteDatabase('../res/gibbs.sqlite')
-    observed_thermo = PsuedoisomerTableThermodynamics.FromCsvFile(
-                                '../data/thermodynamics/dG0.csv')
-    thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-        db, 'gc_pseudoisomers')
-    thermo.override_data(observed_thermo)
-    kegg = Kegg.getInstance()
-    #G_hatzi = Hatzi()
-    #thermo = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+    estimators = LoadAllEstimators()
+    #analyse_reversibility(estimators['hatzi_gc'], 'HatziGC')
+    #analyse_reversibility(estimators['milo_gc'], 'MiloGC_zoom')
     
-    #main(G_hatzi, 'HatziGC')
+    compare_reversibility_to_dG0(estimators['milo_gc'], 'MiloGC')
+    #compare_reversibility_to_dG0(estimators['alberty'], 'Alberty')
+    #metacyc_data('meta', 'zoom', estimators['milo_gc'], max_pathway_length_for_fig=6)
+    #metacyc_data('ecoli', 'zoom', estimators['milo_gc'], max_pathway_length_for_fig=4)
     
-    main(thermo, 'MiloGC_zoom')
-    #metacyc_data('meta', 'zoom', thermo, max_pathway_length_for_fig=6)
-    #metacyc_data('ecoli', 'zoom', thermo, max_pathway_length_for_fig=4)
+    #meta_regulated_rxns_cumul_plots('meta', '_abs', estimators['milo_gc'])
+    #meta_regulated_rxns_cumul_plots('ecoli', '_abs', estimators['milo_gc'])
     
-    #meta_regulated_rxns_cumul_plots('meta', '_abs', thermo)
-    #meta_regulated_rxns_cumul_plots('ecoli', '_abs', thermo)
+    #calc_palsson_rxns_irrev('ecoli', 'zoom', '../data/reactionList_iAF1260.txt',
+    #                        '../data/ecoli2kegg_cid.txt',
+    #                        thermo=estimators['milo_gc'], c_mid=1e-3,
+    #                        pH=7.0, pMg=3.0, I=0.1, T=298.15,
+    #                        cmap=GetConcentrationMap(Kegg.getInstance()),
+    #                        xlim=20)
+    #calc_cons_rxns_corr(estimators['milo_gc'], 'MiloGC')
     
-    #calc_palsson_rxns_irrev('ecoli', 'zoom', '../data/reactionList_iAF1260.txt', '../data/ecoli2kegg_cid.txt', thermo=thermo, c_mid=1e-3, pH=7.0, pMg=3.0, I=0.1, T=298.15, cmap=GetConcentrationMap(kegg), xlim=20)
-    #calc_cons_rxns_corr(thermo, 'MiloGC')
+if __name__ == "__main__":
+    main()
