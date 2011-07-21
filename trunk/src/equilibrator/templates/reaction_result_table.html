@@ -45,14 +45,14 @@
 		{% if reaction.dg0_tag != None %}
 		<tr>
 			<td width="150px">
-				<a href="{{ reaction.ph_graph_link }}" target="_blank" title="Reaction energy as a function of pH">pH</a>
+				pH<a href="{{ reaction.ph_graph_link }}" style="float:right;" target="_blank" title="Plot &Delta;G' as a function of pH"><img src="/media/images/graph_icon.png" /></a>
 			</td>
 			<td width="50px"><input type="text" name="ph" id="phField" value="{{ ph }}" size="5"/></td>
 			<td><div id="phSlider"></div></td>
 		</tr>
 		<tr>
 			<td width="150px">
-			<a href="{{ reaction.is_graph_link }}" target="_blank" title="Reaction energy as a function of Ionic Strength">Ionic strength (M)</a>
+			Ionic strength (M) <a href="{{ reaction.is_graph_link }}" style="float:right;" target="_blank" title="Plot &Delta;G' as a function of ionic strength"><img src="/media/images/graph_icon.png" /></a>
 			</td>
 			<td width="50px"><input type="text" name="ionic_strength" id="ionStrengthField" value="{{ ionic_strength }}" size="5"/></td>
 			<td><div id="ionStrengthSlider"></div></td>
