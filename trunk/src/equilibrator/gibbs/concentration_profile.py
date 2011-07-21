@@ -10,8 +10,14 @@ class _BaseConcentrationProfile(object):
     def IsStandard(self):
         return False
     
+    def IsCustom(self):
+        return False
+    
     def __str__(self):
         return self.name
+    
+    def MicroMolarConcentration(self, kegg_id):
+        return self.Concentration(kegg_id) * 1e6
 
 
 class MolarProfile(_BaseConcentrationProfile):
@@ -41,7 +47,10 @@ class CustomMicroMolarProfile(_BaseConcentrationProfile):
     
     def __init__(self, concentrations):
         self._concentrations = concentrations
-        
+    
+    def IsCustom(self):
+        return True
+    
     def Concentration(self, kegg_id):
         if kegg_id == 'C00001':
             return 1.0
