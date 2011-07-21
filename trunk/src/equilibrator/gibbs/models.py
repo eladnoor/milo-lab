@@ -371,6 +371,14 @@ class Compound(models.Model):
         
         # TODO(flamholz): Should we return something here?
         return None
+    
+    def SpeciesJson(self):
+        l = []
+        for s in self._species_group.all_species:
+            l.append({"nh": int(s.number_of_hydrogens),
+                      "nc": int(s.net_charge),
+                      "dgf": float(s.formation_energy)})
+        return l
 
     def GetSpeciesGroups(self):
         """Gets the list of SpeciesGroups."""
