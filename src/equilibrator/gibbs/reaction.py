@@ -405,6 +405,15 @@ class Reaction(object):
             params.append('ionic_strength=%f' % self.i_s)
         if self._concentration_profile:
             params.append('concentration_profile=%s' % self._concentration_profile)
+            if self._concentration_profile.IsCustom():
+                l = ['reactantsConcentration=%s' % self._concentration_profile.MicroMolarConcentration(c.compound.kegg_id)
+                     for c in self.reactants]
+                params.extend(l)
+                
+                l = ['productsConcentration=%s' % self._concentration_profile.MicroMolarConcentration(c.compound.kegg_id)
+                     for c in self.products]
+                params.extend(l)
+                
         if query:
             tmp_query = query.replace(u'→', '=>')
             params.append('query=%s' % urllib.quote(tmp_query))
