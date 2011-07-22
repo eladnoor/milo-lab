@@ -123,12 +123,27 @@ table.enzymeInfo, table.reactionsInfo {
 	margin: 10px auto;
 	width: 750px;
 	border: solid 1px black;
-	padding: 2px;
+	padding: 0px;
+  border-spacing: 0px;
+}
+
+.results td,
+.compoundInfo td,
+.speciesInfo td,
+.enzymeInfo td,
+.reactionsInfo td {
+  padding: 2px;
 }
 
 table.reactionsInfo {
 	text-align: center;
 	padding: 0px;
+}
+
+.speciesHeader td,
+.speciesSource.last td,
+td.reference.border {
+  border-bottom: black 1px solid;
 }
 
 .reactionRowOdd {
