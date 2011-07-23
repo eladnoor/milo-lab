@@ -12,6 +12,7 @@ from gibbs import models
 
 # Cache compounds so we can look them up faster.
 COMPOUNDS_CACHE = {}
+CITATIONS_CACHE = {}
 
 
 def GetOrCreateNames(names_list):
@@ -104,16 +105,19 @@ def GetSource(source_string):
     if not source_string:
         return None
     
-    # TODO(flamholz): do this better... from a data file or something
-    lsource = source_string.lower()
-    if lsource.startswith('alberty'):
-        return models.ValueSource.Alberty()
-    elif lsource.startswith('thauer'):
-        return models.ValueSource.Thauer()
-    elif lsource.startswith('group'):
-        return models.ValueSource.GroupContribution()
+    lsource = source_string.strip().lower()
+    if lsource in CITATIONS_CACHE:
+        return CITATIONS_CACHE[lsource]
+    
+    try:
+        source = models.ValueSource.objects.get(name__iexact=lsource)
+        CITATIONS_CACHE[lsource] = source
+        return source
+    except Exception, e:
+        logging.warning('Failed to find source %s', source_string)
+        logging.error(e)
+        
     return None
-
 
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(open(kegg_json_filename))
