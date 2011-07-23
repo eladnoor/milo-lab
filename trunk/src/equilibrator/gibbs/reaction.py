@@ -50,7 +50,8 @@ class CompoundWithCoeff(object):
     def ToJson(self):
         return {"coeff": self.coeff,
                 "concentration": self.concentration,
-                "species": self.compound.SpeciesJson()}
+                "species": self.compound.SpeciesJson(),
+                "name": str(self.compound.first_name)}
     
     def GetName(self):
         """Gives a string name for this compound."""

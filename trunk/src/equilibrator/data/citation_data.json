@@ -1,0 +1,22 @@
+[
+    {
+        "ref": "Alberty RA. Thermodynamics of Biochemical Reactions. 1st ed. Hoboken, New Jersey: John Wiley & Sons; 2003.",
+        "name": "Alberty (2003)"
+    },
+    {
+        "ref": "Thauer RK, Jungermann K, Decker K. Energy conservation in chemotrophic anaerobic bacteria. Bacteriological reviews. 1977;41(3):809.",
+        "name": "Thauer (1977)"
+    },
+    {
+        "ref": "Dolfing J, Janssen DB. Estimates of Gibbs free energies of formation of chlorinated aliphatic compounds. Biodegradation. 1994;5(1):21-28.",
+        "name": "Dolfing (1994)"
+    },
+    {
+        "ref": "Wagman D, Evans W, Parker V, Schumm R, Halow I, Bailey S, Churney K, Nuttall R. The NBS Tables of Chemical Thermodynamic Properties. J. Phys. Chem. Ref. Data 1982, 11, (Supplement No. 2).",
+        "name": "Wagman (1982)"
+    }
+    {
+        "ref": "Noor E, Bar-even A, Flamholz AI, et al. An integrated open framework for thermodynamics of biochemical reactions that combines accuracy and coverage. 2011.",
+        "name": "Group Contribution"
+    }
+]
