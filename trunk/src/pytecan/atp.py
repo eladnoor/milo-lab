@@ -3,44 +3,17 @@ import csv
 import sys, os, subprocess
 import wx
 import wx.grid as gridlib
-from toolbox.database import MySQLDatabase, SqliteDatabase
 
 ####################################################
 
-import sqlite3
-from dulwich.client import SubprocessGitClient
-
-
-def initialize_db():
-    mydatabase = "C:\\TEMP\\mydatabase.sqlite"
-    comm = sqlite3.connect(mydatabase)
-    cursor = comm.cursor()
-    cursor.execute('DROP TABLE IF EXISTS tecan_readings')
-    cursor.execute('CREATE TABLE tecan_readings (exp_ID TEXT, plate INT, reading_label TEXT, row INT, col INT, time INT, value REAL)')
-    #cursor.execute('CREATE INDEX over mytable tecan_readings (exp_ID , plate , reading_label ))')
-    
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-07', 1, u'OD600', 0, 0, 1, 0.035])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-07', 1, u'OD600', 0, 0, 1, 0.038])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-07', 2, u'OD600', 0, 0, 1, 0.031])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-07', 3, u'OD600', 0, 0, 1, 0.042])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-07', 2, u'OD600', 0, 0, 1, 0.050])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-08', 1, u'OD600', 0, 0, 1, 0.030])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-08', 1, u'OD600', 0, 0, 1, 0.032])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-08', 2, u'OD600', 0, 0, 1, 0.033])
-    cursor.execute('INSERT INTO tecan_readings VALUES (?,?,?,?,?,?,?)', [u'2011-07-08', 3, u'OD600', 0, 0, 1, 0.036])
-    comm.commit()
-    cursor.close()
-    
 def connect():
-    db = MySQLDatabase(host='132.77.80.238', user='ronm', 
-                      passwd='a1a1a1', db='tecan')
-    #mydatabase = "C:\\TEMP\\mydatabase.sqlite"
-    #db = SqliteDatabase(mydatabase, flag='r')
-    return db
-
-#cursor.execute('INSERT INTO mytable VALUES(null, ?, ?)', (today, "This entry could be the first item on a To-Do"))
-#cursor.execute('INSERT INTO mytable VALUES(null, ?, ?)', (today, "To-Do: Write an SQLite3 tutorial!"))
-
+    from toolbox.database import MySQLDatabase
+    return MySQLDatabase(host='132.77.80.238', user='ronm', 
+                         passwd='a1a1a1', db='tecan')
+    
+    #from toolbox.database import SqliteDatabase
+    #return SqliteDatabase("C:\\TEMP\\mydatabase.sqlite", flag='r')
+    
 ########################################################################
 def getExpId(db):
     exp_id_list = []
@@ -619,7 +592,6 @@ class MyPanel(wx.Panel):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
           
         self.SetSizer(topSizer) 
-        self.Show()
         
     def Import2DB(self, event):
         pass
