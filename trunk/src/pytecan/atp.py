@@ -18,7 +18,7 @@ def connect():
 def getExpId(db):
     exp_id_list = []
     des_list=[]
-    for row in db.Execute("SELECT distinct(exp_ID) from tecan_readings"):
+    for row in db.Execute("SELECT distinct(exp_ID) eid from tecan_readings ORDER BY eid DESC"):
         exp_id_list.append(row[0])
         des_list.append(GetDes(db,row[0]))
     print exp_id_list
@@ -112,6 +112,7 @@ class SelectionListBox(wx.ListBox):
         self.selectionDict = {}
         
         self.Bind(wx.EVT_LISTBOX, self.EvtSelListBox)
+        self.Bind(wx.EVT_LISTBOX_DCLICK, self.EvtDeleteSelection)
     
     #    self.Bind(wx.EVT_RIGHT_DOWN, self.RightClickSelectionListBox)
     
@@ -129,23 +130,23 @@ class SelectionListBox(wx.ListBox):
         print "Selection LIST BOX TOGGLED", selection
         
         expID_key = self.selectionDict[selection]['expID_key']
-        self.Parent.cb1.SetValue(expID_key)
+        self.Parent.experimentComboBox.SetValue(expID_key)
         plate = self.selectionDict[selection]['plate']
 
         self.Parent.UpdatePlateListBox(plate)
-        self.Parent.lb3.Enable(True)
+        self.Parent.measurementListBox.Enable(True)
             
         reading_labels_fromDB = getReadingLabel(self.Parent.db, plate=plate)
         items = []
         for i in reading_labels_fromDB:
             items.append(i)
-            self.Parent.lb3.SetItems(items) 
+            self.Parent.measurementListBox.SetItems(items) 
         for i in range(len(items)):
-            self.Parent.lb3.SetSelection(i,True)
+            self.Parent.measurementListBox.SetSelection(i,True)
         
         reading_labels_fromDict = self.selectionDict[selection]['reading_labels']
-        for label in  reading_labels_fromDict :
-            self.Parent.lb3.SetStringSelection(label)
+        for label in reading_labels_fromDict :
+            self.Parent.measurementListBox.SetStringSelection(label)
         
         self.Parent.LoadPlateLabels()
         cells = self.selectionDict[self.GetStringSelection()]['cells']
@@ -154,8 +155,16 @@ class SelectionListBox(wx.ListBox):
             self.Parent.myGrid.SelectBlock(row,col,row,col,True)
         #    print" "        
         
-
-        
+    def EvtDeleteSelection(self, event):
+        selection = self.GetStringSelection()
+        if selection == u'':
+            return
+        print "Selection LIST BOX Double-clicked", selection
+        del self.selectionDict[selection]
+        key_list = sorted(self.selectionDict.keys())
+        self.SetItems(key_list)
+        self.Parent.myGrid.ClearSelection()
+        self.Update()
         
     def genKey(self, expID, expDesc, plate, plateDesc):
         return "%s | %s - %s | %s" % (expID, expDesc, plate, plateDesc)
@@ -169,10 +178,9 @@ class SelectionListBox(wx.ListBox):
                                    'plate':plate,
                                    'reading_labels':reading_labels,
                                    'cells':cells}
-
         key_list = sorted(self.selectionDict.keys())
-        current_key_index = key_list.index(key)
         self.SetItems(key_list)
+        current_key_index = key_list.index(key)
         self.SetSelection(current_key_index)
         self.Update()
         
@@ -443,42 +451,37 @@ class MyPanel(wx.Panel):
         titleSizer.Add(titleIco, 0, wx.ALL, 5)
         titleSizer.Add(title, 0, wx.ALL, 5)
         
-        bagSizer    = wx.GridBagSizer(hgap=5, vgap=5)
+        bagSizer = wx.GridBagSizer(hgap=5, vgap=5)
         self.db = connect()
         
-        self.Bind(wx.EVT_COMBOBOX, self.OnClicked)
+        self.Bind(wx.EVT_COMBOBOX, self.OnComboBoxClicked)
         
-        #self.cb1_text = '''Exp. file :'''
-        #self.cb1_str = wx.StaticText(self, -1, self.cb1_text, style=wx.EXPAND)
-        #bagSizer.Add(self.cb1_str, pos=(0,0),
+        #self.experimentComboBox_text = '''Exp. file :'''
+        #self.experimentComboBox_str = wx.StaticText(self, -1, self.experimentComboBox_text, style=wx.EXPAND)
+        #bagSizer.Add(self.experimentComboBox_str, pos=(0,0),
         #             flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL,
         #             border=5)
         
-        self.cb1_choices =[]
-        self.cb1_des_list = []
-        self.cb1_exp_list, self.cb1_des_list= getExpId(self.db) #This line returns the Exp. names AND the Des of exp. from the data base.
-        for i in range(0,len(self.cb1_exp_list)):
-            if (self.cb1_des_list[i]) : 
-                self.cb1_choices.append(" | ".join([self.cb1_exp_list[i],self.cb1_des_list[i]]))
-            else : 
-                self.cb1_choices.append(self.cb1_exp_list[i])
-                
-            
-        self.cb1 = PromptingComboBox(self, "Select Exp. ", self.cb1_choices, style=wx.CB_SORT)
-        bagSizer.Add(self.cb1, pos=(0,0),span=(1,1),
+        #self.experimentComboBox = PromptingComboBox(self, value="Select Exp. ", 
+        #                                            choices=self.GenerateExperimentComboBoxChoices(), style=wx.CB_SORT)
+        self.experimentComboBox = wx.ComboBox(self, wx.ID_ANY, value="Select Experiment",
+                                              choices=self.GenerateExperimentComboBoxChoices(),
+                                              style=wx.CB_DROPDOWN)
+        bagSizer.Add(self.experimentComboBox, pos=(0,0),span=(1,1),
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         
-        #self.cb2_text = '''Plate # :'''
-        #self.cb2_str = wx.StaticText(self, -1, self.cb2_text, style=wx.EXPAND)
-        #bagSizer.Add(self.cb2_str, pos=(1,0),
+        #bagSizer.Add(self.plateComboBox_str, pos=(1,0),
         #             flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL,
         #             border=5)
        
-        self.cb2_choices = ['Null\t']
-        self.cb2 = PromptingComboBox(self, "Select Plate", self.cb2_choices, style=wx.CB_SORT)
-        self.cb2.Enable(False)
-        bagSizer.Add(self.cb2, pos=(1,0),span=(1,1),
+        #self.plateComboBox = PromptingComboBox(self, value="Select Plate", 
+        #                                       choices=self.plateComboBox_choices, style=wx.CB_SORT)
+        self.plateComboBox = wx.ComboBox(self, wx.ID_ANY, value="Select Plate",
+                                         choices=['Null\t'],
+                                         style=wx.CB_SORT|wx.CB_DROPDOWN)
+        self.plateComboBox.Enable(False)
+        bagSizer.Add(self.plateComboBox, pos=(1,0),span=(1,1),
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         
@@ -488,21 +491,21 @@ class MyPanel(wx.Panel):
         #             flag=wx.ALL|wx.TOP,
         #             border=5)
         
-        self.lb3_choices = ['Select Measurement']
-        self.lb3 = wx.ListBox(self, -1, choices=self.lb3_choices, style=wx.LB_MULTIPLE)
-        self.lb3.Enable(False)
+        self.measurementListBox_choices = ['Select Measurement']
+        self.measurementListBox = wx.ListBox(self, -1, choices=self.measurementListBox_choices, style=wx.LB_MULTIPLE)
+        self.measurementListBox.Enable(False)
         self.Bind(wx.EVT_LISTBOX, self.OnListboxClick, )
-        bagSizer.Add(self.lb3, pos=(2,0), span=(1,1),
+        bagSizer.Add(self.measurementListBox, pos=(2,0), span=(1,1),
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         
         
         print "Displaying cb1 ID : \n"
-        print self.cb1.GetId()
+        print self.experimentComboBox.GetId()
         print "Displaying cb2 ID : \n"
-        print self.cb2.GetId()
+        print self.plateComboBox.GetId()
         print "Displaying cb3 ID : \n"
-        print self.lb3.GetId()
+        print self.measurementListBox.GetId()
         
           
         self.selectionListBox = SelectionListBox(self) #is declated here sincve mygrid requires this object
@@ -561,7 +564,7 @@ class MyPanel(wx.Panel):
         
         
         self.ExpDesButton = wx.Button(self, wx.ID_ANY, 'ExpDesButton')
-        self.ExpDesButton.Bind(wx.EVT_BUTTON, self.ExpDes)
+        self.ExpDesButton.Bind(wx.EVT_BUTTON, self.ChangeExperimentDescription)
         topSizer.Add(self.ExpDesButton, 0, wx.ALL|wx.EXPAND, 5)
         
         self.ImportButton = wx.Button(self, wx.ID_ANY, 'Import to DB')
@@ -596,13 +599,23 @@ class MyPanel(wx.Panel):
     def Import2DB(self, event):
         pass
     
+    def GenerateExperimentComboBoxChoices(self):
+        experimentComboBox_choices = []
+        experimentComboBox_exp_list, experimentComboBox_des_list = getExpId(self.db) #This line returns the Exp. names AND the Des of exp. from the data base.
+        for i in range(0, len(experimentComboBox_exp_list)):
+            if experimentComboBox_des_list[i]: 
+                experimentComboBox_choices.append(" | ".join([experimentComboBox_exp_list[i], experimentComboBox_des_list[i]]))
+            else : 
+                experimentComboBox_choices.append(experimentComboBox_exp_list[i])
+                
+        return experimentComboBox_choices
         
-    def ExpDes(self, event):
+    def ChangeExperimentDescription(self, event):
         try:
             from agw import pybusyinfo as PBI
         except ImportError: # if it's not there locally, try the wxPython lib.
             import wx.lib.agw.pybusyinfo as PBI
-        val = self.cb1.GetValue()
+        val = self.experimentComboBox.GetValue()
         expID, desc = val.split(' | ')
         dlg = wx.TextEntryDialog(
                 self, 'Please enter description for %s' % expID,
@@ -614,20 +627,10 @@ class MyPanel(wx.Panel):
         self.db.Execute("DELETE FROM tecan_experiments WHERE exp_ID = '%s' AND plate = -1" % expID)
         self.db.Insert('tecan_experiments', [expID, -1, desc])
         self.db.Commit()
-        self.cb1_choices =[]
-        self.cb1_des_list = []
-        self.cb1_exp_list, self.cb1_des_list= getExpId(self.db) #This line returns the Exp. names AND the Des of exp. from the data base.
-        for i in range(0,len(self.cb1_exp_list)):
-            if (self.cb1_des_list[i]) : 
-                self.cb1_choices.append(" | ".join([self.cb1_exp_list[i],self.cb1_des_list[i]]))
-            else : 
-                self.cb1_choices.append(self.cb1_exp_list[i])
         del self.busy
-        self.cb1.SetItems(self.cb1_choices)
-        self.cb1.SetValue(" | ".join([expID,desc]))
         
-        
-        
+        self.experimentComboBox.SetItems(self.GenerateExperimentComboBoxChoices())
+        self.experimentComboBox.SetValue(" | ".join([expID, desc]))
         
         #Insert TO exp_des #
         
@@ -701,15 +704,15 @@ class MyPanel(wx.Panel):
         dlg.Destroy()
         
     def OnListboxClick(self, event):
-        self.updateSelectionListBox()
-        self.LoadPlateLabels()
+        if event.GetId() == self.selectionListBox.GetId():
+            self.updateSelectionListBox()
         
     def GetCurrentExpID(self):
-        expID = self.cb1.GetValue()
+        expID = self.experimentComboBox.GetValue()
         return expID.split(" | ")
     
     def GetCurrentPlate(self):
-        plate = self.cb2.GetValue()
+        plate = self.plateComboBox.GetValue()
         return plate.split(" | ")
         
     def CommitPlateLabels(self, event):
@@ -746,27 +749,26 @@ class MyPanel(wx.Panel):
             return
         expID, expDesc = self.GetCurrentExpID()
         plate, plateDesc = self.GetCurrentPlate()
-        reading_labels = [self.lb3.GetString(i) for i in self.lb3.GetSelections()]
+        reading_labels = [self.measurementListBox.GetString(i) for i in self.measurementListBox.GetSelections()]
         self.selectionListBox.updateGridSelections(expID, expDesc,
                                                    plate, plateDesc,
                                                    reading_labels, cells)
     
  
-        
     def UpdatePlateListBox(self, selectedPlate=None):
         expID, expDesc = self.GetCurrentExpID()
         plates = getPlate(self.db, exp_ID=expID)
         items = [plate + " | " + desc for plate, desc in plates]
-        self.cb2.Enable(True)
-        self.cb2.SetItems(items)
+        self.plateComboBox.Enable(True)
+        self.plateComboBox.SetItems(items)
         if selectedPlate:
             try:
                 plate_index = [plate for plate, desc in plates].index(selectedPlate)
-                self.cb2.SetSelection(plate_index)
+                self.plateComboBox.SetSelection(plate_index)
             except KeyError:
                 pass
     
-    def OnClicked(self, event):
+    def OnComboBoxClicked(self, event):
         print 'event reached panel class'
         
         self.myGrid.ClearSelection()
@@ -774,18 +776,19 @@ class MyPanel(wx.Panel):
         self.commitButton.SetForegroundColour("Black")
         self.commitButton.Refresh()
         
-        if event.GetId() == self.cb1.GetId():
+        if event.GetId() == self.experimentComboBox.GetId():
             self.myGrid.EnableEditing(False)
             self.myGrid.ClearGrid()
             self.UpdatePlateListBox(None)
-            self.lb3.SetItems([]) 
+            self.plateComboBox.SetValue('Select Plate')
+            self.measurementListBox.SetItems([]) 
 
             #self.statext.SetLabel('Present info regarding exp. " %s " here' % val)
             event.Skip()
-        elif event.GetId() == self.cb2.GetId():
+        elif event.GetId() == self.plateComboBox.GetId():
             self.myGrid.EnableEditing(True)
             self.LoadPlateLabels()
-            self.lb3.Enable(True)
+            self.measurementListBox.Enable(True)
             #print  event.GetId()
             plate, plateDesc = self.GetCurrentPlate()
             reading_labels = getReadingLabel(self.db, plate=plate);
@@ -794,9 +797,9 @@ class MyPanel(wx.Panel):
             for i in reading_labels:
                 items.append(str(i))
                 print items
-            self.lb3.SetItems(items) 
+            self.measurementListBox.SetItems(items) 
             for i in range(len(items)) :
-                self.lb3.SetSelection(i,True)
+                self.measurementListBox.SetSelection(i,True)
             
             event.Skip()
 
