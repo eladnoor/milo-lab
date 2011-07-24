@@ -14,7 +14,10 @@ LINK_FORMAT = BASE_URL + '%s\n'
 def main():
     urls = [BASE_URL + '/\n',
             BASE_URL + '/faq\n',
-            BASE_URL + '/about\n']
+            BASE_URL + '/about\n',
+            BASE_URL + '/classic_reactions\n',
+            BASE_URL + '/download\n',
+            BASE_URL + '/data_refs\n']
     
     for compound in models.Compound.objects.all():
         urls.append(LINK_FORMAT % compound.link)
