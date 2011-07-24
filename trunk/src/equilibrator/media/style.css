@@ -149,3 +149,11 @@ td.reference.border {
 .reactionRowOdd {
 	background-color: #CCFFCC;
 }
+
+.refsList {
+  text-align: left;
+}
+
+.refsList a {
+  color: black;
+}

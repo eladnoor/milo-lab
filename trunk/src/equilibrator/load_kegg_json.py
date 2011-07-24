@@ -67,7 +67,7 @@ REACTION_FILE = 'data/kegg_reactions.json'
 ENZYME_FILE = 'data/kegg_enzymes.json'
 
 def MakeSpeciesGroup(pmap, source, compound):
-    print 'Writing data from source %s' % (source.name)
+    logging.debug('Writing data from source %s', source.name)
     
     if 'priority' not in pmap or 'species' not in pmap:
         logging.error('Malformed pmap field for %s', compound.kegg_id)
@@ -89,17 +89,7 @@ def MakeSpeciesGroup(pmap, source, compound):
     
     sg.save()
     return sg
-        
-def AddPmapToCompound(pmap, compound):
-    source_string = pmap.get('source')
-    my_source = GetSource(source_string)
-    if not my_source:
-        logging.error('Failed to parse source %s', source_string)
-        return 
-    
-    sg = MakeSpeciesGroup(pmap, my_source, compound)
-    if sg is not None:
-        compound.species_groups.add(sg)    
+
 
 def GetSource(source_string):
     if not source_string:
@@ -114,10 +104,24 @@ def GetSource(source_string):
         CITATIONS_CACHE[lsource] = source
         return source
     except Exception, e:
-        logging.warning('Failed to find source %s', source_string)
+        logging.warning('Failed to find source "%s"', source_string)
         logging.error(e)
+        logging.fatal('Bailing!')
         
     return None
+
+        
+def AddPmapToCompound(pmap, compound):
+    source_string = pmap.get('source')
+    my_source = GetSource(source_string)
+    if not my_source:
+        logging.error('Failed to get source %s', source_string)
+        return 
+    
+    sg = MakeSpeciesGroup(pmap, my_source, compound)
+    if sg is not None:
+        compound.species_groups.add(sg)
+
 
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(open(kegg_json_filename))
@@ -125,7 +129,7 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     for i, cd in enumerate(parsed_json):
         try:
             cid = cd['CID']
-            print 'Handling compound', cid
+            logging.debug('Handling compound %s', cid)
             
             formula = cd.get('formula')
             mass = cd.get('mass')
@@ -168,9 +172,7 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
                 c.common_names.add(n)
             c.save()
         except Exception, e:
-            import sys,traceback
-            traceback.print_exc(file=sys.stderr)
-            logging.warning(e)
+            logging.error(e)
             continue
         
 
@@ -203,7 +205,6 @@ def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
         except Exception, e:
             logging.warning('Missing data for rid %s', rid)
             logging.warning(e)
-            #traceback.print_exc(file=sys.stdout)
             continue
 
 
@@ -246,7 +247,6 @@ def LoadKeggEnzymes(enzymes_json_filename=ENZYME_FILE):
         except Exception, e:
             logging.warning('Missing data for ec %s', ec)           
             logging.warning(e)
-            #traceback.print_exc(file=sys.stdout)
             continue
 
 

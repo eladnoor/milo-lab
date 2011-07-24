@@ -9,7 +9,6 @@ import load_citation_data
 import load_kegg_json
 
 
-
 def main():
     load_citation_data.CheckData()
     load_kegg_json.CheckData()

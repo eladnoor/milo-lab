@@ -25,6 +25,7 @@ def LoadCitationData(json_filename=DEFAULT_CITATION_DATA_FILENAME):
             name = cd['name']
             ref = cd['ref']
             
+            logging.info('Loading source "%s"', name)
             source = models.ValueSource(name=name, citation=ref)
             source.save()
         except Exception, e:

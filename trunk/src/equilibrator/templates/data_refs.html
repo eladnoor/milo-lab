@@ -1,0 +1,31 @@
+<html>
+	<head>
+		<title>Graph</title>
+		<link rel="icon" type="image/x-icon" href="/media/images/equilibrator_favicon.png">
+		<link href="/media/main.css" rel="stylesheet" type="text/css">
+		<link href="/media/style.css" rel="stylesheet" type="text/css">
+		<link href="/media/jquery-ui-1.8.5.custom.css" rel="stylesheet" type="text/css">
+		<link href="/media/jquery.lightbox-0.5.css" rel="stylesheet" type="text/css">
+		<script type="text/javascript" src="/media/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="/media/jquery-ui-1.8.5.custom.min.js"></script>
+		<script type="text/javascript" src="/media/jquery.autocomplete.js"></script>
+		<script type="text/javascript" src="/media/jquery.lightbox-0.5.min.js"></script>
+	</head>
+	<body>
+		<div class="centerize">
+			<img src="/media/images/equilibrator_logo_small.png" />
+			
+			<div class="refsList">
+				<ol>
+				{% for source in sources %}
+					<li><a name="{{source.name|slugify}}">{{source.citation}}</a></li>
+				{% endfor %}
+				</ol>			
+			</div>
+			
+		</div>
+		
+		{% include "footer.html" %}
+	</body>
+</html>
+
