@@ -57,38 +57,6 @@ class ValueSource(models.Model):
     def __str__(self):
         return self.name
     
-    @staticmethod
-    def _GetOrCreate(name):
-        """Gets or creates a ValueSource object with the given name from the DB.
-        
-        TODO(flamholz): supply a link here?
-        
-        Args:
-            name: the name field.
-        
-        Returns:
-            A ValueSource object.
-        """
-        vs = None
-        try:
-            vs = ValueSource.objects.get(name=name)
-        except Exception:
-            vs = ValueSource(name=name)
-            vs.save()
-        return vs
-    
-    @staticmethod
-    def Alberty():
-        return ValueSource._GetOrCreate('Alberty et al.')
-    
-    @staticmethod
-    def Thauer():
-        return ValueSource._GetOrCreate('Thauer et al.')
-    
-    @staticmethod
-    def GroupContribution():
-        return ValueSource._GetOrCreate('Estimated using group contribution')
-    
     def __eq__(self, other):
         """Equality operator."""
         if not other:
@@ -97,8 +65,8 @@ class ValueSource(models.Model):
         if not hasattr(other, 'name'):
             return False
         
-        return self.name == other.name 
-
+        return self.name == other.name
+    
 
 class Specie(models.Model):
     """A single specie of a compound."""
