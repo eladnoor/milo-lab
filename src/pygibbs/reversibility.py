@@ -10,7 +10,7 @@ from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggNonCompoundException,\
     KeggReactionNotBalancedException
 from pygibbs.kegg_reaction import Reaction
-from toolbox.plotting import cdf,bootstrap
+from toolbox import plotting
 from SOAPpy import WSDL 
 from pygibbs.metacyc import MetaCyc, MetaCycNonCompoundException
 from toolbox import util
@@ -62,7 +62,7 @@ def try_kegg_api():
 
     pylab.figure()
     pylab.hold(True)
-    cdf(rid2reversibility.values(), 'all reactions', 'r', show_median=True)
+    plotting.cdf(rid2reversibility.values(), 'all reactions', 'r', show_median=True)
     pylab.show()
     
 
@@ -317,7 +317,7 @@ def plot_histogram(histogram, html_writer, title='', max_pathway_length=8, xmin=
                 
                 sample_std = pylab.std(sample_vals)
                         
-            cdf(value, label='%s (med=%.1f, N=%d)' % \
+            plotting.cdf(value, label='%s (med=%.1f, N=%d)' % \
                 (key, m, len(value)),
                 style=colors.get(key, 'grey'), std=sample_std, y_offset=y_offset)
             y_offset += offset_step
@@ -425,7 +425,7 @@ def plot_bootstrap_stats(histogram, title=''):
     
     colors = {1:'r', 2:'orange', 3:'green', 4:'cyan', 5:'blue', 'Rest':'violet', 'Not first':'k'}
     
-    bootstrap(histogram, colors)
+    plotting.bootstrap(histogram, colors)
         
     pylab.title(title)
     
@@ -1059,15 +1059,17 @@ def compare_reversibility_to_dG0(thermo, name):
     html_writer = HtmlWriter(html_fname)
     kegg = Kegg.getInstance()
     c_mid = 1e-4
-    #cmap = GetConcentrationMap()
-    cmap = {1: 1}
     pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
     
-    K_range = (1e-6, 1e6)
+    x_range = (1e-5, 1e5)
+    y_range = (1e-5, 1e5)
+
+    x_threshold = 1e3
+    y_threshold = 1e3
     
     # plot the profile graph
     pylab.rcParams['text.usetex'] = False
-    pylab.rcParams['legend.fontsize'] = 10
+    pylab.rcParams['legend.fontsize'] = 7
     pylab.rcParams['font.family'] = 'sans-serif'
     pylab.rcParams['font.size'] = 14
     pylab.rcParams['lines.linewidth'] = 1
@@ -1075,58 +1077,85 @@ def compare_reversibility_to_dG0(thermo, name):
     pylab.rcParams['figure.figsize'] = [6.0, 6.0]
     pylab.rcParams['figure.dpi'] = 100
     
-    fig1 = pylab.figure()
-    pylab.xlabel(r"$K^'$", figure=fig1)
-    pylab.ylabel(r"$\gamma = \left( K^' / \Gamma(1) \right)^{2/N}$", figure=fig1)
-    pylab.axvspan(1e3, K_range[1], ymin=0, ymax=1, color='lightgrey')
-    pylab.axvspan(K_range[0], 1e-3, ymin=0, ymax=1, color='lightgrey')
-    data_mat = pylab.zeros((0, 3))
     
+    fig = pylab.figure()
+    pylab.xlabel(r"$K^'$", figure=fig)
+    pylab.ylabel(r"$\gamma = \left( K^' / \Gamma(1) \right)^{2/N}$", figure=fig)
+    pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=0, ymax=1, color='red', alpha=0.3)
+    pylab.axvspan(x_threshold, x_range[1], ymin=0, ymax=1, color='red', alpha=0.3)
+    pylab.axhspan(y_range[0], 1.0/y_threshold, xmin=0, xmax=1, color='green', alpha=0.3)
+    pylab.axhspan(y_threshold, y_range[1], xmin=0, xmax=1, color='green', alpha=0.3)
+
+    stoichiometries = [(1,1), (1,2), (2,1), (2,2), (2,3), (3,2), (3,3)]
+    fig.hold(True)
+    for n_s, n_p in stoichiometries:
+        gamma = [(Keq*c_mid**(n_p - n_s)) ** (2.0/(n_p + n_s)) for Keq in x_range]
+        pylab.plot(x_range, gamma, '-', figure=fig, label="%d:%d" % (n_s, n_p))
+    pylab.legend(loc='lower right')
     #reactions = []
     #reactions.append(kegg.rid2reaction[1068]) # aldolase
     #reactions.append(kegg.rid2reaction[24]) # aldolase
     #for reaction in
     reactions = kegg.AllReactions() 
     
+    counters = {}
+    data_mat = pylab.zeros((0, 4))
     for reaction in reactions:
-        if reaction.rid % 10 != 1:
-            continue
+        #if reaction.rid % 10 != 1:
+        #    continue
         try:
-            #rname = reaction.name
-            rname = None
             reaction.Balance(balance_water=True)
-            dG0 = thermo.reaction_to_dG0(reaction, pH, pMg, I, T)
+
+            dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T) 
             Keq = pylab.exp(-dG0/(R*T))
-            r = CalculateReversability(reaction.sparse, thermo, c_mid, pH, pMg, 
-                                       I, T, concentration_map=cmap)
-            if r is None:
+
+            n_s = -sum([x for cid, x in reaction.sparse.iteritems() if (x < 0 and cid != 1)])
+            n_p = sum([x for cid, x in reaction.sparse.iteritems() if (x > 0 and cid != 1)])
+            if (n_p + n_s) == 0:
                 continue
-            gamma = 10**r
-            #if Keq < 1e6 and Keq > 1e3 and gamma < 1e1 and gamma > 1e-1:
-            if Keq < 1e6 and Keq > 1e-6:
-                if (Keq > 1e3 or Keq < 1e-3) and (gamma < 1e3 and gamma > 1e-3): 
-                    data_mat = pylab.vstack([data_mat, [Keq, gamma, 0]])
-                else:
-                    data_mat = pylab.vstack([data_mat, [Keq, gamma, 1]])
-                if rname is not None:
-                    pylab.text(Keq, gamma, rname, fontsize=3, figure=fig1)
+            
+            gamma = (Keq*c_mid**(n_p - n_s)) ** (2.0/(n_p + n_s))
+            
+            if Keq < 1.0/x_threshold:
+                Krev = -1
+            elif Keq < x_threshold:
+                Krev = 0
+            else:
+                Krev = 1
+                
+            if gamma < 1.0/y_threshold:
+                Grev = -1
+            elif gamma < y_threshold:
+                Grev = 0
+            else:
+                Grev = 1
+                
+            counters.setdefault((Krev, Grev), 0)
+            counters[Krev, Grev] += 1
+            
+            data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
         except (MissingCompoundFormationEnergy, KeggReactionNotBalancedException):
             pass
-
-    #pylab.scatter(x=data_mat[:,0], y=data_mat[:,1], s=6, c=data_mat[:,2], figure=fig1)
-    i_blue = pylab.find(data_mat[:,2] == 1)
-    i_red = pylab.find(data_mat[:,2] == 0)
-    pylab.plot(data_mat[i_blue,0], data_mat[i_blue,1], 'b.', figure=fig1)
-    pylab.plot(data_mat[i_red,0], data_mat[i_red,1], 'r.', figure=fig1)
     
-    #pylab.plot([data_mat[:,1].min(), data_mat[:,1].max()],
-    #           [data_mat[:,1].min(), data_mat[:,1].max()],
-    #           'k:', figure=fig1)
-    pylab.xscale('log')
-    pylab.yscale('log')
-    pylab.ylim((1e-6, 1e6))
-    pylab.xlim(K_range)
-    pylab.savefig("../res/" + name + ".svg", figure=fig1, format='svg')
+    print counters
+    fig.hold(True)
+    for Krev, Grev in counters.keys():
+        x_pos = x_threshold ** (Krev*1.2)
+        y_pos = y_threshold ** (Grev*1.2)
+        pylab.text(x_pos, y_pos, "%d" % counters[Krev, Grev], 
+                   backgroundcolor='white', horizontalalignment='center',
+                   verticalalignment='center')
+
+    pylab.xscale('log', figure=fig)
+    pylab.yscale('log', figure=fig)
+    pylab.ylim(y_range, figure=fig)
+    pylab.xlim(x_range, figure=fig)
+    html_writer.embed_matplotlib_figure(fig, width=800, height=800, name=name + "_k_vs_g")
+   
+   
+    fig = pylab.figure()
+    plotting.cdf(data_mat[:,1], label='gamma', figure=fig)
+    html_writer.embed_matplotlib_figure(fig, width=800, height=800, name=name + "_cdf")
 
 def main():
     #logging.getLogger('').setLevel(logging.DEBUG)
