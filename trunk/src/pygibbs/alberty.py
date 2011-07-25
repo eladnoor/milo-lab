@@ -17,11 +17,13 @@ class Alberty(Thermodynamics):
         alberty_name_to_hmap = {} # same as pmap but for dH of formation
         for line in file.readlines():
             line.rstrip()
-            if (line.find('=') == -1):
+            if line.find('=') == -1:
                 continue
             (alberty_name, values) = line.split('sp=', 1)
             for token in re.findall("{([0-9\-\.\,_\s]+)}", values):
                 val_list = token.split(',', 3)
+                if len(val_list) != 4:
+                    raise ValueError("Syntax error at: " + line)
                 dG0 = float(val_list[0])
                 try:
                     dH0 = float(val_list[1])
@@ -55,7 +57,7 @@ class Alberty(Thermodynamics):
     def __init__(self):
         Thermodynamics.__init__(self)
         alberty_name_to_pmap, alberty_name_to_hmap = \
-            self.read_alberty_mathematica("../data/thermodynamics/alberty_mathematica.txt")
+            self.read_alberty_mathematica("../data/thermodynamics/alberty_mathematica_fixed.txt")
         alberty_name_to_cid = \
             self.read_alberty_kegg_mapping("../data/thermodynamics/alberty_names.csv")
 
