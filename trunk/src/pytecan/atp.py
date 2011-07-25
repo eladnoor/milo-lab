@@ -3,11 +3,19 @@ import csv
 import sys, os, subprocess
 import wx
 import wx.grid as gridlib
+import util
+
+PLOT_EXP_DATA_EXE = 'plotExpData'
+PLOT_EXP_DATA_LINUX = '/local/bin/PlotExpData'
 
 ####################################################
 
 def connect():
-    from toolbox.database import MySQLDatabase
+    try:
+        from database import MySQLDatabase
+    except ImportError:
+        from toolbox.database import MySQLDatabase
+        
     return MySQLDatabase(host='132.77.80.238', user='ronm', 
                          passwd='a1a1a1', db='tecan')
     
@@ -46,9 +54,6 @@ def getReadingLabel(db, plate):
         reading_label_list.append(str(row[0]))
     return reading_label_list
 
-
-PLOT_EXP_DATA_EXE = 'C:/Users/NivA/Dropbox/Test/plotExpData'
-PLOT_EXP_DATA_LINUX = '/home/eladn/Desktop/PlotExpData'
 
 ################################################################################
 
@@ -597,7 +602,53 @@ class MyPanel(wx.Panel):
         self.SetSizer(topSizer) 
         
     def Import2DB(self, event):
-        pass
+
+        #app = wx.App(False)
+        dialog = wx.FileDialog(None, style=wx.OPEN)
+        # Show the dialog and get user input
+        if dialog.ShowModal() == wx.ID_OK:
+            tar_fname = dialog.GetPath()
+        else:
+            dialog.Destroy()
+            return
+            
+        if not os.path.exists(tar_fname):
+            return
+        
+        dialog_num_plates = wx.TextEntryDialog(self,
+            'Please enter the number of plates',
+            'Number of plates', '1')
+        dialog_num_plates.ShowModal()
+        number_of_plates = int(dialog_num_plates.GetValue())
+    
+        #message = "Importing data into DB..."
+        #self.busy = PBI.PyBusyInfo(message, parent=None, title="Importing to DB")
+        MES, count = util.CollectData(tar_fname, number_of_plates)
+        exp_id = util.GetExpDate(MES)
+        self.db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
+        """dlg = wx.ProgressDialog("Retriving data from DB",
+                               "Time Remaining",
+                               maximum = count,
+                               parent=self,
+                               style = wx.PD_APP_MODAL
+                                | wx.PD_ELAPSED_TIME
+                                | wx.PD_ESTIMATED_TIME
+                                | wx.PD_REMAINING_TIME
+                                )"""
+        counter = -1
+        for plate_id, plate_values in sorted(MES.iteritems()):
+            for reading_label, label_values in sorted(plate_values.iteritems()):
+                print "Importing plate %d label %s " % (plate_id, reading_label)
+                for time_in_sec, time_values in sorted(label_values.iteritems()):
+                    for well, value in sorted(time_values.iteritems()):
+                        counter += 1
+                        #dlg.Update(counter)
+                        self.db.Insert('tecan_readings', [exp_id, plate_id,
+                            reading_label, well[0], well[1], time_in_sec, value])
+                self.db.Commit()
+        print "Done importing file: %s" % tar_fname
+        #dlg.Destroy()
+        #del self.busy
     
     def GenerateExperimentComboBoxChoices(self):
         experimentComboBox_choices = []
@@ -670,7 +721,8 @@ class MyPanel(wx.Panel):
         message = "Please wait while generating figures... (May take a few minutes)"
         busy = PBI.PyBusyInfo(message, parent=None, title="ATP - Automatic TECAN Pipeline")
         
-        if sys.platform == "win32":                # on a Windows port
+        if sys.platform == "win32":   
+            print "WINDWOS FOUND !!!"             # on a Windows port
             command = PLOT_EXP_DATA_EXE + ' -i %s -o %s' % (csv_fname, outfname)
             print command
             try:
