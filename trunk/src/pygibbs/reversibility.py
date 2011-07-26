@@ -1061,18 +1061,18 @@ def compare_reversibility_to_dG0(thermo, name):
     c_mid = 1e-4
     pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
     
-    x_range = (1e-5, 1e5)
-    y_range = (1e-5, 1e5)
+    x_range = (1e-9, 1e9)
+    y_range = (1e-9, 1e9)
 
     x_threshold = 1e3; x_color = 'blue'
     y_threshold = 1e3; y_color = 'red'
     
     # plot the profile graph
     pylab.rcParams['text.usetex'] = False
-    pylab.rcParams['legend.fontsize'] = 7
+    pylab.rcParams['legend.fontsize'] = 10
     pylab.rcParams['font.family'] = 'sans-serif'
     pylab.rcParams['font.size'] = 14
-    pylab.rcParams['lines.linewidth'] = 1
+    pylab.rcParams['lines.linewidth'] = 2
     pylab.rcParams['lines.markersize'] = 6
     pylab.rcParams['figure.figsize'] = [6.0, 6.0]
     pylab.rcParams['figure.dpi'] = 100
@@ -1085,12 +1085,18 @@ def compare_reversibility_to_dG0(thermo, name):
     pylab.axhspan(y_range[0], 1.0/y_threshold, xmin=0, xmax=1, color=y_color, alpha=0.3)
     pylab.axhspan(y_threshold, y_range[1], xmin=0, xmax=1, color=y_color, alpha=0.3)
 
-    stoichiometries = [(1,1), (1,2), (2,1), (2,2), (2,3), (3,2), (3,3)]
+    stoichiometries = [(1, 1, 'orange'), 
+                       (1 ,2, 'r--'), 
+                       (2, 1, 'g--'), 
+                       (2, 2, 'blue'), 
+                       (2, 3, 'm--'), 
+                       (3, 2, 'c--'), 
+                       (3, 3, 'pink')]
     fig.hold(True)
-    for n_s, n_p in stoichiometries:
+    for n_s, n_p, style in stoichiometries:
         gamma = [(Keq*c_mid**(n_p - n_s)) ** (2.0/(n_p + n_s)) for Keq in x_range]
-        pylab.plot(x_range, gamma, '-', figure=fig, label="%d:%d" % (n_s, n_p))
-    pylab.legend(loc='lower right')
+        pylab.plot(x_range, gamma, style, figure=fig, label="%d:%d" % (n_s, n_p))
+    pylab.legend(loc='upper left')
     #reactions = []
     #reactions.append(kegg.rid2reaction[1068]) # aldolase
     #reactions.append(kegg.rid2reaction[24]) # aldolase
@@ -1131,17 +1137,16 @@ def compare_reversibility_to_dG0(thermo, name):
                 
             counters.setdefault((Krev, Grev), 0)
             counters[Krev, Grev] += 1
-            
             data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
         except (MissingCompoundFormationEnergy, KeggReactionNotBalancedException):
             pass
     
     fig.hold(True)
     for Krev, Grev in counters.keys():
-        x_pos = x_threshold ** (Krev*1.2)
-        y_pos = y_threshold ** (Grev*1.2)
-        pylab.text(x_pos, y_pos, "%d" % counters[Krev, Grev], 
-                   backgroundcolor='white', horizontalalignment='center',
+        x_pos = x_threshold ** (Krev*2)
+        y_pos = y_threshold ** (Grev*2)
+        pylab.text(x_pos, y_pos, "%.1f%%" % (100.0 * counters[Krev, Grev] / data_mat.shape[0]), 
+                   horizontalalignment='center',
                    verticalalignment='center')
 
     pylab.xscale('log', figure=fig)
@@ -1151,11 +1156,12 @@ def compare_reversibility_to_dG0(thermo, name):
     html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_k_vs_g")
    
     fig = pylab.figure()
-    pylab.axvspan(y_threshold, 1e10, ymin=0, ymax=1, color=y_color, alpha=0.3)
+    max_gamma = 1e20
+    pylab.axvspan(y_threshold, max_gamma, ymin=0, ymax=1, color=y_color, alpha=0.3)
     abs_gamma = pylab.exp(abs(pylab.log(data_mat[:,1])))
     plotting.cdf(abs_gamma, label='gamma', figure=fig)
     pylab.xscale('log')
-    pylab.xlim((1, 1e10))
+    pylab.xlim((1, max_gamma))
     html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_cdf")
 
 def main():

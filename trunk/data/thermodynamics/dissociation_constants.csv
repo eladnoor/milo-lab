@@ -188,7 +188,7 @@
 130,"IMP","acid-base",298.15,11,10,0,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c2ncnc3O)O1)O)O)OP(=O)([O-])[O-]","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c2ncnc3[O-])O1)O)O)OP(=O)([O-])[O-]",9.65,"Alberty (2003)"
 131,"dATP","acid-base",298.15,14,13,0,0,"C1[C@@H]([C@@H](COP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O)O[C@H]1n1cnc2c(N)[nH+]cnc12)O","C1[C@@H]([C@@H](COP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O)O[C@H]1n1cnc2c(N)ncnc12)O",4.68,"Alberty (2003)"
 131,"dATP","acid-base",298.15,13,12,0,0,"C1[C@@H]([C@@H](COP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O)O[C@H]1n1cnc2c(N)ncnc12)O","C1[C@@H]([C@@H](COP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-])O[C@H]1n1cnc2c(N)ncnc12)O",7.6,"Alberty (2003)"
-132,"methanol","acid-base",298.15,4,3,0,0,,,15.5,"CRC (88th edition)"
+132,"methanol",,298.15,4,4,0,0,,,,
 133,"D-alanine","acid-base",298.15,7,6,0,0,"CC(C(=O)[O-])[NH3+]","CC(C(=O)[O-])[NH2]",9.69,"taken as is from L-alanine"
 133,"D-alanine","acid-base",298.15,8,7,0,0,"CC(C(=O)[OH])[NH3+]","CC(C(=O)[O-])[NH3+]",2.34,"taken as is from L-alanine"
 134,"Putrescine","acid-base",298.15,14,13,0,0,"[NH3+]CCCC[NH3+]","[NH3+]CCCCN",10.8,"CRC (88th edition)"
@@ -265,7 +265,7 @@
 218,"Methylamine","acid-base",298.15,6,5,0,0,"C[NH3+]","CN",10.66,"CRC (88th edition)"
 219,"arachidonate",,298.15,31,31,0,0,"CCCCC\C=C/C\C=C/C\C=C/C\C=C/CCCC([O-])=O",,,
 222,"oxopropanoate",,298.15,3,3,0,0,"C(=O)CC([O-])=O",,,
-224,"Adenosine-5P-Sulfate",,298.15,12,12,0,0,"Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP([O-])(=O)OS(O)(=O)=O)[C@@H](O)[C@H]1O",,,
+224,"Adenosine-5P-Sulfate",,298.15,12,12,0,0,"Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP([O-])(=O)OS([O-])(=O)=O)[C@@H](O)[C@H]1O",,,
 227,"acetyl-phosphate","acid-base",298.15,5,4,0,0,"CC(=O)OP(=O)(O)O","CC(=O)OP(=O)([O-])O",5.11,"Alberty (2003)"
 227,"acetyl-phosphate","acid-base",298.15,4,3,0,0,"CC(=O)OP(=O)([O-])O","CC(=O)OP(=O)([O-])[O-]",8.69,"Alberty (2003)"
 230,"3,4-dihydroxybenzoate","acid-base",298.15,4,3,0,0,"c1cc(O)c([O-])cc1C(=O)[O-]","c1cc([O-])c([O-])cc1C(=O)[O-]",12.6,"CRC (88th edition)"
@@ -285,8 +285,8 @@
 242,"guanine","acid-base",298.15,5,4,0,0,"c1nc2c(n1)nc(N)nc2O","c1nc2c(n1)nc(N)nc2[O-]",9.21,"Alberty (2003)"
 243,"lactose",,298.15,22,22,0,0,"OC[C@H]1O[C@@H](O[C@@H]2[C@@H](CO)O[C@H](O)[C@H](O)[C@H]2O)[C@H](O)[C@@H](O)[C@H]1O",,,
 244,"nitrate","acid-base",298.15,1,0,0,0,"N(=O)(=O)O","N(=O)(=O)[O-]",0.44,"CRC (88th edition)"
-245,"taurine","acid-base",298.15,7,6,0,0,"[NH3+]CCS(=O)(=O)[O-]","NCCS(=O)(=O)[O-]",9.06,"CRC (88th edition)"
 245,"taurine","acid-base",298.15,8,7,0,0,"[NH3+]CCS(=O)(=O)O","[NH3+]CCS(=O)(=O)[O-]",1.5,"CRC (88th edition)"
+245,"taurine","acid-base",298.15,7,6,0,0,"[NH3+]CCS(=O)(=O)[O-]","NCCS(=O)(=O)[O-]",9.06,"CRC (88th edition)"
 246,"butanoic acid","acid-base",298.15,8,7,0,0,"CCCC(=O)O","CCCC(=O)[O-]",4.83,"CRC (88th edition)"
 247,"L-sorbose",,298.15,12,12,0,0,"OCC1(O)OC[C@H](O)[C@@H](O)[C@@H]1O",,,
 248,"Lipoamide",,298.15,15,15,0,0,"NC(=O)CCCCC1CCSS1",,,
