@@ -4,30 +4,25 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 
-def cdf(v, label, style='b', show_median=False, std=None, y_offset=0, figure=None):
+def cdf(v, label, style='b', show_median=False, 
+        std=None, y_offset=0, figure=None):
     if figure is None:
         figure = pylab.figure()
         
-    new_v = []
-    for x in v:
-        if x is not None:
-            new_v.append(x)
-    l = len(new_v)
-    if (l < 2):
+    new_v_nonan = sorted([x for x in v if x is not None])
+    l = len(new_v_nonan)
+    if l < 2:
         pylab.plot([0, 0], [0, 0], label=label, figure=figure)
     else:
-        new_v.sort()
-                           
-        m = stats.cmedian(v)
-        y = [float(x)/(float(l)-1) for x in range(l)]
-        pylab.plot(new_v, y, style, label=label, figure=figure)
-        #pylab.errorbar(new_v, y, xerr=std, style, label=label)
-        if std != None:
+        y = [float(x)/(float(l)-1.0) for x in range(l)]
+        pylab.plot(new_v_nonan, y, style, label=label, figure=figure)
+        if std is not None:
+            m = pylab.median(new_v_nonan)
             pylab.plot([m-std, m+std], [0.4999 + y_offset, 0.5001 + y_offset], style, lw=1.5, ls='-', figure=figure)
             pylab.plot([m-std-0.0001, m-std+0.0001], [0.485 + y_offset, 0.515 + y_offset], style, lw=1.5, ls='-', figure=figure)
             pylab.plot([m+std-0.0001, m+std+0.0001], [0.485 + y_offset, 0.515 + y_offset], style, lw=1.5, ls='-', figure=figure)
         if show_median:
-            #pylab.hold(True)
+            m = pylab.median(new_v_nonan)
             pylab.plot([m, m], [0, 0.5], style, figure=figure)
             
 # Yaniv: Not used  

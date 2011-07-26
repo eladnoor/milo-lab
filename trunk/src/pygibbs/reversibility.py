@@ -1064,8 +1064,8 @@ def compare_reversibility_to_dG0(thermo, name):
     x_range = (1e-5, 1e5)
     y_range = (1e-5, 1e5)
 
-    x_threshold = 1e3
-    y_threshold = 1e3
+    x_threshold = 1e3; x_color = 'blue'
+    y_threshold = 1e3; y_color = 'red'
     
     # plot the profile graph
     pylab.rcParams['text.usetex'] = False
@@ -1077,14 +1077,13 @@ def compare_reversibility_to_dG0(thermo, name):
     pylab.rcParams['figure.figsize'] = [6.0, 6.0]
     pylab.rcParams['figure.dpi'] = 100
     
-    
     fig = pylab.figure()
     pylab.xlabel(r"$K^'$", figure=fig)
     pylab.ylabel(r"$\gamma = \left( K^' / \Gamma(1) \right)^{2/N}$", figure=fig)
-    pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=0, ymax=1, color='red', alpha=0.3)
-    pylab.axvspan(x_threshold, x_range[1], ymin=0, ymax=1, color='red', alpha=0.3)
-    pylab.axhspan(y_range[0], 1.0/y_threshold, xmin=0, xmax=1, color='green', alpha=0.3)
-    pylab.axhspan(y_threshold, y_range[1], xmin=0, xmax=1, color='green', alpha=0.3)
+    pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=0, ymax=1, color=x_color, alpha=0.3)
+    pylab.axvspan(x_threshold, x_range[1], ymin=0, ymax=1, color=x_color, alpha=0.3)
+    pylab.axhspan(y_range[0], 1.0/y_threshold, xmin=0, xmax=1, color=y_color, alpha=0.3)
+    pylab.axhspan(y_threshold, y_range[1], xmin=0, xmax=1, color=y_color, alpha=0.3)
 
     stoichiometries = [(1,1), (1,2), (2,1), (2,2), (2,3), (3,2), (3,3)]
     fig.hold(True)
@@ -1137,7 +1136,6 @@ def compare_reversibility_to_dG0(thermo, name):
         except (MissingCompoundFormationEnergy, KeggReactionNotBalancedException):
             pass
     
-    print counters
     fig.hold(True)
     for Krev, Grev in counters.keys():
         x_pos = x_threshold ** (Krev*1.2)
@@ -1150,12 +1148,15 @@ def compare_reversibility_to_dG0(thermo, name):
     pylab.yscale('log', figure=fig)
     pylab.ylim(y_range, figure=fig)
     pylab.xlim(x_range, figure=fig)
-    html_writer.embed_matplotlib_figure(fig, width=800, height=800, name=name + "_k_vs_g")
-   
+    html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_k_vs_g")
    
     fig = pylab.figure()
-    plotting.cdf(data_mat[:,1], label='gamma', figure=fig)
-    html_writer.embed_matplotlib_figure(fig, width=800, height=800, name=name + "_cdf")
+    pylab.axvspan(y_threshold, 1e10, ymin=0, ymax=1, color=y_color, alpha=0.3)
+    abs_gamma = pylab.exp(abs(pylab.log(data_mat[:,1])))
+    plotting.cdf(abs_gamma, label='gamma', figure=fig)
+    pylab.xscale('log')
+    pylab.xlim((1, 1e10))
+    html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_cdf")
 
 def main():
     #logging.getLogger('').setLevel(logging.DEBUG)
