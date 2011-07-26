@@ -128,12 +128,12 @@ class GroupObervationCollection(object):
                     if nH_above != nH_below-1:
                         raise Exception("a pKa must represent a difference of exactly 1 hydrogen")
                     fullname = '%s [nH=%d]' % (name, nH_above)
-                    self.Add(groupvec, ddG0, fullname, "C%05d" % cid, 'acid-base')
+                    self.Add(groupvec, ddG0, fullname, "C%05d" % cid, obs_type='acid-base')
                 elif nMg_above != nMg_below:
                     if nMg_above != nMg_below-1:
                         raise Exception("a pK_Mg must represent a difference of exactly 1 magnesium")
                     fullname = '%s [nMg=%d]' % (name, nMg_above)
-                    #self.Add(groupvec, ddG0, fullname, cid, 'Mg')
+                    #self.Add(groupvec, ddG0, fullname, cid, obs_type='Mg')
                     # TODO: solve the problems with Mg species !!!
                     # there seems to be a problem in decomposition of ADP:Mg (and maybe other forms that have Mg ions)
 

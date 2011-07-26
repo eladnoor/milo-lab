@@ -117,16 +117,16 @@
 "-C-",2,0,"[C;H2;X4]","All","secondary carbon",
 "-C<",1,0,"[C;H1;X4]","All","tertiary carbon",
 ">C<",0,0,"[C;H0;X4]","All","quaternary carbon",
-"OCCC conjugation correction",0,0,"O=CC=C","None","OCCC conjugation correction",
-"OCCO conjugation correction",0,0,"O=CC=O","None","OCCO conjugation correction",
-"OCCN conjugation correction",0,0,"O=CC=N","None","OCCN conjugation correction (currently no examples)",
-"CCCN conjugation correction",0,0,"C=CC=N","None","CCCN conjugation correction (currently no examples)",
-"CCCC conjugation correction",0,0,"C=CC=C","None","CCCC conjugation correction (currently no examples)",
+"OCCC conjugation correction",0,0,"O=CC=C","None","OCCC conjugation correction","skip"
+"OCCO conjugation correction",0,0,"O=CC=O","None","OCCO conjugation correction","skip"
+"OCCN conjugation correction",0,0,"O=CC=N","None","OCCN conjugation correction (currently no examples)","skip"
+"CCCN conjugation correction",0,0,"C=CC=N","None","CCCN conjugation correction (currently no examples)","skip"
+"CCCC conjugation correction",0,0,"C=CC=C","None","CCCC conjugation correction (currently no examples)","skip"
 "NC(=N)N correction",0,0,"NC(=N)N","None","guanidine correction",
 "vicinal Cl correction",0,0,"Cl~C~C~Cl","None","vicinal Cl correction (not 100% accurate, but currently no examples)","skip"
 "amide correction",0,0,"O=CN","None","amide bond correction",
 "thioester correction",0,0,"CSC(=O)C","None","thioester correction (linearly dependent on CoA)","skip"
 "three member ring correction",0,0,"*1**1","None","three member ring correction (currently no examples)","skip"
-"*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)",
+"*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)","skip"
 "*Ar",0,0,"c1cccc1","None","aromatic ring correction (expanded in code)","skip"
 "*Har",0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)","skip"

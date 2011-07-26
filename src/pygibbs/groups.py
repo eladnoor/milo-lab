@@ -18,7 +18,6 @@ from pygibbs.kegg_errors import KeggParseException
 from pygibbs.groups_data import Group, GroupsData
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs import templates
-from toolbox import util
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
@@ -314,34 +313,50 @@ class GroupContribution(Thermodynamics):
         div_id = self.html_writer.insert_toggle()
         self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
 
-        self.html_writer.write_ul(['%d compounds' % self.group_matrix.shape[0],
-                            '%d groups' % self.group_matrix.shape[1]])
+        self.html_writer.write_ul(['%d observations' % self.group_matrix.shape[0],
+                                   '%d groups' % self.group_matrix.shape[1]])
         
         if include_raw_data:
             self.db.Table2HTML(self.html_writer, 'train_groups')
             self.db.Table2HTML(self.html_writer, 'group_observations')
             
         self.html_writer.write('<table border="1">\n<tr>'
-                        '<td>Name</td>'
-                        '<td>&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
-                        '<td>Group Vector</td></tr>')
+            '<td width="5%%">#</td>'
+            '<td width="20%%">Name</td>'
+            '<td width="5%%">&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
+            '<td width="70%%">Group Vector</td></tr>')
         for i in xrange(self.group_matrix.shape[0]):
-            self.html_writer.write('<tr><td>%s</td><td>%.2f</td><td>%s</td></tr>' % \
-                            (self.obs_names[i], self.obs[i], 
-                             ' '.join(['%d' % self.group_matrix[i, j] for j in xrange(self.group_matrix.shape[1])])))
+            group_vector = self.group_matrix[i, :]
+            nonzero_columns = pylab.find(abs(group_vector) > 1e-10)
+            s_vector = " | ".join(["%g : %s" % (group_vector[0, j], self.groups_data.all_groups[j].name)
+                for j in nonzero_columns])
+            #s_vector = ['%s : %d' % (self.groups_data.all_groups[j].name, group_vector[0, j])
+            #     for j in xrange(self.group_matrix.shape[1]) if group_vector[0, j] != 0]
+            self.html_writer.write('<tr>' +
+                '<td width="5%%">%d</td>' % i +
+                '<td width="20%%">%s</td>' % self.obs_names[i] + 
+                '<td width="5%%">%8.2f</td>' % self.obs[i] +
+                '<td width="70%%">%s</td></tr>' % s_vector)
         self.html_writer.write('</table>')
         
         self.html_writer.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
-        self.html_writer.write('<table border="1">')
-        self.html_writer.write('  <tr><td>#</td><td>Group Name</td><td>nH</td><td>charge</td><td>nMg</td><td>&#x394;<sub>gr</sub>G [kJ/mol]</td><td>&#x394;<sub>gr</sub>G\' [kJ/mol]</td><td>Appears in compounds</td></tr>\n')
-        for i, group in enumerate(self.groups_data.all_groups):
-            dG0_gr = self.group_contributions[i]
-            dG0_gr_tag = dG0_gr + R*T*pylab.log(10)*pH*group.hydrogens
-            compound_list_str = ' | '.join([self.obs_names[k] for k in pylab.find(self.group_matrix[:, i])])
-            self.html_writer.write('  <tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%8.2f</td><td>%8.2f</td><td>%s</td></tr>\n' %
-                            (i, group.name, group.hydrogens,
-                             group.charge, group.nMg,
-                             dG0_gr, dG0_gr_tag, compound_list_str))
+        self.html_writer.write('<table border="1" width="100%%">')
+        titles = ["#", "Group Name", "nH", "charge", "nMg", 
+                  "&#x394;<sub>gr</sub>G [kJ/mol]", 
+                  "dissociations", "formations", "reactions"]
+        self.html_writer.write('  <tr><td>' + '</td><td>'.join(titles) + '</td></tr>\n')
+        for j, group in enumerate(self.groups_data.all_groups):
+            dG0_gr = self.group_contributions[j]
+            obs_lists_dict = {'acid-base':[], 'formation':[], 'reaction':[]}
+            for k in pylab.find(self.group_matrix[:, j]):
+                type = self.obs_types[k]
+                obs_lists_dict.setdefault(self.obs_types[k], []).append(self.obs_names[k])
+            tablerow = ["%d" % i, group.name, "%d" % group.hydrogens,
+                        "%d" % group.charge, "%d" % group.nMg, "%8.2f" % dG0_gr,
+                        ' | '.join(obs_lists_dict['acid-base']),
+                        ' | '.join(obs_lists_dict['formation']),
+                        ' | '.join(obs_lists_dict['reaction'])]
+            self.html_writer.write('  <tr><td>' + '</td><td>'.join(tablerow) + '</td></tr>\n')
         self.html_writer.write('</table>\n')
         self.html_writer.write('</div>\n')
 
@@ -693,14 +708,15 @@ class GroupContribution(Thermodynamics):
             
         self.db.CreateTable('gc_nullspace', 'dimension INT, group_vector TEXT')
         for i in xrange(self.group_nullspace.shape[0]):
-                self.db.Insert('gc_nullspace', [i, self.NullspaceRowToString(i)])
+            s_vector = self.GroupMatrixRowToString(self.group_nullspace[i, :])
+            self.db.Insert('gc_nullspace', [i, s_vector])
 
         self.db.Commit()
 
-    def NullspaceRowToString(self, i):
-        nonzero_columns = pylab.find(abs(self.group_nullspace[i, :]) > 1e-10)
-        return ",".join(["%g x %s" % (self.group_nullspace[i, j], 
-            str(self.groups_data.all_groups[j])) for j in nonzero_columns])
+    def GroupMatrixRowToString(self, r):
+        nonzero_columns = pylab.find(abs(r) > 1e-10)
+        return " | ".join(["%g : %s" % (r[j], self.groups_data.all_groups[j].name)
+                           for j in nonzero_columns])
             
     def LoadContributionsFromDB(self):
         logging.info("loading the group contribution data from the database")
