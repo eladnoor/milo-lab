@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import pylab
+import json
 
 class GroupVector(list):
     """A vector of groups."""
@@ -83,11 +84,13 @@ class GroupVector(list):
         """Returns the number of Mg2+ ions."""
         return int(pylab.dot(self, self.groups_data.all_group_mgs))
     
-    def ToString(self):
-        return ','.join([str(x) for x in self])
+    def ToJSONString(self):
+        return json.dumps(dict([(i, x) for (i, x) in enumerate(self) if x != 0]))
     
     @staticmethod
-    def FromString(groups_data, s):
-        v = [float(x) for x in s.split(',')]
+    def FromJSONString(groups_data, s):
+        v = [0] * groups_data.Count()
+        for i, x in json.loads(s).iteritems():
+            v[i] = x
         return GroupVector(groups_data, v)
     

@@ -84,7 +84,10 @@ class GroupContribution(Thermodynamics):
         
         self.PMAP_TABLE_NAME = 'gc_pseudoisomers'
         self.ERROR_TABLE_NAME = 'gc_errors'
-            
+        self.GROUPVEC_TABLE_NAME = 'gc_groupvector'
+        self.NULLSPACE_TABLE_NAME = 'gc_nullspace'
+        self.CONTRIBUTION_TABLE_NAME = 'gc_contribution'
+                    
     def write_gc_tables(self):
         table_names = ["groups", "contribution", "observation"]
         self.html_writer.write('<ul>\n')
@@ -363,7 +366,7 @@ class GroupContribution(Thermodynamics):
         self.html_writer.write('<h2><a name="nullspace">Nullspace of regression matrix</a></h2>\n')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.write('<div id="%s" style="display:none">\n' % div_id)
-        self.db.Table2HTML(self.html_writer, 'gc_nullspace')
+        self.db.Table2HTML(self.html_writer, self.NULLSPACE_TABLE_NAME)
         self.html_writer.write('</div>\n')
 
     def analyze_training_set(self):
@@ -594,9 +597,9 @@ class GroupContribution(Thermodynamics):
         logging.info("Writing the results to the database")
         G.ToDatabase(self.db, table_name=self.PMAP_TABLE_NAME, 
                      error_table_name=self.ERROR_TABLE_NAME)
-        self.db.CreateTable('gc_groupvector', 'cid TEXT, groupvec TEXT')
+        self.db.CreateTable(self.GROUPVEC_TABLE_NAME, 'cid TEXT, groupvec TEXT')
         for cid, groupvec in self.cid2groupvec.iteritems():
-            self.db.Insert('gc_groupvector', [cid, groupvec.ToString()])
+            self.db.Insert(self.GROUPVEC_TABLE_NAME, [cid, groupvec.ToJSONString()])
         self.db.Commit()
         self.KeggErrorReport()
 
@@ -635,9 +638,9 @@ class GroupContribution(Thermodynamics):
             self.cid2error[cid] = row['error']
 
         self.cid2groupvec = {}
-        for row in self.db.DictReader('gc_groupvector'):
+        for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
             cid = int(row['cid'])
-            groupvec = GroupVector.FromString(self.groups_data, row['groupvec'])
+            groupvec = GroupVector.FromJSONString(self.groups_data, row['groupvec'])
             self.cid2groupvec[cid] = groupvec
     
     def Reaction2GroupVector(self, sparse):
@@ -697,19 +700,22 @@ class GroupContribution(Thermodynamics):
         
     def SaveContributionsToDB(self):
         logging.info("storing the group contribution data in the database")
-        self.db.CreateTable('gc_contribution', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, dG0_gr REAL, nullspace TEXT')
+        self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
+                            'gid INT, name TEXT, protons INT, charge INT, '
+                            'nMg INT, dG0_gr REAL, nullspace TEXT')
         
         for j, dG0_gr in enumerate(self.group_contributions):
             group = self.groups_data.all_groups[j]
             nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
-            self.db.Insert('gc_contribution', [j, group.name, group.hydrogens,
+            self.db.Insert(self.CONTRIBUTION_TABLE_NAME, [j, group.name, group.hydrogens,
                                             group.charge, group.nMg, dG0_gr,
                                             nullspace_str])
             
-        self.db.CreateTable('gc_nullspace', 'dimension INT, group_vector TEXT')
+        self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
         for i in xrange(self.group_nullspace.shape[0]):
-            s_vector = self.GroupMatrixRowToString(self.group_nullspace[i, :])
-            self.db.Insert('gc_nullspace', [i, s_vector])
+            groupvec = GroupVector(self.groups_data, self.group_nullspace[i, :])
+            self.db.Insert(self.NULLSPACE_TABLE_NAME, 
+                           [i, groupvec.ToJSONString()])
 
         self.db.Commit()
 

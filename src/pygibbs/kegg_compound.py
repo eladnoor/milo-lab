@@ -58,6 +58,7 @@ class Compound(object):
         self.cas = ""
         self.pmaps = []
         self.pmap_error = None
+        self.groupvector_string = None
         
     def AddThermodynamicData(self, pseudoisomer_map, priority=1, source_string=None):
         """Add thermodynamic data.
@@ -268,6 +269,9 @@ class Compound(object):
             d['pmaps'] = self.pmaps
         elif self.pmap_error:
             d['error'] = self.pmap_error
+
+        if self.groupvector_string:
+            d['group_vector'] = self.groupvector_string
             
         return d
     
