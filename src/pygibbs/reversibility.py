@@ -49,8 +49,8 @@ def try_kegg_api():
     misses = 0
     for rid in sorted(rids):
         try:
-            sparse = G.kegg.rid2sparse_reaction(rid)
-            r = CalculateReversability(sparse, G, c_mid, pH, pMg, I, T)
+            reaction = G.kegg.rid2reaction(rid)
+            r = CalculateReversability(reaction, G, c_mid, pH, pMg, I, T)
             rid2reversibility[rid] = r
         except thermodynamics.MissingCompoundFormationEnergy:
             misses += 1
@@ -68,87 +68,78 @@ def try_kegg_api():
 
 WATER = 1
 HPLUS = 80
+DEFAULT_CMID = 1e-4
 
+def GetEmptyConcentrationMap():
+    return {WATER:1, HPLUS:1}
 
 def GetConcentrationMap():
     kegg = Kegg.getInstance()
-    cmap = {}    
+    cmap = GetEmptyConcentrationMap() 
     for cid in kegg.get_all_cids():
         lower, upper = kegg.get_bounds(cid)
         if lower and upper:
             # In the file we got this data from lower = upper 
             cmap[cid] = lower
-    cmap[WATER] = 1
-    cmap[HPLUS] = 1
     return cmap
-
-
 
 def GetFullConcentrationMap(G):
     G.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
-    cmap = {}
-    kegg_handle = Kegg.getInstance()
+    cmap = GetEmptyConcentrationMap() 
+    kegg = Kegg.getInstance()
     
-    for cid in kegg_handle.get_all_cids():
+    for cid in kegg.get_all_cids():
         cmap[cid] = G.get_concentration(cid, media='glucose', c0=None)
         if cmap[cid] == None:
-            lower, upper = kegg_handle.get_bounds(cid)
+            lower, upper = kegg.get_bounds(cid)
             if lower and upper:
                 # In the file we got this data from lower = upper 
                 cmap[cid] = lower
             else:
                 cmap.pop(cid)
-    cmap[WATER] = 1
-    cmap[HPLUS] = 1
     return cmap
 
-def ConcentrationFactor(sparse_reaction,
+def ConcentrationFactor(reaction,
                         concentration_map,
                         c_mid):
     factor = 0.0
-    for cid, stoic in sparse_reaction.iteritems():
+    for cid, stoic in reaction.sparse.iteritems():
         concentration = concentration_map.get(cid, None) or c_mid
         factor += pylab.log(concentration) * stoic
     return factor
 
-def CalculateReversability(sparse, thermo, c_mid=1e-3, pH=default_pH, 
+def CalculateReversability(reaction, thermo, c_mid=DEFAULT_CMID, pH=default_pH, 
                            pMg=default_pMg, I=default_I, T=default_T,
                            concentration_map=None):
-    cmap = concentration_map or {}
-    rxn = Reaction("Unknown", sparse)
-    dG0 = thermo.reaction_to_dG0(rxn, pH, pMg, I, T)
-    
-    ln_Gamma = ConcentrationFactor(sparse, cmap, c_mid)
-    sum_abs_s = sum([abs(x) for k, x in sparse.iteritems()
+    cmap = concentration_map or GetEmptyConcentrationMap()
+    dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T)
+    ln_Gamma = ConcentrationFactor(reaction, cmap, c_mid)
+    sum_abs_s = sum([abs(x) for k, x in reaction.sparse.iteritems()
                      if k not in cmap])
     if sum_abs_s == 0:
         return None
     else:
-        return -(2 / (sum_abs_s * pylab.log(10))) * (ln_Gamma + dG0/(R*T))
-        
+        return pylab.exp(-dG0/(R*T) - ln_Gamma) ** (2.0 / sum_abs_s)
 
-def CalculateReversabilityV2(sparse, thermo, c_mid=1e-3, pH=default_pH, 
+def CalculateReversabilityV2(reaction, thermo, c_mid=DEFAULT_CMID, pH=default_pH, 
                            pMg=default_pMg, I=default_I, T=default_T,
                            concentration_map=None):
-    cmap = concentration_map or {}
-    dG0 = thermo.reaction_to_dG0(sparse, pH, pMg, I, T)
-    
-    cfactor = ConcentrationFactor(sparse, cmap, c_mid)
+    cmap = concentration_map or GetEmptyConcentrationMap()
+    dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T)
+    cfactor = ConcentrationFactor(reaction, cmap, c_mid)
     
     if (cfactor == 0):
         return None
     else:
-        return  (-dG0/(R * T * cfactor)) / pylab.log(10)
+        return pylab.exp(-dG0/(R * T * cfactor))
 
-def CalculateReversabilitydeltaG(sparse, thermo, c_mid=1e-3, pH=default_pH, 
+def CalculateReversabilitydeltaG(reaction, thermo, c_mid=DEFAULT_CMID, pH=default_pH, 
                            pMg=default_pMg, I=default_I, T=default_T,
                            concentration_map=None):
-    cmap = concentration_map or {}
-    dG0 = thermo.reaction_to_dG0(sparse, pH, pMg, I, T)
-    
-    cfactor = ConcentrationFactor(sparse, cmap, c_mid)
-    
-    return dG0 + R * T * cfactor
+    cmap = concentration_map or GetEmptyConcentrationMap()
+    dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T)
+    cfactor = ConcentrationFactor(reaction, cmap, c_mid)
+    return pylab.exp(dG0 + R * T * cfactor)
 
 def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, cmap, id):
     kegg = Kegg.getInstance()
@@ -196,11 +187,9 @@ def calculate_reversibility_histogram(G, c_mid, pH, pMg, I, T, cmap, id):
             try:
                 reaction = kegg.rid2reaction(rid)
                 reaction.Balance(balance_water=True)
-                sparse = reaction.sparse
-                
-                # delta G r = CalculateReversabilitydeltaG(sparse, G, c_mid, pH, pMg, I, T, concentration_map=cmap)
-                r = CalculateReversability(sparse, G, c_mid, pH, pMg, I, T,
+                gamma = CalculateReversability(reaction, G, c_mid, pH, pMg, I, T,
                                            concentration_map=cmap)
+                r = pylab.log10(gamma)
                 if r == None:
                     if rid not in rxns_map:
                         rxns_map[rid] = 1
@@ -484,7 +473,7 @@ def calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, meta
             n_short_pw += 1
         else:
             has_thermo_data = 0
-            for rxn,pos in rxns_dict.iteritems():
+            for rxn, pos in rxns_dict.iteritems():
                 if rxn not in total_rxns_map:
                     total_rxns_map[rxn] = 1
                     total_rxns += 1
@@ -505,7 +494,7 @@ def calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, meta
                             rxn_map_misses += 1
                         continue
                     
-                    sparse = kegg.BalanceReaction(metacyc.sparse2kegg_cids(sparse, kegg), balance_water=True)
+                    reaction = Reaction(str(rxn), sparse=metacyc.sparse2kegg_cids(sparse, kegg))
                     
                     if (rxn in rxn_dirs):
                         flux = rxn_dirs[rxn]
@@ -516,8 +505,9 @@ def calculate_metacyc_reversibility_histogram(thermo, c_mid, pH, pMg, I, T, meta
                         continue
                     
                     # deltaG r = CalculateReversabilitydeltaG(sparse, thermo, c_mid, pH, pMg, I, T, concentration_map=cmap)
-                    r = CalculateReversability(sparse, thermo, c_mid, pH, pMg, I, T,
+                    gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
                                                       concentration_map=cmap)
+                    r = pylab.log10(gamma)
                     
                     has_thermo_data = 1
                     
@@ -638,20 +628,19 @@ def calculate_metacyc_regulation_reversibility_histogram(thermo, c_mid, pH, pMg,
                 #print 'Reaction not found, uid: %s' % rxn
                 rxn_map_misses += 1
                 continue
-                    
-            sparse = kegg.BalanceReaction(metacyc.sparse2kegg_cids(sparse, kegg), balance_water=True)            
-                    
-            r = CalculateReversability(sparse, thermo, c_mid, pH, pMg, I, T,
+            reaction = Reaction(rxn_id, metacyc.sparse2kegg_cids(sparse, kegg))
+            reaction.Balance(balance_water=True)            
+            gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
                                                       concentration_map=cmap)
-            if (r == None):
+            if gamma == None:
                 n_only_currency += 1
             else:
-                r = abs(r)
+                gamma = max(gamma, 1/gamma)
                 reg_type = metacyc.GetRegulationType(rxn_id)
                 
-                debug_file.write("%s\t%s\t%s\t%s\t%f\n" % (reg_type, rxn.name, rxn.ec_number, rxn.equation, r))
+                debug_file.write("%s\t%s\t%s\t%s\t%f\n" % (reg_type, rxn.name, rxn.ec_number, rxn.equation, gamma))
                 
-                histogram.setdefault(reg_type, []).append(r)      
+                histogram.setdefault(reg_type, []).append(gamma)      
                 hits += 1
         except thermodynamics.MissingCompoundFormationEnergy:
             misses += 1
@@ -734,7 +723,6 @@ def analyse_reversibility(thermo, name):
 def metacyc_data(org, id, thermo, max_pathway_length_for_fig=8):
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/' + org + '_' + id + '_reversibility.html')
-    kegg = Kegg.getInstance()
     metacyc_inst = MetaCyc(org, db)
     c_mid = 1e-4
     cmap = GetConcentrationMap()
@@ -781,7 +769,6 @@ def metacyc_data(org, id, thermo, max_pathway_length_for_fig=8):
 def meta_regulated_rxns_cumul_plots(org, id, thermo):
     db = SqliteDatabase('../res/gibbs.sqlite')
     html_writer = HtmlWriter('../res/' + org + id + '_regulation.html')
-    kegg = Kegg.getInstance()
     metacyc_inst = MetaCyc(org, db)
     c_mid = 1e-4
     cmap = GetConcentrationMap()
@@ -795,34 +782,27 @@ def meta_regulated_rxns_cumul_plots(org, id, thermo):
     html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
     pylab.savefig('../res/' + org + id +  '_regulation.png', figure=fig1, format='png')
 
-def calc_palsson_rxns_irrev(org, fig_name, rxns_file, comp2cid_file, thermo, c_mid, pH, pMg, I, T, cmap, xlim=40):
+def calc_palsson_rxns_irrev(org, fig_name, rxns_file, comp2cid_file, thermo, 
+                            c_mid, pH, pMg, I, T, cmap, xlim=1e9):
     html_fname = '../res/' + org + '_' + fig_name + '_model_rev.html'
     logging.info('Writing HTML output to %s', html_fname)
     html_writer = HtmlWriter(html_fname)
-    kegg = Kegg.getInstance()
-
     histogram = {}
-    
-    comp2cid_map = {}
-    map_file = open (comp2cid_file, 'r')
-    line = map_file.readline().strip()
-    
     n_miss_comp = 0
     n_not_balanced = 0
     n_hits = 0
     misses = 0
     n_only_currency = 0
     
-    debug_file = open('../res/fba_' + org + '_' + fig_name + '_rev.txt', 'w')
-    debug_file.write("Reaction Name\tFBA classification\tEquation\tRev IND\n")
-
     # Read compounds ids 2 Kegg cid's mapping file into a dict
-    while (line):
+    comp2cid_map = {}
+    map_file = open(comp2cid_file, 'r')
+    for line in map_file.readlines():
+        line = line.strip()
         if (len(line) == 0):
             continue
         (id,cid) = line.split('\t')
         comp2cid_map[id] = cid
-        line = map_file.readline().strip()
     map_file.close()
 
     left = ''
@@ -831,6 +811,7 @@ def calc_palsson_rxns_irrev(org, fig_name, rxns_file, comp2cid_file, thermo, c_m
     rxns_input = open(rxns_file, 'r')
     line = rxns_input.readline().strip()
     
+    debug_dict_list = []
     while (line):
         line = rxns_input.readline().strip() # Skipping the header line
         if (len(line) == 0):
@@ -851,19 +832,25 @@ def calc_palsson_rxns_irrev(org, fig_name, rxns_file, comp2cid_file, thermo, c_m
         try:
             parse_palsson_side_eq (left, -1, sparse, comp2cid_map)
             parse_palsson_side_eq (right, 1, sparse, comp2cid_map)
+            reaction = Reaction(name, sparse)
+            reaction.Balance(balance_water=True, exception_if_unknown=True)
         
-            sparse = kegg.BalanceReaction(sparse, balance_water=True)
-        
-            r = CalculateReversability(sparse, thermo, c_mid, pH, pMg, I, T,
+            dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T)
+            gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
                                                       concentration_map=cmap)
-            if r == None:
+            if gamma == None:
                 n_only_currency +=1
                 continue
             else:
-                #r = abs(r)
                 n_hits += 1
-                histogram.setdefault(reversible, []).append(r)
-                debug_file.write('%s\t%s\t%s\t%f\n' % (name, reversible, equation, r))
+                histogram.setdefault(reversible, []).append(gamma)
+                debug_dict_list.append({'sortkey':gamma,
+                                        'Reaction Name':name,
+                                        'FBA classification':reversible,
+                                        'FBA Reaction':equation,
+                                        'KEGG Reaction':str(reaction),
+                                        'Rev. index':"%.3g" % gamma,
+                                        'dG0':"%.2f" % dG0})
         except KeggNonCompoundException:
             logging.debug('No Kegg cid for reaction %s' % name)
             n_miss_comp += 1
@@ -878,44 +865,33 @@ def calc_palsson_rxns_irrev(org, fig_name, rxns_file, comp2cid_file, thermo, c_m
         except IrrevParseException:
             logging.debug('Error parsing reaction %s' % name)
             continue
-        
-    debug_file.close() 
     
-    debug_file = open('../res/fba_' + org + '_' + fig_name + '_rev_stats.txt', 'w')
-    debug_file.write("Reactions with known dG0: %d\n" % n_hits)
-    debug_file.write("Reactions with unknown dG0: %d\n" % misses)
-    debug_file.write("Reactions with unknown compounds (translation to Kegg failed): %d\n" % n_miss_comp)
-    debug_file.write("Non balanced reactions: %d\n" % n_not_balanced)
-    debug_file.write("Reactions of solely currency copmounds: %d\n" % n_only_currency)
-    debug_file.close()
+    debug_dict_list.sort(key=lambda(x):x['sortkey'])
+    html_writer.write_table(debug_dict_list, headers=['Rev. index', 
+        'dG0', 'FBA classification', 'KEGG Reaction', 'FBA Reaction'])
+    
+    html_writer.write_ul(["Reactions with known dG0: %d" % n_hits,
+                          "Reactions with unknown dG0: %d" % misses,
+                          "Reactions with unknown compounds (translation to Kegg failed): %d" % n_miss_comp,
+                          "Non balanced reactions: %d\n" % n_not_balanced,
+                          "Reactions of solely currency compounds: %d\n" % n_only_currency])
     
     # plot the bar 
     fig = pylab.figure()
     pylab.hold(True)
-
-    colors = {'Reversible':'blue', 'Irreversible':'red'}
-    
-    i = 1
+    styles = {'Reversible':'blue', 'Irreversible':'red'}
     for key, value in histogram.iteritems():
-        new_value = map(lambda x: min(x, xlim), value)
-        new_value = map(lambda x: max(x, xlim * - 1), new_value)
-                 
-        pylab.subplot (2,1,i)
-        i +=1
-        label = '%s (%d reactions)' % (key, len(new_value))      
-        #pylab.hist(value, 101, range=(-50,50), normed=True, label=label, color=colors[key])
-        pylab.hist(new_value, xlim * 2 + 1, range=(xlim * -1 ,xlim), normed=True, label=label, color=colors[key])
-        legendfont = matplotlib.font_manager.FontProperties(size=9)
-        pylab.legend(prop=legendfont)
-        pylab.xlabel('irreversability')
-        pylab.ylabel('Fraction of reactions')
-        #pylab.title(org + '_' + id + ' model')
-    
-    pylab.hold(False)
-    
+        label = '%s (%d reactions)' % (key, len(value))      
+        plotting.cdf(value, label=label, style=styles[key], figure=fig)
+
+    pylab.xlabel('Reversability index - $\gamma$')
+    pylab.ylabel('Cumulative Distribution')
+    pylab.xscale('log')
+    pylab.xlim((1/xlim, xlim))
+    pylab.legend(loc='upper left')
     html_writer.write('<h1>Irreversibility index histogram on Palsson\'s model %s</h1>' % org)
     html_writer.embed_matplotlib_figure(fig, width=640, height=480)
-    pylab.savefig('../res/' + org + '_' + fig_name + '_model_irrev.png', figure=fig, format='png')
+    #pylab.savefig('../res/' + org + '_' + fig_name + '_model_irrev.png', figure=fig, format='png')
     
 def parse_palsson_side_eq(str, coef, sparse, comp2cid_map):
     for comp in str.split('+'):
@@ -1013,9 +989,9 @@ def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, cmap, id):
         
         for i, (rid, flux) in enumerate(rid_flux_list):
             try:
-                sparse = kegg.rid2sparse_reaction(rid)
-                Reaction.BalanceSparseReaction(sparse, balance_water=True)
-                r = CalculateReversability(sparse, G, c_mid, pH, pMg, I, T,
+                reaction = kegg.rid2reaction(rid)
+                reaction.Balance(balance_water=True)
+                r = CalculateReversability(reaction, G, c_mid, pH, pMg, I, T,
                                            concentration_map=cmap)
                 if r == None:
                     only_currency += 1
@@ -1053,73 +1029,46 @@ def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, cmap, id):
 
     return first,second
 
-def compare_reversibility_to_dG0(thermo, name):
+def compare_reversibility_to_dG0(thermo, name, c_mid=DEFAULT_CMID, cmap=None):
+    cmap = cmap or GetEmptyConcentrationMap()
     html_fname = '../res/' + name + '_rev_vs_dG.html'
     logging.info('Writing HTML output to %s', html_fname)
     html_writer = HtmlWriter(html_fname)
     kegg = Kegg.getInstance()
-    c_mid = 1e-4
     pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
     
     x_range = (1e-9, 1e9)
     y_range = (1e-9, 1e9)
 
-    x_threshold = 1e3; x_color = 'blue'
-    y_threshold = 1e3; y_color = 'red'
+    x_threshold = 1e3
+    y_threshold = 1e3
     
-    # plot the profile graph
-    pylab.rcParams['text.usetex'] = False
-    pylab.rcParams['legend.fontsize'] = 10
-    pylab.rcParams['font.family'] = 'sans-serif'
-    pylab.rcParams['font.size'] = 14
-    pylab.rcParams['lines.linewidth'] = 2
-    pylab.rcParams['lines.markersize'] = 6
-    pylab.rcParams['figure.figsize'] = [6.0, 6.0]
-    pylab.rcParams['figure.dpi'] = 100
-    
-    fig = pylab.figure()
-    pylab.xlabel(r"$K^'$", figure=fig)
-    pylab.ylabel(r"$\gamma = \left( K^' / \Gamma(1) \right)^{2/N}$", figure=fig)
-    pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=0, ymax=1, color=x_color, alpha=0.3)
-    pylab.axvspan(x_threshold, x_range[1], ymin=0, ymax=1, color=x_color, alpha=0.3)
-    pylab.axhspan(y_range[0], 1.0/y_threshold, xmin=0, xmax=1, color=y_color, alpha=0.3)
-    pylab.axhspan(y_threshold, y_range[1], xmin=0, xmax=1, color=y_color, alpha=0.3)
-
-    stoichiometries = [(1, 1, 'orange'), 
-                       (1 ,2, 'r--'), 
-                       (2, 1, 'g--'), 
-                       (2, 2, 'blue'), 
-                       (2, 3, 'm--'), 
-                       (3, 2, 'c--'), 
-                       (3, 3, 'pink')]
-    fig.hold(True)
-    for n_s, n_p, style in stoichiometries:
-        gamma = [(Keq*c_mid**(n_p - n_s)) ** (2.0/(n_p + n_s)) for Keq in x_range]
-        pylab.plot(x_range, gamma, style, figure=fig, label="%d:%d" % (n_s, n_p))
-    pylab.legend(loc='upper left')
     #reactions = []
     #reactions.append(kegg.rid2reaction[1068]) # aldolase
-    #reactions.append(kegg.rid2reaction[24]) # aldolase
+    #reactions.append(kegg.rid2reaction[24]) # rubisco
     #for reaction in
     reactions = kegg.AllReactions() 
     
-    counters = {}
+    regime_counters = {}
+    stoich_counters = {}
     data_mat = pylab.zeros((0, 4))
+    
+    debug_dict_list = []
     for reaction in reactions:
-        #if reaction.rid % 10 != 1:
-        #    continue
         try:
-            reaction.Balance(balance_water=True)
-
+            reaction.Balance(balance_water=True, exception_if_unknown=True)
             dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T) 
             Keq = pylab.exp(-dG0/(R*T))
 
-            n_s = -sum([x for cid, x in reaction.sparse.iteritems() if (x < 0 and cid != 1)])
-            n_p = sum([x for cid, x in reaction.sparse.iteritems() if (x > 0 and cid != 1)])
+            n_s = -sum([x for cid, x in reaction.sparse.iteritems() if (x < 0 and cid not in cmap)])
+            n_p = sum([x for cid, x in reaction.sparse.iteritems() if (x > 0 and cid not in cmap)])
             if (n_p + n_s) == 0:
                 continue
+            stoich_counters.setdefault((n_s, n_p), 0)
+            stoich_counters[n_s, n_p] += 1
             
-            gamma = (Keq*c_mid**(n_p - n_s)) ** (2.0/(n_p + n_s))
+            gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
+                                           concentration_map=cmap)
             
             if Keq < 1.0/x_threshold:
                 Krev = -1
@@ -1135,17 +1084,52 @@ def compare_reversibility_to_dG0(thermo, name):
             else:
                 Grev = 1
                 
-            counters.setdefault((Krev, Grev), 0)
-            counters[Krev, Grev] += 1
+            regime_counters.setdefault((Krev, Grev), 0)
+            regime_counters[Krev, Grev] += 1
             data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
+            
+            debug_dict_list.append({'sortkey':gamma,
+                                    'KEGG Reaction':str(reaction),
+                                    'link':'<a href="%s">R%05d</a>' % (reaction.get_link(), reaction.rid),
+                                    'Rev. index':"%.3g" % gamma,
+                                    'dG0': "%.2f" % dG0})
         except (MissingCompoundFormationEnergy, KeggReactionNotBalancedException):
             pass
     
+    debug_dict_list.sort(key=lambda(x):x['sortkey'])
+    html_writer.write_table(debug_dict_list, headers=['Rev. index', 'dG0',
+        'KEGG Reaction', 'link'])
+    
+    fig = pylab.figure()
+    pylab.xlabel(r"$K^'$", figure=fig)
+    pylab.ylabel(r"$\gamma = \left( K^' / \Gamma^{''} \right)^{2/N}$", figure=fig)
+    
+    x_color = (0.8, 0.8, 1.0)
+    y_color = (1.0, 0.8, 0.8)
+    #pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=0, ymax=1, color=x_color, alpha=0.3)
+    #pylab.axvspan(x_threshold, x_range[1], ymin=0, ymax=1, color=x_color, alpha=0.3)
+    #pylab.axhspan(y_range[0], 1.0/y_threshold, xmin=0, xmax=1, color=y_color, alpha=0.3)
+    #pylab.axhspan(y_threshold, y_range[1], xmin=0, xmax=1, color=y_color, alpha=0.3)
+    pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=1.0/3.0, ymax=2.0/3.0, color=x_color)
+    pylab.axvspan(x_threshold, x_range[1], ymin=1.0/3.0, ymax=2.0/3.0, color=x_color)
+    pylab.axhspan(y_range[0], 1.0/y_threshold, xmin=1.0/3.0, xmax=2.0/3.0, color=y_color)
+    pylab.axhspan(y_threshold, y_range[1], xmin=1.0/3.0, xmax=2.0/3.0, color=y_color)
+
+    stoichiometries = [(1, 1, 'orange'), 
+                       (1 ,2, 'r--'), 
+                       (2, 1, 'g--'), 
+                       (2, 2, 'cyan')] 
     fig.hold(True)
-    for Krev, Grev in counters.keys():
+    for n_s, n_p, style in stoichiometries:
+        percent = 100.0 * stoich_counters.get((n_s, n_p), 0) / sum(stoich_counters.values())
+        gamma = [(Keq / c_mid**(n_p - n_s)) ** (2.0/(n_p + n_s)) for Keq in x_range]
+        pylab.plot(x_range, gamma, style, figure=fig, label="%d:%d (%.1f%%)" % (n_s, n_p, percent))
+    pylab.legend(loc='upper left')
+
+    for Krev, Grev in regime_counters.keys():
         x_pos = x_threshold ** (Krev*2)
         y_pos = y_threshold ** (Grev*2)
-        pylab.text(x_pos, y_pos, "%.1f%%" % (100.0 * counters[Krev, Grev] / data_mat.shape[0]), 
+        pylab.text(x_pos, y_pos, "%.1f%%" % (100.0 * regime_counters[Krev, Grev] / data_mat.shape[0]), 
                    horizontalalignment='center',
                    verticalalignment='center')
 
@@ -1156,22 +1140,36 @@ def compare_reversibility_to_dG0(thermo, name):
     html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_k_vs_g")
    
     fig = pylab.figure()
-    max_gamma = 1e20
-    pylab.axvspan(y_threshold, max_gamma, ymin=0, ymax=1, color=y_color, alpha=0.3)
+    max_gamma = 1e9
     abs_gamma = pylab.exp(abs(pylab.log(data_mat[:,1])))
     plotting.cdf(abs_gamma, label='gamma', figure=fig)
+    pylab.plot([x_threshold, x_threshold], [0, 1], 'k--')
     pylab.xscale('log')
+    pylab.xlabel(r'$\gamma$')
+    pylab.ylabel(r'CDF($\gamma$)')
     pylab.xlim((1, max_gamma))
     html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_cdf")
 
 def main():
+    # plot the profile graph
+    pylab.rcParams['text.usetex'] = False
+    pylab.rcParams['legend.fontsize'] = 10
+    pylab.rcParams['font.family'] = 'sans-serif'
+    pylab.rcParams['font.size'] = 14
+    pylab.rcParams['lines.linewidth'] = 2
+    pylab.rcParams['lines.markersize'] = 6
+    pylab.rcParams['figure.figsize'] = [6.0, 6.0]
+    pylab.rcParams['figure.dpi'] = 100
+    
     #logging.getLogger('').setLevel(logging.DEBUG)
     #try_kegg_api()
     estimators = LoadAllEstimators()
     #analyse_reversibility(estimators['hatzi_gc'], 'HatziGC')
     #analyse_reversibility(estimators['milo_gc'], 'MiloGC_zoom')
     
-    compare_reversibility_to_dG0(estimators['milo_gc'], 'MiloGC')
+    if False:
+        compare_reversibility_to_dG0(estimators['milo_gc'], 'MiloGC')
+    
     #compare_reversibility_to_dG0(estimators['alberty'], 'Alberty')
     #metacyc_data('meta', 'zoom', estimators['milo_gc'], max_pathway_length_for_fig=6)
     #metacyc_data('ecoli', 'zoom', estimators['milo_gc'], max_pathway_length_for_fig=4)
@@ -1179,12 +1177,13 @@ def main():
     #meta_regulated_rxns_cumul_plots('meta', '_abs', estimators['milo_gc'])
     #meta_regulated_rxns_cumul_plots('ecoli', '_abs', estimators['milo_gc'])
     
-    #calc_palsson_rxns_irrev('ecoli', 'zoom', '../data/reactionList_iAF1260.txt',
-    #                        '../data/ecoli2kegg_cid.txt',
-    #                        thermo=estimators['milo_gc'], c_mid=1e-3,
-    #                        pH=7.0, pMg=3.0, I=0.1, T=298.15,
-    #                        cmap=GetConcentrationMap(Kegg.getInstance()),
-    #                        xlim=20)
+    calc_palsson_rxns_irrev('ecoli', 'zoom', 
+                            '../data/metabolic_models/reactionList_iAF1260.txt',
+                            '../data/metabolic_models/ecoli2kegg_cid.txt',
+                            thermo=estimators['milo_gc'], c_mid=DEFAULT_CMID,
+                            pH=7.0, pMg=3.0, I=0.1, T=298.15,
+                            cmap=GetConcentrationMap(),
+                            xlim=1e9)
     #calc_cons_rxns_corr(estimators['milo_gc'], 'MiloGC')
     
 if __name__ == "__main__":

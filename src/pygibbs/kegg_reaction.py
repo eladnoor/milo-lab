@@ -157,12 +157,15 @@ class Reaction(object):
         return set(self.sparse.keys())
 
     @staticmethod
-    def BalanceSparseReaction(sparse, balance_water=False, balance_hydrogens=False):
+    def BalanceSparseReaction(sparse, balance_water=False,
+                              balance_hydrogens=False, exception_if_unknown=False):
         from pygibbs.kegg import Kegg
         kegg = Kegg.getInstance()
-        kegg_utils.balance_reaction(kegg, sparse, balance_water, balance_hydrogens)
+        kegg_utils.balance_reaction(kegg, sparse, balance_water,
+                                    balance_hydrogens, exception_if_unknown)
 
-    def Balance(self, balance_water=False, balance_hydrogens=False):
+    def Balance(self, balance_water=False, balance_hydrogens=False,
+                exception_if_unknown=False):
         """
             Balances a reaction
             
@@ -170,10 +173,14 @@ class Reaction(object):
                 If balance_water=True and there is an imbalance of oxygen atoms, Balance
                 changes the reaction by adding H2O until it is balanced.
                 If balance_hydrogens=True then H+ are used to balance the amount of hydrogen atoms.
+                
+                If exception_if_unknown=True then an exception will be raised also if there
+                    is not enough information to know if the reaction is balanced or not.
             
             If the reaction cannot be balanced, raises KeggReactionNotBalancedException
         """
-        Reaction.BalanceSparseReaction(self.sparse, balance_water, balance_hydrogens)
+        Reaction.BalanceSparseReaction(self.sparse, balance_water, 
+                                       balance_hydrogens, exception_if_unknown)
         
     def PredictReactionEnergy(self, thermodynamics, 
                               pH=None, pMg=None, I=None ,T=None):

@@ -1,5 +1,5 @@
-import csv, re, sys
-from pylab import arange, NaN, isfinite
+import csv, re
+from pylab import NaN, isfinite
 from thermodynamics import Thermodynamics, MissingCompoundFormationEnergy
 from pygibbs import pseudoisomer
 from toolbox.database import SqliteDatabase
