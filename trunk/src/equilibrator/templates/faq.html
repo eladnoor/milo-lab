@@ -14,8 +14,10 @@
 				<ul>
 					<li><a href="#compoundSearch">How do I search for a compound or enzyme?</a></li>
 					<li><a href="#rxnSearch">How do I search for a reaction?</a></li>
-					<li><a href="#notAvailable">Why is &Delta;G "not available?"</a></li>
 					<li><a href="#stdConditions">What are "standard conditions?"</a></li>
+					<li><a href="#dgr">What are &Delta;<sub>r</sub>G&deg;, &Delta;<sub>r</sub>G'&deg; and &Delta;<sub>r</sub>G'?</a></li>
+					<li><a href="#dgf">What are &Delta;<sub>f</sub>G&deg; and &Delta;<sub>f</sub>G'&deg;?</a></li>
+					<li><a href="#notAvailable">Why is &Delta;G "not available?"</a></li>
 					<li><a href="#hConcentration">Why can't I change the concentration of Hydrogen ions?</a></li>
 					<li><a href="#waterConcentration">Why can't I change the concentration of water?</a></li>
 					<li><a href="#changeTemp">Why can't I change the temperature?</a></li>
@@ -29,17 +31,26 @@
 				
 				<div class="faqAnswer">
 				<p>You can search for a compound or enzyme by entering their common name into the search box.
-				As you type, you should see a list of potential matches, which should give you a sense of what eQuilibrator
-				thinks you are looking for. To the right of each suggestion you will see they type of the match: "Compound" or "Enzyme".
+				For example, try "<a href="/search?query=Succinyl-CoA">Succinyl-CoA</a>" or
+				"<a href="/search?query=pyruvate+formate-lyase">pyruvate formate-lyase</a>."
+				As you type, you should see a list of potential matches which should give you a sense of
+				what eQuilibrator thinks you are looking for. To the right of each suggestion you will
+				see they type of the match: "Compound" or "Enzyme".
 				
-			  Complete your search by selecting a compound or enzyme from the list or typing the name in full.
-				When you've finished typing your query, click 'Search' or press 'Enter' to see search results.</p>
+			  	Complete your search by selecting a compound or enzyme from the list or typing the
+			  	name in full. When you've finished typing your query, click 'Search' or press
+			  	'Enter' to see search results.
+			  	</p>
 				
-				<p>The search results page shows the top matches for your query. Results are shown in two sections: one for compounds 
-				and another for enzymes. If you're interested in a compound, click on it to see more details and to change the 
-				conditions of &Delta;<sub>f</sub>G estimation. If you're interested in an enzyme, click on the enzyme name to 
-				see detailed information about it. If you want to explore the thermodynamics of an enzyme-catalyzed reaction,
-				choose a reaction listed under the enzyme name to get a &Delta;<sub>r</sub>G estimation.</p>
+				<p>
+				The search results page shows the top matches for your query. Results are shown in two
+				sections: one for compounds and another for enzymes. If you're interested in a compound,
+				click on it to see more details and to find &Delta;<sub>f</sub>G.
+				If you're interested in an enzyme, click on the enzyme name to see
+				detailed information about it. If you want to explore the thermodynamics of an
+				enzyme-catalyzed reaction, choose a reaction listed under the enzyme name to get
+				a &Delta;<sub>r</sub>G estimation.
+				</p>
 				</div>
 			</div>
 			
@@ -48,21 +59,98 @@
 				
 				<div class="faqAnswer">
 				<p>You can search for a reaction by entering an (almost) free-text string of the reaction.
-				For example, you can type "glucose = 2 ethanol + 2 co2".</p>
+				For example, you can type
+				"<a href="/search?query=glucose+%3D+2+ethanol+%2B+2+co2">glucose &lt;=&gt; 2 ethanol + 2 co2</a>".</p>
 				
-				<p>In general, write your reaction using " = " to separate the reactants from the products.
+				<p>In general, write your reaction using " = " or " &lt;=&gt; " to separate the reactants from the products.
 				The spaces around " = " are required. Always use spaces before and after compound names, "+"
 				and stoichiometric coefficients.</p>
+				
+				<p>
+				Also note that it is possible to find reactions through the enzymes that catalyze them.
+				For example, instead of typing in the full reaction
+				"<a href="/search?query=Fructose+1%2C6-bisphosphate+%3D+Glycerone+phosphate+%2B+Glyceraldehyde+3-phosphate">Fructose 1,6-bisphosphate = Glycerone phosphate + Glyceraldehyde 3-phosphate</a>"
+				you can instead search for "<a href="/search?query=aldolase">aldolase</a>" or
+				"<a href="/search?query=fructose+bisphosphate+aldolase">fructose bisphosphate aldolase</a>."
+				</p>
 				</div>
 			</div>
 			
+			<div class="faqEntry" id="stdConditions">
+				<div class="faqQuestion">What are "standard conditions?"</div>
+				
+				<div class="faqAnswer">
+				<p>"Standard conditions" implies that all substrates and products of a reaction are at 1 M concentration.
+				If their concentrations are different, it will affect the &Delta;<sub>r</sub>G.</p>
+				</div>
+			</div>
+
+			<div class="faqEntry" id="dgr">
+				<div class="faqQuestion">What are &Delta;<sub>r</sub>G&deg;, &Delta;<sub>r</sub>G'&deg; and &Delta;<sub>r</sub>G'?</div>
+			
+				<div class="faqAnswer">
+					<p>G is the Gibbs free energy of a physical system.
+					It quantifies the amount of energy available for work in a system that is 
+					at constant temperature in pressure. Biological systems do not often
+					experience radical changes in temperature or pressure, so G is appropriate
+					for their analysis. As a consequence of the second law of thermodynamics, 
+					spontaneous changes in systems at constant temperature and pressure
+					must lead to reduction in G. Chemical reactions change biochemical systems,
+					so the same must be true of them: in order to occur, a reaction must lead
+					to a reduction in the Gibbs free energy - &Delta;<sub>r</sub>G' &lt; 0.
+					</p>
+					
+					<p>&Delta;<sub>r</sub>G&deg; is the change in Gibbs free energy due to a 
+					chemical reaction in standard conditions and without accounting for pH,
+					ionic strength or any other cellular factors (i.e. they are taken as 0).
+					&Delta;<sub>r</sub>G'&deg; is the change in Gibbs free energy due to a
+					chemical reaction due a reaction at a particular pH and ionic strength.
+					These are convenient reference points, but neither &Delta;<sub>r</sub>G&deg;
+					nor &Delta;<sub>r</sub>G'&deg; account for the effect of reactant
+					concentrations on the free energy.
+					</p>
+					
+					<p>In cells there are certain prevailing metabolite concentrations.
+					&Delta;<sub>r</sub>G' accounts for the effect of these concentrations
+					on the free energy. It is very important to use &Delta;<sub>r</sub>G' values
+					derived from physiologically plausible concentrations because reactant
+					concentrations have a large effect on &Delta;<sub>r</sub>G' and because
+					the laws of thermodynamics constrain only &Delta;<sub>r</sub>G',
+					not &Delta;<sub>r</sub>G&deg; or &Delta;<sub>r</sub>G'&deg;.  
+					</p>
+				</div>
+			</div>
+
+			<div class="faqEntry" id="dgf">
+				<div class="faqQuestion">What are &Delta;<sub>f</sub>G&deg; and &Delta;<sub>f</sub>G'&deg;?</div>
+			
+				<div class="faqAnswer">
+					<p>The formation energy of a compound is the change in free energy due to the
+					compound's formation reaction - the reaction forming it from elements in their
+					most stable form. For example, the formation reaction of carbon dioxide is
+					O<sub>2</sub> + C &lt;=&gt; CO<sub>2</sub>. &Delta;<sub>f</sub>G&deg; is the
+					formation energy of a compound in standard conditions and without accounting for pH,
+					ionic strength or any other cellular factors (i.e. they are taken as 0).
+					</p>
+					
+					<p>In contrast, &Delta;<sub>f</sub>G'&deg; is the formation energy of a compound
+					at a particular set of cellular conditions. When we show a &Delta;<sub>f</sub>G'&deg;
+					on eQuilibrator, as we do on compound and reaction pages, it has been transformed 
+					to the pH and ionic strength values you've chosen. 
+					</p>			
+					
+				</div>
+			</div>
+
 			<div class="faqEntry" id="notAvailable">
 				<div class="faqQuestion">Why is &Delta;G "not available?"</div>
 				
 				<div class="faqAnswer">
 				<p>There are several reasons that a &Delta;G value might not be available.</p>
 				
-				<p>&Delta;<sub>f</sub>G is very difficult to measure experimentally. We use the group contribution
+				<p>In the case of a reaction, &Delta;<sub>r</sub>G is not available when
+				&Delta;<sub>f</sub>G is missing for one of the reactants.
+				&Delta;<sub>f</sub>G is very difficult to measure experimentally. We use the group contribution
 				method to estimate &Delta;<sub>f</sub>G for compounds that have not been characterized experimentally [3-4].
 				However, we need certain data about a compound in order to approximate &Delta;<sub>f</sub>G.</p>
 
@@ -78,15 +166,6 @@
 				<p>Moreover, we can't estimate &Delta;<sub>r</sub>G for any reaction that contains a compound that we cannot estimate
 				&Delta;<sub>f</sub>G for.</p>
 	
-				</div>
-			</div>
-	
-			<div class="faqEntry" id="stdConditions">
-				<div class="faqQuestion">What are "standard conditions?"</div>
-				
-				<div class="faqAnswer">
-				<p>"Standard conditions" implies that all substrates and products of a reaction are at 1 M concentration.
-				If their concentrations are different, it will affect the &Delta;<sub>r</sub>G.</p>
 				</div>
 			</div>
 
@@ -153,59 +232,19 @@
 	        <div class="faqQuestion">What do you mean "electrons are not balanced?" What about half-reactions?</div>
 	        
 	        <div class="faqAnswer">
-	        <p>Unlike in metals, there are no free electrons in solution. As such, reactions entered in eQuilibrator must 
-	        be redox balanced. That is, the products must contain the same number of electrons as the reactants. You 
-	        cannot currently enter half-reactions in eQuilibrator; eQuilibrator checks the redox balance of reactions
-	        when you search for them and provides automatic balancing using the electron donor/acceptor NAD+/NADH.
-	        If you wish to use another donor/acceptor pair, you can do so manually. You can adjust the concentrations
-	        of the donor and acceptor in order to adjust the reduction potential of your chosen redox carrier.</p>
-	        
-	        <p>If the above paragraph was not clear to you, here is a review of the basics of the energetics of redox reactions.</p>
-	        
 	        <p>
-	        Redox reactions are a special case of biochemical reactions, where electrons are transferred from one compound to another.
-	        It is common to consider the compound which looses the electrons and consequently changes to its oxidized form as the
-	        electron donor, and the compound which gains electrons and changes to its reduced form as the electron acceptor.
-	        For example, in the reaction <a href="http://equilibrator.weizmann.ac.il/reaction?reactionId=R00342">L-malate + NAD+ → oxaloacetate + NADH</a>,
-	        L-malate is the electron donor and is oxidized to oxaloacetate. NAD+ is the electron acceptor and is reduced to NADH.
-	        Since all of the reactants are soluble metabolites with explicit chemical formulas, one can calculate their formation
-	        energies and use them to deduce the &Delta;G of the reaction like in any other biochemical reaction.
+	        There are no free electrons in solution. As such, reactions entered in eQuilibrator must be
+	        redox balanced. That is, the products must contain the same number of electrons as the reactants.
+	        You cannot currently enter half-reactions in eQuilibrator; eQuilibrator checks the redox
+	        balance of reactions when you search for them and provides automatic balancing using the
+	        electron donor/acceptor NAD+/NADH. If you wish to use another donor/acceptor pair, you can do
+	        so manually. You can adjust the concentrations of the donor and acceptor in order to adjust
+	        the reduction potential of your chosen redox carrier.
 	        </p>
 	        
-	        <p>
-	        There are several compounds that are used mainly for electron transfer. They are called electron carriers or redox carriers.
-	        For example, the pair NAD+:NADH, NADP+:NADPH, and ubiquinone:ubiquinol are all common electron donors or acceptors in many redox reactions.
-	        Since they are not chemically involved in these reactions (except by electron transfer) it is useful to define their standard reduction potential
-	        (E<sub>0</sub>) which reflects the affinity of the oxidized form for electrons (calculated assuming that H2 is the electron donor).
-	        Electrons tend to flow from a lower potential to a higher one. In biological systems, it is common to define the reduction potential at a specific pH, denoted E’<sub>0</sub>. 
-	        </p>
-	        
-	        <p>
-	        The reduction potential of NAD+:NADH is E’<sub>0</sub> = -0.32 V and the reduction potential of O2:H2O is E’<sub>0</sub> = 0.82 V (both at the pH 7).
-	        Therefore, electrons will tend to flow from NADH to O2 producing NAD+ and H2O.
-	        </p>
-	        
-	        <p>
-	  		Reduction potentials can be defined and measured for any electron source or sink, not only for soluble electron carriers.
-	  		However, when a reaction involves only soluble electron carriers, performing calculations using reduction potentials is equivalent to using the
-	  		change in &Delta;G’<sub>0</sub> of formation of the oxidized and reduced forms. The equation for converting E’<sub>0</sub> to &Delta;G’<sub>0</sub>
-	  		is: &Delta;G’<sub>0</sub> = -nF &Delta;E’<sub>0</sub> (where n is the number of electrons transferred, and F is Faraday’s constant that represents the charge
-	  		of 1 mol of electrons or 9.65∙104 C∙mol-1). For example, the ∆G’0 attributed to the oxidation of NADH by O2 is -2∙F∙(0.82 - (-0.32)) = -220 kJ/mol.
-	  		eQuilibrator provides the same result for this reaction: <a href="/search?query=NADH+%2B+0.5+O2+%3C%3D%3E+NAD%2B+%2B+H2O">NADH + 0.5 O2 <=> NAD+ + H2O</a>.
-	        </p>
-	        
-	        <p>
-	        Currently, eQuilibrator only deals with soluble compounds, and therefore all electron carriers can be handled via their formation energies,
-	        without the need to explicitly specify their redox potentials. The reduced and oxidized forms of these electron carriers are two distinct
-	        chemicals and each is treated as a separate entity in eQuilibrator. For example, oxidized FMN and reduced FMN. In some cases, the formation
-	        energy of the redox pair is unknown and we know only the difference between the formation energies of the two forms. In these situations,
-	        the oxidized form is typically defined to have a formation energy of 0 and the reduced form has a value which is relative to that
-	        (as is the case with FMN). These relative formation energies are equivalent reduction potentials.
-	        </p>
-	        
-	        <p>Currently, free electrons are not recognized by eQuilibrator, and therefore half-reactions (such as NAD+ + 2 e- <=> NADH) are not allowed.
-	        In the future, we plan to allow half-reactions and to enable using other types of redox carriers such as cytochromes or metal ions.
-	        </p>
+	        <p>If the above paragraph was not clear to you, <a href="/redox_review">click here</a> for a review of the basics of the
+	        energetics of redox reactions.</p>
+			</div>
 	      </div>
 			
 			{% include "references.html" %}

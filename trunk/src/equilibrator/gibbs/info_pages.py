@@ -11,6 +11,11 @@ def FAQPage(request):
     return render_to_response('faq.html', {})
 
 
+def RedoxReview(request):
+    """Renders robots.txt."""
+    return render_to_response('redox_review.html', {})
+
+
 def ClassicReactions(request):
     """Renders the classic reactions page."""
     return render_to_response('classic_reactions.html', {})
