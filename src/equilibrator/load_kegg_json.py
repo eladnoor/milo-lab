@@ -137,6 +137,7 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
                 mass = float(mass)
             inchi = cd.get('InChI')
             num_electrons = cd.get('num_electrons')
+            group_vector = cd.get('group_vector')
             
             if formula is None:
                 raise KeyError('Missing formula for CID %s' % cid)
@@ -150,7 +151,8 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             c = models.Compound(kegg_id=cid,
                                 formula=formula,
                                 inchi=inchi,
-                                mass=mass)
+                                mass=mass,
+                                group_vector=group_vector)
             
             if num_electrons is not None:
                 c.num_electrons = int(num_electrons)

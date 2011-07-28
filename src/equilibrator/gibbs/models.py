@@ -210,6 +210,9 @@ class Compound(models.Model):
     
     # The various estimates of Delta G for this compound.
     species_groups = models.ManyToManyField(SpeciesGroup)
+
+    # Group vector encoded as a sparse vector in dictionary format.
+    group_vector = models.TextField(null=True)
     
     # Replace this compound with another one.
     replace_with = models.ForeignKey('self', null=True)
