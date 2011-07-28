@@ -274,12 +274,24 @@ class Compound(models.Model):
         Returns:
             The estimated delta G in the given conditions or None.
         """
-        return self._species_group.DeltaG(pH, pMg, ionic_strength)
+        sg = self._species_group
+        if not sg:
+            return None
+        
+        return sg.DeltaG(pH, pMg, ionic_strength)
+
+    def DeltaGZero(self):
+        """Get a dG0 estimate for the given compound.
+        
+        Returns:
+            The estimated delta G in standard conditions.
+        """
+        return self.DeltaG(pH=0.0, pMg=0.0, ionic_strength=0.0)
 
     def GetAtomBag(self):
         """Returns a dictionary of atoms and their counts for this compound."""
         if not self.formula:
-            logging.error('Formula is not defined for KEGG ID %s', self.kegg_id)
+            logging.error('Formulnumber_of_mgsa is not defined for KEGG ID %s', self.kegg_id)
             return None
         
         if '(' in self.formula or ')' in self.formula:
@@ -345,6 +357,7 @@ class Compound(models.Model):
         for s in self._species_group.all_species:
             l.append({"nh": int(s.number_of_hydrogens),
                       "nc": int(s.net_charge),
+                      "nmg": int(s.number_of_mgs),
                       "dgf": float(s.formation_energy)})
         return l
 
@@ -356,6 +369,10 @@ class Compound(models.Model):
         return self._all_species_groups
         
         return self.species_groups.all()
+    
+    def HasSpeciesGroups(self):
+        """Returns true if this compound has any species groups."""
+        return self.species_groups.count() > 0
     
     def GetUniqueSpeciesGroups(self):
         """Iterator of unique species groups."""
@@ -371,7 +388,6 @@ class Compound(models.Model):
         if not self._species_group:
             return None
         
-        print self._species_group.formation_energy_source
         return self._species_group.formation_energy_source        
     
     def _GetSubstrateEnzymes(self):
@@ -392,11 +408,13 @@ class Compound(models.Model):
     all_common_names = property(lambda self: self.common_names.all())
     all_species = property(GetSpecies)
     all_species_groups = property(GetSpeciesGroups)
+    has_species_groups = property(HasSpeciesGroups)
     unique_species_groups = property(GetUniqueSpeciesGroups)
     substrate_of = property(_GetSubstrateEnzymes)
     product_of = property(_GetProductEnzymes)
     cofactor_of = property(_GetCofactorEnzymes)
-    standard_formation_energy = property(DeltaG)
+    dgf_zero = property(DeltaGZero)
+    dgf_zero_tag = property(DeltaG)
     dg_source = property(_GetDGSource)
     
     def StashTransformedSpeciesEnergies(self, ph, pmg, ionic_strength):

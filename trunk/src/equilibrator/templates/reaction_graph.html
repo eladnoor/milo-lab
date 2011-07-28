@@ -14,7 +14,7 @@
 		<!-- Tangle and TangleKit -->
 		<link rel="stylesheet" href="media/Tangle/TangleKit/TangleKit.css" type="text/css"> 
     	<script type="text/javascript" src="media/Tangle/Tangle.js"></script>
-		  <script type="text/javascript" src="media/Tangle/TangleKit/mootools.js"></script> 
+		<script type="text/javascript" src="media/Tangle/TangleKit/mootools.js"></script> 
     	<script type="text/javascript" src="media/Tangle/TangleKit/sprintf.js"></script> 
     	<script type="text/javascript" src="media/Tangle/TangleKit/BVTouchable.js"></script> 
     	<script type="text/javascript" src="media/Tangle/TangleKit/TangleKit.js"></script>
@@ -35,38 +35,41 @@
 				            "(pH = <span data-var='ph' class='TKAdjustableNumber' " +
 				            "data-min='0.01' data-max='14.0' data-step='0.1' "+
 				            "data-format='%.1f'></span>)");
-        	  } else {
+        	} else {
 				      $("#plotTitle").append("&Delta;G' as a function of pH " +
 				            "(ionic strength = <span data-var='is' " +
-						        "class='TKAdjustableNumber' data-min='0.0' data-max='0.35' " +
-						        "data-step='0.01' data-format='%.2f'>  mM</span>)");
-			      }
+						    "class='TKAdjustableNumber' data-min='0.0' data-max='0.35' " +
+					        "data-step='0.01' data-format='%.2f'>  mM</span>)");
+			}
 			      
-			      {% autoescape off %}
-			      reactants = {{ reactant_data }};
-			      products = {{ product_data }};
-					  {% endautoescape %}
+			{% autoescape off %}
+	        reactants = {{ reactant_data }};
+	        products = {{ product_data }};
+	  	    {% endautoescape %}
 					              
             var tangle = new Tangle(element, {
                 initialize: function () {
-                	this.ph = 7.0;
+                	this.ph = 7.0;				 // ph units (unitless)
+                	this.pmg = 14.0;			 // pmg units (unitless)
                 	this.is = 0.1;				 // ionic strength
                 	this.rt = 8.31e-3 * 298.15;  // kJ/(mol K)
+                	this.dgf_mg = -455.3;		 // kJ/mol
                 	this.reactants = reactants;
                 	this.products = products;
-                	this.mode = mode; 
-
+                	this.mode = mode;
                 },
 
-				        getDgfSpecie: function (specie, ph, is) {
-        					var nh = specie.nh;
-        					var nc = specie.nc;
-        					var dgf = specie.dgf;
-        					var prot_pot = nh * this.rt * Math.log(10) * ph;
-        					var ionic_pot = 2.91482 * (Math.pow(nc, 2) - nh) * Math.sqrt(is);
-                            ionic_pot /= 1 + 1.6 * Math.sqrt(is);
-                            return dgf + prot_pot - ionic_pot;
-        				},
+				getDgfSpecie: function (specie, ph, is) {
+					var nh = specie.nh;
+					var nmg = specie.nmg;
+					var nc = specie.nc;
+					var dgf = specie.dgf;
+					var prot_pot = nh * this.rt * Math.log(10) * ph;
+					var ionic_pot = 2.91482 * (Math.pow(nc, 2) - nh) * Math.sqrt(is);
+                    ionic_pot /= 1 + 1.6 * Math.sqrt(is);
+                    var mg_pot = nmg * (this.rt * Math.log(10) * this.pmg - this.dgf_mg);
+                    return dgf + mg_pot + prot_pot - ionic_pot;
+				},
                 
                 getDgfSpecies: function (species, ph, is) {
                 	var scaled_transforms = [];
@@ -133,7 +136,7 @@
                 	}
                 	
                 	var series = {
-                		label: "&Delta;G' (ionic strength = " + (this.is).toFixed(2) + ")",
+                		label: "&Delta;<sub>r</sub>G' (ionic strength = " + (this.is).toFixed(2) + ")",
                 		data: points
                 	};
                 	return series;
@@ -151,7 +154,7 @@
                 	}
                 	
                 	var series = {
-                		label: "&Delta;G' (pH = " + (this.ph).toFixed(1) + ")",
+                		label: "&Delta;<sub>r</sub>G' (pH = " + (this.ph).toFixed(1) + ")",
                 		data: points
                 	};
                 	return series;

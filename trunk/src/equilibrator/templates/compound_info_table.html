@@ -36,7 +36,8 @@
 		</td>
 	{% endif %}
 </table>
-{% if compound.unique_species_groups %}
+
+{% if compound.has_species_groups %}
 <table class="speciesInfo">
 	<tr>
 		<th colspan="4">Species Formation Energies</td>		
@@ -47,6 +48,7 @@
 		<td>&Delta;<sub>f</sub>G'&deg;</td>
 		<td>Reference</td>
 	</tr>
+
 
   {% for sg in compound.unique_species_groups %}
 	{% for specie in sg.all_species %}
@@ -67,6 +69,6 @@
 		{% endif %}
 	</tr>
 	{% endfor %}
-	{% endfor %}
+  {% endfor %}
 </table>
 {% endif %}
