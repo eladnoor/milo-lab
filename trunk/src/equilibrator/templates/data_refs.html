@@ -18,7 +18,9 @@
 			<div class="refsList">
 				<ol>
 				{% for source in sources %}
+				  {% if source.citation %}
 					<li><a name="{{source.name|slugify}}">{{source.citation}}</a></li>
+				  {% endif %}
 				{% endfor %}
 				</ol>			
 			</div>
