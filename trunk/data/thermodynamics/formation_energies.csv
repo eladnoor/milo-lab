@@ -150,7 +150,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 469,Ethanol,-181.64,-288.3,0,6,0,test,"Alberty (2006)","too small"
 543,Dimethylamine,-3.3,,1,8,0,test,"Thauer (1977)","too small"
 565,Trimethylamine,37.2,,1,10,0,test,"Thauer (1977)","too small"
-575,Cyclic-AMP,-790.86,,-1,11,0,test,"Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
+575,Cyclic-AMP,-790.86,,-1,11,0,train,"Alberty (2006)","decomposition scheme doesn't support this kind of P-ring"
 697,N2(aq),18.7,-10.54,0,0,0,test,"Alberty (2006)","too small"
 887,N2O(aq),104.2,82.05,0,0,0,test,"Alberty (2006)","too small"
 1417,Cyanate,-97.4,,-1,0,0,test,"Alberty (2006)","too weird (resonance between C=N and C#N)"

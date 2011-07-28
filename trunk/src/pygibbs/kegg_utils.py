@@ -43,14 +43,19 @@ def write_module_to_html(html_writer, S, rids, fluxes, cids):
         reactions.append(reaction)
     write_kegg_pathway(html_writer, reactions, fluxes)
     
-def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False):
+def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
+                     exception_if_unknown=False):
     """
         Balances a reaction
         
         Arguments:
             If balance_water=True and there is an imbalance of oxygen atoms, Balance
-            changes the reaction by adding H2O until it is balanced.
+                changes the reaction by adding H2O until it is balanced.
+            
             If balance_hydrogens=True then H+ are used to balance the amount of hydrogen atoms.
+            
+            If exception_if_unknown=True then an exception will be raised also if there
+                is not enough information to know if the reaction is balanced or not.
         
         If the reaction cannot be balanced, raises KeggReactionNotBalancedException
     """
@@ -60,8 +65,14 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False)
             comp = kegg.cid2compound(cid)
             cid_atom_bag = comp.get_atom_bag()
             if cid_atom_bag == None:
-                logging.debug("C%05d has no explicit formula, cannot check if this reaction is balanced" % cid)
-                return
+                if exception_if_unknown:
+                    raise kegg_errors.KeggReactionNotBalancedException(
+                        "C%05d has no explicit formula, "
+                        "cannot check if this reaction is balanced" % cid)
+                else:
+                    logging.warning("C%05d has no explicit formula, "
+                                    "cannot check if this reaction is balanced" % cid)
+                    return
             try:
                 cid_atom_bag['e-'] = comp.get_num_electrons()
             except kegg_errors.KeggParseException:
@@ -71,8 +82,12 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False)
                 atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
                 
     except KeyError as e:
-        logging.warning(str(e) + ", cannot check if this reaction is balanced")
-        return
+        if exception_if_unknown:
+            raise kegg_errors.KeggReactionNotBalancedException(
+                "cannot check if this reaction is balanced")
+        else:
+            logging.warning(str(e) + ", cannot check if this reaction is balanced")
+            return
 
     if balance_water and atom_bag.get('O', 0) != 0:
         sparse[1] = sparse.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)

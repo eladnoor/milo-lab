@@ -453,16 +453,16 @@ class MetaCyc(object):
             return None
     
     def sparse2kegg_cids(self, sparse, kegg_inst):
-        if (len(self.kegg_cids) == 0):
+        if len(self.kegg_cids) == 0:
             for name,cid in kegg_inst.name2cid_map.iteritems():
                 self.kegg_cids[name.lower()] = cid
 
         kegg_dict = {}
      
-        for (uid, value) in sparse.iteritems():
+        for uid, value in sparse.iteritems():
             name_cand_cid = None
             inchi_cand = None
-            if (not uid in self.uid2compound_map):
+            if uid not in self.uid2compound_map:
                 raise MetaCycNonCompoundException('Compound %s not found' % uid)
             comp = self.uid2compound_map[uid]
             if (comp.name.lower() in self.kegg_cids):
@@ -473,13 +473,13 @@ class MetaCyc(object):
                         name_cand_cid = self.kegg_cids[syn.lower()]
                         break
             inchi = comp.inchi
-            if (inchi):
+            if inchi:
                 inchi_cand = kegg_inst.inchi2cid(inchi) 
             
-            if (name_cand_cid and inchi_cand and name_cand_cid != inchi_cand):
-                logging.debug('Ambigious mapping of MetaCyc compound %s to Kegg, matches cid %s by name and cid %s by inchi, selecting inchi...' % (uid, name_cand_cid, inchi_cand))
+            if name_cand_cid and inchi_cand and name_cand_cid != inchi_cand:
+                logging.debug('Ambiguous mapping of MetaCyc compound %s to Kegg, matches cid %s by name and cid %s by inchi, selecting inchi...' % (uid, name_cand_cid, inchi_cand))
                 kegg_dict[inchi_cand] = value 
-            elif (not name_cand_cid and not inchi_cand):
+            elif not name_cand_cid and not inchi_cand:
                 raise KeggNonCompoundException('No mapping of MetaCyc compound %s to Kegg' % uid)
             else:
                 kegg_dict[name_cand_cid or inchi_cand] = value
