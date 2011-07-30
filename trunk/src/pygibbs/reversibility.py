@@ -21,6 +21,7 @@ import numpy
 import random
 from pygibbs.nist_verify import LoadAllEstimators
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+from pygibbs.feist_ecoli import Feist
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -69,6 +70,7 @@ def try_kegg_api():
 WATER = 1
 HPLUS = 80
 DEFAULT_CMID = 1e-4
+DEFAULT_PH, DEFAULT_PMG, DEFAULT_I, DEFAULT_T = (7.0, 3.0, 0.1, 298.15)
 
 def GetEmptyConcentrationMap():
     return {WATER:1, HPLUS:1}
@@ -782,141 +784,61 @@ def meta_regulated_rxns_cumul_plots(org, id, thermo):
     html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
     pylab.savefig('../res/' + org + id +  '_regulation.png', figure=fig1, format='png')
 
-def calc_palsson_rxns_irrev(org, fig_name, rxns_file, comp2cid_file, thermo, 
-                            c_mid, pH, pMg, I, T, cmap, xlim=1e9):
-    html_fname = '../res/' + org + '_' + fig_name + '_model_rev.html'
-    logging.info('Writing HTML output to %s', html_fname)
-    html_writer = HtmlWriter(html_fname)
+def compare_annotations(reaction_list, thermo, html_writer, 
+                           c_mid, pH, pMg, I, T, cmap, xlim=1e9):
+    html_writer.write('<h1>Compare reaction annotations to Reversibility Index</h1>\n')
     histogram = {}
-    n_miss_comp = 0
-    n_not_balanced = 0
-    n_hits = 0
-    misses = 0
-    n_only_currency = 0
-    
-    # Read compounds ids 2 Kegg cid's mapping file into a dict
-    comp2cid_map = {}
-    map_file = open(comp2cid_file, 'r')
-    for line in map_file.readlines():
-        line = line.strip()
-        if (len(line) == 0):
-            continue
-        (id,cid) = line.split('\t')
-        comp2cid_map[id] = cid
-    map_file.close()
+    error_counts = {'hits': 0, 'misses': 0, 'no_gamma': 0}
 
-    left = ''
-    right = ''
-
-    rxns_input = open(rxns_file, 'r')
-    line = rxns_input.readline().strip()
-    
     debug_dict_list = []
-    while (line):
-        line = rxns_input.readline().strip() # Skipping the header line
-        if (len(line) == 0):
-            continue
-        
-        fields = line.split('\t')
-        name = fields[1]
-        equation = fields[3]
-        reversible = fields[7]
-        
-        # All fields: abbrev, name, syn, equation, subsystem, compartment, ecnumber, reversible, translocation, internal_id, confidence_score, notes 
-
-        sparse = {}
-        equation = re.sub('\[[pce]\]', '', equation)
-        equation = re.sub(' : ', '', equation)
-        left,right = re.split('<==>|-->', equation)
-        
+    for reaction in reaction_list:
         try:
-            parse_palsson_side_eq (left, -1, sparse, comp2cid_map)
-            parse_palsson_side_eq (right, 1, sparse, comp2cid_map)
-            reaction = Reaction(name, sparse)
-            reaction.Balance(balance_water=True, exception_if_unknown=True)
-        
             dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T)
-            gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
-                                                      concentration_map=cmap)
-            if gamma == None:
-                n_only_currency +=1
-                continue
-            else:
-                n_hits += 1
-                histogram.setdefault(reversible, []).append(gamma)
-                debug_dict_list.append({'sortkey':gamma,
-                                        'Reaction Name':name,
-                                        'FBA classification':reversible,
-                                        'FBA Reaction':equation,
-                                        'KEGG Reaction':str(reaction),
-                                        'Rev. index':"%.3g" % gamma,
-                                        'dG0':"%.2f" % dG0})
-        except KeggNonCompoundException:
-            logging.debug('No Kegg cid for reaction %s' % name)
-            n_miss_comp += 1
-            continue
-        except KeggReactionNotBalancedException:
-            logging.debug('Reaction %s is not balanced' % name)
-            n_not_balanced += 1
-            continue
         except thermodynamics.MissingCompoundFormationEnergy:
-            misses += 1
+            error_counts['misses'] += 1
             continue
-        except IrrevParseException:
-            logging.debug('Error parsing reaction %s' % name)
-            continue
+
+        gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
+                                                  concentration_map=cmap)
+        if gamma is None:
+            error_counts['no_gamma'] += 1
+        else:
+            error_counts['hits'] += 1
+            histogram.setdefault(reaction.direction, []).append(gamma)
+            debug_dict_list.append({'sortkey':gamma,
+                                    'Reaction Name':reaction.name,
+                                    'annotation':reaction.direction,
+                                    'KEGG Reaction':str(reaction),
+                                    'Rev. index':"%.3g" % gamma,
+                                    'dG0':"%.2f" % dG0})
     
     debug_dict_list.sort(key=lambda(x):x['sortkey'])
+    div_id = html_writer.insert_toggle()
+    html_writer.start_div(div_id)
     html_writer.write_table(debug_dict_list, headers=['Rev. index', 
-        'dG0', 'FBA classification', 'KEGG Reaction', 'FBA Reaction'])
+        'dG0', 'KEGG Reaction', 'annotation'])
+    html_writer.end_div()
+    html_writer.write('</br>\n')
     
-    html_writer.write_ul(["Reactions with known dG0: %d" % n_hits,
-                          "Reactions with unknown dG0: %d" % misses,
-                          "Reactions with unknown compounds (translation to Kegg failed): %d" % n_miss_comp,
-                          "Non balanced reactions: %d\n" % n_not_balanced,
-                          "Reactions of solely currency compounds: %d\n" % n_only_currency])
+    html_writer.write_ul(["Reactions with known dG0: %d" % error_counts['hits'],
+                          "Reactions with unknown dG0: %d" % error_counts['misses'],
+                          "Reactions with unknown gamma: %d" % error_counts['no_gamma']])
     
     # plot the bar 
     fig = pylab.figure()
     pylab.hold(True)
-    styles = {'Reversible':'blue', 'Irreversible':'red'}
-    for key, value in histogram.iteritems():
-        label = '%s (%d reactions)' % (key, len(value))      
-        plotting.cdf(value, label=label, style=styles[key], figure=fig)
+    plotting.cdf(histogram['<=>'], label='reversible (%d reactions)' % len(histogram['<=>']),
+                 style='blue', figure=fig)
+    plotting.cdf(histogram['=>'], label='irreversible (%d reactions)' % len(histogram['=>']),
+                 style='red', figure=fig)
 
     pylab.xlabel('Reversability index - $\gamma$')
     pylab.ylabel('Cumulative Distribution')
     pylab.xscale('log')
     pylab.xlim((1/xlim, xlim))
     pylab.legend(loc='upper left')
-    html_writer.write('<h1>Irreversibility index histogram on Palsson\'s model %s</h1>' % org)
-    html_writer.embed_matplotlib_figure(fig, width=640, height=480)
-    #pylab.savefig('../res/' + org + '_' + fig_name + '_model_irrev.png', figure=fig, format='png')
+    html_writer.embed_matplotlib_figure(fig, width=640, height=480, name='FEIST_CDF')
     
-def parse_palsson_side_eq(str, coef, sparse, comp2cid_map):
-    for comp in str.split('+'):
-        comp = comp.strip()
-        elems = re.findall('(\(.+\))* *(\w+)', comp)
-        if (len(elems) != 1):
-            raise IrrevParseException
-        
-        s,comp = elems[0]
-        if len(s) == 0:
-            s = 1
-        else:
-            s = float(s[1:-1]) # Removing the parenthesis        
-        if (comp in comp2cid_map):
-            cid = comp2cid_map[comp]
-            if int(cid[1:]) in sparse:
-                sparse[int(cid[1:])] += coef * s
-            else:
-                sparse[int(cid[1:])] = coef * s
-        else:
-            raise KeggNonCompoundException
-
-class IrrevParseException(Exception):
-    pass
-
 def calc_cons_rxns_corr(thermo, name):
     html_fname = '../res/' + name + '_rev_pair_corr.html'
     logging.info('Writing HTML output to %s', html_fname)
@@ -1029,13 +951,11 @@ def get_reversibility_consecutive_pairs(G, c_mid, pH, pMg, I, T, cmap, id):
 
     return first,second
 
-def compare_reversibility_to_dG0(thermo, name, c_mid=DEFAULT_CMID, cmap=None):
+def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, 
+                                     c_mid=DEFAULT_CMID, cmap=None):
+    html_writer.write('<h1>Reversibility index vs. equilibrium constants</h1>\n')
     cmap = cmap or GetEmptyConcentrationMap()
-    html_fname = '../res/' + name + '_rev_vs_dG.html'
-    logging.info('Writing HTML output to %s', html_fname)
-    html_writer = HtmlWriter(html_fname)
-    kegg = Kegg.getInstance()
-    pH, pMg, I, T = (7.0, 14.0, 0.25, 298.15)
+    pH, pMg, I, T = (DEFAULT_PH, DEFAULT_PMG, DEFAULT_I, DEFAULT_T)
     
     x_range = (1e-9, 1e9)
     y_range = (1e-9, 1e9)
@@ -1043,62 +963,59 @@ def compare_reversibility_to_dG0(thermo, name, c_mid=DEFAULT_CMID, cmap=None):
     x_threshold = 1e3
     y_threshold = 1e3
     
-    #reactions = []
-    #reactions.append(kegg.rid2reaction[1068]) # aldolase
-    #reactions.append(kegg.rid2reaction[24]) # rubisco
-    #for reaction in
-    reactions = kegg.AllReactions() 
-    
     regime_counters = {}
     stoich_counters = {}
     data_mat = pylab.zeros((0, 4))
     
     debug_dict_list = []
-    for reaction in reactions:
+    for reaction in reaction_list:
         try:
-            reaction.Balance(balance_water=True, exception_if_unknown=True)
-            dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T) 
-            Keq = pylab.exp(-dG0/(R*T))
+            dG0 = reaction.PredictReactionEnergy(thermo, pH, pMg, I, T)
+        except MissingCompoundFormationEnergy:
+            continue
+        Keq = pylab.exp(-dG0/(R*T))
 
-            n_s = -sum([x for cid, x in reaction.sparse.iteritems() if (x < 0 and cid not in cmap)])
-            n_p = sum([x for cid, x in reaction.sparse.iteritems() if (x > 0 and cid not in cmap)])
-            if (n_p + n_s) == 0:
-                continue
-            stoich_counters.setdefault((n_s, n_p), 0)
-            stoich_counters[n_s, n_p] += 1
+        n_s = -sum([x for cid, x in reaction.sparse.iteritems() if (x < 0 and cid not in cmap)])
+        n_p = sum([x for cid, x in reaction.sparse.iteritems() if (x > 0 and cid not in cmap)])
+        if (n_p + n_s) == 0:
+            continue
+        stoich_counters.setdefault((n_s, n_p), 0)
+        stoich_counters[n_s, n_p] += 1
+        
+        gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
+                                       concentration_map=cmap)
+        
+        if Keq < 1.0/x_threshold:
+            Krev = -1
+        elif Keq < x_threshold:
+            Krev = 0
+        else:
+            Krev = 1
             
-            gamma = CalculateReversability(reaction, thermo, c_mid, pH, pMg, I, T,
-                                           concentration_map=cmap)
+        if gamma < 1.0/y_threshold:
+            Grev = -1
+        elif gamma < y_threshold:
+            Grev = 0
+        else:
+            Grev = 1
             
-            if Keq < 1.0/x_threshold:
-                Krev = -1
-            elif Keq < x_threshold:
-                Krev = 0
-            else:
-                Krev = 1
-                
-            if gamma < 1.0/y_threshold:
-                Grev = -1
-            elif gamma < y_threshold:
-                Grev = 0
-            else:
-                Grev = 1
-                
-            regime_counters.setdefault((Krev, Grev), 0)
-            regime_counters[Krev, Grev] += 1
-            data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
-            
-            debug_dict_list.append({'sortkey':gamma,
-                                    'KEGG Reaction':str(reaction),
-                                    'link':'<a href="%s">R%05d</a>' % (reaction.get_link(), reaction.rid),
-                                    'Rev. index':"%.3g" % gamma,
-                                    'dG0': "%.2f" % dG0})
-        except (MissingCompoundFormationEnergy, KeggReactionNotBalancedException):
-            pass
+        regime_counters.setdefault((Krev, Grev), 0)
+        regime_counters[Krev, Grev] += 1
+        data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
+        
+        debug_dict_list.append({'sortkey':gamma,
+                                'KEGG Reaction':str(reaction),
+                                'link':'<a href="%s">R%05d</a>' % (reaction.get_link(), reaction.rid),
+                                'Rev. index':"%.3g" % gamma,
+                                'dG0': "%.2f" % dG0})
     
     debug_dict_list.sort(key=lambda(x):x['sortkey'])
+    div_id = html_writer.insert_toggle()
+    html_writer.start_div(div_id)
     html_writer.write_table(debug_dict_list, headers=['Rev. index', 'dG0',
         'KEGG Reaction', 'link'])
+    html_writer.end_div()
+    html_writer.write('</br>\n')
     
     fig = pylab.figure()
     pylab.xlabel(r"$K^'$", figure=fig)
@@ -1137,7 +1054,7 @@ def compare_reversibility_to_dG0(thermo, name, c_mid=DEFAULT_CMID, cmap=None):
     pylab.yscale('log', figure=fig)
     pylab.ylim(y_range, figure=fig)
     pylab.xlim(x_range, figure=fig)
-    html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_k_vs_g")
+    html_writer.embed_matplotlib_figure(fig, width=400, height=400, name="reversibility_vs_keq")
    
     fig = pylab.figure()
     max_gamma = 1e9
@@ -1148,9 +1065,13 @@ def compare_reversibility_to_dG0(thermo, name, c_mid=DEFAULT_CMID, cmap=None):
     pylab.xlabel(r'$\gamma$')
     pylab.ylabel(r'CDF($\gamma$)')
     pylab.xlim((1, max_gamma))
-    html_writer.embed_matplotlib_figure(fig, width=500, height=500, name=name + "_cdf")
+    html_writer.embed_matplotlib_figure(fig, width=400, height=400, name="reversibility_cdf")
 
 def main():
+    html_fname = '../res/reversibility.html'
+    logging.info('Writing HTML output to %s', html_fname)
+    html_writer = HtmlWriter(html_fname)
+    
     # plot the profile graph
     pylab.rcParams['text.usetex'] = False
     pylab.rcParams['legend.fontsize'] = 10
@@ -1161,14 +1082,17 @@ def main():
     pylab.rcParams['figure.figsize'] = [6.0, 6.0]
     pylab.rcParams['figure.dpi'] = 100
     
-    #logging.getLogger('').setLevel(logging.DEBUG)
-    #try_kegg_api()
     estimators = LoadAllEstimators()
     #analyse_reversibility(estimators['hatzi_gc'], 'HatziGC')
     #analyse_reversibility(estimators['milo_gc'], 'MiloGC_zoom')
     
-    if False:
-        compare_reversibility_to_dG0(estimators['milo_gc'], 'MiloGC')
+    #reaction_list = kegg.AllReactions()
+    reaction_list = Feist.FromFiles().reactions
+    thermo = estimators['milo_gc']
+
+    if True:
+        compare_reversibility_to_dG0(reaction_list, thermo=thermo,
+                                     html_writer=html_writer)
     
     #compare_reversibility_to_dG0(estimators['alberty'], 'Alberty')
     #metacyc_data('meta', 'zoom', estimators['milo_gc'], max_pathway_length_for_fig=6)
@@ -1177,13 +1101,11 @@ def main():
     #meta_regulated_rxns_cumul_plots('meta', '_abs', estimators['milo_gc'])
     #meta_regulated_rxns_cumul_plots('ecoli', '_abs', estimators['milo_gc'])
     
-    calc_palsson_rxns_irrev('ecoli', 'zoom', 
-                            '../data/metabolic_models/reactionList_iAF1260.txt',
-                            '../data/metabolic_models/ecoli2kegg_cid.txt',
-                            thermo=estimators['milo_gc'], c_mid=DEFAULT_CMID,
-                            pH=7.0, pMg=3.0, I=0.1, T=298.15,
-                            cmap=GetConcentrationMap(),
-                            xlim=1e9)
+    compare_annotations(reaction_list, thermo=estimators['milo_gc'], 
+                        html_writer=html_writer,
+                        c_mid=DEFAULT_CMID,
+                        pH=DEFAULT_PH, pMg=DEFAULT_PMG, I=DEFAULT_I, 
+                        T=DEFAULT_T, cmap=GetEmptyConcentrationMap())
     #calc_cons_rxns_corr(estimators['milo_gc'], 'MiloGC')
     
 if __name__ == "__main__":
