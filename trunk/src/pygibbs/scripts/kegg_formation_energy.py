@@ -54,9 +54,9 @@ def main():
             try:
                 dG0_tag = thermo.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T)
                 dG_tag = dG0_tag + R*T*pylab.log(conc)
-                print '\t%s estimated dG0\'f at 1M (and at %gM): %.1f (%.1f)' % (key, conc, dG0_tag, dG_tag)
+                print '\t%20s Estimated dG0\'f at 1M (and at %gM): %.1f (%.1f)' % (key, conc, dG0_tag, dG_tag)
             except Exception as e: 
-                print 'Error (%s): %s' % (key, str(e))
+                print '\t%20s Error: %s' % (key, str(e))
 
 
 if __name__ == '__main__':
