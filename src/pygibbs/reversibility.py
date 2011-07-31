@@ -1004,8 +1004,8 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer,
         data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
         
         debug_dict_list.append({'sortkey':gamma,
-                                'KEGG Reaction':str(reaction),
-                                'link':'<a href="%s">R%05d</a>' % (reaction.get_link(), reaction.rid),
+                                'name':reaction.name,
+                                'KEGG Reaction':reaction.to_hypertext(),
                                 'Rev. index':"%.3g" % gamma,
                                 'dG0': "%.2f" % dG0})
     
@@ -1013,7 +1013,7 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer,
     div_id = html_writer.insert_toggle()
     html_writer.start_div(div_id)
     html_writer.write_table(debug_dict_list, headers=['Rev. index', 'dG0',
-        'KEGG Reaction', 'link'])
+        'name', 'KEGG Reaction'])
     html_writer.end_div()
     html_writer.write('</br>\n')
     

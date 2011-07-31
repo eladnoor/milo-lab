@@ -1139,3 +1139,5 @@
 1755,"thiocyanate",,298.15,0,0,0,0,,,,
 80055,"CH3NHp",,298.15,10,10,0,0,"[N+](C)(C)(C)O",,,
 80056,"s-aminomethyldihydro-lipoate",,298.15,19,19,0,0,"[O-]C(=O)CCCCC(S)CCSC[NH3+]",,,
+4823,"1-(5'-Phosphoribosyl)-5-amino-4-(N-succinocarboxamide)-imidazole",,298.15,17,17,0,0,"C1=NC(=C(N1C2C(C(C(O2)COP(=O)([O-])O)O)O)[NH3+])C(=O)NC(CC(=O)[O-])C(=O)[O-]",,,
+4677,"1-(5'-Phosphoribosyl)-5-amino-4-imidazolecarboxamide",,298.15,15,15,0,0,"C1=NC(=C(N1C2C(C(C(O2)COP(=O)([O-])O)O)O)[NH3+])C(=O)N",,,

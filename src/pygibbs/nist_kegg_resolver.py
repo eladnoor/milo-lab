@@ -232,7 +232,7 @@ def load_compound_aliases():
 
 ################################################################################
 
-def WriteDataToDB(nist_db, db):
+def WriteDataToDB(db):
     """
         each reaction is composed of 'substrates' and 'products'.
         each compound from both classes is matched to aliases and receive its 
@@ -241,7 +241,7 @@ def WriteDataToDB(nist_db, db):
     buffer_dict = load_buffer_dict()
     compound_aliases = load_compound_aliases()
     titles2colnum = {}
-    for new_row_dict in nist_db.DictReader('nist_fields'):
+    for new_row_dict in db.DictReader('nist_fields'):
         titles2colnum[new_row_dict['name']] = new_row_dict['col_number']
     
     salt_titles = { # values are lists of (charge, conc) pairs
@@ -292,14 +292,14 @@ def WriteDataToDB(nist_db, db):
     db.CreateTable('nist_equilibrium', [t + " TEXT" for t in text_titles] + [t + " REAL" for t in real_titles])
     db.CreateTable('nist_errors', ['row_id INT', 'url TEXT', 'comment TEXT'])
     
-    for row in nist_db.Execute('select * from nist_values'):
+    for row in db.Execute('select * from nist_values'):
         skip_this_row = False
         row_comments = []
 
         row_id = row[0]
         row_dict = {}
         for title, colnum in titles2colnum.iteritems():
-            row_dict[title] = row[colnum+1] # +1 because the first column is the row ID
+            row_dict[title] = row[int(colnum)+1] # +1 because the first column is the row ID
     
         # specific corrections to NIST
         if row_dict['URL'].find('&') == -1:
@@ -346,6 +346,9 @@ def WriteDataToDB(nist_db, db):
         if url_id == "T1=65KAZ/GRO_1447": # replace (S)-methylmalonyl-CoA with methylmalonyl-CoA
             row_dict['Reaction'] = \
                 "ATP(aq) + propanoyl-CoA(aq) + carbon dioxide(aq) = ADP(aq) + phosphate(aq) + methylmalonyl-CoA(aq)"
+        if url_id == "T1=59MIL/LUK_1225":
+            row_dict['Reaction'] = "1-(5'-Phosphoribosyl)-5-amino-4-(N-succinocarboxamide)-imidazole" + \
+                " = Fumarate + 1-(5'-Phosphoribosyl)-5-amino-4-imidazolecarboxamide"
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
@@ -359,10 +362,10 @@ def WriteDataToDB(nist_db, db):
         new_row_dict['url'] = "http://xpdb.nist.gov/enzyme_thermodynamics/" + new_row_dict['url']
         new_row_dict['pMg'] = None
         
-        if row_dict['cosolvent'] not in [None, 'none']:
+        if row_dict['cosolvent'] not in [None, 'none', '']:
             row_comments += ['cosolvent => ' + row_dict['cosolvent']]
             skip_this_row = True
-        if row_dict['solvent'] not in [None, 'none', 'H2O']:
+        if row_dict['solvent'] not in [None, 'none', 'H2O', '']:
             row_comments += ['solvent => ' + row_dict['solvent']]
             skip_this_row = True
         
@@ -436,8 +439,7 @@ def WriteDataToDB(nist_db, db):
         print "%d reactions have been succesfully mapped!" % row[0]
 
 if __name__ == "__main__":
-    nist_db = SqliteDatabase('../res/nist_raw.sqlite')
     db = SqliteDatabase('../data/public_data.sqlite')
-    WriteDataToDB(nist_db, db)
+    WriteDataToDB(db)
     
     #test_buffer_methods()

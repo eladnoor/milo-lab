@@ -165,5 +165,5 @@ def fetch_nist_data(db):
 #                                                 MAIN                                                         #        
 ################################################################################################################
 if __name__ == "__main__":
-    db = SqliteDatabase('../res/nist_raw.sqlite')
+    db = SqliteDatabase('../data/public_data.sqlite')
     fetch_nist_data(db)
