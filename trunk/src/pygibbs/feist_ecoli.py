@@ -26,21 +26,13 @@ class Feist():
             id, cid = row
             comp2cid_map[id] = cid
     
-        rxns_input = open(rxns_file, 'r')
-        line = rxns_input.readline().strip()
-        
-        while line:
-            line = rxns_input.readline().strip() # Skipping the header line
-            if line == '':
+        for row in csv.DictReader(open(rxns_file, 'r'), delimiter='\t'):
+            if row['translocation'] == 'Y':
                 continue
-            
-            fields = line.split('\t')
-            name = fields[1]
-            equation = fields[3]
-            reversible = fields[7]
             
             # All fields: abbrev, name, syn, equation, subsystem, compartment, ecnumber, reversible, translocation, internal_id, confidence_score, notes 
     
+            equation = row['equation']
             equation = re.sub('\[[pce]\]', '', equation)
             equation = re.sub(' : ', '', equation)
             left, right = re.split('<==>|-->', equation)
@@ -50,10 +42,10 @@ class Feist():
                 Feist.parse_palsson_side_eq(left, -1, sparse, comp2cid_map)
                 Feist.parse_palsson_side_eq(right, 1, sparse, comp2cid_map)
             except IrrevParseException:
-                logging.debug('Error parsing reaction %s: %s' % (name, equation))
+                logging.debug('Error parsing reaction %s: %s' % (row['name'], equation))
                 continue
             except KeggNonCompoundException:
-                logging.debug('No Kegg cid for reaction %s: %s' % (name, equation))
+                logging.debug('No Kegg cid for reaction %s: %s' % (row['name'], equation))
                 continue
             
             for cid in sparse.keys():
@@ -61,21 +53,21 @@ class Feist():
                     del sparse[cid]
             
             if sparse == {}:
-                logging.debug('Reaction is empty %s: %s' % (name, equation))
+                logging.debug('Reaction is empty %s: %s' % (row['name'], equation))
                 continue
             
-            if reversible == 'Reversible':
+            if row['reversible'] == 'Reversible':
                 direction = '<=>'
-            elif reversible == 'Irreversible':
+            elif row['reversible'] == 'Irreversible':
                 direction = '=>'
             else:
-                raise ValueError('unknown irreversibility tag: ' + reversible)
+                raise ValueError('unknown irreversibility tag: ' + row['reversible'])
             
-            reaction = Reaction(name, sparse, direction=direction)
+            reaction = Reaction(row['name'], sparse, direction=direction)
             try:
                 reaction.Balance(balance_water=True, exception_if_unknown=True)
             except KeggReactionNotBalancedException:
-                pass
+                continue
             
             feist.reactions.append(reaction)
         return feist
@@ -106,4 +98,4 @@ if __name__ == "__main__":
     #logging.getLogger('').setLevel(logging.DEBUG)
     feist = Feist.FromFiles()
     for reaction in feist.reactions:
-        print str(reaction), reaction.direction, str(reaction.sparse)
+        print str(reaction), reaction.direction
