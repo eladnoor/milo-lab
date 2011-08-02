@@ -41,8 +41,8 @@ def DecomposeInputString(G, kegg):
         pmap = G.Mol2PseudoisomerMap(mol, ignore_protonations=True)
         print pmap
         dG0, dG0_tag, nH, z, nMg = pmap.GetMostAbundantPseudoisomer(G.pH, G.I, G.pMg, G.T)
-        print "dG0 = %.1f kJ/mol, nH = %2d, z = %2d, nMg = %d" % (dG0, nH, z, nMg)
-        print "dG'0 = %.1f kJ/mol" % dG0_tag
+        print "dG0 = %.1f kJ/mol, nH = %2d, z = %2d, nMg = %d | dG'0 = %.1f kJ/mol" % (dG0, nH, z, nMg, dG0_tag)
+        print "dG'0 = %.1f kJ/mol" % pmap.Transform(G.pH, G.I, G.pMg, G.T)
     except GroupDecompositionError as e:
         print "Cannot decompose compound to groups: " + str(e)
 

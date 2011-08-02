@@ -815,9 +815,11 @@ def compare_annotations(reaction_list, thermo, html_writer, cmap, xlim=1e9):
     fig = pylab.figure()
     pylab.hold(True)
     plotting.cdf(histogram['<=>'], label='reversible (%d reactions)' % len(histogram['<=>']),
-                 style='blue', figure=fig)
-    plotting.cdf(histogram['=>'], label='irreversible (%d reactions)' % len(histogram['=>']),
+                 style='green', figure=fig)
+    plotting.cdf(histogram['=>'], label='forward only (%d reactions)' % len(histogram['=>']),
                  style='red', figure=fig)
+    plotting.cdf(histogram['<='], label='reverse only (%d reactions)' % len(histogram['<=']),
+                 style='orange', figure=fig)
 
     pylab.xlabel('Reversability index - $\gamma$')
     pylab.ylabel('Cumulative Distribution')

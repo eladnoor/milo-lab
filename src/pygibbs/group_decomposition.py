@@ -7,6 +7,7 @@ from toolbox import util
 from pygibbs import groups_data
 from pygibbs import group_vector
 from toolbox.molecule import Molecule
+from pygibbs.group_vector import GroupVector
 
 class GroupDecompositionError(Exception):
     pass
@@ -144,7 +145,7 @@ class GroupDecomposition(object):
             for i in xrange(len(v)):
                 v[index_vector[i]] = assignment[i]
             v += [1]  # add 1 for the 'origin' group
-            groupvec_list.append()
+            groupvec_list.append(GroupVector(self.groups_data, v))
         return groupvec_list
 
     # Various properties
