@@ -31,7 +31,6 @@ from django.dispatch import dispatcher
 #sys.stdout = sys.__stdout__
 #print "Done"
 
-
 print "Deleting Tables... ",
 app_labels = [app.__name__.split('.')[-2] for app in get_apps()]
 sys.stdout = buffer = StringIO.StringIO()

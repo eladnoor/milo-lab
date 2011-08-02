@@ -7,14 +7,14 @@
 		<div class="printable">
 			{% for compound in reaction.reactants %}
 				{% if compound.coeff > 1 %} {{ compound.coeff }} {% endif %}
-				{{ compound.name }} ({{ compound.micromolar_concentration_string }} &mu;M)
+				{{ compound.name }} ({{ compound.human_concentration_w_units }})
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %}
 			&rarr;
 			{% for compound in reaction.products %}
 				{% if compound.coeff > 1 %} {{ compound.coeff }} {% endif %}
-				{{ compound.name }} ({{ compound.micromolar_concentration_string }} &mu;M)
+				{{ compound.name }} ({{ compound.human_concentration_w_units }})
 				
 				{% if not forloop.last %} + {% endif %}
 			{% endfor %} = {{ reaction.dg_tag|floatformat:1 }} kJ / mol

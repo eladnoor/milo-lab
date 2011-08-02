@@ -212,6 +212,14 @@
 			<p id="plotTitle">
 			</p>
 			
+			<p>
+				Concentrations: 
+			{% for compound in reaction.all_compounds %}
+					[{{ compound.name }}] = {{ compound.human_concentration_w_units }} {% if not forloop.last %},{% endif %}
+					
+			{% endfor %}
+			</p>
+			
 		</div>
 		
 	</div>

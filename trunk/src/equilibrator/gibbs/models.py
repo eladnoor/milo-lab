@@ -138,7 +138,6 @@ class SpeciesGroup(models.Model):
 
     def StashTransformedSpeciesEnergies(self, ph, pmg, ionic_strength):
         """Stash the transformed species formation energy in each one."""
-        print "Stashing transformed"
         for species in self.all_species:
             species.transformed_energy = species.Transform(
                 pH=ph, pMg=pmg, ionic_strength=ionic_strength)
@@ -596,6 +595,11 @@ class Enzyme(models.Model):
     def HasData(self):
         """Checks if it has enough data to display."""
         return self.ec and self.reactions.all()
+
+    def ToJson(self):
+        """Returns as a JSON-friendly object."""
+        return {'EC': self.ec,
+                'name': str(self.first_name)}
 
     def Link(self):
         """Returns a link to this reactions page."""
