@@ -9,9 +9,9 @@ from pygibbs.kegg_enzyme import Enzyme
 
 class KeggEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, Compound) or \
-            isinstance(obj, Reaction) or \
-            isinstance(obj, Enzyme):
+        if (isinstance(obj, Compound) or 
+            isinstance(obj, Reaction) or 
+            isinstance(obj, Enzyme)):
             return obj.ToJSONDict()
         return json.JSONEncoder.default(self, obj)
 
