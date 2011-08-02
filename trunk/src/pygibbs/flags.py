@@ -10,7 +10,7 @@ def MakeOpts():
     opt_parser = OptionParser()
     opt_parser.add_option("-c", "--median_concentration", dest="c_mid",
                           default=1e-3, type="float",
-                          help="Median concentation, Molar")
+                          help="Median concentration, Molar")
     opt_parser.add_option("-p", "--ph", dest="ph", type="float",
                           default=default_pH, help="The pH")
     opt_parser.add_option("-m", "--pmg", dest="pmg", type="float",

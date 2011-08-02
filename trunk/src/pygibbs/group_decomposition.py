@@ -144,7 +144,7 @@ class GroupDecomposition(object):
             for i in xrange(len(v)):
                 v[index_vector[i]] = assignment[i]
             v += [1]  # add 1 for the 'origin' group
-            groupvec_list.append(group_vector.GroupVector(self.groups_data, v))
+            groupvec_list.append()
         return groupvec_list
 
     # Various properties

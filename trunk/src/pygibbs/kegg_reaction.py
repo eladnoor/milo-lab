@@ -227,7 +227,7 @@ class Reaction(object):
             return "%g C%05d" % (coeff, cid)
 
     @staticmethod
-    def write_full_reaction(sparse):
+    def write_full_reaction(sparse, direction='=>'):
         """String representation."""
         left = []
         right = []
@@ -236,13 +236,13 @@ class Reaction(object):
                 left.append(Reaction.write_compound_and_coeff(cid, -coeff))
             elif (coeff > 0):
                 right.append(Reaction.write_compound_and_coeff(cid, coeff))
-        return "%s -> %s" % (' + '.join(left), ' + '.join(right))
+        return "%s %s %s" % (' + '.join(left), direction, ' + '.join(right))
 
     def FullReactionString(self):
-        return self.write_full_reaction(self.sparse)
+        return self.write_full_reaction(self.sparse, self.direction)
 
     def __str__(self):
-        return self.name + ': ' + Reaction.write_full_reaction(self.sparse)
+        return self.name + ': ' + Reaction.write_full_reaction(self.sparse, self.direction)
     
     def iteritems(self):
         return self.sparse.iteritems()

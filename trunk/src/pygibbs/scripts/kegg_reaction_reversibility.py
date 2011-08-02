@@ -7,6 +7,7 @@ from pygibbs import reversibility
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from pygibbs.nist_verify import LoadAllEstimators
 
 
 def GetReactionIdInput():
@@ -20,40 +21,41 @@ def GetReactionIdInput():
 
 def main():
     options, _ = flags.MakeOpts().parse_args(sys.argv)
-    c_mid = options.c_mid
-    pH = options.ph
-    pMg = options.pmg
-    I = options.i_s
-    T = default_T
-
-    db = SqliteDatabase('../res/gibbs.sqlite')
     kegg = Kegg.getInstance()
-    G = PsuedoisomerTableThermodynamics.FromDatabase(
-        db, 'gc_pseudoisomers', name='milo_gc')
+    estimators = LoadAllEstimators()
     
     print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
-           'I=%.2gM, Median concentration=%.2gM' % (T, pH, pMg, I, c_mid))
+           'I=%.2gmM, Median concentration=%.2gM' % 
+           (default_T, options.ph, options.pmg, options.i_s, options.c_mid))
+
+    for thermo in estimators.values():
+        thermo.c_mid = options.c_mid
+        thermo.pH = options.ph
+        thermo.pMg = options.pmg
+        thermo.I = options.i_s
+        thermo.T = default_T
     
     cmap = {}
     if not options.ignore_cofactors:
         print 'Fixing concentrations of co-factors'
-        cmap = reversibility.GetConcentrationMap(kegg)
+        cmap = reversibility.GetConcentrationMap()
     else:
         print 'Not fixing concentrations of co-factors'
 
     while True:
-        try:
-            rid = GetReactionIdInput()        
-            reaction = kegg.rid2reaction(rid)
-            print 'Reaction Name: %s' % reaction.name
-            print '\tKegg ID: R%05d' % rid
-            print '\tEC: %s' % str(reaction.ec_list)
-            rev = reversibility.CalculateReversability(reaction.sparse,
-                                                       G, pH=pH, I=I, pMg=pMg,
-                                                       T=T, concentration_map=cmap)
-            print '\tIrreversibility: %.1f' % rev
-        except Exception, e:
-            print 'Error: ', e
+        rid = GetReactionIdInput()        
+        reaction = kegg.rid2reaction(rid)
+        print 'Reaction Name: %s' % reaction.name
+        print '\tKegg ID: R%05d' % rid
+        print '\tEC: %s' % str(reaction.ec_list)
+        for key, thermo in estimators.iteritems():
+            print "\t<< %s >>" % key
+            try:
+                print '\t\tdG0\'f = %.1f kJ/mol' % reaction.PredictReactionEnergy(thermo)
+                rev = reversibility.CalculateReversability(reaction, thermo, concentration_map=cmap)
+                print '\t\tgamma = %.3g' % rev
+            except Exception as e: 
+                print '\tError: %s' % (str(e))
 
 
 if __name__ == '__main__':
