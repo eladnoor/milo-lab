@@ -49,12 +49,16 @@ class Feist():
                 counters['kegg_error'] += 1
                 continue                
             
-            if row['reconstruction directionality'] == 'reversible':
+            directionality = row["directionality without uncertainty (pH 7.2)"]
+            #directionaliry = row['reconstruction directionality']
+            if directionality == 'reversible':
                 direction = '<=>'
-            elif row['reconstruction directionality'] == 'forward only':
+            elif directionality == 'forward only':
                 direction = '=>'
+            elif directionality == 'reverse only':
+                direction = '<='
             else:
-                raise ValueError('unknown reversibility tag: ' + row['reversible'])
+                raise ValueError('unknown directionality tag: ' + directionality)
             
             reaction = Reaction(row['abbreviation'], kegg_sparse, direction=direction)
             try:

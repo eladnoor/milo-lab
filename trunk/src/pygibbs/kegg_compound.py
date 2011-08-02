@@ -171,8 +171,9 @@ class Compound(object):
                 count = int(count)
             atom_bag[atom] = count
 
-        if "R" in atom_bag:
-            # This formula is not full ('R' is a wildcard not an atom)
+        if "R" in atom_bag or "X" in atom_bag:
+            # This formula is not full ('R' is a wildcard for a side-chain, 'X'
+            # is a single halogen atom)
             return None
         return atom_bag
     
