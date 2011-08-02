@@ -47,11 +47,16 @@ class CompoundWithCoeff(object):
         name = self.name or str(self.compound)
         return '%d %s' % (self.coeff, name)
     
-    def ToJson(self):
-        return {"coeff": self.coeff,
-                "concentration": self.concentration,
-                "species": self.compound.SpeciesJson(),
-                "name": str(self.compound.first_name)}
+    def ToJson(self, include_species=True):
+        d = {"coeff": self.coeff,
+             "KEGG_ID": self.compound.kegg_id,
+             "concentration": self.concentration,
+             "name": str(self.compound.first_name)}
+        
+        if include_species:
+            d["species"] = self.compound.SpeciesJson()
+            
+        return d
     
     def GetName(self):
         """Gives a string name for this compound."""
@@ -70,6 +75,15 @@ class CompoundWithCoeff(object):
             return '%.2e' % conc
         return '%.2f' % conc
     
+    def _HumanConcentrationStringWithUnits(self):
+        if self.concentration > 1e-2:
+            return '%.2g M' % self.concentration
+        
+        if self.concentration > 1e-4:
+            return '%.2g mM' % (self.concentration * 1e3)
+        
+        return '%2g μM' % (self.concentration * 1e6)
+    
     def __eq__(self, other):
         """Check equality with another CompoundWithCoeff.
         
@@ -87,6 +101,7 @@ class CompoundWithCoeff(object):
     name = property(GetName)
     micromolar_concentration = property(_MicromolarConcentration)
     micromolar_concentration_string = property(_MicromolarConcentrationString)
+    human_concentration_w_units = property(_HumanConcentrationStringWithUnits)
     
 
 class Reaction(object):
@@ -128,7 +143,6 @@ class Reaction(object):
         for c in compounds:
             c.SetSpeciesGroupPriority(priority_to_use)
          
-    
     def SwapSides(self):
         """Swap the sides of this reaction."""
         tmp = self.reactants
@@ -150,7 +164,14 @@ class Reaction(object):
             c.concentration = self._concentration_profile.Concentration(c.compound.kegg_id)
     concentration_profile = property(GetConcentrationProfile,
                                      ApplyConcentrationProfile)    
+    
+    def __str__(self):
+        """Simple text reaction representation."""
+        rlist = map(str, self.reactants)
+        plist = map(str, self.products)
+        return '%s <=> %s' % (' + '.join(rlist), ' + '.join(plist))
         
+    
     def SameChemicalReaction(self, stored_reaction):
         """Checks that the two chemical reactions are the same."""
         my_string = models.StoredReaction.HashableReactionString(self.reactants,
@@ -194,7 +215,6 @@ class Reaction(object):
         if not self._catalyzing_enzymes:
             self._catalyzing_enzymes = []
             for stored_reaction in self.all_stored_reactions:
-                print stored_reaction
                 enzymes = stored_reaction.enzyme_set.all()
                 self._catalyzing_enzymes.extend(enzymes)
         
@@ -207,6 +227,29 @@ class Reaction(object):
             return True
         return (self._concentration_profile and
                 self._concentration_profile.IsStandard())
+    
+    def ToJson(self):
+        """Return this reaction as a JSON-compatible object."""
+        pdicts = [c.ToJson(include_species=False) for c in self.products]
+        rdicts = [r.ToJson(include_species=False) for r in self.reactants]
+        enzdicts = [e.ToJson() for e in self.catalyzing_enzymes]
+        d = {'reaction_string': str(self), 
+             'substrates': rdicts,
+             'products': pdicts,
+             'enzymes': enzdicts,
+             'chemically_balanced': self.is_balanced,
+             'redox_balanced': self.is_electron_balanced,
+             'dgzero': round(self.dg0, 1),
+             'dgzero_tag': round(self.dg0_tag, 1),
+             'keq_tag': self.k_eq_tag,
+             'pH': self.ph,
+             'ionic_strength': self.i_s,
+             'KEGG_ID': None}
+        
+        if self.stored_reaction:
+            d['KEGG_ID'] = self.stored_reaction.kegg_id
+        
+        return d
     
     @staticmethod
     def FromForm(form):
@@ -253,7 +296,10 @@ class Reaction(object):
                                 ionic_strength=i_s)
     
     @staticmethod
-    def FromStoredReaction(stored_reaction):
+    def FromStoredReaction(stored_reaction,
+                           pH=constants.DEFAULT_PH,
+                           pMg=constants.DEFAULT_PMG,
+                           ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Build a reaction object from a stored reaction.
         
         Args:
@@ -266,7 +312,8 @@ class Reaction(object):
                      for r in stored_reaction.reactants.all()]
         products  = [CompoundWithCoeff.FromReactant(r)
                      for r in stored_reaction.products.all()]
-        rxn = Reaction(reactants, products)
+        rxn = Reaction(reactants, products, pH=pH, pMg=pMg,
+                       ionic_strength=ionic_strength)
         rxn.SetStoredReaction(stored_reaction)
         return rxn
     
@@ -869,6 +916,7 @@ class Reaction(object):
     extra_electrons = property(ExtraElectrons)
     missing_electrons = property(MissingElectrons)
     all_compounds = property(AllCompoundsWithTransformedEnergies)
+    dg0 = property(DeltaG0)
     dg0_tag = property(DeltaG0Tag)
     dg_tag = property(DeltaGTag)
     k_eq_tag = property(KeqTag)

@@ -1,6 +1,6 @@
 import logging
 
-from django.http import Http404
+from django.http import HttpResponseBadRequest
 from django.shortcuts import render_to_response
 from gibbs import concentration_profile
 from gibbs import reaction
@@ -16,10 +16,9 @@ def ReactionPage(request):
     form = reaction_form.ReactionForm(request.GET)
     if not form.is_valid():
         logging.error(form.errors)
-        raise Http404
+        return HttpResponseBadRequest('Invalid reaction form.')
     
     # Figure out which template to render (based on which submit button they pressed).
-    print form.cleaned_submit
     template_name = _REACTION_TEMPLATES_BY_SUBMIT.get(form.cleaned_submit,
                                                       'reaction_page.html')
 
@@ -39,9 +38,7 @@ def ReactionPage(request):
     if form.cleaned_replace_co2:
         rxn.TryReplaceCO2()
         query = rxn.GetQueryString()
-    
-    logging.error(rxn)
-    
+        
     # Render the template.
     balance_with_water_link = rxn.GetBalanceWithWaterLink(query)
     balance_electrons_link = rxn.GetBalanceElectronsLink(query)
