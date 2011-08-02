@@ -60,7 +60,7 @@ def binned_plot(x, y, bins, y_type='mean', figure=None, plot_counts=True):
     bins_array = np.array([min(x)-1e-14] + list(sorted(bins)) + [max(x)-1e-14])
     binned_y = {}
     for i in xrange(len(x)):
-        bin_index = np.nonzero(bins_array < x[i]).max()
+        bin_index = max(np.nonzero(bins_array < x[i])[0])
         binned_y.setdefault(bin_index, []).append(y[i])
     
     y_count = []
@@ -91,7 +91,7 @@ def binned_plot(x, y, bins, y_type='mean', figure=None, plot_counts=True):
             plt.text(bin_center[i], y_vec[i], '%d' % y_count[i], horizontalalignment='center', fontsize='small')
         
 
-def bubble_plot(x, y, s, e=None, figure=None):
+def bubble_plot(x, y, s, e=None, c=None, figure=None):
     """
         Inputs:
             x - a list of x-values for the bubbles
@@ -108,17 +108,24 @@ def bubble_plot(x, y, s, e=None, figure=None):
     N = len(x)
     
     x_edge = np.zeros((N))
-    x_err = np.zeros((2, N))
+    if e:
+        x_err = np.zeros((2, N))
     for i in xrange(N):
         radius = np.sqrt(s[i]/np.pi)
         x_edge[i] = x[i] + radius
+        if c:
+            color = c[i]
+        else:
+            color = (0, 0, 1)
         circ = patch.Circle((x[i], y[i]), radius=radius, figure=figure,
-                            linewidth=0)
+                            linewidth=0, facecolor=color)
         ax.add_patch(circ)
-        x_err[0, i] = radius - np.sqrt(e[i][0]/np.pi)
-        x_err[1, i] = np.sqrt(e[i][1]/np.pi) - radius
+        if e:
+            x_err[0, i] = radius - np.sqrt(e[i][0]/np.pi)
+            x_err[1, i] = np.sqrt(e[i][1]/np.pi) - radius
     
-    plt.errorbar(x=x_edge, y=y, xerr=x_err, fmt=None, ecolor='black')
+    if e:
+        plt.errorbar(x=x_edge, y=y, xerr=x_err, fmt=None, ecolor='black')
     ax.axes.relim()
     ax.axes.autoscale_view()
 
@@ -131,5 +138,6 @@ if __name__ == "__main__":
     #binned_plot(x, y, bins, y_type='rmse', figure=fig)
     bubble_plot([0, 0, 5, 5], [0, 5, 0, 5], [1, 2, 2, 1], 
                 e=[(0.8, 1.2), (1.6, 2.5), (1.8, 2.1), (0.5, 1.5)],
+                c=[(0.4, 0.6, 0.0), (0.4, 0.2, 0.0), (0.0, 0.6, 0.5), (0.9, 0.9, 0.0)],
                 figure=fig)
     plt.show()

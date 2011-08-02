@@ -60,34 +60,33 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
         If the reaction cannot be balanced, raises KeggReactionNotBalancedException
     """
     atom_bag = {}
-    try:
-        for cid, coeff in sparse.iteritems():
+    for cid, coeff in sparse.iteritems():
+        try:
             comp = kegg.cid2compound(cid)
-            cid_atom_bag = comp.get_atom_bag()
-            if cid_atom_bag == None:
-                if exception_if_unknown:
-                    raise kegg_errors.KeggReactionNotBalancedException(
-                        "C%05d has no explicit formula, "
-                        "cannot check if this reaction is balanced" % cid)
-                else:
-                    logging.warning("C%05d has no explicit formula, "
-                                    "cannot check if this reaction is balanced" % cid)
-                    return
-            try:
-                cid_atom_bag['e-'] = comp.get_num_electrons()
-            except kegg_errors.KeggParseException:
+        except KeyError:
+            if exception_if_unknown:
+                raise kegg_errors.KeggReactionNotBalancedException(
+                    "C%05d does not appear in KEGG"
+                    ", cannot check if this reaction is balanced" % cid)
+            else:
+                logging.warning("C%05d does not appear in KEGG"
+                    ", cannot check if this reaction is balanced" % cid)
                 return
-            
-            for atomicnum, count in cid_atom_bag.iteritems():
-                atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff
-                
-    except KeyError as e:
-        if exception_if_unknown:
-            raise kegg_errors.KeggReactionNotBalancedException(
-                "cannot check if this reaction is balanced")
-        else:
-            logging.warning(str(e) + ", cannot check if this reaction is balanced")
-            return
+
+        cid_atom_bag = comp.get_atom_bag()
+        if cid_atom_bag == None:
+            if exception_if_unknown:
+                raise kegg_errors.KeggReactionNotBalancedException(
+                    "C%05d has no explicit formula, "
+                    "cannot check if this reaction is balanced" % cid)
+            else:
+                logging.warning("C%05d has no explicit formula, "
+                                "cannot check if this reaction is balanced" % cid)
+                return
+        cid_atom_bag['e-'] = comp.get_num_electrons()
+        
+        for atomicnum, count in cid_atom_bag.iteritems():
+            atom_bag[atomicnum] = atom_bag.get(atomicnum, 0) + count*coeff    
 
     if balance_water and atom_bag.get('O', 0) != 0:
         sparse[1] = sparse.get(1, 0) - atom_bag['O'] # balance the number of oxygens by adding C00001 (water)

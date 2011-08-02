@@ -4,6 +4,7 @@ import types
 import logging
 import MySQLdb
 from _mysql_exceptions import ProgrammingError, OperationalError
+from twisted.protocols.ftp import FileNotFoundError
 
 class Database(object):
     """Abstract base Database class."""

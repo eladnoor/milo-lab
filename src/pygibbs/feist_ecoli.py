@@ -1,7 +1,6 @@
 import re, csv
 from pygibbs.kegg_reaction import Reaction
-from pygibbs.kegg_errors import KeggNonCompoundException,\
-    KeggReactionNotBalancedException
+from pygibbs.kegg_errors import KeggReactionNotBalancedException
 import logging
 
 class IrrevParseException(Exception):
@@ -9,93 +8,99 @@ class IrrevParseException(Exception):
 
 class Feist():
     
+    kegg_misses = {}
+    
     def __init__(self):
         self.reactions = []
         
     @staticmethod
     def FromFiles():
         feist = Feist()
-        comp2cid_file = '../data/metabolic_models/ecoli2kegg_cid.txt'
-        rxns_file = '../data/metabolic_models/reactionList_iAF1260.txt'
+        compound_file = '../data/metabolic_models/iAF1260_compounds.csv'
+        reaction_file = '../data/metabolic_models/iAF1260_reactions.csv'
         
         # Read compounds ids 2 Kegg cid's mapping file into a dict
         comp2cid_map = {}
-        for row in csv.reader(open(comp2cid_file, 'r'), delimiter='\t'):
-            if len(row) != 2:
-                raise Exception("syntax error in %s: %s" % (comp2cid_file, str(row)))
-            id, cid = row
-            comp2cid_map[id] = cid
+        for row in csv.DictReader(open(compound_file, 'r')):
+            if row['KeggID']:
+                comp2cid_map[row['abbreviation']] = int(row['KeggID'][1:])
+            else:
+                comp2cid_map[row['abbreviation']] = 0
     
-        for row in csv.DictReader(open(rxns_file, 'r'), delimiter='\t'):
-            if row['translocation'] == 'Y':
+        counters = {'kegg_error':0, 'translocation':0, 'exchange':0, 'sink':0,
+                    'unbalanced':0, 'okay':0}
+        for row in csv.DictReader(open(reaction_file, 'r')):
+            if 'Transport' in row['subSystem']:
+                counters['translocation'] += 1
                 continue
-            
-            # All fields: abbrev, name, syn, equation, subsystem, compartment, ecnumber, reversible, translocation, internal_id, confidence_score, notes 
-    
-            equation = row['equation']
-            equation = re.sub('\[[pce]\]', '', equation)
-            equation = re.sub(' : ', '', equation)
-            left, right = re.split('<==>|-->', equation)
-            
-            try:
-                sparse = {}
-                Feist.parse_palsson_side_eq(left, -1, sparse, comp2cid_map)
-                Feist.parse_palsson_side_eq(right, 1, sparse, comp2cid_map)
-            except IrrevParseException:
-                logging.debug('Error parsing reaction %s: %s' % (row['name'], equation))
+            if row['abbreviation'][0:3] == 'EX_':
+                counters['exchange'] += 1
                 continue
-            except KeggNonCompoundException:
-                logging.debug('No Kegg cid for reaction %s: %s' % (row['name'], equation))
-                continue
+            if row['abbreviation'][0:3] == 'DM_':
+                counters['sink'] += 1
+                continue            
             
-            for cid in sparse.keys():
-                if sparse[cid] == 0:
-                    del sparse[cid]
+            sparse = Feist.parse_equation(row['equation'])
+            kegg_sparse = dict([(comp2cid_map[comp], coef) for 
+                                (comp, coef) in sparse.iteritems()])
+            if 0 in kegg_sparse:
+                logging.debug('Some compounds are missing KEGG IDs in %s: %s' %
+                              (row['abbreviation'], row['equation']))
+                counters['kegg_error'] += 1
+                continue                
             
-            if sparse == {}:
-                logging.debug('Reaction is empty %s: %s' % (row['name'], equation))
-                continue
-            
-            if row['reversible'] == 'Reversible':
+            if row['reconstruction directionality'] == 'reversible':
                 direction = '<=>'
-            elif row['reversible'] == 'Irreversible':
+            elif row['reconstruction directionality'] == 'forward only':
                 direction = '=>'
             else:
-                raise ValueError('unknown irreversibility tag: ' + row['reversible'])
+                raise ValueError('unknown reversibility tag: ' + row['reversible'])
             
-            reaction = Reaction(row['name'], sparse, direction=direction)
+            reaction = Reaction(row['abbreviation'], kegg_sparse, direction=direction)
             try:
                 reaction.Balance(balance_water=True, exception_if_unknown=True)
-            except KeggReactionNotBalancedException:
+                counters['okay'] += 1
+            except KeggReactionNotBalancedException as e:
+                logging.debug(str(e) + ' - ' + str(reaction))
+                counters['unbalanced'] += 1
                 continue
             
             feist.reactions.append(reaction)
+        
+        logging.debug(" ; ".join(["%s : %d" % (key, val)
+                                for (key, val) in counters.iteritems()]))
         return feist
 
     @staticmethod
-    def parse_palsson_side_eq(str, coef, sparse, comp2cid_map):
+    def parse_equation(str):
+        equation = re.sub('\[[pce]\]', '', str)
+        equation = re.sub(' : ', '', equation)
+        left, right = re.split('<==>|-->', equation)
+        
+        sparse = {}
+        if left:
+            Feist.parse_equation_side(left, -1, sparse)
+        if right:
+            Feist.parse_equation_side(right, 1, sparse)
+        return sparse
+
+    @staticmethod
+    def parse_equation_side(str, coeff, sparse):
         for comp in str.split('+'):
             comp = comp.strip()
-            elems = re.findall('(\(.+\))* *(\w+)', comp)
-            if (len(elems) != 1):
+            elems = re.findall('(\(.+\))* *([\w\-\(\)]+)', comp)
+            if len(elems) != 1:
                 raise IrrevParseException
             
-            s,comp = elems[0]
+            s, comp = elems[0]
             if len(s) == 0:
-                s = 1
+                sparse[comp] = sparse.get(comp, 0) + coeff
             else:
-                s = float(s[1:-1]) # Removing the parenthesis        
-            if (comp in comp2cid_map):
-                cid = comp2cid_map[comp]
-                if int(cid[1:]) in sparse:
-                    sparse[int(cid[1:])] += coef * s
-                else:
-                    sparse[int(cid[1:])] = coef * s
-            else:
-                raise KeggNonCompoundException
+                s = float(s[1:-1]) # Removing the parentheses        
+                sparse[comp] = sparse.get(comp, 0) + coeff * s
 
 if __name__ == "__main__":
-    #logging.getLogger('').setLevel(logging.DEBUG)
+    logging.getLogger('').setLevel(logging.DEBUG)
     feist = Feist.FromFiles()
-    for reaction in feist.reactions:
-        print str(reaction), reaction.direction
+    #for reaction in feist.reactions:
+    #    print str(reaction)

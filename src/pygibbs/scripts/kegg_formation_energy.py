@@ -7,8 +7,6 @@ from pygibbs import flags
 from pygibbs.thermodynamic_constants import default_T, R
 from pygibbs import reversibility
 from pygibbs.kegg import Kegg
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
-from toolbox.database import SqliteDatabase
 from pygibbs.nist_verify import LoadAllEstimators
 
 def GetReactionIdInput():
@@ -21,26 +19,22 @@ def GetReactionIdInput():
 
 
 def main():
-    options, _ = flags.MakeOpts().parse_args(sys.argv)
-    c_mid = options.c_mid
-    pH = options.ph
-    pMg = options.pmg
-    I = options.i_s
-    T = default_T
-    
-    kegg = Kegg.getInstance()
+    opt_parser = flags.MakeOpts()
+    options, _ = opt_parser.parse_args(sys.argv)
     estimators = LoadAllEstimators()
     
     print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
-           'I=%.2gmM, Median concentration=%.2gM' % (T, pH, pMg, I, c_mid))
-    
-    cmap = {}
-    if not options.ignore_cofactors:
-        print 'Fixing concentrations of co-factors'
-        cmap = reversibility.GetConcentrationMap()
-    else:
-        print 'Not fixing concentrations of co-factors'
+           'I=%.2gmM, Median concentration=%.2gM' % 
+           (default_T, options.ph, options.pmg, options.i_s, options.c_mid))
 
+    for thermo in estimators.values():
+        thermo.c_mid = options.c_mid
+        thermo.pH = options.ph
+        thermo.pMg = options.pmg
+        thermo.I = options.i_s
+        thermo.T = default_T
+    
+    kegg = Kegg.getInstance()
     while True:
         cid = GetReactionIdInput()        
         compound = kegg.cid2compound(cid)
@@ -48,15 +42,13 @@ def main():
         print '\tKegg ID: C%05d' % cid
         print '\tFormula: %s' % compound.formula
         print '\tInChI: %s' % compound.inchi
-        conc = cmap.get(cid, c_mid)
-        print '\tConcentration: %.2e' % conc
         for key, thermo in estimators.iteritems():
+            print "\t<< %s >>" % key
             try:
-                dG0_tag = thermo.cid2PseudoisomerMap(cid).Transform(pH, pMg, I, T)
-                dG_tag = dG0_tag + R*T*pylab.log(conc)
-                print '\t%20s Estimated dG0\'f at 1M (and at %gM): %.1f (%.1f)' % (key, conc, dG0_tag, dG_tag)
+                print thermo.cid2PseudoisomerMap(cid),
+                print '--> dG0\'f = %.1f kJ/mol' % compound.PredictFormationEnergy(thermo)
             except Exception as e: 
-                print '\t%20s Error: %s' % (key, str(e))
+                print '\t\tError: %s' % (str(e))
 
 
 if __name__ == '__main__':

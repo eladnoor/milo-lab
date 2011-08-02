@@ -91,6 +91,6 @@ class GroupVector(list):
     def FromJSONString(groups_data, s):
         v = [0] * groups_data.Count()
         for i, x in json.loads(s).iteritems():
-            v[i] = x
+            v[int(i)] = x
         return GroupVector(groups_data, v)
     
