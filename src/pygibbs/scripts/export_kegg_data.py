@@ -36,7 +36,7 @@ def MakeOpts(estimators):
                           help="Null-space matrix for the GC estimations")
     opt_parser.add_option("-t", "--thermo_estimator",
                           dest="thermo_estimator",
-                          default="milo_gc",
+                          default="PGC",
                           help="options are: " + ', '.join(estimators.keys()))
     return opt_parser
 
