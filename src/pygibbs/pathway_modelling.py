@@ -4,6 +4,7 @@ import cvxmod
 import numpy
 import pylab
 
+from cvxmod import atoms
 from pygibbs.thermodynamic_constants import default_T, R
 from matplotlib.font_manager import FontProperties
 from pygibbs.kegg import Kegg
@@ -23,6 +24,7 @@ class Pathway(object):
     DEFAULT_FORMATION_UB = 1e6
     DEFAULT_REACTION_LB = -1e3
     DEFAULT_REACTION_UB = 0.0
+    DEFAULT_C_RANGE = (1e-6, 0.1)
     
     def __init__(self, S, formation_energies, fluxes=None):
         """Create a pathway object.
@@ -45,7 +47,6 @@ class Pathway(object):
             assert len(fluxes) == self.Nr
             self.fluxes = fluxes
         
-
     def _RunThermoProblem(self, dgf_primes, output_var, problem):
         """Helper that runs a thermodynamic cvxmod.problem.
         
@@ -66,6 +67,23 @@ class Pathway(object):
         concentrations = pylab.exp((opt_dgs - self.dG0_f)/RT)
         return opt_dgs, concentrations, opt_val
 
+    def _MakeLnConcentratonBounds(self, bounds=None, c_range=None):
+        """Make bounds on logarithmic concentrations."""
+        _c_range = c_range or self.DEFAULT_C_RANGE
+        c_lower, c_upper = c_range
+        ln_conc_lb = cvxmod.matrix([pylab.log(c_lower)]*self.Nc, (self.Nc, 1))
+        ln_conc_ub = cvxmod.matrix([pylab.log(c_upper)]*self.Nc, (self.Nc, 1))
+        
+        if bounds:
+            for i, bound in enumerate(bounds):
+                lb, ub = bound
+                if lb is not None:
+                    ln_conc_lb[i, 0] = pylab.log(lb)
+                if ub is not None:
+                    ln_conc_ub[i, 0] = pylab.log(ub)
+        
+        return ln_conc_lb, ln_conc_ub
+            
     def _MakeFormationBounds(self, bounds=None, c_range=None):
         """Make the bounds on formation energies.
         
@@ -152,6 +170,7 @@ class Pathway(object):
         problem.constr.append(dgf_primes <= formation_ub)
         
         return dgf_primes, motive_force, problem
+
 
     def FindMtdf(self, c_range=(1e-6, 1e-2), bounds=None):
         """Find the MTDF (Maximal Thermodynamic Driving Force).
@@ -437,7 +456,7 @@ class Pathway(object):
         
         return sum(costs), costs, concentrations
 
-    def _MakeMinimalFeasbileConcentrationProblem(self, index_to_minimize):
+    def _MakeMinimalFeasbileConcentrationProblem(self):
         dgf_primes = cvxmod.optvar('dGf', self.Nc)
         formation_lb, formation_ub = self._MakeFormationBounds(
                                             self.bounds, self.c_range)
@@ -476,11 +495,89 @@ class Pathway(object):
             Returns:
                 dGs, concentrations, target-concentration
         """
-        dgf_primes, problem = self._MakeMinimalFeasbileConcentrationProblem(index_to_minimize)
+        dgf_primes, problem = self._MakeMinimalFeasbileConcentrationProblem()
         problem.objective = cvxmod.minimize(dgf_primes[index_to_minimize]) 
         opt_dgs, concentrations, _ = self._RunThermoProblem(
                         dgf_primes, dgf_primes[index_to_minimize], problem)
         return opt_dgs, concentrations, concentrations[index_to_minimize, 0]
+
+    def _MakeMinimumFeasbileConcentrationsProblem(self):
+        """Creates the cvxmod.problem for finding minimum total concentrations.
+        
+        Returns:
+            Two tuple (ln_concentrations var, problem).
+        """
+        ln_concentrations = cvxmod.optvar('ln_concs', self.Nc)
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(self.bounds,
+                                                                self.c_range)
+        
+        # Make the objective and problem.
+        problem = cvxmod.problem()
+        S = cvxmod.matrix(self.S)
+        
+        # Make flux-based constraints on reaction free energies.
+        # All reactions must have negative dGr in the direction of the flux.
+        # Reactions with a flux of 0 must be in equilibrium.
+        dgf_primes = (RT * ln_concentrations) + cvxmod.matrix(self.dG0_f)
+        for i, flux in enumerate(self.fluxes):
+            if flux > 0:
+                problem.constr.append(S[i,:]*dgf_primes <= self.DEFAULT_REACTION_UB)
+                problem.constr.append(S[i,:]*dgf_primes >= self.DEFAULT_REACTION_LB)
+            elif flux == 0:
+                problem.constr.append(S[i,:]*dgf_primes == 0)
+            else:
+                problem.constr.append(S[i,:]*dgf_primes >= -self.DEFAULT_REACTION_UB)
+                problem.constr.append(S[i,:]*dgf_primes <= -self.DEFAULT_REACTION_LB)
+        
+        # Set the constraints.
+        problem.constr.append(ln_concentrations >= ln_conc_lb)
+        problem.constr.append(ln_concentrations <= ln_conc_ub)
+        return ln_concentrations, problem
+
+    def FindMinimumFeasibleConcentrations(self):
+        """Use the power of convex optimization!
+        
+        minimize sum (concentrations)
+        
+        we can do this by using ln(concentration) as variables and leveraging 
+        the convexity of exponentials. 
+        
+        min sum (exp(ln(concentrations)))
+        """
+        ln_concentrations, problem = self._MakeMinimumFeasbileConcentrationsProblem()
+        problem.objective = cvxmod.minimize(cvxmod.sum(atoms.exp(ln_concentrations)))
+        
+        status = problem.solve(quiet=True)
+        if status != 'optimal':
+            raise UnsolvableConvexProblemException(status, problem)
+            
+        opt_val = cvxmod.value(problem.objective)
+        ln_concentrations = numpy.array(cvxmod.value(ln_concentrations))
+        concentrations = pylab.exp(ln_concentrations)
+        opt_dgs = RT*ln_concentrations + self.dG0_f
+        return opt_dgs, concentrations, opt_val
+
+    def FindKineticOptimum(self, fluxes=None, km=1e-5, kcat=1e2):
+        """Use the power of convex optimization!
+        
+        minimize sum (protein cost)
+        
+        we can do this by using ln(concentration) as variables and leveraging 
+        the convexity of exponentials.         
+        """
+        ln_concentrations, problem = self._MakeMinimumFeasbileConcentrationsProblem()
+        scaled_fluxes = cvxmod.matrix(fluxes or [1.0]*self.Nr) * (km/kcat)
+        problem.objective = cvxmod.minimize(atoms.exp(-ln_concentrations))
+                
+        status = problem.solve(quiet=True)
+        if status != 'optimal':
+            raise UnsolvableConvexProblemException(status, problem)
+            
+        opt_val = cvxmod.value(problem.objective)
+        ln_concentrations = numpy.array(cvxmod.value(ln_concentrations))
+        concentrations = pylab.exp(ln_concentrations)
+        opt_dgs = RT*ln_concentrations + self.dG0_f
+        return opt_dgs, concentrations, opt_val
 
 
 class KeggPathway(Pathway):
@@ -518,7 +615,7 @@ class KeggPathway(Pathway):
         """
             Compute the smallest ratio between two concentrations which makes the pathway feasible.
             All other compounds except these two are constrained by 'bounds' or unconstrained at all.
-        
+        min_conc
             Arguments:
                 cid - the CID of the compound whose concentration should be minimized
         
@@ -622,8 +719,10 @@ if __name__ == '__main__':
     rids = [1, 2, 3]
     cids = [1, 2, 3, 4]
     keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
-    dGf, concentrations, min_conc = keggpath.FindMinimalFeasibleConcentration(1)
-    print 'target concentration: %g M' % min_conc
+    dGf, concentrations, protein_cost = keggpath.FindKineticOptimum()
+    print 'protein cost: %g protein units' % protein_cost
+    print 'concentrations: ', concentrations
+    print 'sum(concs): ', sum(concentrations), 'M'
     
     keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
     dGf, concentrations, mtdf = keggpath.FindMtdf()

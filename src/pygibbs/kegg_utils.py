@@ -66,8 +66,7 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
         except KeyError:
             if exception_if_unknown:
                 raise kegg_errors.KeggReactionNotBalancedException(
-                    "C%05d does not appear in KEGG"
-                    ", cannot check if this reaction is balanced" % cid)
+                    "Reactant C%05d does not appear in KEGG." % cid)
             else:
                 logging.debug("C%05d does not appear in KEGG"
                     ", cannot check if this reaction is balanced" % cid)
@@ -77,8 +76,7 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
         if cid_atom_bag == None:
             if exception_if_unknown:
                 raise kegg_errors.KeggReactionNotBalancedException(
-                    "C%05d has no explicit formula, "
-                    "cannot check if this reaction is balanced" % cid)
+                    "Reactant C%05d has no explicit formula." % cid)
             else:
                 logging.debug("C%05d has no explicit formula, "
                                 "cannot check if this reaction is balanced" % cid)
@@ -107,6 +105,12 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
         if atom_bag[atomtype] == 0:
             del atom_bag[atomtype]
 
-    if atom_bag:
-        raise kegg_errors.KeggReactionNotBalancedException("Reaction cannot be balanced: " 
-            + str(atom_bag))
+    redox_balanced = 'e-' not in atom_bag
+    atom_bag.pop('e-', None)
+    chemically_balanced = len(atom_bag) == 0
+    
+    if not chemically_balanced:
+        raise kegg_errors.KeggReactionNotBalancedException("Reaction as written is not chemically balanced.")
+    if not redox_balanced:
+        raise kegg_errors.KeggReactionNotBalancedException("Reaction as written is not redox balanced.")
+    

@@ -274,6 +274,38 @@ class PathwayComparison(object):
                                                 name=fname)
 
             self.html_writer.write('</div>')
+
+    def CompareMinimumFeasibleConcentrations(self):
+        # plot the profile graph
+        burdens = {}
+        max_dGs = pylab.arange(0.0,-12.25,-0.25)
+        
+        for name, pathway_data in self.pathways.iteritems():
+            self.html_writer.write('<div margin="20px"><div><b>%s</b></div>' % name)
+            self.GetConditions(pathway_data)
+            S, rids, fluxes, cids = self.GetReactions(name, pathway_data)
+            self.WriteReactionsToHtml(S, rids, fluxes, cids, show_cids=False)
+            
+            # Bounds on concentrations.            
+            bounds = [self.thermo.bounds.get(cid, (None, None))
+                      for cid in cids]
+            
+            # All fluxes are forwards
+            fluxes = map(abs, fluxes)
+            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            c_mid = self.thermo.c_mid
+            c_range = self.thermo.c_range
+            
+            path = pathway_modelling.Pathway(S, dG0_f)
+            dgs, concentrations, total_conc = path.FindMinimumFeasibleConcentrations()
+            
+            self.html_writer.write('<div margin="20px"><div>Total concentration<b>%f M</b></div>' % total_conc)
+                            
+            concs_array = pylab.hstack(concentrations)
+            self.PlotConcentrations(max_dGs, concs_array, cids)
+            
+            self.html_writer.write('</div>')
+        
         
     def CompareMinimalEnzymeBurden(self):
         # plot the profile graph

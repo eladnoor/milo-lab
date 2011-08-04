@@ -416,8 +416,7 @@ class GroupDecomposer(object):
                                            groups, unassigned_nodes)
         
         if strict and decomposition.unassigned_nodes:
-            raise GroupDecompositionError('Unable to decompose %s into groups.\n%s' %
-                                          (mol.title, decomposition.ToTableString()))
+            raise GroupDecompositionError('Unable to decompose %s into groups.' % mol.title)
         
         return decomposition
 
