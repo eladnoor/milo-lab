@@ -69,7 +69,7 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
                     "C%05d does not appear in KEGG"
                     ", cannot check if this reaction is balanced" % cid)
             else:
-                logging.warning("C%05d does not appear in KEGG"
+                logging.debug("C%05d does not appear in KEGG"
                     ", cannot check if this reaction is balanced" % cid)
                 return
 
@@ -80,7 +80,7 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
                     "C%05d has no explicit formula, "
                     "cannot check if this reaction is balanced" % cid)
             else:
-                logging.warning("C%05d has no explicit formula, "
+                logging.debug("C%05d has no explicit formula, "
                                 "cannot check if this reaction is balanced" % cid)
                 return
         cid_atom_bag['e-'] = comp.get_num_electrons()
