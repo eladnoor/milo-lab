@@ -8,60 +8,71 @@
 	<body>
 		<div class="container">
 			<div class="logoSmall"><a href="/"><img src="/media/images/equilibrator_logo_small.png" /></a></div>
-      <div class="title">Download eQuilibrator<sub>&beta;</sub> Data</div>
+      		<div class="title">Download eQuilibrator<sub>&beta;</sub> Data</div>
 
-			<div class="section">
+		<div class="section">
         <div class="title">Formats</div>
         
-        <p>eQuilibrator data is available for download in several formats. 
+        <p>eQuilibrator data is given in two formats. Tabular data is given as CSV and hierarchichal data is given in JSON.
           <ul>
             <li>
             JSON: the <a href="http://www.json.org">JavaScript Object Notation</a> format is a
-            lightly structured hierarchical format that is easily parsed in most programming languages.
+            lightly structured hierarchical format that is easily parsed in most modern programming languages.
             </li>
             <li>
-            TSV: Tab-Separated Value format is a flat format that is mostly unstructured, easy to parse
-            and easy to view in Excel and other spreadsheet programs. We use the
-            <a href="http://www.semanticsbml.org/semanticSBML/default/sbtab_handling">SBTab</a> dialect of 
-            TSV which helps provide some structure.
+            CSV: Comma-Separated Value format is a flat format that is mostly unstructured, easy to parse
+            and easy to view in Excel and other spreadsheet programs.
             </li>
           </ul>
         </p>
 
-			</div>
+		</div>
 			
-			<div class="section">
+		<div class="section">
         <div class="title">Compound Formation Energies</div>
         
         <p>
-        The standard formation energies of biochemical compounds are available for download in varying pH
-        levels. These can be used to compute reaction equilibrium constants and free energies
-        for various reactant concentrations. Note that all ionic strength to 0.0 for all the files linked
-        below.
+        The standard formation energies of biochemical compounds in the KEGG database are available for
+        download at various pH levels. Note that ionic strength is set to 0.1 for all the files linked below.
         </p>
     
-        <ul>
-          <li>pH 5: <a href="/media/downloads/compound_formation_energies_pH5.00_is0.000.json">JSON</a>, 
-                    <a href="/media/downloads/compound_formation_energies_pH5.00_is0.000.tsv">TSV</a></li>
-          <li>pH 5.5: <a href="/media/downloads/compound_formation_energies_pH5.50_is0.000.json">JSON</a>, 
-                      <a href="/media/downloads/compound_formation_energies_pH5.50_is0.000.tsv">TSV</a></li>
-          <li>pH 6: <a href="/media/downloads/compound_formation_energies_pH6.00_is0.000.json">JSON</a>, 
-                    <a href="/media/downloads/compound_formation_energies_pH6.00_is0.000.tsv">TSV</a></li>
-          <li>pH 6.5: <a href="/media/downloads/compound_formation_energies_pH6.50_is0.000.json">JSON</a>, 
-                      <a href="/media/downloads/compound_formation_energies_pH6.50_is0.000.tsv">TSV</a></li>
-          <li>pH 7: <a href="/media/downloads/compound_formation_energies_pH7.00_is0.000.json">JSON</a>, 
-                    <a href="/media/downloads/compound_formation_energies_pH7.00_is0.000.tsv">TSV</a></li>
-          <li>pH 7.5: <a href="/media/downloads/compound_formation_energies_pH7.50_is0.000.json">JSON</a>, 
-                      <a href="/media/downloads/compound_formation_energies_pH7.50_is0.000.tsv">TSV</a></li>
-          <li>pH 8: <a href="/media/downloads/compound_formation_energies_pH8.00_is0.000.json">JSON</a>, 
-                    <a href="/media/downloads/compound_formation_energies_pH8.00_is0.000.tsv">TSV</a></li>
-          <li>pH 8.5: <a href="/media/downloads/compound_formation_energies_pH8.50_is0.000.json">JSON</a>, 
-                      <a href="/media/downloads/compound_formation_energies_pH8.50_is0.000.tsv">TSV</a></li>
-          <li>pH 9: <a href="/media/downloads/compound_formation_energies_pH9.00_is0.000.json">JSON</a>, 
-                    <a href="/media/downloads/compound_formation_energies_pH9.00_is0.000.tsv">TSV</a></li>
-        </ul>
+        <table class="downloadTable">
+        	<tr>
+        		<th>pH</th><th>Alberty Data</th><th>Group Contribution Data</th>
+        	</tr>
+        	{% for ph in ph_values %}
+        	<tr>
+        		<td>{{ph}}</td>
+        		<td><a href="/media/downloads/kegg_compounds_alberty_pH{{ph}}.csv.gz">Download</a></td>
+        		<td><a href="/media/downloads/kegg_compounds_pgc_pH{{ph}}.csv.gz">Download</a></td>
+        	</tr>
+        	{% endfor %}
+          <tr>
+        </table>
 
-      </div>
+        <div class="title">Reaction Energies</div>
+        
+        <p>
+        The standard Gibbs energies of biochemical reactions in the KEGG database are available for
+        download at various pH levels as well. As above, ionic strength is set as 0.1 for all the
+        files linked below. When a reaction energy cannot be computed, an explanation is given.
+        </p>
+        
+        <table class="downloadTable">
+        	<tr>
+        		<th>pH</th><th>Alberty Data</th><th>Group Contribution Data</th>
+        	</tr>
+        	{% for ph in ph_values %}
+        	<tr>
+        		<td>{{ph}}</td>
+        		<td><a href="/media/downloads/kegg_reactions_alberty_pH{{ph}}.csv.gz">Download</a></td>
+        		<td><a href="/media/downloads/kegg_reactions_pgc_pH{{ph}}.csv.gz">Download</a></td>
+        	</tr>
+        	{% endfor %}
+          <tr>
+        </table>
+
+      	</div>
 
 			
     <div id="footer">
