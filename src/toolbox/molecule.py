@@ -7,6 +7,7 @@ import re
 import glib
 import os
 import subprocess
+import sys
 
 CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
 
@@ -86,9 +87,10 @@ class Molecule(object):
         m = Molecule()
         m.smiles = smiles
         obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("smiles", "mol")
+        obConversion.SetInFormat("smiles")
         obConversion.ReadString(m.obmol, m.smiles)
-        m.pybel_mol = pybel.Molecule(m.obmol)
+        m.UpdateInChI()
+        m.UpdatePybelMol()
         m.SetTitle(smiles)
         return m
         
@@ -97,12 +99,25 @@ class Molecule(object):
         m = Molecule()
         m.inchi = inchi
         obConversion = openbabel.OBConversion()
-        obConversion.SetInAndOutFormats("inchi", "mol")
+        obConversion.SetInFormat("inchi")
         obConversion.ReadString(m.obmol, m.inchi)
-        m.pybel_mol = pybel.Molecule(m.obmol)
+        m.UpdateSmiles()
+        m.UpdatePybelMol()
         m.SetTitle(inchi)
         return m
-
+    
+    @staticmethod
+    def FromMol(mol):
+        m = Molecule()
+        obConversion = openbabel.OBConversion()
+        obConversion.SetInFormat("mol")
+        obConversion.ReadString(m.obmol, mol)
+        m.UpdateInChI()
+        m.UpdateSmiles()
+        m.UpdatePybelMol()
+        m.SetTitle("")
+        return m
+    
     @staticmethod
     def _ToFormat(obmol, format='inchi'):
         obConversion = openbabel.OBConversion()
@@ -182,6 +197,9 @@ class Molecule(object):
         if not self.smiles:
             self.UpdateSmiles()
         return self.smiles
+    
+    def UpdatePybelMol(self):
+        self.pybel_mol = pybel.Molecule(self.obmol)
     
     def GetFormula(self):
         tokens = re.findall('InChI=1S?/([0-9A-Za-z\.]+)', self.ToInChI())
@@ -331,9 +349,45 @@ class Molecule(object):
                 '-i', str(min_pkb), '-x', str(max_pka)]
         return self._RunCxcalc(args)
 
-    def GetPseudoisomers(self, pH=7):
-        args  = ['msdistr', '-M', 'true', '-H', str(pH)]
-        return self._RunCxcalc(args)
+    def GetChargedAtoms(self):
+        charged_atoms = []
+        for i, atom in enumerate(self.pybel_mol.atoms):
+            if atom.formalcharge != 0:
+                charged_atoms.append((i, atom.formalcharge))
+        return charged_atoms
+    
+    @staticmethod
+    def _ParseSdfSpecies(s):
+        m = Molecule.FromMol(s)
+        [percentStr] = re.findall('>  <DISTR\[pH=[\-\d\.]+\]>\n([\d\.]+)\n', s)
+        percent = float(percentStr)
+        return m, percent
+    
+    def GetPseudoisomersAtPh(self, pH=7):
+        args = ['msdistr', '-M', 'true', '-H', str(pH)]
+        res = []
+        for s in self._RunCxcalc(args).split('$$$$\n'):
+            if s == '':
+                continue
+            m, percent = Molecule._ParseSdfSpecies(s)
+            if percent > 0.1:
+                res.append((m, percent))
+        return res
+    
+    def GetPseudoisomers(self):
+        data = {}
+        for pH in [5, 6, 7, 8, 9]: # Physiological pH range
+            for mol, percent in m.GetPseudoisomersAtPh(pH=pH):
+                inchi = mol.ToInChI()
+                if inchi not in data or data[inchi]['percent'] < percent:
+                    data[inchi] = {'mol': mol, 'percent':percent, 'pH':pH}
+        
+        dataArray = []
+        for inchi, values in data.iteritems():
+            mol = values['mol']
+            nH, z = mol.GetHydrogensAndCharge()
+            dataArray.append((nH, values['pH'], mol, inchi))
+        return dataArray
 
     def GetMacrospecies(self):
         args  = ['majormicrospecies', '-M', 'true']
@@ -345,7 +399,7 @@ if __name__ == "__main__":
     Molecule.SetBondLength(50.0)
     
     #m = Molecule.FromInChI('InChI=1S/Fe') # Iron
-    m = Molecule.FromSmiles('CC(=O)[O-]'); m.SetTitle('acetate')
+    m = Molecule.FromSmiles('C(=O)(O)CCN'); m.SetTitle('glycine')
     #m = Molecule.FromSmiles('S[Fe+3]1(S)S[Fe+3](S1)(S)S'); m.SetTitle('oxidized ferredoxin')
     #m = Molecule.FromInChI('InChI=1S/p+1'); m.SetTitle('proton')
     #m = Molecule.FromInChI('InChI=1/C21H27N7O14P2/c22-17-12-19(25-7-24-17)28(8-26-12)21-16(32)14(30)11(41-21)6-39-44(36,37)42-43(34,35)38-5-10-13(29)15(31)20(40-10)27-3-1-2-9(4-27)18(23)33/h1-4,7-8,10-11,13-16,20-21,29-32H,5-6H2,(H5-,22,23,24,25,33,34,35,36,37)/p+1/t10-,11-,13-,14-,15-,16-,20-,21-/m1/s1'); m.SetTitle('NAD+')
@@ -361,8 +415,11 @@ if __name__ == "__main__":
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
     
-    print m.GetDissociationConstants()
-    print m.GetPseudoisomers(pH=4.54)
+    #print m.GetDissociationConstants()
+    for nH, pH, mol, inchi in m.GetPseudoisomers():
+        print "nH = %d, pH = %g, %s" % (nH, pH, inchi)
+
+    sys.exit(0)
     print m.GetMacrospecies()
 
     obmol = m.ToOBMol()

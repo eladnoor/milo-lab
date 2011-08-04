@@ -14,6 +14,7 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.kegg import Kegg
 from pygibbs.feist_ecoli import Feist
 from pygibbs.groups import GroupContribution
+from pygibbs.kegg_errors import KeggReactionNotBalancedException
 
 def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
@@ -58,7 +59,14 @@ def main():
     html_writer.write('</p>\n')
 
     reactions = {}
-    reactions['KEGG'] = Kegg.getInstance().AllReactions()
+    reactions['KEGG'] = []
+    for reaction in Kegg.getInstance().AllReactions():
+        try:
+            reaction.Balance(balance_water=True, exception_if_unknown=True)
+            reactions['KEGG'].append(reaction)
+        except KeggReactionNotBalancedException:
+            pass
+        
     reactions['FEIST'] = Feist.FromFiles().reactions
     reactions['NIST'] = nist.GetUniqueReactionSet()
     
