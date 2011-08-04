@@ -1,3 +1,4 @@
+import json
 import logging
 
 from gibbs import reaction
@@ -17,8 +18,8 @@ def ReactionGraph(request):
         mode = 'varyIs'
 
     rxn = reaction.Reaction.FromForm(form)
-    reactant_data = [c.ToJson() for c in rxn.reactants]
-    product_data = [c.ToJson() for c in rxn.products]
+    reactant_data = json.dumps([c.ToJson() for c in rxn.reactants])
+    product_data = json.dumps([c.ToJson() for c in rxn.products])
     template_data = {"reactant_data": reactant_data,
                      "product_data": product_data,
                      "mode": mode,
