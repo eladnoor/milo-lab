@@ -13,17 +13,17 @@ from pygibbs.nist import Nist
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.kegg import Kegg
 from pygibbs.feist_ecoli import Feist
+from pygibbs.groups import GroupContribution
 
 def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
     db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
-    db_tables = {'alberty': (db_public, 'alberty_pseudoisomers', 'Alberty'),
-                 'PRC': (db_gibbs, 'nist_regression_pseudoisomers', 'our method (PRC)'),
-                 'PGC': (db_gibbs, 'gc_pseudoisomers', 'our method (PGC)')}
+    tables = {'alberty': (db_public, 'alberty_pseudoisomers', 'Alberty'),
+              'PRC': (db_gibbs, 'nist_regression_pseudoisomers', 'our method (PRC)')}
 
     estimators = {}
 
-    for key, (db, table_name, thermo_name) in db_tables.iteritems():
+    for key, (db, table_name, thermo_name) in tables.iteritems():
         if db.DoesTableExist(table_name):
             estimators[key] = PsuedoisomerTableThermodynamics.FromDatabase(
                                             db, table_name, name=thermo_name)
@@ -32,6 +32,10 @@ def LoadAllEstimators():
     
     estimators['hatzi_gc'] = Hatzi(use_pKa=False)
     estimators['hatzi_gc_pka'] = Hatzi(use_pKa=True)
+    estimators['PGC'] = GroupContribution(db=db_gibbs)
+    estimators['PGC'].init()
+    estimators['PGC'].name = 'our method (PGC)'
+    
     return estimators
 
 ################################################################################################################
@@ -109,8 +113,9 @@ def main():
         for database_name, reaction_list in reactions.iteritems():
             n_covered = thermodynamics.CalculateCoverage(reaction_list)
             n_total = len(reaction_list)
-            dict[database_name + " coverage"] = "%.1f%% (%d)" % \
-                ((n_covered * 100.0 / n_total), n_covered)
+            percent = n_covered * 100.0 / n_total
+            dict[database_name + " coverage"] = "%.1f%% (%d)" % (percent, n_covered)
+            logging.info(database_name + " coverage = %.1f%%" % percent)
         dict_list.append(dict)
     
     html_writer.write_table(dict_list, headers=['Method', 'RMSE (kJ/mol)', 

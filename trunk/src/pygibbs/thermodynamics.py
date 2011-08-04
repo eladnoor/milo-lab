@@ -94,17 +94,21 @@ class Thermodynamics(object):
         return sum([coeff * self.cid2dG0_tag(cid, pH, pMg, I, T) for 
                     cid, coeff in reaction.sparse.iteritems()])
     
-    def VerifyReaction(self, sparse_reaction):
+    def VerifyReaction(self, reaction):
         """
             Input:
-                A reaction in sparse representation
+                A Reaction
             
             Raises a MissingReactionEnergy exception in case something is preventing
             this reaction from having a delta-G prediction. For example, if one of the
             compounds has a non-trivial reference point (such as guanosine=0) but that
             reference point is not balanced throughout the reaction.
         """
-        pass
+        missing_cids = reaction.get_cids().difference(set(self.get_all_cids()))
+        if missing_cids:
+            raise MissingReactionEnergy('Some compounds have no formation energy: ' + 
+                                        ', '.join(['C%05d' % cid for cid in missing_cids]),
+                                        reaction.sparse)
     
     def cid_to_bounds(self, cid, use_default=True):
         curr_c_min, curr_c_max = self.bounds.get(cid, (None, None))
@@ -269,11 +273,13 @@ class Thermodynamics(object):
         html_writer.write('</table>\n')
 
     def CalculateCoverage(self, list_or_reactions):
-        covered_cids = set(self.get_all_cids())
         covered_counter = 0
         for reaction in list_or_reactions:
-            if reaction.get_cids().issubset(covered_cids):
+            try:
+                self.VerifyReaction(reaction)
                 covered_counter += 1
+            except MissingReactionEnergy:
+                pass
         return covered_counter
     
     def CompareOverKegg(self, html_writer, other, fig_name=None):

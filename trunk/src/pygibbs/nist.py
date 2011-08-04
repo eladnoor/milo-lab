@@ -12,6 +12,7 @@ import copy
 import csv
 import pydot
 from toolbox.plotting import binned_plot
+from pygibbs.thermodynamic_errors import MissingReactionEnergy
 
 class NistMissingCrucialDataException(Exception):
     pass
@@ -376,8 +377,8 @@ class Nist(object):
             
             try:
                 dG0_pred = row_data.PredictReactionEnergy(thermodynamics)
-            except MissingCompoundFormationEnergy:
-                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.origin)
+            except MissingReactionEnergy as e:
+                logging.debug("the reaction in (%s) cannot be estimated: %s" % (row_data.ref_id, str(e)))
                 continue
                 
             dG0_obs_vec.append(row_data.dG0_r)

@@ -7,7 +7,6 @@ import re
 import glib
 import os
 import subprocess
-import io
 
 CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
 
@@ -363,7 +362,7 @@ if __name__ == "__main__":
     #print m.ToFormat('sdf')
     
     print m.GetDissociationConstants()
-    #print m.GetPseudoisomers(pH=4)
+    print m.GetPseudoisomers(pH=4.54)
     print m.GetMacrospecies()
 
     obmol = m.ToOBMol()

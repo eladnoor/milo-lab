@@ -2,7 +2,8 @@ import csv, gzip, sys
 from optparse import OptionParser
 from pygibbs.kegg import Kegg
 from pygibbs.nist_verify import LoadAllEstimators
-from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
+    MissingReactionEnergy
 from pygibbs.thermodynamic_constants import default_pH, default_I, default_T,\
     default_pMg
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
@@ -59,6 +60,8 @@ def WriteReactionCSV(reactions, thermo, filename):
             dG0_tag = str(e)
         except KeggReactionNotBalancedException:
             dG0_tag = 'Reaction cannot be balanced'
+        except MissingReactionEnergy as e:
+            dG0_tag = str(e)
         writer.writerow([reaction.rid, dG0_tag, thermo.pH, thermo.I,
                          thermo.pMg, thermo.T])
     fp.close()
