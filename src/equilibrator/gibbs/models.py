@@ -8,7 +8,7 @@ import re
 from django.db import models
 from gibbs import constants
 from util import inchi
-        
+
 
 class CommonName(models.Model):
     """A common name of a compound."""
@@ -112,6 +112,7 @@ class Specie(models.Model):
     def __unicode__(self):
         return self.kegg_id
     
+    
 class SpeciesGroup(models.Model):
     # The ID of the compound in KEGG.
     kegg_id = models.CharField(max_length=10)
@@ -130,11 +131,18 @@ class SpeciesGroup(models.Model):
         self._all_species = None
             
     def GetSpecies(self):
-        """Gets the list of SpeciesFormationEnergies, potentially caching."""
+        """Gets the list of Species, potentially caching."""
         if self._all_species is None:
             self._all_species = self.species.all()
         return self._all_species
     all_species = property(GetSpecies)
+    
+    def GetSpeciesWithoutMg(self):
+        """Gets the list of species without Mg bound."""
+        for s in self.all_species:
+            if s.number_of_mgs == 0:
+                yield s
+    all_species_no_mg = property(GetSpeciesWithoutMg)
 
     def StashTransformedSpeciesEnergies(self, ph, pmg, ionic_strength):
         """Stash the transformed species formation energy in each one."""
