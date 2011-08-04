@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import csv, gzip, sys
 from optparse import OptionParser
 from pygibbs.kegg import Kegg
@@ -8,6 +10,18 @@ from pygibbs.thermodynamic_constants import default_pH, default_I, default_T,\
     default_pMg
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
+
+# Headers
+KEGG_REACTION = '!MiriamID::urn:miriam:kegg.reaction'
+KEGG_COMPOUND = '!MiriamID::urn:miriam:kegg.compound'
+NAME = '!Name'
+FORMATION_ENERGY = '!dG0_tag (kJ/mol)'
+REACTION_ENERGY = '!dG0_tag (kJ/mol)'
+COMPOUND_ROW_ORDER = [KEGG_COMPOUND, NAME, FORMATION_ENERGY,
+                      '!pH', '!I (mM)', '!T (Kelvin)', '!Note']
+REACTION_ROW_ORDER = [KEGG_REACTION, REACTION_ENERGY,
+                      '!pH', '!I (mM)', '!T (Kelvin)', '!Note']
+
 
 def MakeOpts(estimators):
     """Returns an OptionParser object with all the default options."""
@@ -30,42 +44,49 @@ def MakeOpts(estimators):
                           help="options are: " + ', '.join(estimators.keys()))
     return opt_parser
 
+
 def WriteCompoundCSV(compounds, thermo, filename):
-    print 'Output filename: ', filename + '.gz'    
-    fp = gzip.open(filename + '.gz', 'w')
+    fname = filename + '.gz'
+    print 'Output filename: ', fname    
+    fp = gzip.open(fname, 'w')
     writer = csv.writer(fp)
-    writer.writerow(["KEGG_CID", "dG0_tag", "pH", "I", "pMg", "T"])
+    writer.writerow(COMPOUND_ROW_ORDER)
     for compound in compounds:
+        dG0_tag, note = None, None
         try:
             dG0_tag = "%.1f" % compound.PredictFormationEnergy(thermo)
-        except MissingCompoundFormationEnergy as e:
-            dG0_tag = None
-        writer.writerow([compound.cid, dG0_tag, thermo.pH, thermo.I, 
-                         thermo.pMg, thermo.T])
+        except MissingCompoundFormationEnergy, e:
+            note = str(e)
+        writer.writerow([compound.cid, compound.name, dG0_tag, thermo.pH, thermo.I, 
+                         thermo.T, note])
     fp.close()
     print 'Done'
 
+
 def WriteReactionCSV(reactions, thermo, filename):
-    print 'Output filename: ', filename + '.gz'    
-    fp = gzip.open(filename + '.gz', 'w')
+    fname = filename + '.gz'
+    print 'Output filename: ', fname    
+    fp = gzip.open(fname, 'w')
     writer = csv.writer(fp)
-    writer.writerow(["KEGG_RID", "dG0_tag", "pH", "I", "pMg", "T"])
+    writer.writerow(REACTION_ROW_ORDER)
     for reaction in reactions:
+        dG0_tag, note = None, None
         try:
             reaction.Balance(balance_water=True, exception_if_unknown=True)
             dG0_tag = "%.1f" % reaction.PredictReactionEnergy(thermo)
         except MissingCompoundFormationEnergy:
-            dG0_tag = 'Missing formation energies'
+            note = 'Missing formation energies'
         except KeggParseException as e:
-            dG0_tag = str(e)
-        except KeggReactionNotBalancedException:
-            dG0_tag = 'Reaction cannot be balanced'
+            note = str(e)
+        except KeggReactionNotBalancedException, e:
+            note = str(e)
         except MissingReactionEnergy as e:
-            dG0_tag = str(e)
+            note = str(e)
         writer.writerow([reaction.rid, dG0_tag, thermo.pH, thermo.I,
-                         thermo.pMg, thermo.T])
+                         thermo.T, note])
     fp.close()
     print 'Done'
+
     
 def ExportCSVFiles():
     estimators = LoadAllEstimators()
