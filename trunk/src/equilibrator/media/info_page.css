@@ -52,3 +52,12 @@ a {
   margin-top: 50px;
   text-align: center;
 }
+
+.downloadTable, td, th {
+  border: solid 1px black;
+  text-align: center;
+}
+
+td {
+  padding: 3px;
+}

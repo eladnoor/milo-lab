@@ -23,7 +23,10 @@ def ClassicReactions(request):
 
 def DownloadPage(request):
     """Renders the download page."""
-    return render_to_response('download.html', {})
+    
+    ph_values = [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0]
+    ph_values = map(lambda x: '%.1f' % x, ph_values)
+    return render_to_response('download.html', {'ph_values': ph_values})
     
 
 def Robots(request):
