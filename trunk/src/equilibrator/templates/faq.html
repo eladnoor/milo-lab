@@ -91,11 +91,12 @@
 				<div class="faqAnswer">
 					<p>G is the Gibbs free energy of a physical system.
 					It quantifies the amount of energy available for work in a system that is 
-					at constant temperature in pressure. Biological systems do not often
+					at constant temperature and pressure. Biological systems do not often
 					experience radical changes in temperature or pressure, so G is appropriate
-					for their analysis. As a consequence of the second law of thermodynamics, 
-					spontaneous changes in systems at constant temperature and pressure
-					must lead to reduction in G. Chemical reactions change biochemical systems,
+					for their analysis. On eQuilibrator we assume that the temperature is
+					25 &deg;C (298.15 Kelvin) and the pressue is 1 bar. As a consequence of the
+					second law of thermodynamics, spontaneous changes in systems at constant temperature and pressure
+					must lead to a reduction in G. Chemical reactions change biochemical systems,
 					so the same must be true of them: in order to occur, a reaction must lead
 					to a reduction in the Gibbs free energy - &Delta;<sub>r</sub>G' &lt; 0.
 					</p>
@@ -110,12 +111,15 @@
 					concentrations on the free energy.
 					</p>
 					
-					<p>In cells there are certain prevailing metabolite concentrations.
-					&Delta;<sub>r</sub>G' accounts for the effect of these concentrations
-					on the free energy. It is very important to use &Delta;<sub>r</sub>G' values
-					derived from physiologically plausible concentrations because reactant
-					concentrations have a large effect on &Delta;<sub>r</sub>G' and because
-					the laws of thermodynamics constrain only &Delta;<sub>r</sub>G',
+					<p>In cells there are certain prevailing metabolite concentrations. 
+					Concentrations affect the entropic component of the free energy:
+					if substrate concentrations are higher than product concentrations then
+					forward flow of the reaction will balance the concentrations and increase 
+					the entropy of the system. &Delta;<sub>r</sub>G' accounts for the effect
+					of concentrations. It is very important to use &Delta;<sub>r</sub>G' values
+					derived from physiologically plausible concentrations in thermodynamic analysis
+					because reactant concentrations have a substantial effect on &Delta;<sub>r</sub>G'
+					and because the laws of thermodynamics constrain only &Delta;<sub>r</sub>G',
 					not &Delta;<sub>r</sub>G&deg; or &Delta;<sub>r</sub>G'&deg;.  
 					</p>
 				</div>
@@ -127,7 +131,7 @@
 				<div class="faqAnswer">
 					<p>The formation energy of a compound is the change in free energy due to the
 					compound's formation reaction - the reaction forming it from elements in their
-					most stable form. For example, the formation reaction of carbon dioxide is
+					standard form. For example, the formation reaction of carbon dioxide is
 					O<sub>2</sub> + C &lt;=&gt; CO<sub>2</sub>. &Delta;<sub>f</sub>G&deg; is the
 					formation energy of a compound in standard conditions and without accounting for pH,
 					ionic strength or any other cellular factors (i.e. they are taken as 0).
@@ -136,7 +140,8 @@
 					<p>In contrast, &Delta;<sub>f</sub>G'&deg; is the formation energy of a compound
 					at a particular set of cellular conditions. When we show a &Delta;<sub>f</sub>G'&deg;
 					on eQuilibrator, as we do on compound and reaction pages, it has been transformed 
-					to the pH and ionic strength values you've chosen. 
+					to the pH and ionic strength values. The default pH is 7 and the default ionic strength
+					is 0.1 mM.
 					</p>			
 					
 				</div>
@@ -197,7 +202,7 @@
 				<div class="faqAnswer">
 				<p>The temperature is fixed at 25 &deg;C (298.15 K) for all &Delta;G values given.
 				
-				The group contribution method allows us to approximate &Delta;<sub>f</sub>G of compounds at
+				The group contribution method enables us to approximate &Delta;<sub>f</sub>G of compounds at
 				a particular temperature (the temperature at which they were measured) [4]. As the change in free energy
 				is defined as &Delta;G = &Delta;H - T&Delta;S and we don't know the value of &Delta;S in most cases, we
 				cannot predict how changes in temperature will affect &Delta;<sub>f</sub>G.
