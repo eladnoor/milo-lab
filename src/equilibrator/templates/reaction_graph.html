@@ -42,11 +42,9 @@
 					        "data-step='0.01' data-format='%.2f'>  mM</span>)");
 			}
 			      
-			{% autoescape off %}
-	        reactants = {{ reactant_data }};
-	        products = {{ product_data }};
-	  	    {% endautoescape %}
-					              
+	        reactants = jQuery.parseJSON('{{ reactant_data|safe }}');
+	        products = jQuery.parseJSON('{{ product_data|safe }}');
+
             var tangle = new Tangle(element, {
                 initialize: function () {
                 	this.ph = 7.0;				 // ph units (unitless)
