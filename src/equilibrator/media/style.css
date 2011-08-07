@@ -127,6 +127,14 @@ table.enzymeInfo, table.reactionsInfo {
   border-spacing: 0px;
 }
 
+.graphLink {
+  float: right;
+}
+
+.graphLink img {
+  border: 0px;
+}
+
 .results td,
 .compoundInfo td,
 .speciesInfo td,
@@ -156,4 +164,18 @@ td.reference.border {
 
 .refsList a {
   color: black;
+}
+
+#figureContainer {
+  margin: 5px auto 35px auto;
+  width:600px;
+  height:300px;
+}
+
+#figureContainer #legendContainer {
+  float:right; 
+}
+
+#figureContainer #dgFigure {
+  clear: both; 
 }
