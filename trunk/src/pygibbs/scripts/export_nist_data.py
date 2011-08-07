@@ -7,6 +7,7 @@ from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.nist_verify import LoadAllEstimators
+import csv
 
 
 def MakeOpts():
@@ -27,6 +28,12 @@ def MakeOpts():
     return opt_parser
 
 
+def reformat_number_string(s, new_format):
+    if s:
+        return new_format % float(s)
+    else:
+        return None
+
 def ExportJSONFiles():
     options, _ = MakeOpts().parse_args(sys.argv)
     print "Using the database file: " + options.public_db
@@ -34,7 +41,19 @@ def ExportJSONFiles():
     print "Saving the data to the CSV file: " + options.output_csv
 
     db = SqliteDatabase(options.public_db)
-    db.Table2CSV(options.output_csv, options.nist_table, write_titles=True)
+    csv_writer = csv.writer(open(options.output_csv, 'w'))
+    csv_writer.writerow(['url','reference_id','method','evaluation','ec',
+                         'enzyme','kegg_reaction','reaction','K','K_tag',
+                         'T (K)','I (M)','pH','pMg'])
+    for row in db.DictReader(options.nist_table):
+        csvrow = [row[t] for t in ['url','reference_id','method','evaluation','ec','enzyme','kegg_reaction','reaction']]
+        csvrow += [reformat_number_string(row['K'], '%.3e'), 
+                   reformat_number_string(row['K_tag'], '%.3e'),
+                   reformat_number_string(row['T'], '%.2f'),
+                   reformat_number_string(row['I'], '%.2f'),
+                   reformat_number_string(row['pH'], '%.2f'),
+                   reformat_number_string(row['pMg'], '%.2f')]
+        csv_writer.writerow(csvrow)
 
 if __name__ == '__main__':
     ExportJSONFiles()

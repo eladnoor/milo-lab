@@ -19,8 +19,6 @@ from pygibbs import kegg_errors
 from pygibbs import kegg_parser
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.kegg_reaction import Reaction
-from pygibbs.groups_data import GroupsData
-from pygibbs.group_vector import GroupVector
     
 class Kegg(Singleton):
 

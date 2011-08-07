@@ -139,7 +139,7 @@ class GroupObervationCollection(object):
 
     def AddFormationEnergies(self, obs_fname="../data/thermodynamics/formation_energies.csv"):
         dissociation = DissociationConstants.FromFile()
-        train_species = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname, label='train')
+        train_species = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname, label='training')
         for cid in train_species.get_all_cids():
             pmap = train_species.cid2PseudoisomerMap(cid)
             pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
@@ -200,7 +200,7 @@ class GroupObervationCollection(object):
         # override the nH in cid2nH with the pseudoisomer used in the CSV
         # so it will be consistent with the formation energy table
         train_species = PsuedoisomerTableThermodynamics.FromCsvFile(
-            '../data/thermodynamics/formation_energies.csv', label='train')
+            '../data/thermodynamics/formation_energies.csv', label='training')
         for cid in train_species.get_all_cids():
             pmap = train_species.cid2PseudoisomerMap(cid)
             pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
@@ -212,7 +212,7 @@ class GroupObervationCollection(object):
         # will be subtracted from the reaction dG0 and not used in the regression
         # of the groups
         test_species = PsuedoisomerTableThermodynamics.FromCsvFile(
-            '../data/thermodynamics/formation_energies.csv', label='test')
+            '../data/thermodynamics/formation_energies.csv', label='testing')
         for cid in test_species.get_all_cids():
             pmap = test_species.cid2PseudoisomerMap(cid)
             pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
