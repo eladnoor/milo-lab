@@ -148,7 +148,7 @@
                 		var dg = this.getDgTagReaction(this.ph, curIs);
                 		points.push([curIs, (dg).toFixed(2)]);
                 		
-                		curIs += 0.01;
+                		curIs += 0.001;
                 	}
                 	
                 	var series = {
@@ -173,7 +173,8 @@
                 update: function () {
                 	var all_series = [];
                 	var options = {
-                		yaxis: { tickFormatter: this.dgTickFormatter }
+                		yaxis: { tickFormatter: this.dgTickFormatter },
+                		legend: { container: "#legendContainer" }
 					};
 					
                 	if (this.mode == 'varyIs') {
@@ -184,7 +185,6 @@
                 		var phSeries = this.varyPh();
                 		all_series.push(phSeries);
                 		options.xaxis = { tickFormatter: this.phTickFormatter };
-                		
                 	}
                 	
                     $.plot($("#dgFigure"), all_series, options);
@@ -205,8 +205,12 @@
 
 		<div id="plotContainer">
 		
-			<div id="dgFigure" style="margin:auto;width:600px;height:300px;"></div>
-		
+			<div id="figureContainer">
+				<div id="legendContainer"></div>
+				<div id="dgFigure" style="margin:auto;width:600px;height:300px;">
+				</div>
+			</div>
+			
 			<p id="plotTitle">
 			</p>
 			
@@ -214,7 +218,6 @@
 				Concentrations: 
 			{% for compound in reaction.all_compounds %}
 					[{{ compound.name }}] = {{ compound.human_concentration_w_units }} {% if not forloop.last %},{% endif %}
-					
 			{% endfor %}
 			</p>
 			
