@@ -7,7 +7,6 @@ import re
 import glib
 import os
 import subprocess
-import sys
 
 CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
 
@@ -332,65 +331,134 @@ class Molecule(object):
         if not os.path.exists(CXCALC_BIN):
             raise Exception("Jchem must be installed to calculate pKa data.")
         
+        mol = self.ToFormat('mol')
         temp_fname = '.mol'
         temp_molfile = open(temp_fname, 'w')
-        temp_molfile.write(self.ToFormat('mol'))
+        temp_molfile.write(mol)
         temp_molfile.close()
+        
+        #print "*"*50 + "\nINPUT: \n%s" % mol
         p = subprocess.Popen([CXCALC_BIN] + args + [temp_fname],
                              executable=CXCALC_BIN, stdout=subprocess.PIPE)
         p.wait()
         os.remove(temp_fname)
-        return p.communicate()[0]
+        res = p.communicate()[0]
+        #print "*"*50 + "\nOUTPUT :\n%s" % res
+        return res
+    
+    @staticmethod
+    def _ParsePkaOutput(s, n_acidic, n_basic):
+        """
+            Returns:
+                A dictionary that maps the atom index to a list of pKas
+                that are assigned to that atom.
+        """
+        pkaline = s.split('\n')[1]
+        splitline = pkaline.split('\t')
+        pKa_list = [float(x) for x in splitline[1:(n_acidic+n_basic+1)]
+                    if x != '']
+        atom_numbers = [int(x)-1 for x in splitline[-1].split(',')]
+        atom2pKa = {}
+        for i, j in enumerate(atom_numbers):
+            atom2pKa.setdefault(j, [])
+            atom2pKa[j].append(pKa_list[i])
+        return atom2pKa
     
     def GetDissociationConstants(self, n_acidic=5, n_basic=5, 
                                  max_pka=12, min_pkb=2):
         args = ['pka', '-M', 'true',
                 '-a', str(n_acidic), '-b', str(n_basic),
                 '-i', str(min_pkb), '-x', str(max_pka)]
-        return self._RunCxcalc(args)
+        res = self._RunCxcalc(args)
+        return Molecule._ParsePkaOutput(res, n_acidic, n_basic)
 
-    def GetChargedAtoms(self):
-        charged_atoms = []
-        for i, atom in enumerate(self.pybel_mol.atoms):
-            if atom.formalcharge != 0:
-                charged_atoms.append((i, atom.formalcharge))
-        return charged_atoms
+    def GetAtomCharges(self):
+        """
+            Returns:
+                A list of charges, according to the number of atoms
+                in the molecule
+        """
+        return [atom.formalcharge for atom in self.pybel_mol.atoms]
     
     @staticmethod
-    def _ParseSdfSpecies(s):
-        m = Molecule.FromMol(s)
+    def _ParseSdfSpecies(s): 
+        mol = Molecule.FromMol(s)
         [percentStr] = re.findall('>  <DISTR\[pH=[\-\d\.]+\]>\n([\d\.]+)\n', s)
         percent = float(percentStr)
-        return m, percent
+        return percent, mol
     
-    def GetPseudoisomersAtPh(self, pH=7):
+    def GetPseudoisomersAtPh(self, pH=7, threshold=0.1):
         args = ['msdistr', '-M', 'true', '-H', str(pH)]
         res = []
         for s in self._RunCxcalc(args).split('$$$$\n'):
             if s == '':
                 continue
-            m, percent = Molecule._ParseSdfSpecies(s)
-            if percent > 0.1:
-                res.append((m, percent))
+            percent, mol = Molecule._ParseSdfSpecies(s)
+            if percent > threshold:
+                res.append((percent, mol))
         return res
     
     def GetPseudoisomers(self):
-        data = {}
+        data = []
         for pH in [5, 6, 7, 8, 9]: # Physiological pH range
-            for mol, percent in m.GetPseudoisomersAtPh(pH=pH):
-                inchi = mol.ToInChI()
-                if inchi not in data or data[inchi]['percent'] < percent:
-                    data[inchi] = {'mol': mol, 'percent':percent, 'pH':pH}
+            for percent, mol in m.GetPseudoisomersAtPh(pH=pH):
+                nH, _z = mol.GetHydrogensAndCharge()
+                data.append({'pH':pH, 'percent':percent, 'nH':nH, 'mol':mol})
         
-        dataArray = []
-        for inchi, values in data.iteritems():
-            mol = values['mol']
-            nH, z = mol.GetHydrogensAndCharge()
-            dataArray.append((nH, values['pH'], mol, inchi))
-        return dataArray
+        # find the most abundant species at pH 7 
+        major_microspecies_at_pH7 = max([x for x in data if x['pH'] == 7], 
+                                         key=lambda(x):x['percent'])['mol']
+        atom2pKa = major_microspecies_at_pH7.GetDissociationConstants()
+
+        nH_to_species = {}
+        for nH in set([x['nH'] for x in data]):
+            # find the most abundant species with this nH, across all pH levels
+            max_species = max([x for x in data if x['nH'] == nH],
+                              key=lambda(x):x['percent'])
+            max_pH = max_species['pH']
+            mol = max_species['mol']
+            nH_to_species[nH] = {'pH':max_pH, 'mol':mol, 
+                                 'charges':mol.GetAtomCharges(), 
+                                 'smiles':mol.ToSmiles()}
+            
+        result_table = []
+        for nH in sorted(nH_to_species.keys(), reverse=True):
+            if (nH+1) not in nH_to_species:
+                continue
+            
+            curr_charges = nH_to_species[nH]['charges']
+            plus1_charges = nH_to_species[nH+1]['charges']
+            
+            # find the atoms which change their charge between this microspecies
+            # and the nH+1 microspecies
+            changing_atoms = [i for i in xrange(len(self))
+                              if curr_charges[i] != plus1_charges[i]]
+            
+            pKas = []
+            for i in changing_atoms:
+                # find the most likely pKa that matches this protonation
+                # assuming it is the one closer to the pH where this microspecies 
+                # is present at its maximum
+                if i in atom2pKa:
+                    pKa = sorted(atom2pKa[i], key=lambda(x):abs(x-pH))[0]
+                else:
+                    raise Exception("This atom (%d) changes charge but doesn't match any pKa:\n%s" %
+                                    (i, str(atom2pKa)))
+                pKas.append((i, pKa))
+            
+            if len(pKas) == 1:
+                pKas = pKas[0][1]
+
+            result_table.append([nH+1, nH, nH_to_species[nH+1]['smiles'], 
+                                 nH_to_species[nH]['smiles'], pKas])
+        
+        #for nH in sorted(nH_to_microspecies.keys()):
+        #    print nH, nH_to_microspecies[nH]
+        
+        return result_table
 
     def GetMacrospecies(self):
-        args  = ['majormicrospecies', '-M', 'true']
+        args  = ['majorms', '-M', 'true']
         res = self._RunCxcalc(args)
         smiles = res.split('\n')[1].split()[1]
         return smiles.split('.')
@@ -399,10 +467,10 @@ if __name__ == "__main__":
     Molecule.SetBondLength(50.0)
     
     #m = Molecule.FromInChI('InChI=1S/Fe') # Iron
-    m = Molecule.FromSmiles('C(=O)(O)CCN'); m.SetTitle('glycine')
+    #m = Molecule.FromSmiles('NCC(O)=O'); m.SetTitle('glycine')
     #m = Molecule.FromSmiles('S[Fe+3]1(S)S[Fe+3](S1)(S)S'); m.SetTitle('oxidized ferredoxin')
     #m = Molecule.FromInChI('InChI=1S/p+1'); m.SetTitle('proton')
-    #m = Molecule.FromInChI('InChI=1/C21H27N7O14P2/c22-17-12-19(25-7-24-17)28(8-26-12)21-16(32)14(30)11(41-21)6-39-44(36,37)42-43(34,35)38-5-10-13(29)15(31)20(40-10)27-3-1-2-9(4-27)18(23)33/h1-4,7-8,10-11,13-16,20-21,29-32H,5-6H2,(H5-,22,23,24,25,33,34,35,36,37)/p+1/t10-,11-,13-,14-,15-,16-,20-,21-/m1/s1'); m.SetTitle('NAD+')
+    m = Molecule.FromInChI('InChI=1/C21H27N7O14P2/c22-17-12-19(25-7-24-17)28(8-26-12)21-16(32)14(30)11(41-21)6-39-44(36,37)42-43(34,35)38-5-10-13(29)15(31)20(40-10)27-3-1-2-9(4-27)18(23)33/h1-4,7-8,10-11,13-16,20-21,29-32H,5-6H2,(H5-,22,23,24,25,33,34,35,36,37)/p+1/t10-,11-,13-,14-,15-,16-,20-,21-/m1/s1'); m.SetTitle('NAD+')
     #m = Molecule.FromInChI('InChI=1/C5H14NO/c1-6(2,3)4-5-7/h7H,4-5H2,1-3H3/q+1'); m.SetTitle('choline')
     #m = Molecule.FromInChI('InChI=1/CH2O3/c2-1(3)4/h(H2,2,3,4)/p-1'); m.SetTitle('carbonate')
     #m = Molecule.FromInChI('InChI=1/CO2/c2-1-3'); m.SetTitle('CO2')
@@ -414,18 +482,16 @@ if __name__ == "__main__":
     #print m.ToFormat('smi')
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
-    
+
+    #print m.ToFormat('mol')    
+    print '\n'.join([str(x) for x in m.GetPseudoisomers()])
     #print m.GetDissociationConstants()
-    for nH, pH, mol, inchi in m.GetPseudoisomers():
-        print "nH = %d, pH = %g, %s" % (nH, pH, inchi)
+    #print m.GetMacrospecies()
 
-    sys.exit(0)
-    print m.GetMacrospecies()
-
-    obmol = m.ToOBMol()
-    print 'atom bag = %s, charge = %d' % m.GetAtomBagAndCharge()
-    print 'no. e- =', m.GetNumElectrons()
-    print 'nH = %d, charge = %d' % m.GetHydrogensAndCharge()
-    print 'no. atoms =', m.GetNumAtoms()
-    m.Draw(True)
+    #obmol = m.ToOBMol()
+    #print 'atom bag = %s, charge = %d' % m.GetAtomBagAndCharge()
+    #print 'no. e- =', m.GetNumElectrons()
+    #print 'nH = %d, charge = %d' % m.GetHydrogensAndCharge()
+    #print 'no. atoms =', m.GetNumAtoms()
+    #m.Draw(True)
     
