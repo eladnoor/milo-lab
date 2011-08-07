@@ -56,7 +56,7 @@ class GroupMissingTrainDataError(Exception):
             [str(gc.groups_data.all_groups[j]) for j in missing_single_groups])
         
 
-class GroupContribution(Thermodynamics):    
+class GroupContribution(PsuedoisomerTableThermodynamics):    
     def __init__(self, db, html_writer=None, kegg=None):
         """Construct a GroupContribution instance.
         
@@ -65,7 +65,7 @@ class GroupContribution(Thermodynamics):
             html_writer: the HtmlWriter to write to.
             kegg: a Kegg instance if you don't want to use the default one.
         """
-        Thermodynamics.__init__(self)
+        PsuedoisomerTableThermodynamics.__init__(self, name="Group Contribution")
         self.db = db
         self.html_writer = html_writer or NullHtmlWriter()
 
@@ -78,7 +78,6 @@ class GroupContribution(Thermodynamics):
         self.group_contributions = None
         self.obs_collection = None
         
-        self.cid2pmap = None
         self.cid2error = None
         self.cid2groupvec = None
         
@@ -523,12 +522,11 @@ class GroupContribution(Thermodynamics):
                 '../data/thermodynamics/formation_energies.csv')
         else:
             obs_species = PsuedoisomerTableThermodynamics.FromCsvFile(
-                '../data/thermodynamics/formation_energies.csv', label='test')
+                '../data/thermodynamics/formation_energies.csv', label='testing')
             
         obs_cids = obs_species.get_all_cids()
 
         dissociation = DissociationConstants.FromFile()
-        self.cid2pmap = {}
         self.cid2error = {}
         self.cid2groupvec = {}
         
@@ -553,8 +551,7 @@ class GroupContribution(Thermodynamics):
                     nMg = decomposition.Magnesiums()
                     groupvec = decomposition.AsVector()
                     dG0 = self.groupvec2val(groupvec)
-                    self.cid2pmap[cid] = PseudoisomerMap(nH=nH, z=z, nMg=nMg, 
-                                            dG0=dG0, ref="Group Contribution")
+                    self.AddPseudoisomer(cid, nH, z, nMg, dG0, ref="Group Contribution")
                     self.cid2source_string[cid] = "Group Contribution"
                     self.cid2groupvec[cid] = groupvec
                 else:
@@ -587,7 +584,7 @@ class GroupContribution(Thermodynamics):
                         self.cid2groupvec[cid] = groupvec
                 
                     diss.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
-                    self.cid2pmap[cid] = diss.GetPseudoisomerMap()
+                    self.SetPseudoisomerMap(cid, diss.GetPseudoisomerMap())
     
             except (KeggParseException, GroupDecompositionError, 
                     GroupMissingTrainDataError, MissingDissociationConstantError) as e:
@@ -604,32 +601,13 @@ class GroupContribution(Thermodynamics):
         self.KeggErrorReport()
 
     def FromDatabase(self, db, table_name):
-        self.cid2pmap = {}
-        self.cid2source_string = {}
+        # Read the formation energies of all pseudoisomers from the database
+        reader = db.DictReader(table_name)
+        PsuedoisomerTableThermodynamics._FromDictReader(
+            reader, self, label=None, name="Group Contribution",
+            warn_for_conflicting_refs=False)
         
-        for row in db.DictReader(table_name):
-            cid = int(row['cid'])
-            if not cid:
-                continue
-            if cid not in self.cid2pmap:
-                self.cid2pmap[cid] = PseudoisomerMap()
-            
-            try:
-                nH = int(row['nH'])
-                z = int(row['z'])
-                nMg = int(row['nMg'])
-                dG0 = float(row['dG0'])
-                self.cid2pmap[cid].Add(nH=nH, z=z, nMg=nMg, dG0=dG0)
-                ref = row.get('ref', '')
-                
-                self.cid2source_string[cid] = ref
-                if cid in self.cid2source_string and self.cid2source_string[cid] != ref:
-                    logging.warning('There are conflicting references for C%05d ' % cid)
-                else:
-                    self.cid2source_string[cid] = ref
-            except ValueError as e:
-                raise ValueError("For C%05d: %s" % (cid, str(e)))
-
+        # Read the error messages from the database
         self.cid2error = {}            
         for row in db.DictReader(self.ERROR_TABLE_NAME):
             cid = int(row['cid'])
@@ -637,6 +615,7 @@ class GroupContribution(Thermodynamics):
                 continue
             self.cid2error[cid] = row['error']
 
+        # Read the group-vectors from the database
         self.cid2groupvec = {}
         for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
             cid = int(row['cid'])
@@ -689,12 +668,14 @@ class GroupContribution(Thermodynamics):
             
     def cid2PseudoisomerMap(self, cid):
         """
-            Returns a PseudoisomerMap according to a given CID.
+            Overrides the cid2PseudoisomerMap method from PsuedoisomerTableThermodynamics
+            in order to raise the group-contribution-specific error using the 
+            MissingCompoundFormationEnergy exception.
         """
-        if self.cid2pmap is None:
+        if not self.cid2pmap_dict:
             raise Exception("You must run the method EstimateKeggCids before using this one.")
-        if cid in self.cid2pmap:
-            return self.cid2pmap[cid]
+        elif cid in self.cid2pmap_dict:
+            return self.cid2pmap_dict[cid]
         else:
             raise MissingCompoundFormationEnergy(self.cid2error[cid], cid)
         

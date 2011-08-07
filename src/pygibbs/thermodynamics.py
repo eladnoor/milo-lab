@@ -33,7 +33,7 @@ class Thermodynamics(object):
         """ Add a whole Pseudoisomer Map for a compound according to its CID """
         raise NotImplementedError
 
-    def AddPseudoisomer(self, cid, nH, z, nMg, dG0):
+    def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=""):
         """ Add a single pseudoisomer to according to its CID """
         raise NotImplementedError
         
@@ -391,7 +391,7 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
         self.cid2pmap_dict = {}
     
     @staticmethod
-    def _FromDictReader(reader, label=None, 
+    def _FromDictReader(reader, thermo, label=None, 
                         name="Unknown PsuedoisomerTableThermodynamics", 
                         warn_for_conflicting_refs=True):
         """Internal and for testing only.
@@ -400,12 +400,12 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
         
         Arguments:
             reader - a list of dictionaries containing the row data
+            thermo - the Thermodynamics class into which to write the data
             label - if not None, only rows with this label will be used
                     otherwise, all rows except those with the label 'skip' will be used
             warn_for_conflicting_refs - if True, print warnings if two rows
                     with the same CID have different refs.
         """
-        thermo = PsuedoisomerTableThermodynamics(name)
         for row in reader:
             if label and row.get('use for', None) != label:
                 continue
@@ -443,8 +443,10 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
         if name is None:
             name = "From table " + table_name
         reader = db.DictReader(table_name)
-        return PsuedoisomerTableThermodynamics._FromDictReader(
-                                                    reader, label, name)
+        thermo = PsuedoisomerTableThermodynamics(name)
+        PsuedoisomerTableThermodynamics._FromDictReader(
+                                                reader, thermo, label, name)
+        return thermo
 
     @staticmethod
     def FromCsvFile(filename, label=None, name=None):
@@ -455,8 +457,10 @@ class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
         if name is None:
             name = "From file " + filename
         reader = csv.DictReader(open(filename, 'r'))
-        return PsuedoisomerTableThermodynamics._FromDictReader(
-                                                    reader, label, name)
+        thermo = PsuedoisomerTableThermodynamics(name)
+        PsuedoisomerTableThermodynamics._FromDictReader(
+                                                reader, thermo, label, name)
+        return thermo
 
     def cid2PseudoisomerMap(self, cid):
         if cid in self.cid2pmap_dict:

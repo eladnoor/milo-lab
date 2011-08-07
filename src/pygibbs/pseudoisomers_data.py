@@ -37,10 +37,10 @@ class PseudoisomerEntry(object):
         return True
         
     def Train(self):
-        return self.use_for.lower() == 'train'
+        return self.use_for.lower() == 'training'
     
     def Test(self):
-        return self.use_for.lower() == 'test'
+        return self.use_for.lower() == 'testing'
     
     def Skip(self):
         return self.use_for.lower() == 'skip'

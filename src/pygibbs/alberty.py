@@ -70,16 +70,6 @@ class Alberty(Thermodynamics):
                 self.cid2pmap_dict[cid] = alberty_name_to_pmap[name]
             if name in alberty_name_to_hmap:
                 self.cid2hmap_dict[cid] = alberty_name_to_hmap[name]
-        
-        # This is a specific implementation that copies the data from HCO3 to
-        # CO2, to compensate for the fact that we assume they are in equilibrium
-        # in cellular conditions.
-        if 288 in self.cid2pmap_dict:
-            self.cid2pmap_dict[11] = self.cid2pmap_dict[288]
-        if 288 in self.cid2hmap_dict:
-            self.cid2hmap_dict[11] = self.cid2hmap_dict[288]
-        if 288 in self.cid2source_string:
-            self.cid2source_string[11] = self.cid2source_string[288]
     
     def cid2PseudoisomerMap(self, cid):
         try:
