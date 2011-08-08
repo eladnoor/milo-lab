@@ -123,12 +123,12 @@
                 },
                 
                 varyPh: function () {
-                	var curPh = 0.001;
+                	var curPh = 4.001;
                 	var points = [];
                 	
-                	while (curPh < 14.0) {
+                	while (curPh < 11.0) {
                 		var dg = this.getDgTagReaction(curPh, this.is);
-                		points.push([curPh, (dg).toFixed(2)]);
+                		points.push([curPh, dg]);
                 		
                 		curPh += 0.1;
                 	}
@@ -146,9 +146,9 @@
                 	
                 	while (curIs < 0.35) {
                 		var dg = this.getDgTagReaction(this.ph, curIs);
-                		points.push([curIs, (dg).toFixed(2)]);
+                		points.push([curIs, dg]);
                 		
-                		curIs += 0.001;
+                		curIs += 0.0001;
                 	}
                 	
                 	var series = {

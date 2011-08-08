@@ -550,7 +550,7 @@ class Reaction(object):
             return None
                 
         # Ignore hydrogen.
-        atom_diff.pop('H')
+        atom_diff.pop('H', 0)
         
         # Omit oxygen for checking balancedness.
         oxy_count = atom_diff.pop('O', 0)
@@ -875,7 +875,7 @@ class Reaction(object):
 
     def ExtraAtoms(self):
         diff = self._GetAtomDiff()
-        diff.pop('H')
+        diff.pop('H', 0)
         extras = filter(lambda t: t[1] > 0, diff.iteritems())
         if not extras:
             return None
@@ -885,7 +885,7 @@ class Reaction(object):
 
     def MissingAtoms(self):
         diff = self._GetAtomDiff()
-        diff.pop('H')
+        diff.pop('H', 0)
         short = filter(lambda t: t[1] < 0, diff.iteritems())
         if not short:
             return None
