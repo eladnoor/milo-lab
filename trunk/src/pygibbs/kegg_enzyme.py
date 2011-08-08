@@ -133,7 +133,7 @@ class Enzyme(object):
         if 'rid_list' in row_dict:
             rid_list = row_dict['rid_list']
             if rid_list:
-                enz.reactions = json.loads(rid_list)
+                enz.reactions = map(int, json.loads(rid_list))
                 
         if 'organism_list' in row_dict:
             org_list = row_dict['organism_list']
@@ -146,7 +146,7 @@ class Enzyme(object):
             
         enz.products = row_dict.get('product', None)
         if enz.products:
-            enz.products = enz.products.split(', ')
+            enz.products = json.loads(enz.products)
             
         enz.cofactors = row_dict.get('cofactor', None)
         if enz.cofactors:
