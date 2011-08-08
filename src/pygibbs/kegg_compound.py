@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import json
 import logging
 import re
 
@@ -104,7 +105,7 @@ class Compound(object):
         """Build a Compound from a database row."""
         comp = Compound(cid=row_dict['cid'])
         comp.name = row_dict['name']
-        comp.all_names = row_dict['all_names'].split(';')
+        comp.all_names = json.loads(row_dict['all_names'])
         comp.mass = row_dict['mass']
         comp.formula = row_dict['formula']
         
@@ -128,17 +129,17 @@ class Compound(object):
         try:
             inchi = self.get_inchi()
         except Exception, e:
-            logging.warning(e)
+            logging.debug(e)
         
         num_electrons = None
         try:
             num_electrons = self.get_num_electrons()
         except Exception, e:
-            logging.warning(e)
+            logging.debug(e)
         
         row = [self.cid,
                self.name,
-               ';'.join(self.all_names),
+               json.dumps(self.all_names),
                self.mass,
                self.formula,
                inchi,

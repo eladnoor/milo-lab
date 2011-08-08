@@ -128,21 +128,21 @@ class Enzyme(object):
         if 'all_names' in row_dict:
             names = row_dict['all_names']
             if names:
-                enz.names = names.split(', ')
+                enz.names = json.loads(names)
                 
         if 'rid_list' in row_dict:
             rid_list = row_dict['rid_list']
             if rid_list:
-                enz.reactions = [int(r) for r in row_dict['rid_list'].split(', ')]
+                enz.reactions = json.loads(rid_list)
                 
         if 'organism_list' in row_dict:
             org_list = row_dict['organism_list']
             if org_list:
-                enz.organisms = org_list.split(', ')
+                enz.organisms = json.loads(org_list)
                         
         enz.substrates = row_dict.get('substrate', None)
         if enz.substrates:
-            enz.substrates = enz.substrates.split(', ')
+            enz.substrates = json.loads(enz.substrates)
             
         enz.products = row_dict.get('product', None)
         if enz.products:
@@ -150,7 +150,7 @@ class Enzyme(object):
             
         enz.cofactors = row_dict.get('cofactor', None)
         if enz.cofactors:
-            enz.cofactors = enz.cofactors.split(', ')
+            enz.cofactors = json.loads(enz.cofactors)
             
         enz.title = row_dict.get('title', None)
         
@@ -166,27 +166,27 @@ class Enzyme(object):
     def ToDBRow(self):
         """Create a DB row from this enzyme."""
         row = [self.ec,
-               ', '.join(self.names),
+               json.dumps(self.names),
                self.title,
-               ', '.join([str(r) for r in self.reactions])]
+               json.dumps([str(r) for r in self.reactions])]
         
         if self.substrates:
-            row.append(', '.join(self.substrates))
+            row.append(json.dumps(self.substrates))
         else:
             row.append(None)
         
         if self.products:
-            row.append(', '.join(self.products))
+            row.append(json.dumps(self.products))
         else:
             row.append(None)
         
         if self.cofactors:
-            row.append(', '.join(self.cofactors))
+            row.append(json.dumps(self.cofactors))
         else:
             row.append(None)
             
         if self.organisms:
-            row.append(', '.join(self.organisms))
+            row.append(json.dumps(self.organisms))
         else:
             row.append(None)
             
