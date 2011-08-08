@@ -19,6 +19,7 @@ from pygibbs import kegg_errors
 from pygibbs import kegg_parser
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.kegg_reaction import Reaction
+import gzip
     
 class Kegg(Singleton):
 
@@ -28,12 +29,12 @@ class Kegg(Singleton):
     REACTION_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/reaction/reaction'
     MODULE_URL = 'ftp://ftp.genome.jp/pub/kegg/module/module'
 
-    COMPOUND_FILE = '../kegg/compound.txt'
-    INCHI_FILE = '../kegg/inchi.txt'
-    ENZYME_FILE = '../kegg/enzyme.txt'
-    REACTION_FILE = '../kegg/reaction.txt'
-    MODULE_FILE = '../kegg/module.txt'
-    COMPOUND_ADDITIONS_FILE = '../data/kegg_additions.csv'
+    COMPOUND_FILE = '../data/kegg/compound.txt.gz'
+    INCHI_FILE = '../data/kegg/inchi.txt.gz'
+    ENZYME_FILE = '../data/kegg/enzyme.txt.gz'
+    REACTION_FILE = '../data/kegg/reaction.txt.gz'
+    MODULE_FILE = '../data/kegg/module.txt.gz'
+    COMPOUND_ADDITIONS_FILE = '../data/kegg/kegg_additions.csv'
 
     def __init__(self, loadFromFiles=False):
         # default colors for pydot (used to plot modules)
@@ -65,11 +66,7 @@ class Kegg(Singleton):
             self.FromDatabase()
 
     def FromFiles(self):
-        logging.info("Retrieving COMPOUND file and parsing it")
-        util._mkdir('../kegg')
-        if (not os.path.exists(self.COMPOUND_FILE)):
-            urllib.urlretrieve(self.COMPOUND_URL, self.COMPOUND_FILE)
-
+        logging.info("Parsing KEGG Compound file")
         entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.COMPOUND_FILE)
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
@@ -98,10 +95,7 @@ class Kegg(Singleton):
             
             self.cid2compound_map[cid] = comp
             
-        logging.info("Retrieving REACTION file and parsing it")
-        if (not os.path.exists(self.REACTION_FILE)):
-            urllib.urlretrieve(self.REACTION_URL, self.REACTION_FILE)
-
+        logging.info("Parsing KEGG Reaction file")
         entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.REACTION_FILE)
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
@@ -132,11 +126,8 @@ class Kegg(Singleton):
         for reaction in set(self.rid2reaction_map.values()):
             self.reaction2rid_map[reaction] = reaction.rid 
 
-        logging.info("Retrieving INCHI file and parsing it")
-        if (not os.path.exists(self.INCHI_FILE)):
-            urllib.urlretrieve(self.INCHI_URL, self.INCHI_FILE)
-
-        inchi_file = csv.reader(open(self.INCHI_FILE, 'r'), delimiter='\t')
+        logging.info("Parsing KEGG InChI file")
+        inchi_file = csv.reader(gzip.open(self.INCHI_FILE, 'r'), delimiter='\t')
         for row in inchi_file:
             if len(row) != 2:
                 continue
@@ -156,10 +147,7 @@ class Kegg(Singleton):
                 self.cid2compound_map[cid].inchi = inchi
                 self.inchi2cid_map[inchi] = cid
 
-        logging.info("Retrieving MODULE file and parsing it")
-        if (not os.path.exists(self.MODULE_FILE)):
-            urllib.urlretrieve(self.MODULE_URL, self.MODULE_FILE)
-
+        logging.info("Parsing KEGG Module file")
         entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.MODULE_FILE)
         for key in sorted(entry2fields_map.keys()):
             try:
@@ -194,10 +182,7 @@ class Kegg(Singleton):
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
 
-        logging.info("Retrieving ENZYME file and parsing it")
-        if (not os.path.exists(self.ENZYME_FILE)):
-            urllib.urlretrieve(self.ENZYME_URL, self.ENZYME_FILE)
-
+        logging.info("Parsing KEGG Enzyme file")
         entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggFile(self.ENZYME_FILE)
         for key in sorted(entry2fields_map.keys()):
             field_map = entry2fields_map[key]
