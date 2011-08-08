@@ -14,7 +14,7 @@
 	        Redox reactions are a special case of biochemical reactions, where electrons are transferred from one compound to another.
 	        It is common to consider the compound which looses the electrons and consequently changes to its oxidized form as the
 	        electron donor, and the compound which gains electrons and changes to its reduced form as the electron acceptor.
-	        For example, in the reaction <a href="/reaction?reactionId=R00342">L-malate + NAD+ → oxaloacetate + NADH</a>,
+	        For example, in the reaction <a href="/reaction?reactionId=R00342">L-malate + NAD+ &harr; oxaloacetate + NADH</a>,
 	        L-malate is the electron donor and is oxidized to oxaloacetate. NAD+ is the electron acceptor and is reduced to NADH.
 	        Since all of the reactants are soluble metabolites with explicit chemical formulas, one can calculate their formation
 	        energies and use them to deduce the &Delta;G of the reaction like in any other biochemical reaction.
@@ -22,24 +22,25 @@
 	        
 	        <p>
 	        There are several compounds that are used mainly for electron transfer. They are called electron carriers or redox carriers.
-	        For example, the pair NAD+:NADH, NADP+:NADPH, and ubiquinone:ubiquinol are all common electron donors or acceptors in many redox reactions.
+	        For example, the pair NAD<sup>+</sup>:NADH, NADP<sup>+</sup>:NADPH, and ubiquinone:ubiquinol are all common electron donors or acceptors in many redox reactions.
 	        Since they are not chemically involved in these reactions (except by electron transfer) it is useful to define their standard reduction potential
-	        (E<sub>0</sub>) which reflects the affinity of the oxidized form for electrons (calculated assuming that H2 is the electron donor).
-	        Electrons tend to flow from a lower potential to a higher one. In biological systems, it is common to define the reduction potential at a specific pH, denoted E’<sub>0</sub>. 
+	        (E&deg;) which reflects the affinity of the oxidized form for electrons (calculated assuming that H2 is the electron donor).
+	        Electrons tend to flow from a lower potential to a higher one. In biological systems, it is common to define the reduction potential at a specific pH, denoted E'&deg;. 
 	        </p>
 	        
 	        <p>
-	        The reduction potential of NAD+:NADH is E’<sub>0</sub> = -0.32 V and the reduction potential of O2:H2O is E’<sub>0</sub> = 0.82 V (both at the pH 7).
-	        Therefore, electrons will tend to flow from NADH to O2 producing NAD+ and H2O.
+	        The reduction potential of NAD<sup>+</sup>:NADH is E'&deg; = -0.32 V and the reduction potential of 1/2 O2:H2O is E'&deg; = 0.82 V (both at the pH 7).
+	        Therefore, electrons will tend to flow from NADH to O2 producing NAD<sup>+</sup> and H2O. As a brief aside, note that we make no effort 
+	        to balance protons (H<sup>+</sup>). Protons are be drawn from the aqueous environment and their potential is dictated by the pH.
 	        </p>
 	        
 	        <p>
 	  		Reduction potentials can be defined and measured for any electron source or sink, not only for soluble electron carriers.
 	  		However, when a reaction involves only soluble electron carriers, performing calculations using reduction potentials is equivalent to using the
-	  		change in &Delta;G’<sub>0</sub> of formation of the oxidized and reduced forms. The equation for converting E’<sub>0</sub> to &Delta;G’<sub>0</sub>
-	  		is: &Delta;G’<sub>0</sub> = -nF &Delta;E’<sub>0</sub> (where n is the number of electrons transferred, and F is Faraday’s constant that represents the charge
-	  		of 1 mol of electrons or 9.65∙104 C∙mol-1). For example, the ∆G’0 attributed to the oxidation of NADH by O2 is -2∙F∙(0.82 - (-0.32)) = -220 kJ/mol.
-	  		eQuilibrator provides the same result for this reaction: <a href="/search?query=NADH+%2B+0.5+O2+%3C%3D%3E+NAD%2B+%2B+H2O">NADH + 0.5 O2 <=> NAD+ + H2O</a>.
+	  		change in &Delta;G'&deg; of formation of the oxidized and reduced forms. The equation for converting E'&deg; to &Delta;G'&deg;
+	  		is: &Delta;G'&deg; = -nF∙&Delta;E'&deg;, where n is the number of electrons transferred, and F is Faraday's constant that represents the charge
+	  		of 1 mol of electrons or 9.65∙104 C∙mol<sup>-1</sup>. For example, the ∆G'&deg; attributed to the oxidation of NADH by O2 is -2∙F∙(0.82 - (-0.32)) = -220 kJ/mol.
+	  		eQuilibrator provides the same result for this reaction: <a href="/search?query=NADH+%2B+0.5+O2+%3C%3D%3E+NAD%2B+%2B+H2O">NADH + 0.5 O2 <=> NAD<sup>+</sup> + H2O</a>.
 	        </p>
 	        
 	        <p>
@@ -51,7 +52,7 @@
 	        (as is the case with FMN). These relative formation energies are equivalent reduction potentials.
 	        </p>
 	        
-	        <p>Currently, free electrons are not recognized by eQuilibrator, and therefore half-reactions (such as NAD+ + 2 e- <=> NADH) are not allowed.
+	        <p>Currently, free electrons are not recognized by eQuilibrator, and therefore half-reactions (such as NAD<sup>+</sup> + 2 e- <=> NADH) are not allowed.
 	        In the future, we plan to allow half-reactions and to enable using other types of redox carriers such as cytochromes or metal ions.
 	        </p>
 			
