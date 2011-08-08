@@ -205,8 +205,7 @@ class Kegg(Singleton):
         self.db.CreateTable('kegg_reaction', 'rid INT, all_names TEXT, definition TEXT, '
                             'ec_list TEXT, equation TEXT')
         for rid, reaction in self.rid2reaction_map.iteritems():
-            self.db.Insert('kegg_reaction', [rid, ';'.join(reaction.names), reaction.definition,
-                reaction.ec_list, reaction.equation])
+            self.db.Insert('kegg_reaction', reaction.ToDBRow(rid))
          
         self.db.CreateTable('kegg_enzyme', 'ec TEXT, all_names TEXT, title TEXT, rid_list TEXT, '
                             'substrate TEXT, product TEXT, cofactor TEXT, organism_list TEXT, '
@@ -462,9 +461,9 @@ class Kegg(Singleton):
         return self.rid_flux_list_to_matrix(rid_flux_list)
 
     def cid2compound(self, cid):
-        if (type(cid) == int):
+        if type(cid) == int:
             return self.cid2compound_map[cid]
-        elif (type(cid) == str):
+        elif type(cid) == str:
             return self.cid2compound_map[int(cid[1:])]
         else:
             raise KeyError("Compound ID must be integer (e.g. 22) or string (e.g. 'C00022'), not: " + str(cid))

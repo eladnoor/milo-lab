@@ -1,9 +1,13 @@
 #!/usr/bin/python
+
+import json
+import types
+import re
+
 import kegg_utils
 import hashlib
-import types
 from pygibbs import kegg_errors
-import re
+
 
 class Reaction(object):
     """A reaction from KEGG."""
@@ -59,12 +63,20 @@ class Reaction(object):
         else:
             raise Exception('invalid direction: ' + self.direction)
         return reaction
+    
+    def ToDBRow(self, rid):
+        """Build a database row from a reaction."""
+        return [rid,
+                json.dumps(self.names),
+                self.definition,
+                self.ec_list,
+                self.equation]
         
     @staticmethod
     def FromDBRow(row_dict):
         """Build a Reaction from a database row."""
         reaction = Reaction.FromFormula(row_dict['equation'])
-        names = row_dict['all_names'].split(';')
+        names = json.loads(row_dict['all_names'])
         reaction.SetNames(names)
         reaction.rid = row_dict['rid']
         reaction.equation = row_dict['equation']
