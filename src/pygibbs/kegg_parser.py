@@ -4,6 +4,7 @@ import logging
 import re
 
 from itertools import imap
+import gzip
 
 
 def NormalizeNames(name_str):
@@ -183,7 +184,7 @@ class ParsedKeggFile(dict):
         Returns:
             A dictionary mapping entry names to fields.
         """
-        kegg_file = open(filename, 'r')
+        kegg_file = gzip.open(filename, 'r')
         return ParsedKeggFile._FromKeggFileHandle(kegg_file)
 
     @staticmethod
