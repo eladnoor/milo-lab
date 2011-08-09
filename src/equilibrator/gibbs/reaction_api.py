@@ -47,7 +47,8 @@ def ReactionAPI(request):
     try:
         stored_reactions = []
         if reaction_ids:
-            stored_reactions = models.StoredReaction.objects.filter(kegg_id__in=reaction_ids)
+            stored_reactions = models.StoredReaction.objects.select_related(
+                ).filter(kegg_id__in=reaction_ids)
     except Exception, e:
         print e
     

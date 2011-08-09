@@ -125,7 +125,8 @@ class Matcher(object):
             A list of CommonName objects matching the query.
         """
         try:
-            name = models.CommonName.objects.get(name__iexact=query)
+            name = models.CommonName.objects.select_related().get(
+                name__iexact=query)
             return [name]
         except Exception, msg:
             return []

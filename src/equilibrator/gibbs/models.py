@@ -12,7 +12,7 @@ from util import inchi
 
 class CommonName(models.Model):
     """A common name of a compound."""
-    name = models.CharField(max_length=500)
+    name = models.CharField(max_length=500, db_index=True)
     enabled = models.BooleanField()
     
     @staticmethod
@@ -301,7 +301,7 @@ class Compound(models.Model):
     def GetAtomBag(self):
         """Returns a dictionary of atoms and their counts for this compound."""
         if not self.formula:
-            logging.error('Formulnumber_of_mgsa is not defined for KEGG ID %s', self.kegg_id)
+            logging.error('Formula is not defined for KEGG ID %s', self.kegg_id)
             return None
         
         if '(' in self.formula or ')' in self.formula:
@@ -449,7 +449,8 @@ class Compound(models.Model):
         Returns:
             A dictionary mapping KEGG ID to Compounds.
         """
-        compounds = Compound.objects.filter(kegg_id__in=kegg_ids)
+        compounds = Compound.objects.select_related().filter(
+            kegg_id__in=kegg_ids)
         return dict((c.kegg_id, c) for c in compounds if c != None)
     
 

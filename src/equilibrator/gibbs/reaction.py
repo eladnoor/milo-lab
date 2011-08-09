@@ -192,10 +192,10 @@ class Reaction(object):
         if not self._all_stored_reactions:
             self._all_stored_reactions = []
             hash = self._GetHash()
-            matching_reactions = models.StoredReaction.objects.filter(hash=hash)
-            for stored_rxn in matching_reactions:
-                if self.SameChemicalReaction(stored_rxn):
-                    self._all_stored_reactions.append(stored_rxn)
+            matching_reactions = models.StoredReaction.objects.select_related(
+                ).filter(hash=hash)
+            self._all_stored_reactions = filter(self.SameChemicalReaction,
+                                                matching_reactions)
         
         return self._all_stored_reactions
     all_stored_reactions = property(_GetAllStoredReactions)
