@@ -38,8 +38,9 @@ class RegexApproxMatcher(matcher.Matcher):
         if not expression:
             return []
         
-        matches = models.CommonName.objects.filter(name__iregex=expression)
-        return matches[:10*self._max_results]
+        matches = models.CommonName.objects.select_related().filter(
+            name__iregex=expression)
+        return matches[:5*self._max_results]
 
 
 class EditDistanceMatcher(RegexApproxMatcher):
@@ -57,14 +58,15 @@ class EditDistanceMatcher(RegexApproxMatcher):
         """Override database search."""
         qlen = len(query)
         if qlen < 5:
-            matches = models.CommonName.objects.filter(name__icontains=query)
+            matches = models.CommonName.objects.select_related().filter(
+                name__icontains=query)
             return matches[:5*self._max_results]
         
         midpoint = qlen / 2
         head_re = self._PrepareExpression(query[:midpoint])
         tail_re = self._PrepareExpression(query[midpoint:])
         
-        matches = models.CommonName.objects.filter(
+        matches = models.CommonName.objects.select_related().filter(
             Q(name__iregex=head_re) | Q(name__iregex=tail_re))
         return matches[:5*self._max_results]
     
