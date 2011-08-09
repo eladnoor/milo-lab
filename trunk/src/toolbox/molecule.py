@@ -370,6 +370,7 @@ class Molecule(object):
                 '-a', str(n_acidic), '-b', str(n_basic),
                 '-i', str(min_pkb), '-x', str(max_pka)]
         res = self._RunCxcalc(args)
+        print res
         return Molecule._ParsePkaOutput(res, n_acidic, n_basic)
 
     def GetAtomCharges(self):
@@ -467,10 +468,10 @@ if __name__ == "__main__":
     Molecule.SetBondLength(50.0)
     
     #m = Molecule.FromInChI('InChI=1S/Fe') # Iron
-    #m = Molecule.FromSmiles('NCC(O)=O'); m.SetTitle('glycine')
+    m = Molecule.FromSmiles('CC([O-])=O'); m.SetTitle('acetate')
     #m = Molecule.FromSmiles('S[Fe+3]1(S)S[Fe+3](S1)(S)S'); m.SetTitle('oxidized ferredoxin')
     #m = Molecule.FromInChI('InChI=1S/p+1'); m.SetTitle('proton')
-    m = Molecule.FromInChI('InChI=1/C21H27N7O14P2/c22-17-12-19(25-7-24-17)28(8-26-12)21-16(32)14(30)11(41-21)6-39-44(36,37)42-43(34,35)38-5-10-13(29)15(31)20(40-10)27-3-1-2-9(4-27)18(23)33/h1-4,7-8,10-11,13-16,20-21,29-32H,5-6H2,(H5-,22,23,24,25,33,34,35,36,37)/p+1/t10-,11-,13-,14-,15-,16-,20-,21-/m1/s1'); m.SetTitle('NAD+')
+    #m = Molecule.FromInChI('InChI=1/C21H27N7O14P2/c22-17-12-19(25-7-24-17)28(8-26-12)21-16(32)14(30)11(41-21)6-39-44(36,37)42-43(34,35)38-5-10-13(29)15(31)20(40-10)27-3-1-2-9(4-27)18(23)33/h1-4,7-8,10-11,13-16,20-21,29-32H,5-6H2,(H5-,22,23,24,25,33,34,35,36,37)/p+1/t10-,11-,13-,14-,15-,16-,20-,21-/m1/s1'); m.SetTitle('NAD+')
     #m = Molecule.FromInChI('InChI=1/C5H14NO/c1-6(2,3)4-5-7/h7H,4-5H2,1-3H3/q+1'); m.SetTitle('choline')
     #m = Molecule.FromInChI('InChI=1/CH2O3/c2-1(3)4/h(H2,2,3,4)/p-1'); m.SetTitle('carbonate')
     #m = Molecule.FromInChI('InChI=1/CO2/c2-1-3'); m.SetTitle('CO2')
@@ -483,9 +484,9 @@ if __name__ == "__main__":
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
 
-    #print m.ToFormat('mol')    
-    print '\n'.join([str(x) for x in m.GetPseudoisomers()])
-    #print m.GetDissociationConstants()
+    print m.ToFormat('mol')
+    print m.GetDissociationConstants()
+    #print '\n'.join([str(x) for x in m.GetPseudoisomers()])
     #print m.GetMacrospecies()
 
     #obmol = m.ToOBMol()

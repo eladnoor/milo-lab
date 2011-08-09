@@ -84,6 +84,7 @@ def dissociation_decomposition_test():
 def compare_charges():
     #db_public = SqliteDatabase('../data/public_data.sqlite')
     db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
+    print "Writing Compare Charges report to ../res/groups_report.html"
     html_writer = HtmlWriter("../res/groups_report.html")
     kegg = Kegg.getInstance()
     
