@@ -10,7 +10,7 @@ import pylab
 import sys
 from pygibbs.thermodynamic_constants import R, default_pH, default_T, default_c0, dG0_f_Mg,\
     default_I, correction_function
-from pygibbs.thermodynamics import Thermodynamics, MissingCompoundFormationEnergy,\
+from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from pygibbs.kegg import Kegg
@@ -30,6 +30,7 @@ from pygibbs.dissociation_constants import DissociationConstants,\
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.group_vector import GroupVector
 from optparse import OptionParser
+from toolbox import util
 
 class GroupMissingTrainDataError(Exception):
     
@@ -564,23 +565,19 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         obs_cids = obs_species.get_all_cids()
 
         dissociation = DissociationConstants.FromFile()
+        
+        self.cid2pmap_dict = {}
+        self.cid2source_string = {}
         self.cid2error = {}
         self.cid2groupvec = {}
-        
-        # if the CID is not in the dissociation table (i.e. the pKa values are
-        # not known) then use the group contributions to find them and the 
-        # formation energy of each psuedoisomer.
-        #
-        # otherwise, try to see if the formation energy is observed, and use
-        # the value from there (depending of the 'override_all_observed_compounds'
-        # flag). If there is no observed value, use Group Contribution to find
-        # the value for the most abundant pseudoisomer at default conditions and
-        # use the pKa values to calculate the other pseudoisomers.
         
         for cid in sorted(self.kegg.get_all_cids()):
             try:
                 diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
-                if diss is None: # TODO: change so that the pKas will be estimated as well
+                if diss is None:
+                    # if the CID is not in the dissociation table (i.e. the pKa values are
+                    # not known) then use the group contributions to find them and the 
+                    # formation energy of each psuedoisomer.
                     mol = self.kegg.cid2mol(cid)
                     decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
                     groupvector = self.GroupDecomposition2MostAbuntantPseudoisomer(decomposition, pH=7)
@@ -593,6 +590,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     self.cid2source_string[cid] = "Group Contribution"
                     self.cid2groupvec[cid] = groupvector
                 else:
+                    # otherwise, try to see if the formation energy is observed, and use
+                    # the value from there (depending of the 'override_all_observed_compounds'
+                    # flag).
                     if cid in obs_cids: # use an observed value of dG0 formation
                         pmap = obs_species.cid2PseudoisomerMap(cid)
                         pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
@@ -601,7 +601,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                         nH, _z, nMg, dG0 = pmatrix[0]
                         self.cid2source_string[cid] = obs_species.cid2SourceString(cid)
                         self.cid2groupvec[cid] = GroupVector(self.groups_data)
-                    else: # use group contribution to get the dG0 of the most abundant pseudoisomer
+                    else:
+                        # If there is no observed value, use Group Contribution to find
+                        # the value for the most abundant pseudoisomer at default conditions and
+                        # use the pKa values to calculate the other pseudoisomers.
                         nH, nMg = diss.GetMostAbundantPseudoisomer(
                             pH=default_pH, I=default_I, pMg=14, T=default_T)
                         smiles = diss.GetSmiles(nH=nH, nMg=nMg)
@@ -882,7 +885,8 @@ def MakeOpts():
 
 if __name__ == '__main__':
     options, _ = MakeOpts().parse_args(sys.argv)
-    db = SqliteDatabase('../res/gibbs.sqlite')
+    util._mkdir('../res')
+    db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     if options.pka: # use flag -p of --pka
         G = GroupContribution(db=db)
         G.init()

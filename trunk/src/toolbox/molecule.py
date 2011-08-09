@@ -7,6 +7,7 @@ import re
 import glib
 import os
 import subprocess
+import logging
 
 CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
 
@@ -331,19 +332,20 @@ class Molecule(object):
         if not os.path.exists(CXCALC_BIN):
             raise Exception("Jchem must be installed to calculate pKa data.")
         
-        mol = self.ToFormat('mol')
-        temp_fname = '.mol'
-        temp_molfile = open(temp_fname, 'w')
-        temp_molfile.write(mol)
-        temp_molfile.close()
+        #mol = self.ToFormat('mol')
+        #temp_fname = '.mol'
+        #temp_molfile = open(temp_fname, 'w')
+        #temp_molfile.write(mol)
+        #temp_molfile.close()
+        inchi = self.ToInChI()
         
-        #print "*"*50 + "\nINPUT: \n%s" % mol
-        p = subprocess.Popen([CXCALC_BIN] + args + [temp_fname],
+        logging.debug("\nARGS: %s" % ' '.join([CXCALC_BIN] + args + [inchi]))
+        p = subprocess.Popen([CXCALC_BIN] + args + [inchi],
                              executable=CXCALC_BIN, stdout=subprocess.PIPE)
-        p.wait()
-        os.remove(temp_fname)
+        #p.wait()
+        #os.remove(temp_fname)
         res = p.communicate()[0]
-        #print "*"*50 + "\nOUTPUT :\n%s" % res
+        logging.debug("OUTPUT: %s" % res)
         return res
     
     @staticmethod
@@ -366,11 +368,9 @@ class Molecule(object):
     
     def GetDissociationConstants(self, n_acidic=5, n_basic=5, 
                                  max_pka=12, min_pkb=2):
-        args = ['pka', '-M', 'true',
-                '-a', str(n_acidic), '-b', str(n_basic),
+        args = ['pka', '-a', str(n_acidic), '-b', str(n_basic),
                 '-i', str(min_pkb), '-x', str(max_pka)]
         res = self._RunCxcalc(args)
-        print res
         return Molecule._ParsePkaOutput(res, n_acidic, n_basic)
 
     def GetAtomCharges(self):
@@ -382,14 +382,17 @@ class Molecule(object):
         return [atom.formalcharge for atom in self.pybel_mol.atoms]
     
     @staticmethod
-    def _ParseSdfSpecies(s): 
+    def _ParseSdfSpecies(s):
+        logging.debug("Input: " + s)
         mol = Molecule.FromMol(s)
+        logging.debug("Output: " +  mol.ToSmiles())
+        
         [percentStr] = re.findall('>  <DISTR\[pH=[\-\d\.]+\]>\n([\d\.]+)\n', s)
         percent = float(percentStr)
         return percent, mol
     
     def GetPseudoisomersAtPh(self, pH=7, threshold=0.1):
-        args = ['msdistr', '-M', 'true', '-H', str(pH)]
+        args = ['msdistr', '-H', str(pH)]
         res = []
         for s in self._RunCxcalc(args).split('$$$$\n'):
             if s == '':
@@ -402,7 +405,7 @@ class Molecule(object):
     def GetPseudoisomers(self):
         data = []
         for pH in [5, 6, 7, 8, 9]: # Physiological pH range
-            for percent, mol in m.GetPseudoisomersAtPh(pH=pH):
+            for percent, mol in self.GetPseudoisomersAtPh(pH=pH, threshold=0.0):
                 nH, _z = mol.GetHydrogensAndCharge()
                 data.append({'pH':pH, 'percent':percent, 'nH':nH, 'mol':mol})
         
@@ -432,7 +435,7 @@ class Molecule(object):
             
             # find the atoms which change their charge between this microspecies
             # and the nH+1 microspecies
-            changing_atoms = [i for i in xrange(len(self))
+            changing_atoms = [i for i in xrange(len(curr_charges))
                               if curr_charges[i] != plus1_charges[i]]
             
             pKas = []
@@ -459,16 +462,16 @@ class Molecule(object):
         return result_table
 
     def GetMacrospecies(self):
-        args  = ['majorms', '-M', 'true']
+        args  = ['majorms']
         res = self._RunCxcalc(args)
         smiles = res.split('\n')[1].split()[1]
         return smiles.split('.')
         
 if __name__ == "__main__":
     Molecule.SetBondLength(50.0)
-    
+
     #m = Molecule.FromInChI('InChI=1S/Fe') # Iron
-    m = Molecule.FromSmiles('CC([O-])=O'); m.SetTitle('acetate')
+    #m = Molecule.FromSmiles('CC(O)=O'); m.SetTitle('acetate')
     #m = Molecule.FromSmiles('S[Fe+3]1(S)S[Fe+3](S1)(S)S'); m.SetTitle('oxidized ferredoxin')
     #m = Molecule.FromInChI('InChI=1S/p+1'); m.SetTitle('proton')
     #m = Molecule.FromInChI('InChI=1/C21H27N7O14P2/c22-17-12-19(25-7-24-17)28(8-26-12)21-16(32)14(30)11(41-21)6-39-44(36,37)42-43(34,35)38-5-10-13(29)15(31)20(40-10)27-3-1-2-9(4-27)18(23)33/h1-4,7-8,10-11,13-16,20-21,29-32H,5-6H2,(H5-,22,23,24,25,33,34,35,36,37)/p+1/t10-,11-,13-,14-,15-,16-,20-,21-/m1/s1'); m.SetTitle('NAD+')
@@ -477,17 +480,22 @@ if __name__ == "__main__":
     #m = Molecule.FromInChI('InChI=1/CO2/c2-1-3'); m.SetTitle('CO2')
     #m = Molecule.FromInChI('InChI=1/CO/c1-2'); m.SetTitle('CO')
     #m = Molecule.FromInChI('InChI=1/C10H16N5O13P3/c11-8-5-9(13-2-12-8)15(3-14-5)10-7(17)6(16)4(26-10)1-25-30(21,22)28-31(23,24)27-29(18,19)20/h2-4,6-7,10,16-17H,1H2,(H,21,22)(H,23,24)(H2,11,12,13)(H2,18,19,20)/t4-,6-,7-,10-/m1/s1'); m.SetTitle('ATP')
+    #m = Molecule.FromSmiles("P(=O)(O)(O)O")
     
     #print m.ToFormat('mol')
     #print m.ToFormat('mol2')
     #print m.ToFormat('smi')
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
-
-    print m.ToFormat('mol')
-    print m.GetDissociationConstants()
-    #print '\n'.join([str(x) for x in m.GetPseudoisomers()])
-    #print m.GetMacrospecies()
+    
+    from pygibbs.kegg import Kegg
+    kegg = Kegg.getInstance()
+    for cid in [3, 6]:
+        m = kegg.cid2mol(cid)
+        print "C%05d : %s" % (cid, str(m))
+        print m.GetDissociationConstants()
+        #print '\n'.join([str(x) for x in m.GetPseudoisomers()])
+        #print m.GetMacrospecies()
 
     #obmol = m.ToOBMol()
     #print 'atom bag = %s, charge = %d' % m.GetAtomBagAndCharge()
