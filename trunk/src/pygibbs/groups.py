@@ -521,27 +521,59 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         dG0_tag = dG0 + correction_function(nH, nMg, z, pH, pMg, I, T)
         return dG0_tag
         
-    def GroupDecomposition2MostAbuntantPseudoisomer(self, decomposition,
+    def GroupDecomposition2Psuedoisomers(self, decomposition,
             pH=None, pMg=None, I=None, T=None):
+        """
+            Given a decomposition, returns a list of possible pseudoisomers
+            together with their relative abundance in the conditions specified.
+            Also checks that all pseudoisomers have a legal nH and charge,
+            i.e. nH - z = const.
+            
+            Returns:
+                A pair (pmap, group_vector), where the pmap is for all the
+                pseudoisomers possible, and the group_vector is for the most
+                abundant pseudoisomer at the specified conditions.
+        """
+        pH = pH or self.pH
+        pMg = pMg or self.pMg
+        I = I or self.I
+        T = T or self.T
+
+        nH = decomposition.Hydrogens()
+        z = decomposition.NetCharge()
+        nMg = decomposition.Magnesiums()
+        
         all_groupvecs = decomposition.PseudoisomerVectors()
         if not all_groupvecs:
             raise GroupDecompositionError('Found no pseudoisomers for %s'
                                           % str(decomposition.mol))
 
         kernel_rows = set()
-        pseudoisomer_list = []
+        most_abundant_gv = (pylab.inf, None)
+        pmap = PseudoisomerMap()
         for groupvector in all_groupvecs:
             try:
-                dG0_tag = self.GroupVectorToTransformedGibbsEnergy(groupvector, 
-                                                                   pH, pMg, I, T)
-                pseudoisomer_list.append((dG0_tag, groupvector))
+                curr_nH = groupvector.Hydrogens()
+                curr_z = groupvector.NetCharge()
+                curr_nMg = groupvector.Magnesiums()
+                if (curr_nH + 2*curr_nMg - curr_z) != (nH + 2*nMg - z):
+                    continue
+                
+                dG0 = self.groupvec2val(groupvector)
+                pmap.Add(curr_nH, curr_z, curr_nMg, dG0, ref='Group Contribution')
+
+                dG0_tag = dG0 + correction_function(curr_nH, curr_nMg, curr_z, 
+                                                    pH, pMg, I, T)
+                if most_abundant_gv[0] > dG0_tag:
+                    most_abundant_gv = (dG0_tag, groupvector)
             except GroupMissingTrainDataError as e:
                 kernel_rows.update(e.kernel_rows)
-        if not pseudoisomer_list:
+
+        if not most_abundant_gv[1]:
             raise GroupMissingTrainDataError("All species of %s have missing groups: " % 
                                              decomposition.mol, kernel_rows)
-        return min(pseudoisomer_list)[1]
-    
+        pmap.Squeeze(T)
+        return (pmap, most_abundant_gv[1])
     
     def EstimateKeggCids(self, override_all_observed_compounds=False):
         """
@@ -580,13 +612,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     # formation energy of each psuedoisomer.
                     mol = self.kegg.cid2mol(cid)
                     decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
-                    groupvector = self.GroupDecomposition2MostAbuntantPseudoisomer(decomposition, pH=7)
-                    nH = groupvector.Hydrogens()
-                    z = groupvector.NetCharge()
-                    nMg = groupvector.Magnesiums()
-                    dG0 = self.groupvec2val(groupvector)
-                    
-                    self.AddPseudoisomer(cid, nH, z, nMg, dG0, ref="Group Contribution")
+                    (pmap, groupvector) = self.GroupDecomposition2Psuedoisomers(decomposition, pH=7)
+                    self.SetPseudoisomerMap(cid, pmap)
                     self.cid2source_string[cid] = "Group Contribution"
                     self.cid2groupvec[cid] = groupvector
                 else:
