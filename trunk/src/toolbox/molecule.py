@@ -1,6 +1,6 @@
 import pybel
 import indigo, indigo_renderer
-import uuid, rsvg, gtk
+import uuid, rsvg, gtk #@UnresolvedImport
 import openbabel
 import types
 import re
