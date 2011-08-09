@@ -123,7 +123,9 @@ class Compound(object):
         """Format the compound as a database row.
         
         Returns:
-            A list of field values in the appropriate order.
+            A list of field values in the appropriate order:
+            [CID, name, all_names, mass, formula, inchi, num_electrons,
+            is from KEGG, pubchem ID, CAS number]
         """
         inchi = None
         try:
@@ -197,7 +199,7 @@ class Compound(object):
     
     def get_inchi(self):
         """Get the inchi code for this compound."""
-        return self.GetMolecule().ToInChI()
+        return self.inchi or self.GetMolecule().ToInChI()
     
     def get_smiles(self):
         """Get a SMILES expression for this compound."""

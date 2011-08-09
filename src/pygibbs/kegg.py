@@ -1,11 +1,9 @@
 import csv
 import logging
-import os
 import pydot
 import pylab
 import re
 import sqlite3
-import urllib
 from copy import deepcopy
 
 from toolbox import util
