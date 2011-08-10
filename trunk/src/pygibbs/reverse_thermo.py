@@ -97,7 +97,9 @@ def test1():
         noisy_measurements = []
         for (pH, I, T) in conditions:
             noise = random.normalvariate(0, noise_level)
-            dG0_tag = array_transform(dG0, nH, z, pH, I, T)
+            nMg = 0
+            pMg = 14
+            dG0_tag = array_transform(dG0, nH, z, nMg, pH, pMg, I, T)
             dG0_tag_noisy = dG0_tag+noise
             measurements.append((dG0_tag, pH, I, T))
             noisy_measurements.append((dG0_tag_noisy, pH, I, T))
@@ -125,8 +127,10 @@ def test1():
         T = 300.0
         I = 0.0
         for pH in pH_list:
-            dG_tag_orig = array_transform(dG0, nH, z, pH, I, T)
-            dG_tag_pred = array_transform(dG0_r, nH, z, pH, I, T)
+            nMg = 0
+            pMg = 14
+            dG_tag_orig = array_transform(dG0, nH, z, nMg, pH, pMg, I, T)
+            dG_tag_pred = array_transform(dG0_r, nH, z, nMg, pH, pMg, I, T)
             #print "%4.1f | %4.1f | %11.2f | %11.2f" % (pH, I, dG_tag_orig, dG_tag_pred)
             dG_tag_orig_list.append(dG_tag_orig)
             dG_tag_pred_list.append(dG_tag_pred)
