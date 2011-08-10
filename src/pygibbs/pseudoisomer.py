@@ -61,6 +61,28 @@ class PseudoisomerMap(object):
             squeezed_dG0 = -(R*T) * log_sum_exp([x/(-R*T) for x in dG0_list])
             squeezed_dgs[k] = [squeezed_dG0] 
         self.dgs = squeezed_dgs
+        
+    def FilterImprobablePseudoisomers(self, threshold=0.001, T=default_T):
+        pH_range = pylab.arange(2, 12.01, 2)
+        I_range = pylab.arange(0.0, 0.51, 0.1)
+        pMg_range = pylab.arange(0, 10.01, 2)
+        
+        # iterate all physiological conditions and keep only psuedoisomers that
+        # are relatively abundant in at least one condition
+        species_to_keep = set()
+        for pH in pH_range:
+            for I in I_range:
+                for pMg in pMg_range:
+                    species2abundance = self._Bolzmann(pH, pMg, I, T)
+                    for (nH, nMg) in species2abundance.keys():
+                        if species2abundance[nH, nMg] > threshold:
+                            species_to_keep.add((nH, nMg))
+        
+        for key in self.dgs.keys():
+            nH, _z, nMg = key
+            if (nH, nMg) not in species_to_keep:
+                del self.dgs[key]
+                del self.refs[key]
     
     def Empty(self):
         """Return true if there are no entries in the map."""
@@ -85,10 +107,26 @@ class PseudoisomerMap(object):
         v_z   = pylab.array(v_z)
         v_nMg  = pylab.array(v_nMg)
         
-        v_ddG0 = correction_function(v_nH, v_nMg, v_z, pH, pMg, I, T)
+        v_ddG0 = correction_function(v_nH, v_z, v_nMg, pH, pMg, I, T)
         v_dG0_tag = v_dG0 + v_ddG0
 
-        return v_dG0, v_dG0_tag, v_nH, v_z, v_nMg 
+        return v_dG0, v_dG0_tag, v_nH, v_z, v_nMg
+    
+    def _Bolzmann(self, pH, pMg, I, T):
+        """
+            Returns a dictionary with the same keys as self.dgs, but the 
+            values are the relative abundance of that species at the 
+            specified conditions
+        """
+        _v_dG0, v_dG0_tag, v_nH, _v_z, v_nMg = self._Transform(pH, pMg, I, T)
+        total = -R * T * log_sum_exp(v_dG0_tag / (-R*T))
+        
+        species2abundance = {}
+        for i in xrange(len(v_dG0_tag)):
+            abundance = pylab.exp(total - v_dG0_tag[i]/(R*T))
+            species2abundance.setdefault((v_nH[i], v_nMg[i]), 0.0)
+            species2abundance[v_nH[i], v_nMg[i]] += abundance
+        return species2abundance
 
     def Transform(self, pH, pMg, I, T):
         """
@@ -125,11 +163,23 @@ class PseudoisomerMap(object):
 
     def ToMatrix(self):
         res = []
-        for (nH, z, nMg), dG0_list in self.dgs.iteritems():
+        for key, dG0_list in self.dgs.iteritems():
+            (nH, z, nMg) = key
             for dG0 in dG0_list:
                 res.append((nH, z, nMg, dG0))
         return sorted(res)
     
+    def WriteToHTML(self, html_writer):
+        dict_list = []
+        for key, dG0_list in self.dgs.iteritems():
+            (nH, z, nMg) = key
+            d = {'nH':nH, 'charge':z, 'nMg':nMg}
+            d['dG0 [kJ/mol]'] = ', '.join(['%.1f' % dG0 for dG0 in dG0_list])
+            d['reference'] = self.refs.get(key, '')
+            dict_list.append(d)
+        html_writer.write_table(dict_list, headers=['nH', 'charge', 'nMg',
+                                                    'dG0 [kJ/mol]', 'reference'])        
+        
     def __str__(self):
         s = ""
         for (nH, z, nMg), dG0_list in self.dgs.iteritems():

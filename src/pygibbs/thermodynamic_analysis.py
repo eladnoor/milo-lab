@@ -450,7 +450,9 @@ class ThermodynamicAnalysis(object):
         data = pylab.zeros((len(self.cid), len(pH_list)))
         for j in range(len(pH_list)):
             pH = pH_list[j]
-            dG0_array = pylab.matrix([-transform(dG0, nH, z, pH, I, T) / (R * T) \
+            nMg = 0
+            pMg = 14
+            dG0_array = pylab.matrix([-transform(dG0, nH, z, nMg, pH, pMg, I, T) / (R * T) \
                                       for (nH, z, dG0) in self.cid])
             dG0_array = dG0_array - max(dG0_array)
             p_array = pylab.exp(dG0_array)
