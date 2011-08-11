@@ -1,0 +1,112 @@
+Name, TAX ID, KEGG ID, Domain
+Acidilobus saccharovorans 345-15, 666510, asc, archaea
+Aeropyrum pernix K1, 272557, ape, archaea
+Desulfurococcus kamchatkensis 1221n, 490899, dka, archaea
+Desulfurococcus mucosus DSM 2162, 765177, dmu, archaea
+Ignicoccus hospitalis KIN4/I, 453591, iho, archaea
+Ignisphaera aggregans DSM 17230, 583356, iag, archaea
+Staphylothermus hellenicus DSM 12710, 591019, shc, archaea
+Staphylothermus marinus F1, 399550, smr, archaea
+Thermosphaera aggregans DSM 11486, 633148, tag, archaea
+Hyperthermus butylicus DSM 5456, 415426, hbu, archaea
+Acidianus hospitalis W1, 933801, aho, archaea
+Metallosphaera cuprina Ar-4, 1006006, mcn, archaea
+Metallosphaera sedula DSM 5348, 399549, mse, archaea
+Sulfolobus acidocaldarius DSM 639, 330779, sai, archaea
+Sulfolobus islandicus L.D.8.5, 425944, sii, archaea
+Sulfolobus islandicus L.S.2.15, 429572, sis, archaea
+Sulfolobus islandicus M.14.25, 427317, sia, archaea
+Sulfolobus islandicus M.16.27, 427318, sim, archaea
+Sulfolobus islandicus M.16.4, 426118, sid, archaea
+Sulfolobus islandicus Y.G.57.14, 439386, siy, archaea
+Sulfolobus islandicus Y.N.15.51, 419942, sin, archaea
+Sulfolobus solfataricus P2, 273057, sso, archaea
+Sulfolobus tokodaii str. 7, 273063, sto, archaea
+Thermofilum pendens Hrk 5, 368408, tpe, archaea
+Caldivirga maquilingensis IC-167, 397948, cma, archaea
+Pyrobaculum aerophilum str. IM2, 178306, pai, archaea
+Pyrobaculum arsenaticum DSM 13514, 340102, pas, archaea
+Pyrobaculum calidifontis JCM 11548, 410359, pcl, archaea
+Pyrobaculum islandicum DSM 4184, 384616, pis, archaea
+Thermoproteus neutrophilus V24Sta, 444157, tne, archaea
+Thermoproteus uzoniensis 768-20, 999630, tuz, archaea
+Vulcanisaeta distributa DSM 14429, 572478, vdi, archaea
+Vulcanisaeta moutnovskia 768-28, 985053, vmo, archaea
+Aciduliprofundum boonei T469, 439481, abi, archaea
+Archaeoglobus fulgidus DSM 4304, 224325, afu, archaea
+Archaeoglobus profundus DSM 5631, 572546, apo, archaea
+Archaeoglobus veneficus SNP6, 693661, ave, archaea
+Ferroglobus placidus DSM 10642, 589924, fpl, archaea
+Halalkalicoccus jeotgali B3, 795797, hje, archaea
+Haloarcula marismortui ATCC 43049, 272569, hma, archaea
+Halobacterium salinarum R1, 478009, hsl, archaea
+Halobacterium sp. NRC-1, 64091, hal, archaea
+Haloferax volcanii DS2, 309800, hvo, archaea
+Halogeometricum borinquense DSM 11551, 469382, hbo, archaea
+Halomicrobium mukohataei DSM 12286, 485914, hmu, archaea
+Halopiger xanaduensis SH-6, 797210, hxa, archaea
+Haloquadratum walsbyi DSM 16790, 362976, hwa, archaea
+Halorhabdus utahensis DSM 12940, 519442, hut, archaea
+Halorubrum lacusprofundi ATCC 49239, 416348, hla, archaea
+Haloterrigena turkmenica DSM 5511, 543526, htu, archaea
+Natrialba magadii ATCC 43099, 547559, nmg, archaea
+Natronomonas pharaonis DSM 2160, 348780, nph, archaea
+Methanobacterium sp. AL-21, 868132, mel, archaea
+Methanobacterium sp. SWAN-1, 868131, mew, archaea
+Methanobrevibacter ruminantium M1, 634498, mru, archaea
+Methanobrevibacter smithii ATCC 35061, 420247, msi, archaea
+Methanosphaera stadtmanae DSM 3091, 339860, mst, archaea
+Methanothermobacter marburgensis str. Marburg, 79929, mmg, archaea
+Methanothermobacter thermautotrophicus str. Delta H, 187420, mth, archaea
+Methanothermus fervidus DSM 2088, 523846, mfv, archaea
+Methanocaldococcus fervens AG86, 573064, mfe, archaea
+Methanocaldococcus infernus ME, 573063, mif, archaea
+Methanocaldococcus jannaschii DSM 2661, 243232, mja, archaea
+Methanocaldococcus sp. FS406-22, 644281, mfs, archaea
+Methanocaldococcus vulcanius M7, 579137, mvu, archaea
+Methanotorris igneus Kol 5, 880724, mig, archaea
+Methanococcus aeolicus Nankai-3, 419665, mae, archaea
+Methanococcus maripaludis C5, 402880, mmq, archaea
+Methanococcus maripaludis C6, 444158, mmx, archaea
+Methanococcus maripaludis C7, 426368, mmz, archaea
+Methanococcus maripaludis S2, 267377, mmp, archaea
+Methanococcus maripaludis XI, 1053692, mmd, archaea
+Methanococcus vannielii SB, 406327, mvn, archaea
+Methanococcus voltae A3, 456320, mvo, archaea
+Methanothermococcus okinawensis IH1, 647113, mok, archaea
+Methanocella paludicola SANAE, 304371, mpd, archaea
+Methanoregula boonei 6A8, 456442, mbn, archaea
+Methanosphaerula palustris E1-9c, 521011, mpl, archaea
+Methanocorpusculum labreanum Z, 410358, mla, archaea
+Methanoculleus marisnigri JR1, 368407, mem, archaea
+Methanoplanus petrolearius DSM 11571, 679926, mpi, archaea
+Methanospirillum hungatei JF-1, 323259, mhu, archaea
+Methanosaeta concilii GP6, 990316, mcj, archaea
+Methanosaeta thermophila PT, 349307, mtp, archaea
+Methanococcoides burtonii DSM 6242, 259564, mbu, archaea
+Methanohalobium evestigatum Z-7303, 644295, mev, archaea
+Methanohalophilus mahii DSM 5219, 547558, mmh, archaea
+Methanosalsum zhilinae DSM 4017, 679901, mzh, archaea
+Methanosarcina acetivorans C2A, 188937, mac, archaea
+Methanosarcina barkeri str. Fusaro, 269797, mba, archaea
+Methanosarcina mazei Go1, 192952, mma, archaea
+Methanopyrus kandleri AV19, 190192, mka, archaea
+Pyrococcus abyssi GE5, 272844, pab, archaea
+Pyrococcus furiosus DSM 3638, 186497, pfu, archaea
+Pyrococcus horikoshii OT3, 70601, pho, archaea
+Pyrococcus sp. NA2, 342949, pyn, archaea
+Pyrococcus yayanosii CH1, 529709, pya, archaea
+Thermococcus barophilus MP, 391623, tba, archaea
+Thermococcus gammatolerans EJ3, 593117, tga, archaea
+Thermococcus kodakarensis KOD1, 69014, tko, archaea
+Thermococcus onnurineus NA1, 523850, ton, archaea
+Thermococcus sibiricus MM 739, 604354, tsi, archaea
+Thermococcus sp. 4557, 1042877, the, archaea
+Picrophilus torridus DSM 9790, 263820, pto, archaea
+Thermoplasma acidophilum DSM 1728, 273075, tac, archaea
+Thermoplasma volcanium GSS1, 273116, tvo, archaea
+uncultured methanogenic archaeon RC-I, 351160, rci, archaea
+Candidatus Korarchaeum cryptofilum OPF8, 374847, kcr, archaea
+Nanoarchaeum equitans Kin4-M, 228908, neq, archaea
+Cenarchaeum symbiosum A, 414004, csy, archaea
+Nitrosopumilus maritimus SCM1, 436308, nmr, archaea
