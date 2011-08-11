@@ -570,6 +570,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         for d in nH_and_nMg_to_species.values():
             pmap.Add(d['nH'], d['charge'], d['nMg'], d['dG0'], 
                      ref='Group Contribution')
+        pmap.FilterImprobablePseudoisomers(threshold=0.001, T=self.T)
         return pmap, nH_and_nMg_to_species
     
     def EstimateKeggCids(self, override_all_observed_compounds=False):
@@ -605,11 +606,14 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 # Use group contribution to find the psuedoisomer and their 
                 # formation energies.
                 mol = self.kegg.cid2mol(cid)
-                decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
-                pmap, nH_and_nMg_to_species = self.Decomposition2Psuedoisomers(decomposition)
-                _dG0, _dG0_tag, nH, _z, nMg = pmap.GetMostAbundantPseudoisomer(
-                                            self.pH, self.I, self.pMg, self.T)
-                groupvector = nH_and_nMg_to_species[nH, nMg]['group vector']
+                #decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
+                #pmap, groupvector = self.Decomposition2Psuedoisomers(decomposition)
+                diss, major_mol = mol.GetPseudoisomerMap(T=self.T)
+                decomposition = self.Mol2Decomposition(major_mol, ignore_protonations=False)
+                groupvector = decomposition.AsVector()
+                dG0 = self.groupvec2val(groupvector)
+                diss.SetFormationEnergyByNumHydrogens(dG0=dG0, 
+                    nH=groupvector.Hydrogens(), nMg=groupvector.Magnesiums())
                 source_string = "Group Contribution"
             except (KeggParseException, GroupDecompositionError, 
                     GroupMissingTrainDataError) as e:
