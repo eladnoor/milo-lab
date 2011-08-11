@@ -4,7 +4,7 @@ import pylab
 import types
 from thermodynamic_constants import R, default_T, correction_function
 from toolbox.util import log_sum_exp
-from pygibbs.thermodynamic_constants import dG0_f_Mg
+from pygibbs.thermodynamic_constants import dG0_f_Mg, default_I, default_pMg
 
 class PseudoisomerMap(object):
     """A map from pseudoisomers to dG values."""
@@ -63,9 +63,9 @@ class PseudoisomerMap(object):
         self.dgs = squeezed_dgs
         
     def FilterImprobablePseudoisomers(self, threshold=0.001, T=default_T):
-        pH_range = pylab.arange(2, 12.01, 2)
+        pH_range = pylab.arange(0, 14.01, 2)
         I_range = pylab.arange(0.0, 0.51, 0.1)
-        pMg_range = pylab.arange(0, 10.01, 2)
+        pMg_range = pylab.arange(0, 14.01, 2)
         
         # iterate all physiological conditions and keep only psuedoisomers that
         # are relatively abundant in at least one condition
@@ -74,16 +74,33 @@ class PseudoisomerMap(object):
             for I in I_range:
                 for pMg in pMg_range:
                     species2abundance = self._Bolzmann(pH, pMg, I, T)
-                    for (nH, nMg) in species2abundance.keys():
-                        if species2abundance[nH, nMg] > threshold:
-                            species_to_keep.add((nH, nMg))
+                    species_to_keep.update([key for key, abundance in 
+                                            species2abundance.iteritems() 
+                                            if abundance > threshold])
         
-        for key in self.dgs.keys():
-            nH, _z, nMg = key
-            if (nH, nMg) not in species_to_keep:
-                del self.dgs[key]
-                del self.refs[key]
-    
+        for key in set(self.dgs.keys()).difference(species_to_keep):
+            del self.dgs[key]
+            del self.refs[key]
+
+    def TitrationPlot(self, I=default_I, pMg=default_pMg, T=default_T):
+        pH_range = pylab.arange(0, 14.01, 0.2)
+        
+        # iterate all physiological conditions and keep only psuedoisomers that
+        # are relatively abundant in at least one condition
+        species_to_curve = {}
+        for pH in pH_range:
+            species2abundance = self._Bolzmann(pH, pMg, I, T)
+            for key, abundance in species2abundance.iteritems():
+                species_to_curve.setdefault(key, [])
+                species_to_curve[key].append(abundance)
+
+        fig = pylab.figure()
+        for key, curve in species_to_curve.iteritems():
+            pylab.plot(pH_range, curve, '-', label='nH=%d, z=%d, nMg=%d' % key,
+                       figure=fig)
+        pylab.legend()
+        pylab.show()
+        
     def Empty(self):
         """Return true if there are no entries in the map."""
         return len(self.dgs) == 0
@@ -118,14 +135,16 @@ class PseudoisomerMap(object):
             values are the relative abundance of that species at the 
             specified conditions
         """
-        _v_dG0, v_dG0_tag, v_nH, _v_z, v_nMg = self._Transform(pH, pMg, I, T)
-        total = -R * T * log_sum_exp(v_dG0_tag / (-R*T))
+        _v_dG0, v_dG0_tag, v_nH, v_z, v_nMg = self._Transform(pH, pMg, I, T)
+        minus_E_over_RT = [-E / (R*T) for E in v_dG0_tag]
+        total = log_sum_exp(minus_E_over_RT)
         
         species2abundance = {}
         for i in xrange(len(v_dG0_tag)):
-            abundance = pylab.exp(total - v_dG0_tag[i]/(R*T))
-            species2abundance.setdefault((v_nH[i], v_nMg[i]), 0.0)
-            species2abundance[v_nH[i], v_nMg[i]] += abundance
+            key = PseudoisomerMap._MakeKey(v_nH[i], v_z[i], v_nMg[i])
+            abundance = pylab.exp(minus_E_over_RT[i] - total)
+            species2abundance[key] = species2abundance.get(key, 0.0) + abundance
+        
         return species2abundance
 
     def Transform(self, pH, pMg, I, T):
@@ -177,6 +196,7 @@ class PseudoisomerMap(object):
             d['dG0 [kJ/mol]'] = ', '.join(['%.1f' % dG0 for dG0 in dG0_list])
             d['reference'] = self.refs.get(key, '')
             dict_list.append(d)
+        dict_list.sort(key=lambda(k):(k['nH'], k['nMg']))
         html_writer.write_table(dict_list, headers=['nH', 'charge', 'nMg',
                                                     'dG0 [kJ/mol]', 'reference'])        
         
@@ -232,3 +252,18 @@ class PseudoisomerMap(object):
             return None
         else:
             return (dG0_f_without_Mg + dG0_f_Mg - dG0_f_with_Mg) / (R*T*pylab.log(10))
+
+
+if __name__ == "__main__":
+    pmap = PseudoisomerMap()
+    pmap.Add(1, 0, 0, -150.0)
+    pmap.Add(2, 1, 0, -200.0)
+    pmap.Add(3, 2, 0, -210.0)
+    
+    print pmap
+    print '*'*50
+    print pmap.TitrationPlot()
+    pmap.FilterImprobablePseudoisomers()
+    print pmap
+    print '*'*50
+    

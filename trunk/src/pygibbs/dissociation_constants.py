@@ -316,6 +316,9 @@ class DissociationTable(object):
         self.smiles_dict[nH_above, nMg] = smiles_above
         self.smiles_dict[nH_below, nMg] = smiles_below
         
+        if self.min_nH is None or self.min_nH > nH_above:
+            self.min_nH = nH_above
+        
     def AddpKMg(self, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T, 
                 smiles_below=None, smiles_above=None):
         if nMg_below != nMg_above+1:
@@ -327,6 +330,9 @@ class DissociationTable(object):
         self.ddGs[key] = (-ddG0, ref) # adding Mg+2 decreases dG0
         self.smiles_dict[nH, nMg_above] = smiles_above
         self.smiles_dict[nH, nMg_below] = smiles_below
+
+        if self.min_nH is None or self.min_nH > nH:
+            self.min_nH = nH
     
     def SetOnlyPseudoisomer(self, smiles, nH, nMg=0):
         """
@@ -435,6 +441,9 @@ class DissociationTable(object):
             self.min_charge = z + (self.min_nH - nH)
         else:
             self.min_charge = 0
+            
+    def SetCharge(self, nH, z, nMg=0):
+        self.min_charge = z + (self.min_nH - nH) - 2 * nMg
         
     def GenerateAll(self):
         if self.min_charge == None:
