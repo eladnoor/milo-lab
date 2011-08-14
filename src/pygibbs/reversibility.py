@@ -2,8 +2,7 @@ from scipy import stats
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs import thermodynamics
-from pygibbs.thermodynamic_constants import R, default_I, default_pH,\
-    default_pMg, default_T
+from pygibbs.thermodynamic_constants import R
 from pygibbs.groups import GroupContribution
 import pylab
 from pygibbs.kegg import Kegg

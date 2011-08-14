@@ -229,3 +229,41 @@ class ParsedKeggFile(dict):
             parsed_file._AddEntry(entry, field_map)
         kegg_file.close()
         return parsed_file
+    
+    @staticmethod
+    def FromKeggAPI(s):
+        """Parses a file from KEGG. The result string from the KEGG SOAP API.
+        
+        For testing.
+    
+        Args:
+            s: the string that is the result of serv.bget(...) using the KEGG API
+        
+        Returns:
+            A dictionary mapping entry names to fields.
+        """
+        parsed_file = ParsedKeggFile()
+    
+        curr_field = ""
+        field_map = {}
+    
+        for line in s.split('\n'):
+            field = line[0:12].strip()
+            value = line[12:].strip()
+    
+            if field[:3] == "///":
+                entry = re.split('\s\s+', field_map['ENTRY'])[0]
+                parsed_file._AddEntry(entry, field_map)
+                field_map = {}
+            else:
+                if field != "":
+                    curr_field = field
+                if curr_field in field_map:
+                    field_map[curr_field] = field_map[curr_field] + "\t" + value
+                else:
+                    field_map[curr_field] = value
+    
+        if 'ENTRY' in field_map:
+            entry = re.split('\s\s+', field_map['ENTRY'])[0]
+            parsed_file._AddEntry(entry, field_map)
+        return parsed_file

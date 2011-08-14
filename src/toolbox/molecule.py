@@ -538,6 +538,8 @@ class Molecule(object):
             atom2pKa = self.GetDissociationConstants()
         except ChemAxonError:
             major_pseudoisomer = self
+            
+            diss.SetOnlyPseudoisomer(self.ToSmiles(), self.GetHydrogensAndCharge()[0])
             atom2pKa = {}
 
         nH, z = major_pseudoisomer.GetHydrogensAndCharge()
