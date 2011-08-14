@@ -4,7 +4,7 @@ import json
 import logging
 import re
 
-from pygibbs import kegg_errors
+from pygibbs import kegg_errors, kegg_parser
 from toolbox.molecule import Molecule
 from pygibbs.kegg_errors import KeggParseException
 
@@ -99,6 +99,28 @@ class Compound(object):
         raise kegg_errors.KeggParseException(
              "C%05d (%s) doesn't have an explicit molecular structure" % 
              (self.cid, self.name))
+
+    @staticmethod
+    def FromEntryDict(key, field_map):
+        if not key.startswith('C'):
+            return None
+        
+        cid = int(key[1:])
+        comp = Compound(cid)
+        if "NAME" in field_map:
+            all_names = kegg_parser.NormalizeNames(field_map.GetStringField("NAME"))
+            comp.name = all_names[0]
+            comp.all_names = all_names
+        if "MASS" in field_map:
+            comp.mass = field_map.GetFloatField('MASS')
+        if "FORMULA" in field_map:    
+            comp.formula = field_map.GetStringField('FORMULA')
+        if "DBLINKS" in field_map:
+            for sid in re.findall("PubChem: (\d+)", field_map.GetStringField("DBLINKS")):
+                comp.pubchem_id = int(sid)
+            for cas in re.findall("CAS:\s+([\d\-]+)", field_map.GetStringField("DBLINKS")):
+                comp.cas = cas
+        return comp
 
     @staticmethod
     def FromDBRow(row_dict):

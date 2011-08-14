@@ -198,7 +198,7 @@ def calculate_reversibility_histogram(G, thermo, cmap, id):
                 #r = abs(r)
                 
                 rxn = kegg.rid2reaction_map[rid]
-                dbg = "%s__DEL__%d__DEL__%s__DEL__%s__DEL__%s__DEL__%s__DEL__%f\n" % (kegg.mid2name_map[mid], i+1, rxn.name, rxn.definition, rxn.ec_list, rxn.equation, r)
+                dbg = "%s__DEL__%d__DEL__%s__DEL__%s__DEL__%s__DEL__%s__DEL__%f\n" % (kegg.mid2name_map[mid], i+1, rxn.name, rxn.definition, str(rxn.ec_list), rxn.equation, r)
                 dbg = re.sub ('\t', ' ', dbg)
                 debug_file.write(re.sub('__DEL__', '\t', dbg))
                 
