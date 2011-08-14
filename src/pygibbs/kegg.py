@@ -11,29 +11,19 @@ from toolbox.database import SqliteDatabase
 from toolbox.singletonmixin import Singleton
 from toolbox.molecule import Molecule
 
-from pygibbs import kegg_compound
+from pygibbs import kegg_compound, kegg_reaction
 from pygibbs import kegg_enzyme
 from pygibbs import kegg_errors
 from pygibbs import kegg_parser
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.kegg_reaction import Reaction
-import gzip
 from SOAPpy import WSDL
+import openbabel
     
 class Kegg(Singleton):
 
-    COMPOUND_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound'
-    INCHI_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/compound/compound.inchi'
-    ENZYME_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/enzyme/enzyme'
-    REACTION_URL = 'ftp://ftp.genome.jp/pub/kegg/ligand/reaction/reaction'
-    MODULE_URL = 'ftp://ftp.genome.jp/pub/kegg/module/module'
     WSDL_URL = 'http://soap.genome.jp/KEGG.wsdl'
-
-    COMPOUND_FILE = '../data/kegg/compound.txt.gz'
     INCHI_FILE = '../data/kegg/inchi.txt.gz'
-    ENZYME_FILE = '../data/kegg/enzyme.txt.gz'
-    REACTION_FILE = '../data/kegg/reaction.txt.gz'
-    MODULE_FILE = '../data/kegg/module.txt.gz'
     COMPOUND_ADDITIONS_FILE = '../data/kegg/kegg_additions.csv'
 
     def __init__(self, loadFromAPI=False):
@@ -65,142 +55,169 @@ class Kegg(Singleton):
         else:
             self.FromDatabase()
 
+    def _ReadCompoundEntries(self, s):
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
+        for key in sorted(entry2fields_map.keys()):
+            field_map = entry2fields_map[key]
+            comp = kegg_compound.Compound.FromEntryDict(key, field_map)
+            if comp is not None:
+                self.cid2compound_map[comp.cid] = comp
+                for name in comp.all_names:
+                    self.name2cid_map[name] = comp.cid
+                if comp.inchi:
+                    self.inchi2cid_map[comp.inchi] = comp.cid
+
+    def _ReadReactionEntries(self, s):
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
+        for key in sorted(entry2fields_map.keys()):
+            field_map = entry2fields_map[key]
+            reaction = kegg_reaction.Reaction.FromEntryDict(key, field_map)
+            if reaction is not None:
+                self.rid2reaction_map[reaction.rid] = reaction
+
+                # Create an inverse map of reactions to RIDs. This is useful for 
+                # finding the IDs of reactions according to the formula (e.g. for NIST
+                # reactions).
+                if reaction not in self.reaction2rid_map:
+                    self.reaction2rid_map[reaction] = reaction.rid 
+            
+    def _ReadModuleEntries(self, s):
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
+        for key in sorted(entry2fields_map.keys()):
+            try:
+                field_map = entry2fields_map[key]
+                mid = int(key[1:6])
+                name = field_map["NAME"]
+                #pathway = field_map.get("PATHWAY", "")
+                self.mid2rid_map[mid] = None
+                self.mid2name_map[mid] = name
+                if "REACTION" in field_map:
+                    try:
+                        self.mid2rid_map[mid] = self.parse_module("M%05d" % mid, field_map)
+                    except kegg_errors.KeggParseException as e:
+                        logging.debug("M%05d cannot be parsed %s" % (mid, str(e)))
+            except ValueError as e:
+                logging.debug("module M%05d contains a syntax error - %s" % (mid, str(e)))
+    
+    def _ReadEnzymeEntries(self, s):
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
+        for key in sorted(entry2fields_map.keys()):
+            field_map = entry2fields_map[key]
+            enz = kegg_enzyme.Enzyme.FromEntryDict(key, field_map)
+            for reaction_id in enz.reactions:
+                self.rid2enzyme_map[reaction_id] = enz
+            if enz.ec in self.ec2enzyme_map:
+                logging.error('Duplicate EC class %s' % enz.ec)
+            else:
+                self.ec2enzyme_map[enz.ec] = enz
+
+    def _ReadMolEntries(self, s):
+        conv = openbabel.OBConversion()
+        conv.SetInAndOutFormats('mol', 'inchi')
+        obmol = openbabel.OBMol()
+        inchi_list = []
+        for mol in re.split('M  END ?\n', s): # sometimes there is a 'space' between END and \n
+            if mol == '':
+                break
+            conv.ReadString(obmol, mol)
+            inchi = conv.WriteString(obmol).strip()
+            if inchi == '':
+                inchi_list.append(None)
+            else:
+                inchi_list.append(inchi)
+        return inchi_list
+            
     def FromAPI(self):
         logging.info("Connecting to KEGG using SOAP")
         serv = WSDL.Proxy(Kegg.WSDL_URL)
 
-        #logging.info("Gathering Compounds for E. coli")
+        max_id = 100000
+        kegg_step = 100
         
-        #all_compound_ids = set()
-        #for soap_pathway in serv.list_pathways('eco'):
-        #    pathway_id = soap_pathway['entry_id']
-        #    compound_ids = serv.list_compounds_by_pathway(pathway_id)
-        #    all_compound_ids.update(compound_ids)
-
-        id_steps = range(0, 100001, 100)
-        
-        for i in xrange(len(id_steps)-1):
-            logging.info("Parsing KEGG Compounds C%05d - C%05d" % 
-                         (id_steps[i], id_steps[i+1]))
-            entry_id_list = ' '.join(['cpd:C%05d' % cid for cid in 
-                                      xrange(id_steps[i], id_steps[i+1])])
+        # Read all Compounds
+        for i in xrange(0, max_id, kegg_step):
+            logging.info("Parsing KEGG Compounds C%05d - C%05d" % (i, i+kegg_step))
+            entry_id_list = ' '.join(['cpd:C%05d' % j for j in xrange(i, i+kegg_step)])
             s = serv.bget(entry_id_list)
             if s == '':
                 logging.info("No compounds found in this range, stopping")
                 break
-            entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
-            for key in sorted(entry2fields_map.keys()):
-                field_map = entry2fields_map[key]
-                if not key.startswith('C'):
-                    continue
-                
-                cid = int(key[1:])
-                comp = kegg_compound.Compound(cid)
-                if "NAME" in field_map:
-                    all_names = kegg_parser.NormalizeNames(field_map.GetStringField("NAME"))
-                    
-                    for name in all_names:
-                        self.name2cid_map[name] = cid
-                        
-                    comp.name = all_names[0]
-                    comp.all_names = all_names
-                if "MASS" in field_map:
-                    comp.mass = field_map.GetFloatField('MASS')
-                if "FORMULA" in field_map:    
-                    comp.formula = field_map.GetStringField('FORMULA')
-                if "DBLINKS" in field_map:
-                    for sid in re.findall("PubChem: (\d+)", field_map.GetStringField("DBLINKS")):
-                        comp.pubchem_id = int(sid)
-                    for cas in re.findall("CAS:\s+([\d\-]+)", field_map.GetStringField("DBLINKS")):
-                        comp.cas = cas
-                
-                self.cid2compound_map[cid] = comp
-            
-        for i in xrange(len(id_steps)-1):
-            logging.info("Parsing KEGG Reactions R%05d - R%05d" % 
-                         (id_steps[i], id_steps[i+1]))
-            entry_id_list = ' '.join(['rn:R%05d' % rid for rid in 
-                                      xrange(id_steps[i], id_steps[i+1])])
+            self._ReadCompoundEntries(s)
+
+        all_explicit_cids = set()
+        for cid in self.cid2compound_map.keys():
+            comp = self.cid2compound(cid)
+            if comp.formula and 'R' not in comp.formula and 'X' not in comp.formula:
+                all_explicit_cids.add(cid)
+        
+        # Read all Compound molecular structures, and save as InChI
+        all_explicit_cids = sorted(list(all_explicit_cids))
+        #for i in xrange(0, len(all_explicit_cids), kegg_step):
+        #    sub_compound_ids = all_explicit_cids[i:(i+kegg_step)]
+        #    entry_id_list = ['cpd:C%05d' % j for j in sub_compound_ids]
+        #    logging.info("Calculating InChIs for compounds %s - %s" %
+        #                 (entry_id_list[0], entry_id_list[-1]))
+        #    s = serv.bget('-f m ' + ' '.join(entry_id_list))
+        #    inchi_list = self._ReadMolEntries(s)
+        #    if len(inchi_list) != len(sub_compound_ids):
+        #        print sub_compound_ids
+        #        raise Exception("Error while converting KEGG compounds to InChIs")
+        #    for i, cid in enumerate(sub_compound_ids):
+        #        comp = self.cid2compound(cid)
+        #        comp.inchi = inchi_list[i]
+        #        if comp.inchi:
+        #            self.inchi2cid_map[comp.inchi] = cid
+        conv = openbabel.OBConversion()
+        conv.SetInAndOutFormats('mol', 'inchi')
+        obmol = openbabel.OBMol()
+        for cid in all_explicit_cids:
+            logging.info("Calculating InChIs for compound C%05d" % cid)
+            s = serv.bget('-f m cpd:C%05d' % cid)
+            conv.ReadString(obmol, s)
+            inchi = conv.WriteString(obmol).strip()
+            if inchi != '':
+                comp = self.cid2compound(cid)
+                comp.inchi = inchi
+                self.inchi2cid_map[inchi] = cid
+            else:
+                logging.warning('Cannot find the InChI for C%05d' % cid)
+          
+        # Read all Reactions                      
+        for i in xrange(0, max_id, kegg_step):
+            logging.info("Parsing KEGG Reactions R%05d - R%05d" % (i, i+kegg_step))
+            entry_id_list = ' '.join(['rn:R%05d' % j for j in xrange(i, i+kegg_step)])
             s = serv.bget(entry_id_list)
             if s == '':
                 logging.info("No reactions found in this range, stopping")
                 break
-            entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
-            for key in sorted(entry2fields_map.keys()):
-                field_map = entry2fields_map[key]
-                if not key.startswith('R'):
-                    continue
-                
-                equation_value = field_map.GetStringField("EQUATION", default_value="<=>")
-                try:
-                    reaction = Reaction.FromFormula(equation_value)
-                    reaction.SetNames(key)
-                    reaction.rid = int(key[1:])
-                    self.rid2reaction_map[reaction.rid] = reaction
-    
-                    if "ENZYME" in field_map:
-                        reaction.ec_list = ";".join(field_map.GetStringListField('ENZYME'))
-                    if "NAME" in field_map:
-                        reaction.SetNames(kegg_parser.NormalizeNames(field_map["NAME"]))
-                    if "DEFINITION" in field_map:
-                        reaction.definition = field_map["DEFINITION"]
-                    if "EQUATION" in field_map:
-                        reaction.equation = field_map["EQUATION"]
-                except (kegg_errors.KeggParseException,
-                        kegg_errors.KeggNonCompoundException,
-                        ValueError):
-                    logging.debug("Cannot parse reaction formula: " + equation_value)
-                    pass
+            self._ReadReactionEntries(s)
 
-        for reaction in set(self.rid2reaction_map.values()):
-            self.reaction2rid_map[reaction] = reaction.rid 
+        # Gather all EC numbers and read the enzyme data
+        all_ec_numbers = set()
+        for reaction in self.rid2reaction_map.values():
+            all_ec_numbers.update(reaction.ec_list)
 
-        for i in xrange(len(id_steps)-1):
-            logging.info("Parsing KEGG Modules M%05d - M%05d" % 
-                         (id_steps[i], id_steps[i+1]))
-            entry_id_list = ' '.join(['md:M%05d' % mid for mid in 
-                                      xrange(id_steps[i], id_steps[i+1])])
+        if '-.-.-.-' in all_ec_numbers:
+            all_ec_numbers.remove('-.-.-.-')
+
+        all_ec_numbers = sorted(list(all_ec_numbers))
+        for i in xrange(0, len(all_ec_numbers), kegg_step):
+            sub_ec_numbers = all_ec_numbers[i:(i+kegg_step)]
+            entry_id_list = ['ec %s' % j for j in sub_ec_numbers]
+            logging.info("Parsing KEGG Enzymes %s - %s" %
+                         (entry_id_list[0], entry_id_list[-1]))
+            s = serv.bget(' '.join(entry_id_list))
+            self._ReadEnzymeEntries(s)
+        
+        # Read all Modules
+        for i in xrange(0, max_id, kegg_step):
+            logging.info("Parsing KEGG Modules M%05d - M%05d" % (i, i+kegg_step))
+            entry_id_list = ' '.join(['md:M%05d' % j for j in xrange(i, i+kegg_step)])
             s = serv.bget(entry_id_list)
             if s == '':
                 logging.info("No modules found in this range, stopping")
                 break
-            entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
-            for key in sorted(entry2fields_map.keys()):
-                try:
-                    field_map = entry2fields_map[key]
-                    mid = int(key[1:6])
-                    name = field_map["NAME"]
-                    #pathway = field_map.get("PATHWAY", "")
-                    self.mid2rid_map[mid] = None
-                    self.mid2name_map[mid] = name
-                    if ("REACTION" in field_map):
-                        try:
-                            self.mid2rid_map[mid] = self.parse_module("M%05d" % mid, field_map)
-                        except kegg_errors.KeggParseException as e:
-                            logging.debug("M%05d cannot be parsed %s" % (mid, str(e)))
-                except ValueError as e:
-                    logging.debug("module M%05d contains a syntax error - %s" % (mid, str(e)))
-        
-        logging.info("Parsing KEGG InChI file")
-        inchi_file = csv.reader(gzip.open(self.INCHI_FILE, 'r'), delimiter='\t')
-        for row in inchi_file:
-            if len(row) != 2:
-                continue
-            key, inchi = row
-            if key[0] != 'C':
-                continue
-            cid = int(key[1:])
-            if not cid in self.cid2compound_map:
-                logging.debug("Compound C%05d is in inchi.txt, but not in compounds.txt\n" % cid)
-            else:
-                # since the convention in KEGG for undefined chirality is 'u' instead of the standard '?'
-                # we need to replace all the 'u's with '?'s before starting to use this file.
-                # We also need to be careful to only change the places where 'u' is for chirality,
-                # for example, not to do it for the element 'Cu'.  
-                inchi = re.sub('InChI=1', 'InChI=1S', inchi, 1)
-                inchi = re.sub(r'(\d)u', r'\1?', inchi)
-                self.cid2compound_map[cid].inchi = inchi
-                self.inchi2cid_map[inchi] = cid
+            self._ReadModuleEntries(s)
 
         logging.info("Parsing the COFACTOR file")
         cofactor_csv = csv.DictReader(open('../data/thermodynamics/cofactors.csv', 'r'))
@@ -218,26 +235,6 @@ class Kegg(Singleton):
 
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
-
-        for i in xrange(len(id_steps)-1):
-            logging.info("Parsing KEGG Enzyme M%05d - M%05d" % 
-                         (id_steps[i], id_steps[i+1]))
-            entry_id_list = ' '.join(['md:M%05d' % mid for mid in 
-                                      xrange(id_steps[i], id_steps[i+1])])
-            s = serv.bget(entry_id_list)
-            if s == '':
-                logging.info("No modules found in this range, stopping")
-                break
-            entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
-            for key in sorted(entry2fields_map.keys()):
-                field_map = entry2fields_map[key]
-                enz = kegg_enzyme.Enzyme.FromEntryDict(key, field_map)
-                for reaction_id in enz.reactions:
-                    self.rid2enzyme_map[reaction_id] = enz
-                if enz.ec in self.ec2enzyme_map:
-                    logging.error('Duplicate EC class %s' % enz.ec)
-                else:
-                    self.ec2enzyme_map[enz.ec] = enz
 
     def ToDatabase(self):
         logging.info('Writing to database %s', self.db)
@@ -440,7 +437,7 @@ class Kegg(Singleton):
             
             rid = rid_clause.split(',')[0]
             rid = int(rid[1:])
-            if (rid not in self.rid2reaction_map):
+            if rid not in self.rid2reaction_map:
                 logging.debug("module %s contains an unknown RID (R%05d)" % (module_name, rid))
                 continue
             
@@ -450,20 +447,20 @@ class Kegg(Singleton):
             
             directions = []
             for cid in spr_module.keys():
-                if (cid not in spr_rid):
+                if cid not in spr_rid:
                     logging.debug("in %s:R%05d does not contain the compound C%05d" % (module_name, rid, cid))
-                elif (spr_module[cid] * spr_rid[cid] > 0):
+                elif spr_module[cid] * spr_rid[cid] > 0:
                     directions.append(1)
-                elif (spr_module[cid] * spr_rid[cid] < 0):
+                elif spr_module[cid] * spr_rid[cid] < 0:
                     directions.append(-1)
             
-            if (directions == []):
+            if directions == []:
                 logging.debug("in %s:R%05d could not determine the direction" % (module_name, rid))
                 return None
-            if (-1 in directions and 1 in directions):
+            if -1 in directions and 1 in directions:
                 logging.debug("in %s:R%05d the direction is inconsistent" % (module_name, rid))
                 return None
-            elif (-1 in directions):
+            elif -1 in directions:
                 rid_flux_list.append((rid, -1))
             else:
                 rid_flux_list.append((rid, 1))
@@ -1428,8 +1425,4 @@ def export_compound_connectivity():
 if __name__ == '__main__':
     kegg = Kegg.getInstance(loadFromAPI=True)
     kegg.ToDatabase()
-    
-    #serv = WSDL.Proxy(Kegg.WSDL_URL)
-    #s = serv.bget('cpd:C00011 cpd:C00013')
-    #print kegg_parser.ParsedKeggFile.FromKeggAPI(s)
     

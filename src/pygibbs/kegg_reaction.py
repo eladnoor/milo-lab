@@ -6,7 +6,8 @@ import re
 
 import kegg_utils
 import hashlib
-from pygibbs import kegg_errors
+from pygibbs import kegg_errors, kegg_parser
+import logging
 
 
 class Reaction(object):
@@ -27,7 +28,7 @@ class Reaction(object):
         self.direction = direction
         self.definition = None
         self.equation = None
-        self.ec_list = '-.-.-.-'
+        self.ec_list = ['-.-.-.-']
 
     def SetNames(self, names):
         if type(names) == types.ListType:
@@ -64,12 +65,39 @@ class Reaction(object):
             raise Exception('invalid direction: ' + self.direction)
         return reaction
     
+    @staticmethod
+    def FromEntryDict(key, field_map):
+        if not key.startswith('R'):
+            return None
+            
+        equation_value = field_map.GetStringField("EQUATION", default_value="<=>")
+        try:
+            reaction = Reaction.FromFormula(equation_value)
+            reaction.SetNames(key)
+            reaction.rid = int(key[1:])
+
+            if "ENZYME" in field_map:
+                reaction.ec_list = field_map.GetStringListField('ENZYME')
+            if "NAME" in field_map:
+                reaction.SetNames(kegg_parser.NormalizeNames(field_map["NAME"]))
+            if "DEFINITION" in field_map:
+                reaction.definition = field_map["DEFINITION"]
+            if "EQUATION" in field_map:
+                reaction.equation = field_map["EQUATION"]
+        except (kegg_errors.KeggParseException,
+                kegg_errors.KeggNonCompoundException,
+                ValueError):
+            logging.debug("Cannot parse reaction formula: " + equation_value)
+            return None
+        
+        return reaction
+    
     def ToDBRow(self, rid):
         """Build a database row from a reaction."""
         return [rid,
                 json.dumps(self.names),
                 self.definition,
-                self.ec_list,
+                json.dumps(self.ec_list),
                 self.equation]
         
     @staticmethod
@@ -81,7 +109,7 @@ class Reaction(object):
         reaction.rid = row_dict['rid']
         reaction.equation = row_dict['equation']
         reaction.definition = row_dict['definition']
-        reaction.ec_list = row_dict['ec_list']
+        reaction.ec_list = json.loads(row_dict['ec_list'])
         return reaction
     
     @staticmethod

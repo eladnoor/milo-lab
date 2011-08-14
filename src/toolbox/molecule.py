@@ -590,7 +590,7 @@ if __name__ == "__main__":
     from pygibbs.kegg import Kegg
     kegg = Kegg.getInstance()
     html_writer.write('<h1>pKa estimation using ChemAxon</h1>\n')
-    for cid in [1]:
+    for cid in [10]:
         m = kegg.cid2mol(cid)
         html_writer.write("<h2>C%05d : %s</h2>\n" % (cid, str(m)))
         diss, major_ps = m.GetPseudoisomerMap()
