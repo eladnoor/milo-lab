@@ -606,12 +606,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 # Use group contribution to find the psuedoisomer and their 
                 # formation energies.
                 mol = self.kegg.cid2mol(cid)
-                #decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
-                #pmap, groupvector = self.Decomposition2Psuedoisomers(decomposition)
-                diss, major_mol = mol.GetPseudoisomerMap(T=self.T)
-                decomposition = self.Mol2Decomposition(major_mol, ignore_protonations=False)
+                decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
                 groupvector = decomposition.AsVector()
                 dG0 = self.groupvec2val(groupvector)
+                #pmap, groupvector = self.Decomposition2Psuedoisomers(decomposition)
+                diss, major_mol = mol.GetPseudoisomerMap(T=self.T)
                 diss.SetFormationEnergyByNumHydrogens(dG0=dG0, 
                     nH=groupvector.Hydrogens(), nMg=groupvector.Magnesiums())
                 source_string = "Group Contribution"
@@ -635,10 +634,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     raise Exception("C%05d has multiple training species" % cid)
                 nH, _z, nMg, dG0 = pmatrix[0]
                 diss.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
-                pmap = diss.GetPseudoisomerMap()
                 groupvector = GroupVector(self.groups_data) # use an empty group vector
                 source_string = obs_species.cid2SourceString(cid)
 
+            pmap = diss.GetPseudoisomerMap()
             self.SetPseudoisomerMap(cid, pmap)
             self.cid2groupvec[cid] = groupvector
             self.cid2source_string[cid] = source_string
