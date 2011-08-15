@@ -125,7 +125,7 @@ class Kegg(Singleton):
             else:
                 inchi_list.append(inchi)
         return inchi_list
-            
+    
     def FromAPI(self):
         logging.info("Connecting to KEGG using SOAP")
         serv = WSDL.Proxy(Kegg.WSDL_URL)
@@ -151,35 +151,36 @@ class Kegg(Singleton):
         
         # Read all Compound molecular structures, and save as InChI
         all_explicit_cids = sorted(list(all_explicit_cids))
-        #for i in xrange(0, len(all_explicit_cids), kegg_step):
-        #    sub_compound_ids = all_explicit_cids[i:(i+kegg_step)]
-        #    entry_id_list = ['cpd:C%05d' % j for j in sub_compound_ids]
-        #    logging.info("Calculating InChIs for compounds %s - %s" %
-        #                 (entry_id_list[0], entry_id_list[-1]))
-        #    s = serv.bget('-f m ' + ' '.join(entry_id_list))
-        #    inchi_list = self._ReadMolEntries(s)
-        #    if len(inchi_list) != len(sub_compound_ids):
-        #        print sub_compound_ids
-        #        raise Exception("Error while converting KEGG compounds to InChIs")
-        #    for i, cid in enumerate(sub_compound_ids):
-        #        comp = self.cid2compound(cid)
-        #        comp.inchi = inchi_list[i]
-        #        if comp.inchi:
-        #            self.inchi2cid_map[comp.inchi] = cid
-        conv = openbabel.OBConversion()
-        conv.SetInAndOutFormats('mol', 'inchi')
-        obmol = openbabel.OBMol()
-        for cid in all_explicit_cids:
-            logging.info("Calculating InChIs for compound C%05d" % cid)
-            s = serv.bget('-f m cpd:C%05d' % cid)
-            conv.ReadString(obmol, s)
-            inchi = conv.WriteString(obmol).strip()
-            if inchi != '':
-                comp = self.cid2compound(cid)
-                comp.inchi = inchi
-                self.inchi2cid_map[inchi] = cid
-            else:
-                logging.warning('Cannot find the InChI for C%05d' % cid)
+        
+        # Convert MOL files to InChIs and store them in the Compound objects
+        for i in xrange(0, len(all_explicit_cids), kegg_step):
+            # first try to get MOL files in batches of 100
+            sub_compound_ids = all_explicit_cids[i:(i+kegg_step)]
+            entry_id_list = ['cpd:C%05d' % j for j in sub_compound_ids]
+            logging.info("Calculating InChIs for compounds %s - %s" %
+                         (entry_id_list[0], entry_id_list[-1]))
+            s = serv.bget('-f m ' + ' '.join(entry_id_list))
+            inchi_list = self._ReadMolEntries(s)
+            
+            if len(inchi_list) == len(sub_compound_ids):
+                for i, cid in enumerate(sub_compound_ids):
+                    comp = self.cid2compound(cid)
+                    comp.inchi = inchi_list[i]
+                    if comp.inchi:
+                        self.inchi2cid_map[comp.inchi] = cid
+            else: # there is a bug in the parser, resolve InChIs one CID at a time
+                conv = openbabel.OBConversion()
+                conv.SetInAndOutFormats('mol', 'inchi')
+                obmol = openbabel.OBMol()
+                for cid in sub_compound_ids:
+                    logging.info("Calculating InChIs for compound C%05d" % cid)
+                    s = serv.bget('-f m cpd:C%05d' % cid)
+                    conv.ReadString(obmol, s)
+                    inchi = conv.WriteString(obmol).strip()
+                    if inchi != '':
+                        comp = self.cid2compound(cid)
+                        comp.inchi = inchi
+                        self.inchi2cid_map[inchi] = cid
           
         # Read all Reactions                      
         for i in xrange(0, max_id, kegg_step):

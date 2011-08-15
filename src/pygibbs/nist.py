@@ -1,6 +1,7 @@
 import pylab, re, logging
 from pygibbs.kegg import Kegg
-from pygibbs.kegg_errors import KeggParseException
+from pygibbs.kegg_errors import KeggParseException,\
+    KeggReactionNotBalancedException
 from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
 from toolbox.util import _mkdir, calc_rmse
@@ -187,7 +188,10 @@ class Nist(object):
         
     def BalanceReactions(self, balance_water=True):
         for row in self.data:
-            row.reaction.Balance(balance_water)
+            try:
+                row.reaction.Balance(balance_water)
+            except KeggReactionNotBalancedException as e:
+                raise Exception(str(e) + '\n' + str(row.reaction))
 
     def GetAllCids(self):
         return sorted(self.cid2count.keys())
