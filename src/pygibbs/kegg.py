@@ -23,7 +23,6 @@ import openbabel
 class Kegg(Singleton):
 
     WSDL_URL = 'http://soap.genome.jp/KEGG.wsdl'
-    INCHI_FILE = '../data/kegg/inchi.txt.gz'
     COMPOUND_ADDITIONS_FILE = '../data/kegg/kegg_additions.csv'
 
     def __init__(self, loadFromAPI=False):

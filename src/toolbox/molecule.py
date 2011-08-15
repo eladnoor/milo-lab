@@ -596,6 +596,7 @@ if __name__ == "__main__":
         diss, major_ps = m.GetPseudoisomerMap()
         pmap = diss.GetPseudoisomerMap()
         html_writer.write("<p>" + major_ps.ToSVG() + "</br>\n")
+        diss.WriteToHTML(html_writer)
         pmap.WriteToHTML(html_writer)
         html_writer.write("</p>\n")
         #print m.GetDissociationConstants()
