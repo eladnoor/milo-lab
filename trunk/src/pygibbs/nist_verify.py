@@ -14,7 +14,8 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.kegg import Kegg
 from pygibbs.feist_ecoli import Feist
 from pygibbs.groups import GroupContribution
-from pygibbs.kegg_errors import KeggReactionNotBalancedException
+from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
+    KeggParseException
 
 def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
@@ -59,15 +60,15 @@ def main():
     html_writer.write('</p>\n')
 
     reactions = {}
-    reactions['KEGG'] = []
-    for reaction in Kegg.getInstance().AllReactions():
-        try:
-            reaction.Balance(balance_water=True, exception_if_unknown=True)
-            reactions['KEGG'].append(reaction)
-        except KeggReactionNotBalancedException:
-            pass
+    #reactions['KEGG'] = []
+    #for reaction in Kegg.getInstance().AllReactions():
+    #    try:
+    #        reaction.Balance(balance_water=True, exception_if_unknown=True)
+    #        reactions['KEGG'].append(reaction)
+    #    except (KeggReactionNotBalancedException, KeggParseException):
+    #        pass
         
-    reactions['FEIST'] = Feist.FromFiles().reactions
+    #reactions['FEIST'] = Feist.FromFiles().reactions
     reactions['NIST'] = nist.GetUniqueReactionSet()
     
     if False:
@@ -96,15 +97,16 @@ def main():
                                 thermo2=estimators['hatzi_gc_pka'],
                                 name='jankowski_pka')
         
-    if True:
+    if False:
         estimators['alberty'].CompareOverKegg(html_writer, 
                                               other=estimators['PRC'],
                                               fig_name='kegg_compare_alberty_vs_nist')
     
     dict_list = []
-    dict_list.append({'Method': 'Total', 'KEGG coverage':len(reactions['KEGG']),
-                      'NIST coverage':len(reactions['NIST']),
-                      'FEIST coverage':len(reactions['FEIST'])})
+    d = {'Method': 'Total'}
+    for database_name, reaction_list in reactions.iteritems():
+        d[database_name + ' coverage'] = len(reaction_list)
+    dict_list.append(d)
     for thermo_name, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)
         html_writer.write('<p><b>%s</b> ' % thermodynamics.name)
@@ -120,14 +122,14 @@ def main():
         dict = {'Method':thermodynamics.name, 'RMSE (kJ/mol)':"%.1f (N=%d)" % (rmse, num_estimations)}
         for database_name, reaction_list in reactions.iteritems():
             n_covered = thermodynamics.CalculateCoverage(reaction_list)
-            n_total = len(reaction_list)
-            percent = n_covered * 100.0 / n_total
+            percent = n_covered * 100.0 / len(reaction_list)
             dict[database_name + " coverage"] = "%.1f%% (%d)" % (percent, n_covered)
             logging.info(database_name + " coverage = %.1f%%" % percent)
         dict_list.append(dict)
     
-    html_writer.write_table(dict_list, headers=['Method', 'RMSE (kJ/mol)', 
-        'KEGG coverage', 'NIST coverage', 'FEIST coverage'])
+    headers = ['Method', 'RMSE (kJ/mol)'] + \
+        [(db_name + ' coverage' for db_name in reactions.keys())]
+    html_writer.write_table(dict_list, headers=headers)
 
 if __name__ == '__main__':
     main()

@@ -343,7 +343,7 @@ class Molecule(object):
         win.connect("destroy", lambda w: gtk.main_quit())
         gtk.main()
 
-    def _RunCxcalc(self, args):
+    def _RunCxcalc(self, args, format='inchi'):
         if not os.path.exists(CXCALC_BIN):
             raise Exception("Jchem must be installed to calculate pKa data.")
         
@@ -352,10 +352,10 @@ class Molecule(object):
         #temp_molfile = open(temp_fname, 'w')
         #temp_molfile.write(mol)
         #temp_molfile.close()
-        inchi = self.ToInChI()
+        molstring = self.ToFormat(format)
         
-        logging.debug("\nARGS: %s" % ' '.join([CXCALC_BIN] + args + [inchi]))
-        p = subprocess.Popen([CXCALC_BIN] + args + [inchi],
+        logging.debug("\nARGS: %s" % ' '.join([CXCALC_BIN] + args + [molstring]))
+        p = subprocess.Popen([CXCALC_BIN] + args + [molstring],
                              executable=CXCALC_BIN, stdout=subprocess.PIPE)
         #p.wait()
         #os.remove(temp_fname)
@@ -380,17 +380,21 @@ class Molecule(object):
         pKa_list = apKa_list + bpKa_list
         acid_or_base_list = ['acid'] * len(apKa_list) + ['base'] * len(bpKa_list)        
            
-        atom_numbers = [int(x)-1 for x in splitline[-1].split(',')]
         atom2pKa = {}
-        for i, j in enumerate(atom_numbers):
-            atom2pKa.setdefault(j, [])
-            atom2pKa[j].append((pKa_list[i], acid_or_base_list[i]))
+        if splitline[-1]:
+            atom_numbers = [int(x)-1 for x in splitline[-1].split(',')]
+            for i, j in enumerate(atom_numbers):
+                atom2pKa.setdefault(j, [])
+                atom2pKa[j].append((pKa_list[i], acid_or_base_list[i]))
         return atom2pKa
     
     def GetDissociationConstants(self, n_acidic=10, n_basic=10):
-        args = ['pka', '-a', str(n_acidic), '-b', str(n_basic)]
-        res = self._RunCxcalc(args)
-        return Molecule._ParsePkaOutput(res, n_acidic, n_basic)
+        args = ['pka', '-a', str(n_acidic), '-b', str(n_basic), '-M', 'true']
+        try:
+            output = self._RunCxcalc(args)
+        except ChemAxonError:
+            output = self._RunCxcalc(args, format='smiles')
+        return Molecule._ParsePkaOutput(output, n_acidic, n_basic)
 
     def GetAtomCharges(self):
         """
@@ -411,9 +415,15 @@ class Molecule(object):
         return percent, mol
     
     def GetPseudoisomersAtPh(self, pH=7, threshold=0.1):
-        args = ['msdistr', '-H', str(pH)]
+        args = ['msdistr', '-H', str(pH), '-M', 'true']
         res = []
-        for s in self._RunCxcalc(args).split('$$$$\n'):
+        
+        try:
+            output = self._RunCxcalc(args).split('$$$$\n')
+        except ChemAxonError:
+            output = self._RunCxcalc(args, format='smiles').split('$$$$\n')
+            
+        for s in output:
             if s == '':
                 continue
             percent, mol = Molecule._ParseSdfSpecies(s)
@@ -421,65 +431,6 @@ class Molecule(object):
                 res.append((percent, mol))
         return res
     
-    def GetPseudoisomers1(self):
-        data = []
-        for pH in [5, 6, 7, 8, 9]: # Physiological pH range
-            for percent, mol in self.GetPseudoisomersAtPh(pH=pH, threshold=0.0):
-                nH, _z = mol.GetHydrogensAndCharge()
-                data.append({'pH':pH, 'percent':percent, 'nH':nH, 'mol':mol})
-        
-        # find the most abundant species at pH 7 
-        major_microspecies_at_pH7 = max([x for x in data if x['pH'] == 7], 
-                                         key=lambda(x):x['percent'])['mol']
-        atom2pKa = major_microspecies_at_pH7.GetDissociationConstants()
-
-        nH_to_species = {}
-        for nH in set([x['nH'] for x in data]):
-            # find the most abundant species with this nH, across all pH levels
-            max_species = max([x for x in data if x['nH'] == nH],
-                              key=lambda(x):x['percent'])
-            max_pH = max_species['pH']
-            mol = max_species['mol']
-            nH_to_species[nH] = {'pH':max_pH, 'mol':mol, 
-                                 'charges':mol.GetAtomCharges(), 
-                                 'smiles':mol.ToSmiles()}
-            
-        result_table = []
-        for nH in sorted(nH_to_species.keys(), reverse=True):
-            if (nH+1) not in nH_to_species:
-                continue
-            
-            curr_charges = nH_to_species[nH]['charges']
-            plus1_charges = nH_to_species[nH+1]['charges']
-            
-            # find the atoms which change their charge between this microspecies
-            # and the nH+1 microspecies
-            changing_atoms = [i for i in xrange(len(curr_charges))
-                              if curr_charges[i] != plus1_charges[i]]
-            
-            pKas = []
-            for i in changing_atoms:
-                # find the most likely pKa that matches this protonation
-                # assuming it is the one closer to the pH where this microspecies 
-                # is present at its maximum
-                if i in atom2pKa:
-                    pKa = sorted(atom2pKa[i], key=lambda(x):abs(x-pH))[0]
-                else:
-                    raise Exception("This atom (%d) changes charge but doesn't match any pKa:\n%s" %
-                                    (i, str(atom2pKa)))
-                pKas.append((i, pKa))
-            
-            if len(pKas) == 1:
-                pKas = pKas[0][1]
-
-            result_table.append([nH+1, nH, nH_to_species[nH+1]['smiles'], 
-                                 nH_to_species[nH]['smiles'], pKas])
-        
-        #for nH in sorted(nH_to_microspecies.keys()):
-        #    print nH, nH_to_microspecies[nH]
-        
-        return result_table
-
     def GetMacrospecies(self):
         args  = ['majorms']
         res = self._RunCxcalc(args)
@@ -525,7 +476,7 @@ class Molecule(object):
             
         return sorted(pseudoisomer_list, key=lambda(x):x[2])
 
-    def GetPseudoisomerMap(self, mid_pH=7, min_pKa=2, max_pKa=12, T=default_T):
+    def GetPseudoisomerMap(self, mid_pH=7, min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
             relative to the most abundant one at pH 7.
@@ -535,14 +486,13 @@ class Molecule(object):
 
         try:        
             major_pseudoisomer = max(self.GetPseudoisomersAtPh(pH=mid_pH))[1]
-            atom2pKa = self.GetDissociationConstants()
         except ChemAxonError:
             major_pseudoisomer = self
-            
-            diss.SetOnlyPseudoisomer(self.ToSmiles(), self.GetHydrogensAndCharge()[0])
-            atom2pKa = {}
 
-        nH, z = major_pseudoisomer.GetHydrogensAndCharge()
+        try:
+            atom2pKa = self.GetDissociationConstants()
+        except ChemAxonError:
+            atom2pKa = {}
 
         pKa_up = []
         pKa_down = []
@@ -555,11 +505,16 @@ class Molecule(object):
         pKa_up.sort()
         pKa_down.sort(reverse=True)
 
-        for i, pKa in enumerate(pKa_up):
-            diss.AddpKa(pKa, nH-i, nH-i-1, nMg=0, ref='ChemAxon', T=T)
-
-        for i, pKa in enumerate(pKa_down):
-            diss.AddpKa(pKa, nH+i+1, nH+i, nMg=0, ref='ChemAxon', T=T)
+        nH, z = major_pseudoisomer.GetHydrogensAndCharge()
+        if not pKa_up and not pKa_down:
+            diss.SetOnlyPseudoisomer(major_pseudoisomer.ToSmiles(),
+                                     nH=nH, nMg=0)
+        else:
+            for i, pKa in enumerate(pKa_up):
+                diss.AddpKa(pKa, nH-i, nH-i-1, nMg=0, ref='ChemAxon', T=T)
+    
+            for i, pKa in enumerate(pKa_down):
+                diss.AddpKa(pKa, nH+i+1, nH+i, nMg=0, ref='ChemAxon', T=T)
 
         diss.SetCharge(nH, z)
 
