@@ -278,6 +278,22 @@ class DissociationTable(object):
                 s += "nMg (%2d -> %2d) : %.1f kJ/mol [%s]\n" % (nMg_above, nMg_below, ddG, ref)
         return s
 
+    def WriteToHTML(self, html_writer, T=default_T):
+        dict_list = []
+        for (nH_above, nH_below, nMg_above, nMg_below), (ddG, ref) in self.ddGs.iteritems():
+            d = {'nH below':nH_below, 'nH above':nH_above,
+                 'nMg below':nMg_below, 'nMg above':nMg_above,
+                 'ddG0':'%.1f' % ddG, 'reference':ref}
+            if nH_below == nH_above+1:
+                d['pK<sub>a</sub>'] = -ddG / (R * T * np.log(10))
+            elif nMg_below == nMg_above+1:
+                d['pK<sub>Mg</sub>'] = -(ddG + dG0_f_Mg) / (R * T * np.log(10))
+            dict_list.append(d)
+        dict_list.sort(key=lambda(k):(k['nH below'], k['nMg below']))
+        html_writer.write_table(dict_list, headers=['nH below', 'nH above', 
+            'nMg below', 'nMg above', 'ddG0', 'pK<sub>a</sub>',
+            'pK<sub>Mg</sub>', 'reference'])        
+
     def __iter__(self):
         return self.ddGs.__iter__()
     
