@@ -58,6 +58,8 @@ class GroupObervationCollection(object):
         self.observations = []
         self.n_groups = len(self.groups_data.all_groups)
         self.groupvec_titles = ["g%d" % i for i in xrange(self.n_groups)]
+        self.dissociation = DissociationConstants.FromDatabase(self.db, 
+                                            'dissociation_constants_chemaxon')
 
         self.html_writer = html_writer
         if html_writer and html_writer.filename:
@@ -92,9 +94,10 @@ class GroupObervationCollection(object):
             self.html_writer.write('%s Could not be decomposed</br>\n' % smiles)
 
     def AddDissociationTable(self):
-        dissociation = DissociationConstants.FromFile()
-        for cid in dissociation.GetAllCids():
-            diss_table =  dissociation.GetDissociationTable(cid)
+        for cid in self.dissociation.GetAllCids():
+            diss_table = self.dissociation.GetDissociationTable(cid)
+            if diss_table is None:
+                continue
             name = self.kegg.cid2name(cid)
             logging.debug("Reading pKa data for C%05d, %s:" % (cid, name))
             self.html_writer.write('<h3>C%05d - %s</h3>\n' % (cid, name))
@@ -138,22 +141,30 @@ class GroupObervationCollection(object):
                     # there seems to be a problem in decomposition of ADP:Mg (and maybe other forms that have Mg ions)
 
     def AddFormationEnergies(self, obs_fname="../data/thermodynamics/formation_energies.csv"):
-        dissociation = DissociationConstants.FromFile()
         train_species = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname, label='training')
         for cid in train_species.get_all_cids():
             pmap = train_species.cid2PseudoisomerMap(cid)
             pmatrix = pmap.ToMatrix() # ToMatrix returns tuples of (nH, z, nMg, dG0)
             if len(pmatrix) != 1:
-                raise Exception("C%05d has more than one species in the training set" % cid)
+                raise Exception("multiple training species for C%05d" % cid)
             nH, charge, nMg, dG0 = pmatrix[0]
             name = "%s (%d)" % (self.kegg.cid2name(cid), nH)
             logging.debug('Adding the formation energy of %s', name)
-            self.html_writer.write("<h3>%s, %s</h3>\n" % (name, train_species.cid2SourceString(cid)))
-            self.html_writer.write('&#x394;G<sub>f</sub> = %.2f, nH = %d, nMg = %d</br>\n' % (dG0, nH, nMg))
-            smiles = dissociation.GetSmiles(cid, nH=nH, nMg=nMg)
+            self.html_writer.write("<h3>%s, %s</h3>\n" % 
+                                   (name, train_species.cid2SourceString(cid)))
+            self.html_writer.write('&#x394;G<sub>f</sub> = %.2f, '
+                                   'nH = %d, nMg = %d</br>\n' % (dG0, nH, nMg))
+            diss_table = self.dissociation.GetDissociationTable(cid, 
+                                                        create_if_missing=True)
+            if diss_table is None:
+                raise Exception("%s [C%05d, nH=%d, nMg=%d] does not have a " 
+                                "dissociation table"
+                                % (name, cid, nH, nMg))
+            smiles = diss_table.GetSmiles(nH=nH, nMg=nMg)
             if not smiles:
-                raise Exception("%s does not have a SMILES expression in the dissociation constant table" 
-                                % name)
+                raise Exception("%s [C%05d, nH=%d, nMg=%d] does not have a SMILES "
+                                "expression in the dissociation constant table" 
+                                % (name, cid, nH, nMg))
             self.html_writer.write("SMILES = %s</br>\n" % smiles)
             mol = Molecule.FromSmiles(smiles)
             mol.SetTitle(name)
@@ -193,9 +204,14 @@ class GroupObervationCollection(object):
         cid2dG0 = {}
         cid2nH = {} # the nH that is to be used in the reverse transform
         for cid in nist_regression.dissociation.GetAllCids():
-            diss = nist_regression.dissociation.GetDissociationTable(cid)
-            nH, _nMg = diss.GetMostAbundantPseudoisomer(pH=default_pH, I=default_I, pMg=14, T=default_T)
-            cid2nH[cid] = nH
+            diss_table = nist_regression.dissociation.GetDissociationTable(cid)
+            if diss_table is not None:
+                nH, _nMg = diss_table.GetMostAbundantPseudoisomer(
+                            pH=default_pH, I=default_I, pMg=14, T=default_T)
+                cid2nH[cid] = nH
+            else:
+                # assume nH=0 by default for compounds without explicit formulas
+                cid2nH[cid] = 0
         
         # override the nH in cid2nH with the pseudoisomer used in the CSV
         # so it will be consistent with the formation energy table
