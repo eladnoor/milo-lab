@@ -5,7 +5,9 @@ import itertools
 import pylab
 import sys
 
+from collections import Counter
 from matplotlib.font_manager import FontProperties
+from matplotlib.patches import Wedge
 from optparse import OptionParser
 
 
@@ -21,13 +23,47 @@ def MakeOpts():
 	opt_parser.add_option("-b", "--second_col",
 						  dest="second_col",
 						  help="First column in 2-way histogram")
-	opt_parser.add_option("-f", "--filter_col",
-						  dest="filter_col",
-						  help="A column to filter based on.")
-	opt_parser.add_option("-v", "--filter_val",
-						  dest="filter_val",
-						  help="The value to filter out.")
+	opt_parser.add_option("-c", "--third_col",
+						  dest="third_col",
+						  help="THIRD DIMENSION!")
+	opt_parser.add_option("-f", "--filter_cols",
+						  dest="filter_cols",
+						  help="The columns to filter based on (comma separated)")
+	opt_parser.add_option("-v", "--filter_vals",
+						  dest="filter_vals",
+						  help="The values to of examples to keep (comma separated).")
+	opt_parser.add_option("-l", "--limit_val",
+						  dest="limit_val",
+						  help="limit analysis to examples where at least one column has this value.")
 	return opt_parser
+
+
+COLORS = 'grbcmykw'
+
+def GetColor(i):
+	index = i % len(COLORS)
+	return COLORS[index]
+
+
+def ColorMap(items):
+	return dict((item, GetColor(i)) for i, item in enumerate(items))
+
+
+def PieScatter(axes, x_array, y_array, counts_array, max_count, colormap, **kwargs):
+    for x, y, counts in zip(x_array, y_array, counts_array):
+		total_count = sum(counts.itervalues())
+		radius = pylab.sqrt(float(total_count) / (5.0 * float(max_count)))
+		axes.text(x + 0.05, y - radius - 0.1, str(total_count))
+
+		theta_1 = 0
+		for i, (key, value) in enumerate(counts.iteritems()):
+			color = colormap[key]
+			sweep = (float(value) / float(total_count)) * 360.0
+			w = Wedge((x,y), radius, theta_1, theta_1 + sweep, color=color, label=key)
+			theta_1 += sweep
+			axes.add_patch(w)
+
+    return True
 
 
 def CircleScatter(axes, x_array, y_array, z_array, **kwargs):
@@ -43,17 +79,29 @@ def Main():
 	assert options.first_col and options.second_col
 	print 'Reading species list from', options.species_filename
 
+	filter_cols, filter_vals = [], []
+	if options.filter_cols:
+		assert options.filter_vals
+		filter_cols = map(str.strip, options.filter_cols.split(','))
+		filter_vals = map(str.strip, options.filter_vals.split(','))
+	
+
 	# Read and filter species data
 	r = csv.DictReader(open(options.species_filename))
-	filter_col, filter_val = options.filter_col, options.filter_val
 	first_col, second_col = options.first_col, options.second_col
 	pairmap = {}
 	for row in r:
-		if (filter_col and filter_col in row and
-			row[filter_col] == filter_val):
+		apply_filter = lambda x, y: x in row and row[x] == y
+		or_reduce = lambda x, y: x or y
+		passed_filter = reduce(or_reduce, map(apply_filter,
+											  filter_cols, filter_vals), True)
+		if not passed_filter:
 			continue
-
-		key = (row[first_col], row[second_col])
+		
+		a, b = row[first_col].strip(), row[second_col].strip()
+		if not a or not b:
+			continue
+		key = (a, b)
 		pairmap.setdefault(key, []).append(row)
 
 	#for key, row_list in pairmap.iteritems():
@@ -67,34 +115,59 @@ def Main():
 	b_to_num = dict((v,i) for i,v in enumerate(all_b))
 	all_possible_pairs = list(itertools.product(all_a, all_b))
 
-	# Count instances of pairs.
-	counts = dict((k, len(v)) for k,v in pairmap.iteritems())
+	third_col = options.third_col or 'fake key'
+	get_col = lambda x: x.get(third_col, None)
+	col_vals = dict((k, map(get_col, v)) for k, v in pairmap.iteritems())
+	counts = {}
+	totals = []
+	all_vals = set()
+	for k, v in col_vals.iteritems():
+		counter = Counter(v)
+		all_vals.update(counter.keys())
+		counts[k] = counter
+		totals.append(sum(counter.values()))
 
-	# Format for pylab plotting.
 	x_vals = []
 	y_vals = []
+	count_array = []
 	z_vals = []
+	max_val = max(totals)
 	for pair in all_possible_pairs:
 		a,b = pair
 		x_vals.append(a_to_num[a])
 		y_vals.append(b_to_num[b])
-		z_vals.append(counts.get(pair, 0))
-	
-	# Scale counts to radii, max 0.5 so they don't overlap with adjacent blobs.
-	scaled_z_vals = pylab.array(map(float, z_vals))
-	max_z = max(scaled_z_vals)
-	scaled_z_vals /= (2.0*max_z)
-	
+		z_vals.append(sum(counts.get(pair, {}).values()))
+		count_array.append(counts.get(pair, {}))
+		
 	# Plot circle scatter.
 	axes = pylab.axes()
 	axes.grid(color='g', linestyle='--', linewidth=1)
-	CircleScatter(axes, x_vals, y_vals, scaled_z_vals)
+	
+	if options.third_col:
+		colormap = ColorMap(all_vals)
+		PieScatter(axes, x_vals, y_vals, count_array, max_val, colormap)
+
+		handles, labels = axes.get_legend_handles_labels()
+		mapped_labels = dict(zip(labels, handles))
+		labels = sorted(mapped_labels.keys())
+		handles = [mapped_labels[k] for k in labels]
+		pylab.legend(handles, labels)
+	else:
+		scaled_z_vals = pylab.array(map(float, z_vals))
+		max_z = max(scaled_z_vals)
+		scaled_z_vals /= (4.0*max_z)
+		scaled_z_vals = pylab.sqrt(scaled_z_vals)
+
+		CircleScatter(axes, x_vals, y_vals, scaled_z_vals)
+		for x, y, z in zip(x_vals, y_vals, z_vals):
+			pylab.text(x+0.1, y+0.1, str(z))
+		
 
 	# Labels, titles and ticks.
 	pylab.title('%s vs. %s' % (options.first_col, options.second_col))
 	pylab.xlabel(options.first_col)
 	pylab.ylabel(options.second_col)
-	pylab.figtext(0.70, 0.02, '%d examples total.' % sum(counts.values()))
+	pylab.figtext(0.70, 0.02, '%d examples total.' % sum(totals))
 
 	size_8 = FontProperties(size=8)
 	a_labels = [a or "None given" for a in all_a]
@@ -103,8 +176,7 @@ def Main():
 				 fontproperties=size_8)
 	pylab.yticks(range(0, len(b_labels)), b_labels,
 				 fontproperties=size_8)
-	for x, y, z in zip(x_vals, y_vals, z_vals):
-		pylab.text(x+0.1, y+0.1, str(z))
+
 
 	# Scale and show.
 	pylab.axis('scaled')
