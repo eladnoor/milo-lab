@@ -414,7 +414,11 @@ class Molecule(object):
         percent = float(percentStr)
         return percent, mol
     
-    def GetPseudoisomersAtPh(self, pH=7, threshold=0.1):
+    def GetPseudoisomersAtPh(self, pH=7, threshold=0.0):
+        """
+            Returns a list of pseudoisomers (Molecule objects) in descending
+            order of abundance
+        """
         args = ['msdistr', '-H', str(pH), '-M', 'true']
         res = []
         
@@ -429,7 +433,12 @@ class Molecule(object):
             percent, mol = Molecule._ParseSdfSpecies(s)
             if percent > threshold:
                 res.append((percent, mol))
-        return res
+        
+        if not res:
+            return [self]
+        
+        res.sort(key=lambda(x):x[0], reverse=True)
+        return [x[1] for x in res]
     
     def GetMacrospecies(self):
         args  = ['majorms']
@@ -437,45 +446,6 @@ class Molecule(object):
         smiles = res.split('\n')[1].split()[1]
         return smiles.split('.')
         
-    def GetPseudoisomers(self, mid_pH=7):
-        mid_pseudoisomer = max(self.GetPseudoisomersAtPh(pH=mid_pH))[1]
-        atom2pKa = self.GetDissociationConstants()
-        
-        pka_atom_list = []
-        for atom, pka_list in atom2pKa.iteritems():
-            for pka, acid_or_base in pka_list:
-                pka_atom_list.append((pka, atom, acid_or_base))
-                
-        #print ', '.join(['%d(%d)' % (a.atomicnum, a.formalcharge) for a in atoms])
-        #for a in curr_pseudoisomer.pybel_mol.atoms:
-        #    print a.atomicnum
-        
-        pseudoisomer_list = []
-        
-        prev_pseudoisomer = mid_pseudoisomer.Clone()
-        for pka, atom, acid_or_base in sorted([x for x in pka_atom_list if x[0] > mid_pH]):
-            obmol = openbabel.OBMol(prev_pseudoisomer.ToOBMol())
-            obatom = obmol.GetAtom(atom+1)
-            charge = obatom.GetFormalCharge()
-            obatom.SetFormalCharge(charge-1)
-            
-            curr_pseudoisomer = Molecule.FromOBMol(obmol)
-            pseudoisomer_list.append((prev_pseudoisomer, curr_pseudoisomer, pka))
-            prev_pseudoisomer = curr_pseudoisomer
-
-        prev_pseudoisomer = mid_pseudoisomer
-        for pka, atom, acid_or_base in sorted([x for x in pka_atom_list if x[0] < mid_pH], reverse=True):
-            obmol = openbabel.OBMol(prev_pseudoisomer.ToOBMol())
-            obatom = obmol.GetAtom(atom+1)
-            charge = obatom.GetFormalCharge()
-            obatom.SetFormalCharge(charge+1)
-            
-            curr_pseudoisomer = Molecule.FromOBMol(obmol)
-            pseudoisomer_list.append((curr_pseudoisomer, prev_pseudoisomer, pka))
-            prev_pseudoisomer = curr_pseudoisomer
-            
-        return sorted(pseudoisomer_list, key=lambda(x):x[2])
-
     def GetPseudoisomerMap(self, mid_pH=7, min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
@@ -484,10 +454,10 @@ class Molecule(object):
         from pygibbs.dissociation_constants import DissociationTable
         diss = DissociationTable()
 
-        try:        
-            major_pseudoisomer = max(self.GetPseudoisomersAtPh(pH=mid_pH))[1]
+        try:
+            pseudoisomer_list = self.GetPseudoisomersAtPh(pH=mid_pH)
         except ChemAxonError:
-            major_pseudoisomer = self
+            pseudoisomer_list = [self]
 
         try:
             atom2pKa = self.GetDissociationConstants()
@@ -505,16 +475,30 @@ class Molecule(object):
         pKa_up.sort()
         pKa_down.sort(reverse=True)
 
+        nH_to_smiles = {}
+        for pseudoisomer in pseudoisomer_list:
+            nH, _z = pseudoisomer.GetHydrogensAndCharge()
+            nH_to_smiles.setdefault(nH, pseudoisomer.ToSmiles())
+        
+        major_pseudoisomer = pseudoisomer_list[0]
+
         nH, z = major_pseudoisomer.GetHydrogensAndCharge()
         if not pKa_up and not pKa_down:
             diss.SetOnlyPseudoisomer(major_pseudoisomer.ToSmiles(),
                                      nH=nH, nMg=0)
         else:
             for i, pKa in enumerate(pKa_up):
-                diss.AddpKa(pKa, nH-i, nH-i-1, nMg=0, ref='ChemAxon', T=T)
+                diss.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
+                            nMg=0, ref='ChemAxon', T=T,
+                            smiles_below=nH_to_smiles.get(nH-i, None),
+                            smiles_above=nH_to_smiles.get(nH-i-1, None))
     
             for i, pKa in enumerate(pKa_down):
-                diss.AddpKa(pKa, nH+i+1, nH+i, nMg=0, ref='ChemAxon', T=T)
+                diss.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
+                            nMg=0, ref='ChemAxon', T=T,
+                            smiles_below=nH_to_smiles.get(nH+i+1, None),
+                            smiles_above=nH_to_smiles.get(nH+i, None))
+                
 
         diss.SetCharge(nH, z)
 
@@ -545,7 +529,7 @@ if __name__ == "__main__":
     from pygibbs.kegg import Kegg
     kegg = Kegg.getInstance()
     html_writer.write('<h1>pKa estimation using ChemAxon</h1>\n')
-    for cid in [10]:
+    for cid in [5379]:
         m = kegg.cid2mol(cid)
         html_writer.write("<h2>C%05d : %s</h2>\n" % (cid, str(m)))
         diss, major_ps = m.GetPseudoisomerMap()

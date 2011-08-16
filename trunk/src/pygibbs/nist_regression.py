@@ -36,7 +36,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         self.kegg = Kegg.getInstance()
         self.nist = nist or Nist()
         
-        self.dissociation = DissociationConstants.FromDatabase(db, 
+        self.dissociation = DissociationConstants.FromDatabase(self.db, 
                                             'dissociation_constants_chemaxon')
         self.cid2pmap_dict = {}
         

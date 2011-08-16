@@ -223,10 +223,10 @@ def load_compound_aliases():
     """
     compound_aliases = {}
     kegg = Kegg.getInstance()
-    for cid, comp in kegg.cid2compound_map.iteritems():
-        for alias in comp.all_names:
+    for cid in sorted(kegg.cid2compound_map.keys()):
+        for alias in kegg.cid2compound_map[cid].all_names:
             alias = remove_superfluous_chars(alias)
-            compound_aliases[alias] = "C%05d" % cid
+            compound_aliases.setdefault(alias, "C%05d" % cid)
     
     return compound_aliases
 

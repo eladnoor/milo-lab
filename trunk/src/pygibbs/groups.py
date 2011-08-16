@@ -18,7 +18,6 @@ from pygibbs.kegg_errors import KeggParseException,\
     KeggReactionNotBalancedException
 from pygibbs.groups_data import Group, GroupsData
 from pygibbs.pseudoisomer import PseudoisomerMap
-from pygibbs import templates
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
@@ -371,7 +370,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         logging.info("Leave-one-out test: RMSE = %.2f kJ/mol" % loo_rmse)
 
         self.html_writer.table_start()
-        deviations.sort(key=lambda(x):abs(x['fit_resid']), reverse=True)
+        deviations.sort(key=lambda(x):abs(x['loo_resid']), reverse=True)
         headers = ['Compound Name',
                    '&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
                    '&#x394;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',

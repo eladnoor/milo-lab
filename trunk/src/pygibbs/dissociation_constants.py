@@ -8,6 +8,8 @@ from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
 from pygibbs.nist import Nist
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from toolbox.html_writer import HtmlWriter
 
 class MissingDissociationConstantError(Exception):
     pass
@@ -31,6 +33,7 @@ class DissociationConstants(object):
                 if not row['cid']:
                     continue # without a CID we cannot match this to the dG0 table
                 cid = int(row['cid'])
+                diss.cid2DissociationTable.setdefault(cid, DissociationTable(cid))
                 logging.debug("Parsing row #%d, compound C%05d" % (i, cid))
     
                 nH_below = int(row['nH_below'])
@@ -76,26 +79,18 @@ class DissociationConstants(object):
         return diss
     
     @staticmethod
-    def FromChemAxon(cid_list=None):
+    def FromChemAxon(cid_list=None, html_writer=None):
         kegg = Kegg.getInstance()
         diss = DissociationConstants()
-        
         for cid in sorted(cid_list or kegg.get_all_cids()):
-            diss_table = None
-            major_mol = None
-            
-            try:
-                mol = kegg.cid2mol(cid)
-            except KeggParseException:
-                continue
-            
-            diss_table, major_mol = mol.GetPseudoisomerMap()
-            diss_table.cid = cid
-            nH, z = major_mol.GetHydrogensAndCharge()
-            nMg = 0
-            diss_table.smiles_dict[nH, nMg] = major_mol.ToSmiles()
-            diss_table.SetCharge(nH, z, nMg)
+            if html_writer:
+                html_writer.write('<h2>%s - C%05d</h2>\n' %
+                                  (kegg.cid2name(cid), cid))
+            diss_table = DissociationTable.CreateUsingChemaxon(cid)
             diss.cid2DissociationTable[cid] = diss_table
+            if diss_table and html_writer:
+                diss_table.WriteToHTML(html_writer)
+                html_writer.write('</br>\n')
         return diss
     
     @staticmethod
@@ -104,13 +99,15 @@ class DissociationConstants(object):
 
         for row in db.DictReader(table_name):
             cid = row['cid']
-            diss_table = diss.GetDissociationTable(cid)
-            diss_table.FromDatabaseRow(row)
+            if row['nH_below'] is None:
+                diss.cid2DissociationTable[cid] = None
+            else:
+                diss.cid2DissociationTable.setdefault(cid, DissociationTable(cid))
+                diss.cid2DissociationTable[cid].UpdateDatabaseRow(row)
                     
         diss.CalculateAllCharges()
         return diss
     
-            
     def AddpKa(self, cid, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T, 
                smiles_below=None, smiles_above=None):
         diss_table = self.GetDissociationTable(cid)
@@ -138,30 +135,29 @@ class DissociationConstants(object):
         diss_table.UpdateMinNumHydrogens(min_nH)
             
     def GetDissociationTable(self, cid, create_if_missing=True):
-        if cid not in self.cid2DissociationTable:
-            if create_if_missing:
-                diss = DissociationTable(cid)
-                self.cid2DissociationTable[cid] = diss
-                return diss
-            else:
-                return None
-        else:
-            return self.cid2DissociationTable[cid]
-    
+        if cid not in self.cid2DissociationTable and create_if_missing:
+            diss_table = DissociationTable.CreateUsingChemaxon(cid)
+            self.cid2DissociationTable[cid] = diss_table 
+        
+        return self.cid2DissociationTable.get(cid, None)
+        
     def GetSmiles(self, cid, nH, nMg=0):
-        if cid not in self.cid2DissociationTable:
+        diss_table = self.GetDissociationTable(cid)
+        if diss_table is None:
             return None
         else:
-            return self.GetDissociationTable(cid).GetSmiles(nH, nMg)
+            return diss_table.GetSmiles(nH, nMg)
     
     def CalculateAllCharges(self):
         for diss_table in self.cid2DissociationTable.values():
-            diss_table.CalculateCharge()
+            if diss_table is not None:
+                diss_table.CalculateCharge()
     
     def ToDatabase(self, db, table_name):
         """
             Load the data regarding pKa values according to KEGG compound IDs.
         """
+        kegg = Kegg.getInstance()
         
         db.CreateTable(table_name, """
             cid INT, name TEXT, 
@@ -169,8 +165,15 @@ class DissociationConstants(object):
             nMg_below INT, nMg_above INT, 
             smiles_below TEXT, smiles_above TEXT, 
             ddG REAL, ref TEXT""")
-        for diss_table in self.cid2DissociationTable.values():
-            diss_table.ToDatabase(db, table_name)
+        
+        for cid in sorted(self.cid2DissociationTable.keys()):
+            name = kegg.cid2name(cid)
+            diss_table = self.cid2DissociationTable[cid]
+            if diss_table is None:
+                db.Insert(table_name, [cid, name] + [None] * 8)
+            else:
+                for row in diss_table.ToDatabaseRow(db, table_name):
+                    db.Insert(table_name, [cid, name] + row)
 
         db.Commit()
 
@@ -259,11 +262,13 @@ class DissociationConstants(object):
         """
         ddG0 = 0
         for cid, coeff in reaction.iteritems():
-            diss = self.GetDissociationTable(cid)
-            if not cid2nH:
-                ddG0 += coeff * diss.GetDeltaDeltaG0(pH, I, pMg, T)
+            diss_table = self.GetDissociationTable(cid)
+            if diss_table is None:
+                continue # probably a compound without a formula, assume it has no pKas
+            elif not cid2nH:
+                ddG0 += coeff * diss_table.GetDeltaDeltaG0(pH, I, pMg, T)
             else:
-                ddG0 += coeff * diss.GetDeltaDeltaG0(pH, I, pMg, T, nH=cid2nH[cid])
+                ddG0 += coeff * diss_table.GetDeltaDeltaG0(pH, I, pMg, T, nH=cid2nH[cid])
         
         return ddG0
         
@@ -272,15 +277,10 @@ class DissociationConstants(object):
     
     def ConvertPseudoisomer(self, cid, dG0, nH_from, 
                             nH_to=None, nMg_from=0, nMg_to=0):
-        #try:
         diss = self.GetDissociationTable(cid)
         if nH_to == None:
             nH_to = diss.min_nH
         return diss.ConvertPseudoisomer(dG0, nH_from, nH_to, nMg_from, nMg_to)
-        #except KeyError as e:
-        #    raise KeyError("Cannot find the pKas of C%05d (%s): nH_from = %s, nH_to = %s" % \
-        #                   (cid, self.kegg.cid2name(cid), str(nH_from), str(nH_to)))
-
         
     def Transform(self, cid, pH, I, pMg, T):
         return self.GetDissociationTable(cid).Transform(pH, I, pMg, T)
@@ -302,7 +302,6 @@ class DissociationTable(object):
         self.min_nH = None # the nH of the most basic pseudoisomer
         self.min_charge = None # the charge of the most basic pseudoisomer
         self.min_dG0 = 0 # the dG0 of the most basic pseudoisomer
-        self.kegg = Kegg.getInstance()
 
     def __len__(self):
         return len(self.ddGs)
@@ -317,21 +316,51 @@ class DissociationTable(object):
                 s += "nMg (%2d -> %2d) : %.1f kJ/mol [%s]\n" % (nMg_above, nMg_below, ddG, ref)
         return s
 
+    @staticmethod
+    def CreateUsingChemaxon(cid):
+        kegg = Kegg.getInstance()
+        try:
+            mol = kegg.cid2mol(cid)
+        except KeggParseException:
+            return None
+        
+        diss_table, major_mol = mol.GetPseudoisomerMap()
+        diss_table.cid = cid
+        nH, z = major_mol.GetHydrogensAndCharge()
+        nMg = 0
+        diss_table.smiles_dict[nH, nMg] = major_mol.ToSmiles()
+        diss_table.SetCharge(nH, z, nMg)
+        return diss_table
+
     def WriteToHTML(self, html_writer, T=default_T):
         dict_list = []
-        for (nH_above, nH_below, nMg_above, nMg_below), (ddG, ref) in self.ddGs.iteritems():
-            d = {'nH below':nH_below, 'nH above':nH_above,
-                 'nMg below':nMg_below, 'nMg above':nMg_above,
-                 'ddG0':'%.1f' % ddG, 'reference':ref}
-            if nH_below == nH_above+1:
-                d['pK<sub>a</sub>'] = -ddG / (R * T * np.log(10))
-            elif nMg_below == nMg_above+1:
-                d['pK<sub>Mg</sub>'] = (-ddG + dG0_f_Mg) / (R * T * np.log(10))
+        if not self.ddGs:
+            nH = self.min_nH
+            nMg = 0
+            smiles = self.GetSmiles(nH, nMg)
+            ddG = 0.0
+            ref = ""
+            d = {'nH below':nH, 'nH above':nH,
+                 'nMg below':nMg, 'nMg above':nMg,
+                 'ddG0':'%.1f' % ddG, 'reference':ref,
+                 'smiles below':smiles, 'smiles above':smiles}
             dict_list.append(d)
+        else:
+            for (nH_above, nH_below, nMg_above, nMg_below), (ddG, ref) in self.ddGs.iteritems():
+                d = {'nH below':nH_below, 'nH above':nH_above,
+                     'nMg below':nMg_below, 'nMg above':nMg_above,
+                     'ddG0':'%.1f' % ddG, 'reference':ref}
+                if nH_below == nH_above+1:
+                    d['pK<sub>a</sub>'] = -ddG / (R * T * np.log(10))
+                elif nMg_below == nMg_above+1:
+                    d['pK<sub>Mg</sub>'] = (-ddG + dG0_f_Mg) / (R * T * np.log(10))
+                d['smiles below'] = self.GetSmiles(nH_below, nMg_below)
+                d['smiles above'] = self.GetSmiles(nH_above, nMg_above)
+                dict_list.append(d)
         dict_list.sort(key=lambda(k):(k['nH below'], k['nMg below']))
         html_writer.write_table(dict_list, headers=['nH below', 'nH above', 
-            'nMg below', 'nMg above', 'ddG0', 'pK<sub>a</sub>',
-            'pK<sub>Mg</sub>', 'reference'])        
+            'nMg below', 'nMg above', 'smiles below', 'smiles above',
+            'ddG0', 'pK<sub>a</sub>', 'pK<sub>Mg</sub>', 'reference'])        
 
     def __iter__(self):
         return self.ddGs.__iter__()
@@ -341,44 +370,39 @@ class DissociationTable(object):
             nH = self.min_nH
         return self.smiles_dict.get((nH, nMg), None)
     
-    def ToDatabase(self, db, table_name):
+    def ToDatabaseRow(self, db, table_name):
         """
-            Write to a table with this structure:
-                cid INT, name TEXT, 
-                nH_below INT, nH_above INT,
-                nMg_below INT, nMg_above INT,
-                smiles_below TEXT, smiles_above TEXT, 
-                ddG REAL, ref TEXT
+            Return:
+                A list of rows to insert into the database
         """
-        name = self.kegg.cid2name(self.cid)
+        res = []
         if not self.ddGs:
             nH = self.min_nH
             nMg = 0
             smiles = self.GetSmiles(nH, nMg)
             ddG = 0.0
             ref = ""
-            db.Insert(table_name, [self.cid, name, nH, nH, nMg, nMg,
-                                   smiles, None, ddG, ref])
-            return
-        
-        for key in sorted(self.ddGs.keys()):
-            nH_above, nH_below, nMg_above, nMg_below = key
-            ddG, ref = self.ddGs[key]
-            smiles_below = self.GetSmiles(nH_below, nMg_below)
-            smiles_above = self.GetSmiles(nH_above, nMg_above)
-            db.Insert(table_name, [self.cid, name, nH_below, nH_above, 
-                nMg_below, nMg_above, smiles_below, smiles_above, ddG, ref])
+            res.append([nH, nH, nMg, nMg, smiles, smiles, ddG, ref])
+        else:
+            for key in sorted(self.ddGs.keys()):
+                nH_above, nH_below, nMg_above, nMg_below = key
+                ddG, ref = self.ddGs[key]
+                smiles_below = self.GetSmiles(nH_below, nMg_below)
+                smiles_above = self.GetSmiles(nH_above, nMg_above)
+                res.append([nH_below, nH_above, nMg_below, nMg_above, 
+                            smiles_below, smiles_above, ddG, ref])
+        return res
 
-    def FromDatabaseRow(self, row):
+    def UpdateDatabaseRow(self, row):
         self.cid = row['cid']
-        self.smiles_dict[row['nH_below'], row['nMg_below']] = row['smiles_below']
-        self.smiles_dict[row['nH_above'], row['nMg_above']] = row['smiles_above']
+        self.smiles_dict[row['nH_below'], row['nMg_below']] = str(row['smiles_below'])
+        self.smiles_dict[row['nH_above'], row['nMg_above']] = str(row['smiles_above'])
+        self.UpdateMinNumHydrogens(row['nH_above'])
         if row['nH_above'] == row['nH_below'] and row['nMg_above'] == row['nMg_below']:
             return
         
         key = (row['nH_above'], row['nH_below'], row['nMg_above'], row['nMg_below'])
         self.ddGs[key] = (row['ddG'], row['ref'])
-        self.UpdateMinNumHydrogens(row['nH_above'])
 
     def AddpKa(self, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T, 
                smiles_below=None, smiles_above=None):
@@ -512,7 +536,8 @@ class DissociationTable(object):
     def CalculateCharge(self):
         """ Calculate the charge for the most basic species """
         # get the charge and nH of the default pseudoisomer in KEGG:
-        nH_z_pair = self.kegg.cid2nH_and_charge(self.cid)
+        kegg = Kegg.getInstance()
+        nH_z_pair = kegg.cid2nH_and_charge(self.cid)
         if nH_z_pair:
             nH, z = nH_z_pair
             self.min_charge = z + (self.min_nH - nH)
@@ -624,9 +649,15 @@ class DissociationTable(object):
 
 if __name__ == '__main__':
     db = SqliteDatabase("../res/gibbs.sqlite")
+    html_writer = HtmlWriter("../res/dissociation_constants.html")
+    
     dissociation = DissociationConstants.FromFile()
     dissociation.ToDatabase(db, 'dissociation_constants')
 
     nist = Nist()
-    dissociation = DissociationConstants.FromChemAxon(nist.GetAllCids())
+    obs_fname = "../data/thermodynamics/formation_energies.csv"
+    thermo = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname)
+    cids = set(nist.GetAllCids() + thermo.get_all_cids())
+    
+    dissociation = DissociationConstants.FromChemAxon(cids, html_writer)
     dissociation.ToDatabase(db, 'dissociation_constants_chemaxon')
