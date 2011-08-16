@@ -624,8 +624,8 @@ class DissociationTable(object):
 
 if __name__ == '__main__':
     db = SqliteDatabase("../res/gibbs.sqlite")
-    #dissociation = DissociationConstants.FromFile()
-    #dissociation.ToDatabase(db, 'dissociation_constants')
+    dissociation = DissociationConstants.FromFile()
+    dissociation.ToDatabase(db, 'dissociation_constants')
 
     nist = Nist()
     dissociation = DissociationConstants.FromChemAxon(nist.GetAllCids())
