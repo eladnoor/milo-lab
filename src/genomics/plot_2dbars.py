@@ -42,22 +42,6 @@ def MakeOpts():
 	return opt_parser
 
 
-def PieArray(axes, x_array, y_loc, radius, counts_array, colormap, **kwargs):
-    for x, counts in zip(x_array, counts_array):
-		total_count = sum(counts.itervalues())
-		axes.text(x, y_loc + radius + 0.05, str(total_count), ha='center')
-
-		theta_1 = 0
-		for i, (key, value) in enumerate(counts.iteritems()):
-			color = colormap[key]
-			sweep = (float(value) / float(total_count)) * 360.0
-			w = Wedge((x,y_loc), radius, theta_1, theta_1 + sweep, color=color, label=key)
-			theta_1 += sweep
-			axes.add_patch(w)
-
-    return True
-
-
 def MakeBinary(a):
 	return a.lower() == 'true'
 
@@ -109,46 +93,56 @@ def Main():
 		all_vals.add(value)
 		pairmap.setdefault(a, []).append(value)
 	
-	a_to_num = dict((v,i) for i,v in enumerate(all_a))
-
-	counts = {}
+	all_weights = {}
+	all_counts = {}
 	for k, v in pairmap.iteritems():
 		counter = Counter(v)
-		counts[k] = counter
-
-	x_vals = []
+		all_counts[k] = counter
+		
+		total = float(sum(counter.values()))
+		weights = {}
+		for k2, v2 in counter.iteritems():
+			weights[k2] = float(v2) / total
+		all_weights[k] = weights
+		
+		
+	weight_array = []
 	count_array = []
 	for a_val in all_a:
-		x_vals.append(a_to_num[a_val])
-		count_array.append(counts.get(a_val, {}))
+		weight_array.append(all_weights.get(a_val, {}))
+		count_array.append(all_counts.get(a_val, {}))
 
 	# Plot circle scatter.
 	axes = pylab.axes()
 
 	colormap = ColorMap(all_vals)
-	y_loc, radius = 1.0, 0.45
-	PieArray(axes, x_vals, y_loc=y_loc, radius=radius,
-			 counts_array=count_array, colormap=colormap)
+	ind = pylab.arange(len(all_a))
+	current_bottom = pylab.zeros(len(all_a))
+	for key in sorted(all_vals):
+		heights = pylab.array([w.get(key, 0.0) for w in weight_array])
+		
+		pylab.bar(ind, heights, color=colormap[key],
+				  bottom=current_bottom, label=key, width=0.5)
+		
+		counts = [c.get(key, 0) for c in count_array]
+		for x, y, count, weight in zip(ind, current_bottom, counts, heights):
+			if count == 0:
+				continue
+			
+			txt = '%d; %.1f%%' % (count, 100*weight)
+			pylab.text(x + 0.25, y + 0.02, txt, ha='center')
+			
+		current_bottom += heights
 
 	title = options.title or '%s vs. %s' % (options.first_col, options.second_col)
 	pylab.title(title)
 
-	size_10 = FontProperties(size=10)
+	size_12 = FontProperties(size=12)
 	a_labels = [a or "None given" for a in all_a]
+	pylab.xticks(ind + 0.25, a_labels, fontproperties=size_12)
 	axes.yaxis.set_major_locator(pylab.NullLocator())
-	axes.xaxis.set_major_locator(pylab.NullLocator())
-	for x, label in enumerate(a_labels):
-		axes.text(x, y_loc - radius - 0.1, str(label), ha='center',
-				  va='baseline')
 
-	handles, labels = axes.get_legend_handles_labels()
-	mapped_labels = dict(zip(labels, handles))
-	labels = sorted(mapped_labels.keys())
-	handles = [mapped_labels[k] for k in labels]
-	pylab.legend(handles, labels)
-
-	pylab.axis('scaled')
-	pylab.axis([-1, len(all_a), 0.0, 2])
+	pylab.legend()
 	pylab.show()	
 
 
