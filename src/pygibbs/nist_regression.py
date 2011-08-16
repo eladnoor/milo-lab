@@ -36,7 +36,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         self.kegg = Kegg.getInstance()
         self.nist = nist or Nist()
         
-        self.dissociation = DissociationConstants.FromFile()
+        self.dissociation = DissociationConstants.FromDatabase(db, 
+                                            'dissociation_constants_chemaxon')
         self.cid2pmap_dict = {}
         
         self.assume_no_pKa_by_default = False
@@ -546,13 +547,13 @@ def main():
     options, _ = MakeOpts().parse_args(sys.argv)
     
     db_loc = options.db_filename
-    print 'Reading from DB %s' % db_loc
+    logging.info('Reading from DB %s' % db_loc)
     
     public_db_loc = options.kegg_db_filename
-    print 'Reading from public DB %s' % public_db_loc
+    logging.info('Reading from public DB %s' % public_db_loc)
     
     output_filename = os.path.abspath(options.output_filename)
-    print 'Will write output to %s' % output_filename
+    logging.info('Will write output to %s' % output_filename)
     
     html_writer = HtmlWriter(output_filename)
     db = SqliteDatabase(db_loc)
