@@ -251,7 +251,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                 except MissingCompoundFormationEnergy:
                     continue
                 except MissingDissociationConstantError as e:
-                    raise Exception("")
+                    raise Exception("C%05d has no data about its dissociation "
+                                    "constants: " + str(e))
             
             v, _ = LinearRegression.LeastSquares(kerA.T[indices_in_prior,:], 
                         delta_dG0_f, reduced_row_echlon=False)
@@ -294,15 +295,15 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         dict_list = []
         
         for i, reaction in enumerate(unique_sparse_reactions):
-            logging.debug('Analysing unique reaction: ' + 
+            logging.debug('Analyzing unique reaction: ' + 
                           str(unique_sparse_reactions[i]))
             data_row = unique_data_mat[i, :]
             d = {}
             d["Reaction"] = reaction.to_hypertext()
             d["std(dG0)"] = "%.1f" % data_row[2]
-            d["std(dG'0)"] = "%.1f" % data_row[4]
-            d["diff"] = data_row[3] - data_row[4]
-            d["#observations"] = "%d" % data_row[6]
+            d["std(dG'0)"] = "%.1f" % data_row[3]
+            d["diff"] = data_row[2] - data_row[3]
+            d["#observations"] = "%d" % data_row[4]
 
             if d["diff"] > self.std_diff_threshold:
                 link = "reactions/%s.html" % reaction.name
@@ -319,13 +320,10 @@ class NistRegression(PsuedoisomerTableThermodynamics):
 
     def AnalyzeSingleReaction(self, reaction, html_writer=None):
         plt.rcParams['text.usetex'] = False
-        plt.rcParams['legend.fontsize'] = 6
         plt.rcParams['font.family'] = 'sans-serif'
         plt.rcParams['font.size'] = 8
         plt.rcParams['lines.linewidth'] = 2
-        plt.rcParams['lines.markersize'] = 5
-        plt.rcParams['figure.figsize'] = [8.0, 6.0]
-        plt.rcParams['figure.dpi'] = 100
+        plt.rcParams['lines.markersize'] = 8
 
         if not html_writer:
             html_writer = self.html_writer
@@ -338,7 +336,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         html_writer.write('<h2>%s</h2>\n' % reaction.name)
         html_writer.write('<p>\nShow observation table: ')
         div_id = html_writer.insert_toggle()
-        html_writer.start_div(div_id)
+        html_writer.div_start(div_id)
         dict_list = []
         for nist_row_data in nist_rows:
             d = {}
@@ -353,7 +351,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                 d['URL'] = ''
             dict_list.append(d)
         html_writer.write_table(dict_list, headers=['T(K)', 'pH', 'I', 'pMg', 'dG\'0_r', 'URL'])
-        html_writer.end_div()
+        html_writer.div_end()
         html_writer.write('</p>\n')
 
         # reverse transform the data
@@ -361,7 +359,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         html_writer.write('Reaction: %s</br>\n' % \
                           reaction.to_hypertext(show_cids=False))
-        fig1 = plt.figure()
+        fig1 = plt.figure(figsize=[9.0, 6.0], dpi=80)
         html_writer.write('Standard deviations:</br>\n<ul>\n')
         
         y_labels = ['$\Delta_r G^{\'\circ}$', '$\Delta_r G^{\circ}$']
@@ -372,17 +370,17 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             html_writer.write("  <li>stdev(%s) = %.2g</li>" % (y_axis, sigma))
             for i, x_axis in enumerate(['pH', 'I', 'pMg']):
                 plt.subplot(2,3,i+3*j+1)
-                plt.plot(data[x_axis], data[y_axis], 'x')
+                plt.plot(data[x_axis], data[y_axis], '.')
                 plt.xlim(x_limits[x_axis])
                 if j == 1:
                     plt.xlabel(x_axis)
                 if i == 0:
                     plt.ylabel(y_labels[j])
         html_writer.write('</ul>\n')
-        html_writer.embed_matplotlib_figure(fig1, width=640, height=480)
+        html_writer.embed_matplotlib_figure(fig1)
         
         # draw the response of the graph to pH, I and pMg:
-        fig2 = plt.figure()
+        fig2 = plt.figure(figsize=[9.0, 5.0], dpi=80)
 
         pH_range = np.arange(3, 12.01, 0.05)
         I_range = np.arange(0.0, 1.01, 0.01)
@@ -416,8 +414,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         plt.subplot(1, 3, 3)
         plt.plot(pMg_range, ddG_vs_pMg, 'r-')
         plt.xlabel('pMg')
-        html_writer.write('</br>\n')
         html_writer.embed_matplotlib_figure(fig2, width=640, height=480)
+        html_writer.write('</br>\n')
         
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
         return self.dissociation.ConvertPseudoisomer(cid, dG0, nH_from, nH_to)
@@ -573,7 +571,7 @@ def main():
         nist_regression.Nist_pKas()
         #nist_regression.Calculate_pKa_and_pKMg()
     else:
-        nist_regression.std_diff_threshold = 10.0 # the threshold over which to print an analysis of a reaction
+        nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
         nist_regression.nist.T_range = None#(273.15 + 24, 273.15 + 40)
         #nist_regression.nist.override_I = 0.25
         #nist_regression.nist.override_pMg = 14.0
@@ -593,28 +591,28 @@ def main():
         
         # Train the formation energies using linear regression
         nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=None)
-        nist_regression.ToDatabase(db, 'nist_regression_pseudoisomers')
+        nist_regression.ToDatabase(db, 'prc_pseudoisomers')
         
-        html_writer.write('<h3>Regression results:</h3>\n')
+        html_writer.write('<h3>PRC results:</h3>\n')
         html_writer.insert_toggle('regression')
-        html_writer.start_div('regression')
+        html_writer.div_start('regression')
         nist_regression.WriteDataToHtml()
-        html_writer.end_div()
+        html_writer.div_end()
     
-        html_writer.write('<h3>Reaction energies - Estimated vs. Observed:</h3>\n')
+        html_writer.write('<h3>Reaction energies - PRC vs. Observed:</h3>\n')
         html_writer.insert_toggle('verify')
-        html_writer.start_div('verify')
+        html_writer.div_start('verify')
         N, rmse = nist_regression.VerifyResults()
-        html_writer.end_div()
+        html_writer.div_end()
         html_writer.write('</br>\n')
         
         logging.info("Regression results for observed data:")
         logging.info("N = %d, RMSE = %.1f" % (N, rmse))
 
-        html_writer.write('<h3>Formation energies - Estimated vs. Alberty:</h3>\n')
+        html_writer.write('<h3>Formation energies - PRC vs. Alberty:</h3>\n')
 
         query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0, r.dG0 ' + \
-                'FROM alberty a, nist_regression_pseudoisomers r ' + \
+                'FROM alberty a, prc_pseudoisomers r ' + \
                 'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
                 'AND a.anchor=0 ORDER BY a.cid,a.nH'
         

@@ -21,7 +21,7 @@ def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
     db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
     tables = {'alberty': (db_public, 'alberty_pseudoisomers', 'Alberty'),
-              'PRC': (db_gibbs, 'nist_regression_pseudoisomers', 'our method (PRC)')}
+              'PRC': (db_gibbs, 'prc_pseudoisomers', 'our method (PRC)')}
 
     estimators = {}
 
@@ -111,11 +111,11 @@ def main():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)
         html_writer.write('<p><b>%s</b> ' % thermodynamics.name)
         html_writer.insert_toggle(thermo_name)
-        html_writer.start_div(thermo_name)
+        html_writer.div_start(thermo_name)
         num_estimations, rmse = nist.verify_results(html_writer=html_writer, 
                                                     thermodynamics=thermodynamics,
                                                     name=thermo_name)
-        html_writer.end_div()
+        html_writer.div_end()
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
         logging.info('N = %d, RMSE = %.1f' % (num_estimations, rmse))
         

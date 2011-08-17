@@ -138,6 +138,9 @@ class Molecule(object):
         obConversion = openbabel.OBConversion()
         obConversion.SetOutFormat(format)
         res = obConversion.WriteString(obmol)
+        if res == "":
+            logging.warning("Cannot convert molecule to %s" % format)
+            return ""
         if format == 'smiles' or format == 'smi':
             return res.split()[0]
         elif format == 'inchi':
@@ -431,7 +434,7 @@ class Molecule(object):
             if s == '':
                 continue
             percent, mol = Molecule._ParseSdfSpecies(s)
-            if percent > threshold:
+            if percent >= threshold:
                 res.append((percent, mol))
         
         if not res:
@@ -475,29 +478,33 @@ class Molecule(object):
         pKa_up.sort()
         pKa_down.sort(reverse=True)
 
-        nH_to_smiles = {}
+        # save only the most abundant pseudoisomer for each nH
+        # counts on the fact that the pseudoisomer_list is ordered by
+        # decreasing abundance
+        nH_to_mol = {}
         for pseudoisomer in pseudoisomer_list:
             nH, _z = pseudoisomer.GetHydrogensAndCharge()
-            nH_to_smiles.setdefault(nH, pseudoisomer.ToSmiles())
+            if nH not in nH_to_mol:
+                nH_to_mol[nH] = pseudoisomer
         
         major_pseudoisomer = pseudoisomer_list[0]
 
         nH, z = major_pseudoisomer.GetHydrogensAndCharge()
         if not pKa_up and not pKa_down:
-            diss.SetOnlyPseudoisomer(major_pseudoisomer.ToSmiles(),
+            diss.SetOnlyPseudoisomer(major_pseudoisomer.ToInChI(),
                                      nH=nH, nMg=0)
         else:
             for i, pKa in enumerate(pKa_up):
                 diss.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
                             nMg=0, ref='ChemAxon', T=T,
-                            smiles_below=nH_to_smiles.get(nH-i, None),
-                            smiles_above=nH_to_smiles.get(nH-i-1, None))
+                            mol_below=nH_to_mol.get(nH-i, None),
+                            mol_above=nH_to_mol.get(nH-i-1, None))
     
             for i, pKa in enumerate(pKa_down):
                 diss.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
                             nMg=0, ref='ChemAxon', T=T,
-                            smiles_below=nH_to_smiles.get(nH+i+1, None),
-                            smiles_above=nH_to_smiles.get(nH+i, None))
+                            mol_below=nH_to_mol.get(nH+i+1, None),
+                            mol_above=nH_to_mol.get(nH+i, None))
                 
 
         diss.SetCharge(nH, z)
@@ -529,7 +536,7 @@ if __name__ == "__main__":
     from pygibbs.kegg import Kegg
     kegg = Kegg.getInstance()
     html_writer.write('<h1>pKa estimation using ChemAxon</h1>\n')
-    for cid in [5379]:
+    for cid in [41]:
         m = kegg.cid2mol(cid)
         html_writer.write("<h2>C%05d : %s</h2>\n" % (cid, str(m)))
         diss, major_ps = m.GetPseudoisomerMap()

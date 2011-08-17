@@ -800,10 +800,10 @@ def compare_annotations(reaction_list, thermo, html_writer, cmap, xlim=1e9):
     
     debug_dict_list.sort(key=lambda(x):x['sortkey'])
     div_id = html_writer.insert_toggle()
-    html_writer.start_div(div_id)
+    html_writer.div_start(div_id)
     html_writer.write_table(debug_dict_list, headers=['Rev. index', 
         'dG0', 'Reaction Name', 'KEGG Reaction', 'annotation'])
-    html_writer.end_div()
+    html_writer.div_end()
     html_writer.write('</br>\n')
     
     html_writer.write_ul(["Reactions with known dG0: %d" % error_counts['hits'],
@@ -996,10 +996,10 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     
     debug_dict_list.sort(key=lambda(x):x['sortkey'])
     div_id = html_writer.insert_toggle()
-    html_writer.start_div(div_id)
+    html_writer.div_start(div_id)
     html_writer.write_table(debug_dict_list, headers=['Rev. index', 'dG0',
         'name', 'KEGG Reaction'])
-    html_writer.end_div()
+    html_writer.div_end()
     html_writer.write('</br>\n')
     
     fig = pylab.figure()
