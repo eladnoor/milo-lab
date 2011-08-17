@@ -2,6 +2,7 @@
 
 import csv
 import itertools
+import logging
 import pylab
 import sys
 
@@ -18,6 +19,9 @@ def MakeOpts():
 	opt_parser.add_option("-i", "--input_filename",
 						  dest="input_filename",
 						  help="input CSV")
+	opt_parser.add_option("-o", "--output_filename",
+						  dest="output_filename",
+						  help="output CSV")
 	opt_parser.add_option("-a", "--first_col",
 						  dest="first_col",
 						  help="First column in 2-way histogram")
@@ -35,27 +39,47 @@ def MakeOpts():
 						  help="First column in 2-way histogram")	
 	opt_parser.add_option("-f", "--filter_values",
 						  dest="filter_values",
-						  help="Value to ignore.")	
+						  help="Value to ignore.")
 	opt_parser.add_option("-t", "--title",
 						  dest="title",
-						  help="Figure Title")	
+						  help="Figure Title")
+	opt_parser.add_option("-x", "--filter_cols",
+						  dest="filter_cols",
+						  help="Columns to filter on, comma separated")
+	opt_parser.add_option("-y", "--filter_cols_vals",
+						  dest="filter_cols_vals",
+						  help="Values to keep, one per column")
 	return opt_parser
 
 
 def MakeBinary(a):
 	return a.lower() == 'true'
 
-def MergeBinary(a, b, a_val, b_val):
-	abin = MakeBinary(a)
-	bbin = MakeBinary(b)
+def MergeBinary(vals, names):
+	if not vals:
+		logging.error('Empty vals iterable')
+		return None
+	
+	if len(vals) == 1:
+		if MakeBinary(vals[0]):
+			return names[0]
+		return 'NONE'
+	
+	bools = map(MakeBinary, vals)
+	all_true = reduce(lambda x,y: x and y, bools)
+	if all_true:
+		if len(vals) == 2:
+			return 'BOTH'
+		return 'ALL'
+	
+	true_names = [names[i] for i, test in enumerate(bools)
+				  if test == True]
+	if true_names:
+		return ', '.join(true_names)
 
-	if abin and bbin:
-		return 'BOTH'
-	if abin:
-		return a_val
-	if bbin:
-		return b_val
-	return 'NEITHER'
+	if len(vals) == 2:
+		return 'NEITHER'
+	return 'NONE'
 
 
 def Main():
@@ -74,25 +98,49 @@ def Main():
 	if options.filter_values:
 		filter_values = set(map(str.strip, options.filter_values.split(',')))
 
+	# Set up filters	
+	filter_cols, filter_cols_vals = [], []
+	if options.filter_cols:
+		assert options.filter_cols_vals
+		filter_cols = map(str.strip, options.filter_cols.split(','))
+		filter_cols_vals = map(str.strip, options.filter_cols_vals.split(','))
+
+	# Grab relevant data
 	pairmap = {}
 	all_a = set()
 	all_b = set()
 	all_vals = set()
 	for row in r:
 		a, b = row[first_col].strip(), row[second_col].strip()
-		c = row[third_col].strip()
-		if not a or not b or not c:
+		if not a or not b:
 			continue
+
+		# Apply column filters
+		apply_filter = lambda x, y: x in row and row[x] == y
+		applied_filters = map(apply_filter, filter_cols, filter_cols_vals)
+		or_reduce = lambda x, y: x or y
+		passed_filter = reduce(or_reduce, applied_filters, False)
+		if filter_cols and not passed_filter:
+			continue
+		
 		all_a.add(a)
 		all_b.add(b)
 
-		value = MergeBinary(b, c, second_col_key, third_col_key)
+		vals = [b]
+		names = [second_col_key]		
+		if third_col:
+			vals.append(row[third_col].strip())
+			names.append(third_col_key)
+			
+		# Apply value filters
+		value = MergeBinary(vals, names)
 		if filter_values and value in filter_values:
 			continue
 
 		all_vals.add(value)
 		pairmap.setdefault(a, []).append(value)
 	
+	# Compute counts an weights
 	all_weights = {}
 	all_counts = {}
 	for k, v in pairmap.iteritems():
@@ -112,9 +160,8 @@ def Main():
 		weight_array.append(all_weights.get(a_val, {}))
 		count_array.append(all_counts.get(a_val, {}))
 
-	# Plot circle scatter.
+	# Plot bar chart
 	axes = pylab.axes()
-
 	colormap = ColorMap(all_vals)
 	ind = pylab.arange(len(all_a))
 	current_bottom = pylab.zeros(len(all_a))
@@ -134,16 +181,29 @@ def Main():
 			
 		current_bottom += heights
 
+	# Title, ticks, labels
 	title = options.title or '%s vs. %s' % (options.first_col, options.second_col)
 	pylab.title(title)
+	pylab.xlabel(first_col, fontsize='large')
 
 	size_12 = FontProperties(size=12)
 	a_labels = [a or "None given" for a in all_a]
 	pylab.xticks(ind + 0.25, a_labels, fontproperties=size_12)
 	axes.yaxis.set_major_locator(pylab.NullLocator())
 
+	# Show figure.
 	pylab.legend()
-	pylab.show()	
+	pylab.show()
+	
+	if options.output_filename:
+		fieldnames = [''] + a_labels
+		f = open(options.output_filename, 'w')
+		w = csv.writer(f)
+		w.writerow(fieldnames)
+		for key in sorted(all_vals):
+			row = [key] + [c.get(key, 0) for c in count_array]
+			w.writerow(row)
+		f.close()
 
 
 if __name__ == '__main__':
