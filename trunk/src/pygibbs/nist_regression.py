@@ -25,6 +25,7 @@ from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
 from toolbox.sparse_kernel import SparseKernel
+from pygibbs.kegg_reaction import Reaction
 
 
 class NistRegression(PsuedoisomerTableThermodynamics):
@@ -100,7 +101,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             self.override_data(anchors)
             self.anchors.update(anchors.get_all_cids())
                
-        data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized, cid2nH=cid2nH)
+        data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized,
+                                                         cid2nH=cid2nH)
         
         stoichiometric_matrix = data['S']
         cids_to_estimate = data['cids_to_estimate']
@@ -127,18 +129,16 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         # the averages are over the equivalence set of each reaction (i.e. the 
         # average dG of all the rows in NIST with that same reaction).
         # 'N' is the unique row number (i.e. the ID of the equivalence set)
-        full_data_mat = np.zeros((n_rows, 7))
+        full_data_mat = np.zeros((n_rows, 5))
         for r in xrange(n_rows):
-            full_data_mat[r, 0] = data['dG0_r'][r, 0]
-            full_data_mat[r, 1] = data['dG0_r_tag'][r, 0]
-            row_index = int(data['nist_rows'][r, 0])
-            full_data_mat[r, 2] = nist_rows[row_index].dG0_r
+            full_data_mat[r, 0] = data['dG0_r'][r]
+            full_data_mat[r, 1] = data['dG0_r_tag'][r]
         
         # unique_data_mat will contain these columns: E[dG0], E[dG0_tag],
         # std(dG0), std(dG0_tag), no. rows
         # there is exactly one row for each equivalence set (i.e. unique reaction)
         # no. rows holds the number of times this unique reaction appears in NIST
-        unique_data_mat = np.zeros((n_unique_rows, 7))
+        unique_data_mat = np.zeros((n_unique_rows, 5))
         unique_sparse_reactions = []
         for i in xrange(n_unique_rows):
             row_vector = unique_rows_S[i:i+1,:]
@@ -147,20 +147,23 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             sparse = {}
             for j in row_vector.nonzero()[1]: # 1 is the dimension of columns in S
                 sparse[int(cids_to_estimate[j])] = unique_rows_S[i, j]
-            unique_sparse_reactions.append(sparse)
+            reaction = Reaction(names=['NIST%03d' % i], sparse_reaction=sparse)
+            unique_sparse_reactions.append(reaction)
 
             # find the list of indices which are equal to row i in unique_rows_S
             diff = abs(stoichiometric_matrix - np.repeat(row_vector, n_rows, 0))
             row_indices = np.where(np.sum(diff, 1) == 0)[0]
             
             # take the mean and std of the dG0_r of these rows
-            unique_data_mat[i, 0:3] = np.mean(full_data_mat[row_indices, 0:3], 0)
-            unique_data_mat[i, 3:6] = np.std(full_data_mat[row_indices, 0:3], 0)
-            unique_data_mat[i, 6]   = len(row_indices)
-            full_data_mat[row_indices, 6] = i
-            full_data_mat[row_indices, 3:6] = full_data_mat[row_indices, 0:3]
+            sub_data_mat  = full_data_mat[row_indices, 0:2]
+            unique_data_mat[i, 0:2] = np.mean(sub_data_mat, 0)
+            unique_data_mat[i, 2:4] = np.std(sub_data_mat, 0)
+            unique_data_mat[i, 4]   = sub_data_mat.shape[0]
+            full_data_mat[row_indices, 4] = i
+            full_data_mat[row_indices, 2:4] = sub_data_mat
             for k in row_indices:
-                full_data_mat[k, 3:6] -= unique_data_mat[i, 0:3]
+                # subtract the mean from each row with this reaction
+                full_data_mat[k, 2:4] -= unique_data_mat[i, 0:2]
                     
         # write a table that lists the variances of each unique reaction
         # before and after the reverse transform
@@ -260,16 +263,21 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         # copy the solution into the diss_tables of all the compounds,
         # and then generate their PseudoisomerMaps.
         for i, cid in enumerate(cids):
-            self.dissociation.GetDissociationTable(cid).min_dG0 = est_dG0_f[i, 0]
-            self.cid2pmap_dict[cid] = self.dissociation.GetPseudoisomerMap(cid)
+            diss_table = self.dissociation.GetDissociationTable(cid)
+            if diss_table is not None:
+                diss_table.min_dG0 = est_dG0_f[i, 0]
+                self.cid2pmap_dict[cid] = diss_table.GetPseudoisomerMap()
+            else:
+                self.cid2pmap_dict[cid] = PseudoisomerMap(nH=0, z=0, nMg=0,
+                                            dG0=est_dG0_f[i, 0], ref='PRC')
 
     def WriteUniqueReactionReport(self, unique_sparse_reactions, 
                                   unique_data_mat, full_data_mat):
         
-        total_std = np.std(full_data_mat[:, 3:6], 0)
+        total_std = np.std(full_data_mat[:, 2:4], 0)
         
         fig = plt.figure()
-        plt.plot(unique_data_mat[:, 3], unique_data_mat[:, 4], '.')
+        plt.plot(unique_data_mat[:, 2], unique_data_mat[:, 3], '.')
         plt.xlabel("$\sigma(\Delta_r G^\circ)$")
         plt.ylabel("$\sigma(\Delta_r G^{\'\circ})$")
         plt.title('$\sigma_{total}(\Delta_r G^\circ) = %.1f$ kJ/mol, '
@@ -281,26 +289,26 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         _mkdir('../res/nist/reactions')
 
-        table_headers = ["Reaction", "#observations", "std(dG0)", "std(dG'0) norm.", "std(dG'0)", "analysis"]
+        table_headers = ["Reaction", "#observations", "std(dG0)",
+                         "std(dG'0)", "analysis"]
         dict_list = []
         
-        for i in xrange(len(unique_sparse_reactions)):
-            logging.debug('Analysing unique reaction %03d: %s' %
-                          (i, kegg_reaction.Reaction.write_full_reaction(unique_sparse_reactions[i])) )
+        for i, reaction in enumerate(unique_sparse_reactions):
+            logging.debug('Analysing unique reaction: ' + 
+                          str(unique_sparse_reactions[i]))
+            data_row = unique_data_mat[i, :]
             d = {}
-            d["Reaction"] = self.kegg.sparse_to_hypertext(
-                                unique_sparse_reactions[i], show_cids=False)
-            d["std(dG0)"] = "%.1f" % unique_data_mat[i, 3]
-            d["std(dG'0) norm."] = "%.1f" % unique_data_mat[i, 4]
-            d["std(dG'0)"] = "%.1f" % unique_data_mat[i, 5]
-            d["diff"] = unique_data_mat[i, 3] - unique_data_mat[i, 4]
-            d["#observations"] = "%d" % unique_data_mat[i, 6]
+            d["Reaction"] = reaction.to_hypertext()
+            d["std(dG0)"] = "%.1f" % data_row[2]
+            d["std(dG'0)"] = "%.1f" % data_row[4]
+            d["diff"] = data_row[3] - data_row[4]
+            d["#observations"] = "%d" % data_row[6]
 
             if d["diff"] > self.std_diff_threshold:
-                link = "reactions/nist_reaction%03d.html" % i
+                link = "reactions/%s.html" % reaction.name
                 d["analysis"] = '<a href="%s">link</a>' % link
                 reaction_html_writer = HtmlWriter(os.path.join('../res/nist', link))
-                self.AnalyzeSingleReaction(unique_sparse_reactions[i],
+                self.AnalyzeSingleReaction(reaction,
                                            html_writer=reaction_html_writer)
             else:
                 d["analysis"] = ''

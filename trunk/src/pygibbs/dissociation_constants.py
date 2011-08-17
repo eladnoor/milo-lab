@@ -181,78 +181,52 @@ class DissociationConstants(object):
         return set(self.cid2DissociationTable.keys())
 
     def ReverseTranformNistRows(self, nist_rows, cid2nH=None, assume_no_pka_by_default=False):
-        kegg = Kegg.getInstance()
-
-        encountered_cids = self.GetAllCids()
-
-        if assume_no_pka_by_default:
-            # For each CID which doesn't have a known pKa or pKMg, assume that
-            # that there are none in the relevant range of pH and pMg.
-            # Therefore, add an empty DissociationTable to each one of them.
-            for nist_row_data in nist_rows:
-                cids_in_reaction = nist_row_data.GetAllCids()
-                for cid in cids_in_reaction.difference(encountered_cids):
-                    encountered_cids.add(cid)
-                    try:
-                        min_nH, min_charge = kegg.cid2nH_and_charge(cid)
-                        diss = self.GetDissociationTable(cid) # this creates an empty table
-                        diss.min_nH, diss.min_charge = min_nH, min_charge
-                    except TypeError:
-                        logging.warning('cannot add %s (C%05d) since nH or charge '
-                                        'cannot be determined' % 
-                                        (kegg.cid2name(cid), cid))
-            
-        all_cids_with_pKa = self.GetAllCids()
-
+        all_cids = set()
+        for nist_row_data in nist_rows:
+            all_cids.update(nist_row_data.GetAllCids())
+        all_cids = list(all_cids)
+        
         data = {}
-        data['cids_to_estimate'] = sorted(all_cids_with_pKa)
-        
-        # the transformed (observed) free energy of the reactions dG'0_r
-        data['dG0_r_tag'] = np.zeros((0, 1))
-        
-        # dG'0_r - dG0_r  (which is only a function of the conditions and pKas)
-        data['ddG0_r'] = np.zeros((0, 1))
-        
-        data['pH'] = np.zeros((0, 1))
-        data['I'] = np.zeros((0, 1))
-        data['pMg'] = np.zeros((0, 1))
-        data['T'] = np.zeros((0, 1))
-        data['S'] = np.zeros((0, len(data['cids_to_estimate']))) # stoichiometric matrix
-        data['nist_rows'] = np.zeros((0, 1)) # the index of the corresponding row in nist_rows
+        data['dG0_r_tag'] = [] # the transformed free energy of the reactions dG'0_r
+        data['dG0_r'] = [] # the chemical free energy of the reactions dG0_r
+        data['ddG0_r'] = [] # dG'0_r - dG0_r  (which is only a function of the conditions and pKas)
+        data['pH'] = []
+        data['I'] = []
+        data['pMg'] = []
+        data['T'] = []
+        data['S'] = np.zeros((0, len(all_cids))) # stoichiometric matrix
+        data['nist_rows'] = [] # the index of the corresponding row in nist_rows
         
         for nist_row, nist_row_data in enumerate(nist_rows):
             # check that all participating compounds have a known pKa
-            cids_in_reaction = nist_row_data.GetAllCids()
-            cids_without_pKa = cids_in_reaction.difference(all_cids_with_pKa)
-            if cids_without_pKa:
-                logging.debug('reaction contains CIDs with unknown pKa values: %s' % \
-                              ', '.join(['C%05d' % cid for cid in cids_without_pKa]))
+            try:
+                ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
+                    nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
+                    nist_row_data.T, cid2nH=cid2nH)
+            except MissingDissociationConstantError:
+                logging.debug('A reaction contains compounds with missing pKa '
+                              'values: ' + str(nist_row_data.reaction))
                 continue
             
-            data['dG0_r_tag'] = np.vstack([data['dG0_r_tag'], nist_row_data.dG0_r])
-            data['pH'] = np.vstack([data['pH'], nist_row_data.pH])
-            data['I'] = np.vstack([data['I'], nist_row_data.I])
-            data['pMg'] = np.vstack([data['pMg'], nist_row_data.pMg])
-            data['T'] = np.vstack([data['T'], nist_row_data.T])
-            data['nist_rows'] = np.vstack([data['nist_rows'], nist_row])
-            ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
-                nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
-                nist_row_data.T, cid2nH=cid2nH)
-            data['ddG0_r'] = np.vstack([data['ddG0_r'], ddG])
+            data['dG0_r_tag'].append(nist_row_data.dG0_r)
+            data['pH'].append(nist_row_data.pH)
+            data['I'].append(nist_row_data.I)
+            data['pMg'].append(nist_row_data.pMg)
+            data['T'].append(nist_row_data.T)
+            data['nist_rows'].append(nist_row_data)
+            data['ddG0_r'].append(ddG)
+            data['dG0_r'].append(nist_row_data.dG0_r - ddG)
             
-            stoichiometric_row = np.zeros((1, len(data['cids_to_estimate'])))
+            # convert the reaction's sparse representation to a row vector
+            stoichiometric_row = np.zeros((1, len(all_cids)))
             for cid, coeff in nist_row_data.reaction.iteritems():
-                stoichiometric_row[0, data['cids_to_estimate'].index(cid)] = coeff
-            
+                stoichiometric_row[0, all_cids.index(cid)] = coeff
             data['S'] = np.vstack([data['S'], stoichiometric_row])
-        
-        data['dG0_r'] = data['dG0_r_tag'] - data['ddG0_r']
         
         # remove the columns that are all-zeros in S
         nonzero_columns = np.sum(abs(data['S']), 0).nonzero()[0]
         data['S'] = data['S'][:, nonzero_columns]
-        data['cids_to_estimate'] = np.array(data['cids_to_estimate'])
-        data['cids_to_estimate'] = data['cids_to_estimate'][nonzero_columns]
+        data['cids_to_estimate'] = [all_cids[i] for i in nonzero_columns]
         
         return data
     
@@ -264,7 +238,8 @@ class DissociationConstants(object):
         for cid, coeff in reaction.iteritems():
             diss_table = self.GetDissociationTable(cid)
             if diss_table is None:
-                continue # probably a compound without a formula, assume it has no pKas
+                # probably a compound without an implicit formula
+                raise MissingDissociationConstantError
             elif not cid2nH:
                 ddG0 += coeff * diss_table.GetDeltaDeltaG0(pH, I, pMg, T)
             else:

@@ -370,7 +370,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         logging.info("Leave-one-out test: RMSE = %.2f kJ/mol" % loo_rmse)
 
         self.html_writer.table_start()
-        deviations.sort(key=lambda(x):abs(x['loo_resid']), reverse=True)
+        deviations.sort(key=lambda(x):abs(x.get('loo_resid', 0)), reverse=True)
         headers = ['Compound Name',
                    '&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
                    '&#x394;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',
