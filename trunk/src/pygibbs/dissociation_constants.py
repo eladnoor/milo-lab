@@ -10,6 +10,7 @@ from pygibbs.kegg_errors import KeggParseException
 from pygibbs.nist import Nist
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.html_writer import HtmlWriter
+from toolbox.molecule import Molecule
 
 class MissingDissociationConstantError(Exception):
     pass
@@ -40,8 +41,15 @@ class DissociationConstants(object):
                 nH_above = int(row['nH_above'])
                 nMg_below = int(row['nMg_below'])
                 nMg_above = int(row['nMg_above'])
-                smiles_below = row['smiles_below']
-                smiles_above = row['smiles_above']
+                if row['smiles_below']:
+                    mol_below = Molecule.FromSmiles(row['smiles_below'])
+                else:
+                    mol_below = None
+                    
+                if row['smiles_above']:
+                    mol_above = Molecule.FromSmiles(row['smiles_above'])
+                else:
+                    mol_above = None
                 
                 ref = row['ref']
                 T = float(row['T'] or default_T)
@@ -52,14 +60,16 @@ class DissociationConstants(object):
                     if nMg_below != nMg_above:
                         raise Exception('C%05d has different nMg below and above '
                                         'the pKa = %.1f' % (cid, pKa))
-                    diss.AddpKa(cid, pKa, nH_below, nH_above, nMg_below, ref, T, smiles_below, smiles_above)
+                    diss.AddpKa(cid, pKa, nH_below, nH_above, nMg_below,
+                                ref, T, mol_below, mol_above)
                 elif row['type'] == 'Mg':
                     pKMg = float(row['pK'])
                     if nH_below != nH_above:
                         raise Exception('C%05d has different nH below and above '
                                         'the pK_Mg = %.1f' % pKMg)
                     try:
-                        diss.AddpKMg(cid, pKMg, nMg_below, nMg_above, nH_below, ref, T, smiles_below, smiles_above)
+                        diss.AddpKMg(cid, pKMg, nMg_below, nMg_above, nH_below,
+                                     ref, T, mol_below, mol_above)
                     except Exception, e:
                         raise Exception("In C%05d: %s" % (cid, str(e)))
                 elif row['pK']:
@@ -69,7 +79,7 @@ class DissociationConstants(object):
                 elif nH_below != nH_above:
                     raise ValueError('The row about C%05d has different nHs although it is not "acid-base"' % cid)
                 else:
-                    diss.SetOnlyPseudoisomer(cid, smiles_below, nH_below, nMg_below)
+                    diss.SetOnlyPseudoisomer(cid, mol_below, nH_below, nMg_below)
             except ValueError as e:
                 raise ValueError("At row %i: %s" % (i, str(e)))
             except TypeError as e:
@@ -102,27 +112,28 @@ class DissociationConstants(object):
             if row['nH_below'] is None:
                 diss.cid2DissociationTable[cid] = None
             else:
-                diss.cid2DissociationTable.setdefault(cid, DissociationTable(cid))
+                if cid not in diss.cid2DissociationTable:
+                    diss.cid2DissociationTable[cid] = DissociationTable(cid)
                 diss.cid2DissociationTable[cid].UpdateDatabaseRow(row)
                     
         diss.CalculateAllCharges()
         return diss
     
     def AddpKa(self, cid, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T, 
-               smiles_below=None, smiles_above=None):
+               mol_below=None, mol_above=None):
         diss_table = self.GetDissociationTable(cid)
         diss_table.AddpKa(pKa, nH_below, nH_above, nMg,
-                          ref, T, smiles_below, smiles_above)
+                          ref, T, mol_below, mol_above)
         
     def AddpKMg(self, cid, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T, 
-                smiles_below=None, smiles_above=None):
+                mol_below=None, mol_above=None):
         diss_table = self.GetDissociationTable(cid)
         diss_table.AddpKMg(pKMg, nMg_below, nMg_above, nH, 
-                          ref, T, smiles_below, smiles_above)
+                          ref, T, mol_below, mol_above)
         
-    def SetOnlyPseudoisomer(self, cid, smiles, nH, nMg=0):
+    def SetOnlyPseudoisomer(self, cid, mol, nH, nMg=0):
         diss_table = self.GetDissociationTable(cid)
-        diss_table.SetOnlyPseudoisomer(smiles, nH, nMg)
+        diss_table.SetOnlyPseudoisomer(mol, nH, nMg)
     
     def UpdateMinNumHydrogens(self, cid, min_nH):
         """
@@ -141,12 +152,12 @@ class DissociationConstants(object):
         
         return self.cid2DissociationTable.get(cid, None)
         
-    def GetSmiles(self, cid, nH, nMg=0):
+    def GetMol(self, cid, nH, nMg=0):
         diss_table = self.GetDissociationTable(cid)
         if diss_table is None:
             return None
         else:
-            return diss_table.GetSmiles(nH, nMg)
+            return diss_table.GetMol(nH, nMg)
     
     def CalculateAllCharges(self):
         for diss_table in self.cid2DissociationTable.values():
@@ -163,7 +174,7 @@ class DissociationConstants(object):
             cid INT, name TEXT, 
             nH_below INT, nH_above INT, 
             nMg_below INT, nMg_above INT, 
-            smiles_below TEXT, smiles_above TEXT, 
+            inchi_below TEXT, inchi_above TEXT, 
             ddG REAL, ref TEXT""")
         
         for cid in sorted(self.cid2DissociationTable.keys()):
@@ -197,7 +208,7 @@ class DissociationConstants(object):
         data['S'] = np.zeros((0, len(all_cids))) # stoichiometric matrix
         data['nist_rows'] = [] # the index of the corresponding row in nist_rows
         
-        for nist_row, nist_row_data in enumerate(nist_rows):
+        for nist_row_data in nist_rows:
             # check that all participating compounds have a known pKa
             try:
                 ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
@@ -269,9 +280,9 @@ class DissociationTable(object):
         # and the values are pairs of (ddG0, reference)
         self.ddGs = {}
         
-        # smiles_dict has the same keys are ddGs, but the values are pairs of
-        # (smiles_above, smiles_below)
-        self.smiles_dict = {}
+        # mol_dict is a dictionary from pairs of (nH, nMg) to Molecule objects
+        # describing the corresponding pseudoisomer
+        self.mol_dict = {}
         
         self.cid = cid
         self.min_nH = None # the nH of the most basic pseudoisomer
@@ -303,7 +314,7 @@ class DissociationTable(object):
         diss_table.cid = cid
         nH, z = major_mol.GetHydrogensAndCharge()
         nMg = 0
-        diss_table.smiles_dict[nH, nMg] = major_mol.ToSmiles()
+        diss_table.mol_dict[nH, nMg] = major_mol
         diss_table.SetCharge(nH, z, nMg)
         return diss_table
 
@@ -312,13 +323,13 @@ class DissociationTable(object):
         if not self.ddGs:
             nH = self.min_nH
             nMg = 0
-            smiles = self.GetSmiles(nH, nMg)
+            svg = self.GetSVG(nH, nMg)
             ddG = 0.0
             ref = ""
             d = {'nH below':nH, 'nH above':nH,
                  'nMg below':nMg, 'nMg above':nMg,
                  'ddG0':'%.1f' % ddG, 'reference':ref,
-                 'smiles below':smiles, 'smiles above':smiles}
+                 'species below':svg, 'species above':svg}
             dict_list.append(d)
         else:
             for (nH_above, nH_below, nMg_above, nMg_below), (ddG, ref) in self.ddGs.iteritems():
@@ -329,21 +340,35 @@ class DissociationTable(object):
                     d['pK<sub>a</sub>'] = -ddG / (R * T * np.log(10))
                 elif nMg_below == nMg_above+1:
                     d['pK<sub>Mg</sub>'] = (-ddG + dG0_f_Mg) / (R * T * np.log(10))
-                d['smiles below'] = self.GetSmiles(nH_below, nMg_below)
-                d['smiles above'] = self.GetSmiles(nH_above, nMg_above)
+                d['species below'] = self.GetSVG(nH_below, nMg_below)
+                d['species above'] = self.GetSVG(nH_above, nMg_above)
                 dict_list.append(d)
         dict_list.sort(key=lambda(k):(k['nH below'], k['nMg below']))
         html_writer.write_table(dict_list, headers=['nH below', 'nH above', 
-            'nMg below', 'nMg above', 'smiles below', 'smiles above',
+            'nMg below', 'nMg above', 'species below', 'species above',
             'ddG0', 'pK<sub>a</sub>', 'pK<sub>Mg</sub>', 'reference'])        
 
     def __iter__(self):
         return self.ddGs.__iter__()
     
-    def GetSmiles(self, nH=None, nMg=0):
+    def GetMol(self, nH=None, nMg=0):
         if nH == None:
             nH = self.min_nH
-        return self.smiles_dict.get((nH, nMg), None)
+        return self.mol_dict.get((nH, nMg), None)
+    
+    def GetSVG(self, nH=None, nMg=0):
+        mol = self.GetMol(nH, nMg)
+        if mol is not None:
+            return mol.ToSVG()
+        else:
+            return ""
+    
+    def GetMolString(self, nH=None, nMg=0):
+        mol = self.GetMol(nH, nMg)
+        if mol is not None:
+            return mol.ToSmiles()
+        else:
+            return None
     
     def ToDatabaseRow(self, db, table_name):
         """
@@ -354,33 +379,38 @@ class DissociationTable(object):
         if not self.ddGs:
             nH = self.min_nH
             nMg = 0
-            smiles = self.GetSmiles(nH, nMg)
+            mol_str = self.GetMolString(nH, nMg)
             ddG = 0.0
             ref = ""
-            res.append([nH, nH, nMg, nMg, smiles, smiles, ddG, ref])
+            res.append([nH, nH, nMg, nMg, mol_str, mol_str, ddG, ref])
         else:
             for key in sorted(self.ddGs.keys()):
                 nH_above, nH_below, nMg_above, nMg_below = key
+                mol_below = self.GetMolString(nH_below, nMg_below)
+                mol_above = self.GetMolString(nH_above, nMg_above)
                 ddG, ref = self.ddGs[key]
-                smiles_below = self.GetSmiles(nH_below, nMg_below)
-                smiles_above = self.GetSmiles(nH_above, nMg_above)
                 res.append([nH_below, nH_above, nMg_below, nMg_above, 
-                            smiles_below, smiles_above, ddG, ref])
+                            mol_below, mol_above, ddG, ref])
         return res
 
     def UpdateDatabaseRow(self, row):
-        self.cid = row['cid']
-        self.smiles_dict[row['nH_below'], row['nMg_below']] = str(row['smiles_below'])
-        self.smiles_dict[row['nH_above'], row['nMg_above']] = str(row['smiles_above'])
+        (nH_below, nMg_below) = (row['nH_below'], row['nMg_below'])
+        (nH_above, nMg_above) = (row['nH_above'], row['nMg_above'])
+
+        if row['inchi_above'] is not None:
+            self.mol_dict[nH_above, nMg_above] = Molecule.FromInChI(str(row['inchi_above']))
         self.UpdateMinNumHydrogens(row['nH_above'])
-        if row['nH_above'] == row['nH_below'] and row['nMg_above'] == row['nMg_below']:
+        if (nH_below, nMg_below) == (nH_above, nMg_above):
             return
         
-        key = (row['nH_above'], row['nH_below'], row['nMg_above'], row['nMg_below'])
+        if row['inchi_below'] is not None:
+            self.mol_dict[nH_below, nMg_below] = Molecule.FromInChI(str(row['inchi_below']))
+
+        key = (nH_above, nH_below, nMg_above, nMg_below)
         self.ddGs[key] = (row['ddG'], row['ref'])
 
     def AddpKa(self, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T, 
-               smiles_below=None, smiles_above=None):
+               mol_below=None, mol_above=None):
         if nH_below != nH_above+1:
             raise Exception('A H+ dissociation constant (pKa) has to represent an '
                             'increase of exactly one hydrogen: nH_below = %d, nH_above = %d' %
@@ -389,12 +419,12 @@ class DissociationTable(object):
         ddG0 = R * T * np.log(10) * pKa
         key = (nH_above, nH_below, nMg, nMg)
         self.ddGs[key] = (-ddG0, ref) # adding H+ decreases dG0
-        self.smiles_dict[nH_above, nMg] = smiles_above
-        self.smiles_dict[nH_below, nMg] = smiles_below
+        self.mol_dict[nH_above, nMg] = mol_above
+        self.mol_dict[nH_below, nMg] = mol_below
         self.UpdateMinNumHydrogens(nH_above)
         
     def AddpKMg(self, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T, 
-                smiles_below=None, smiles_above=None):
+                mol_below=None, mol_above=None):
         if nMg_below != nMg_above+1:
             raise Exception('A Mg+2 dissociation constant (pK_Mg) has to represent an '
                             'increase of exactly one magnesium ion: nMg_below = %d, nMg_above = %d' %
@@ -402,18 +432,18 @@ class DissociationTable(object):
         ddG0 = R * T * np.log(10) * pKMg - dG0_f_Mg
         key = (nH, nH, nMg_above, nMg_below)
         self.ddGs[key] = (-ddG0, ref) # adding Mg+2 decreases dG0
-        self.smiles_dict[nH, nMg_above] = smiles_above
-        self.smiles_dict[nH, nMg_below] = smiles_below
+        self.mol_dict[nH, nMg_above] = mol_above
+        self.mol_dict[nH, nMg_below] = mol_below
         self.UpdateMinNumHydrogens(nH)
     
-    def SetOnlyPseudoisomer(self, smiles, nH, nMg=0):
+    def SetOnlyPseudoisomer(self, mol, nH, nMg=0):
         """
             For compound which have no known pKa or pKMg, this method can be used
             to set the parameters of the only pseudoisomer.
         """
         if len(self.ddGs):
             raise ValueError("You tried to set the only-pseudoisomer of a compound that has pKas/pKMgs")
-        self.smiles_dict[nH, nMg] = smiles
+        self.mol_dict[nH, nMg] = mol
         self.min_nH = nH
     
     def UpdateMinNumHydrogens(self, min_nH):
@@ -624,15 +654,36 @@ class DissociationTable(object):
 
 if __name__ == '__main__':
     db = SqliteDatabase("../res/gibbs.sqlite")
+    kegg = Kegg.getInstance()
     html_writer = HtmlWriter("../res/dissociation_constants.html")
-    
-    dissociation = DissociationConstants.FromFile()
-    dissociation.ToDatabase(db, 'dissociation_constants')
 
-    nist = Nist()
-    obs_fname = "../data/thermodynamics/formation_energies.csv"
-    thermo = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname)
-    cids = set(nist.GetAllCids() + thermo.get_all_cids())
+    if True:
+        dissociation = DissociationConstants.FromFile()
+        dissociation.ToDatabase(db, 'dissociation_constants')
     
-    dissociation = DissociationConstants.FromChemAxon(cids, html_writer)
-    dissociation.ToDatabase(db, 'dissociation_constants_chemaxon')
+        nist = Nist()
+        obs_fname = "../data/thermodynamics/formation_energies.csv"
+        thermo = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname)
+        cids = set(nist.GetAllCids() + thermo.get_all_cids())
+        
+        dissociation = DissociationConstants.FromChemAxon(cids, html_writer)
+        dissociation.ToDatabase(db, 'dissociation_constants_chemaxon')
+
+    if False:
+        # Print all the values in the dissociation table to the HTML file
+        dissociation = DissociationConstants.FromDatabase(db, 
+                                            'dissociation_constants_chemaxon')
+                
+        for cid in sorted(dissociation.GetAllCids()):
+            diss_table = dissociation.GetDissociationTable(cid)
+            html_writer.write('<h2>%s - C%05d</h2>\n' %
+                              (kegg.cid2name(cid), cid))
+            if diss_table is not None:
+                diss_table.WriteToHTML(html_writer)
+                html_writer.write('</br>\n')
+
+    if False:
+        dissociation = DissociationConstants.FromChemAxon([41], html_writer)
+        diss_table = dissociation.GetDissociationTable(41)
+        for (nH, nMg), mol in diss_table.mol_dict.iteritems():
+            print nH, nMg, mol.ToSmiles(), mol.ToInChI()

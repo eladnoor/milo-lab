@@ -5,7 +5,6 @@ from pygibbs.kegg import Kegg
 from pygibbs.group_decomposition import GroupDecompositionError
 from pygibbs.group_vector import GroupVector
 from pygibbs.nist_regression import NistRegression
-from toolbox.molecule import Molecule
 from toolbox.html_writer import NullHtmlWriter
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.dissociation_constants import DissociationConstants
@@ -77,8 +76,7 @@ class GroupObervationCollection(object):
         obs.Normalize()
         self.observations.append(obs)
 
-    def SmilesToGroupvec(self, smiles, id):
-        mol = Molecule.FromSmiles(str(smiles))
+    def MolToGroupvec(self, mol, id):
         mol.RemoveHydrogens()
         mol.SetTitle(id)
         
@@ -90,8 +88,9 @@ class GroupObervationCollection(object):
         try:
             return self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
         except GroupDecompositionError as _e:
-            logging.warning('Cannot decompose one of the compounds in the training set: %s, %s' % (id, smiles))
-            self.html_writer.write('%s Could not be decomposed</br>\n' % smiles)
+            logging.warning('Cannot decompose one of the compounds in the '
+                            'training set: %s, %s' % (id, str(mol)))
+            self.html_writer.write('%s Could not be decomposed</br>\n' % str(mol))
 
     def AddDissociationTable(self):
         for cid in self.dissociation.GetAllCids():
@@ -104,10 +103,10 @@ class GroupObervationCollection(object):
             for key in diss_table:
                 nH_above, nH_below, nMg_above, nMg_below = key
                 ddG0, _ref = diss_table.ddGs[key]
-                smiles_above = diss_table.smiles_dict[nH_above, nMg_above]
-                smiles_below = diss_table.smiles_dict[nH_below, nMg_below]
+                mol_above = diss_table.GetMol(nH_above, nMg_above)
+                mol_below = diss_table.GetMol(nH_below, nMg_below)
                 
-                if not smiles_above or not smiles_below:
+                if mol_above is None or mol_below is None:
                     continue
         
                 if nH_above != nH_below:
@@ -117,12 +116,13 @@ class GroupObervationCollection(object):
                 logging.debug("\t" + s)
                 self.html_writer.write('%s: &#x394;G = %.2f</br>\n' 
                                        % (s, ddG0))
-                self.html_writer.write('SMILES = %s >> %s</br>\n' % (smiles_below, smiles_above))
-                decomposition_below = self.SmilesToGroupvec(smiles_below, 
+                self.html_writer.write('SMILES = %s >> %s</br>\n' %
+                                (mol_above.ToSmiles(), mol_below.ToSmiles()))
+                decomposition_below = self.MolToGroupvec(mol_below, 
                                 "C%05d_b_H%d_Mg%d" % (cid, nH_below, nMg_below))
-                decomposition_above = self.SmilesToGroupvec(smiles_above, 
+                decomposition_above = self.MolToGroupvec(mol_above, 
                                 "C%05d_a_H%d_Mg%d" % (cid, nH_above, nMg_above))
-                if not decomposition_below or not decomposition_above:
+                if decomposition_below is None or decomposition_above is None:
                     continue
                 groupvec = decomposition_below.AsVector() - decomposition_above.AsVector()
                 self.html_writer.write('</br>\nDecomposition = %s</br>\n' % str(groupvec))
@@ -160,13 +160,12 @@ class GroupObervationCollection(object):
                 raise Exception("%s [C%05d, nH=%d, nMg=%d] does not have a " 
                                 "dissociation table"
                                 % (name, cid, nH, nMg))
-            smiles = diss_table.GetSmiles(nH=nH, nMg=nMg)
-            if not smiles:
+            mol = diss_table.GetMol(nH=nH, nMg=nMg)
+            if mol is None:
                 raise Exception("%s [C%05d, nH=%d, nMg=%d] does not have a SMILES "
                                 "expression in the dissociation constant table" 
                                 % (name, cid, nH, nMg))
-            self.html_writer.write("SMILES = %s</br>\n" % smiles)
-            mol = Molecule.FromSmiles(smiles)
+            self.html_writer.write("SMILES = %s</br>\n" % mol.ToSmiles())
             mol.SetTitle(name)
             try:
                 self.html_writer.write(mol.ToSVG())
@@ -258,12 +257,13 @@ class GroupObervationCollection(object):
                 anchored_cids.append(cid)
             else:
                 try:
-                    smiles = nist_regression.dissociation.GetSmiles(cid, nH=cid2nH[cid], nMg=0)
-                    if not smiles:
-                        raise GroupDecompositionError("no SMILES in the dissociation table")
+                    mol = nist_regression.dissociation.GetMol(cid, nH=cid2nH[cid], nMg=0)
+                    if mol is None:
+                        raise GroupDecompositionError("This pseudoisomer does not "
+                        "have an explicit formula in the dissociation table: "
+                        "C%05d [nH=%d, nMg=%d]" % (cid, cid2nH[cid], 0))
         
-                    self.html_writer.write("SMILES = %s</br>\n" % smiles)
-                    mol = Molecule.FromSmiles(smiles)
+                    self.html_writer.write("SMILES = %s</br>\n" % mol.ToSmiles())
                     self.html_writer.write(mol.ToSVG() + '</br>\n')
                 
                     decomposition = self.group_decomposer.Decompose(mol, 
@@ -338,10 +338,6 @@ class GroupObervationCollection(object):
                  ['dG0 REAL', 'name TEXT', 'id TEXT', 'obs_type TEXT']
         self.db.CreateTable('group_observations', ','.join(titles))
 
-        self.db.CreateTable('pseudoisomer_observation', 
-            'cid INT, name TEXT, protons INT, charge INT'
-            ', nMg INT, dG0_f REAL, use_for TEXT')
-        
         for obs in self.observations:
             obs.ToDatabase(self.db)
         self.db.Commit()

@@ -95,7 +95,7 @@ class BaseHtmlWriter:
     def table_end(self):
         self.write("</table>\n")
         
-    def insert_toggle(self, div_id=None):
+    def insert_toggle(self, div_id=None, start_here=False):
         if not div_id:
             div_id = "DIV%05d" % self.div_counter
             self.div_counter += 1
@@ -103,12 +103,14 @@ class BaseHtmlWriter:
             raise ValueError("HTML div ID must be a string")
         self.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n'
                    % div_id)
+        if start_here:
+            self.div_start(div_id)
         return div_id
     
-    def start_div(self, div_id):
+    def div_start(self, div_id):
         self.write('<div id="%s" style="display:none">' % div_id)
         
-    def end_div(self):
+    def div_end(self):
         self.write('</div>\n')
     
     def embed_img(self, fig_fname, alternative_string=""):
@@ -120,7 +122,7 @@ class BaseHtmlWriter:
         #self.write('<object data="%s" type="image/svg+xml" name="%s"/></object>'
         #           % (fig_fname, name))
     
-    def embed_matplotlib_figure(self, fig, width=320, height=240, name=None):
+    def embed_matplotlib_figure(self, fig, width=None, height=None, name=None):
         """
             Adds a matplotlib figure into the HTML as an inline SVG
             
@@ -136,6 +138,9 @@ class BaseHtmlWriter:
             self.write('<a href=%s.svg>' % name)
         else:
             svg_filename = '.svg'
+        
+        width = width or (fig.get_figwidth() * fig.get_dpi())
+        height = height or (fig.get_figheight() * fig.get_dpi())
 
         fig.savefig(svg_filename, format='svg')
         self.extract_svg_from_file(svg_filename, width=width, height=height)

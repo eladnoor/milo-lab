@@ -174,39 +174,41 @@ class GroupsData(object):
     
     # Phosphate groups need special treatment, so they are defined in code...
     # TODO(flamholz): Define them in the groups file.
-    INITIAL_P_1 = Group('InitialP1', '-OPO3-', 1, 0, 0)
-    INITIAL_P_2 = Group('InitialP1', '-OPO3-', 0, -1, 0)
-    MIDDLE_P_1 = Group('MiddleP1', '-OPO2-', 1, 0, 0)
-    MIDDLE_P_2 = Group('MiddleP2', '-OPO2-', 0, -1, 0)
-    FINAL_P_1 = Group('FinalP1', '-OPO3', 1, -1, 0)
-    FINAL_P_2 = Group('FinalP2', '-OPO3', 0, -2, 0)
-    FINAL_P_3 = Group('FinalP3', '-OPO3', 2,  0, 0)
-    INITIAL_2_PHOSPHATE = Group('Initial2PChain', '-OPO3-OPO2-', 0, -2, 0)
-    MIDDLE_2_PHOSPHATE = Group('Middle2PChain', '-OPO2-OPO2-', 0, -2, 0)
+    
+    phosphate_groups = [('initial H0', '-OPO3-', 0, -1, 0),
+                        ('initial H1', '-OPO3-', 1, 0, 0),
+                        ('middle H0', '-OPO2-', 0, -1, 0),
+                        ('middle H1', '-OPO2-', 1, 0, 0),
+                        ('final H0', '-OPO3', 0, -2, 0),
+                        ('final H1', '-OPO3', 1, -1, 0),
+                        ('final H2', '-OPO3', 2,  0, 0),
+                        ('initial chain H0', '-OPO3-OPO2-', 0, -2, 0),
+                        ('initial chain H1', '-OPO3-OPO2-', 1, -1, 0),
+                        ('initial chain H2', '-OPO3-OPO2-', 2, 0, 0),
+                        ('middle chain H0', '-OPO2-OPO2-', 0, -2, 0),
+                        ('middle chain H1', '-OPO2-OPO2-', 1, -1, 0),
+                        ('middle chain H2', '-OPO2-OPO2-', 2, 0, 0),
+                        ('initial chain Mg1', '-OPO2-OPO2-', 0, 0, 1),
+                        ('middle chain Mg1', '-OPO3', 0, 0, 1)]
+    
+    PHOSPHATE_GROUPS = []
+    PHOSPHATE_DICT = {}
+    for name, desc, nH, z, nMg in phosphate_groups:
+        group = Group(name, desc, nH, z, nMg)
+        PHOSPHATE_GROUPS.append(group)
+        PHOSPHATE_DICT[name] = group
 
-    # Phosphate groups with magnesium ions.
-    MIDDLE_2_P_MG = Group('Initial2PChain', '-OPO2-OPO2-', 0, 0, 1)
-    FINAL_P_MG_2 = Group('Middle2PChainMg', '-OPO3', 0, 0, 1)
+    DEFAULT_INTERIOR_P = PHOSPHATE_DICT['middle H0']  # Ignoring protonation, interior chain
+    DEFAULT_EXTERIOR_P = PHOSPHATE_DICT['final H0']   # Ignoring protonation, exterior chain
     
-    DEFAULT_INTERIOR_P = MIDDLE_P_2  # Ignoring protonation, interior chain
-    DEFAULT_EXTERIOR_P = FINAL_P_1   # Ignoring protonation, exterior chain
+    DEFAULTS = {'-OPO3-': PHOSPHATE_DICT['initial H0'],
+                '-OPO2-': PHOSPHATE_DICT['middle H0'],
+                '-OPO3': PHOSPHATE_DICT['final H0'],
+                '-OPO3-OPO2-': PHOSPHATE_DICT['initial chain H0'],
+                '-OPO2-OPO2-': PHOSPHATE_DICT['middle chain H0']}  
     
-    DEFAULTS = {'-OPO3-': INITIAL_P_2,
-                '-OPO2-': MIDDLE_P_2,
-                '-OPO3': FINAL_P_2,
-                '-OPO3-OPO2-': INITIAL_2_PHOSPHATE,
-                '-OPO2-OPO2-': MIDDLE_2_PHOSPHATE}  
-    
-    PHOSPHATE_GROUPS = (
-        INITIAL_P_1, INITIAL_P_2,
-        MIDDLE_P_1, MIDDLE_P_2,
-        INITIAL_2_PHOSPHATE,
-        MIDDLE_2_PHOSPHATE,
-        FINAL_P_1, FINAL_P_2, FINAL_P_3,
-        MIDDLE_2_P_MG, FINAL_P_MG_2)
-
-    MIDDLE_PHOSPHATES_TO_MGS = ((MIDDLE_2_PHOSPHATE, MIDDLE_2_P_MG),)    
-    FINAL_PHOSPHATES_TO_MGS = ((FINAL_P_2, FINAL_P_MG_2),)
+    MIDDLE_PHOSPHATES_TO_MGS = ((PHOSPHATE_DICT['initial chain H0'], PHOSPHATE_DICT['initial chain Mg1']),)    
+    FINAL_PHOSPHATES_TO_MGS = ((PHOSPHATE_DICT['middle chain H0'], PHOSPHATE_DICT['middle chain Mg1']),)
     
     def __init__(self, groups, include_mg=True):
         """Construct GroupsData.

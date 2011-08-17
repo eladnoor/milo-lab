@@ -56,7 +56,7 @@ class ThermodynamicAnalysis(object):
                                                                p_data.analysis_type))
                 if insert_toggles:
                     self.html_writer.insert_toggle(key)
-                    self.html_writer.start_div(key)
+                    self.html_writer.div_start(key)
             except KeyError:
                 raise Exception("Both the 'NAME' and 'TYPE' fields must be defined for each pathway")
 
@@ -74,7 +74,7 @@ class ThermodynamicAnalysis(object):
             else:
                 raise Exception("Unknown analysis type: " + p_data.analysis_type)
             if insert_toggles:
-                self.html_writer.end_div()
+                self.html_writer.div_end()
             self.html_writer.write('</p>\n')
         
         if write_measured_concentrations:    
@@ -82,12 +82,12 @@ class ThermodynamicAnalysis(object):
             self.html_writer.write('<h2>Measured concentration table:</h2>\n')
             if insert_toggles:
                 div_id = self.html_writer.insert_toggle()
-                self.html_writer.start_div(div_id)
+                self.html_writer.div_start(div_id)
             self.db.Query2HTML(self.html_writer,
                                "SELECT cid, media, 1000*concentration from compound_abundance ORDER BY cid, media",
                                column_names=["cid", "media", "concentration [mM]"])
             if insert_toggles:
-                self.html_writer.end_div()
+                self.html_writer.div_end()
             self.html_writer.write('</p>\n')
 
     @staticmethod
@@ -529,11 +529,11 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('</ul>\n')
         
         self.html_writer.insert_toggle(key)
-        self.html_writer.start_div(key)
+        self.html_writer.div_start(key)
         S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-        self.html_writer.end_div()
+        self.html_writer.div_end()
         
         cid2bounds = {}
         cid2bounds[1] = (1.0, 1.0) # H2O

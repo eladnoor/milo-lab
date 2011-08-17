@@ -177,7 +177,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.obs_collection = GroupObervationCollection(self.db, 
             self.html_writer, self.group_decomposer)
         if FromFiles:
-            self.read_training_data_pKa()
+            #self.read_training_data_pKa()
             self.read_training_data_formation()
             self.read_training_data_reaction()
             self.obs_collection.ToDatabase()
@@ -260,18 +260,21 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         return pylab.dot(groupvec, self.group_contributions)
     
     def write_regression_report(self, include_raw_data=False, T=default_T, pH=default_pH):        
-        self.html_writer.write('<h2><a name=compounds>Regression report</a>')
+        if include_raw_data:
+            for table_name in ['train_groups', 'group_observations']:
+                self.html_writer.write('<b>%s</b>' % table_name)
+                div_id = self.html_writer.insert_toggle()
+                self.html_writer.div_start(div_id)
+                self.html_writer.write('</br>')
+                self.db.Table2HTML(self.html_writer, 'table_name')
+                self.div_end()
+            
+        self.html_writer.write('<b><a name="compounds">Regression report</a></b>')
         div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
-
+        self.html_writer.div_start(div_id)
         self.html_writer.write_ul(['%d observations' % self.group_matrix.shape[0],
                                    '%d groups' % self.group_matrix.shape[1]])
-        
-        if include_raw_data:
-            self.db.Table2HTML(self.html_writer, 'train_groups')
-            self.db.Table2HTML(self.html_writer, 'group_observations')
-            
-        self.html_writer.write('<table border="1">\n<tr>'
+        self.html_writer.write('</br><table border="1">\n<tr>'
             '<td width="5%%">#</td>'
             '<td width="20%%">Name</td>'
             '<td width="5%%">&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
@@ -289,33 +292,38 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 '<td width="5%%">%8.2f</td>' % self.obs[i] +
                 '<td width="70%%">%s</td></tr>' % s_vector)
         self.html_writer.write('</table>')
+        self.html_writer.div_end()
         
-        self.html_writer.write('<h2><a name="group_contrib">Group Contributions</a></h2>\n')
-        self.html_writer.write('<table border="1" width="100%%">')
-        titles = ["#", "Group Name", "nH", "charge", "nMg", 
-                  "&#x394;<sub>gr</sub>G [kJ/mol]", 
-                  "dissociations", "formations", "reactions"]
-        self.html_writer.write('  <tr><td>' + '</td><td>'.join(titles) + '</td></tr>\n')
+        self.html_writer.write('<b><a name="group_contrib">Group Contributions</a></b>\n')
+        div_id = self.html_writer.insert_toggle()
+        self.html_writer.div_start(div_id)
+        self.html_writer.write('</br><font size="1">\n')
+        dict_list = []
         for j, group in enumerate(self.groups_data.all_groups):
             dG0_gr = self.group_contributions[j]
             obs_lists_dict = {'acid-base':[], 'formation':[], 'reaction':[]}
             for k in pylab.find(self.group_matrix[:, j]):
-                type = self.obs_types[k]
-                obs_lists_dict.setdefault(self.obs_types[k], []).append(self.obs_names[k])
-            tablerow = ["%d" % i, group.name, "%d" % group.hydrogens,
-                        "%d" % group.charge, "%d" % group.nMg, "%8.2f" % dG0_gr,
-                        ' | '.join(obs_lists_dict['acid-base']),
-                        ' | '.join(obs_lists_dict['formation']),
-                        ' | '.join(obs_lists_dict['reaction'])]
-            self.html_writer.write('  <tr><td>' + '</td><td>'.join(tablerow) + '</td></tr>\n')
-        self.html_writer.write('</table>\n')
-        self.html_writer.write('</div>\n')
+                obs_lists_dict[self.obs_types[k]].append(self.obs_names[k])
+            d = {"#":"%d" % j, "Group Name":group.name, 
+                 "nH":group.hydrogens, "charge":group.charge, "nMg":group.nMg,
+                 "&#x394;<sub>gr</sub>G [kJ/mol]":"%8.2f" % dG0_gr,
+                 "dissociations":' | '.join(obs_lists_dict['acid-base']),
+                 "formations":' | '.join(obs_lists_dict['formation']),
+                 "reactions":' | '.join(obs_lists_dict['reaction'])}
+            dict_list.append(d)
+        self.html_writer.write_table(dict_list, headers=["#", "Group Name",
+            "nH", "charge", "nMg", "&#x394;<sub>gr</sub>G [kJ/mol]", 
+            "dissociations", "formations", "reactions"])
+        self.html_writer.write('</font>\n')
+        self.html_writer.div_end()
 
-        self.html_writer.write('<h2><a name="nullspace">Nullspace of regression matrix</a></h2>\n')
+        # Null-space matrix
+        self.html_writer.write('<b><a name="nullspace">Nullspace of regression matrix</a></b>')
         div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('<div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.div_start(div_id)
+        self.html_writer.write('</br>')
         self.db.Table2HTML(self.html_writer, self.NULLSPACE_TABLE_NAME)
-        self.html_writer.write('</div>\n')
+        self.html_writer.div_end()
 
     def analyze_training_set(self):
         n_obs = self.group_matrix.shape[0]
@@ -351,26 +359,25 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             logging.info('LOO Error = %.1f' % row['loo_resid'])
         
         logging.info("writing the table of estimation errors for each compound")
-        self.html_writer.write('<h2><a name=compounds>Cross Validation Table</a>')
+        self.html_writer.write('<b><a name=compounds>Cross-validation table</a></b>')
         div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.div_start(div_id)
 
         obs_vec = pylab.array([row['obs'] for row in deviations])
         fit_vec = pylab.array([row['fit'] for row in deviations])
+        
         resid_vec = pylab.array([row['fit_resid'] for row in deviations])
         rmse = pylab.rms_flat(resid_vec)
         
-        #loo_vec = pylab.array([row['loo'] for row in loo_deviations])
         loo_resid_vec = pylab.array([row['loo_resid'] for row in loo_deviations])
         loo_rmse = pylab.rms_flat(loo_resid_vec)
 
-        self.html_writer.write('<div><b>fit_rmse(pred) = %.2f kJ/mol</b></div>\n' % rmse)
+        self.html_writer.write_ul(['fit_rmse(pred) = %.2f kJ/mol' % rmse,
+                                   'loo_rmse(pred) = %.2f kJ/mol' % loo_rmse])
         logging.info("Goodness of fit: RMSE = %.2f kJ/mol" % rmse)
-        self.html_writer.write('<div><b>loo_rmse(pred) = %.2f kJ/mol</b></div>\n' % loo_rmse)
         logging.info("Leave-one-out test: RMSE = %.2f kJ/mol" % loo_rmse)
 
         self.html_writer.table_start()
-        deviations.sort(key=lambda(x):abs(x.get('loo_resid', 0)), reverse=True)
         headers = ['Compound Name',
                    '&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
                    '&#x394;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',
@@ -378,6 +385,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                    '&#x394;<sub>f</sub>G<sub>LOO</sub> [kJ/mol]',
                    'Leave-one-out Residual [kJ/mol]']
         self.html_writer.table_writerow(headers)
+        deviations.sort(key=lambda(x):abs(x.get('loo_resid', 0)), reverse=True)
         for row in deviations:
             table_row = [row['name']]
             table_row += ['%.1f' % row[key] for key in ['obs', 'fit', 'fit_resid']]
@@ -387,40 +395,39 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 table_row += ['N/A', 'N/A']
             self.html_writer.table_writerow(table_row)
         self.html_writer.table_end()
-        self.html_writer.write('</div>\n')
+        self.html_writer.div_end()
         
-        logging.info("Plotting graphs for observed vs. estimated")
-        self.html_writer.write('<h2><a name=compounds>Cross Validation Figure 1</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        logging.info("Plotting graphs for PGC vs. observed data")
+        self.html_writer.write('<b>Cross-validation figure 1</b>')
+        self.html_writer.insert_toggle(start_here=True)
 
-        obs_vs_est_fig = pylab.figure()
-        pylab.plot(obs_vec, fit_vec, '.')
-        pylab.xlabel('Observation')
-        pylab.ylabel('Estimation')
+        obs_vs_est_fig = pylab.figure(figsize=[6.0, 6.0], dpi=100)
+        pylab.plot(obs_vec, fit_vec, '.', figure=obs_vs_est_fig)
+        pylab.xlabel('Observation', figure=obs_vs_est_fig)
+        pylab.ylabel('Estimation (PGC)', figure=obs_vs_est_fig)
         pylab.hold(True)
         for row in deviations:
             if abs(row['fit_resid']) > 2*rmse:
-                pylab.text(row['obs'], row['fit'], row['name'], fontsize=4)
-        self.html_writer.write('<h3><a name="obs_vs_est">Observed vs. Estimated</a></h3>\n')
-        self.html_writer.embed_matplotlib_figure(obs_vs_est_fig, width=1000, height=800)
+                pylab.text(row['obs'], row['fit'], row['name'], fontsize=4,
+                           figure=obs_vs_est_fig)
+        pylab.title('Observed vs. Estimated (PGC)', figure=obs_vs_est_fig)
+        self.html_writer.embed_matplotlib_figure(obs_vs_est_fig)
+        self.html_writer.div_end()
 
-        self.html_writer.write('</div>\n')
-        self.html_writer.write('<h2><a name=compounds>Cross Validation Figure 2</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.write('<b>Cross-validation figure 2</b>')
+        self.html_writer.insert_toggle(start_here=True)
         
-        obs_vs_err_fig = pylab.figure()
+        obs_vs_err_fig = pylab.figure(figsize=[6.0, 6.0], dpi=100)
         pylab.plot(obs_vec, resid_vec, '.')
         pylab.xlabel('Observation')
-        pylab.ylabel('Residual')
+        pylab.ylabel('Estimated (PGC) Residuals')
         pylab.hold(True)
         for row in deviations:
             if abs(row['fit_resid']) > 2*rmse:
                 pylab.text(row['obs'], row['fit_resid'], row['name'], fontsize=4)
-        self.html_writer.write('<h3><a name="obs_vs_err">Observation vs. Residual</a></h3>\n')
-        self.html_writer.embed_matplotlib_figure(obs_vs_err_fig, width=1000, height=800)
-        self.html_writer.write('</div>\n')
+        pylab.title('Observed vs. Estimated (PGC) Residuals', figure=obs_vs_est_fig)
+        self.html_writer.embed_matplotlib_figure(obs_vs_err_fig)
+        self.html_writer.div_end()
 
     def Mol2Decomposition(self, mol, ignore_protonations=False):
         return self.group_decomposer.Decompose(mol, ignore_protonations, 
@@ -581,7 +588,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 source_string = obs_species.cid2SourceString(cid)
 
             self.html_writer.insert_toggle('C%05d' % cid)
-            self.html_writer.start_div('C%05d' % cid)
+            self.html_writer.div_start('C%05d' % cid)
             if major_mol:
                 self.html_writer.write(major_mol.ToSVG() + '</br>\n')
             if groupvector:
@@ -612,7 +619,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.html_writer.write('<h2>Pseudoisomer table:</h2>\n')
             pmap.WriteToHTML(self.html_writer)
             
-            self.html_writer.end_div()
+            self.html_writer.div_end()
             self.html_writer.write('</p>\n')
         
         logging.info("Writing the results to the database")
@@ -855,8 +862,11 @@ def MakeOpts():
                           help="The KEGG ID of a reaction")
     opt_parser.add_option("-s", "--smiles", action="store", type="string",
                           dest="smiles", default=None,
-                          help="A smiles string of a compound")
-    opt_parser.add_option("-i", "--train", action="store_true",
+                          help="A SMILES string of a compound")
+    opt_parser.add_option("-i", "--inchi", action="store", type="string",
+                          dest="inchi", default=None,
+                          help="An InChI string of a compound")
+    opt_parser.add_option("-t", "--train", action="store_true",
                           dest="train_only", default=False,
                           help="A flag for running the TRAIN only (without TEST)")
     opt_parser.add_option("-e", "--test", action="store_true",
@@ -880,6 +890,12 @@ if __name__ == '__main__':
         G.load_groups("../data/thermodynamics/groups_species.csv")
         print 'Analyzing SMILES %s:' % (options.smiles)
         mol = Molecule.FromSmiles(options.smiles)
+        G.AnalyzeSingleCompound(mol, ignore_protonations=False)
+    elif options.inchi: # -i <INCHI>
+        G = GroupContribution(db=db)
+        G.load_groups("../data/thermodynamics/groups_species.csv")
+        print 'Analyzing InChI %s:' % (options.inchi)
+        mol = Molecule.FromInChI(options.inchi)
         G.AnalyzeSingleCompound(mol, ignore_protonations=False)
     elif options.cid: # -c <CID>
         G = GroupContribution(db=db)
