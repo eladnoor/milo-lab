@@ -1,8 +1,9 @@
 from optparse import OptionParser
-from pytecan.util import WriteToDatabase, CollectData
+from pytecan.util import WriteToDatabase, CollectData, CollectDataFromSingleFile,\
+    GetExpDate, GetCurrentExperimentID
 import sys, os
 from toolbox.database import MySQLDatabase
-import tkFileDialog
+import time
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
@@ -19,39 +20,76 @@ def MakeOpts():
                           dest="exp_id",
                           default=None,
                           help="The ID for the imported experiment data")
+    opt_parser.add_option("-x", "--xml_filename",
+                          dest="xml_filename",
+                          default=None,
+                          help="The filename for a single XML result file")
+    opt_parser.add_option("-p", "--plate_id",
+                          dest="plate_id", default=None, type='int',
+                          help="The ID of the read plate (necessary when using -x)")
+    opt_parser.add_option("-g", "--generate_exp_id",
+                          dest="generate_exp_id", default=False, action="store_true", 
+                          help="Generate a new Experiment ID and add it to the database")
     return opt_parser
+
+def GetTimeString():
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
 def main():
     opt_parser = MakeOpts()
     options, _ = opt_parser.parse_args(sys.argv)
-    if not options.tar_filename:
-        tar_fname = tkFileDialog.askopenfilename(filetypes=
-            [('gzip files', '.gz'), ('tar files', '.tar'), ('all files', '.*')])
-        if not tar_fname:
-            sys.exit(0)
-    else:
-        tar_fname = options.tar_filename
-    
-    if not os.path.exists(tar_fname):
-        print "File not found: " + tar_fname
-        sys.exit(-1)
-    
-    print "Importing from file: " + options.tar_filename
-    
-    #print "Importing into database: " + options.sqlite_db_filename
-    if options.exp_id:
-        print "Experiment ID: " + options.exp_id
-    
-    MES = CollectData(options.tar_filename)
+
     db = MySQLDatabase(host='132.77.80.238', user='ronm', 
                        passwd='a1a1a1', db='tecan')
-    exp_id = WriteToDatabase(MES, db, options.exp_id)
-    db.Commit()
-    print "Done importing experiment: %s" % exp_id
+
+    if options.generate_exp_id:
+        exp_id = GetTimeString()
+        db.Insert('tecan_experiments', [exp_id, -1, "Automatically generated"])
+        print "Experiment ID: " + exp_id
     
-    #for row in db.Execute('SELECT exp_id, plate, count(*) from tecan_readings '
-    #                      'GROUP BY exp_id, plate'):
-    #    print row
+    if options.tar_filename:
+        """
+            Imports a list of XML files bundled in a TAR file into the database.
+            The Experiment ID is determined by the time-stamp of the first measurement.
+            If this Experiment ID 
+        """
+        
+        
+        if not os.path.exists(options.tar_filename):
+            print "File not found: " + options.tar_filename
+            sys.exit(-1)
+        
+        print "Importing from file: " + options.tar_filename
+        MES = CollectData(options.tar_filename)
+
+        exp_id = options.exp_id or GetExpDate(MES)        
+        print "Experiment ID: " + exp_id
+        
+        # delete any previous data regarding this exp_id
+        db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
+        db.Execute("DELETE FROM tecan_experiments WHERE exp_id='%s'" % exp_id)
+        db.Insert('tecan_experiments', [exp_id, -1, \
+                            "Imported from TAR file on " + GetTimeString()])
+        WriteToDatabase(MES, db, exp_id)
+    
+    elif options.xml_filename:
+        if not options.plate_id:
+            print "Plate ID not supplied, but is mandatory when importing an XML"
+            sys.exit(-1)
+        if not os.path.exists(options.xml_filename):
+            print "File not found: " + options.xml_filename
+            sys.exit(-1)
+        
+        print "Importing from file: " + options.xml_filename
+        MES = CollectDataFromSingleFile(options.xml_filename, options.plate_id)
+
+        exp_id = GetCurrentExperimentID(db)
+        print "Experiment ID: " + exp_id
+        
+        WriteToDatabase(MES, db, exp_id)
+   
+    db.Commit()
+    print "Done!"
     
 if __name__ == '__main__':
     main()

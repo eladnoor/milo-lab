@@ -85,6 +85,9 @@ def CollectData(tar_fname, number_of_plates=None):
                         MES[plate_id][reading_label][time_in_sec] = time_values
     return MES
 
+def CollectDataFromSingleFile(xml_fname, plate_id):
+    return {plate_id: ParseReaderFile(xml_fname)}
+
 def WriteCSV(MES, f):
     """
         Write the data into a directory, each reading-label in its own CSV file.
@@ -112,20 +115,17 @@ def GetExpInitTime(MES):
         return min(all_time_values)
     else:
         raise ValueError("The experiment has no data, cannot find the init time")
-                                
+                    
+def GetCurrentExperimentID(db):
+    for row in db.Execute("SELECT max(exp_id) e FROM tecan_experiments"):
+        return row[0]
+    raise ValueError("Database Error: no experiments present in tecan_experiments table")
+            
 def GetExpDate(MES):
     init_time = GetExpInitTime(MES)
     return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(init_time))
                     
-def WriteToDatabase(MES, db, exp_id=None):
-    #db.CreateTable('tecan_readings', 'exp_id TEXT, plate INT, '
-    #             'reading_label TEXT, row INT, col INT, time INT, measurement REAL')
-
-    if not exp_id:
-        exp_id = GetExpDate(MES)
-
-    db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
-
+def WriteToDatabase(MES, db, exp_id):
     for plate_id, plate_values in sorted(MES.iteritems()):
         for reading_label, label_values in sorted(plate_values.iteritems()):
             for time_in_sec, time_values in sorted(label_values.iteritems()):
