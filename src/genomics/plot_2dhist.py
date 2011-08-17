@@ -9,6 +9,7 @@ from collections import Counter
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Wedge
 from optparse import OptionParser
+from colormap import ColorMap
 
 
 def MakeOpts():
@@ -39,14 +40,6 @@ def MakeOpts():
 
 
 COLORS = 'grbcmykw'
-
-def GetColor(i):
-	index = i % len(COLORS)
-	return COLORS[index]
-
-
-def ColorMap(items):
-	return dict((item, GetColor(i)) for i, item in enumerate(items))
 
 
 def PieScatter(axes, x_array, y_array, counts_array, max_count, colormap, **kwargs):
