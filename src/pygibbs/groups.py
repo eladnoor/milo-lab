@@ -88,17 +88,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.NULLSPACE_TABLE_NAME = 'gc_nullspace'
         self.CONTRIBUTION_TABLE_NAME = 'gc_contribution'
                     
-    def write_gc_tables(self):
-        table_names = ["groups", "contribution", "observation"]
-        self.html_writer.write('<ul>\n')
-        for table_name in table_names:
-            self.html_writer.write('  <li><a href="#%s">Table %s from the database</a></li>\n' % (table_name, table_name))
-        self.html_writer.write('</ul>\n')
-        for table_name in table_names:
-            self.html_writer.write('<p><h2><a name="%s">Table %s:</a></h2>\n' % (table_name, table_name))
-            self.db.Table2HTML(self.html_writer, table_name)
-            self.html_writer.write('</p>\n')
-    
     def init(self):
         self.load_groups()
         self.LoadContributionsFromDB()
@@ -143,29 +132,26 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.group_decomposer = GroupDecomposer(self.groups_data)
 
     def read_training_data_reaction(self):
-        self.html_writer.write('<h2><a name=compounds>List of NIST reactions for training</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.write('</br><b>List of NIST reactions for training</b>')
+        self.html_writer.insert_toggle(start_here=True)
         self.obs_collection.AddNistDatabase()
-        self.html_writer.write('</div>')
+        self.html_writer.div_end()
         
     def read_training_data_formation(self):
         """
             Finds all the compounds which have a valid dG0 in the formation energies file,
             and adds the qualifying observations to obs_collection.
         """
-        self.html_writer.write('<h2><a name=compounds>List of compounds for training</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.write('<br><b>List of compounds for training</b>')
+        self.html_writer.insert_toggle(start_here=True)
         self.obs_collection.AddFormationEnergies()
-        self.html_writer.write('</div>')
+        self.html_writer.div_end()
         
     def read_training_data_pKa(self):
-        self.html_writer.write('<h2><a name=compounds>List of pKa for training</a>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.write('</h2><div id="%s" style="display:none">\n' % div_id)
+        self.html_writer.write('<b>List of pKa for training</b>')
+        self.html_writer.insert_toggle(start_here=True)
         self.obs_collection.AddDissociationTable()
-        self.html_writer.write('</div>')
+        self.html_writer.div_end()
             
     def load_training_data(self):
         self.obs_collection = GroupObervationCollection(self.db, 
@@ -181,6 +167,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.read_training_data_formation()
             self.read_training_data_reaction()
             self.obs_collection.ToDatabase()
+            self.obs_collection.ToCSV('../res/observations.csv')
         else:
             self.obs_collection.FromDatabase()
             
@@ -269,7 +256,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 self.db.Table2HTML(self.html_writer, 'table_name')
                 self.div_end()
             
-        self.html_writer.write('<b><a name="compounds">Regression report</a></b>')
+        self.html_writer.write('</br><b>Regression report</b>')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
         self.html_writer.write_ul(['%d observations' % self.group_matrix.shape[0],
@@ -294,7 +281,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.write('</table>')
         self.html_writer.div_end()
         
-        self.html_writer.write('<b><a name="group_contrib">Group Contributions</a></b>\n')
+        self.html_writer.write('</br><b>Group Contributions</b>\n')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
         self.html_writer.write('</br><font size="1">\n')
@@ -318,7 +305,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.div_end()
 
         # Null-space matrix
-        self.html_writer.write('<b><a name="nullspace">Nullspace of regression matrix</a></b>')
+        self.html_writer.write('</br><b>Nullspace of regression matrix</b>')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
         self.html_writer.write('</br>')
@@ -359,7 +346,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             logging.info('LOO Error = %.1f' % row['loo_resid'])
         
         logging.info("writing the table of estimation errors for each compound")
-        self.html_writer.write('<b><a name=compounds>Cross-validation table</a></b>')
+        self.html_writer.write('</br><b>Cross-validation table</b>')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
 
@@ -377,6 +364,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         logging.info("Goodness of fit: RMSE = %.2f kJ/mol" % rmse)
         logging.info("Leave-one-out test: RMSE = %.2f kJ/mol" % loo_rmse)
 
+        self.html_writer.write('<font size="1">\n')
         self.html_writer.table_start()
         headers = ['Compound Name',
                    '&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
@@ -395,10 +383,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 table_row += ['N/A', 'N/A']
             self.html_writer.table_writerow(table_row)
         self.html_writer.table_end()
+        self.html_writer.write('</font>')
         self.html_writer.div_end()
         
         logging.info("Plotting graphs for PGC vs. observed data")
-        self.html_writer.write('<b>Cross-validation figure 1</b>')
+        self.html_writer.write('</br><b>Cross-validation figure 1</b>')
         self.html_writer.insert_toggle(start_here=True)
 
         obs_vs_est_fig = pylab.figure(figsize=[6.0, 6.0], dpi=100)
@@ -414,7 +403,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.embed_matplotlib_figure(obs_vs_est_fig)
         self.html_writer.div_end()
 
-        self.html_writer.write('<b>Cross-validation figure 2</b>')
+        self.html_writer.write('</br><b>Cross-validation figure 2</b>')
         self.html_writer.insert_toggle(start_here=True)
         
         obs_vs_err_fig = pylab.figure(figsize=[6.0, 6.0], dpi=100)
@@ -538,7 +527,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         obs_species = PsuedoisomerTableThermodynamics.FromCsvFile(
             '../data/thermodynamics/formation_energies.csv', label='testing')
             
-        dissociation = DissociationConstants.FromFile()
+        dissociation = self.dissociation = DissociationConstants.FromDatabase(
+                                    self.db, 'dissociation_constants_chemaxon')
         
         self.cid2pmap_dict = {}
         self.cid2source_string = {}

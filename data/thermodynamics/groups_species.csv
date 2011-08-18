@@ -67,6 +67,7 @@
 "CO-N",1,-1,"C(=O)[N;H1;-1]","All","primary amine next to keto","skip"
 "-N",3,1,"[C,N,O,S,P][N;H3;X4;+1]","1","primary amine",
 "-N",2,0,"[C,N,O,S,P][N;H2;X3;+0]","1","primary amine",
+"-N",1,-1,"[C,N,O,S,P][N;H1;X2;-1]","1","primary amine",
 "ring >c-N",2,0,"c[N;H2;X3;+0]","1","primary amine on aromatic ring",
 "ring >c-N",3,1,"c[N;H3;X4;+1]","1","primary amine on aromatic ring",
 "-N<",1,1,"[N;H1;X4;R0]","All",,
@@ -127,7 +128,7 @@
 "CCCC conjugation correction",0,0,"C=CC=C","None","CCCC conjugation correction (currently no examples)","skip"
 "NC(=N)N correction",0,0,"NC(=N)N","None","guanidine correction",
 "vicinal Cl correction",0,0,"Cl~C~C~Cl","None","vicinal Cl correction (not 100% accurate, but currently no examples)","skip"
-"amide correction",0,0,"O=CN","None","amide bond correction",
+"amide correction",0,0,"C(=O)NC","None","amide bond correction",
 "thioester correction",0,0,"CSC(=O)C","None","thioester correction (linearly dependent on CoA)","skip"
 "three member ring correction",0,0,"*1**1","None","three member ring correction (currently no examples)","skip"
 "*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)","skip"
