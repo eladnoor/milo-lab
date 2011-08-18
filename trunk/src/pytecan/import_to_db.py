@@ -24,6 +24,10 @@ def MakeOpts():
                           dest="xml_filename",
                           default=None,
                           help="The filename for a single XML result file")
+    opt_parser.add_option("-a", "--add_latest",
+                          dest="xml_dir",
+                          default=None,
+                          help="The directory from which to import the latest XML results file")
     opt_parser.add_option("-p", "--plate_id",
                           dest="plate_id", default=None, type='int',
                           help="The ID of the read plate (necessary when using -x)")
@@ -34,6 +38,11 @@ def MakeOpts():
 
 def GetTimeString():
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+
+def get_latest_file(path):
+    filelist = os.listdir(path)
+    filelist = filter(lambda x: not os.path.isdir(path + x), filelist)
+    return max(filelist, key=lambda x: os.stat(path + x).st_mtime)
 
 def main():
     opt_parser = MakeOpts()
@@ -71,11 +80,15 @@ def main():
         db.Insert('tecan_experiments', [exp_id, -1, \
                             "Imported from TAR file on " + GetTimeString()])
         WriteToDatabase(MES, db, exp_id)
-    
-    elif options.xml_filename:
-        if not options.plate_id:
+    elif options.xml_dir or options.xml_filename:
+        if options.plate_id is None:
             print "Plate ID not supplied, but is mandatory when importing an XML"
             sys.exit(-1)
+	if options.xml_dir:
+	    if not os.path.exists(options.xml_dir):
+		print "Directory not found: " + options.xml_dir
+		sys.exit(-1)
+	    options.xml_filename = options.xml_dir + get_latest_file(options.xml_dir)
         if not os.path.exists(options.xml_filename):
             print "File not found: " + options.xml_filename
             sys.exit(-1)
