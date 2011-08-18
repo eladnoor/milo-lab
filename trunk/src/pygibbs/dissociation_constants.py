@@ -701,7 +701,6 @@ if __name__ == '__main__':
     if True:
         dissociation_csv = DissociationConstants.FromFile()
         dissociation_csv.ToDatabase(db, 'dissociation_constants')
-        sys.exit(0)
     
         nist = Nist()
         obs_fname = "../data/thermodynamics/formation_energies.csv"
