@@ -1,7 +1,8 @@
-import csv, logging
+import csv, logging, sys
 from kegg import Kegg
 from toolbox.database import SqliteDatabase
-from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel
+from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel,\
+    default_I, default_pH, default_pMg
 import numpy as np
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
@@ -10,7 +11,8 @@ from pygibbs.kegg_errors import KeggParseException
 from pygibbs.nist import Nist
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.html_writer import HtmlWriter
-from toolbox.molecule import Molecule
+from toolbox.molecule import Molecule, OpenBabelError
+from pygibbs.kegg_reaction import Reaction
 
 class MissingDissociationConstantError(Exception):
     pass
@@ -89,14 +91,25 @@ class DissociationConstants(object):
         return diss
     
     @staticmethod
-    def FromChemAxon(cid_list=None, html_writer=None):
+    def FromChemAxon(cid2mol=None, html_writer=None):
         kegg = Kegg.getInstance()
         diss = DissociationConstants()
-        for cid in sorted(cid_list or kegg.get_all_cids()):
+        if cid2mol is None:
+            cid2mol = dict([(cid, None) for cid in kegg.get_all_cids()])
+        
+        for cid, mol in sorted(cid2mol.iteritems()):
             if html_writer:
                 html_writer.write('<h2>%s - C%05d</h2>\n' %
                                   (kegg.cid2name(cid), cid))
-            diss_table = DissociationTable.CreateUsingChemaxon(cid)
+            # if this CID is not assigned to a Molecule, use the KEGG database
+            # to create a Molecule for it.
+            if mol is None:
+                try:
+                    mol = kegg.cid2mol(cid)
+                except KeggParseException:
+                    continue
+
+            diss_table = DissociationTable.CreateUsingChemaxon(mol)
             diss.cid2DissociationTable[cid] = diss_table
             if diss_table and html_writer:
                 diss_table.WriteToHTML(html_writer)
@@ -114,7 +127,11 @@ class DissociationConstants(object):
             else:
                 if cid not in diss.cid2DissociationTable:
                     diss.cid2DissociationTable[cid] = DissociationTable(cid)
-                diss.cid2DissociationTable[cid].UpdateDatabaseRow(row)
+                try:
+                    diss.cid2DissociationTable[cid].UpdateDatabaseRow(row)
+                except OpenBabelError as e:
+                    raise Exception("Cannot read this row from the database: "
+                                    + str(row) + '\n' + str(e))
                     
         diss.CalculateAllCharges()
         return diss
@@ -147,7 +164,12 @@ class DissociationConstants(object):
             
     def GetDissociationTable(self, cid, create_if_missing=True):
         if cid not in self.cid2DissociationTable and create_if_missing:
-            diss_table = DissociationTable.CreateUsingChemaxon(cid)
+            try:
+                kegg = Kegg.getInstance()
+                mol = kegg.cid2mol(cid)
+                diss_table = DissociationTable.CreateUsingChemaxon(mol)
+            except KeggParseException:
+                diss_table = None
             self.cid2DissociationTable[cid] = diss_table 
         
         return self.cid2DissociationTable.get(cid, None)
@@ -174,7 +196,7 @@ class DissociationConstants(object):
             cid INT, name TEXT, 
             nH_below INT, nH_above INT, 
             nMg_below INT, nMg_above INT, 
-            inchi_below TEXT, inchi_above TEXT, 
+            mol_below TEXT, mol_above TEXT, 
             ddG REAL, ref TEXT""")
         
         for cid in sorted(self.cid2DissociationTable.keys()):
@@ -271,7 +293,16 @@ class DissociationConstants(object):
     def Transform(self, cid, pH, I, pMg, T):
         return self.GetDissociationTable(cid).Transform(pH, I, pMg, T)
 
+    def GetMostAbundantMol(self, cid, pH, I, pMg, T):
+        diss_table = self.GetDissociationTable(cid)
+        if diss_table is None:
+            return None
+        nH, nMg = diss_table.GetMostAbundantPseudoisomer(pH, I, pMg, T)
+        return self.GetMol(cid, nH, nMg)
+        
+
 ###############################################################################
+
 
 class DissociationTable(object):
     
@@ -303,15 +334,12 @@ class DissociationTable(object):
         return s
 
     @staticmethod
-    def CreateUsingChemaxon(cid):
-        kegg = Kegg.getInstance()
-        try:
-            mol = kegg.cid2mol(cid)
-        except KeggParseException:
-            return None
-        
+    def CreateUsingChemaxon(mol):
+        """
+            If a Mol is provided, use that as the template for finding 
+            all the pseudoisomers. Otherwise, use the KEGG database entry.
+        """
         diss_table, major_mol = mol.GetPseudoisomerMap()
-        diss_table.cid = cid
         nH, z = major_mol.GetHydrogensAndCharge()
         nMg = 0
         diss_table.mol_dict[nH, nMg] = major_mol
@@ -369,6 +397,12 @@ class DissociationTable(object):
             return mol.ToSmiles()
         else:
             return None
+        
+    def SetMolString(self, nH, nMg, s):
+        self.UpdateMinNumHydrogens(nH)
+        if s is not None:
+            mol = Molecule.FromSmiles(str(s))
+            self.mol_dict[nH, nMg] = mol
     
     def ToDatabaseRow(self, db, table_name):
         """
@@ -396,15 +430,11 @@ class DissociationTable(object):
     def UpdateDatabaseRow(self, row):
         (nH_below, nMg_below) = (row['nH_below'], row['nMg_below'])
         (nH_above, nMg_above) = (row['nH_above'], row['nMg_above'])
+        self.SetMolString(nH_above, nMg_above, row['mol_above'])
+        self.SetMolString(nH_below, nMg_below, row['mol_below'])
 
-        if row['inchi_above'] is not None:
-            self.mol_dict[nH_above, nMg_above] = Molecule.FromInChI(str(row['inchi_above']))
-        self.UpdateMinNumHydrogens(row['nH_above'])
         if (nH_below, nMg_below) == (nH_above, nMg_above):
             return
-        
-        if row['inchi_below'] is not None:
-            self.mol_dict[nH_below, nMg_below] = Molecule.FromInChI(str(row['inchi_below']))
 
         key = (nH_above, nH_below, nMg_above, nMg_below)
         self.ddGs[key] = (row['ddG'], row['ref'])
@@ -596,29 +626,40 @@ class DissociationTable(object):
                 each member of the list is a tuple: (nH, z, nMg, dG0')
             
             Note:
-                assume that the dG0_f of one of the psuedoisomers
-                (according to the given nH) is 0
-        """ 
-        if nH is None:
-            nH = self.min_nH
-        z = self.min_charge + (nH - self.min_nH)
-        
-        pdata = PseudoisomerEntry(net_charge=z, hydrogens=nH, magnesiums=0, 
-                                  smiles="", dG0=0)
+                Set the dG0 of one of the pseudoisomers to 0.
+                If nH is None, use the most abundant species at these conditions.
+                Otherwise, use the provided nH.
+        """
+        if nH is not None:
+            pdata = PseudoisomerEntry(net_charge=(self.min_charge + nH - self.min_nH),
+                                      hydrogens=nH, 
+                                      magnesiums=0, smiles="", dG0=0)
+        else:
+            pdata = PseudoisomerEntry(net_charge=self.min_charge, 
+                                      hydrogens=self.min_nH,
+                                      magnesiums=0, smiles="", dG0=0)
+            
         
         pseudoisomer_matrix = []
         for pseudoisomer in self.GenerateAllPseudoisomerEntries(pdata):
-            nH = pseudoisomer.hydrogens
-            nMg = pseudoisomer.magnesiums
-            z = pseudoisomer.net_charge
-            dG0 = pseudoisomer.dG0
+            ps_nH = pseudoisomer.hydrogens
+            ps_nMg = pseudoisomer.magnesiums
+            ps_z = pseudoisomer.net_charge
+            ps_dG0 = pseudoisomer.dG0
             
             DH = debye_huckel(I)
-            dG0_tag = dG0 + \
-                      nMg * (R*T*np.log(10)*pMg - dG0_f_Mg) + \
-                      nH  * (R*T*np.log(10)*pH + DH) - (z**2) * DH
-            pseudoisomer_matrix.append((nH, z, nMg, dG0_tag))
-        return pseudoisomer_matrix
+            dG0_tag = ps_dG0 + \
+                      ps_nMg * (R*T*np.log(10)*pMg - dG0_f_Mg) + \
+                      ps_nH  * (R*T*np.log(10)*pH + DH) - (ps_z**2) * DH
+            pseudoisomer_matrix.append((ps_nH, ps_z, ps_nMg, dG0_tag))
+        
+        pseudoisomer_matrix.sort(key=lambda(x):x[3])
+        if nH is None:
+            min_dG0_tag = pseudoisomer_matrix[0][3]
+            return [(nH, z, nMg, dG0_tag - min_dG0_tag) 
+                    for (nH, z, nMg, dG0_tag) in pseudoisomer_matrix]
+        else:
+            return pseudoisomer_matrix
      
     def GetDeltaDeltaG0(self, pH, I, pMg, T, nH=None):
         """
@@ -658,16 +699,24 @@ if __name__ == '__main__':
     html_writer = HtmlWriter("../res/dissociation_constants.html")
 
     if True:
-        dissociation = DissociationConstants.FromFile()
-        dissociation.ToDatabase(db, 'dissociation_constants')
+        dissociation_csv = DissociationConstants.FromFile()
+        dissociation_csv.ToDatabase(db, 'dissociation_constants')
+        sys.exit(0)
     
         nist = Nist()
         obs_fname = "../data/thermodynamics/formation_energies.csv"
         thermo = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname)
-        cids = set(nist.GetAllCids() + thermo.get_all_cids())
         
-        dissociation = DissociationConstants.FromChemAxon(cids, html_writer)
-        dissociation.ToDatabase(db, 'dissociation_constants_chemaxon')
+        cid2mol = {}
+        for cid in nist.GetAllCids() + thermo.get_all_cids():
+            if cid in dissociation_csv.GetAllCids():
+                cid2mol[cid] = dissociation_csv.GetMostAbundantMol(cid,
+                    pH=default_pH, I=default_I, pMg=default_pMg, T=default_T)
+            else:
+                cid2mol[cid] = None
+        
+        dissociation_chemaxon = DissociationConstants.FromChemAxon(cid2mol, html_writer)
+        dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon')
 
     if False:
         # Print all the values in the dissociation table to the HTML file
@@ -687,3 +736,17 @@ if __name__ == '__main__':
         diss_table = dissociation.GetDissociationTable(41)
         for (nH, nMg), mol in diss_table.mol_dict.iteritems():
             print nH, nMg, mol.ToSmiles(), mol.ToInChI()
+            
+    if False:
+        dissociation1 = DissociationConstants.FromDatabase(db,'dissociation_constants')
+        dissociation2 = DissociationConstants.FromDatabase(db,'dissociation_constants_chemaxon')
+        reaction = Reaction(names='dihydroorotase', sparse_reaction={1:-1, 337:-1, 438:1})
+        
+        for cid in reaction.get_cids():
+            print "C%05d" % cid
+            print dissociation1.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
+            print dissociation2.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
+
+        print dissociation1.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
+        print dissociation2.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
+        

@@ -14,6 +14,9 @@ from pygibbs.thermodynamic_constants import default_T
 class ChemAxonError(Exception):
     pass
 
+class OpenBabelError(Exception):
+    pass
+
 CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
 
 class Molecule(object):
@@ -93,9 +96,13 @@ class Molecule(object):
         m.smiles = smiles
         obConversion = openbabel.OBConversion()
         obConversion.SetInFormat("smiles")
-        obConversion.ReadString(m.obmol, m.smiles)
-        m.UpdateInChI()
-        m.UpdatePybelMol()
+        if not obConversion.ReadString(m.obmol, m.smiles):
+            raise OpenBabelError("Cannot read the SMILES string: " + smiles)
+        try:
+            m.UpdateInChI()
+            m.UpdatePybelMol()
+        except OpenBabelError:
+            raise OpenBabelError("Failed to create Molecule from SMILES: " + smiles)
         m.SetTitle(smiles)
         return m
         
@@ -106,8 +113,11 @@ class Molecule(object):
         obConversion = openbabel.OBConversion()
         obConversion.SetInFormat("inchi")
         obConversion.ReadString(m.obmol, m.inchi)
-        m.UpdateSmiles()
-        m.UpdatePybelMol()
+        try:
+            m.UpdateSmiles()
+            m.UpdatePybelMol()
+        except OpenBabelError:
+            raise OpenBabelError("Failed to create Molecule from InChI: " + inchi)
         m.SetTitle(inchi)
         return m
     
@@ -117,9 +127,12 @@ class Molecule(object):
         obConversion = openbabel.OBConversion()
         obConversion.SetInFormat("mol")
         obConversion.ReadString(m.obmol, mol)
-        m.UpdateInChI()
-        m.UpdateSmiles()
-        m.UpdatePybelMol()
+        try:
+            m.UpdateInChI()
+            m.UpdateSmiles()
+            m.UpdatePybelMol()
+        except OpenBabelError:
+            raise OpenBabelError("Failed to create Molecule from MOL file:\n" + mol)
         m.SetTitle("")
         return m
 
@@ -127,9 +140,12 @@ class Molecule(object):
     def FromOBMol(obmol):
         m = Molecule()
         m.obmol = obmol
-        m.UpdateInChI()
-        m.UpdateSmiles()
-        m.UpdatePybelMol()
+        try:
+            m.UpdateInChI()
+            m.UpdateSmiles()
+            m.UpdatePybelMol()
+        except OpenBabelError:
+            raise OpenBabelError("Failed to create Molecule from OBMol")
         m.SetTitle("")
         return m
     
@@ -138,11 +154,14 @@ class Molecule(object):
         obConversion = openbabel.OBConversion()
         obConversion.SetOutFormat(format)
         res = obConversion.WriteString(obmol)
-        if res == "":
-            logging.warning("Cannot convert molecule to %s" % format)
-            return ""
+        if not res:
+            raise OpenBabelError("Cannot convert OBMol to %s" % format)
         if format == 'smiles' or format == 'smi':
-            return res.split()[0]
+            res = res.split()
+            if res == []:
+                raise OpenBabelError("Cannot convert OBMol to %s" % format)
+            else:
+                return res[0]
         elif format == 'inchi':
             return res.strip()
         else:
@@ -153,7 +172,8 @@ class Molecule(object):
         obConversion = openbabel.OBConversion()
         obConversion.SetInAndOutFormats("smiles", "inchi")
         obmol = openbabel.OBMol()
-        obConversion.ReadString(obmol, str(smiles))
+        if not obConversion.ReadString(obmol, smiles):
+            raise OpenBabelError("Cannot read the SMILES string: " + smiles)
         return obConversion.WriteString(obmol).strip()
 
     @staticmethod
@@ -161,7 +181,8 @@ class Molecule(object):
         obConversion = openbabel.OBConversion()
         obConversion.SetInAndOutFormats("inchi", "smiles")
         obmol = openbabel.OBMol()
-        obConversion.ReadString(obmol, inchi)
+        if not obConversion.ReadString(obmol, inchi):
+            raise OpenBabelError("Cannot read the InChI string: " + inchi)
         return obConversion.WriteString(obmol).split()[0]
         
     def RemoveHydrogens(self):
@@ -531,6 +552,8 @@ if __name__ == "__main__":
     #print m.ToFormat('smi')
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
+
+    mol = Molecule.FromSmiles('[Mg+2]')
     
     html_writer = HtmlWriter('../res/molecule.html')
     from pygibbs.kegg import Kegg

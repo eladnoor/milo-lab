@@ -9,6 +9,7 @@ from toolbox.html_writer import NullHtmlWriter
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
+import csv
 
 class GroupObservation(object):
     
@@ -29,9 +30,11 @@ class GroupObservation(object):
         return self.groupvec.Magnesiums()
 
     def ToDatabase(self, db):
-        db.Insert('group_observations', list(self.groupvec) +
-                  [self.dG0, self.name, self.id, self.obs_type])
-        
+        db.Insert('group_observations', self.ToCsvRow())
+    
+    def ToCsvRow(self):
+        return list(self.groupvec) + [self.dG0, self.name, self.id, self.obs_type]
+    
     def __hash__(self):
         return hash(str(self.groupvec))
     
@@ -57,8 +60,8 @@ class GroupObervationCollection(object):
         self.observations = []
         self.n_groups = len(self.groups_data.all_groups)
         self.groupvec_titles = ["g%d" % i for i in xrange(self.n_groups)]
-        self.dissociation = DissociationConstants.FromDatabase(self.db, 
-                                            'dissociation_constants_chemaxon')
+        #self.dissociation = DissociationConstants.FromDatabase(self.db,'dissociation_constants')
+        self.dissociation = DissociationConstants.FromDatabase(self.db,'dissociation_constants_chemaxon')
 
         self.html_writer = html_writer
         if html_writer and html_writer.filename:
@@ -198,12 +201,13 @@ class GroupObervationCollection(object):
                 self.html_writer.write(s + '</br>\n')
             
     def AddNistDatabase(self):
-        nist_regression = NistRegression(self.db, html_writer=NullHtmlWriter())
+        nist_regression = NistRegression(self.db, dissociation=self.dissociation,
+                                         html_writer=NullHtmlWriter())
         #nist_regression.nist.override_pMg = 14.0
         cid2dG0 = {}
         cid2nH = {} # the nH that is to be used in the reverse transform
-        for cid in nist_regression.dissociation.GetAllCids():
-            diss_table = nist_regression.dissociation.GetDissociationTable(cid)
+        for cid in self.dissociation.GetAllCids():
+            diss_table = self.dissociation.GetDissociationTable(cid)
             if diss_table is not None:
                 nH, _nMg = diss_table.GetMostAbundantPseudoisomer(
                             pH=default_pH, I=default_I, pMg=14, T=default_T)
@@ -341,6 +345,14 @@ class GroupObervationCollection(object):
         for obs in self.observations:
             obs.ToDatabase(self.db)
         self.db.Commit()
+        
+    def ToCSV(self, fname):
+        csv_writer = csv.writer(open(fname, 'w'))
+        titles = ['%s REAL' % t for t in self.groupvec_titles] + \
+                 ['dG0 REAL', 'name TEXT', 'id TEXT', 'obs_type TEXT']
+        csv_writer.writerow(titles)
+        for obs in self.observations:
+            csv_writer.writerow(obs.ToCsvRow())
             
     def FromDatabase(self):
         self.observations = []
@@ -372,6 +384,6 @@ class GroupObervationCollection(object):
             A.append(h.groupvec)
             b.append(np.mean([obs.dG0 for obs in obs_vec]))
             obs_types.append(h.obs_type)
-            names.append(';'.join([obs.name for obs in obs_vec]))
+            names.append(' ; '.join([obs.name for obs in obs_vec]))
             
         return np.matrix(A), np.array(b), obs_types, names

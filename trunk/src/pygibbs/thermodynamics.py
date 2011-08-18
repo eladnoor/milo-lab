@@ -118,7 +118,8 @@ class Thermodynamics(object):
             curr_c_max = self.c_range[1]
         return (curr_c_min, curr_c_max)
 
-    def WriteDataToHtml(self, html_writer, kegg):
+    def WriteDataToHtml(self, html_writer):
+        kegg = Kegg.getInstance()
         dict_list = []
         for cid in self.get_all_cids():
             for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():

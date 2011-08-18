@@ -22,7 +22,7 @@ from pygibbs.thermodynamic_constants import default_I, default_pMg, default_T,\
 from pygibbs import kegg_reaction
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from toolbox.html_writer import HtmlWriter
+from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.util import _mkdir
 from toolbox.sparse_kernel import SparseKernel
 from pygibbs.kegg_reaction import Reaction
@@ -30,15 +30,15 @@ from pygibbs.kegg_reaction import Reaction
 
 class NistRegression(PsuedoisomerTableThermodynamics):
     
-    def __init__(self, db, html_writer, nist=None):
+    def __init__(self, db, dissociation=None,
+                 html_writer=None, nist=None):
         PsuedoisomerTableThermodynamics.__init__(self)
         self.db = db
-        self.html_writer = html_writer
-        self.kegg = Kegg.getInstance()
+        self.dissociation = dissociation or DissociationConstants.FromDatabase(
+                                    self.db, 'dissociation_constants_chemaxon')
+        self.html_writer = html_writer or NullHtmlWriter()
         self.nist = nist or Nist()
         
-        self.dissociation = DissociationConstants.FromDatabase(self.db, 
-                                            'dissociation_constants_chemaxon')
         self.cid2pmap_dict = {}
         
         self.assume_no_pKa_by_default = False
@@ -176,9 +176,11 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         return unique_rows_S, unique_data_mat[:, 0:1], cids_to_estimate
 
     def ReactionVector2String(self, stoichiometric_vec, cids):
+        kegg = Kegg.getInstance()
+
         nonzero_columns = np.where(abs(stoichiometric_vec) > 1e-10)[0]
         gv = " + ".join(["%g %s (C%05d)" % (stoichiometric_vec[i], 
-            self.kegg.cid2name(int(cids[i])), cids[i]) for i in nonzero_columns])
+            kegg.cid2name(int(cids[i])), cids[i]) for i in nonzero_columns])
         return gv
 
     def FindKernel(self, S, cids, sparse=True):
@@ -421,6 +423,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         return self.dissociation.ConvertPseudoisomer(cid, dG0, nH_from, nH_to)
     
     def Nist_pKas(self):
+        kegg = Kegg.getInstance()
         group_decomposer = GroupDecomposer.FromDatabase(self.db)
         cids_in_nist = set(self.nist.cid2count.keys())
         cids_with_pKa = self.dissociation.GetAllCids()
@@ -436,9 +439,9 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         for cid, count in sorted(self.nist.cid2count.iteritems()):
             if cid not in cids_with_pKa:
                 self.html_writer.write('<tr><td><a href="%s">C%05d<a></td><td>%s</td><td>%d</td><td>' % \
-                    (self.kegg.cid2link(cid), cid, self.kegg.cid2name(cid), count))
+                    (kegg.cid2link(cid), cid, kegg.cid2name(cid), count))
                 try:
-                    mol = self.kegg.cid2mol(cid)
+                    mol = kegg.cid2mol(cid)
                     decomposition = group_decomposer.Decompose(mol, ignore_protonations=True, strict=True)
         
                     if len(decomposition.PseudoisomerVectors()) > 1:
@@ -446,7 +449,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                     else:
                         self.html_writer.write('doesn\'t have pKas')
                     self.html_writer.embed_molecule_as_png(
-                        self.kegg.cid2mol(cid), 'png/C%05d.png' % cid)
+                        kegg.cid2mol(cid), 'png/C%05d.png' % cid)
                 
                 except Exception:
                     self.html_writer.write('cannot decompose')
@@ -455,6 +458,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         self.html_writer.write('</table>\n')
 
     def Calculate_pKa_and_pKMg(self, filename="../data/thermodynamics/dG0.csv"):
+        kegg = Kegg.getInstance()
         cid2pmap = {}
         smiles_dict = {}
         
@@ -509,8 +513,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                 pK_Mg = cid2pmap[cid].GetpK_Mg(nH, z, nMg)
                 self.self.html_writer.write('<tr><td>')
                 self.self.html_writer.write('</td><td>'.join(["C%05d" % cid, 
-                    self.kegg.cid2name(cid) or "?", 
-                    self.kegg.cid2formula(cid) or "?", 
+                    kegg.cid2name(cid) or "?", 
+                    kegg.cid2formula(cid) or "?", 
                     str(nH), str(z), str(nMg), 
                     "%.1f" % dG0, str(pKa), str(pK_Mg)]))
                 #if not nMg and cid not in cid2pKa_list:
@@ -520,7 +524,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         self.self.html_writer.write('</table>\n')
 
     def WriteDataToHtml(self):
-        Thermodynamics.WriteDataToHtml(self, self.html_writer, self.kegg)
+        Thermodynamics.WriteDataToHtml(self, self.html_writer)
         
     def VerifyResults(self):
         return self.nist.verify_results(html_writer=self.html_writer, 
