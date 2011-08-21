@@ -334,9 +334,9 @@ class Kegg(Singleton):
                 if row_dict['inchi']:
                     if comp.inchi:
                         logging.warning('Overriding InChI for C%05d' % cid)
-                    else:
-                        comp.SetInChI(row_dict['inchi'])
-                        self.inchi2cid_map[row_dict['inchi']] = cid
+                        del self.inchi2cid_map[comp.inchi]
+                    comp.SetInChI(row_dict['inchi'])
+                    self.inchi2cid_map[row_dict['inchi']] = cid
             elif row_dict['inchi']:
                 if row_dict['inchi'] in self.inchi2cid_map:
                     raise Exception("The InChI for compound %s already exists "

@@ -153,8 +153,8 @@ class GroupObervationCollection(object):
             nH, charge, nMg, dG0 = pmatrix[0]
             name = "%s (%d)" % (self.kegg.cid2name(cid), nH)
             logging.debug('Adding the formation energy of %s', name)
-            self.html_writer.write("<h3>%s, %s</h3>\n" % 
-                                   (name, train_species.cid2SourceString(cid)))
+            self.html_writer.write("<b>%s (C%05d), %s</b></br>\n" % 
+                                   (name, cid, train_species.cid2SourceString(cid)))
             self.html_writer.write('&#x394;G<sub>f</sub> = %.2f, '
                                    'nH = %d, nMg = %d</br>\n' % (dG0, nH, nMg))
             diss_table = self.dissociation.GetDissociationTable(cid, 
@@ -168,7 +168,7 @@ class GroupObervationCollection(object):
                 raise Exception("%s [C%05d, nH=%d, nMg=%d] does not have a SMILES "
                                 "expression in the dissociation constant table" 
                                 % (name, cid, nH, nMg))
-            self.html_writer.write("SMILES = %s</br>\n" % mol.ToSmiles())
+            self.html_writer.write('<font size="1">SMILES = %s</font></br>\n' % mol.ToSmiles())
             mol.SetTitle(name)
             try:
                 self.html_writer.write(mol.ToSVG())
@@ -186,7 +186,7 @@ class GroupObervationCollection(object):
             
             groupvec = decomposition.AsVector()
             self.Add(groupvec, dG0, name, id="C%05d" % cid, obs_type='formation')
-            self.html_writer.write("Decomposition = %s</br>\n" % groupvec)
+            self.html_writer.write('<font size="1">Decomposition = %s</font></br>\n' % groupvec)
             
             gc_nH, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
             if nH != gc_nH:
