@@ -101,6 +101,8 @@ class DissociationConstants(object):
             cid2mol = dict([(cid, None) for cid in kegg.get_all_cids()])
         
         for cid, mol in sorted(cid2mol.iteritems()):
+            logging.info("Using ChemAxon to find the pKa values for %s - C%05d" %
+                         (kegg.cid2name(cid), cid))
             if html_writer:
                 html_writer.write('<h2>%s - C%05d</h2>\n' %
                                   (kegg.cid2name(cid), cid))
@@ -112,7 +114,7 @@ class DissociationConstants(object):
                 except KeggParseException:
                     continue
 
-            diss_table = DissociationTable.CreateUsingChemaxon(mol)
+            diss_table = mol.GetPseudoisomerMap()
             diss.cid2DissociationTable[cid] = diss_table
             if diss_table and html_writer:
                 diss_table.WriteToHTML(html_writer)
@@ -327,27 +329,25 @@ class DissociationTable(object):
         return len(self.ddGs)
 
     def __str__(self):
-        s = "Base: nH=%d, z=%d, dG0=%.1f kJ/mol\n" % \
+        T = default_T
+        s = "Base   nH=%d nMg=0 z=%d : dG0=%.1f kJ/mol\n" % \
             (self.min_nH, self.min_charge, self.min_dG0)
-        for (nH_above, nH_below, nMg_above, nMg_below), (ddG, ref) in self.ddGs.iteritems():
+        for key in sorted(self.ddGs.keys()):
+            nH_above, nH_below, nMg_above, nMg_below = key
+            ddG, _ref = self.ddGs[key]
             if nH_above != nH_below:
-                s += "nH (%2d -> %2d) : %.1f kJ/mol [%s]\n" % (nH_above, nH_below, ddG, ref)
-            if nMg_above != nMg_below:
-                s += "nMg (%2d -> %2d) : %.1f kJ/mol [%s]\n" % (nMg_above, nMg_below, ddG, ref)
-        return s
+                pKa = -ddG / (R * T * np.log(10))
+                s += "pKa (nH=%d -> nH=%d) : %.1f\n" % \
+                    (nH_above, nH_below, pKa)
+            elif nMg_above != nMg_below:
+                pKMg = (-ddG + dG0_f_Mg) / (R * T * np.log(10))
+                s += "pKMg (nMg=%d -> nMg=%d) : %.1f\n" % \
+                    (nMg_above, nMg_below, pKMg)
 
-    @staticmethod
-    def CreateUsingChemaxon(mol):
-        """
-            If a Mol is provided, use that as the template for finding 
-            all the pseudoisomers. Otherwise, use the KEGG database entry.
-        """
-        diss_table, major_mol = mol.GetPseudoisomerMap()
-        nH, z = major_mol.GetHydrogensAndCharge()
-        nMg = 0
-        diss_table.mol_dict[nH, nMg] = major_mol
-        diss_table.SetCharge(nH, z, nMg)
-        return diss_table
+        for (nH, nMg), mol in self.mol_dict.iteritems():
+            s += "Pseudoisomer nH=%d nMg=%d : %s\n" % (nH, nMg, mol.ToSmiles())
+        
+        return s
 
     def WriteToHTML(self, html_writer, T=default_T):
         dict_list = []
@@ -629,26 +629,18 @@ class DissociationTable(object):
             
         return pseudoisomers.values()
 
-    def GetTransformedDeltaGs(self, pH, I, pMg, T, nH=None):
+    def GetTransformedDeltaGs(self, pH, I, pMg, T, nH=None, nMg=0):
         """
             Return:
                 a list of the pseudoisomers and their transformed dG.
                 each member of the list is a tuple: (nH, z, nMg, dG0')
             
             Note:
-                Set the dG0 of one of the pseudoisomers to 0.
-                If nH is None, use the most abundant species at these conditions.
-                Otherwise, use the provided nH.
+                Set the dG0 of one the pseudoisomer [nH, nMg] to 0.
         """
-        if nH is not None:
-            pdata = PseudoisomerEntry(net_charge=(self.min_charge + nH - self.min_nH),
-                                      hydrogens=nH, 
-                                      magnesiums=0, smiles="", dG0=0)
-        else:
-            pdata = PseudoisomerEntry(net_charge=self.min_charge, 
-                                      hydrogens=self.min_nH,
-                                      magnesiums=0, smiles="", dG0=0)
-            
+        nH = nH or self.min_nH
+        pdata = PseudoisomerEntry(net_charge=(self.min_charge + nH - self.min_nH),
+                                  hydrogens=nH, magnesiums=nMg, smiles="", dG0=0)
         
         pseudoisomer_matrix = []
         for pseudoisomer in self.GenerateAllPseudoisomerEntries(pdata):
@@ -664,14 +656,9 @@ class DissociationTable(object):
             pseudoisomer_matrix.append((ps_nH, ps_z, ps_nMg, dG0_tag))
         
         pseudoisomer_matrix.sort(key=lambda(x):x[3])
-        if nH is None:
-            min_dG0_tag = pseudoisomer_matrix[0][3]
-            return [(nH, z, nMg, dG0_tag - min_dG0_tag) 
-                    for (nH, z, nMg, dG0_tag) in pseudoisomer_matrix]
-        else:
-            return pseudoisomer_matrix
+        return pseudoisomer_matrix
      
-    def GetDeltaDeltaG0(self, pH, I, pMg, T, nH=None):
+    def GetDeltaDeltaG0(self, pH, I, pMg, T, nH=None, nMg=0):
         """
             Return:
                 the transformed ddG0 = dG0'_f - dG0_f
@@ -679,7 +666,8 @@ class DissociationTable(object):
             Note:
                 assume that the dG0_f of one of the psuedoisomers
                 (according to the given nH) is 0
-        """ 
+        """
+        nH = nH or self.min_nH
         pseudoisomer_matrix = self.GetTransformedDeltaGs(pH, I, pMg, T, nH=nH)
         ddG0_f = -R * T * log_sum_exp([dG0_tag / (-R*T) for (_nH, _z, _nMg, dG0_tag) in pseudoisomer_matrix])
         return ddG0_f
@@ -708,7 +696,7 @@ if __name__ == '__main__':
     kegg = Kegg.getInstance()
     html_writer = HtmlWriter("../res/dissociation_constants.html")
 
-    if True:
+    if False:
         dissociation_csv = DissociationConstants.FromFile()
         dissociation_csv.ToDatabase(db, 'dissociation_constants')
     
@@ -722,6 +710,86 @@ if __name__ == '__main__':
         
         dissociation_chemaxon = DissociationConstants.FromChemAxon(cid2mol, html_writer)
         dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon')
+
+    if True:
+        dissociation_chemaxon = DissociationConstants.FromDatabase(db, 'dissociation_constants_chemaxon')
+
+        cid2smiles = {}
+        cid2smiles[3] = "NC(=O)c1ccc[n+](c1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # NAD+
+        cid2smiles[4] = "NC(=O)C1=CN(C=CC1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # NADH
+        cid2smiles[5] = "NC(=O)C1=CN(C=CC1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(OP(O)(O)=O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # NADPH
+        cid2smiles[6] = "NC(=O)c1ccc[n+](c1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(OP(O)(O)=O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # MADP+
+        cid2smiles[10] = "CC(C)(COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12)C(O)C(=O)NCCC(=O)NCCS" # CoA
+        cid2smiles[29] = "OCC1OC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(=O)[nH]c2=O)C(O)C(O)1O" # UDP-glucose
+        cid2smiles[35] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(COP(O)(=O)OP(O)(O)=O)C(O)C1O" # GDP
+        cid2smiles[44] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # GTP
+        cid2smiles[52] = "OC[C@H]1OC(OP(O)(=O)OP(O)(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2ccc(=O)[nH]c2=O)[C@H](O)[C@@H](O)[C@H]1O" # UDP-galactose
+        cid2smiles[101] = "Nc1nc2NC[C@H](CNc3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O)Nc2c(=O)[nH]1" # THF
+        cid2smiles[104] = "O[C@@H]1[C@@H](COP(O)(=O)OP(O)(O)=O)O[C@H]([C@@H]1O)n1cnc2c1nc[nH]c2=O" # IDP
+        cid2smiles[105] = "O[C@@H]1[C@@H](COP(O)(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O" # UMP
+        cid2smiles[112] = "Nc1ccn([C@@H]2O[C@H](COP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]2O)c(=O)n1" # CMP
+        cid2smiles[360] = "Nc1ncnc2n(cnc12)[C@H]1C[C@H](O)[C@@H](COP(O)(O)=O)O1" # dAMP
+        cid2smiles[1144] = "C[C@H](O)CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (S)-3-Hydroxybutanoyl-CoA;
+        cid2smiles[130] = "O[C@@H]1[C@@H](COP(O)(O)=O)O[C@H]([C@@H]1O)n1cnc2c1nc[nH]c2=O" # IMP
+        cid2smiles[131] = "Nc1ncnc2n(cnc12)[C@H]1C[C@H](O)[C@@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)O1" # dATP
+        cid2smiles[143] = "[H][C@]12CNc3nc(N)[nH]c(=O)c3N1CN(C2)c1ccc(cc1)C(=O)N[C@@H](CCC(O)=O)C(O)=O" # 5,10-methylene-THF
+        cid2smiles[144] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]1O" # GMP
+        cid2smiles[147] = "Nc1ncnc2[nH]cnc12" # adenine
+        cid2smiles[154] = "CCCCCCCCCCCCCCCC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # palmitoyl-CoA
+        cid2smiles[167] = "O[C@@H]1[C@@H](COP(O)(=O)OP(O)(=O)O[C@H]2O[C@@H]([C@@H](O)[C@H](O)[C@H]2O)C(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O" # UDP-glucuronate
+        cid2smiles[4268] = "C[C@H]1OC(OP(O)(=O)OP(O)(=O)OC[C@H]2O[C@H](C[C@@H]2O)n2cc(C)c(=O)[nH]c2=O)[C@H](O)[C@@H](O)[C@@H]1N" # dTDP-4-amino-4,6-dideoxy-D-glucose
+        cid2smiles[4677] = "NC(=O)c1ncn([C@@H]2O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]2O)c1N" # 5'-Phospho-ribosyl-5-amino-4-imidazole carboxamide
+        cid2smiles[178] = "Cc1c[nH]c(=O)[nH]c1=O" # thymine 
+        cid2smiles[1213] = "C[C@H](C(O)=O)C(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (R)-Methylmalonyl-CoA
+        cid2smiles[190] = "O[C@@H]1CO[C@H](OP(O)(=O)OP(O)(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2ccc(=O)[nH]c2=O)[C@H](O)[C@H]1O" # UDP-D-xylose
+        cid2smiles[2763] = "OC(=O)C(O)=Cc1ccccc1" # 2-Hydroxy-3-phenylpropenoate
+        cid2smiles[206] = "Nc1ncnc2n(cnc12)[C@H]1C[C@H](O)[C@@H](COP(O)(=O)OP(O)(O)=O)O1" # dADP
+        cid2smiles[75] = "O[C@@H]1[C@@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O" # UTP
+        cid2smiles[2595] = "OC(=O)Cc1cccs1" # Thien-2-ylacetate
+        cid2smiles[212] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O" # adenosine
+        cid2smiles[214] = "Cc1cn([C@H]2C[C@H](O)[C@@H](CO)O2)c(=O)[nH]c1=O" # thymidine
+        cid2smiles[224] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OS(O)(=O)=O)[C@@H](O)[C@H]1O" # Adenosine 5'-phosphosulfate
+        cid2smiles[234] = "[H]C(=O)N(C[C@H]1CNc2nc(N)[nH]c(=O)c2N1)c1ccc(cc1)C(=O)N[C@@H](CCC(O)=O)C(O)=O" # 10-Formyl-THF
+        cid2smiles[239] = "Nc1ccn([C@H]2C[C@H](O)[C@@H](COP(O)(O)=O)O2)c(=O)n1" # dCMP
+        cid2smiles[242] = "Nc1nc2[nH]cnc2c(=O)[nH]1" # guanine
+        cid2smiles[1267] = "OP(O)(=O)OCC(=O)Cc1c[nH]cn1" # Imidazole-acetol phosphate
+        cid2smiles[250] = "[H]C(=O)c1c(CO)cnc(C)c1O" # pyridoxal
+        cid2smiles[253] = "OC(=O)c1cccnc1" # nicotinate
+        cid2smiles[261] = "[H]C(=O)c1ccccc1" # Benzaldehyde
+        cid2smiles[294] = "OC[C@H]1O[C@H]([C@H](O)[C@@H]1O)n1cnc2c(O)ncnc12" # inosine
+        cid2smiles[295] = "OC(=O)c1cc(=O)[nH]c(=O)[nH]1" # orotate
+        cid2smiles[299] = "OC[C@H]1O[C@H]([C@H](O)[C@@H]1O)n1ccc(=O)[nH]c1=O" # uridine
+        cid2smiles[313] = "CC(C)(COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(O)=O" # Oxalyl-CoA
+        cid2smiles[314] = "Cc1ncc(CO)c(CO)c1O" # pyridoxine
+        cid2smiles[55] = "Nc1ccn([C@@H]2O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]2O)c(=O)n1" # CMP
+        cid2smiles[332] = "CC(=O)CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # acetoacetyl-CoA
+        cid2smiles[337] = "OC(=O)[C@@H]1CC(=O)NC(=O)N1" # dihydroorotate
+        cid2smiles[361] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@H]1C[C@H](O)[C@@H](COP(O)(=O)OP(O)(O)=O)O1" # dGDP
+        cid2smiles[362] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@H]1C[C@H](O)[C@@H](COP(O)(O)=O)O1" # dGMP
+        cid2smiles[363] = "Cc1cn([C@H]2C[C@H](O)[C@@H](COP(O)(=O)OP(O)(O)=O)O2)c(=O)[nH]c1=O" # dTDP
+        cid2smiles[364] = "Cc1cn([C@H]2C[C@H](O)[C@@H](COP(O)(O)=O)O2)c(=O)[nH]c1=O" # dTMP
+        cid2smiles[2280] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OC2O[C@@H](CO)[C@@H](O)[C@@H](O)[C@@H]2O)[C@@H](O)[C@H]1O" # GDP-L-galactose
+        cid2smiles[385] = "O=c1[nH]c2[nH]cnc2c(=O)[nH]1" # Xanthine
+        cid2smiles[387] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O" # guanosine
+        cid2smiles[2] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # ATP 
+        cid2smiles[8] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # ADP
+        cid2smiles[20] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]1O" # AMP
+        cid2smiles[5512] = "OC[C@H]1O[C@H](C[C@@H]1O)n1cnc2c1nc[nH]c2=O" # deoxyinosine 
+        cid2smiles[394] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OC2O[C@H](CO)[C@@H](O)[C@H](O)[C@H]2O)[C@@H](O)[C@H]1O" # GDP-glucose
+        cid2smiles[3483] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # Adenosine tetraphosphate         
+        cid2smiles[415] = "Nc1nc2NCC(CNc3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O)=Nc2c(=O)[nH]1" # Dihydrofolate   
+        cid2smiles[3493] = "N[C@@H](C(O)=O)c1ccc(O)cc1" # D-4-Hydroxyphenylglycine
+        cid2smiles[445] = "[H][C@]12CNc3nc(N)[nH]c(=O)c3[N+]1=CN(C2)c1ccc(cc1)C(=O)N[C@@H](CCC(O)=O)C(O)=O" # 5,10-Methenyl-THF
+        cid2smiles[] = "" #         
+        cid2smiles[] = "" #         
+        cid2smiles[] = "" #         
+
+        for cid, smiles in cid2smiles.iteritems():
+            diss_table = Molecule._GetPseudoisomerMap(smiles, format='smiles',
+                mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
+            dissociation_chemaxon.cid2DissociationTable[cid] = diss_table
+        
+        dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon2')
 
     if False:
         # Print all the values in the dissociation table to the HTML file
@@ -737,7 +805,7 @@ if __name__ == '__main__':
                 html_writer.write('</br>\n')
 
     if False:
-        cid2mol = {41:None, 117:None}
+        cid2mol = {117:None}
         dissociation = DissociationConstants.FromChemAxon(cid2mol, html_writer)
         for cid in cid2mol.keys():
             diss_table = dissociation.GetDissociationTable(cid)

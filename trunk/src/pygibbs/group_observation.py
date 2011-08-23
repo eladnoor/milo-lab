@@ -210,7 +210,7 @@ class GroupObervationCollection(object):
             diss_table = self.dissociation.GetDissociationTable(cid)
             if diss_table is not None:
                 nH, _nMg = diss_table.GetMostAbundantPseudoisomer(
-                            pH=default_pH, I=default_I, pMg=14, T=default_T)
+                            pH=default_pH, I=0, pMg=14, T=default_T)
                 cid2nH[cid] = nH
             else:
                 # assume nH=0 by default for compounds without explicit formulas

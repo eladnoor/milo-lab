@@ -33,12 +33,12 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 116,Glycerol,-497.48,-676.55,0,8,0,training,"Alberty (2006)",
 117,"D-Ribose 5-phosphate",-1595.78,,-2,9,0,training,"Alberty (2006)",
 118,glyceraldehyde-3-phosphate,-1288.6,,-2,5,0,training,"Alberty (2006)",
-119,"D-Ribose 5-phospho 1-diphosphate",-3284.25,,-5,8,0,training,"Alberty (2006)",
+119,"D-Ribose 5-phospho 1-diphosphate",-3325.23,,-4,9,0,training,"Alberty (2006)",
 121,D-ribose,-738.79,-1034,0,10,0,training,"Alberty (2006)",
 122,Fumarate,-601.87,-777.39,-2,2,0,training,"Alberty (2006)",
 123,L-Leucine,-352.25,-643.37,0,13,0,training,"Alberty (2006)",
 124,D-Galactose,-908.93,-1255.2,0,12,0,training,"Alberty (2006)",
-147,Adenine,310.67,,0,5,0,training,"Alberty (2006)",
+147,Adenine,369.7,,-1,4,0,training,"Alberty (2006)",
 149,L-Malate,-842.66,,-2,4,0,training,"Alberty (2006)",
 150,molybdenum,0,0,0,0,0,testing,"Element",
 152,L-Asparagine,-525.93,-766.09,0,8,0,training,"Alberty (2006)",
@@ -107,14 +107,14 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 1412,Butanal,-129.87,,0,8,0,training,"Alberty (2006)",
 1507,L-Iditol,-944.73,,0,14,0,training,"Alberty (2006)",
 1845,2-propanol,-185.23,-330.83,0,8,0,training,"Alberty (2006)",
-2037,glycylglycine,-520.2,-734.25,0,8,0,training,"Alberty (2006)",
+2037,glycylglycine,-473.6,,-1,7,0,training,"Alberty (2006)",
 2226,methylmaleate,-600.7,,-2,4,0,training,"Alberty (2006)",
 2612,(R)-2-Methylmalate,-843.9,,-2,6,0,training,"Alberty (2006)",
 3196,(S)-2-Hydroxyglutarate,-840.18,,-2,6,0,training,"Alberty (2006)",
 3232,Phosphohydroxypyruvate,-1448.67,,-3,2,0,training,"Alberty (2006)",
 3383,"D-Galactono-1,4-lactone",-905.34,,0,10,0,training,"Alberty (2006)",
 3384,D-Galactose-1-phosphate,-1756.59,,-2,11,0,training,"Alberty (2006)",
-5379,Oxalosuccinate,-1138.88,,-2,4,0,training,"Alberty (2006)",
+5379,Oxalosuccinate,-1138.88,,-2,4,0,skip,"Alberty (2006)","the most abundant species at pH 7 is nH=3 but its formation energy is missing"
 5572,Ketoglutaramate,-595.88,,-1,6,0,training,"Alberty (2006)",
 5979,n-propanol,-175.81,,0,8,0,training,"Alberty (2006)",
 5984,"2-Hydroxybutanoic acid",-506.3,,-1,7,0,training,"Thauer (1977)",
@@ -192,25 +192,25 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 80028,"2-amino-5-chlorobenzoate",-215.5,,-1,5,0,training,"Dolfing (1992)","CAS 635-21-2"
 80029,"2-hydroxy-5-chlorobenzoate",-408.9,,-1,4,0,training,"Dolfing (1992)",
 80030,"2-methyl-5-chlorobenzoate",-237.1,,-1,6,0,training,"Dolfing (1992)",
-14219,"2-chlorophenol",-56.8,,0,5,0,training,"Dolfing (1992)",
-14270,"3-chlorophenol",-56.4,,0,5,0,training,"Dolfing (1992)",
-2124,"4-chlorophenol",-53.1,,0,5,0,training,"Dolfing (1992)",
-80031,"2,3-dichlorophenol",-75.2,,0,4,0,training,"Dolfing (1992)",
-2625,"2,4-dichlorophenol",-84.4,,0,4,0,training,"Dolfing (1992)",
-6602,"2,5-dichlorophenol",-84.4,,0,4,0,training,"Dolfing (1992)",
-7096,"2,6-dichlorophenol",-82.6,,0,4,0,training,"Dolfing (1992)",
-14462,"3,4-dichlorophenol",-75.2,,0,4,0,training,"Dolfing (1992)",
-80032,"3,5-dichlorophenol",-86.3,,0,4,0,training,"Dolfing (1992)",
-80033,"2,3,4-trichlorophenol",-87.9,,0,3,0,training,"Dolfing (1992)",
-80034,"2,4,5-trichlorophenol",-97.2,,0,3,0,training,"Dolfing (1992)",
-80035,"2,4,6-trichlorophenol",-104.6,,0,3,0,training,"Dolfing (1992)",
-80036,"2,3,5-trichlorophenol",-97.2,,0,3,0,training,"Dolfing (1992)",
-80037,"2,3,6-trichlorophenol",-97.2,,0,3,0,training,"Dolfing (1992)",
-80038,"3,4,5-trichlorophenol",-86.8,,0,3,0,training,"Dolfing (1992)",
-80039,"2,3,4,5-tetrachlorophenol",-110.0,,0,2,0,training,"Dolfing (1992)",
-80040,"2,3,4,6-tetrachlorophenol",-114.3,,0,2,0,training,"Dolfing (1992)",
-80041,"2,3,5,6-tetrachlorophenol",-112.7,,0,2,0,training,"Dolfing (1992)",
-80042,"pentachlorophenol",-112.3,,0,1,0,training,"Dolfing (1992)",
+14219,"2-chlorophenol",-56.8,,0,5,0,skip,"Dolfing (1992)",
+14270,"3-chlorophenol",-56.4,,0,5,0,skip,"Dolfing (1992)",
+2124,"4-chlorophenol",-53.1,,0,5,0,skip,"Dolfing (1992)",
+80031,"2,3-dichlorophenol",-75.2,,0,4,0,skip,"Dolfing (1992)",
+2625,"2,4-dichlorophenol",-84.4,,0,4,0,skip,"Dolfing (1992)",
+6602,"2,5-dichlorophenol",-84.4,,0,4,0,skip,"Dolfing (1992)",
+7096,"2,6-dichlorophenol",-82.6,,0,4,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=3 but its formation energy is missing"
+14462,"3,4-dichlorophenol",-75.2,,0,4,0,skip,"Dolfing (1992)",
+80032,"3,5-dichlorophenol",-86.3,,0,4,0,skip,"Dolfing (1992)",
+80033,"2,3,4-trichlorophenol",-87.9,,0,3,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=2 but its formation energy is missing"
+80034,"2,4,5-trichlorophenol",-97.2,,0,3,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=2 but its formation energy is missing"
+80035,"2,4,6-trichlorophenol",-104.6,,0,3,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=2 but its formation energy is missing"
+80036,"2,3,5-trichlorophenol",-97.2,,0,3,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=2 but its formation energy is missing"
+80037,"2,3,6-trichlorophenol",-97.2,,0,3,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=2 but its formation energy is missing"
+80038,"3,4,5-trichlorophenol",-86.8,,0,3,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=2 but its formation energy is missing"
+80039,"2,3,4,5-tetrachlorophenol",-110.0,,0,2,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=1 but its formation energy is missing"
+80040,"2,3,4,6-tetrachlorophenol",-114.3,,0,2,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=1 but its formation energy is missing"
+80041,"2,3,5,6-tetrachlorophenol",-112.7,,0,2,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=1 but its formation energy is missing"
+80042,"pentachlorophenol",-112.3,,0,1,0,skip,"Dolfing (1992)","the most abundant species at pH 7 is nH=0 but its formation energy is missing"
 1438,"methane",-34.74,,0,4,0,skip,"Dolfing (1994)","duplicate of Alberty (2006)"
 80043,"chloromethane",-52.71,,0,3,0,testing,"Dolfing (1994)","too small"
 2271,"dichloromethane",-66.11,,0,2,0,testing,"Dolfing (1994)","too small"
