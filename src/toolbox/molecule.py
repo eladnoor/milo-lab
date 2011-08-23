@@ -5,19 +5,12 @@ import openbabel
 import types
 import re
 import glib
-import os
-import subprocess
-import logging
-from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import default_T, default_pH
-
-class ChemAxonError(Exception):
-    pass
+from toolbox.html_writer import HtmlWriter
+from toolbox import chemaxon
 
 class OpenBabelError(Exception):
     pass
-
-CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
 
 class Molecule(object):
 
@@ -148,6 +141,17 @@ class Molecule(object):
             raise OpenBabelError("Failed to create Molecule from OBMol")
         m.SetTitle("")
         return m
+    
+    @staticmethod
+    def _FromFormat(s, format='inchi'):
+        if format == 'smiles' or format == 'smi':
+            return Molecule.FromSmiles(s)
+        if format == 'inchi':
+            return Molecule.FromInChI(s)
+        if format == 'mol':
+            return Molecule.FromMol(s)
+        if format == 'obmol':
+            return Molecule.FromOBMol(s)
     
     @staticmethod
     def _ToFormat(obmol, format='inchi'):
@@ -367,67 +371,6 @@ class Molecule(object):
         win.connect("destroy", lambda w: gtk.main_quit())
         gtk.main()
 
-    def _RunCxcalc(self, args, format='inchi'):
-        if not os.path.exists(CXCALC_BIN):
-            raise Exception("Jchem must be installed to calculate pKa data.")
-        
-        #mol = self.ToFormat('mol')
-        #temp_fname = '.mol'
-        #temp_molfile = open(temp_fname, 'w')
-        #temp_molfile.write(mol)
-        #temp_molfile.close()
-        molstring = self.ToFormat(format)
-        
-        logging.debug("\nARGS: %s" % ' '.join([CXCALC_BIN] + args + [molstring]))
-        p = subprocess.Popen([CXCALC_BIN] + args + [molstring],
-                             executable=CXCALC_BIN, stdout=subprocess.PIPE)
-        #p.wait()
-        #os.remove(temp_fname)
-        res = p.communicate()[0]
-        if p.returncode != 0:
-            raise ChemAxonError()
-        logging.debug("OUTPUT: %s" % res)
-        return res
-    
-    @staticmethod
-    def _ParsePkaOutput(s, n_acidic, n_basic):
-        """
-            Returns:
-                A dictionary that maps the atom index to a list of pKas
-                that are assigned to that atom.
-        """
-        pkaline = s.split('\n')[1]
-        splitline = pkaline.split('\t')
-        apKa_list = [float(x) for x in splitline[1:(n_acidic+1)] if x != '']
-        bpKa_list = [float(x) for x in splitline[(n_acidic+1):(n_acidic+n_basic+1)] if x != '']
-                 
-        pKa_list = apKa_list + bpKa_list
-        acid_or_base_list = ['acid'] * len(apKa_list) + ['base'] * len(bpKa_list)        
-           
-        [atom_list, smiles] = splitline[n_acidic+n_basic+1:n_acidic+n_basic+3] 
-
-        atom2pKa = {}
-        if atom_list: # a comma separated list of the deprotonated atoms
-            atom_numbers = [int(x)-1 for x in atom_list.split(',')]
-            for i, j in enumerate(atom_numbers):
-                atom2pKa.setdefault(j, [])
-                atom2pKa[j].append((pKa_list[i], acid_or_base_list[i]))
-        
-        mol = None
-        if smiles: # a SMILES string of the major microspecies
-            mol = Molecule.FromSmiles(smiles)
-            
-        return atom2pKa, mol
-    
-    def GetDissociationConstants(self, n_acidic=10, n_basic=10, pH=default_pH):
-        args = ['pka', '-a', str(n_acidic), '-b', str(n_basic), '-M', 'true',
-                'majorms', '--pH', str(pH)]
-        try:
-            output = self._RunCxcalc(args)
-        except ChemAxonError:
-            output = self._RunCxcalc(args, format='smiles')
-        return Molecule._ParsePkaOutput(output, n_acidic, n_basic)
-
     def GetAtomCharges(self):
         """
             Returns:
@@ -435,85 +378,49 @@ class Molecule(object):
                 in the molecule
         """
         return [atom.formalcharge for atom in self.pybel_mol.atoms]
-    
+
     @staticmethod
-    def _ParseSdfSpecies(s):
-        logging.debug("Input: " + s)
-        mol = Molecule.FromMol(s)
-        logging.debug("Output: " +  mol.ToSmiles())
-        
-        [percentStr] = re.findall('>  <DISTR\[pH=[\-\d\.]+\]>\n([\d\.]+)\n', s)
-        percent = float(percentStr)
-        return percent, mol
-    
-    def GetPseudoisomersAtPh(self, pH=7, threshold=0.0):
-        """
-            Returns a list of pseudoisomers (Molecule objects) in descending
-            order of abundance
-        """
-        args = ['msdistr', '-H', str(pH), '-M', 'true']
-        res = []
-        
-        try:
-            output = self._RunCxcalc(args).split('$$$$\n')
-        except ChemAxonError:
-            output = self._RunCxcalc(args, format='smiles').split('$$$$\n')
-            
-        for s in output:
-            if s == '':
-                continue
-            percent, mol = Molecule._ParseSdfSpecies(s)
-            if percent >= threshold:
-                res.append((percent, mol))
-        
-        if not res:
-            return [self]
-        
-        res.sort(key=lambda(x):x[0], reverse=True)
-        return [x[1] for x in res]
-    
-    def GetMacrospecies(self):
-        args  = ['majorms']
-        res = self._RunCxcalc(args)
-        smiles = res.split('\n')[1].split()[1]
-        return smiles.split('.')
-        
-    def GetPseudoisomerMap(self, mid_pH=default_pH, 
-                           min_pKa=0, max_pKa=14, T=default_T):
+    def _GetPseudoisomerMap(molstring, format='inchi', mid_pH=default_pH, 
+                            min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
             relative to the most abundant one at pH 7.
         """
         from pygibbs.dissociation_constants import DissociationTable
-        diss = DissociationTable()
 
         try:
-            atom2pKa, major_pseudoisomer = self.GetDissociationConstants(pH=mid_pH)
-        except ChemAxonError:
-            atom2pKa = {}
+            pKas, major_pseudoisomer = chemaxon.GetDissociationConstants(molstring, pH=mid_pH)
+            mol = Molecule.FromSmiles(major_pseudoisomer)
+        except chemaxon.ChemAxonError:
+            pKas = []
+            mol = Molecule._FromFormat(molstring, format)
 
-        pKa_up = []
-        pKa_down = []
-        for pKa_list in atom2pKa.values():
-            for pKa, _acid_or_base in pKa_list:
-                if mid_pH < pKa < max_pKa:
-                    pKa_up.append(pKa)
-                elif min_pKa < pKa <= mid_pH:
-                    pKa_down.append(pKa)
-        pKa_up.sort()
-        pKa_down.sort(reverse=True)
+        nH, _z = mol.GetHydrogensAndCharge()
+        diss_table = DissociationTable()
+        diss_table.SetOnlyPseudoisomer(mol)
 
-        nH, z = major_pseudoisomer.GetHydrogensAndCharge()
-        diss.SetOnlyPseudoisomer(major_pseudoisomer)
+        pKa_up = sorted([pKa for pKa in pKas if mid_pH < pKa < max_pKa])
+        pKa_down = sorted([pKa for pKa in pKas if min_pKa < pKa <= mid_pH], 
+                          reverse=True)
         for i, pKa in enumerate(pKa_up):
-            diss.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
-                        nMg=0, ref='ChemAxon', T=T)
+            diss_table.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
+                              nMg=0, ref='ChemAxon', T=T)
 
         for i, pKa in enumerate(pKa_down):
-            diss.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
-                        nMg=0, ref='ChemAxon', T=T)
+            diss_table.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
+                              nMg=0, ref='ChemAxon', T=T)
             
-        return diss, major_pseudoisomer
+        return diss_table
+
+    def GetPseudoisomerMap(self, format='inchi', mid_pH=default_pH, 
+                           min_pKa=0, max_pKa=14, T=default_T):
+        """
+            Returns the relative potentials of pseudoisomers,
+            relative to the most abundant one at pH 7.
+        """
+        
+        return Molecule._GetPseudoisomerMap(self.ToInChI(), 'inchi',
+                                            mid_pH, min_pKa, max_pKa, T)
     
 if __name__ == "__main__":
     Molecule.SetBondLength(50.0)
@@ -545,10 +452,9 @@ if __name__ == "__main__":
     for cid in [41]:
         m = kegg.cid2mol(cid)
         html_writer.write("<h2>C%05d : %s</h2>\n" % (cid, str(m)))
-        diss, major_ps = m.GetPseudoisomerMap()
-        pmap = diss.GetPseudoisomerMap()
-        html_writer.write("<p>" + major_ps.ToSVG() + "</br>\n")
-        diss.WriteToHTML(html_writer)
+        diss_table = m.GetPseudoisomerMap()
+        pmap = diss_table.GetPseudoisomerMap()
+        diss_table.WriteToHTML(html_writer)
         pmap.WriteToHTML(html_writer)
         html_writer.write("</p>\n")
         #print m.GetDissociationConstants()

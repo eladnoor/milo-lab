@@ -19,7 +19,6 @@ from pygibbs.thermodynamics import Thermodynamics,\
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.thermodynamic_constants import default_I, default_pMg, default_T,\
     default_pH
-from pygibbs import kegg_reaction
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
@@ -100,7 +99,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
 
             self.override_data(anchors)
             self.anchors.update(anchors.get_all_cids())
-               
+        
         data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized,
                                                          cid2nH=cid2nH)
         
@@ -118,6 +117,10 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                                    in xrange(stoichiometric_matrix.shape[0])])
 
         logging.info("There are %d unique reactions" % unique_rows_S.shape[0])
+        unique_rids = set([nist_row.reaction.rid for nist_row in nist_rows
+                            if nist_row.reaction.rid is not None])
+        logging.info("Out of which %d have KEGG reaction IDs" % len(unique_rids))
+
         
         # for every unique row, calculate the average dG0_r of all the rows that
         # are the same reaction
@@ -223,8 +226,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         for i in xrange(S.shape[0]):
             print i, self.ReactionVector2String(S[i, :], cids)
     
-    def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None,
-                         store=True):
+    def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None):
         rankS = LinearRegression.Rank(S)
         logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
                      (S.shape[0], S.shape[1], S.shape[1]-rankS))
@@ -260,9 +262,6 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                         delta_dG0_f, reduced_row_echlon=False)
             est_dG0_f += np.dot(kerA.T, v)
 
-        if not store:
-            return
-        
         # copy the solution into the diss_tables of all the compounds,
         # and then generate their PseudoisomerMaps.
         for i, cid in enumerate(cids):
@@ -567,78 +566,45 @@ def main():
     
     html_writer = HtmlWriter(output_filename)
     db = SqliteDatabase(db_loc)
-    db_public = SqliteDatabase(public_db_loc)
-    nist_regression = NistRegression(db, html_writer)
+    nist_regression = NistRegression(db, html_writer=html_writer)
+    nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
+    nist_regression.nist.T_range = None#(273.15 + 24, 273.15 + 40)
+    #nist_regression.nist.override_I = 0.25
+    #nist_regression.nist.override_pMg = 14.0
+
+    #nist_anchors = PsuedoisomerTableThermodynamics.FromCsvFile(
+    #    '../data/thermodynamics/nist_anchors.csv')
+    #
+    #S, dG0, cids = nist_regression.ReverseTransform(nist_anchors)
+
+    # copy the Alberty values from the public DB to the local DB
+    #db_public = SqliteDatabase(public_db_loc)
+    #alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
+
+    S, dG0, cids = nist_regression.ReverseTransform()
+
+    #nist_regression.ExportToTextFiles(S, dG0, cids)
+    html_writer.write("<h2>NIST regression:</h2>")
     
-    if False:
-        html_writer.write("<h2>NIST pKa table:</h2>")
-        nist_regression.Nist_pKas()
-        #nist_regression.Calculate_pKa_and_pKMg()
-    else:
-        nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
-        nist_regression.nist.T_range = None#(273.15 + 24, 273.15 + 40)
-        #nist_regression.nist.override_I = 0.25
-        #nist_regression.nist.override_pMg = 14.0
-
-        #nist_anchors = PsuedoisomerTableThermodynamics.FromCsvFile(
-        #    '../data/thermodynamics/nist_anchors.csv')
-        #
-        #S, dG0, cids = nist_regression.ReverseTransform(nist_anchors)
-        S, dG0, cids = nist_regression.ReverseTransform()
-
-        #nist_regression.ExportToTextFiles(S, dG0, cids)
-        html_writer.write("<h2>NIST regression:</h2>")
-        
-        # copy the Alberty values from the public DB to the local DB
-        alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
-        alberty.ToDatabase(db, 'alberty')
-        
-        # Train the formation energies using linear regression
-        nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=None)
-        nist_regression.ToDatabase(db, 'prc_pseudoisomers')
-        
-        html_writer.write('<h3>PRC results:</h3>\n')
-        html_writer.insert_toggle('regression')
-        html_writer.div_start('regression')
-        nist_regression.WriteDataToHtml()
-        html_writer.div_end()
+    # Train the formation energies using linear regression
+    nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=None)
+    nist_regression.ToDatabase(db, 'prc_pseudoisomers')
     
-        html_writer.write('<h3>Reaction energies - PRC vs. Observed:</h3>\n')
-        html_writer.insert_toggle('verify')
-        html_writer.div_start('verify')
-        N, rmse = nist_regression.VerifyResults()
-        html_writer.div_end()
-        html_writer.write('</br>\n')
-        
-        logging.info("Regression results for observed data:")
-        logging.info("N = %d, RMSE = %.1f" % (N, rmse))
+    html_writer.write('<h3>PRC results:</h3>\n')
+    html_writer.insert_toggle('regression')
+    html_writer.div_start('regression')
+    nist_regression.WriteDataToHtml()
+    html_writer.div_end()
 
-        html_writer.write('<h3>Formation energies - PRC vs. Alberty:</h3>\n')
-
-        query = 'SELECT a.cid, a.nH, a.z, a.nMg, a.dG0, r.dG0 ' + \
-                'FROM alberty a, prc_pseudoisomers r ' + \
-                'WHERE a.cid=r.cid AND a.nH=r.nH AND a.nMg=r.nMg ' + \
-                'AND a.anchor=0 ORDER BY a.cid,a.nH'
-        
-        data = np.zeros((0, 2))
-        fig = plt.figure()
-        plt.hold(True)
-        for row in db.Execute(query):
-            cid, unused_nH, z, unused_nMg, dG0_a, dG0_r = row
-            name = nist_regression.kegg.cid2name(cid)
-            x = (dG0_a + dG0_r)/2
-            y = dG0_a - dG0_r
-            plt.text(x, y, "%s [%d]" % (name, z), fontsize=5, rotation=20)
-            data = np.vstack([data, (x,y)])
-
-        plt.plot(data[:,0], data[:,1], '.')
-        html_writer.embed_matplotlib_figure(fig, width=640, height=480)
-
-        #nist_regression.FindKernel(S, cids, sparse=True)
-        # TODO: the first vectors in the kernel should be the element preserving
-        # reactions (i.e. for the oxygen vector, the coeff in each column should
-        # be the number of oxygen atoms in that compounds). 
-        
+    html_writer.write('<h3>Reaction energies - PRC vs. Observed:</h3>\n')
+    html_writer.insert_toggle('verify')
+    html_writer.div_start('verify')
+    N, rmse = nist_regression.VerifyResults()
+    html_writer.div_end()
+    html_writer.write('</br>\n')
+    
+    logging.info("Regression results for observed data:")
+    logging.info("N = %d, RMSE = %.1f" % (N, rmse))
 
     html_writer.close()
     
