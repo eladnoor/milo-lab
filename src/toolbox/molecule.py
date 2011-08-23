@@ -9,7 +9,7 @@ import os
 import subprocess
 import logging
 from toolbox.html_writer import HtmlWriter
-from pygibbs.thermodynamic_constants import default_T
+from pygibbs.thermodynamic_constants import default_T, default_pH
 
 class ChemAxonError(Exception):
     pass
@@ -404,16 +404,24 @@ class Molecule(object):
         pKa_list = apKa_list + bpKa_list
         acid_or_base_list = ['acid'] * len(apKa_list) + ['base'] * len(bpKa_list)        
            
+        [atom_list, smiles] = splitline[n_acidic+n_basic+1:n_acidic+n_basic+3] 
+
         atom2pKa = {}
-        if splitline[-1]:
-            atom_numbers = [int(x)-1 for x in splitline[-1].split(',')]
+        if atom_list: # a comma separated list of the deprotonated atoms
+            atom_numbers = [int(x)-1 for x in atom_list.split(',')]
             for i, j in enumerate(atom_numbers):
                 atom2pKa.setdefault(j, [])
                 atom2pKa[j].append((pKa_list[i], acid_or_base_list[i]))
-        return atom2pKa
+        
+        mol = None
+        if smiles: # a SMILES string of the major microspecies
+            mol = Molecule.FromSmiles(smiles)
+            
+        return atom2pKa, mol
     
-    def GetDissociationConstants(self, n_acidic=10, n_basic=10):
-        args = ['pka', '-a', str(n_acidic), '-b', str(n_basic), '-M', 'true']
+    def GetDissociationConstants(self, n_acidic=10, n_basic=10, pH=default_pH):
+        args = ['pka', '-a', str(n_acidic), '-b', str(n_basic), '-M', 'true',
+                'majorms', '--pH', str(pH)]
         try:
             output = self._RunCxcalc(args)
         except ChemAxonError:
@@ -470,7 +478,8 @@ class Molecule(object):
         smiles = res.split('\n')[1].split()[1]
         return smiles.split('.')
         
-    def GetPseudoisomerMap(self, mid_pH=7, min_pKa=0, max_pKa=14, T=default_T):
+    def GetPseudoisomerMap(self, mid_pH=default_pH, 
+                           min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
             relative to the most abundant one at pH 7.
@@ -479,12 +488,7 @@ class Molecule(object):
         diss = DissociationTable()
 
         try:
-            pseudoisomer_list = self.GetPseudoisomersAtPh(pH=mid_pH)
-        except ChemAxonError:
-            pseudoisomer_list = [self]
-
-        try:
-            atom2pKa = self.GetDissociationConstants()
+            atom2pKa, major_pseudoisomer = self.GetDissociationConstants(pH=mid_pH)
         except ChemAxonError:
             atom2pKa = {}
 
@@ -499,37 +503,16 @@ class Molecule(object):
         pKa_up.sort()
         pKa_down.sort(reverse=True)
 
-        # save only the most abundant pseudoisomer for each nH
-        # counts on the fact that the pseudoisomer_list is ordered by
-        # decreasing abundance
-        nH_to_mol = {}
-        for pseudoisomer in pseudoisomer_list:
-            nH, _z = pseudoisomer.GetHydrogensAndCharge()
-            if nH not in nH_to_mol:
-                nH_to_mol[nH] = pseudoisomer
-        
-        major_pseudoisomer = pseudoisomer_list[0]
-
         nH, z = major_pseudoisomer.GetHydrogensAndCharge()
-        if not pKa_up and not pKa_down:
-            diss.SetOnlyPseudoisomer(major_pseudoisomer.ToInChI(),
-                                     nH=nH, nMg=0)
-        else:
-            for i, pKa in enumerate(pKa_up):
-                diss.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
-                            nMg=0, ref='ChemAxon', T=T,
-                            mol_below=nH_to_mol.get(nH-i, None),
-                            mol_above=nH_to_mol.get(nH-i-1, None))
-    
-            for i, pKa in enumerate(pKa_down):
-                diss.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
-                            nMg=0, ref='ChemAxon', T=T,
-                            mol_below=nH_to_mol.get(nH+i+1, None),
-                            mol_above=nH_to_mol.get(nH+i, None))
-                
+        diss.SetOnlyPseudoisomer(major_pseudoisomer)
+        for i, pKa in enumerate(pKa_up):
+            diss.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
+                        nMg=0, ref='ChemAxon', T=T)
 
-        diss.SetCharge(nH, z)
-
+        for i, pKa in enumerate(pKa_down):
+            diss.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
+                        nMg=0, ref='ChemAxon', T=T)
+            
         return diss, major_pseudoisomer
     
 if __name__ == "__main__":

@@ -80,8 +80,11 @@ class DissociationConstants(object):
                     raise ValueError('The row about C%05d has different nMgs although it is not "Mg"' % cid)
                 elif nH_below != nH_above:
                     raise ValueError('The row about C%05d has different nHs although it is not "acid-base"' % cid)
+                elif mol_below is not None:
+                    diss.SetOnlyPseudoisomer(cid, mol_below, nMg_below)
                 else:
-                    diss.SetOnlyPseudoisomer(cid, mol_below, nH_below, nMg_below)
+                    diss.GetDissociationTable(cid).min_nH = nH_below
+                    
             except ValueError as e:
                 raise ValueError("At row %i: %s" % (i, str(e)))
             except TypeError as e:
@@ -148,9 +151,9 @@ class DissociationConstants(object):
         diss_table.AddpKMg(pKMg, nMg_below, nMg_above, nH, 
                           ref, T, mol_below, mol_above)
         
-    def SetOnlyPseudoisomer(self, cid, mol, nH, nMg=0):
+    def SetOnlyPseudoisomer(self, cid, mol, nMg=0):
         diss_table = self.GetDissociationTable(cid)
-        diss_table.SetOnlyPseudoisomer(mol, nH, nMg)
+        diss_table.SetOnlyPseudoisomer(mol, nMg=nMg)
     
     def UpdateMinNumHydrogens(self, cid, min_nH):
         """
@@ -449,8 +452,10 @@ class DissociationTable(object):
         ddG0 = R * T * np.log(10) * pKa
         key = (nH_above, nH_below, nMg, nMg)
         self.ddGs[key] = (-ddG0, ref) # adding H+ decreases dG0
-        self.mol_dict[nH_above, nMg] = mol_above
-        self.mol_dict[nH_below, nMg] = mol_below
+        if mol_above is not None:
+            self.mol_dict[nH_above, nMg] = mol_above
+        if mol_below is not None:
+            self.mol_dict[nH_below, nMg] = mol_below
         self.UpdateMinNumHydrogens(nH_above)
         
     def AddpKMg(self, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T, 
@@ -462,19 +467,24 @@ class DissociationTable(object):
         ddG0 = R * T * np.log(10) * pKMg - dG0_f_Mg
         key = (nH, nH, nMg_above, nMg_below)
         self.ddGs[key] = (-ddG0, ref) # adding Mg+2 decreases dG0
-        self.mol_dict[nH, nMg_above] = mol_above
-        self.mol_dict[nH, nMg_below] = mol_below
+        if mol_above is not None:
+            self.mol_dict[nH, nMg_above] = mol_above
+        if mol_below is not None:
+            self.mol_dict[nH, nMg_below] = mol_below
         self.UpdateMinNumHydrogens(nH)
     
-    def SetOnlyPseudoisomer(self, mol, nH, nMg=0):
+    def SetOnlyPseudoisomer(self, mol, nMg=0):
         """
             For compound which have no known pKa or pKMg, this method can be used
             to set the parameters of the only pseudoisomer.
         """
         if len(self.ddGs):
             raise ValueError("You tried to set the only-pseudoisomer of a compound that has pKas/pKMgs")
+        nH, z = mol.GetHydrogensAndCharge()
         self.mol_dict[nH, nMg] = mol
         self.min_nH = nH
+        if z is not None:
+            self.SetCharge(nH, z, nMg)
     
     def UpdateMinNumHydrogens(self, min_nH):
         if not self.min_nH or self.min_nH > min_nH: 
@@ -708,11 +718,7 @@ if __name__ == '__main__':
         
         cid2mol = {}
         for cid in nist.GetAllCids() + thermo.get_all_cids():
-            if cid in dissociation_csv.GetAllCids():
-                cid2mol[cid] = dissociation_csv.GetMostAbundantMol(cid,
-                    pH=default_pH, I=default_I, pMg=default_pMg, T=default_T)
-            else:
-                cid2mol[cid] = None
+            cid2mol[cid] = None
         
         dissociation_chemaxon = DissociationConstants.FromChemAxon(cid2mol, html_writer)
         dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon')
@@ -731,10 +737,12 @@ if __name__ == '__main__':
                 html_writer.write('</br>\n')
 
     if False:
-        dissociation = DissociationConstants.FromChemAxon([41], html_writer)
-        diss_table = dissociation.GetDissociationTable(41)
-        for (nH, nMg), mol in diss_table.mol_dict.iteritems():
-            print nH, nMg, mol.ToSmiles(), mol.ToInChI()
+        cid2mol = {41:None, 117:None}
+        dissociation = DissociationConstants.FromChemAxon(cid2mol, html_writer)
+        for cid in cid2mol.keys():
+            diss_table = dissociation.GetDissociationTable(cid)
+            print "*** C%05d ***" % cid
+            print diss_table
             
     if False:
         dissociation1 = DissociationConstants.FromDatabase(db,'dissociation_constants')
