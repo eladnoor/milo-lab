@@ -16,6 +16,7 @@ from pygibbs.feist_ecoli import Feist
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
+import sys
 
 def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
@@ -96,7 +97,12 @@ def main():
                                 thermo1=estimators['hatzi_gc'],
                                 thermo2=estimators['hatzi_gc_pka'],
                                 name='jankowski_pka')
-        
+    
+    nist.two_way_comparison(html_writer=html_writer, 
+                                thermo1=estimators['PRC'],
+                                thermo2=estimators['PGC'],
+                                name='PGC_vs_PRC')
+    
     if False:
         estimators['alberty'].CompareOverKegg(html_writer, 
                                               other=estimators['PRC'],
