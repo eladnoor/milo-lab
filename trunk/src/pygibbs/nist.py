@@ -510,8 +510,8 @@ class Nist(object):
             try:
                 dG0_pred1 = row_data.PredictReactionEnergy(thermo1)
                 dG0_pred2 = row_data.PredictReactionEnergy(thermo2)
-            except MissingCompoundFormationEnergy:
-                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.ref_id)
+            except MissingReactionEnergy as e:
+                logging.debug("the reaction in (%s) cannot be estimated: %s" % (row_data.ref_id, str(e)))
                 continue
                 
             total_list.append([row_data.dG0_r, dG0_pred1, dG0_pred2, 
@@ -524,29 +524,41 @@ class Nist(object):
         
         # plot the profile graph
         pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 12
         pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
+        pylab.rcParams['font.size'] = 8
         pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 3
-        pylab.rcParams['figure.figsize'] = [6.0, 6.0]
+        pylab.rcParams['lines.markersize'] = 2
         pylab.rcParams['figure.dpi'] = 100
         
         data_mat = pylab.array(total_list)
-        fig = pylab.figure()
+        fig1 = pylab.figure(figsize=(4,4))
         pylab.hold(True)
         error1 = data_mat[:,0]-data_mat[:,1]
         error2 = data_mat[:,0]-data_mat[:,2]
         
         max_err = max(error1.max(), error2.max())
         min_err = min(error1.min(), error2.min())
-        pylab.plot([min_err, max_err], [min_err, max_err], 'k--', figure=fig)
-        pylab.plot(error1, error2, '.', figure=fig)
+        pylab.plot([min_err, max_err], [min_err, max_err], 'k--', figure=fig1)
+        pylab.plot(error1, error2, '.', figure=fig1)
         pylab.title("Error Comparison per Reaction (in kJ/mol)")
-        pylab.xlabel(thermo1.name, figure=fig)
-        pylab.ylabel(thermo2.name, figure=fig)
-        html_writer.embed_matplotlib_figure(fig, width=200, height=200, name=name+"_corr")
-
+        pylab.xlabel(thermo1.name, figure=fig1)
+        pylab.ylabel(thermo2.name, figure=fig1)
+        html_writer.embed_matplotlib_figure(fig1, name=name+"_corr")
+        
+        
+        fig2 = pylab.figure(figsize=(7,3))
+        for i, thermo in enumerate([thermo1, thermo2]):
+            fig2.add_subplot(1,2,i+1)
+            pylab.plot(data_mat[:,0], data_mat[:,i+1], 'b.')
+            rmse = calc_rmse(data_mat[:,0], data_mat[:,i+1])
+            pylab.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (rmse))
+            pylab.xlabel(r'observed $\Delta G_r^\circ$ from NIST [kJ/mol]')
+            pylab.ylabel(r'estimated $\Delta G_r^\circ$ using %s [kJ/mol]' % thermo.name)
+            pylab.plot([-60, 60], [-60, 60], 'k--')
+            pylab.axis([-60, 60, -60, 60])
+        
+        html_writer.embed_matplotlib_figure(fig2, name=name+"_eval")
+            
     def SelectRowsFromNist(self, reaction=None, check_reverse=True):
         rows = []
         checklist = []

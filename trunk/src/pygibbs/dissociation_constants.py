@@ -678,6 +678,10 @@ class DissociationTable(object):
         nH, _z, nMg, _dG0_tag = pseudoisomer_matrix[0] # return the psuedoisomer with the smallest dG0_tag
         return (nH, nMg)
     
+    def GetMostAbundantMol(self, pH, I, pMg, T):
+        nH, nMg = self.GetMostAbundantPseudoisomer(pH, I, pMg, T)
+        return self.GetMol(nH, nMg)
+    
     def Transform(self, pH, I, pMg, T):    
         return self.min_dG0 + self.GetDeltaDeltaG0(pH, I, pMg, T, nH=self.min_nH)
     
@@ -697,99 +701,176 @@ if __name__ == '__main__':
     html_writer = HtmlWriter("../res/dissociation_constants.html")
 
     if False:
+        # copy the data from the CSV file to the database
         dissociation_csv = DissociationConstants.FromFile()
         dissociation_csv.ToDatabase(db, 'dissociation_constants')
     
-        nist = Nist()
-        obs_fname = "../data/thermodynamics/formation_energies.csv"
-        thermo = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname)
-        
-        cid2mol = {}
-        for cid in nist.GetAllCids() + thermo.get_all_cids():
-            cid2mol[cid] = None
-        
-        dissociation_chemaxon = DissociationConstants.FromChemAxon(cid2mol, html_writer)
-        dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon')
-
     if True:
-        dissociation_chemaxon = DissociationConstants.FromDatabase(db, 'dissociation_constants_chemaxon')
-
         cid2smiles = {}
+        # override aromatic compounds
+        cid2smiles[2] = "Nc1ncnc2n(cnc12)C1OC(COP(O)(=O)OP(O)(=O)OP(O)(O)=O)C(O)C1O" # ATP 
         cid2smiles[3] = "NC(=O)c1ccc[n+](c1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # NAD+
         cid2smiles[4] = "NC(=O)C1=CN(C=CC1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # NADH
         cid2smiles[5] = "NC(=O)C1=CN(C=CC1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(OP(O)(O)=O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # NADPH
         cid2smiles[6] = "NC(=O)c1ccc[n+](c1)C1OC(COP(O)(=O)OP(O)(=O)OCC2OC(C(OP(O)(O)=O)C2O)n2cnc3c(N)ncnc23)C(O)C1O" # MADP+
+        cid2smiles[8] = "Nc1ncnc2n(cnc12)C1OC(COP(O)(=O)OP(O)(O)=O)C(O)C1O" # ADP
         cid2smiles[10] = "CC(C)(COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12)C(O)C(=O)NCCC(=O)NCCS" # CoA
-        cid2smiles[29] = "OCC1OC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(=O)[nH]c2=O)C(O)C(O)1O" # UDP-glucose
+        cid2smiles[20] = "Nc1ncnc2n(cnc12)C1OC(COP(O)(O)=O)C(O)C1O" # AMP
+        cid2smiles[29] = "OCC1OC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(=O)[nH]c2=O)C(O)C(O)C1O" # UDP-glucose
         cid2smiles[35] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(COP(O)(=O)OP(O)(O)=O)C(O)C1O" # GDP
-        cid2smiles[44] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # GTP
-        cid2smiles[52] = "OC[C@H]1OC(OP(O)(=O)OP(O)(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2ccc(=O)[nH]c2=O)[C@H](O)[C@@H](O)[C@H]1O" # UDP-galactose
-        cid2smiles[101] = "Nc1nc2NC[C@H](CNc3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O)Nc2c(=O)[nH]1" # THF
-        cid2smiles[104] = "O[C@@H]1[C@@H](COP(O)(=O)OP(O)(O)=O)O[C@H]([C@@H]1O)n1cnc2c1nc[nH]c2=O" # IDP
-        cid2smiles[105] = "O[C@@H]1[C@@H](COP(O)(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O" # UMP
-        cid2smiles[112] = "Nc1ccn([C@@H]2O[C@H](COP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]2O)c(=O)n1" # CMP
-        cid2smiles[360] = "Nc1ncnc2n(cnc12)[C@H]1C[C@H](O)[C@@H](COP(O)(O)=O)O1" # dAMP
-        cid2smiles[1144] = "C[C@H](O)CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (S)-3-Hydroxybutanoyl-CoA;
-        cid2smiles[130] = "O[C@@H]1[C@@H](COP(O)(O)=O)O[C@H]([C@@H]1O)n1cnc2c1nc[nH]c2=O" # IMP
-        cid2smiles[131] = "Nc1ncnc2n(cnc12)[C@H]1C[C@H](O)[C@@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)O1" # dATP
-        cid2smiles[143] = "[H][C@]12CNc3nc(N)[nH]c(=O)c3N1CN(C2)c1ccc(cc1)C(=O)N[C@@H](CCC(O)=O)C(O)=O" # 5,10-methylene-THF
-        cid2smiles[144] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]1O" # GMP
+        cid2smiles[44] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(COP(O)(=O)OP(O)(=O)OP(O)(O)=O)C(O)C1O" # GTP
+        cid2smiles[52] = "OCC1OC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(=O)[nH]c2=O)C(O)C(O)C1O" # UDP-galactose
+        cid2smiles[55] = "Nc1ccn(C2OC(COP(O)(O)=O)C(O)C2O)c(=O)n1" # CMP
+        cid2smiles[64] = "NC(CCC(=O)N)C(O)=O" # L-glutamine
+        cid2smiles[75] = "OC1C(COP(O)(=O)OP(O)(=O)OP(O)(O)=O)OC(C1O)n1ccc(=O)[nH]c1=O" # UTP
+        cid2smiles[78] = "NC(Cc1c[nH]c2ccccc12)C(O)=O" # L-tryptophan
+        cid2smiles[79] = "NC(Cc1ccccc1)C(O)=O" # phenylalanine        
+        cid2smiles[81] = "OC1C(COP(O)(=O)OP(O)(=O)OP(O)(O)=O)OC(C1O)n1cnc2c1nc[nH]c2=O" # ITP
+        cid2smiles[82] = "NC(Cc1ccc(O)cc1)C(O)=O" # L-tyrosine
+        cid2smiles[91] = "CC(C)(COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12)C(O)C(=O)NCCC(=O)NCCSC(=O)CCC(O)=O" # succinyl-CoA
+        cid2smiles[96] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(COP(O)(=O)OP(O)(=O)OC2OC(CO)C(O)C(O)C2O)C(O)C1O" # GDP-mannose
+        cid2smiles[100] = "CCC(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # propanoyl-CoA
+        cid2smiles[101] = "Nc1nc2NCC(CNc3ccc(cc3)C(=O)NC(CCC(O)=O)C(O)=O)Nc2c(=O)[nH]1" # THF
+        cid2smiles[104] = "OC1C(COP(O)(=O)OP(O)(O)=O)OC(C1O)n1cnc2c1nc[nH]c2=O" # IDP
+        cid2smiles[105] = "OC1C(COP(O)(O)=O)OC(C1O)n1ccc(=O)[nH]c1=O" # UMP
+        cid2smiles[106] = "O=c1cc[nH]c(=O)[nH]1" # uracil
+        cid2smiles[112] = "Nc1ccn(C2OC(COP(O)(=O)OP(O)(O)=O)C(O)C2O)c(=O)n1" # CMP
+        cid2smiles[130] = "OC1C(COP(O)(O)=O)OC(C1O)n1cnc2c1nc[nH]c2=O" # IMP
+        cid2smiles[131] = "Nc1ncnc2n(cnc12)C1CC(O)C(COP(O)(=O)OP(O)(=O)OP(O)(O)=O)O1" # dATP
+        cid2smiles[143] = "C12CNc3nc(N)[nH]c(=O)c3N1CN(C2)c1ccc(cc1)C(=O)NC(CCC(O)=O)C(O)=O" # 5,10-methylene-THF
+        cid2smiles[144] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(COP(O)(O)=O)C(O)C1O" # GMP
         cid2smiles[147] = "Nc1ncnc2[nH]cnc12" # adenine
-        cid2smiles[154] = "CCCCCCCCCCCCCCCC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # palmitoyl-CoA
-        cid2smiles[167] = "O[C@@H]1[C@@H](COP(O)(=O)OP(O)(=O)O[C@H]2O[C@@H]([C@@H](O)[C@H](O)[C@H]2O)C(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O" # UDP-glucuronate
-        cid2smiles[4268] = "C[C@H]1OC(OP(O)(=O)OP(O)(=O)OC[C@H]2O[C@H](C[C@@H]2O)n2cc(C)c(=O)[nH]c2=O)[C@H](O)[C@@H](O)[C@@H]1N" # dTDP-4-amino-4,6-dideoxy-D-glucose
-        cid2smiles[4677] = "NC(=O)c1ncn([C@@H]2O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]2O)c1N" # 5'-Phospho-ribosyl-5-amino-4-imidazole carboxamide
+        cid2smiles[154] = "CCCCCCCCCCCCCCCC(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # palmitoyl-CoA
+        cid2smiles[167] = "OC1C(COP(O)(=O)OP(O)(=O)OC2OC(C(O)C(O)C2O)C(O)=O)OC(C1O)n1ccc(=O)[nH]c1=O" # UDP-glucuronate
         cid2smiles[178] = "Cc1c[nH]c(=O)[nH]c1=O" # thymine 
-        cid2smiles[1213] = "C[C@H](C(O)=O)C(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (R)-Methylmalonyl-CoA
-        cid2smiles[190] = "O[C@@H]1CO[C@H](OP(O)(=O)OP(O)(=O)OC[C@H]2O[C@H]([C@H](O)[C@@H]2O)n2ccc(=O)[nH]c2=O)[C@H](O)[C@H]1O" # UDP-D-xylose
-        cid2smiles[2763] = "OC(=O)C(O)=Cc1ccccc1" # 2-Hydroxy-3-phenylpropenoate
-        cid2smiles[206] = "Nc1ncnc2n(cnc12)[C@H]1C[C@H](O)[C@@H](COP(O)(=O)OP(O)(O)=O)O1" # dADP
-        cid2smiles[75] = "O[C@@H]1[C@@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)O[C@H]([C@@H]1O)n1ccc(=O)[nH]c1=O" # UTP
-        cid2smiles[2595] = "OC(=O)Cc1cccs1" # Thien-2-ylacetate
-        cid2smiles[212] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O" # adenosine
-        cid2smiles[214] = "Cc1cn([C@H]2C[C@H](O)[C@@H](CO)O2)c(=O)[nH]c1=O" # thymidine
-        cid2smiles[224] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OS(O)(=O)=O)[C@@H](O)[C@H]1O" # Adenosine 5'-phosphosulfate
-        cid2smiles[234] = "[H]C(=O)N(C[C@H]1CNc2nc(N)[nH]c(=O)c2N1)c1ccc(cc1)C(=O)N[C@@H](CCC(O)=O)C(O)=O" # 10-Formyl-THF
-        cid2smiles[239] = "Nc1ccn([C@H]2C[C@H](O)[C@@H](COP(O)(O)=O)O2)c(=O)n1" # dCMP
+        cid2smiles[190] = "OC1COC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(=O)[nH]c2=O)C(O)C1O" # UDP-D-xylose
+        cid2smiles[206] = "Nc1ncnc2n(cnc12)C1CC(O)C(COP(O)(=O)OP(O)(O)=O)O1" # dADP
+        cid2smiles[212] = "Nc1ncnc2n(cnc12)C1OC(CO)C(O)C1O" # adenosine
+        cid2smiles[214] = "Cc1cn(C2CC(O)C(CO)O2)c(=O)[nH]c1=O" # thymidine
+        cid2smiles[224] = "Nc1ncnc2n(cnc12)C1OC(COP(O)(=O)OS(O)(=O)=O)C(O)C1O" # Adenosine 5'-phosphosulfate
+        cid2smiles[234] = "[H]C(=O)N(CC1CNc2nc(N)[nH]c(=O)c2N1)c1ccc(cc1)C(=O)NC(CCC(O)=O)C(O)=O" # 10-Formyl-THF
+        cid2smiles[239] = "Nc1ccn(C2CC(O)C(COP(O)(O)=O)O2)c(=O)n1" # dCMP
         cid2smiles[242] = "Nc1nc2[nH]cnc2c(=O)[nH]1" # guanine
-        cid2smiles[1267] = "OP(O)(=O)OCC(=O)Cc1c[nH]cn1" # Imidazole-acetol phosphate
         cid2smiles[250] = "[H]C(=O)c1c(CO)cnc(C)c1O" # pyridoxal
         cid2smiles[253] = "OC(=O)c1cccnc1" # nicotinate
         cid2smiles[261] = "[H]C(=O)c1ccccc1" # Benzaldehyde
-        cid2smiles[294] = "OC[C@H]1O[C@H]([C@H](O)[C@@H]1O)n1cnc2c(O)ncnc12" # inosine
+        cid2smiles[262] = "O=c1[nH]cnc2nc[nH]c12" # hypoxanthine
+        cid2smiles[294] = "OCC1OC(C(O)C1O)n1cnc2c(O)ncnc12" # inosine
         cid2smiles[295] = "OC(=O)c1cc(=O)[nH]c(=O)[nH]1" # orotate
-        cid2smiles[299] = "OC[C@H]1O[C@H]([C@H](O)[C@@H]1O)n1ccc(=O)[nH]c1=O" # uridine
-        cid2smiles[313] = "CC(C)(COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)C(O)=O" # Oxalyl-CoA
+        cid2smiles[299] = "OCC1OC(C(O)C1O)n1ccc(=O)[nH]c1=O" # uridine
+        cid2smiles[313] = "CC(C)(COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12)C(O)C(=O)NCCC(=O)NCCSC(=O)C(O)=O" # Oxalyl-CoA
         cid2smiles[314] = "Cc1ncc(CO)c(CO)c1O" # pyridoxine
-        cid2smiles[55] = "Nc1ccn([C@@H]2O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]2O)c(=O)n1" # CMP
-        cid2smiles[332] = "CC(=O)CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12" # acetoacetyl-CoA
-        cid2smiles[337] = "OC(=O)[C@@H]1CC(=O)NC(=O)N1" # dihydroorotate
-        cid2smiles[361] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@H]1C[C@H](O)[C@@H](COP(O)(=O)OP(O)(O)=O)O1" # dGDP
-        cid2smiles[362] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@H]1C[C@H](O)[C@@H](COP(O)(O)=O)O1" # dGMP
-        cid2smiles[363] = "Cc1cn([C@H]2C[C@H](O)[C@@H](COP(O)(=O)OP(O)(O)=O)O2)c(=O)[nH]c1=O" # dTDP
-        cid2smiles[364] = "Cc1cn([C@H]2C[C@H](O)[C@@H](COP(O)(O)=O)O2)c(=O)[nH]c1=O" # dTMP
-        cid2smiles[2280] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OC2O[C@@H](CO)[C@@H](O)[C@@H](O)[C@@H]2O)[C@@H](O)[C@H]1O" # GDP-L-galactose
+        cid2smiles[332] = "CC(=O)CC(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # acetoacetyl-CoA
+        cid2smiles[337] = "OC(=O)C1CC(=O)NC(=O)N1" # dihydroorotate
+        cid2smiles[360] = "Nc1ncnc2n(cnc12)C1CC(O)C(COP(O)(O)=O)O1" # dAMP
+        cid2smiles[361] = "Nc1nc2n(cnc2c(=O)[nH]1)C1CC(O)C(COP(O)(=O)OP(O)(O)=O)O1" # dGDP
+        cid2smiles[362] = "Nc1nc2n(cnc2c(=O)[nH]1)C1CC(O)C(COP(O)(O)=O)O1" # dGMP
+        cid2smiles[363] = "Cc1cn(C2CC(O)C(COP(O)(=O)OP(O)(O)=O)O2)c(=O)[nH]c1=O" # dTDP
+        cid2smiles[364] = "Cc1cn(C2CC(O)C(COP(O)(O)=O)O2)c(=O)[nH]c1=O" # dTMP
         cid2smiles[385] = "O=c1[nH]c2[nH]cnc2c(=O)[nH]1" # Xanthine
-        cid2smiles[387] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O" # guanosine
-        cid2smiles[2] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # ATP 
-        cid2smiles[8] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # ADP
-        cid2smiles[20] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(O)=O)[C@@H](O)[C@H]1O" # AMP
-        cid2smiles[5512] = "OC[C@H]1O[C@H](C[C@@H]1O)n1cnc2c1nc[nH]c2=O" # deoxyinosine 
-        cid2smiles[394] = "Nc1nc2n(cnc2c(=O)[nH]1)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OC2O[C@H](CO)[C@@H](O)[C@H](O)[C@H]2O)[C@@H](O)[C@H]1O" # GDP-glucose
-        cid2smiles[3483] = "Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O" # Adenosine tetraphosphate         
-        cid2smiles[415] = "Nc1nc2NCC(CNc3ccc(cc3)C(=O)N[C@@H](CCC(O)=O)C(O)=O)=Nc2c(=O)[nH]1" # Dihydrofolate   
-        cid2smiles[3493] = "N[C@@H](C(O)=O)c1ccc(O)cc1" # D-4-Hydroxyphenylglycine
-        cid2smiles[445] = "[H][C@]12CNc3nc(N)[nH]c(=O)c3[N+]1=CN(C2)c1ccc(cc1)C(=O)N[C@@H](CCC(O)=O)C(O)=O" # 5,10-Methenyl-THF
-        cid2smiles[] = "" #         
-        cid2smiles[] = "" #         
-        cid2smiles[] = "" #         
+        cid2smiles[387] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(CO)C(O)C1O" # guanosine
+        cid2smiles[394] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(COP(O)(=O)OP(O)(=O)OC2OC(CO)C(O)C(O)C2O)C(O)C1O" # GDP-glucose
+        cid2smiles[415] = "Nc1nc2NCC(CNc3ccc(cc3)C(=O)NC(CCC(O)=O)C(O)=O)=Nc2c(=O)[nH]1" # Dihydrofolate   
+        cid2smiles[423] = "OC(=O)\C=C\c1ccccc1" # trans-cinnamate
+        cid2smiles[445] = "C12CNc3nc(N)[nH]c(=O)c3[N+]1=CN(C2)c1ccc(cc1)C(=O)NC(CCC(O)=O)C(O)=O" # 5,10-Methenyl-THF
+        cid2smiles[463] = "c1ccc2[nH]ccc2c1" # indole
+        cid2smiles[468] = "C12CCC3(C)C(=O)CCC3([H])C1([H])CCc1cc(O)ccc21" # estrone       
+        cid2smiles[475] = "Nc1ccn(C2OC(CO)C(O)C2O)c(=O)n1" # Cytidine
+        cid2smiles[498] = "Nc1ncnc2n(cnc12)C1OC(COP(O)(=O)OP(O)(=O)OC2OC(CO)C(O)C(O)C2O)C(O)C1O" #  ADP-glucose
+        cid2smiles[534] = "Cc1ncc(CO)c(CN)c1O" # Pyridoxamine
+        cid2smiles[556] = "OCc1ccccc1" # benzyl alocohol
+        cid2smiles[559] = "Nc1ncnc2n(cnc12)C1CC(O)C(CO)O1" # deoxyadenosine
+        cid2smiles[575] = "Nc1ncnc2n(cnc12)C1OC2COP(O)(=O)OC2C1O" # cAMP
+        cid2smiles[590] = "COc1cc(\C=C\CO)ccc1O" # coniferol
+        cid2smiles[617] = "OC1C(COP(O)(=O)OP(O)(=O)OC2OC(C(O)C(O)C2O)C(O)=O)OC(C1O)n1ccc(=O)[nH]c1=O" # UDP-D-galacturonate
+        cid2smiles[664] = "[H]C(=N)N1C(CNc2ccc(cc2)C(=O)NC(CCC(O)=O)C(O)=O)CNc2nc(N)[nH]c(=O)c12" # 5-Formimino-THF
+        cid2smiles[683] = "CC(C(O)=O)C(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (S)-Methylmalonyl-CoA
+        cid2smiles[705] = "Nc1ccn(C2CC(O)C(COP(O)(=O)OP(O)(=O)O)O2)c(=O)n1" # dCDP
+        cid2smiles[785] = "OC(=O)\C=C\c1c[nH]cn1" # Urocanate
+        cid2smiles[798] = "[H]C(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # formyl-CoA
+        cid2smiles[835] = "CC(O)C(=O)C1=Nc2c(NC1)nc(N)[nH]c2=O" # sepiapterin
+        cid2smiles[920] = "CC(C)(COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12)C(O)C(=O)NCCC(=O)NCCSSCC(NC(=O)CCC(N)C(O)=O)C(=O)NCC(O)=O" # CoA-glutathione
+        cid2smiles[935] = "OC1COC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(=O)[nH]c2=O)C(O)C1O" # UDP-L-arabinose
+        cid2smiles[951] = "C12CCC3(C)C(O)CCC3([H])C1([H])CCc1cc(O)ccc21" # Estradiol-17beta
+        cid2smiles[1100] = "NC(COP(O)(O)=O)Cc1c[nH]cn1" # L-Histidinol phosphate
+        cid2smiles[1103] = "OC1C(COP(O)(O)=O)OC(C1O)n1c(cc(=O)[nH]c1=O)C(O)=O" # Orotidine 5'-phosphate
+        cid2smiles[1144] = "CC(O)CC(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (S)-3-Hydroxybutanoyl-CoA;
+        cid2smiles[1179] = "OC(=O)C(=O)Cc1ccc(O)cc1" # 4-Hydroxyphenylpyruvate
+        cid2smiles[1185] = "OC1C(COP(O)(O)=O)OC(C1O)[n+]1cccc(c1)C(O)=O" # Nicotinate D-ribonucleotide         
+        cid2smiles[1213] = "CC(C(O)=O)C(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (R)-Methylmalonyl-CoA
+        cid2smiles[1267] = "OP(O)(=O)OCC(=O)Cc1c[nH]cn1" # Imidazole-acetol phosphate
+        cid2smiles[1417] = "OC#N" # cyanate
+        cid2smiles[1589] = "c1c[nH]cn1" # imidazole
+        cid2smiles[1762] = "OCC1OC(C(O)C1O)n1cnc2c1[nH]c(=O)[nH]c2=O" # Xanthosine
+        cid2smiles[2232] = "CC(C)(COP(O)(=O)OP(O)(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP(O)(O)=O)n1cnc2c(N)ncnc12)[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CC(=O)CCC(O)=O" # 3-oxoadipyl-CoA
+        cid2smiles[2280] = "Nc1nc2n(cnc2c(=O)[nH]1)C1OC(COP(O)(=O)OP(O)(=O)OC2OC(CO)C(O)C(O)C2O)C(O)C1O" # GDP-L-galactose
+        cid2smiles[2557] = "CC(C(O)=O)C(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # methylmalonyl-CoA
+        cid2smiles[2560] = "CC(=O)n1ccnc1" # N-acetylimidazole
+        cid2smiles[2595] = "OC(=O)Cc1cccs1" # Thien-2-ylacetate
+        cid2smiles[2666] = "COc1cc(\C=C\C=O)ccc1O" # coniferaldehyde
+        cid2smiles[2763] = "OC(=O)C(O)=Cc1ccccc1" # 2-Hydroxy-3-phenylpropenoate
+        cid2smiles[2953] = "CC(O)C(O)C1=Nc2c(NC1)[nH]c(N)nc2=O" # 7,8-Dihydrobiopterin
+        cid2smiles[3067] = "[H]C(=O)c1cccc(O)c1" # 3-Hydroxybenzaldehyde      
+        cid2smiles[3351] = "OCc1cccc(O)c1" # 3-Hydroxybenzyl alcohol
+        cid2smiles[3483] = "Nc1ncnc2n(cnc12)C1OC(COP(O)(=O)OP(O)(=O)OP(O)(=O)OP(O)(O)=O)C(O)C1O" # Adenosine tetraphosphate         
+        cid2smiles[3493] = "NC(C(O)=O)c1ccc(O)cc1" # D-4-Hydroxyphenylglycine
+        cid2smiles[3598] = "CC1OC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(N)nc2=O)C(O)CC1O" # CDP-3,6-dideoxy-D-glucose
+        cid2smiles[3599] = "CC1OC(OP(O)(=O)OP(O)(=O)OCC2OC(C(O)C2O)n2ccc(N)nc2=O)C(O)CC1O" # CDP-3,6-dideoxy-D-mannose
+        cid2smiles[3680] = "OC(=O)CCC1NC=NC1=O" # 4-imidazolone-5-propanoate
+        cid2smiles[3794] = "OC1C(COP(O)(O)=O)OC(C1O)n1cnc2c(NC(CC(O)=O)C(O)=O)ncnc12" # N6-(1,2-Dicarboxyethyl)-AMP
+        cid2smiles[4268] = "CC1OC(OP(O)(=O)OP(O)(=O)OCC2OC(CC2O)n2cc(C)c(=O)[nH]c2=O)C(O)C(O)C1N" # dTDP-4-amino-4,6-dideoxy-D-glucose
+        cid2smiles[4677] = "NC(=O)c1ncn(C2OC(COP(O)(O)=O)C(O)C2O)c1N" # 5'-Phospho-ribosyl-5-amino-4-imidazole carboxamide
+        cid2smiles[4823] = "Nc1c(ncn1C1OC(COP(O)(O)=O)C(O)C1O)C(=O)NC(CC(O)=O)C(O)=O" # 1-(5'-Phosphoribosyl)-5-amino-4-(N-succinocarboxamide)-imidazole
+        cid2smiles[5512] = "OCC1OC(CC1O)n1cnc2c1nc[nH]c2=O" # deoxyinosine 
+        cid2smiles[5551] = "C12SC(C)(C)C(N1C(=O)C2NC(=O)Cc1ccccc1)C(O)=O" # Penicillin G
+        cid2smiles[5598] = "OC(=O)CNC(=O)Cc1ccccc1" # Phenylacetylglycine
+        cid2smiles[5268] = "CCCC(O)CC(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # (S)-Hydroxyhexanoyl-CoA
+        cid2smiles[5269] = "CCCC(=O)CC(=O)SCCNC(=O)CCNC(=O)C(O)C(C)(C)COP(O)(=O)OP(O)(=O)OCC1OC(C(O)C1OP(O)(O)=O)n1cnc2c(N)ncnc12" # 3-Oxohexanoyl-CoA
+        cid2smiles[6827] = "C12SC(C)(C)C(N1C(=O)C2NC(=O)C(N)c1ccc(O)cc1)C(O)=O" # amoxicillin
+        cid2smiles[7086] = "OC(=O)Cc1ccccc1" # Phenylacetic acid;
+        cid2smiles[7761] = "C1(NC(=O)Cc2cccs2)C(=O)N2C(C(O)=O)=C(COC(C)=O)CSC12[H]" # cefalotin
+        cid2smiles[7756] = "C12SCC(COC(C)=O)=C(N1C(=O)C2N)C(O)=O" # 7-Aminocephalosporanic acid
+        cid2smiles[11355] = "NC1C=CC(=CC1OC(=C)C(O)=O)C(O)=O" # 4-Amino-4-deoxychorismate
+        cid2smiles[11907] = "Cc1cn(C2CC(C(COP(=O)([O-])OP(=O)([O-])OC3C(C(C(=O)C(C)O3)O)O)O2)O)c(=O)nc1O" # 4,6-Dideoxy-4-oxo-dTDP-D-glucose
 
-        for cid, smiles in cid2smiles.iteritems():
+        # override ringed sugars
+        cid2smiles[117] = "OC1C(COP(O)(=O)O)OC(O)C1O" # D-ribose 5-phosphate
+        cid2smiles[119] = "OP(O)(=O)OP(O)(=O)OC1OC(COP(O)(O)=O)C(O)C1O" # PRPP
+        cid2smiles[121] = "OCC1OC(O)C(O)C1O" # D-ribose
+        cid2smiles[216] = "OCC1OC(O)C(O)C1O" # arabinose
+        cid2smiles[252] = "OC2C(O)C(O)C(O)OC2COC(OC1CO)C(O)C(O)C1O" # isomaltose
+        cid2smiles[309] = "OC1C(O)COC1(O)CO" # D-ribulose
+        cid2smiles[310] = "OC1C(O)COC1(O)CO" # D-xylulose
+        cid2smiles[312] = "OC1C(O)COC1(O)CO" # L-xylulose
+        cid2smiles[476] = "OC1C(O)C(O)COC1O" # D-lyxose
+        cid2smiles[620] = "OCC1OC(OP(O)(=O)O)C(O)C1O" # D-ribose 1-phosphate
+        cid2smiles[673] = "OP(=O)(O)OCC1OC(O)CC1O" # 2-deoxy-D-ribose 5-phosphate
+        cid2smiles[1112] = "O=P(O)(O)OCC1OC(O)C(O)C1O" # D-arabinose 5-phopsphate
+
+        nist = Nist()
+        obs_fname = "../data/thermodynamics/formation_energies.csv"
+        thermo = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname)
+        cids_from_kegg = set(nist.GetAllCids() + thermo.get_all_cids()).difference(cid2smiles.keys())
+
+        for cid in cids_from_kegg:
+            try:
+                cid2smiles[cid] = kegg.cid2mol(cid).ToSmiles()
+            except KeggParseException as e:
+                logging.warning("Cannot calculate pKas: " + str(e))
+                continue
+
+        dissociation_chemaxon = DissociationConstants()
+        for cid, smiles in sorted(cid2smiles.iteritems()):
+            logging.info("Using ChemAxon to find the pKa values for %s - C%05d" %
+                         (kegg.cid2name(cid), cid))
             diss_table = Molecule._GetPseudoisomerMap(smiles, format='smiles',
                 mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
             dissociation_chemaxon.cid2DissociationTable[cid] = diss_table
+            html_writer.write('<p><b>C%05d - %s</b></br>\n' % (cid, kegg.cid2name(cid)))
+            diss_table.WriteToHTML(html_writer, T=default_T)
+            html_writer.write('</p>\n')
         
-        dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon2')
+        dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon')
 
     if False:
         # Print all the values in the dissociation table to the HTML file

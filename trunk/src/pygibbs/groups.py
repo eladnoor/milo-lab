@@ -538,67 +538,58 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         for cid in sorted(cid_list or self.kegg.get_all_cids()):
             self.html_writer.write('<p>\n')
             self.html_writer.write('C%05d - %s\n' % (cid, self.kegg.cid2name(cid)))
-            diss = None
-            major_mol = None
-            
-            try:
-                # Use group contribution to find the psuedoisomer and their 
-                # formation energies.
-                mol = self.kegg.cid2mol(cid)
-                diss, major_mol = mol.GetPseudoisomerMap(T=self.T)
-                diss.cid = cid
 
-                decomposition = self.Mol2Decomposition(major_mol,
-                                                       ignore_protonations=False)
-                groupvector = decomposition.AsVector()
-                nH = groupvector.Hydrogens()
-                z = groupvector.NetCharge()
-                nMg = groupvector.Magnesiums()
-                dG0 = self.groupvec2val(groupvector)
-                source_string = "Group Contribution"
-            except (KeggParseException, GroupDecompositionError, 
-                    GroupMissingTrainDataError) as e:
-                # If there is a problem with using PGC for this compounds,
-                # try to see if it has an observed formation energy and use
-                # that instead.
-
-                self.cid2error[cid] = str(e)
-                self.html_writer.write('</br>%s\n' % str(e))
-
-                try:
-                    pmap = obs_species.cid2PseudoisomerMap(cid)
-                except MissingCompoundFormationEnergy as e:
-                    self.html_writer.write('</br>%s\n</p>\n' % str(e))
-
+            mol = None
+            diss_table = None
+            if cid in obs_species.get_all_cids():
+                pmap = obs_species.cid2PseudoisomerMap(cid)
                 pmatrix = pmap.ToMatrix() # returns a list of (nH, z, nMg, dG0)
                 if len(pmatrix) != 1:
                     raise Exception("C%05d has multiple training species" % cid)
                 nH, z, nMg, dG0 = pmatrix[0]
                 groupvector = GroupVector(self.groups_data) # use an empty group vector
                 source_string = obs_species.cid2SourceString(cid)
+            else:
+                diss_table = dissociation.GetDissociationTable(cid, 
+                                                               create_if_missing=False)
+                if diss_table is None:
+                    continue # TODO: replace this with the method that uses ChamAxon to find pKas
+                mol = diss_table.GetMostAbundantMol(pH=default_pH, I=0, 
+                                                    pMg=14, T=default_T)
+                if mol is None:
+                    continue
+                try:
+                    decomposition = self.Mol2Decomposition(mol,
+                                                           ignore_protonations=False)
+                except (GroupDecompositionError, GroupMissingTrainDataError) as e:
+                    self.cid2error[cid] = str(e)
+                    self.html_writer.write('</br>%s\n' % str(e))
+                    continue
+
+                groupvector = decomposition.AsVector()
+                nH = groupvector.Hydrogens()
+                z = groupvector.NetCharge()
+                nMg = groupvector.Magnesiums()
+                dG0 = self.groupvec2val(groupvector)
+                source_string = "Group Contribution"
 
             self.html_writer.insert_toggle('C%05d' % cid)
             self.html_writer.div_start('C%05d' % cid)
-            if major_mol:
-                self.html_writer.write(major_mol.ToSVG() + '</br>\n')
+            if mol:
+                self.html_writer.write(mol.ToSVG() + '</br>\n')
             if groupvector:
                 self.html_writer.write('Group vector = %s</br>\n' % str(groupvector))
                 self.html_writer.write('nH = %d, charge = %d, nMg = %d</br>\n' % 
                                        (groupvector.Hydrogens(),
                                         groupvector.NetCharge(),
                                         groupvector.Magnesiums()))
-            old_diss = dissociation.GetDissociationTable(cid, create_if_missing=False)
-            if old_diss:
-                self.html_writer.write('<h2>Old dissociation constants:</h2>\n')
-                old_diss.WriteToHTML(self.html_writer)
-                self.html_writer.write('</br>\n')
-            if diss:
+            if diss_table:
                 self.html_writer.write('<h2>ChemAxon dissociation constants:</h2>\n')
-                diss.WriteToHTML(self.html_writer)
+                diss_table.WriteToHTML(self.html_writer)
                 self.html_writer.write('</br>\n')
             
-                diss.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
-                pmap = diss.GetPseudoisomerMap()
+                diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
+                pmap = diss_table.GetPseudoisomerMap()
             else:
                 pmap = PseudoisomerMap(nH=nH, z=z, nMg=nMg, dG0=dG0,
                                        ref=source_string)
