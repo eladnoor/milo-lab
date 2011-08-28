@@ -4,7 +4,10 @@ import sys, os, subprocess
 import wx
 import wx.grid as gridlib
 import toolbox.tecan
+
 from database import MySQLDatabase
+from os import path
+
 
 PLOT_EXP_DATA_EXE = 'plotExpData'
 PLOT_EXP_DATA_LINUX = '/home/ayelet/pyrobot/PlotExpData'
@@ -401,10 +404,11 @@ class MyGrid(gridlib.Grid):
         else:
             sys.exit(0)
             dialog.Destroy()
-        self.basename, self.extension = self.filename.split('.')
-        if (self.extension =='csv' ):
+            
+        self.basename, self.extension = path.splitext(self.filename)
+        if self.extension == '.csv':
             print self.filename
-        else :
+        else:
             print "Not CSV !\n"
             
         fi=open(self.filename)
@@ -419,14 +423,12 @@ class MyGrid(gridlib.Grid):
                 for col in row :
                     col_index+=1
                     self.SetCellValue(row_index, col_index,col)
-        else :
-            dlg = wx.MessageDialog(self, 'Please validate CSV file',
-                            'Error loading plate description',
-                            wx.OK | wx.ICON_ERROR
-                            #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
-                               )
-            dlg.ShowModal()
-            dlg.Destroy()
+            else:
+                dlg = wx.MessageDialog(self, 'Please validate CSV file',
+                                       'Error loading plate description',
+                                       wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
             
         self.Update()
             
