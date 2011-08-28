@@ -441,6 +441,11 @@ class MyPanel(wx.Panel):
         
         wx.Panel.__init__(self, parent, id)
         
+        self.actionMap = {'Generate CSV': self.GenerateCSVEvent,
+                          'Run Uri Button': self.UriMethod,
+                          'Plot Growth Curves': self.PlotGrowthCurves,
+                          'Commit Experiment Description': self.CommitPlateLabels,}
+        
         topSizer    = wx.BoxSizer(wx.VERTICAL)
         
         titleSizer  = wx.BoxSizer(wx.HORIZONTAL)
@@ -556,31 +561,15 @@ class MyPanel(wx.Panel):
         topSizer.Add(wx.StaticLine(self), 0, wx.ALL|wx.EXPAND, 5)
         
        
-        
-        self.csvButton = wx.Button(self, wx.ID_ANY, 'CSV Button')
-        self.csvButton.Bind(wx.EVT_BUTTON, self.GenerateCSVEvent)
-        topSizer.Add(self.csvButton, 0, wx.ALL|wx.EXPAND, 5)
-        
-        
-        self.UriButton = wx.Button(self, wx.ID_ANY, 'Uri Button')
-        self.UriButton.Bind(wx.EVT_BUTTON, self.UriMethod)
-        topSizer.Add(self.UriButton, 0, wx.ALL|wx.EXPAND, 5)
+        self.actionsCombo = wx.ComboBox(self, wx.ID_ANY, 'Choose Action',
+                                        choices=['None'] + sorted(self.actionMap.keys()))
+        topSizer.Add(self.actionsCombo, 0, wx.ALL|wx.EXPAND, 5)
         
         
-        self.ExpDesButton = wx.Button(self, wx.ID_ANY, 'ExpDesButton')
-        self.ExpDesButton.Bind(wx.EVT_BUTTON, self.ChangeExperimentDescription)
-        topSizer.Add(self.ExpDesButton, 0, wx.ALL|wx.EXPAND, 5)
+        self.runAction = wx.Button(self, wx.ID_ANY, 'Run Action')
+        self.runAction.Bind(wx.EVT_BUTTON, self.RunChosenAction)
+        topSizer.Add(self.runAction, 0, wx.ALL|wx.EXPAND, 5)
         
-        self.ImportButton = wx.Button(self, wx.ID_ANY, 'Import to DB')
-        self.ImportButton.Bind(wx.EVT_BUTTON, self.Import2DB)
-        topSizer.Add(self.ImportButton, 0, wx.ALL|wx.EXPAND, 5)
-        
-        
-        self.PlotButton = wx.Button(self, wx.ID_ANY, 'Plot Growth Curves')
-        self.PlotButton.Bind(wx.EVT_BUTTON, self.PlotGrowthCurves)
-        topSizer.Add(self.PlotButton, 0, wx.ALL|wx.EXPAND, 5)
-       
-
         # the object is created before myGrid, but is added
         # here to the Sizer
        
@@ -600,7 +589,36 @@ class MyPanel(wx.Panel):
         self.hbox1 = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
           
-        self.SetSizer(topSizer) 
+        self.SetSizer(topSizer)
+
+    def RunChosenAction(self, event):
+        print 'Run chosen action'
+        
+        exp = self.GetCurrentExpID()
+        plate = self.GetCurrentPlate()
+        grid = self.myGrid.GetSelection()
+        if not exp or not plate or not grid:
+            dlg = wx.MessageDialog(self, 'You did not select an experiment, plate, or cells.',
+                                   'Select data before running an action',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+            event.Skip()
+            return
+        
+        
+        val = self.actionsCombo.GetValue()
+        callable = self.actionMap.get(val, None)
+        if callable:
+            callable(event)
+        else:
+            dlg = wx.MessageDialog(self, 'Please choose a valid action',
+                                   'You did not choose a valid action to run',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+        
+        event.Skip()
         
     def Import2DB(self, event):
 
@@ -668,7 +686,7 @@ class MyPanel(wx.Panel):
                 experimentComboBox_choices.append(experimentComboBox_exp_list[i])
                 
         return experimentComboBox_choices
-        
+
     def ChangeExperimentDescription(self, event):
         try:
             from agw import pybusyinfo as PBI
@@ -692,7 +710,6 @@ class MyPanel(wx.Panel):
         self.experimentComboBox.SetValue(" | ".join([expID, desc]))
         
         #Insert TO exp_des #
-        
 
     def UriMethod(self, event):
         try:
@@ -866,6 +883,7 @@ class MyPanel(wx.Panel):
                 self.measurementListBox.SetSelection(i,True)
             
             event.Skip()
+        
 
     def GetCellLabel(self, expID, plate, row, col):
         for lab in self.db.Execute("SELECT label FROM tecan_labels "
@@ -902,6 +920,7 @@ class MyPanel(wx.Panel):
         return data
 
     def PlotGrowthCurves(self, event):
+        print 'PlotGrowthCurves'
         data = self.GenerateDataForSelectedCells()
         if len(data) > 0:
             
