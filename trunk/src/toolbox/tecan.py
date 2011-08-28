@@ -3,6 +3,8 @@ from xml.etree.ElementTree import ElementTree
 import tarfile
 import pylab
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.font_manager import FontProperties
+
 
 fmt = "%Y-%m-%dT%H:%M:%S"
 
@@ -214,18 +216,24 @@ def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=F
     return res_mat[max_i, 0]
 
 def PlotGrowthCurves(data, pdf_fname, t_max=None,
-                     plot_growth_rate=False):
+                     plot_growth_rate=False,
+                     growth_rate_window_size=4):
     """
-        Arguments:
-        data - a dictionary whose keys are reading-labels,
-            and values are:
+    Plot growth curves for all data and save as PDF with given filename.
+    
+    Args:
+        data: a dictionary whose keys are reading-labels, and values are:
             (cell_label, [(time0, value0), (time1, value1), ...])
-
-        plots the growth curves for given values in 'data'
+        pdf_fname: the filename to write the PDF to.
+        plot_growth_rate: if True, plot histogram of growth rates for repeats
+            with the same name.
+        growth_rate_window_size: the size (in hours) of the time window to consider
+            when calculating the growth rate.
     """
     linewidth = 0.5
     fit_window_size = 3 # hours
     fit_start_threshold = 0.03
+    size8 = FontProperties(size=8)
 
     pp = PdfPages(pdf_fname)
     for reading_label in data.keys():
@@ -241,12 +249,17 @@ def PlotGrowthCurves(data, pdf_fname, t_max=None,
             #time_vec = [int(time) for (time, _) in measurements]
             time_vec = range(len(measurements))
             value_vec = [value for (_, value) in measurements]
-            growth_rate = FitGrowth(time_vec, value_vec,
-                                    window_size=5)
+            
+            # Only calculate growth rate when required.
+            growth_rate = None
+            if plot_growth_rate:
+                growth_rate = FitGrowth(time_vec, value_vec,
+                                        window_size=growth_rate_window_size)
+                
             unique_labels.setdefault(cell_label, []).append(growth_rate)
             pylab.plot(time_vec, value_vec, '-', label=cell_label, figure=fig)
         pylab.yscale('log')
-        pylab.legend(sorted(unique_labels.keys()))
+        pylab.legend(sorted(unique_labels.keys()), prop=size8)
         if t_max:    
             pylab.xlim((0, t_max))
         pp.savefig(fig)
@@ -259,7 +272,7 @@ def PlotGrowthCurves(data, pdf_fname, t_max=None,
         
             fig2 = pylab.figure()
             pylab.bar(left, averages, yerr=errors, color='b', ecolor='g', figure=fig2)
-            pylab.xticks(left, names, rotation=35, fontsize=8)
+            pylab.xticks(left, names, rotation=35, fontsize=6)
             pp.savefig(fig2)
                 
     pp.close()
