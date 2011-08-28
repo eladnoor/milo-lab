@@ -2,6 +2,7 @@ import time, calendar, csv
 from xml.etree.ElementTree import ElementTree
 import tarfile
 import pylab
+from matplotlib.backends.backend_pdf import PdfPages
 
 fmt = "%Y-%m-%dT%H:%M:%S"
 
@@ -72,6 +73,7 @@ def ParseReaderFile(fname):
 def CollectData(tar_fname, number_of_plates=None):
     PL = GetPlateFiles(tar_fname, number_of_plates)
     MES = {}
+    count = 0
     
     for plate_id in PL:
         MES[plate_id] = None
@@ -83,7 +85,8 @@ def CollectData(tar_fname, number_of_plates=None):
                 for reading_label, label_values in plate_values.iteritems():
                     for time_in_sec, time_values in label_values.iteritems():
                         MES[plate_id][reading_label][time_in_sec] = time_values
-    return MES
+                        count += len(time_values)
+    return MES, count
 
 def WriteCSV(MES, f):
     """
@@ -200,5 +203,41 @@ def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=F
         pylab.legend(['OD', 'growth rate', 'threshold', 'fit'])
     
     return res_mat[max_i, 0]
+
+def PlotGrowthCurves(data, pdf_fname, t_max=None):
+    """
+        Arguments:
+        data - a dictionary whose keys are reading-labels,
+            and values are:
+            (cell_label, [(time0, value0), (time1, value1), ...])
+
+        plots the growth curves for given values in 'data'
+    """
+    linewidth = 0.5
+    plot_growth_rate = False
+    fit_window_size = 3 # hours
+    fit_start_threshold = 0.03
+
+    colors = ['green', 'cyan', 'blue', 'orange', 'magenta', 'red', 'black', 'pink']
+    pp = PdfPages(pdf_fname)
+    for reading_label in data.keys():
+        fig = pylab.figure()
+        fig.hold(True)
+        pylab.xlabel('Time (hr)', figure=fig)
+        pylab.ylabel(reading_label, figure=fig)
+        for cell_label, measurements in data[reading_label]:
+            #begin_time = measurements[0][0]
+            #time_vec = [(time-begin_time)/3600.0 for (time, _) in measurements]
+            #time_vec = [int(time) for (time, _) in measurements]
+            time_vec = range(len(measurements))
+            value_vec = [value for (_, value) in measurements]
+            pylab.plot(time_vec, value_vec, '-', label=cell_label, figure=fig)
+        pylab.yscale('log')
+        pylab.legend()
+        if t_max:    
+            pylab.xlim((0, t_max))
+        pp.savefig(fig)
+    pp.close()
+
 
     
