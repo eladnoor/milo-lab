@@ -128,7 +128,7 @@
 "CCCC conjugation correction",0,0,"C=CC=C","None","CCCC conjugation correction (currently no examples)","skip"
 "NC(=N)N correction",0,0,"NC(=N)N","None","guanidine correction",
 "vicinal Cl correction",0,0,"Cl~C~C~Cl","None","vicinal Cl correction (not 100% accurate, but currently no examples)","skip"
-"amide correction",0,0,"C(=O)NC","None","amide bond correction",
+"amide correction",0,0,"C(=O)[N;R0]C","None","amide bond correction",
 "thioester correction",0,0,"CSC(=O)C","None","thioester correction (linearly dependent on CoA)","skip"
 "three member ring correction",0,0,"*1**1","None","three member ring correction (currently no examples)","skip"
 "*Hc",0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)","skip"

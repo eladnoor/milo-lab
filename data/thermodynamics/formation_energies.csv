@@ -38,7 +38,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 122,Fumarate,-601.87,-777.39,-2,2,0,training,"Alberty (2006)",
 123,L-Leucine,-352.25,-643.37,0,13,0,training,"Alberty (2006)",
 124,D-Galactose,-908.93,-1255.2,0,12,0,training,"Alberty (2006)",
-147,Adenine,369.7,,-1,4,0,training,"Alberty (2006)",
+147,Adenine,313.40,129.5,0,5,0,training,"Alberty (2006)",
 149,L-Malate,-842.66,,-2,4,0,training,"Alberty (2006)",
 150,molybdenum,0,0,0,0,0,testing,"Element",
 152,L-Asparagine,-525.93,-766.09,0,8,0,training,"Alberty (2006)",
