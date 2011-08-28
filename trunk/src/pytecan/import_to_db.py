@@ -1,5 +1,5 @@
 from optparse import OptionParser
-from pytecan.util import WriteToDatabase, CollectData, CollectDataFromSingleFile,\
+from toolbox.tecan import WriteToDatabase, CollectData, CollectDataFromSingleFile,\
     GetExpDate, GetCurrentExperimentID
 import sys, os
 from toolbox.database import MySQLDatabase
@@ -84,11 +84,11 @@ def main():
         if options.plate_id is None:
             print "Plate ID not supplied, but is mandatory when importing an XML"
             sys.exit(-1)
-	if options.xml_dir:
-	    if not os.path.exists(options.xml_dir):
-		print "Directory not found: " + options.xml_dir
-		sys.exit(-1)
-	    options.xml_filename = options.xml_dir + get_latest_file(options.xml_dir)
+    if options.xml_dir:
+        if not os.path.exists(options.xml_dir):
+            print "Directory not found: " + options.xml_dir
+            sys.exit(-1)
+        options.xml_filename = options.xml_dir + get_latest_file(options.xml_dir)
         if not os.path.exists(options.xml_filename):
             print "File not found: " + options.xml_filename
             sys.exit(-1)

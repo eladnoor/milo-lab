@@ -3,7 +3,7 @@ import csv
 import sys, os, subprocess
 import wx
 import wx.grid as gridlib
-import util
+import toolbox.tecan
 from database import MySQLDatabase
 
 PLOT_EXP_DATA_EXE = 'plotExpData'
@@ -622,8 +622,8 @@ class MyPanel(wx.Panel):
     
         #message = "Importing data into DB..."
         #self.busy = PBI.PyBusyInfo(message, parent=None, title="Importing to DB")
-        MES, count = util.CollectData(tar_fname, number_of_plates)
-        exp_id = util.GetExpDate(MES)
+        MES = toolbox.tecan.CollectData(tar_fname, number_of_plates)
+        exp_id = toolbox.tecan.GetExpDate(MES)
         self.db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
         """dlg = wx.ProgressDialog("Retriving data from DB",
                                "Time Remaining",
@@ -911,7 +911,7 @@ class MyPanel(wx.Panel):
                 print 'Nothing was selected.'
                 return
             dialog.Destroy()
-            util.PlotGrowthCurves(data, pdf_fname)
+            toolbox.tecan.PlotGrowthCurves(data, pdf_fname)
             dlg = wx.MessageDialog(self, 'Plots written succesfully to:\n%s' % pdf_fname,
                             'Done Plotting',
                             wx.OK | wx.ICON_INFORMATION)
