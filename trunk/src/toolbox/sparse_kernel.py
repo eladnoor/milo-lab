@@ -1,4 +1,5 @@
-from pylab import linalg, find, zeros, array, matrix, reshape
+import numpy as np
+from matplotlib import mlab
 
 try:
     from cplex import Cplex
@@ -25,10 +26,6 @@ class SparseKernel(object):
     class LinearProgrammingException(Exception):
         pass
 
-    def Rank(self, A):
-        _U, s, _V = linalg.svd(A, full_matrices=False)
-        return len(find(s > self.eps))
-    
     def __init__(self, A):
         self.upper_bound = 1000
         self.eps = 1e-10
@@ -48,7 +45,7 @@ class SparseKernel(object):
         self.constraint_counter = 0
         for r in xrange(A.shape[0]):
             self.AddLinearConstraint(A[r, :])
-        self.kernel_rank = self.n_variables - self.Rank(A)
+        self.kernel_rank = self.n_variables - np.rank(A)
 
     def CreateAllVariables(self):
         """ 
@@ -105,7 +102,7 @@ class SparseKernel(object):
             self.cpl.linear_constraints.set_coefficients('avoid_0', g, 1)
 
     def AddLinearConstraint(self, v, rhs=0):
-        v = reshape(v, (1, self.n_variables))
+        v = np.reshape(v, (1, self.n_variables))
         
         # add the linear constraint v*x = rhs
         constraint_name = 'r%d' % self.constraint_counter
@@ -129,11 +126,11 @@ class SparseKernel(object):
             if self.cpl.solution.get_status() != SolveCallback.status.MIP_optimal:
                 raise SparseKernel.LinearProgrammingException("No more EMFs")
             
-            g_plus = array(sol.get_values(['g%d_plus' % col for col in xrange(self.n_variables)]))
-            g_minus = array(sol.get_values(['g%d_minus' % col for col in xrange(self.n_variables)]))
+            g_plus = np.array(sol.get_values(['g%d_plus' % col for col in xrange(self.n_variables)]))
+            g_minus = np.array(sol.get_values(['g%d_minus' % col for col in xrange(self.n_variables)]))
             
-            coeffs = array(sol.get_values(['c%d_plus' % col for col in xrange(self.n_variables)])) - \
-                     array(sol.get_values(['c%d_minus' % col for col in xrange(self.n_variables)]))
+            coeffs = np.array(sol.get_values(['c%d_plus' % col for col in xrange(self.n_variables)])) - \
+                     np.array(sol.get_values(['c%d_minus' % col for col in xrange(self.n_variables)]))
             
             return g_plus, g_minus, coeffs
             
@@ -156,7 +153,7 @@ class SparseKernel(object):
     def __iter__(self):
         self.dimension = 0
         self.emf_counter = 0
-        self.K = zeros((len(self), self.n_variables))
+        self.K = np.zeros((len(self), self.n_variables))
         return self
     
     def next(self):
@@ -170,10 +167,10 @@ class SparseKernel(object):
             self.ExcludeSolutionVector(g_plus, g_minus, 'avoid_%d_plus' % self.emf_counter)
             self.ExcludeSolutionVector(g_minus, g_plus, 'avoid_%d_minus' % self.emf_counter)
             
-            nonzero_indices = find(g_plus > 0.5).tolist() + find(g_minus > 0.5).tolist()
+            nonzero_indices = np.nonzero(g_plus > 0.5)[0].tolist() + np.nonzero(g_minus > 0.5)[0].tolist()
             self.K[self.dimension, nonzero_indices] = coeffs[nonzero_indices]
             
-            if self.Rank(self.K) < self.dimension+1:
+            if np.rank(self.K) < self.dimension+1:
                 self.K[self.dimension, :] = 0
             else:
                 # normalize the kernel vector so that it will have nice coefficients
@@ -188,13 +185,15 @@ class SparseKernel(object):
                 return v
         
     def Solve(self):
-        for _ in self:
-            pass
+        if self.dimension == 0:
+            for _ in self:
+                pass
         return self.K
 
 if __name__ == '__main__':
-    A = matrix([[1, 0, 1, 1, 2, 1, 1],[0, 1, 1, 1, 2, 1, 1],[1, 1, 2, 2, 4, 2, 2]])
-    K = SparseKernel(A).Solve()
+    A = np.array([[1, 0, 1, 1, 2, 1, 1],[0, 1, 1, 1, 2, 1, 1],[1, 1, 2, 2, 4, 2, 2]])
+    K = SparseKernel(A)
     print A
-    print K
-    print A*K.T
+    for v in K:
+        print "nullvector: ", ', '.join(['%g' % x for x in v])
+    print "RMS(A*K.T) =", mlab.rms_flat(np.dot(A, K.Solve().T))

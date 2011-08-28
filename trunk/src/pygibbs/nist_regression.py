@@ -178,7 +178,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         cids_to_estimate = map(int, cids_to_estimate)
         return unique_rows_S, unique_data_mat[:, 0:1], cids_to_estimate
 
-    def ReactionVector2String(self, stoichiometric_vec, cids):
+    @staticmethod
+    def ReactionVector2String(stoichiometric_vec, cids):
         kegg = Kegg.getInstance()
 
         nonzero_columns = np.where(abs(stoichiometric_vec) > 1e-10)[0]
@@ -203,28 +204,17 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         if not sparse:
             K = LinearRegression.FindKernel(S)
             for i in xrange(K.shape[0]):
-                v_str = self.ReactionVector2String(K[i, :], cids)
+                v_str = NistRegression.ReactionVector2String(K[i, :], cids)
                 dict_list.append({'dimension':i, 'kernel vector':v_str})
         else:
             try:
                 for i, v in enumerate(sparse_kernel):
-                    v_str = self.ReactionVector2String(v, cids)
+                    v_str = NistRegression.ReactionVector2String(v, cids)
                     print i, ':', v_str
                     dict_list.append({'dimension':i, 'kernel vector':v_str})
             except SparseKernel.LinearProgrammingException as e:
                 print "Error when trying to find a sparse kernel: " + str(e)
         self.html_writer.write_table(dict_list, ['dimension', 'kernel vector'])
-    
-    def ExportToTextFiles(self, S, dG0, cids):
-        
-        # export the raw data matrices to text files
-        prefix = '../res/nist/regress_'
-        np.savetxt(prefix + 'CID.txt', np.array(cids), fmt='%d', delimiter=',')
-        np.savetxt(prefix + 'S.txt', S, fmt='%g', delimiter=',')
-        np.savetxt(prefix + 'dG0.txt', dG0, fmt='%.2f', delimiter=',')
-        
-        for i in xrange(S.shape[0]):
-            print i, self.ReactionVector2String(S[i, :], cids)
     
     def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None):
         rankS = LinearRegression.Rank(S)
@@ -581,13 +571,11 @@ def main():
     #db_public = SqliteDatabase(public_db_loc)
     #alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
 
-    S, dG0, cids = nist_regression.ReverseTransform()
-
-    #nist_regression.ExportToTextFiles(S, dG0, cids)
     html_writer.write("<h2>NIST regression:</h2>")
     
     # Train the formation energies using linear regression
-    nist_regression.LinearRegression(S, dG0, cids, prior_thermodynamics=None)
+    S, dG0, cids = nist_regression.ReverseTransform()
+    nist_regression.LinearRegression(S, dG0, cids)
     nist_regression.ToDatabase(db, 'prc_pseudoisomers')
     
     html_writer.write('<h3>PRC results:</h3>\n')
