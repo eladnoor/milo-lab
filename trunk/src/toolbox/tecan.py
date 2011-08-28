@@ -136,6 +136,18 @@ def WriteToDatabase(MES, db, exp_id):
     return exp_id
 
 def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=False):
+    """Compute growth rate.
+    
+    Args:
+        time: list of data point time measurements (whatever time units you like).
+        cell_count: list of cell counts at each time point.
+        window_size: the size of the time window (same time units as above).
+        start_threshold: minimum cell count to consider.
+        plot_figure: whether or not to plot.
+    
+    Returns:
+        growth rate in 1/(time unit) where "time unit" is the unit used above.
+    """
     
     def get_frame_range(times, mid_frame, windows_size):
         T = times[mid_frame]
@@ -194,7 +206,6 @@ def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=F
         y = x * pylab.matrix(res_mat[max_i, 0:2]).T
         
         pylab.plot(x[:,0], pylab.exp(y), 'k:', linewidth=4)
-        
         #plot(time, errors / errors.max())
         pylab.yscale('log')
         #legend(['OD', 'growth rate', 'error'])
@@ -202,7 +213,8 @@ def FitGrowth(time, cell_count, window_size, start_threshold=0.01, plot_figure=F
     
     return res_mat[max_i, 0]
 
-def PlotGrowthCurves(data, pdf_fname, t_max=None):
+def PlotGrowthCurves(data, pdf_fname, t_max=None,
+                     plot_growth_rate=False):
     """
         Arguments:
         data - a dictionary whose keys are reading-labels,
@@ -212,29 +224,44 @@ def PlotGrowthCurves(data, pdf_fname, t_max=None):
         plots the growth curves for given values in 'data'
     """
     linewidth = 0.5
-    plot_growth_rate = False
     fit_window_size = 3 # hours
     fit_start_threshold = 0.03
 
-    colors = ['green', 'cyan', 'blue', 'orange', 'magenta', 'red', 'black', 'pink']
     pp = PdfPages(pdf_fname)
     for reading_label in data.keys():
         fig = pylab.figure()
         fig.hold(True)
         pylab.xlabel('Time (hr)', figure=fig)
         pylab.ylabel(reading_label, figure=fig)
+        
+        unique_labels = {}
         for cell_label, measurements in data[reading_label]:
             #begin_time = measurements[0][0]
             #time_vec = [(time-begin_time)/3600.0 for (time, _) in measurements]
             #time_vec = [int(time) for (time, _) in measurements]
             time_vec = range(len(measurements))
             value_vec = [value for (_, value) in measurements]
+            growth_rate = FitGrowth(time_vec, value_vec,
+                                    window_size=5)
+            unique_labels.setdefault(cell_label, []).append(growth_rate)
             pylab.plot(time_vec, value_vec, '-', label=cell_label, figure=fig)
         pylab.yscale('log')
-        pylab.legend()
+        pylab.legend(sorted(unique_labels.keys()))
         if t_max:    
             pylab.xlim((0, t_max))
         pp.savefig(fig)
+        
+        if plot_growth_rate:
+            names = sorted(unique_labels.keys())
+            averages = sorted([pylab.mean(unique_labels[k]) for k in names])
+            errors = sorted([pylab.std(unique_labels[k]) for k in names])
+            left = pylab.arange(len(names))
+        
+            fig2 = pylab.figure()
+            pylab.bar(left, averages, yerr=errors, color='b', ecolor='g', figure=fig2)
+            pylab.xticks(left, names, rotation=35, fontsize=8)
+            pp.savefig(fig2)
+                
     pp.close()
 
 
