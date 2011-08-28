@@ -65,7 +65,7 @@ def ParseReaderFile(fname):
         elif e.tag == 'Single':
             measurement = e.text
             if measurement == "OVER":
-                plate_values[reading_label][time_in_sec][well] = pylab.nan
+                plate_values[reading_label][time_in_sec][well] = None
             else:
                 plate_values[reading_label][time_in_sec][well] = float(measurement)
     return plate_values

@@ -4,19 +4,14 @@ import sys, os, subprocess
 import wx
 import wx.grid as gridlib
 import util
-
-from os import path
+from database import MySQLDatabase
 
 PLOT_EXP_DATA_EXE = 'plotExpData'
-PLOT_EXP_DATA_LINUX = '/local/bin/PlotExpData'
+PLOT_EXP_DATA_LINUX = '/home/ayelet/pyrobot/PlotExpData'
 
 ####################################################
 
 def connect():
-    try:
-        from database import MySQLDatabase
-    except ImportError:
-        from toolbox.database import MySQLDatabase
         
     return MySQLDatabase(host='132.77.80.238', user='ronm', 
                          passwd='a1a1a1', db='tecan')
@@ -406,11 +401,10 @@ class MyGrid(gridlib.Grid):
         else:
             sys.exit(0)
             dialog.Destroy()
-            
-        self.basename, self.extension = path.splitext(self.filename)
-        if self.extension == '.csv':
+        self.basename, self.extension = self.filename.split('.')
+        if (self.extension =='csv' ):
             print self.filename
-        else:
+        else :
             print "Not CSV !\n"
             
         fi=open(self.filename)
@@ -425,12 +419,14 @@ class MyGrid(gridlib.Grid):
                 for col in row :
                     col_index+=1
                     self.SetCellValue(row_index, col_index,col)
-            else:
-                dlg = wx.MessageDialog(self, 'Please validate CSV file',
-                                       'Error loading plate description',
-                                       wx.OK | wx.ICON_ERROR)
-                dlg.ShowModal()
-                dlg.Destroy()
+        else :
+            dlg = wx.MessageDialog(self, 'Please validate CSV file',
+                            'Error loading plate description',
+                            wx.OK | wx.ICON_ERROR
+                            #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
+                               )
+            dlg.ShowModal()
+            dlg.Destroy()
             
         self.Update()
             
@@ -578,7 +574,9 @@ class MyPanel(wx.Panel):
         topSizer.Add(self.ImportButton, 0, wx.ALL|wx.EXPAND, 5)
         
         
-        
+        self.PlotButton = wx.Button(self, wx.ID_ANY, 'Plot Growth Curves')
+        self.PlotButton.Bind(wx.EVT_BUTTON, self.PlotGrowthCurves)
+        topSizer.Add(self.PlotButton, 0, wx.ALL|wx.EXPAND, 5)
        
 
         # the object is created before myGrid, but is added
@@ -647,7 +645,14 @@ class MyPanel(wx.Panel):
                         self.db.Insert('tecan_readings', [exp_id, plate_id,
                             reading_label, well[0], well[1], time_in_sec, value])
                 self.db.Commit()
-        print "Done importing file: %s" % tar_fname
+        dlg = wx.MessageDialog(self, 'Import completed successfully:\n%s' % exp_id,
+                            'Done Import',
+                            wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.experimentComboBox.SetItems(self.GenerateExperimentComboBoxChoices())
+   
+        
         #dlg.Destroy()
         #del self.busy
     
@@ -719,10 +724,10 @@ class MyPanel(wx.Panel):
         csv_fname = outfname + '.csv'
         self.GenerateCSV(csv_fname)
         
-        message = "Please wait while generating figures... (May take a few minutes)"
-        busy = PBI.PyBusyInfo(message, parent=None, title="ATP - Automatic TECAN Pipeline")
         
         if sys.platform == "win32":   
+            message = "Please wait while generating figures... (May take a few minutes)"
+            busy = PBI.PyBusyInfo(message, parent=self, title="ATP - Automatic TECAN Pipeline")
             print "WINDWOS FOUND !!!"             # on a Windows port
             command = PLOT_EXP_DATA_EXE + ' -i %s -o %s' % (csv_fname, outfname)
             print command
@@ -733,26 +738,30 @@ class MyPanel(wx.Panel):
             #popen = win32pipe.popen
             win32pipe.popen(command,'r')
             print "win32"
+            del busy
         else:
+            if not os.path.exists(PLOT_EXP_DATA_LINUX):
+                dlg = wx.MessageDialog(self, 
+                    'Cannot locate PlotExpData executable: %s' % PLOT_EXP_DATA_LINUX,
+                    'File not found', wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
+                return
             args = [PLOT_EXP_DATA_LINUX, '-i', csv_fname, '-o', outfname]
             print ' '.join(args)
-            subprocess.Popen(args=args, executable=PLOT_EXP_DATA_LINUX)
+            subprocess.call(args=args, executable=PLOT_EXP_DATA_LINUX)
         
-        generatedFiles=""
-        for self.filename in os.listdir(outpath):
+        reportString = "Files generated:\n"
+        for filename in os.listdir(outpath):
             try:
-                basename, extension = self.filename.rsplit('.', 1) #### unpack to list and recive first and second value into base/extensiono
+                basename, extension = filename.rsplit('.', 1)
             except ValueError:
                 continue
             if basename[:len(prefix)] == prefix and extension == 'svg':
-                generatedFiles += "%s.%s \n" % (basename, extension)
-        del busy
+                reportString += filename + "\n"
         
-        dlg = wx.MessageDialog(self, 'Files generated : \n %s' % generatedFiles,
-                               'Report',
-                               wx.OK | wx.ICON_INFORMATION
-                               #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
-                               )
+        dlg = wx.MessageDialog(self, reportString,
+                               'Report', wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
         
@@ -870,6 +879,44 @@ class MyPanel(wx.Panel):
                                "AND reading_label = '%s' "
                                "AND row = %d AND col = %d" %
                                (expID, plate, reading_label, row, col))
+
+    def GenerateDataForSelectedCells(self):
+        """
+            returns a dictionary whose keys are reading-labels,
+            and values are:
+            (cell_label, [(time0, value0), (time1, value1), ...])
+        """
+        data = {}
+        for vals in self.selectionListBox.selectionDict.values():
+            expID = vals['expID']
+            plate = vals['plate']
+            reading_labels = vals['reading_labels']
+            cells = vals['cells']
+            for row, col in cells:
+                cell_label = self.GetCellLabel(expID, plate, row, col)
+                for reading_label in reading_labels:
+                    measurements = self.GetCellMeasurements(expID, plate, reading_label, row, col)
+                    data.setdefault(reading_label, []).append((cell_label, measurements))
+        return data
+
+    def PlotGrowthCurves(self, event):
+        data = self.GenerateDataForSelectedCells()
+        if len(data) > 0:
+            # Create an open file dialog
+            dialog = wx.FileDialog(None, style=wx.SAVE)
+            # Show the dialog and get user input
+            if dialog.ShowModal() == wx.ID_OK:
+                pdf_fname = dialog.GetPath()
+            else:
+                print 'Nothing was selected.'
+                return
+            dialog.Destroy()
+            util.PlotGrowthCurves(data, pdf_fname)
+            dlg = wx.MessageDialog(self, 'Plots written succesfully to:\n%s' % pdf_fname,
+                            'Done Plotting',
+                            wx.OK | wx.ICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
                         
     def GenerateCSVEvent(self, event):
         self.GenerateCSV(None)
@@ -894,7 +941,7 @@ class MyPanel(wx.Panel):
         #                    "An Informative Message",                            
         #                   agwStyle=style)
         
-        max=1
+        max = 1
         count = 0
         for vals in self.selectionListBox.selectionDict.values(): #Counting total cells
             expID = vals['expID']
@@ -945,7 +992,7 @@ class MyForm(wx.Frame):
     
     def __init__(self):
         """Constructor"""
-        wx.Frame.__init__(self, parent=None, title="Data Extractor",size=(1400,600))
+        wx.Frame.__init__(self, parent=None, title="Data Extractor",size=(1400,700))
         self.panel = MyPanel(self,-1)
 
         
