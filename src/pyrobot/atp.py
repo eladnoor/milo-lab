@@ -904,6 +904,7 @@ class MyPanel(wx.Panel):
     def PlotGrowthCurves(self, event):
         data = self.GenerateDataForSelectedCells()
         if len(data) > 0:
+            
             # Create an open file dialog
             dialog = wx.FileDialog(None, style=wx.SAVE)
             # Show the dialog and get user input
@@ -913,7 +914,15 @@ class MyPanel(wx.Panel):
                 print 'Nothing was selected.'
                 return
             dialog.Destroy()
-            toolbox.tecan.PlotGrowthCurves(data, pdf_fname)
+
+            dialog = wx.MessageDialog(self, 'Plot growth rates as well?',
+                                      'Plot Growth Rates',
+                                      wx.YES_DEFAULT | wx.NO)
+            plot_growth_rate = (dialog.ShowModal() == wx.ID_YES)
+            dialog.Destroy()
+
+            toolbox.tecan.PlotGrowthCurves(data, pdf_fname,
+                                           plot_growth_rate=plot_growth_rate)
             dlg = wx.MessageDialog(self, 'Plots written succesfully to:\n%s' % pdf_fname,
                             'Done Plotting',
                             wx.OK | wx.ICON_INFORMATION)
