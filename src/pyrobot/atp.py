@@ -851,13 +851,13 @@ class MyPanel(wx.Panel):
     
     def OnComboBoxClicked(self, event):
         print 'event reached panel class'
-        
-        self.myGrid.ClearSelection()
 
         self.commitButton.SetForegroundColour("Black")
         self.commitButton.Refresh()
         
         if event.GetId() == self.experimentComboBox.GetId():
+            self.myGrid.ClearSelection()
+            
             self.myGrid.EnableEditing(False)
             self.myGrid.ClearGrid()
             self.UpdatePlateListBox(None)
@@ -867,6 +867,8 @@ class MyPanel(wx.Panel):
             #self.statext.SetLabel('Present info regarding exp. " %s " here' % val)
             event.Skip()
         elif event.GetId() == self.plateComboBox.GetId():
+            self.myGrid.ClearSelection()
+            
             self.myGrid.EnableEditing(True)
             self.LoadPlateLabels()
             self.measurementListBox.Enable(True)
