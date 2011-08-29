@@ -441,17 +441,22 @@ class MyPanel(wx.Panel):
         
         wx.Panel.__init__(self, parent, id)
         
+        # Connect to DB
+        self.db = connect()
+        
+        # Map of action names to callable functions handling them
         self.actionMap = {'Generate CSV': self.GenerateCSVEvent,
                           'Run Uri Button': self.UriMethod,
                           'Plot Growth Curves': self.PlotGrowthCurves,
                           'Commit Experiment Description': self.CommitPlateLabels,}
         
+        # Sizers
         topSizer    = wx.BoxSizer(wx.VERTICAL)
-        
         titleSizer  = wx.BoxSizer(wx.HORIZONTAL)
         middleSizer = wx.BoxSizer(wx.HORIZONTAL)
         bagSizer    = wx.GridBagSizer(hgap=5, vgap=5)
         
+        # Add icons
         bmp = wx.ArtProvider.GetBitmap(wx.ART_TIP, wx.ART_OTHER, (16, 16))
         font = wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD)
         titleIco = wx.StaticBitmap(self, wx.ID_ANY, bmp)
@@ -460,19 +465,11 @@ class MyPanel(wx.Panel):
         titleSizer.Add(titleIco, 0, wx.ALL, 5)
         titleSizer.Add(title, 0, wx.ALL, 5)
         
-        bagSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self.db = connect()
-        
+        # Bind event handlers
         self.Bind(wx.EVT_COMBOBOX, self.OnComboBoxClicked)
+        self.Bind(wx.EVT_LISTBOX, self.OnListboxClick)
         
-        #self.experimentComboBox_text = '''Exp. file :'''
-        #self.experimentComboBox_str = wx.StaticText(self, -1, self.experimentComboBox_text, style=wx.EXPAND)
-        #bagSizer.Add(self.experimentComboBox_str, pos=(0,0),
-        #             flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL,
-        #             border=5)
-        
-        #self.experimentComboBox = PromptingComboBox(self, value="Select Exp. ", 
-        #                                            choices=self.GenerateExperimentComboBoxChoices(), style=wx.CB_SORT)
+        # Experiment chooser
         self.experimentComboBox = wx.ComboBox(self, wx.ID_ANY, value="Select Experiment",
                                               choices=self.GenerateExperimentComboBoxChoices(),
                                               style=wx.CB_DROPDOWN)
@@ -480,12 +477,7 @@ class MyPanel(wx.Panel):
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         
-        #bagSizer.Add(self.plateComboBox_str, pos=(1,0),
-        #             flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL,
-        #             border=5)
-       
-        #self.plateComboBox = PromptingComboBox(self, value="Select Plate", 
-        #                                       choices=self.plateComboBox_choices, style=wx.CB_SORT)
+        # Plate chooser
         self.plateComboBox = wx.ComboBox(self, wx.ID_ANY, value="Select Plate",
                                          choices=['Null\t'],
                                          style=wx.CB_SORT|wx.CB_DROPDOWN)
@@ -494,20 +486,14 @@ class MyPanel(wx.Panel):
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         
-        #self.cb3_text = ''' Labels :'''
-        #self.cb3_str = wx.StaticText(self, -1, self.cb3_text, style=wx.EXPAND)
-        #bagSizer.Add(self.cb3_str, pos=(2,0),
-        #             flag=wx.ALL|wx.TOP,
-        #             border=5)
-        
+        # Measurement picker
         self.measurementListBox_choices = ['Select Measurement']
-        self.measurementListBox = wx.ListBox(self, -1, choices=self.measurementListBox_choices, style=wx.LB_MULTIPLE)
+        self.measurementListBox = wx.ListBox(self, -1, choices=self.measurementListBox_choices,
+                                             style=wx.LB_MULTIPLE)
         self.measurementListBox.Enable(False)
-        self.Bind(wx.EVT_LISTBOX, self.OnListboxClick, )
         bagSizer.Add(self.measurementListBox, pos=(2,0), span=(1,1),
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
-        
         
         print "Displaying cb1 ID : \n"
         print self.experimentComboBox.GetId()
@@ -516,75 +502,57 @@ class MyPanel(wx.Panel):
         print "Displaying cb3 ID : \n"
         print self.measurementListBox.GetId()
         
-          
-        self.selectionListBox = SelectionListBox(self) #is declated here sincve mygrid requires this object
+        # Is declated here sincve mygrid requires this object
         # myGrid uses the selectionListBox data member from 'self'
+        self.selectionListBox = SelectionListBox(self)
         self.myGrid = MyGrid(self)
         bagSizer.Add(self.myGrid, pos=(0,1), span=(3,1),
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         
+        # Load CSV
         self.loadCsvButton = wx.Button(self, wx.ID_ANY, 'Import plate labels')
         self.loadCsvButton.Bind(wx.EVT_BUTTON, self.myGrid.LoadFromCSV)
         bagSizer.Add(self.loadCsvButton, pos=(3,0), span=(1,1), 
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         
+        # Commit labels
         self.commitButton = wx.Button(self, wx.ID_ANY, 'Commit Labels')
         bagSizer.Add(self.commitButton, pos=(3,1), span=(1,1),
                      flag=wx.ALL|wx.EXPAND,
                      border=5)
         self.commitButton.Bind(wx.EVT_BUTTON, self.CommitPlateLabels)
-       
-        
-        
-        #stext='# Select an exp. entry to retrive information #'
-        #self.statext= wx.StaticText(self, -1, stext, style=wx.ALIGN_CENTRE)
-        #bagSizer.Add(self.statext, pos=(0,5), span=(2,2),
-        #             flag=wx.ALL|wx.ALIGN_CENTER,
-        #             border=5)
 
-
-        
+        # Add nested sizers
         topSizer.Add(titleSizer, 0, wx.CENTER)
         topSizer.Add(wx.StaticLine(self), 0, wx.ALL|wx.EXPAND, 5)
         
         topSizer.Add(bagSizer, 0, wx.ALL|wx.EXPAND, 5)
         topSizer.Add(wx.StaticLine(self), 0, wx.ALL|wx.EXPAND, 5)
         
-        #Selection box was declared earlier since MyGrid required this object -- self.selectionListBox = SelectionListBox(self)
+        # Selection box was declared earlier since MyGrid required this object
+        # -- self.selectionListBox = SelectionListBox(self)
         topSizer.Add(self.selectionListBox, 0, wx.ALL|wx.EXPAND, 5)
-        
-        
-        
-        #topSizer.Add(self.myGrid,0,wx.CENTER)
         topSizer.Add(wx.StaticLine(self), 0, wx.ALL|wx.EXPAND, 5)
         
-       
+        # Choose an action to perform with selected data.
         self.actionsCombo = wx.ComboBox(self, wx.ID_ANY, 'Choose Action',
                                         choices=['None'] + sorted(self.actionMap.keys()))
         topSizer.Add(self.actionsCombo, 0, wx.ALL|wx.EXPAND, 5)
         
-        
+        # Button for running the given action.
         self.runAction = wx.Button(self, wx.ID_ANY, 'Run Action')
         self.runAction.Bind(wx.EVT_BUTTON, self.RunChosenAction)
         topSizer.Add(self.runAction, 0, wx.ALL|wx.EXPAND, 5)
-        
-        # the object is created before myGrid, but is added
-        # here to the Sizer
-       
-        
+
+        # Placeholde for something Niv wants to do?       
         query='#  #'
         self.sqltext= wx.StaticText(self, -1, query, style=wx.ALIGN_CENTRE)
         topSizer.Add(self.sqltext, 0, wx.ALL, 5)
         
-
-       
-        
         self.SetSizer(topSizer)
-        #self.SetSizeHints(250,200,700,300)
         topSizer.Fit(self)
-        
         
         self.hbox1 = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
