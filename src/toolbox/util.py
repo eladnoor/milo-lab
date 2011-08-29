@@ -1,8 +1,8 @@
 import os, types, pylab, sys
-from toolbox.cartesian_product import cartesian_product
 from pylab import svd, find, exp, log, pi, nan, sqrt, array, dot
 import Levenshtein
 import re
+import itertools
 
 def read_simple_mapfile(filename, default_value=""):
     map = {}
@@ -267,7 +267,7 @@ def multi_distribute(total_slots_pairs):
     for (total, num_slots) in total_slots_pairs:
         multilist_of_options.append(distribute(total, num_slots))
 
-    return [lsum(l) for l in cartesian_product(multilist_of_options)]
+    return [lsum(x) for x in itertools.product(*multilist_of_options)]
 
 def log_sum_exp(v):
     if (len(v) == 0):
@@ -365,7 +365,9 @@ def test():
     print flatten([[1,2,3],[4,[5,6],[[7]]]])
     print lsum([[[1],[2]],3,set([4,5,6]),(7,8,9),10])
     
-    print multi_distribute([(1,2),(2,2)])
+    
+    total_slots_pairs = [(1,2),(2,2),(1,2)]
+    print multi_distribute(total_slots_pairs)
       
 if (__name__ == '__main__'):
     test()
