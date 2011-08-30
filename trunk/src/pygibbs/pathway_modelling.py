@@ -105,15 +105,22 @@ class Pathway(object):
             formation_lb = cvxmod.matrix(self.DEFAULT_FORMATION_LB, size=(self.Nc, 1))
             formation_ub = cvxmod.matrix(self.DEFAULT_FORMATION_UB, size=(self.Nc, 1))
 
-        # Add specific bounds for compounds with known concentrations.
+        # Override the specific for compounds with known concentrations.
         if bounds:
             for i, bound in enumerate(bounds):
-                lb, ub = bound
                 dgf = self.dG0_f[i, 0]
+                if pylab.isnan(dgf):
+                    continue
+                lb, ub = bound
                 if lb is not None:
                     formation_lb[i, 0] = dgf + RT*numpy.log(lb)
                 if ub is not None:
                     formation_ub[i, 0] = dgf + RT*numpy.log(ub)
+
+        lb_nan_indices = pylab.isnan(formation_lb).nonzero()[0].tolist()
+        ub_nan_indices = pylab.isnan(formation_ub).nonzero()[0].tolist()
+        formation_lb[lb_nan_indices] = self.DEFAULT_FORMATION_LB
+        formation_ub[ub_nan_indices] = self.DEFAULT_FORMATION_UB
         
         return formation_lb, formation_ub
     
@@ -626,11 +633,18 @@ class KeggPathway(Pathway):
         return Pathway.FindMinimalFeasibleConcentration(self, index)
 
     def CalculateReactionEnergies(self, dG_f):
-        dG_r = pylab.zeros((self.Nr, 1))
-        for r in range(self.Nr):
-            reactants = pylab.find(self.S[r,:])
-            dG_r[r, 0] = pylab.dot(self.S[r, reactants], dG_f[reactants])
-        return dG_r
+        if pylab.isnan(dG_f).any():
+            # if there are NaN values in dG_f, multiplying the matrices will not
+            # work, since pylab will not convert 0*NaN into 0 in the sum. Therefore,
+            # the multiplication must be done explicitly and using only the nonzero
+            # stoichiometric coefficients and their corresponding dG_f. 
+            dG_r = pylab.zeros((self.Nr, 1))
+            for r in xrange(self.Nr):
+                reactants = pylab.find(self.S[r,:])
+                dG_r[r, 0] = pylab.dot(self.S[r, reactants], dG_f[reactants])
+            return dG_r
+        else:
+            return pylab.dot(self.S, dG_f)
 
     @staticmethod
     def EnergyToString(dG):
@@ -649,7 +663,7 @@ class KeggPathway(Pathway):
                      ['R%05d' % self.rids[i] for i in xrange(self.Nr)],
                      fontproperties=FontProperties(size=8), rotation=30)
         dG_r = self.CalculateReactionEnergies(dG_f)
-        cum_dG_r = pylab.cumsum([0] + [dG_r[r, 0] * self.fluxes[r] for r in range(self.Nr)])
+        cum_dG_r = pylab.cumsum([0] + [dG_r[r, 0] * self.fluxes[r] for r in xrange(self.Nr)])
         pylab.plot(pylab.arange(0.5, self.Nr + 1), cum_dG_r, figure=figure, label='Standard [1M]')
         return figure
         
@@ -718,11 +732,11 @@ if __name__ == '__main__':
     fluxes = numpy.array([1, 1, -1])
     rids = [1, 2, 3]
     cids = [1, 2, 3, 4]
-    keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
-    dGf, concentrations, protein_cost = keggpath.FindKineticOptimum()
-    print 'protein cost: %g protein units' % protein_cost
-    print 'concentrations: ', concentrations
-    print 'sum(concs): ', sum(concentrations), 'M'
+    #keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
+    #dGf, concentrations, protein_cost = keggpath.FindKineticOptimum()
+    #print 'protein cost: %g protein units' % protein_cost
+    #print 'concentrations: ', concentrations
+    #print 'sum(concs): ', sum(concentrations), 'M'
     
     keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
     dGf, concentrations, mtdf = keggpath.FindMtdf()

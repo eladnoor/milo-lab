@@ -29,6 +29,7 @@ import scipy.io
 import matplotlib.pyplot as plt
 from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException
+from pygibbs.nist_verify import LoadAllEstimators
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -651,20 +652,9 @@ class ThermodynamicAnalysis(object):
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
 
 
-def MakeOpts():
+def MakeOpts(estimators):
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
-    opt_parser.add_option("-s", "--thermodynamics_source",
-                          dest="thermodynamics_source",
-                          type="choice",
-                          choices=['observed_only',
-                                   'hatzi_only',
-                                   'milo_only',
-                                   'milo_merged',
-                                   'regression',
-                                   'alberty'],
-                          default="milo_merged",
-                          help="The thermodynamic data to use")
     opt_parser.add_option("-k", "--kegg_database_location", 
                           dest="kegg_db_filename",
                           default="../data/public_data.sqlite",
@@ -673,10 +663,12 @@ def MakeOpts():
                           dest="db_filename",
                           default="../res/gibbs.sqlite",
                           help="The Thermodynamic database location")
-    opt_parser.add_option("-t", "--thermodynamics_filename",
-                          dest="thermodynamics_filename",
-                          default='../data/thermodynamics/dG0.csv',
-                          help="The name of the thermodynamics file to load.")
+    opt_parser.add_option("-s", "--thermodynamics_source",
+                          dest="thermodynamics_source",
+                          type="choice",
+                          choices=estimators.keys(),
+                          default="PGC",
+                          help="The thermodynamic data to use")
     opt_parser.add_option("-i", "--input_filename",
                           dest="input_filename",
                           default="../data/thermodynamics/pathways.txt",
@@ -688,8 +680,9 @@ def MakeOpts():
     return opt_parser
 
 
-if __name__ == "__main__":    
-    options, _ = MakeOpts().parse_args(sys.argv)
+if __name__ == "__main__":
+    estimators = LoadAllEstimators()
+    options, _ = MakeOpts(estimators).parse_args(sys.argv)
     input_filename = os.path.abspath(options.input_filename)
     output_filename = os.path.abspath(options.output_filename)
     if not os.path.exists(input_filename):
@@ -698,16 +691,10 @@ if __name__ == "__main__":
     print 'Will read pathway definitions from %s' % input_filename
     print 'Will write output to %s' % output_filename
     
-    thermo_source = options.thermodynamics_source
-    print 'Will load thermodynamic data from source "%s"' % thermo_source
     
     db_loc = options.db_filename
     print 'Reading from DB %s' % db_loc
     db = SqliteDatabase(db_loc)
-    
-    public_db_loc = options.kegg_db_filename
-    print 'Reading from public DB %s' % public_db_loc
-    db_public = SqliteDatabase(public_db_loc)
     
     # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
     # Where: 
@@ -722,38 +709,20 @@ if __name__ == "__main__":
     #
     # [1] - Thauer 1977
     
-    observed_thermo_fname = options.thermodynamics_filename
-    print 'Loading observed thermodynamic data from %s' % observed_thermo_fname
-    observed_thermo = PsuedoisomerTableThermodynamics.FromCsvFile(
-        observed_thermo_fname)
-    
-    if thermo_source == 'hatzi_only':    
-        thermo = PsuedoisomerTableThermodynamics.FromDatabase(db, 'hatzi_thermodynamics')
-        thermo.AddPseudoisomer( 139, nH=0,  z=1, nMg=0, dG0=0)      # Ferrodoxin(ox)
-        thermo.AddPseudoisomer( 138, nH=0,  z=0, nMg=0, dG0=38.0)   # Ferrodoxin(red)
-        thermo.AddPseudoisomer( 399, nH=90, z=0, nMg=0, dG0=0)      # Ubiquinone-10(ox)
-        thermo.AddPseudoisomer( 390, nH=92, z=0, nMg=0, dG0=-103.2) # Ubiquinone-10(red)
-        thermo.AddPseudoisomer( 828, nH=16, z=0, nMg=0, dG0=0)      # Menaquinone(ox)
-        thermo.AddPseudoisomer(5819, nH=18, z=0, nMg=0, dG0=-65.8)  # Menaquinone(red)
-        thermo.SetPseudoisomerMap(101, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=0.0)) # THF
-        thermo.SetPseudoisomerMap(234, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=-137.5)) # 10-Formyl-THF
-        thermo.SetPseudoisomerMap(445, PseudoisomerMap(nH=22, z=0, nMg=0, dG0=65.1)) # 5,10-Methenyl-THF
-        thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
-        thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
-    elif thermo_source == 'milo_only':
-        thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-            db, 'gc_pseudoisomers')
-    elif thermo_source == 'milo_merged':
-        thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-            db, 'gc_pseudoisomers')
-        thermo.override_data(observed_thermo)
-    elif thermo_source == 'regression':
-        thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-            db, 'nist_regression_pseudoisomers')
-    elif thermo_source == 'observed_only':
-        thermo = observed_thermo
-    else:
-        logging.fatal('Unknown thermodynamic data source.')
+    thermo = estimators[options.thermodynamics_source]
+    print "Using the thermodynamic estimations of: " + thermo.name
+
+    thermo.AddPseudoisomer( 139, nH=0,  z=1, nMg=0, dG0=0)      # Ferrodoxin(ox)
+    thermo.AddPseudoisomer( 138, nH=0,  z=0, nMg=0, dG0=38.0)   # Ferrodoxin(red)
+    thermo.AddPseudoisomer( 399, nH=90, z=0, nMg=0, dG0=0)      # Ubiquinone-10(ox)
+    thermo.AddPseudoisomer( 390, nH=92, z=0, nMg=0, dG0=-103.2) # Ubiquinone-10(red)
+    thermo.AddPseudoisomer( 828, nH=16, z=0, nMg=0, dG0=0)      # Menaquinone(ox)
+    thermo.AddPseudoisomer(5819, nH=18, z=0, nMg=0, dG0=-65.8)  # Menaquinone(red)
+    thermo.SetPseudoisomerMap(101, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=0.0)) # THF
+    thermo.SetPseudoisomerMap(234, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=-137.5)) # 10-Formyl-THF
+    thermo.SetPseudoisomerMap(445, PseudoisomerMap(nH=22, z=0, nMg=0, dG0=65.1)) # 5,10-Methenyl-THF
+    thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
+    thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
     
     kegg = Kegg.getInstance()
     thermo.bounds = deepcopy(kegg.cid2bounds)

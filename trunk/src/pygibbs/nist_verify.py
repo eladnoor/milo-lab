@@ -38,7 +38,7 @@ def LoadAllEstimators():
     estimators['PGC'] = GroupContribution(db=db_gibbs)
     estimators['PGC'].init()
     estimators['PGC'].name = 'our method (PGC)'
-    
+
     return estimators
 
 ################################################################################################################

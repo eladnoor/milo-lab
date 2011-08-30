@@ -184,7 +184,10 @@ class ParsedKeggFile(dict):
         Returns:
             A dictionary mapping entry names to fields.
         """
-        kegg_file = gzip.open(filename, 'r')
+        if filename[-3:] == '.gz':
+            kegg_file = gzip.open(filename, 'r')
+        else:
+            kegg_file = open(filename, 'r')
         return ParsedKeggFile._FromKeggFileHandle(kegg_file)
 
     @staticmethod
