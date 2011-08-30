@@ -235,6 +235,21 @@ class Kegg(Singleton):
 
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
+            
+    def CompleteMissingInchies(self):
+        serv = WSDL.Proxy(Kegg.WSDL_URL)
+        for row in self.db.Execute("SELECT cid FROM kegg_compound " 
+            "WHERE (formula NOT LIKE '%R%' AND formula NOT LIKE '%n%' "  
+            "AND formula NOT LIKE '%X%') AND inchi IS NULL"):
+            cid = int(row[0])
+            comp = self.cid2compound(cid)
+            logging.info('Querying MOL for C%05d, formula: %s' % (cid, comp.formula))
+            s = serv.bget('-f m cpd:C%05d' % cid)
+            inchi_list = self._ReadMolEntries(s)
+            if inchi_list == [] or inchi_list[0] == None:
+                continue
+            logging.info('Result: ' + inchi_list[0])
+            comp.inchi = inchi_list[0]
 
     def ToDatabase(self):
         logging.info('Writing to database %s', self.db)
@@ -1424,5 +1439,5 @@ def export_compound_connectivity():
     
 if __name__ == '__main__':
     kegg = Kegg.getInstance(loadFromAPI=True)
+    kegg.CompleteMissingInchies()
     kegg.ToDatabase()
-    
