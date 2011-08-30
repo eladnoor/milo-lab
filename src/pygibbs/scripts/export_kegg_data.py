@@ -34,10 +34,12 @@ def MakeOpts(estimators):
                           dest="nullspace_out_filename",
                           default="../res/kegg_gc_nullspace.json",
                           help="Null-space matrix for the GC estimations")
-    opt_parser.add_option("-t", "--thermo_estimator",
-                          dest="thermo_estimator",
+    opt_parser.add_option("-s", "--thermodynamics_source",
+                          dest="thermodynamics_source",
+                          type="choice",
+                          choices=estimators.keys(),
                           default="PGC",
-                          help="options are: " + ', '.join(estimators.keys()))
+                          help="The thermodynamic data to use")
     return opt_parser
 
 def WriteJSONFile(obj, filename):
@@ -51,8 +53,8 @@ def ExportJSONFiles():
     estimators = LoadAllEstimators()
     options, _ = MakeOpts(estimators).parse_args(sys.argv)
     
-    print "Using the thermodynamic estimations of: " + options.thermo_estimator
-    thermo = estimators[options.thermo_estimator]
+    thermo = estimators[options.thermodynamics_source]
+    print "Using the thermodynamic estimations of: " + thermo.name
 
     # Make sure we have all the data.
     kegg = Kegg.getInstance()

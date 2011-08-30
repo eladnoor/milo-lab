@@ -348,7 +348,7 @@ class Kegg(Singleton):
                     self.cid2compound_map[cid] = comp
                 if row_dict['inchi']:
                     if comp.inchi:
-                        logging.warning('Overriding InChI for C%05d' % cid)
+                        logging.debug('Overriding InChI for C%05d' % cid)
                         del self.inchi2cid_map[comp.inchi]
                     comp.SetInChI(row_dict['inchi'])
                     self.inchi2cid_map[row_dict['inchi']] = cid

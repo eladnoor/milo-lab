@@ -13,6 +13,7 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.html_writer import HtmlWriter
 from toolbox.molecule import Molecule, OpenBabelError
 from pygibbs.kegg_reaction import Reaction
+from optparse import OptionParser
 
 class MissingDissociationConstantError(Exception):
     pass
@@ -305,6 +306,13 @@ class DissociationConstants(object):
         nH, nMg = diss_table.GetMostAbundantPseudoisomer(pH, I, pMg, T)
         return self.GetMol(cid, nH, nMg)
         
+    def WriteToHTML(self, html_writer):
+        for cid in sorted(self.GetAllCids()):
+            diss_table = self.GetDissociationTable(cid)
+            html_writer.write('<h2>%s - C%05d</h2>\n' % (kegg.cid2name(cid), cid))
+            if diss_table is not None:
+                diss_table.WriteToHTML(html_writer)
+                html_writer.write('</br>\n')
 
 ###############################################################################
 
@@ -407,7 +415,7 @@ class DissociationTable(object):
             mol = Molecule.FromSmiles(str(s))
             self.mol_dict[nH, nMg] = mol
     
-    def ToDatabaseRow(self, db, table_name):
+    def ToDatabaseRow(self):
         """
             Return:
                 A list of rows to insert into the database
@@ -694,67 +702,121 @@ class DissociationTable(object):
         return pmap
 
 ###############################################################################
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-k", "--kegg", action="store_true",
+                          dest="kegg", default=False,
+                          help="Calculate pKas all KEGG compounds")
+    opt_parser.add_option("-s", "--smiles_file", action="store",
+                          dest="smiles_file",
+                          default="../data/kegg/smiles.csv",
+                          help="CSV file containing CIDs and SMILES strings")
+    opt_parser.add_option("-f", "--dissociation_file", action="store",
+                          dest="dissociation_file",
+                          default=None,
+                          help="Copy all pKas from an input CSV file (overrides using ChemAxon)")
+    opt_parser.add_option("-l", "--log_file", action="store",
+                          dest="log_file",
+                          default="../res/dissociation_constants.html",
+                          help="Destination file for writing the log (HTML)")
+    opt_parser.add_option("-d", "--database", action="store",
+                          dest="db_file",
+                          default="../res/gibbs.sqlite",
+                          help="The SQLite database to write to")
+    opt_parser.add_option("-t", "--table_name", action="store",
+                          dest="table_name",
+                          default="dissociation_constants",
+                          help="The name of the DB table for the results")
+    opt_parser.add_option("-r", "--report", action="store_true",
+                          dest="report_only",
+                          default=False,
+                          help="Only print the contents of the DB table")
+    opt_parser.add_option("-o", "--override", action="store_true",
+                          dest="override_table",
+                          default=False,
+                          help="Drop the DB table and start from scratch")
+    return opt_parser
 
 if __name__ == '__main__':
-    db = SqliteDatabase("../res/gibbs.sqlite")
+    options, args = MakeOpts().parse_args(sys.argv)
+    db = SqliteDatabase(options.db_file)
     kegg = Kegg.getInstance()
-    html_writer = HtmlWriter("../res/dissociation_constants.html")
-
-    if False:
-        # copy the data from the CSV file to the database
-        dissociation_csv = DissociationConstants.FromFile()
-        dissociation_csv.ToDatabase(db, 'dissociation_constants')
+    html_writer = HtmlWriter(options.log_file)
     
-    if True:
-        cid2smiles = {}
-        
-        for row in csv.DictReader(open('../data/kegg/smiles.csv', 'r')):
-            cid2smiles[int(row['cid'])] = row['smiles']
+    logging.info("Using SQLite database: " + options.db_file)
+    logging.info("Writing to table: " + options.table_name)
+    logging.info("Writing logs to HTML file: " + options.log_file)
 
-        dissociation_chemaxon = DissociationConstants()
+    if options.report_only:
+        logging.info("Reporting the contents of the DB")
+        dissociation = DissociationConstants.FromDatabase(db, options.table_name)
+        dissociation.WriteToHTML(html_writer)
+    elif options.dissociation_file:
+        logging.info("Copying the data from %s to the database" % options.dissociation_file)
+        dissociation = DissociationConstants.FromFile(options.dissociation_file)
+        dissociation.ToDatabase(db, options.table_name)
+        dissociation.WriteToHTML(html_writer)
+    else:
+        db.CreateTable(options.table_name,
+            "cid INT, name TEXT, nH_below INT, nH_above INT, " 
+            "nMg_below INT, nMg_above INT, mol_below TEXT, mol_above TEXT, " 
+            "ddG REAL, ref TEXT", drop_if_exists=options.override_table)
+
+        cid2smiles = {}
+        if options.kegg:
+            for cid in kegg.get_all_cids():
+                try:
+                    cid2smiles[cid] = kegg.cid2smiles(cid)
+                except KeggParseException:
+                    logging.debug("%s (C%05d) has no SMILES, skipping..." %
+                                  (kegg.cid2name(cid), cid))
+
+        for row in csv.DictReader(open(options.smiles_file, 'r')):
+            cid, smiles = int(row['cid']), row['smiles']
+            logging.debug("Overriding the SMILES of C%05d with: %s" % (cid, smiles))
+            cid2smiles[cid] = smiles
+            
+        if not options.override_table:
+            # Do not recalculate pKas for CIDs that are already in the database
+            for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
+                del cid2smiles[row[0]]
+            
+        dissociation = DissociationConstants()
         for cid, smiles in sorted(cid2smiles.iteritems()):
             logging.info("Using ChemAxon to find the pKa values for %s - C%05d" %
                          (kegg.cid2name(cid), cid))
             diss_table = Molecule._GetPseudoisomerMap(smiles, format='smiles',
                 mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
-            dissociation_chemaxon.cid2DissociationTable[cid] = diss_table
-            html_writer.write('<p><b>C%05d - %s</b></br>\n' % (cid, kegg.cid2name(cid)))
-            diss_table.WriteToHTML(html_writer, T=default_T)
-            html_writer.write('</p>\n')
-        
-        dissociation_chemaxon.ToDatabase(db, 'dissociation_constants_chemaxon')
-
-    if False:
-        # Print all the values in the dissociation table to the HTML file
-        dissociation = DissociationConstants.FromDatabase(db, 
-                                            'dissociation_constants_chemaxon')
-                
-        for cid in sorted(dissociation.GetAllCids()):
-            diss_table = dissociation.GetDissociationTable(cid)
-            html_writer.write('<h2>%s - C%05d</h2>\n' %
-                              (kegg.cid2name(cid), cid))
-            if diss_table is not None:
-                diss_table.WriteToHTML(html_writer)
-                html_writer.write('</br>\n')
-
-    if False:
-        cid2mol = {117:None}
-        dissociation = DissociationConstants.FromChemAxon(cid2mol, html_writer)
-        for cid in cid2mol.keys():
-            diss_table = dissociation.GetDissociationTable(cid)
-            print "*** C%05d ***" % cid
-            print diss_table
+            dissociation.cid2DissociationTable[cid] = diss_table
             
-    if False:
-        dissociation1 = DissociationConstants.FromDatabase(db,'dissociation_constants')
-        dissociation2 = DissociationConstants.FromDatabase(db,'dissociation_constants_chemaxon')
-        reaction = Reaction(names='dihydroorotase', sparse_reaction={1:-1, 337:-1, 438:1})
-        
-        for cid in reaction.get_cids():
-            print "C%05d" % cid
-            print dissociation1.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
-            print dissociation2.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
+            name = kegg.cid2name(cid)
+            html_writer.write('<h2>%s - C%05d</h2>\n' % (name, cid))
+            if diss_table is not None:
+                diss_table.WriteToHTML(html_writer, T=default_T)
+                html_writer.write('</br>\n')
+                for row in diss_table.ToDatabaseRow():
+                    db.Insert(options.table_name, [cid, name] + row)
+            else:
+                db.Insert(options.table_name, [cid, name] + [None] * 8)
+            db.Commit()
+                
+    #cid2mol = {117:None}
+    #dissociation = DissociationConstants.FromChemAxon(cid2mol, html_writer)
+    #for cid in cid2mol.keys():
+    #    diss_table = dissociation.GetDissociationTable(cid)
+    #    print "*** C%05d ***" % cid
+    #    print diss_table
+            
+    #dissociation1 = DissociationConstants.FromDatabase(db,'dissociation_constants')
+    #dissociation2 = DissociationConstants.FromDatabase(db,'dissociation_constants_chemaxon')
+    #reaction = Reaction(names='dihydroorotase', sparse_reaction={1:-1, 337:-1, 438:1})
+    
+    #for cid in reaction.get_cids():
+    #    print "C%05d" % cid
+    #    print dissociation1.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
+    #    print dissociation2.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
 
-        print dissociation1.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
-        print dissociation2.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
-        
+    #print dissociation1.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
+    #print dissociation2.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
+    

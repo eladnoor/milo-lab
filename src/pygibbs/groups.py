@@ -694,7 +694,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         elif cid in self.cid2pmap_dict:
             return self.cid2pmap_dict[cid]
         else:
-            raise MissingCompoundFormationEnergy(self.cid2error[cid], cid)
+            raise MissingCompoundFormationEnergy(self.cid2error.get(cid, ""), cid)
         
     def SaveContributionsToDB(self):
         logging.info("storing the group contribution data in the database")

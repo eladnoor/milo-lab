@@ -14,7 +14,7 @@ REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
             R00205  C00546 + C00006 + C00001 <=> C00022 + C00005 + C00080 (x2)
 ///
 ENTRY       M-ED-LATE-PHOSPHORYLATION
-SKIP        FALSE
+SKIP        TRUE
 NAME        Entner-Doudoroff full, phosphorylating glycerate
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
@@ -30,7 +30,7 @@ REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
             R00200  C00008 + C00074 -> C00002 + C00022 (x1)    
 ///
 ENTRY       M-ED-MID-PHOSPHORYLATION
-SKIP        FALSE
+SKIP        TRUE
 NAME        Entner-Doudoroff full, phosphorylating KDG
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
@@ -48,7 +48,7 @@ REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
             R00200  C00008 + C00074 -> C00002 + C00022 (x1)              
 ///
 ENTRY       M-ED-FULL
-SKIP        FALSE
+SKIP        TRUE
 NAME        Entner-Doudoroff full, phosphorylating glucose
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
@@ -75,7 +75,7 @@ PH          5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0
 I           0.0 0.02 0.04 0.06 0.08 0.10 0.12 0.14 0.16 0.18 0.20 0.22 0.24 0.26
 ///
 ENTRY       M-C4-glyoxlyate_pure_KEGG
-SKIP        FALSE
+SKIP        TRUE
 NAME        C4-glyoxlyate (pure KEGG)
 TYPE        MARGIN
 CONDITIONS  pH=7,I=0.1,T=300
@@ -94,7 +94,7 @@ REACTION    R00227  C00001 + C00024 -> C00010 + C00033 (x1)
             R05508  C00033 + C00827 -> C00024 + C00186 (x1)
 ///
 ENTRY       M-GLYCOLYSIS
-SKIP        FALSE
+SKIP        TRUE
 NAME        Glycolysis
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -105,7 +105,7 @@ MAP_CID     C00201 C00002
             C00454 C00008
 ///
 ENTRY       M-MOG_ALA
-SKIP        FALSE
+SKIP        TRUE
 NAME        MOG-Alanine
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -127,7 +127,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
             R01063  C00236 + C00004 -> C00118 + C00009 + C00003 (x0.333)
 ///
 ENTRY       S-MOG_ALA
-SKIP        FALSE
+SKIP        TRUE
 NAME        MOG-Alanine
 TYPE        SLACK
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -149,7 +149,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
             R01063  C00236 + C00004 -> C00118 + C00009 + C00003 (x0.333)
 ///
 ENTRY       M-MOG_LAC
-SKIP        FALSE
+SKIP        TRUE
 NAME        MOG-Lactate
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -174,7 +174,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
             R01063  C00236 + C00004 -> C00118 + C00009 + C00003 (x0.333)
 ///
 ENTRY       S-MOG_LAC
-SKIP        FALSE
+SKIP        TRUE
 NAME        MOG-Lactate
 TYPE        SLACK
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -199,7 +199,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
             R01063  C00236 + C00004 -> C00118 + C00009 + C00003 (x0.333)
 ///
 ENTRY       M-SHORT_CF
-SKIP        FALSE
+SKIP        TRUE
 NAME        4-STEP CARBON FIXATION CYCLE
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -214,7 +214,7 @@ REACTION    R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.666
             R01514  C00002 + C00258 -> C00008 + C00197 (x0.333)
 ///
 ENTRY       S-SHORT_CF
-SKIP        FALSE
+SKIP        TRUE
 NAME        4-STEP CARBON FIXATION CYCLE
 TYPE        SLACK
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -228,7 +228,7 @@ REACTION    R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.666
             R01514  C00002 + C00258 -> C00008 + C00197 (x0.333)
 ///
 ENTRY       M-CALVIN_NADP
-SKIP        FALSE
+SKIP        TRUE
 NAME        rPP cycle - NADP
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -249,7 +249,7 @@ REACTION    R00024  C01182 + C00011 + C00001 -> 2 C00197 (x1)
             R01523  C00002 + C00199 -> C00008 + C01182 (x1)
 ///
 ENTRY       S-CALVIN_NADP
-SKIP        FALSE
+SKIP        TRUE
 NAME        rPP cycle - NADP
 TYPE        SLACK
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -269,7 +269,7 @@ REACTION    R00024  C01182 + C00011 + C00001 -> 2 C00197 (x1)
             R01523  C00002 + C00199 -> C00008 + C01182 (x1)
 ///
 ENTRY       M-3HP-4HB
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -293,7 +293,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R00238  C00010 + C00332 -> 2 C00024 (x0.5)
 ///
 ENTRY       S-3HP-4HP
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
 TYPE        SLACK
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -316,7 +316,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R00238  C00010 + C00332 -> 2 C00024 (x0.5)
 ///
 ENTRY       M-3HP
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate Cycle
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -338,7 +338,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R00473  C04348 -> C00024 + C00048 (x0.5)
 ///
 ENTRY       S-3HP
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate Cycle
 TYPE        SLACK
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -359,7 +359,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R00473  C04348 -> C00024 + C00048 (x0.5)
 ///
 ENTRY       M-rTCA
-SKIP        FALSE
+SKIP        TRUE
 NAME        rTCA cycle
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -377,7 +377,7 @@ REACTION    R00342  C00036 + C00004 -> C00149 + C00003 (x0.5)
             R00354  C00566 -> C00024 + C00036 (x0.5)
 ///
 ENTRY       S-rTCA
-SKIP        FALSE
+SKIP        TRUE
 NAME        rTCA cycle (Slack)
 TYPE        SLACK
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -465,7 +465,7 @@ MAP_CID     C00201 C00002
             C00454 C00008
 ///
 ENTRY       M-OPP
-SKIP        FALSE
+SKIP        TRUE
 NAME        Oxidative pentose phosphate (M00006)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -474,7 +474,7 @@ C_RANGE     1e-6 1e-2
 MODULE      M00006
 ///
 ENTRY       M-NOPP
-SKIP        FALSE
+SKIP        TRUE
 NAME        Non-oxidative pentose phosphate (M00007)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -483,7 +483,7 @@ C_RANGE     1e-6 1e-2
 MODULE      M00007
 ///
 ENTRY       M-ED
-SKIP        FALSE
+SKIP        TRUE
 NAME        Entner-Doudoroff (M00008)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -492,7 +492,7 @@ C_RANGE     1e-6 1e-2
 MODULE      M00008
 ///
 ENTRY       M-TCA
-SKIP        FALSE
+SKIP        TRUE
 NAME        TCA cycle (M00009)
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
@@ -501,7 +501,7 @@ C_RANGE     1e-6 1e-2
 MODULE      M00009
 ///
 ENTRY       M-TCA_SHORT
-SKIP        TRUE
+SKIP        FALSE
 NAME        TCA cycle - shortened
 TYPE        MARGIN
 CONDITIONS  pH=7.0,I=0.1,T=300
