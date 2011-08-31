@@ -42,7 +42,7 @@ def getPlate(db, exp_ID):
     return result_list
 
 def GetDes(db,exp_ID,plate=-1) :
-    for row in db.Execute("SELECT distinct(description) from tecan_experiments WHERE exp_ID='%s' AND plate='%s'" % (exp_ID,plate)):
+    for row in db.Execute("SELECT distinct(description) from tecan_experiments WHERE exp_ID='%s'" % exp_ID):
         print(row[0])
         return str(row[0])
     return "No Des."
