@@ -239,7 +239,7 @@ class Kegg(Singleton):
     def CompleteMissingInchies(self):
         serv = WSDL.Proxy(Kegg.WSDL_URL)
         for row in self.db.Execute("SELECT cid FROM kegg_compound " 
-            "WHERE (formula NOT LIKE '%R%' AND formula NOT LIKE '%n%' "  
+            "WHERE (formula NOT LIKE '%R%' AND formula NOT LIKE '%)%' "  
             "AND formula NOT LIKE '%X%') AND inchi IS NULL"):
             cid = int(row[0])
             comp = self.cid2compound(cid)

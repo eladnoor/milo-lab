@@ -52,7 +52,7 @@ class GroupObservation(object):
         
 class GroupObervationCollection(object):
     
-    def __init__(self, db, html_writer, group_decomposer):
+    def __init__(self, db, html_writer, group_decomposer, dissociation):
         self.kegg = Kegg.getInstance()
         self.db = db
         self.groups_data = group_decomposer.groups_data
@@ -60,8 +60,7 @@ class GroupObervationCollection(object):
         self.observations = []
         self.n_groups = len(self.groups_data.all_groups)
         self.groupvec_titles = ["g%d" % i for i in xrange(self.n_groups)]
-        #self.dissociation = DissociationConstants.FromDatabase(self.db,'dissociation_constants')
-        self.dissociation = DissociationConstants.FromDatabase(self.db,'dissociation_constants_chemaxon')
+        self.dissociation = dissociation
 
         self.html_writer = html_writer
         if html_writer and html_writer.filename:

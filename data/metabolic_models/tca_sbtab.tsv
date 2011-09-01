@@ -1,0 +1,40 @@
+!!SBtab TableType="Reaction" Version="0.1" Level="1.0"
+!Reaction	!SumFormula	!MiriamID::urn:miriam:kegg.reaction	!GeneName
+R1	ACA + OXA + H2O <=> CIT + CoA	R00351	gltA
+R2	CIT <=> ICIT	R01324	acn
+R3	ICIT + NADP <=> 2KG + CO2 + NADPH	R00267	icd
+R4	2KG + NAD + CoA <=> SCA + CO2 + NADH	R01700	sucAB
+R5	SCA + ADP + Pi <=> SUC + ATP + CoA	R00405	sucCD
+R6	SUC + FAD <=> FADH2 + FUM	R00408	sdh
+R7	FUM + H2O <=> MAL	R01082	fum
+R8	MAL + NAD <=> OXA + NADH	R00342	mdh
+	
+!!SBtab TableType="Compound" Version="0.1" Level="1.0"
+!Compound	!Name	!MiriamID::urn:miriam:kegg.reaction	!InitialConcentration	!Location
+F6P	fructose-6-phosphate	C00085	0.1	cytosol
+ATP	ATP	C00002	0.2	cytosol
+ADP	ADP	C00003	1.1	cytosol
+F16P	fructose-1,6-bisphosphate	C00354	1.2	cytosol
+H2O	water	C00001	10	cytosol
+Pi	inorganic phosphate	C00009	2.1	cytosol
+PEP	phosphoenolpyruvate	C00074	3.3	cytosol
+AMP	AMP	C00020	2.1	cytosol
+ACA	acetyl-CoA	C00024	0.1	cytosol
+OXA	oxaloacetate	C00036	0.1	cytosol
+CIT	citrate	C00158	0.1	cytosol
+ICIT	iso-citrate	C00311	0.1	cytosol
+NAD	NAD+	C00003	0.1	cytosol
+NADH	NADH	C00004	0.1	cytosol
+NADP	NADP+	C00006	0.1	cytosol
+NADPH	NADPH	C00005	0.1	cytosol
+2KG	2-ketoglutarate	C00026	0.1	cytosol
+CO2	CO2	C00011	0.1	cytosol
+CoA	CoA	C00010	0.1	cytosol
+SCA	succinyl-CoA	C00091	0.1	cytosol
+SUC	succinate	C00042	0.1	cytosol
+FAD	FAD	C00016	0.1	cytosol
+FADH2	FADH2	C01352	0.1	cytosol
+FUM	fumarate	C00122	0.1	cytosol
+MAL	malate	C00149	0.1	cytosol
+
+
