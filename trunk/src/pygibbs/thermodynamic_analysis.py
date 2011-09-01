@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException
 from pygibbs.nist_verify import LoadAllEstimators
+import csv
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -695,34 +696,15 @@ if __name__ == "__main__":
     db_loc = options.db_filename
     print 'Reading from DB %s' % db_loc
     db = SqliteDatabase(db_loc)
-    
-    # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
-    # Where: 
-    #    F  = 0.1 (kJ/mol)/mV
-    #    nE - change in e-
-    #    nH - change in H+
-    #    pH - the conditions in which the E' was measured
-    #
-    # Ferredoxin  ox/red: E' = -380mV (nE = 1, nH = 0) -> dG0 = 38.0 kJ/mol [1]
-    # Ubiqinone   ox/red: E' =  113mV (nE = 2, nH = 2) -> dG0 = -103.2 kJ/mol [1]
-    # Menaquinone ox/red: E' =  -74mV (nE = 2, nH = 2) -> dG0 = -65.8 kJ/mol [1]
-    #
-    # [1] - Thauer 1977
-    
+
     thermo = estimators[options.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
-
-    thermo.AddPseudoisomer( 139, nH=0,  z=1, nMg=0, dG0=0)      # Ferrodoxin(ox)
-    thermo.AddPseudoisomer( 138, nH=0,  z=0, nMg=0, dG0=38.0)   # Ferrodoxin(red)
-    thermo.AddPseudoisomer( 399, nH=90, z=0, nMg=0, dG0=0)      # Ubiquinone-10(ox)
-    thermo.AddPseudoisomer( 390, nH=92, z=0, nMg=0, dG0=-103.2) # Ubiquinone-10(red)
-    thermo.AddPseudoisomer( 828, nH=16, z=0, nMg=0, dG0=0)      # Menaquinone(ox)
-    thermo.AddPseudoisomer(5819, nH=18, z=0, nMg=0, dG0=-65.8)  # Menaquinone(red)
-    thermo.SetPseudoisomerMap(101, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=0.0)) # THF
-    thermo.SetPseudoisomerMap(234, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=-137.5)) # 10-Formyl-THF
-    thermo.SetPseudoisomerMap(445, PseudoisomerMap(nH=22, z=0, nMg=0, dG0=65.1)) # 5,10-Methenyl-THF
-    thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
-    thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
+    
+    #thermo.SetPseudoisomerMap(101, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=0.0)) # THF
+    #thermo.SetPseudoisomerMap(234, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=-137.5)) # 10-Formyl-THF
+    #thermo.SetPseudoisomerMap(445, PseudoisomerMap(nH=22, z=0, nMg=0, dG0=65.1)) # 5,10-Methenyl-THF
+    #thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
+    #thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
     
     kegg = Kegg.getInstance()
     thermo.bounds = deepcopy(kegg.cid2bounds)

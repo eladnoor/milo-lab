@@ -69,6 +69,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         PsuedoisomerTableThermodynamics.__init__(self, name="Group Contribution")
         self.db = db
         self.html_writer = html_writer or NullHtmlWriter()
+        self.dissociation = DissociationConstants.FromDatabase(self.db, 
+                                                    'dissociation_constants')
 
         self.kegg = kegg or Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
@@ -155,7 +157,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             
     def load_training_data(self):
         self.obs_collection = GroupObervationCollection(self.db, 
-            self.html_writer, self.group_decomposer)
+            self.html_writer, self.group_decomposer, self.dissociation)
         self.obs_collection.FromDatabase()
         self.group_matrix, self.obs, self.obs_types, self.obs_names = self.obs_collection.GetRegressionData()
 
@@ -525,12 +527,32 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         """
         logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
         
-        obs_species = PsuedoisomerTableThermodynamics.FromCsvFile(
+        observed_species = PsuedoisomerTableThermodynamics.FromCsvFile(
             '../data/thermodynamics/formation_energies.csv', label='testing')
+
+        # dG0 =  -E'*F * deltaE - R*T*ln(10)*pH * deltaH
+        # Where: 
+        F = 96.485 # (kJ/mol)/V
+        #    R*T*ln(10) = 5.7 kJ/mol
+        #    deltaE - change in e-
+        #    deltaH - change in H+
+        #    pH - the conditions in which the E' was measured
+        for row in csv.DictReader(open('../data/thermodynamics/redox.csv', 'r')):
+            cid_o = int(row['CID_ox'])
+            cid_r = int(row['CID_red'])
+            nH_o = int(row['nH_ox'])
+            z_o = int(row['charge_ox'])
+            nH_r = int(row['nH_red'])
+            z_r = int(row['charge_red'])
+            E_tag = float(row['E_tag'])
+            pH = float(row['pH'])
             
-        dissociation = self.dissociation = DissociationConstants.FromDatabase(
-                                    self.db, 'dissociation_constants_chemaxon')
-        
+            deltaH = nH_r - nH_o
+            deltaE = (nH_r - nH_o) - (z_r - z_o)
+            dG0 = -E_tag*F * deltaE - R*default_T*pylab.log(10)*pH * deltaH
+            observed_species.AddPseudoisomer(cid_o, nH=nH_o, z=z_o, nMg=0, dG0=0.0)
+            observed_species.AddPseudoisomer(cid_r, nH=nH_r, z=z_r, nMg=0, dG0=dG0)
+            
         self.cid2pmap_dict = {}
         self.cid2source_string = {}
         self.cid2error = {}
@@ -542,21 +564,22 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 
             mol = None
             diss_table = None
-            if cid in obs_species.get_all_cids():
-                pmap = obs_species.cid2PseudoisomerMap(cid)
+            if cid in observed_species.get_all_cids():
+                pmap = observed_species.cid2PseudoisomerMap(cid)
                 pmatrix = pmap.ToMatrix() # returns a list of (nH, z, nMg, dG0)
                 if len(pmatrix) != 1:
                     raise Exception("C%05d has multiple training species" % cid)
                 nH, z, nMg, dG0 = pmatrix[0]
                 groupvector = GroupVector(self.groups_data) # use an empty group vector
-                source_string = obs_species.cid2SourceString(cid)
+                source_string = observed_species.cid2SourceString(cid)
             else:
-                diss_table = dissociation.GetDissociationTable(cid, 
+                diss_table = self.dissociation.GetDissociationTable(cid, 
                                                                create_if_missing=False)
                 if diss_table is None:
-                    continue # TODO: replace this with the method that uses ChamAxon to find pKas
-                mol = diss_table.GetMostAbundantMol(pH=default_pH, I=0, 
-                                                    pMg=14, T=default_T)
+                    continue
+                nH, nMg = diss_table.GetMostAbundantPseudoisomer(
+                    pH=default_pH, I=0, pMg=14, T=default_T)
+                mol = diss_table.GetMol(nH, nMg)
                 if mol is None:
                     continue
                 try:
@@ -568,11 +591,17 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     continue
 
                 groupvector = decomposition.AsVector()
-                nH = groupvector.Hydrogens()
                 z = groupvector.NetCharge()
-                nMg = groupvector.Magnesiums()
                 dG0 = self.groupvec2val(groupvector)
                 source_string = "Group Contribution"
+                
+                if nH != groupvector.Hydrogens() or nMg != groupvector.Magnesiums():
+                    err_msg = "The most abundant pseudoisomer is [nH=%d, nMg=%d], " \
+                        "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
+                        "" % (nH, nMg, groupvector.Hydrogens(), groupvector.Magnesiums())
+                    self.html_writer.write(err_msg)
+                    self.cid2error[cid] = err_msg
+                    continue
 
             self.html_writer.insert_toggle('C%05d' % cid)
             self.html_writer.div_start('C%05d' % cid)
@@ -588,7 +617,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 self.html_writer.write('<h2>ChemAxon dissociation constants:</h2>\n')
                 diss_table.WriteToHTML(self.html_writer)
                 self.html_writer.write('</br>\n')
-            
                 diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
                 pmap = diss_table.GetPseudoisomerMap()
             else:
@@ -790,10 +818,22 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             e + "%%'" for e in error_strings])
         self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
 
-    def AnalyzeSingleCompound(self, mol, ignore_protonations=False):
-        print 'Analyzing %s:' % str(mol)
+    def AnalyzeSingleKeggCompound(self, cid, ignore_protonations=False):
+        print 'Analyzing C%05d (%s):' % (cid, self.kegg.cid2name(cid))
+        diss_table = self.dissociation.GetDissociationTable(cid, 
+                                                       create_if_missing=False)
+        if diss_table is None:
+            print "This compounds doesn't have a dissociation table"
+            return # TODO: replace this with the method that uses ChamAxon to find pKas
+        mol = diss_table.GetMostAbundantMol(pH=default_pH, I=0, 
+                                            pMg=14, T=default_T)
+        if mol is None:
+            print "This compounds dissociation table does not have a Mol description"
+            return
+
         try:
-            decomposition = self.Mol2Decomposition(mol, ignore_protonations=ignore_protonations)
+            decomposition = self.Mol2Decomposition(mol,
+                                                   ignore_protonations=ignore_protonations)
             print decomposition.ToTableString()
             print 'nH =', decomposition.Hydrogens()
             print 'z =', decomposition.NetCharge()
@@ -801,35 +841,18 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         except GroupDecompositionError as e:
             print "Cannot decompose compound to groups: " + str(e)
         mol.Draw()
-
-    def EstimateCompoundDissociation(self, mol):
-        decomposition = self.Mol2Decomposition(mol, ignore_protonations=True)
-        groupvector = self.GroupDecomposition2MostAbuntantPseudoisomer(decomposition, pH=7)
-        pmap = self.GroupDecomposition2PseudoisomerMap(decomposition)
-
-        nH = groupvector.Hydrogens()
-        z = groupvector.NetCharge()
-        nMg = groupvector.Magnesiums()
-        dG0 = self.groupvec2val(groupvector)
         
-        print "- Most Abundante: nH=%d, z=%d, nMg=%d, dG0=%.1f" % (nH, z, nMg, dG0)
-        print "- PsuedoisomerMap:\n", pmap
-        print "- Dissociation Table:"
-        for nH_below, nH_above, pKa in pmap.GetAllpKas():
-            print "[nH=%d -> nH=%d] : pKa = %.1f" % (nH_below, nH_above, pKa)
-
-    def EstimateGroupDissociation(self):
-        name2group_list = {}
-        for i, group in enumerate(self.groups_data.groups):
-            dG0 = self.group_contributions[i]
-            name2group_list.setdefault(group.name, []).append((group, dG0))
+    def AnalyzeSingleCompound(self, mol):
+        try:
+            decomposition = self.Mol2Decomposition(mol, ignore_protonations=False)
+            print decomposition.ToTableString()
+            print 'nH =', decomposition.Hydrogens()
+            print 'z =', decomposition.NetCharge()
+            print 'nMg = ', decomposition.Magnesiums()
+        except GroupDecompositionError as e:
+            print "Cannot decompose compound to groups: " + str(e)
+        mol.Draw()
         
-        for _name, group_list in name2group_list.iteritems():
-            if len(group_list) > 1:
-                print '-' * 50
-                for group, dG0 in group_list:
-                    print group, dG0
-
 #################################################################################################################
 #                                                   MAIN                                                        #
 #################################################################################################################
@@ -854,37 +877,26 @@ def MakeOpts():
     opt_parser.add_option("-e", "--test", action="store_true",
                           dest="test_only", default=False,
                           help="A flag for running the TEST only (without TRAIN)")
-    opt_parser.add_option("-p", "--pka", action="store_true",
-                          dest="pka", default=False,
-                          help="A flag for running a pKa analysis of the groups")
     return opt_parser
 
 if __name__ == '__main__':
     options, _ = MakeOpts().parse_args(sys.argv)
     util._mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
-    if options.pka: # use flag -p of --pka
-        G = GroupContribution(db=db)
-        G.init()
-        G.EstimateGroupDissociation()
-    elif options.smiles: # -s <SMILES>
+    if options.smiles or options.inchi: # -s <SMILES> or -i <INCHI>
         G = GroupContribution(db=db)
         G.load_groups("../data/thermodynamics/groups_species.csv")
-        print 'Analyzing SMILES %s:' % (options.smiles)
-        mol = Molecule.FromSmiles(options.smiles)
-        G.AnalyzeSingleCompound(mol, ignore_protonations=False)
-    elif options.inchi: # -i <INCHI>
-        G = GroupContribution(db=db)
-        G.load_groups("../data/thermodynamics/groups_species.csv")
-        print 'Analyzing InChI %s:' % (options.inchi)
-        mol = Molecule.FromInChI(options.inchi)
-        G.AnalyzeSingleCompound(mol, ignore_protonations=False)
+        if options.smiles:
+            print 'Analyzing SMILES %s:' % (options.smiles)
+            mol = Molecule._FromFormat(options.smiles, 'smiles')
+        elif options.inchi:
+            print 'Analyzing InChI %s:' % (options.inchi)
+            mol = Molecule._FromFormat(options.inchi, 'inchi')
+        G.AnalyzeSingleCompound(mol)
     elif options.cid: # -c <CID>
         G = GroupContribution(db=db)
         G.init()
-        mol = G.kegg.cid2mol(options.cid)
-        G.EstimateCompoundDissociation(mol)
-        G.AnalyzeSingleCompound(mol, ignore_protonations=True)
+        G.AnalyzeSingleKeggCompound(options.cid, ignore_protonations=True)
     elif options.rid: # -r <RID>
         G = GroupContribution(db=db)
         G.init()
@@ -914,7 +926,7 @@ if __name__ == '__main__':
 
         if not options.train_only:
             nist = Nist()
-            G.EstimateKeggCids(nist.GetAllCids())
+            G.EstimateKeggCids()
             #G.verify_kernel_orthogonality = True
             #G.EstimateKeggRids()
 

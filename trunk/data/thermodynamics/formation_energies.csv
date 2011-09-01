@@ -135,11 +135,11 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 86,Urea,-202.8,-317.65,0,4,0,testing,"Alberty (2006)","too small"
 88,Nitrite,-32.2,-104.6,-1,0,0,testing,"Alberty (2006)","too small"
 94,Sulfite,-486.5,-635.5,-2,0,0,testing,"Alberty (2006)","too small"
-125,"Cytochrome c(ox)",0,,3,0,0,testing,"Alberty (2006)","Cytochrome c(ox)=0"
-126,"Cytochrome c(red)",-24.51,,2,0,0,testing,"Alberty (2006)","Cytochrome c(ox)=0"
+125,"Cytochrome c(ox)",0,,3,0,0,skip,"Alberty (2006)","Cytochrome c(ox)=0"
+126,"Cytochrome c(red)",-24.51,,2,0,0,skip,"Alberty (2006)","Cytochrome c(ox)=0"
 132,Methanol,-175.31,-245.93,0,4,0,testing,"Alberty (2006)","too small"
-138,Ferredoxin(red),38.07,,0,0,0,testing,"Alberty (2006)",Ferredoxin(ox)=0
-139,Ferredoxin(ox),0,,1,0,0,testing,"Alberty (2006)",Ferredoxin(ox)=0
+138,Ferredoxin(red),38.07,,0,0,0,skip,"Alberty (2006)",Ferredoxin(ox)=0
+139,Ferredoxin(ox),0,,1,0,0,skip,"Alberty (2006)",Ferredoxin(ox)=0
 237,CO(aq),-119.9,-120.96,0,0,0,testing,"Alberty (2006)","too small"
 244,nitrate,-108.74,-205,-1,0,0,testing,"Alberty (2006)","too small"
 282,H2(aq),17.6,-4.2,0,2,0,testing,"Alberty (2006)","too small"

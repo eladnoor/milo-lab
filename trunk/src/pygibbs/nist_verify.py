@@ -61,15 +61,15 @@ def main():
     html_writer.write('</p>\n')
 
     reactions = {}
-    #reactions['KEGG'] = []
-    #for reaction in Kegg.getInstance().AllReactions():
-    #    try:
-    #        reaction.Balance(balance_water=True, exception_if_unknown=True)
-    #        reactions['KEGG'].append(reaction)
-    #    except (KeggReactionNotBalancedException, KeggParseException):
-    #        pass
+    reactions['KEGG'] = []
+    for reaction in Kegg.getInstance().AllReactions():
+        try:
+            reaction.Balance(balance_water=True, exception_if_unknown=True)
+            reactions['KEGG'].append(reaction)
+        except (KeggReactionNotBalancedException, KeggParseException):
+            pass
         
-    #reactions['FEIST'] = Feist.FromFiles().reactions
+    reactions['FEIST'] = Feist.FromFiles().reactions
     reactions['NIST'] = nist.GetUniqueReactionSet()
     
     if False:
