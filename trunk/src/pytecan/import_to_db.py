@@ -53,7 +53,7 @@ def main():
 
     if options.generate_exp_id:
         exp_id = GetTimeString()
-        db.Insert('tecan_experiments', [exp_id, -1, "Automatically generated"])
+        db.Insert('tecan_experiments', [exp_id, "Automatically generated"])
         print "Experiment ID: " + exp_id
     
     if options.tar_filename:
@@ -77,7 +77,7 @@ def main():
         # delete any previous data regarding this exp_id
         db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
         db.Execute("DELETE FROM tecan_experiments WHERE exp_id='%s'" % exp_id)
-        db.Insert('tecan_experiments', [exp_id, -1, \
+        db.Insert('tecan_experiments', [exp_id, \
                             "Imported from TAR file on " + GetTimeString()])
         WriteToDatabase(MES, db, exp_id)
     elif options.xml_dir or options.xml_filename:
