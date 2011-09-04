@@ -31,6 +31,7 @@ from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException
 from pygibbs.nist_verify import LoadAllEstimators
 import csv
+from pygibbs.compound_abundance import CompoundAbundance
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -254,6 +255,7 @@ class ThermodynamicAnalysis(object):
         dG0_r = {}
         dG_f = {}
         dG_r = {}
+        abundance = CompoundAbundance.LoadConcentrationsFromBennett()
         for (method, media, pH, I, T, c0, plot_key) in params_list:
             dG0_f[plot_key] = pylab.zeros((Nc, 1))
             dG_f[plot_key] = pylab.zeros((Nc, 1))
@@ -265,7 +267,7 @@ class ThermodynamicAnalysis(object):
                 else:
                     raise Exception("Unknown dG evaluation method: " + method)
                 # add the effect of the concentration on the dG_f (from dG0_f to dG_f)
-                dG_f[plot_key][c] = dG0_f[plot_key][c] + R * T * pylab.log(self.get_concentration(cids[c], c0, media))
+                dG_f[plot_key][c] = dG0_f[plot_key][c] + R * T * pylab.log(abundance.GetConcentration(cids[c], c0, media))
             dG0_r[plot_key] = pylab.dot(S, dG0_f[plot_key])
             dG_r[plot_key] = pylab.dot(S, dG_f[plot_key])
         

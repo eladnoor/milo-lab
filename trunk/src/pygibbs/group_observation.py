@@ -32,6 +32,14 @@ class GroupObservation(object):
     def ToDatabase(self, db):
         db.Insert('group_observations', self.ToCsvRow())
     
+    @staticmethod 
+    def FromDatabaseRow(row, groups_data):
+        n_groups = len(groups_data.all_groups)
+        obs = GroupObservation()
+        obs.groupvec = GroupVector(groups_data, row[0:n_groups])
+        obs.dG0, obs.name, obs.cid, obs.obs_type = row[n_groups:]
+        return obs
+        
     def ToCsvRow(self):
         return list(self.groupvec) + [self.dG0, self.name, self.id, self.obs_type]
     
@@ -67,6 +75,9 @@ class GroupObervationCollection(object):
             self.FIG_DIR = os.path.basename(html_writer.filename).rsplit('.', 1)[0]
         else:
             self.FIG_DIR = ''
+            
+        self.TRAIN_GROUPS_TABLE_NAME = 'pgc_train_groups'
+        self.OBSERVATION_TABLE_NAME = 'pgc_observations'
         
     def Add(self, groupvec, dG0, name, id, obs_type):
         obs = GroupObservation()
@@ -330,16 +341,16 @@ class GroupObervationCollection(object):
     def ToDatabase(self):
         # This table is used only as an output for checking results
         # it is not used elsewhere in the code
-        self.db.CreateTable('train_groups', 'name TEXT, nH INT, z INT, nMg INT')
+        self.db.CreateTable(self.TRAIN_GROUPS_TABLE_NAME, 'name TEXT, nH INT, z INT, nMg INT')
         for group in self.groups_data.all_groups:
-            self.db.Insert('train_groups', [group.name, group.hydrogens,
+            self.db.Insert(self.TRAIN_GROUPS_TABLE_NAME, [group.name, group.hydrogens,
                                             group.charge, group.nMg])
 
         # the table 'group_observation' will contain all the observed data
         # that is used for training later
         titles = ['%s REAL' % t for t in self.groupvec_titles] + \
                  ['dG0 REAL', 'name TEXT', 'id TEXT', 'obs_type TEXT']
-        self.db.CreateTable('group_observations', ','.join(titles))
+        self.db.CreateTable(self.OBSERVATION_TABLE_NAME, ','.join(titles))
 
         for obs in self.observations:
             obs.ToDatabase(self.db)
@@ -355,10 +366,8 @@ class GroupObervationCollection(object):
             
     def FromDatabase(self):
         self.observations = []
-        for row in self.db.Execute("SELECT * FROM group_observations"):
-            obs = GroupObservation()
-            obs.groupvec = GroupVector(self.groups_data, row[0:self.n_groups])
-            obs.dG0, obs.name, obs.cid, obs.obs_type = row[self.n_groups:]
+        for row in self.db.Execute("SELECT * FROM %s" % self.OBSERVATION_TABLE_NAME):
+            obs = GroupObservation.FromDatabaseRow(row, self.groups_data)
             self.observations.append(obs)
         
     def GetRegressionData(self):
