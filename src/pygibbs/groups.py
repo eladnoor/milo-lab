@@ -465,7 +465,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     # in this case we do not care if a compound violated the group
                     # conservation laws because it might cancel out later when we 
                     # use it to calculate reactions.
-                    dG0 = e.val
+                    dG0 = e.value
 
                 source_string = "Group Contribution"
                 
