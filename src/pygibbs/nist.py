@@ -545,7 +545,6 @@ class Nist(object):
         pylab.ylabel(thermo2.name, figure=fig1)
         html_writer.embed_matplotlib_figure(fig1, name=name+"_corr")
         
-        
         fig2 = pylab.figure(figsize=(7,3))
         for i, thermo in enumerate([thermo1, thermo2]):
             fig2.add_subplot(1,2,i+1)
@@ -558,6 +557,32 @@ class Nist(object):
             pylab.axis([-60, 60, -60, 60])
         
         html_writer.embed_matplotlib_figure(fig2, name=name+"_eval")
+
+        table_headers = ["dG'0 (obs)", "dG'0 (%s)" % thermo1.name, 
+                         "dG'0 (%s)" % thermo2.name, "reaction", "rid", "pH", 
+                         "pMg", "I", "T", "eval.", "url"]
+        dict_list = []
+        for row in sorted(total_list, key=lambda(x):abs(x[1]-x[2]), reverse=True):
+            d = {}
+            d["dG'0 (obs)"] = '%.1f' % row[0]
+            d["dG'0 (%s)" % thermo1.name] = '%.1f' % row[1]
+            d["dG'0 (%s)" % thermo2.name] = '%.1f' % row[2]
+            d['reaction'] = row[3].to_hypertext(show_cids=False)
+            if row[3].rid is not None:
+                d['rid'] = '<a href="%s">R%05d</a>' % (row[3].get_link(), row[3].rid)
+            else:
+                d['rid'] = ''
+            d['pH'] = '%.1f' % row[4]
+            d['pMg'] = '%.1f' % row[5]
+            d['I'] = '%.2f' % row[6]
+            d['T'] = '%.1f' % row[7]
+            d['eval.'] = row[8]
+            if row[9]:
+                d['url'] = '<a href="%s">link</a>' % row[9]
+            else:
+                d['url'] = ''
+            dict_list.append(d)
+        html_writer.write_table(dict_list, table_headers)
             
     def SelectRowsFromNist(self, reaction=None, check_reverse=True):
         rows = []

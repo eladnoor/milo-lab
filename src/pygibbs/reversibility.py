@@ -21,6 +21,7 @@ import random
 from pygibbs.nist_verify import LoadAllEstimators
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.feist_ecoli import Feist
+from pygibbs.compound_abundance import CompoundAbundance
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -84,13 +85,13 @@ def GetConcentrationMap():
             cmap[cid] = lower
     return cmap
 
-def GetFullConcentrationMap(G):
-    G.read_compound_abundance('../data/thermodynamics/compound_abundance.csv')
+def GetFullConcentrationMap():
+    abundance = CompoundAbundance.LoadConcentrationsFromBennett()
     cmap = GetEmptyConcentrationMap() 
     kegg = Kegg.getInstance()
     
     for cid in kegg.get_all_cids():
-        cmap[cid] = G.get_concentration(cid, media='glucose', c0=None)
+        cmap[cid] = abundance.GetConcentration(cid, c0=None, medium='glucose')
         if cmap[cid] == None:
             lower, upper = kegg.get_bounds(cid)
             if lower and upper:
@@ -701,7 +702,7 @@ def analyse_reversibility(thermo, name):
     pylab.savefig('../res/' + name + '_kegg_reversibility2_rel.png', figure=fig2_rel, format='png')
 
     #(histogram,rel_histogram,perc_first_max) = calculate_reversibility_histogram(thermo, c_mid, pH, pMg, I, T,
-    #                                              cmap=GetFullConcentrationMap(thermo), id=(name + '_full'))
+    #                                              cmap=GetFullConcentrationMap(), id=(name + '_full'))
     
     #html_writer.write('<h1>' + name + ': Constrained metabolites</h1>Percentage of modules where first reaction is the maximal: %f<br>' % perc_first_max)
     #fig3 = plot_histogram(histogram, html_writer, title='With constraints all metabolites with known concentration', xlim=20)

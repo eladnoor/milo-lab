@@ -72,36 +72,20 @@ def main():
     reactions['FEIST'] = Feist.FromFiles().reactions
     reactions['NIST'] = nist.GetUniqueReactionSet()
     
-    if False:
-        nist.two_way_comparison(html_writer=html_writer, 
-                                thermo1=estimators['alberty'],
-                                thermo2=estimators['PRC'],
-                                name='alberty_vs_nist')
-
-        nist.two_way_comparison(html_writer=html_writer, 
-                                thermo1=estimators['alberty'],
-                                thermo2=estimators['PGC'],
-                                name='alberty_vs_noor')
-
-        nist.two_way_comparison(html_writer=html_writer, 
-                                thermo1=estimators['alberty'],
-                                thermo2=estimators['hatzi_gc'],
-                                name='alberty_vs_jankowski')
-
-        nist.two_way_comparison(html_writer=html_writer, 
-                                thermo1=estimators['hatzi_gc'],
-                                thermo2=estimators['PGC'],
-                                name='jankowski_vs_noor')
-        
-        nist.two_way_comparison(html_writer=html_writer, 
-                                thermo1=estimators['hatzi_gc'],
-                                thermo2=estimators['hatzi_gc_pka'],
-                                name='jankowski_pka')
     
-    nist.two_way_comparison(html_writer=html_writer, 
-                                thermo1=estimators['PRC'],
-                                thermo2=estimators['PGC'],
-                                name='PGC_vs_PRC')
+    pairs = [('hatzi_gc', 'PGC')]# + [('alberty', 'PRC'), ('PGC', 'PRC')]
+    for t1, t2 in pairs:
+        logging.info('Writing the NIST report for %s vs. %s' % 
+                     (estimators[t1].name, estimators[t2].name))
+        html_writer.write('<p><b>%s vs. %s</b> ' % 
+                     (estimators[t1].name, estimators[t2].name))
+        html_writer.insert_toggle(start_here=True)
+        nist.two_way_comparison(html_writer=html_writer, 
+                                thermo1=estimators[t1],
+                                thermo2=estimators[t2],
+                                name='%s_vs_%s' % (t1, t2))
+        html_writer.div_end()
+        html_writer.write('</p>')
     
     if False:
         estimators['alberty'].CompareOverKegg(html_writer, 
@@ -116,8 +100,7 @@ def main():
     for thermo_name, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)
         html_writer.write('<p><b>%s</b> ' % thermodynamics.name)
-        html_writer.insert_toggle(thermo_name)
-        html_writer.div_start(thermo_name)
+        html_writer.insert_toggle(start_here=True)
         num_estimations, rmse = nist.verify_results(html_writer=html_writer, 
                                                     thermodynamics=thermodynamics,
                                                     name=thermo_name)

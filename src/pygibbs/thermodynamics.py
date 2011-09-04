@@ -341,54 +341,11 @@ class Thermodynamics(object):
         pylab.ylabel(other.name + ' (in kJ/mol)', figure=fig)
         html_writer.embed_matplotlib_figure(fig, width=200, height=200, name=fig_name)
         
-class ThermodynamicsWithCompoundAbundance(Thermodynamics):
-    
-    def __init__(self, name="Unknown ThermodynamicsWithCompoundAbundance"):
-        Thermodynamics.__init__(self, name)
-        self.media_list = []
-        self.default_c0 = 1 # Molar
-        self.cid2conc = {}
-    
-    def LoadConcentrationsFromBennett(self, filename=
-            '../data/thermodynamics/compound_abundance.csv'):
-        
-        self.media_list = ['glucose', 'glycerol', 'acetate']
-        for row in csv.DictReader(open(filename, 'r')):
-            if not row['KEGG ID']:
-                continue
-            cid = int(row['KEGG ID'])
-            if row['use'] != '1':
-                continue
-            for media in self.media_list:
-                try:
-                    conc = float(row[media])
-                    self.cid2conc[(cid, media)] = conc
-                except ValueError:
-                    pass
-
-    def LoadConcentrationsFromDB(self, db, table_name='compound_abundance'):
-        self.media_list = []
-        if db.DoesTableExist(table_name):
-            for row in db.Execute("SELECT media FROM compound_abundance GROUP BY media"):
-                self.media_list.append(row[0])
-                
-            self.cid2conc = {}
-            for row in self.db.Execute("SELECT cid, media, concentration FROM compound_abundance"):
-                cid, media, conc = row
-                self.cid2conc[(cid, media)] = conc # in [M]
-
-    def GetConcentration(self, cid, c0=None, media=None):
-        c0 = c0 or self.default_c0
-        if cid == 1: # the concentration of water must always be 1 [M]
-            return 1
-        if not media:
-            return c0
-        return self.cid2conc.get((cid, media), c0)
-    
-class PsuedoisomerTableThermodynamics(ThermodynamicsWithCompoundAbundance):
+   
+class PsuedoisomerTableThermodynamics(Thermodynamics):
     
     def __init__(self, name="Unknown PsuedoisomerTableThermodynamics"):
-        ThermodynamicsWithCompoundAbundance.__init__(self, name)
+        Thermodynamics.__init__(self, name)
         self.cid2pmap_dict = {}
     
     @staticmethod
