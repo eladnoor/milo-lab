@@ -408,7 +408,7 @@ class Kegg(Singleton):
                 rid = int(rid[1:])
                 flux = 1
                 if remainder != "":
-                    for (f) in re.findall('\(x([0-9\.]+)\)', remainder):
+                    for (f) in re.findall('\(x([0-9\.\-\s]+)\)', remainder):
                         flux = float(f)
                 
                 reaction = Reaction.FromFormula(left_clause + " => " + right_clause)

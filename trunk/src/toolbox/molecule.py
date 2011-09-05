@@ -443,7 +443,8 @@ if __name__ == "__main__":
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
 
-    mol = Molecule.FromSmiles('[Mg+2]')
+    print Molecule._GetPseudoisomerMap('C#O', format='smiles',
+                mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
     
     html_writer = HtmlWriter('../res/molecule.html')
     from pygibbs.kegg import Kegg

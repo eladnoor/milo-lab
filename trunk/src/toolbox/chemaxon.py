@@ -63,8 +63,14 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH=default_pH):
             - the major pseudoisomer is a SMILES string of the major species
               at the given pH.
     """
-    args = ['pka', '-a', str(n_acidic), '-b', str(n_basic), '-M', 'true',
-            'majorms', '--pH', str(pH), molstring]
+    args = ['pka',
+            '-a', str(n_acidic),
+            '-b', str(n_basic),
+            '-M', 'true',
+            '-P', 'dynamic',
+            'majorms',
+            '--pH', str(pH),
+            molstring]
     
     output = RunCxcalc(args)
     atom2pKa, smiles = ParsePkaOutput(output, n_acidic, n_basic)
@@ -76,5 +82,6 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH=default_pH):
     return sorted(all_pKas), smiles
 
 if __name__ == "__main__":
+    print "urea", GetDissociationConstants('C(=O)(N)N')
     print "glycine", GetDissociationConstants('C(=O)(O)CN')
     print "ATP", GetDissociationConstants('Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O')

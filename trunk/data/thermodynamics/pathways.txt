@@ -93,17 +93,6 @@ REACTION    R00227  C00001 + C00024 -> C00010 + C00033 (x1)
             R03157  C00002 + C00010 + C01013 -> C00008 + C00009 + C05668 (x1)
             R05508  C00033 + C00827 -> C00024 + C00186 (x1)
 ///
-ENTRY       M-GLYCOLYSIS
-SKIP        TRUE
-NAME        Glycolysis
-TYPE        MARGIN
-CONDITIONS  pH=7.0,I=0.1,T=300
-C_MID       1e-3
-C_RANGE     1e-6 1e-2
-MODULE      M00001
-MAP_CID     C00201 C00002
-            C00454 C00008
-///
 ENTRY       M-MOG_ALA
 SKIP        TRUE
 NAME        MOG-Alanine
@@ -500,11 +489,28 @@ C_MID       1e-3
 C_RANGE     1e-6 1e-2
 MODULE      M00009
 ///
+ENTRY       M-GLYCOLYSIS
+SKIP        FALSE
+NAME        Glycolysis
+TYPE        MARGIN
+PH          7.2
+I           0.2
+C_MID       1e-3
+REACTION    R01786  C00002 + C00031 -> C00008 + C00092
+            R02740  C00092 -> C00085
+            R04779  C00002 + C00085 -> C00008 + C00354
+            R01070  C00354 -> C00111 + C00118
+            R01015  C00118 -> C00111 (x-1)
+            R01061  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x2)
+            R01512  C00008 + C00236 -> C00002 + C00197 (x2)
+            R01518  C00197 -> C00631 (x2)
+            R00658  C00631 -> C00001 + C00074 (x2)
+            R00200  C00008 + C00074 -> C00002 + C00022 (x2)
+///
 ENTRY       M-TCA_SHORT
 SKIP        FALSE
 NAME        TCA cycle - shortened
 TYPE        MARGIN
-CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00351  C00001 + C00024 + C00036 -> C00010 + C00158
             R01324  C00158 -> C00311

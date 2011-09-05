@@ -425,24 +425,34 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.cid2groupvec = {}
         
         for cid in sorted(cid_list or self.kegg.get_all_cids()):
-            self.html_writer.write('<p>\n')
-            self.html_writer.write('C%05d - %s\n' % (cid, self.kegg.cid2name(cid)))
+            self.html_writer.write('</br>\n')
+            self.html_writer.write('<b>C%05d - %s</b>\n' % (cid, self.kegg.cid2name(cid)))
 
-            mol = None
-            diss_table = None
+            diss_table = self.dissociation.GetDissociationTable(cid, 
+                                                           create_if_missing=False)
+            pmap = None
             if cid in observed_species.get_all_cids():
-                pmap = observed_species.cid2PseudoisomerMap(cid)
-                pmatrix = pmap.ToMatrix() # returns a list of (nH, z, nMg, dG0)
-                if len(pmatrix) != 1:
-                    raise Exception("C%05d has multiple training species" % cid)
-                nH, z, nMg, dG0 = pmatrix[0]
+                pmap_obs = observed_species.cid2PseudoisomerMap(cid)
                 groupvector = GroupVector(self.groups_data) # use an empty group vector
                 source_string = observed_species.cid2SourceString(cid)
+
+                pmatrix = pmap_obs.ToMatrix() # returns a list of (nH, z, nMg, dG0)
+                if len(pmatrix) == 1 and diss_table is not None:
+                    # assume that only the most abundant pseudoisomer is given
+                    # and complete the formation energies of the others using the
+                    # pKa values in the dissociation table
+                    nH, _z, nMg, dG0 = pmatrix[0]
+                    diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
+                    pmap = diss_table.GetPseudoisomerMap()
+                else:
+                    if diss_table is not None:
+                        logging.warning("C%05d has multiple training species, "
+                                        "overriding the dissociation table" % cid)
+                    pmap = pmap_obs
+            elif diss_table is None:
+                self.html_writer.write('</br>Warning: no dissociation table')
+                continue
             else:
-                diss_table = self.dissociation.GetDissociationTable(cid, 
-                                                               create_if_missing=False)
-                if diss_table is None:
-                    continue
                 nH, nMg = diss_table.GetMostAbundantPseudoisomer(
                     pH=default_pH, I=0, pMg=14, T=default_T)
                 mol = diss_table.GetMol(nH, nMg)
@@ -453,12 +463,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                                            ignore_protonations=False)
                 except GroupDecompositionError as e:
                     self.cid2error[cid] = str(e)
-                    self.html_writer.write('</br>%s\n' % str(e))
+                    self.html_writer.write('</br>Error: %s\n' % str(e))
                     continue
-                    
 
                 groupvector = decomposition.AsVector()
-                z = groupvector.NetCharge()
                 try:
                     dG0 = self.groupvec2val(groupvector)
                 except GroupMissingTrainDataError as e:
@@ -473,38 +481,34 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     err_msg = "The most abundant pseudoisomer is [nH=%d, nMg=%d], " \
                         "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
                         "" % (nH, nMg, groupvector.Hydrogens(), groupvector.Magnesiums())
-                    self.html_writer.write(err_msg)
+                    self.html_writer.write('</br>ERROR: %s\n' % err_msg)
                     self.cid2error[cid] = err_msg
                     continue
+                
+                diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
+                pmap = diss_table.GetPseudoisomerMap()
 
-            self.html_writer.insert_toggle('C%05d' % cid)
+            self.html_writer.insert_toggle('C%05d' % cid, start_here=True)
             self.html_writer.div_start('C%05d' % cid)
-            if mol:
-                self.html_writer.write(mol.ToSVG() + '</br>\n')
+            if diss_table is not None:
+                self.html_writer.write('<b>Dissociation table:</b></br>\n')
+                diss_table.WriteToHTML(self.html_writer)
+            
             if groupvector:
                 self.html_writer.write('Group vector = %s</br>\n' % str(groupvector))
                 self.html_writer.write('nH = %d, charge = %d, nMg = %d</br>\n' % 
                                        (groupvector.Hydrogens(),
                                         groupvector.NetCharge(),
                                         groupvector.Magnesiums()))
-            if diss_table:
-                self.html_writer.write('<h2>ChemAxon dissociation constants:</h2>\n')
-                diss_table.WriteToHTML(self.html_writer)
-                self.html_writer.write('</br>\n')
-                diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
-                pmap = diss_table.GetPseudoisomerMap()
-            else:
-                pmap = PseudoisomerMap(nH=nH, z=z, nMg=nMg, dG0=dG0,
-                                       ref=source_string)
+
             self.SetPseudoisomerMap(cid, pmap)
             self.cid2groupvec[cid] = groupvector
             self.cid2source_string[cid] = source_string
 
-            self.html_writer.write('<h2>Pseudoisomer table:</h2>\n')
+            self.html_writer.write('<b>Pseudoisomer table:</b></br>\n')
             pmap.WriteToHTML(self.html_writer)
             
             self.html_writer.div_end()
-            self.html_writer.write('</p>\n')
         
         logging.info("Writing the results to the database")
         G.ToDatabase(self.db, table_name=self.PMAP_TABLE_NAME, 
@@ -657,9 +661,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 
     def KeggErrorReport(self):
         error_strings = ['kernel', 'decompose', 'explicit', 'provided', 'dissociation']
-        query = ' union '.join(["select '" + e + 
-            "', count(*) from gc_errors where error like '%%" + 
-            e + "%%'" for e in error_strings])
+        query = ' UNION '.join(["SELECT '%s', COUNT(*) FROM %s WHERE error LIKE '%%%s%%'" % 
+                                (e, self.ERROR_TABLE_NAME, e) for e in error_strings])
         self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
 
     def AnalyzeSingleKeggCompound(self, cid, ignore_protonations=False):

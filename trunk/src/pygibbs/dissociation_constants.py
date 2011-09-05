@@ -357,18 +357,16 @@ class DissociationTable(object):
         
         return s
 
-    def WriteToHTML(self, html_writer, T=default_T):
+    def WriteToHTML(self, html_writer, T=default_T, draw_svg=True):
         dict_list = []
         if not self.ddGs:
             nH = self.min_nH
             nMg = 0
-            svg = self.GetSVG(nH, nMg)
             ddG = 0.0
             ref = ""
             d = {'nH below':nH, 'nH above':nH,
                  'nMg below':nMg, 'nMg above':nMg,
-                 'ddG0':'%.1f' % ddG, 'reference':ref,
-                 'species below':svg, 'species above':svg}
+                 'ddG0':'%.1f' % ddG, 'reference':ref}
             dict_list.append(d)
         else:
             for (nH_above, nH_below, nMg_above, nMg_below), (ddG, ref) in self.ddGs.iteritems():
@@ -379,9 +377,17 @@ class DissociationTable(object):
                     d['pK<sub>a</sub>'] = -ddG / (R * T * np.log(10))
                 elif nMg_below == nMg_above+1:
                     d['pK<sub>Mg</sub>'] = (-ddG + dG0_f_Mg) / (R * T * np.log(10))
-                d['species below'] = self.GetSVG(nH_below, nMg_below)
-                d['species above'] = self.GetSVG(nH_above, nMg_above)
                 dict_list.append(d)
+                
+
+        for d in dict_list:
+            if draw_svg:
+                d['species below'] = self.GetSVG(d['nH below'], d['nMg below'])
+                d['species above'] = self.GetSVG(d['nH above'], d['nMg above'])
+            else:
+                d['species below'] = self.GetMolString(d['nH below'], d['nMg below'])
+                d['species above'] = self.GetMolString(d['nH above'], d['nMg above'])
+        
         dict_list.sort(key=lambda(k):(k['nH below'], k['nMg below']))
         html_writer.write_table(dict_list, headers=['nH below', 'nH above', 
             'nMg below', 'nMg above', 'species below', 'species above',
@@ -736,6 +742,10 @@ def MakeOpts():
                           dest="override_table",
                           default=False,
                           help="Drop the DB table and start from scratch")
+    opt_parser.add_option("-c", "--cid", action="store", type="int",
+                          dest="cid",
+                          default=None,
+                          help="Calculate the dissociation table for a single KEGG compound")
     return opt_parser
 
 if __name__ == '__main__':
@@ -757,6 +767,15 @@ if __name__ == '__main__':
         dissociation = DissociationConstants.FromFile(options.dissociation_file)
         dissociation.ToDatabase(db, options.table_name)
         dissociation.WriteToHTML(html_writer)
+    elif options.cid:
+        name = kegg.cid2name(options.cid)
+        smiles = kegg.cid2smiles(options.cid)
+        html_writer.write('<h2>%s - C%05d</h2>smiles = %s</br>\n' % 
+                          (name, options.cid, smiles))
+        diss_table = Molecule._GetPseudoisomerMap(smiles, format='smiles',
+            mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
+        diss_table.WriteToHTML(html_writer, T=default_T)
+        html_writer.write('</br>\n')
     else:
         db.CreateTable(options.table_name,
             "cid INT, name TEXT, nH_below INT, nH_above INT, " 
@@ -780,7 +799,8 @@ if __name__ == '__main__':
         if not options.override_table:
             # Do not recalculate pKas for CIDs that are already in the database
             for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
-                del cid2smiles[row[0]]
+                if row[0] in cid2smiles:
+                    del cid2smiles[row[0]]
             
         dissociation = DissociationConstants()
         for cid, smiles in sorted(cid2smiles.iteritems()):
