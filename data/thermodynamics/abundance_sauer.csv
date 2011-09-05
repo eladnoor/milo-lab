@@ -1,4 +1,4 @@
-cid,glucose avg,glucose std,gluconate avg, gluconate sfd
+cid,glucose avg,glucose std,gluconate avg,gluconate std
 2,3.276,0.064,2.488,0.043
 8,0.574,0.0070,0.455,0.020
 20,0.458,0.023,0.359,0.004
@@ -34,4 +34,5 @@ cid,glucose avg,glucose std,gluconate avg, gluconate sfd
 575,0.0017,0.0004,0.0019,0.0005
 5382,3.416,0.024,6.95,1.16
 279,0.025,0.0003,0.022,0.0015
-231,0.530,0.019,0.483,0.014 
+231,0.530,0.019,0.483,0.014
+236,0.048,0.002,0.055,0.010

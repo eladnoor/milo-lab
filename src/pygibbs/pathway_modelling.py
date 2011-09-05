@@ -8,6 +8,7 @@ from cvxmod import atoms
 from pygibbs.thermodynamic_constants import default_T, R
 from matplotlib.font_manager import FontProperties
 from pygibbs.kegg import Kegg
+from pygibbs.kegg_reaction import Reaction
 
 RT = R*default_T
 
@@ -602,6 +603,10 @@ class KeggPathway(Pathway):
         self.c_range = c_range
         self.kegg = Kegg.getInstance()
 
+    def GetReactionString(self, r):
+        sparse = dict([(self.cids[c], self.S[r,c]) for c in self.S[r,:].nonzero()[0]])
+        return Reaction.write_full_reaction(sparse)
+
     def FindMtdf(self):
         """Find the MTDF (Maximal Thermodynamic Driving Force).
         
@@ -701,30 +706,36 @@ class KeggPathway(Pathway):
         return figure
     
     def WriteResultsToHtmlTables(self, html_writer, dG_f, concentrations):
-        html_writer.write('<p>Biochemical Compound Formation Energies<br>\n')
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  ' + '<td>%s</td>'*5 % ("KEGG CID", "Compound Name", "Concentration [M]", "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]") + '\n')
+        html_writer.write('<h3>Biochemical Compound Formation Energies</h3>\n')
+        dict_list = []
         for c, cid in enumerate(self.cids):
-            name = self.kegg.cid2name(cid)
-            html_writer.write('<tr><td><a href="%s">C%05d</a></td><td>%s</td><td>%.2g</td><td>%s</td><td>%s</td></tr>\n' % \
-                              (self.kegg.cid2link(cid), cid, name, concentrations[c, 0], 
-                               KeggPathway.EnergyToString(self.dG0_f[c, 0]),
-                               KeggPathway.EnergyToString(dG_f[c, 0])))
-        html_writer.write('</table></p>\n')
+            d = {}
+            d['KEGG CID'] = '<a href="%s">C%05d</a>' % (self.kegg.cid2link(cid), cid)
+            d['Compound Name'] = self.kegg.cid2name(cid)
+            d['Concentration [M]'] = concentrations[c, 0]
+            d["dG'0_f [kJ/mol]"] = KeggPathway.EnergyToString(self.dG0_f[c, 0])
+            d["dG'_f [kJ/mol]"] = KeggPathway.EnergyToString(dG_f[c, 0])
+            dict_list.append(d)
+        html_writer.write_table(dict_list, 
+            headers=["KEGG CID", 'Compound Name', 'Concentration [M]', 
+                     "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]"])
 
-        html_writer.write('<p>Biochemical Reaction Energies<br>\n')
-        html_writer.write('<table border="1">\n')
-        html_writer.write('  ' + '<td>%s</td>'*3 % ("KEGG RID", "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]") + '\n')
-        
+        html_writer.write('<h3>Biochemical Reaction Energies</h3>\n')
         dG0_r = self.CalculateReactionEnergies(self.dG0_f)
         dG_r = self.CalculateReactionEnergies(dG_f)
+        dict_list = []
         for r, rid in enumerate(self.rids):
-            html_writer.write('<tr><td><a href="%s" title="%s">R%05d</a></td><td>%s</td><td>%s</td></tr>\n' % \
-                              (self.kegg.rid2link(rid), self.kegg.rid2name(rid), rid, 
-                               KeggPathway.EnergyToString(dG0_r[r, 0]),
-                               KeggPathway.EnergyToString(dG_r[r, 0])))
-        html_writer.write('</table></p>\n')
+            d = {}
+            d['KEGG RID'] = '<a href="%s" title="%s">R%05d</a>' % \
+                        (self.kegg.rid2link(rid), self.kegg.rid2name(rid), rid)
+            d['formula'] = self.GetReactionString(r)
+            d['flux'] = self.fluxes[r]
+            d["dG'0_r [kJ/mol]"] = KeggPathway.EnergyToString(dG0_r[r, 0])
+            d["dG'_r [kJ/mol]"] = KeggPathway.EnergyToString(dG_r[r, 0])
+            dict_list.append(d)
 
+        html_writer.write_table(dict_list, 
+            headers=["KEGG RID", 'formula', 'flux', "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]"])
 
 if __name__ == '__main__':
     S = numpy.array([[-1,1,0,0],[0,-1,1,0],[0,0,1,-1]])

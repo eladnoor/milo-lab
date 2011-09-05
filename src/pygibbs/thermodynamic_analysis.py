@@ -125,6 +125,10 @@ class ThermodynamicAnalysis(object):
                     raise ValueError("Parsing error in BOUND definition for %s: %s" % \
                                      (module_name, line))
                 cid2bounds[cid] = (b_lower, b_upper)
+        else:
+            abundance = CompoundAbundance.LoadConcentrationsFromSauer()
+            for cid, bounds in abundance.GetAllBounds('glucose'):
+                cid2bounds[cid] = bounds
         return cid2bounds
                 
     def write_bounds_to_html(self, cid2bounds, c_range):
@@ -168,7 +172,7 @@ class ThermodynamicAnalysis(object):
         else:
             S, rids, fluxes, cids = self.kegg.parse_explicit_module(field_map, cid_mapping) 
         
-        return (S, rids, fluxes, cids)
+        return S, rids, fluxes, cids
 
     def write_reactions_to_html(self, S, rids, fluxes, cids, show_cids=True):
         self.thermo.pH = 7
@@ -188,13 +192,6 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write('[&#x394;G<sub>r</sub><sup>0</sup> = %.1f kJ/mol] : \n' % dG0_total)
         self.html_writer.write(self.kegg.vector_to_hypertext(v_total, cids, show_cids=show_cids))
         self.html_writer.write("</li></ul></li>\n")
-        
-        # Write the kegg-formatted pathway.
-        try:
-            reactions = map(self.kegg.rid2reaction, rids)
-            kegg_utils.write_kegg_pathway(self.html_writer, reactions, fluxes)
-        except KeyError, e:
-            logging.warning('Unknown reaction %s', e)
         
     def write_metabolic_graph(self, name, S, rids, cids):
         """
@@ -701,12 +698,6 @@ if __name__ == "__main__":
 
     thermo = estimators[options.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
-    
-    #thermo.SetPseudoisomerMap(101, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=0.0)) # THF
-    #thermo.SetPseudoisomerMap(234, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=-137.5)) # 10-Formyl-THF
-    #thermo.SetPseudoisomerMap(445, PseudoisomerMap(nH=22, z=0, nMg=0, dG0=65.1)) # 5,10-Methenyl-THF
-    #thermo.SetPseudoisomerMap(143, PseudoisomerMap(nH=23, z=0, nMg=0, dG0=77.9)) # 5,10-Methylene-THF
-    #thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
     
     kegg = Kegg.getInstance()
     thermo.bounds = deepcopy(kegg.cid2bounds)
