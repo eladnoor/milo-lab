@@ -16,7 +16,6 @@ from pygibbs.feist_ecoli import Feist
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
-import sys
 
 def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
@@ -34,7 +33,7 @@ def LoadAllEstimators():
             logging.warning('The table %s does not exist in %s' % (table_name, str(db)))
     
     estimators['hatzi_gc'] = Hatzi(use_pKa=False)
-    estimators['hatzi_gc_pka'] = Hatzi(use_pKa=True)
+    #estimators['hatzi_gc_pka'] = Hatzi(use_pKa=True)
     estimators['PGC'] = GroupContribution(db=db_gibbs)
     estimators['PGC'].init()
     estimators['PGC'].name = 'our method (PGC)'

@@ -62,11 +62,11 @@ def ExportJSONFiles():
     kegg.AddThermodynamicData(thermo, priority=2)
     
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg.AddGroupVectorData(db, table_name='gc_groupvector')
+    kegg.AddGroupVectorData(db, table_name='pgc_groupvector')
 
     print 'Exporting Group Contribution Nullspace matrix as JSON.'
     nullspace_vectors = [row['group_vector'] 
-                         for row in db.DictReader('gc_nullspace')]
+                         for row in db.DictReader('pgc_nullspace')]
     WriteJSONFile(nullspace_vectors, options.nullspace_out_filename)
         
     print 'Exporting KEGG compounds as JSON.'

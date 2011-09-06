@@ -375,7 +375,7 @@ class Kegg(Singleton):
                 comp.SetThermodynamicError(error_string)
     
     def AddGroupVectorData(self, db, table_name):
-        for cid, s_groupvec in db.Execute('SELECT cid, groupvec FROM gc_groupvector'):
+        for cid, s_groupvec in db.Execute('SELECT cid, groupvec FROM %s' % table_name):
             self.cid2compound(int(cid)).groupvector_string = s_groupvec
             
     def AllCompounds(self):

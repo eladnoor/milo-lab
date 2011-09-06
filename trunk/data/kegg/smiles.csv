@@ -218,6 +218,7 @@ cid,name,smiles
 424,(S)-Lactaldehyde,C[C@@H](C=O)O
 438,N-Carbamoyl-L-aspartate,C([C@@H](C(=O)O)NC(=N)O)C(=O)O
 439,N-Formimino-L-glutamate,C(CC(=O)O)[C@@H](C(=O)O)NC=N
+440,5-methyl-THF,CN1[C@@H](CNc2ccc(cc2)C(=O)N[C@@H](CCC(O)=O)C(O)=O)CNc2nc(N)[nH]c(=O)c12
 441,L-Aspartate 4-semialdehyde,C(C=O)[C@@H](C(=O)O)N
 445,"5,10-Methenyltetrahydrofolate",C12CNc3nc(N)[nH]c(=O)c3[N+]1=CN(C2)c1ccc(cc1)C(=O)NC(CCC(O)=O)C(O)=O
 463,Indole,c1ccc2[nH]ccc2c1
@@ -392,6 +393,7 @@ cid,name,smiles
 3167,Phosphonoacetaldehyde,C(=O)CP(=O)(O)O
 3178,Tetrahydroxypteridine,c12c(nc(c(=O)[nH]2)O)nc(nc1O)O
 3196,(S)-2-Hydroxyglutarate,C(CC(=O)O)[C@@H](C(=O)O)O
+3204,10-Formyldihydrofolate,C(=O)N(CC1=Nc2c(NC1)nc(N)[nH]c2=O)c1ccc(cc1)C(=O)N[C@@H](CCC(O)=O)C(O)=O
 3210,Alanopine,C[C@@H](C(=O)O)N[C@H](C)C(=O)O
 3232,3-Phosphonooxypyruvate,C(C(=O)C(=O)O)OP(=O)(O)O
 3314,Xanthine-8-carboxylate,c12c([nH]c(C(=O)O)n2)nc(nc1O)O
@@ -404,6 +406,7 @@ cid,name,smiles
 3410,N-Glycoloyl-neuraminate,C1[C@@H]([C@H]([C@H]([C@H](C(CO)O)O)OC1(C(=O)O)O)N=C(CO)O)O
 3440,cis-4-Hydroxy-D-proline,C1[C@H](CN[C@H]1C(=O)O)O
 3451,(R)-S-Lactoylglutathione,C[C@H](C(=O)SC[C@@H](C(=NCC(=O)O)O)N=C(CC[C@@H](C(=O)O)N)O)O
+3479,5-Formyl-THF,C(=O)N1[C@@H](CNc2ccc(cc2)C(=O)N[C@@H](CCC(O)=O)C(O)=O)CNc2nc(N)[nH]c(=O)c12
 3483,Adenosine tetraphosphate,Nc1ncnc2n(cnc12)C1OC(COP(O)(=O)OP(O)(=O)OP(O)(=O)OP(O)(O)=O)C(O)C1O
 3493,D-4-Hydroxyphenylglycine,NC(C(O)=O)c1ccc(O)cc1
 3521,N-Glycolyl-D-mannosamine,C([C@@H]1[C@H]([C@@H]([C@@H]([C@@H](O)O1)N=C(CO)O)O)O)O

@@ -278,8 +278,13 @@ class Compound(object):
         """Converts to a JSON-formatted dictionary."""
         d = {'CID': self.get_string_cid(),
              'mass': self.mass,
-             'formula': self.formula,
-             'names': self.all_names}
+             'formula': self.formula}
+        
+        # the official name of this compound
+        d['name'] = self.name
+        
+        # rid of duplicate names and convert to ASCII
+        d['names'] = sorted(set([str(x) for x in self.all_names]))
 
         try:
             d['InChI'] = self.get_inchi()

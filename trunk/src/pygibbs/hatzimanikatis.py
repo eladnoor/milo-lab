@@ -20,10 +20,11 @@ class Hatzi (Thermodynamics):
     def __init__(self, use_pKa=True):
         if use_pKa:
             Thermodynamics.__init__(self, "Jankowski et al. (+pKa)")
+            self.dissociation = DissociationConstants.FromDatabase(self.db)
         else:
             Thermodynamics.__init__(self, "Jankowski et al.")
-        self.use_pKa = use_pKa
-        self.dissociation = DissociationConstants.FromFile()
+            self.dissociation = None
+        self.db = SqliteDatabase('../res/gibbs.sqlite', 'w')
         self.cid2pmap_dict = {}
         
         # the conditions in which Hatzimanikatis makes his predictions
@@ -77,7 +78,7 @@ class Hatzi (Thermodynamics):
         
         charge = self.cid2charge_dict[cid]
         dG0_tag = self.cid2dG0_tag_dict[cid]
-        if self.use_pKa:
+        if self.dissociation is not None:
             diss_table = self.dissociation.GetDissociationTable(cid)
             if diss_table.min_nH == None:
                 try:
@@ -182,10 +183,9 @@ if __name__ == "__main__":
     
     _mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
-    H_nopka = Hatzi()
-    H_nopka.use_pKa = False
-    H = Hatzi()
-    H.ToDatabase(db, 'hatzi_thermodynamics')
+    H_nopka = Hatzi(use_pKa=False)
+    H_withpka = Hatzi(use_pKa=True)
+    H_withpka.ToDatabase(db, 'hatzi_thermodynamics')
     
     #H.ToDatabase(db, 'hatzi_gc')
     #H.I = 0.25
@@ -207,15 +207,16 @@ if __name__ == "__main__":
     
     sys.stdout.write("%5s | %5s | %6s | %6s\n" % ("pH", "I", "T", "dG0_r"))
     for pH in np.arange(5, 10.01, 0.25):
-        H.pH = pH
+        H_withpka.pH = pH
         sys.stdout.write("%5.2f | %5.2f | %6.1f | %6.2f\n" % 
-                         (H.pH, H.I, H.T, react.PredictReactionEnergy(H)))
+                         (H_withpka.pH, H_withpka.I, H_withpka.T, 
+                          react.PredictReactionEnergy(H_withpka)))
 
     for cid in react.get_cids():
         print '-'*50
-        print "C%05d - %s:" % (cid, H.kegg.cid2name(cid))
-        print H.kegg.cid2inchi(cid)
-        print "Pseudoisomers:\n", H.cid2PseudoisomerMap(cid)
-        print "dG0'_f = %.1f kJ/mol" % H.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
+        print "C%05d - %s:" % (cid, H_withpka.kegg.cid2name(cid))
+        print H_withpka.kegg.cid2inchi(cid)
+        print "Pseudoisomers:\n", H_withpka.cid2PseudoisomerMap(cid)
+        print "dG0'_f = %.1f kJ/mol" % H_withpka.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
         print "dG0_f = %.1f kJ/mol" % H_nopka.cid2PseudoisomerMap(cid).Transform(pH=7, I=0, pMg=10, T=298.15)
-        print "Dissociations:\n", H.dissociation.GetDissociationTable(cid)
+        print "Dissociations:\n", H_withpka.dissociation.GetDissociationTable(cid)
