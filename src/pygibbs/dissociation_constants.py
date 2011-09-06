@@ -734,14 +734,14 @@ def MakeOpts():
                           dest="table_name",
                           default="dissociation_constants",
                           help="The name of the DB table for the results")
-    opt_parser.add_option("-r", "--report", action="store_true",
-                          dest="report_only",
-                          default=False,
-                          help="Only print the contents of the DB table")
     opt_parser.add_option("-o", "--override", action="store_true",
                           dest="override_table",
                           default=False,
                           help="Drop the DB table and start from scratch")
+    opt_parser.add_option("-u", "--skip_calculated", action="store_true",
+                          dest="skip_calculated_compounds",
+                          default=False,
+                          help="Do not calculate pKas for compounds that are in the DB")
     opt_parser.add_option("-c", "--cid", action="store", type="int",
                           dest="cid",
                           default=None,
@@ -758,24 +758,12 @@ if __name__ == '__main__':
     logging.info("Writing to table: " + options.table_name)
     logging.info("Writing logs to HTML file: " + options.log_file)
 
-    if options.report_only:
-        logging.info("Reporting the contents of the DB")
-        dissociation = DissociationConstants.FromDatabase(db, options.table_name)
-        dissociation.WriteToHTML(html_writer)
-    elif options.dissociation_file:
-        logging.info("Copying the data from %s to the database" % options.dissociation_file)
+    if options.dissociation_file:
+        logging.info("Copying the data from %s to the database, table %s" % 
+                     (options.dissociation_file, options.table_name))
         dissociation = DissociationConstants.FromFile(options.dissociation_file)
         dissociation.ToDatabase(db, options.table_name)
         dissociation.WriteToHTML(html_writer)
-    elif options.cid:
-        name = kegg.cid2name(options.cid)
-        smiles = kegg.cid2smiles(options.cid)
-        html_writer.write('<h2>%s - C%05d</h2>smiles = %s</br>\n' % 
-                          (name, options.cid, smiles))
-        diss_table = Molecule._GetPseudoisomerMap(smiles, format='smiles',
-            mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
-        diss_table.WriteToHTML(html_writer, T=default_T)
-        html_writer.write('</br>\n')
     else:
         db.CreateTable(options.table_name,
             "cid INT, name TEXT, nH_below INT, nH_above INT, " 
@@ -783,27 +771,35 @@ if __name__ == '__main__':
             "ddG REAL, ref TEXT", drop_if_exists=options.override_table)
 
         cid2smiles = {}
-        if options.kegg:
-            for cid in kegg.get_all_cids():
-                try:
-                    cid2smiles[cid] = kegg.cid2smiles(cid)
-                except KeggParseException:
-                    logging.debug("%s (C%05d) has no SMILES, skipping..." %
-                                  (kegg.cid2name(cid), cid))
-
         for row in csv.DictReader(open(options.smiles_file, 'r')):
             cid, smiles = int(row['cid']), row['smiles']
             logging.debug("Overriding the SMILES of C%05d with: %s" % (cid, smiles))
             cid2smiles[cid] = smiles
             
-        if not options.override_table:
+        if options.cid:
+            if options.cid not in cid2smiles:
+                raise Exception("Cannot find the SMILES for C%05d" % options.cid)
+            cids_to_calculate = set([options.cid])
+        else:
+            if options.kegg:
+                for cid in kegg.get_all_cids():
+                    try:
+                        cid2smiles[cid] = kegg.cid2smiles(cid)
+                    except KeggParseException:
+                        logging.debug("%s (C%05d) has no SMILES, skipping..." %
+                                      (kegg.cid2name(cid), cid))
+            cids_to_calculate = set(cid2smiles.keys())
+            
+        if options.skip_calculated_compounds:
             # Do not recalculate pKas for CIDs that are already in the database
+            cids_in_db = set()
             for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
-                if row[0] in cid2smiles:
-                    del cid2smiles[row[0]]
+                cids_in_db.add(row[0])
+            cids_to_calculate.difference_update(cids_in_db)
             
         dissociation = DissociationConstants()
-        for cid, smiles in sorted(cid2smiles.iteritems()):
+        for cid in sorted(cids_to_calculate):
+            smiles = cid2smiles[cid]
             logging.info("Using ChemAxon to find the pKa values for %s - C%05d" %
                          (kegg.cid2name(cid), cid))
             diss_table = Molecule._GetPseudoisomerMap(smiles, format='smiles',

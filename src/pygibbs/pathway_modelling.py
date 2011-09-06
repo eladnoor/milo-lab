@@ -712,7 +712,7 @@ class KeggPathway(Pathway):
             d = {}
             d['KEGG CID'] = '<a href="%s">C%05d</a>' % (self.kegg.cid2link(cid), cid)
             d['Compound Name'] = self.kegg.cid2name(cid)
-            d['Concentration [M]'] = concentrations[c, 0]
+            d['Concentration [M]'] = '%.2e' % concentrations[c, 0]
             d["dG'0_f [kJ/mol]"] = KeggPathway.EnergyToString(self.dG0_f[c, 0])
             d["dG'_f [kJ/mol]"] = KeggPathway.EnergyToString(dG_f[c, 0])
             dict_list.append(d)

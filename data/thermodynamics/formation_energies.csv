@@ -152,6 +152,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 565,Trimethylamine,37.2,,1,10,0,testing,"Thauer (1977)","too small"
 697,N2(aq),18.7,-10.54,0,0,0,testing,"Alberty (2006)","too small"
 887,N2O(aq),104.2,82.05,0,0,0,testing,"Alberty (2006)","too small"
+1342,ammonium,-79.31,-132.51,1,4,0,testing,"Alberty (2006)","too small"
 1417,Cyanate,-97.4,,-1,0,0,testing,"Alberty (2006)","too weird (resonance between C=N and C#N)"
 1438,Methane(aq),-34.33,-89.04,0,4,0,testing,"Alberty (2006)","too small"
 5361,Hydrazine,128.03,,0,4,0,testing,"Thauer (1977)","too small"

@@ -19,7 +19,8 @@ import re
 import numpy
 import random
 from pygibbs.nist_verify import LoadAllEstimators
-from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
+    MissingReactionEnergy
 from pygibbs.feist_ecoli import Feist
 from pygibbs.compound_abundance import CompoundAbundance
 
@@ -782,7 +783,8 @@ def compare_annotations(reaction_list, thermo, html_writer, cmap, xlim=1e9):
     for reaction in reaction_list:
         try:
             dG0 = reaction.PredictReactionEnergy(thermo)
-        except thermodynamics.MissingCompoundFormationEnergy:
+        except (MissingCompoundFormationEnergy, MissingReactionEnergy) as e:
+            logging.warning(str(e))
             error_counts['misses'] += 1
             continue
 
@@ -958,7 +960,8 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     for reaction in reaction_list:
         try:
             dG0 = reaction.PredictReactionEnergy(thermo)
-        except MissingCompoundFormationEnergy:
+        except (MissingCompoundFormationEnergy, MissingReactionEnergy) as e:
+            logging.warning(str(e))
             continue
         Keq = pylab.exp(-dG0/(R*thermo.T))
 

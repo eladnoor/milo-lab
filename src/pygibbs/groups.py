@@ -64,6 +64,13 @@ class GroupMissingTrainDataError(Exception):
         
 
 class GroupContribution(PsuedoisomerTableThermodynamics):    
+
+    PMAP_TABLE_NAME = 'pgc_pseudoisomers'
+    ERROR_TABLE_NAME = 'pgc_errors'
+    GROUPVEC_TABLE_NAME = 'pgc_groupvector'
+    NULLSPACE_TABLE_NAME = 'pgc_nullspace'
+    CONTRIBUTION_TABLE_NAME = 'pgc_contribution'
+
     def __init__(self, db, html_writer=None, kegg=None):
         """Construct a GroupContribution instance.
         
@@ -75,8 +82,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         PsuedoisomerTableThermodynamics.__init__(self, name="Group Contribution")
         self.db = db
         self.html_writer = html_writer or NullHtmlWriter()
-        self.dissociation = DissociationConstants.FromDatabase(self.db, 
-                                                    'dissociation_constants')
+        self.dissociation = None
 
         self.kegg = kegg or Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
@@ -86,21 +92,27 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.group_contributions = None
         self.obs_collection = None
         
-        self.cid2error = None
+        self.cid2error = {}
         self.cid2groupvec = None
         
-        self.PMAP_TABLE_NAME = 'pgc_pseudoisomers'
-        self.ERROR_TABLE_NAME = 'pgc_errors'
-        self.GROUPVEC_TABLE_NAME = 'pgc_groupvector'
-        self.NULLSPACE_TABLE_NAME = 'pgc_nullspace'
-        self.CONTRIBUTION_TABLE_NAME = 'pgc_contribution'
-                    
+    def GetDissociationConstants(self):
+        """
+            Since loading the pKas takes time, this function is a lazy initialization
+            of self.dissociation.
+        """
+        if self.dissociation is None:
+            self.dissociation = DissociationConstants.FromDatabase(self.db)
+        return self.dissociation
+    
+    def GetDissociationTable(self, cid):
+        return self.GetDissociationConstants().GetDissociationTable(cid,
+                                                    create_if_missing=False)
+    
     def init(self):
         self.LoadGroups()
         self.LoadContributionsFromDB()
-        self.LoadTrainingData()
-        if self.db.DoesTableExist(self.PMAP_TABLE_NAME):
-            self.FromDatabase(self.db, table_name=self.PMAP_TABLE_NAME)
+        if self.db.DoesTableExist(GroupContribution.PMAP_TABLE_NAME):
+            self.FromDatabase(self.db, table_name=GroupContribution.PMAP_TABLE_NAME)
         
     def write_data_to_json(self, json_fname, kegg):
         formations = []
@@ -160,15 +172,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.obs_collection.AddDissociationTable()
         self.html_writer.div_end()
             
-    def LoadTrainingData(self):
-        self.obs_collection = GroupObervationCollection(self.db, 
-            self.html_writer, self.group_decomposer, self.dissociation)
-        self.obs_collection.FromDatabase()
-        self.group_matrix, self.obs, self.obs_types, self.obs_names = self.obs_collection.GetRegressionData()
-
     def Train(self, FromFiles=True):
         self.obs_collection = GroupObervationCollection(self.db, 
-            self.html_writer, self.group_decomposer, self.dissociation)
+            self.html_writer, self.group_decomposer, self.GetDissociationConstants())
         if FromFiles:
             #self.read_training_data_pKa()
             self.read_training_data_formation()
@@ -269,7 +275,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
         self.html_writer.write('</br>')
-        self.db.Table2HTML(self.html_writer, self.NULLSPACE_TABLE_NAME)
+        self.db.Table2HTML(self.html_writer, GroupContribution.NULLSPACE_TABLE_NAME)
         self.html_writer.div_end()
 
     def analyze_training_set(self):
@@ -382,6 +388,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         return self.group_decomposer.Decompose(mol, ignore_protonations, 
                                                strict=True)
 
+    def get_all_cids(self):
+        all_cids = set(self.cid2pmap_dict.keys() + self.cid2error.keys())
+        return sorted(all_cids)
+    
     def EstimateKeggCids(self, cid_list=None):
         """
             Uses the Group Contributions to estimate the entire set of compounds in KEGG,
@@ -428,8 +438,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.html_writer.write('</br>\n')
             self.html_writer.write('<b>C%05d - %s</b>\n' % (cid, self.kegg.cid2name(cid)))
 
-            diss_table = self.dissociation.GetDissociationTable(cid, 
-                                                           create_if_missing=False)
+            diss_table = self.GetDissociationTable(cid)
             pmap = None
             if cid in observed_species.get_all_cids():
                 pmap_obs = observed_species.cid2PseudoisomerMap(cid)
@@ -511,11 +520,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.html_writer.div_end()
         
         logging.info("Writing the results to the database")
-        G.ToDatabase(self.db, table_name=self.PMAP_TABLE_NAME, 
-                     error_table_name=self.ERROR_TABLE_NAME)
-        self.db.CreateTable(self.GROUPVEC_TABLE_NAME, 'cid TEXT, groupvec TEXT')
+        G.ToDatabase(self.db, table_name=GroupContribution.PMAP_TABLE_NAME, 
+                     error_table_name=GroupContribution.ERROR_TABLE_NAME)
+        self.db.CreateTable(GroupContribution.GROUPVEC_TABLE_NAME, 'cid TEXT, groupvec TEXT')
         for cid, groupvec in self.cid2groupvec.iteritems():
-            self.db.Insert(self.GROUPVEC_TABLE_NAME, [cid, groupvec.ToJSONString()])
+            self.db.Insert(GroupContribution.GROUPVEC_TABLE_NAME, [cid, groupvec.ToJSONString()])
         self.db.Commit()
         self.KeggErrorReport()
 
@@ -528,7 +537,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         
         # Read the error messages from the database
         self.cid2error = {}            
-        for row in db.DictReader(self.ERROR_TABLE_NAME):
+        for row in db.DictReader(GroupContribution.ERROR_TABLE_NAME):
             cid = int(row['cid'])
             if not cid:
                 continue
@@ -536,7 +545,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 
         # Read the group-vectors from the database
         self.cid2groupvec = {}
-        for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
+        for row in self.db.DictReader(GroupContribution.GROUPVEC_TABLE_NAME):
             cid = int(row['cid'])
             groupvec = GroupVector.FromJSONString(self.groups_data, row['groupvec'])
             self.cid2groupvec[cid] = groupvec
@@ -545,7 +554,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         total_groupvec = GroupVector(self.groups_data)
         for cid, coeff in sparse.iteritems():
             if cid not in self.cid2groupvec: # one of the compounds has no observed or estimated formation energy
-                raise MissingReactionEnergy("C%05d has no GroupVector" % cid, sparse)
+                raise MissingReactionEnergy("%s (C%05d) has no GroupVector" % 
+                    (self.kegg.cid2name(cid), cid), sparse)
             groupvec = self.cid2groupvec[cid]
             total_groupvec += groupvec * coeff
         return total_groupvec
@@ -597,28 +607,28 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         """
         if not self.cid2pmap_dict:
             raise Exception("You must run the method EstimateKeggCids before using this one.")
-        elif cid in self.cid2pmap_dict:
+        elif cid in self.cid2pmap_dict and self.cid2pmap_dict[cid] is not None:
             return self.cid2pmap_dict[cid]
         else:
             raise MissingCompoundFormationEnergy(self.cid2error.get(cid, ""), cid)
         
     def SaveContributionsToDB(self):
         logging.info("storing the group contribution data in the database")
-        self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
+        self.db.CreateTable(GroupContribution.CONTRIBUTION_TABLE_NAME,
                             'gid INT, name TEXT, protons INT, charge INT, '
                             'nMg INT, dG0_gr REAL, nullspace TEXT')
         
         for j, dG0_gr in enumerate(self.group_contributions):
             group = self.groups_data.all_groups[j]
             nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
-            self.db.Insert(self.CONTRIBUTION_TABLE_NAME, [j, group.name, group.hydrogens,
+            self.db.Insert(GroupContribution.CONTRIBUTION_TABLE_NAME, [j, group.name, group.hydrogens,
                                             group.charge, group.nMg, dG0_gr,
                                             nullspace_str])
             
-        self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
+        self.db.CreateTable(GroupContribution.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
         for i in xrange(self.group_nullspace.shape[0]):
             groupvec = GroupVector(self.groups_data, self.group_nullspace[i, :])
-            self.db.Insert(self.NULLSPACE_TABLE_NAME, 
+            self.db.Insert(GroupContribution.NULLSPACE_TABLE_NAME, 
                            [i, groupvec.ToJSONString()])
 
         self.db.Commit()
@@ -632,7 +642,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         logging.info("loading the group contribution data from the database")
         self.group_contributions = []
         nullspace_mat = []
-        for row in self.db.DictReader(self.CONTRIBUTION_TABLE_NAME):
+        for row in self.db.DictReader(GroupContribution.CONTRIBUTION_TABLE_NAME):
             self.group_contributions.append(row['dG0_gr'])
             nullspace_mat.append([float(x) for x in row['nullspace'].split(',')])
         self.group_nullspace = pylab.matrix(nullspace_mat).T
@@ -662,13 +672,12 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
     def KeggErrorReport(self):
         error_strings = ['kernel', 'decompose', 'explicit', 'provided', 'dissociation']
         query = ' UNION '.join(["SELECT '%s', COUNT(*) FROM %s WHERE error LIKE '%%%s%%'" % 
-                                (e, self.ERROR_TABLE_NAME, e) for e in error_strings])
+                                (e, GroupContribution.ERROR_TABLE_NAME, e) for e in error_strings])
         self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
 
     def AnalyzeSingleKeggCompound(self, cid, ignore_protonations=False):
         print 'Analyzing C%05d (%s):' % (cid, self.kegg.cid2name(cid))
-        diss_table = self.dissociation.GetDissociationTable(cid, 
-                                                       create_if_missing=False)
+        diss_table = self.GetDissociationTable(cid)
         if diss_table is None:
             print "This compounds doesn't have a dissociation table"
             return # TODO: replace this with the method that uses ChamAxon to find pKas
@@ -771,7 +780,6 @@ if __name__ == '__main__':
             G.init()
 
         if not options.train_only:
-            nist = Nist()
             G.EstimateKeggCids()
             #G.EstimateKeggRids()
 
