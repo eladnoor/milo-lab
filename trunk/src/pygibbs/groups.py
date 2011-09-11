@@ -62,7 +62,6 @@ class GroupMissingTrainDataError(Exception):
         return 'contains missing groups: ' + ", ".join(
             [str(gc.groups_data.all_groups[j]) for j in missing_single_groups])
         
-
 class GroupContribution(PsuedoisomerTableThermodynamics):    
 
     PMAP_TABLE_NAME = 'pgc_pseudoisomers'
@@ -83,6 +82,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.db = db
         self.html_writer = html_writer or NullHtmlWriter()
         self.dissociation = None
+        self.transformed = True
 
         self.kegg = kegg or Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
@@ -109,7 +109,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                                     create_if_missing=False)
     
     def init(self):
-        self.LoadGroups()
+        self.LoadGroupsFromDatabase()
         self.LoadContributionsFromDB()
         if self.db.DoesTableExist(GroupContribution.PMAP_TABLE_NAME):
             self.FromDatabase(self.db, table_name=GroupContribution.PMAP_TABLE_NAME)
@@ -142,49 +142,35 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
         
-    def LoadGroups(self, group_fname=None):
-        if group_fname:
-            self.groups_data = GroupsData.FromGroupsFile(group_fname)
-            self.groups_data.ToDatabase(self.db)
+    def LoadGroupsFromFile(self):
+        if self.transformed:
+            fname = "../data/thermodynamics/groups_species_transformed.csv"
         else:
-            self.groups_data = GroupsData.FromDatabase(self.db)
+            fname = "../data/thermodynamics/groups_species.csv"
+        self.groups_data = GroupsData.FromGroupsFile(fname)
+        self.groups_data.ToDatabase(self.db)
         self.group_decomposer = GroupDecomposer(self.groups_data)
-
-    def read_training_data_reaction(self):
-        self.html_writer.write('</br><b>List of NIST reactions for training</b>')
-        self.html_writer.insert_toggle(start_here=True)
-        self.obs_collection.AddNistDatabase()
-        self.html_writer.div_end()
-        
-    def read_training_data_formation(self):
-        """
-            Finds all the compounds which have a valid dG0 in the formation energies file,
-            and adds the qualifying observations to obs_collection.
-        """
-        self.html_writer.write('<br><b>List of compounds for training</b>')
-        self.html_writer.insert_toggle(start_here=True)
-        self.obs_collection.AddFormationEnergies()
-        self.html_writer.div_end()
-        
-    def read_training_data_pKa(self):
-        self.html_writer.write('<b>List of pKa for training</b>')
-        self.html_writer.insert_toggle(start_here=True)
-        self.obs_collection.AddDissociationTable()
-        self.html_writer.div_end()
+    
+    def LoadGroupsFromDatabase(self):
+        self.groups_data = GroupsData.FromDatabase(self.db)
+        self.group_decomposer = GroupDecomposer(self.groups_data)
             
     def Train(self, FromFiles=True):
-        self.obs_collection = GroupObervationCollection(self.db, 
-            self.html_writer, self.group_decomposer, self.GetDissociationConstants())
+        self.obs_collection = GroupObervationCollection(
+                                db=self.db, 
+                                html_writer=self.html_writer, 
+                                group_decomposer=self.group_decomposer, 
+                                dissociation=self.GetDissociationConstants(),
+                                transformed=self.transformed)
         if FromFiles:
-            #self.read_training_data_pKa()
-            self.read_training_data_formation()
-            self.read_training_data_reaction()
+            self.obs_collection.FromFiles()
             self.obs_collection.ToDatabase()
             self.obs_collection.ToCSV('../res/observations.csv')
         else:
             self.obs_collection.FromDatabase()
             
-        self.group_matrix, self.obs, self.obs_types, self.obs_names = self.obs_collection.GetRegressionData()
+        self.group_matrix, self.obs, self.obs_types, self.obs_names = \
+            self.obs_collection.GetRegressionData()
         
         self.group_contributions, self.group_nullspace = self.RunLinearRegression()
         self.SaveContributionsToDB()
@@ -739,26 +725,26 @@ if __name__ == '__main__':
     options, _ = MakeOpts().parse_args(sys.argv)
     util._mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
-    if options.smiles or options.inchi: # -s <SMILES> or -i <INCHI>
+    
+    if options.smiles or options.inchi or options.cid or options.rid:
         G = GroupContribution(db=db)
-        G.LoadGroups("../data/thermodynamics/groups_species.csv")
-        if options.smiles:
+        G.init()
+        if options.smiles: # -s <SMILES>
             print 'Analyzing SMILES %s:' % (options.smiles)
             mol = Molecule._FromFormat(options.smiles, 'smiles')
-        elif options.inchi:
+            G.AnalyzeSingleCompound(mol)
+        elif options.inchi: #-i <INCHI>
             print 'Analyzing InChI %s:' % (options.inchi)
             mol = Molecule._FromFormat(options.inchi, 'inchi')
-        G.AnalyzeSingleCompound(mol)
-    elif options.cid: # -c <CID>
-        G = GroupContribution(db=db)
-        G.init()
-        G.AnalyzeSingleKeggCompound(options.cid, ignore_protonations=True)
-    elif options.rid: # -r <RID>
-        G = GroupContribution(db=db)
-        G.init()
-        reaction = G.kegg.rid2reaction(options.rid)
-        dG0_r = reaction.PredictReactionEnergy(G)
-        print "R%05d = %.2f" % (options.rid, dG0_r)
+            G.AnalyzeSingleCompound(mol)
+        elif options.cid: # -c <CID>
+            print 'Analyzing Compound %C%05d:' % (options.cid)
+            G.AnalyzeSingleKeggCompound(options.cid, ignore_protonations=True)
+        elif options.rid: # -r <RID>
+            print 'Analyzing Reaction %R%05d:' % (options.rid)
+            reaction = G.kegg.rid2reaction(options.rid)
+            dG0_r = reaction.PredictReactionEnergy(G)
+            print "dG0_r = %.2f" % dG0_r
     else:
         # use the flag -i or --train for train only
         # use the flag -e or --test for test only
@@ -772,7 +758,7 @@ if __name__ == '__main__':
             
         G = GroupContribution(db=db, html_writer=html_writer)
         if not options.test_only:
-            G.LoadGroups("../data/thermodynamics/groups_species.csv")
+            G.LoadGroupsFromFile()
             G.Train()
             G.write_regression_report()
             G.analyze_training_set()
