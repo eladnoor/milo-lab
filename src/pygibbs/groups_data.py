@@ -147,7 +147,10 @@ class Group(object):
         return focal_set
     
     def __str__(self):
-        return '%s [H%d Z%d Mg%d]' % (self.name, self.hydrogens, self.charge, self.nMg)
+        if self.hydrogens is not None and self.charge is not None and self.nMg is not None:
+            return '%s [H%d Z%d Mg%d]' % (self.name, self.hydrogens or 0, self.charge or 0, self.nMg or 0)
+        else:
+            return '%s' % self.name
     
     def __eq__(self, other):
         """Enable == checking.
@@ -270,8 +273,8 @@ class GroupsData(object):
             
             try:
                 group_name = row['NAME']
-                protons = row['PROTONS']
-                charge = row['CHARGE']
+                protons = row.get('PROTONS', None)
+                charge = row.get('CHARGE', None)
                 smarts = row['SMARTS']
                 focal_atoms = row['FOCAL_ATOMS']
                 _remark = row['REMARK']
@@ -287,7 +290,7 @@ class GroupsData(object):
                     raise GroupsDataError('Cannot parse SMARTS from line %d: %s' %
                                           (group_csv_file.line_num, smarts))
                 
-                mgs = 0
+                mgs = None
                 group = Group(gid, group_name, protons, charge, mgs, str(smarts),
                               focal_atoms)
                 list_of_groups.append(group)
@@ -348,8 +351,8 @@ class GroupsData(object):
         db.CreateTable('groups', 'gid INT, name TEXT, protons INT, charge INT, nMg INT, smarts TEXT, focal_atoms TEXT, remark TEXT')
         for group in self.groups:
             focal_atom_str = str(group.focal_atoms)
-            db.Insert('groups', [group.id, group.name, int(group.hydrogens), int(group.charge), 
-                                 int(group.nMg), group.smarts, focal_atom_str, ''])
+            db.Insert('groups', [group.id, group.name, group.hydrogens, group.charge, 
+                                 group.nMg, group.smarts, focal_atom_str, ''])
 
         logging.info('Done writing groups data into database.')
 
