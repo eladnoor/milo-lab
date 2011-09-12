@@ -177,8 +177,9 @@ class GroupObervationCollection(object):
 
     def AddBiochemicalFormationEnergies(self, 
             obs_fname="../data/thermodynamics/formation_energies_transformed.csv"):
-        train_species = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname, label='training')
         for row in csv.DictReader(open(obs_fname, 'r')):
+            if row['use for'] != 'training':
+                continue
             cid = int(row['cid'])
             dG0_prime = float(row["dG'0"])
             pH = float(row['pH'])
@@ -190,16 +191,11 @@ class GroupObervationCollection(object):
             name = "%s, %s" % (self.kegg.cid2name(cid), ref)
             logging.debug('Adding the formation energy of %s', name)
             self.html_writer.write("<b>%s (C%05d), %s</b></br>\n" % 
-                                   (name, cid, train_species.cid2SourceString(cid)))
+                                   (name, cid, ref))
             self.html_writer.write('&#x394;<sub>f</sub> G\'<super>o</super> = %.2f, '
                                    'pH = %g, I = %g, pMg = %g, T = %g</br>\n' % 
                                    (dG0_prime, pH, I, pMg, T))
-            diss_table = self.dissociation.GetDissociationTable(cid, 
-                                                        create_if_missing=True)
-            if diss_table is None:
-                raise Exception("%s [C%05d] does not have a " 
-                                "dissociation table" % (name, cid))
-            mol = diss_table.GetMostAbundantMol(cid, pH, I, pMg, T)
+            mol = self.dissociation.GetMostAbundantMol(cid, pH, I, pMg, T)
             if mol is None:
                 raise Exception("%s [C%05d] does not have a SMILES "
                                 "expression in the dissociation constant table" 

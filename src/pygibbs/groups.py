@@ -685,14 +685,12 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         mol.Draw()
         
     def AnalyzeSingleCompound(self, mol):
-        try:
-            decomposition = self.Mol2Decomposition(mol, ignore_protonations=False)
-            print decomposition.ToTableString()
-            print 'nH =', decomposition.Hydrogens()
-            print 'z =', decomposition.NetCharge()
-            print 'nMg = ', decomposition.Magnesiums()
-        except GroupDecompositionError as e:
-            print "Cannot decompose compound to groups: " + str(e)
+        decomposition = self.group_decomposer.Decompose(mol, 
+                                ignore_protonations=False, strict=False)
+        print decomposition.ToTableString()
+        print 'nH =', decomposition.Hydrogens()
+        print 'z =', decomposition.NetCharge()
+        print 'nMg = ', decomposition.Magnesiums()
         mol.Draw()
         
 #################################################################################################################
@@ -728,20 +726,23 @@ if __name__ == '__main__':
     
     if options.smiles or options.inchi or options.cid or options.rid:
         G = GroupContribution(db=db)
-        G.init()
         if options.smiles: # -s <SMILES>
             print 'Analyzing SMILES %s:' % (options.smiles)
             mol = Molecule._FromFormat(options.smiles, 'smiles')
+            G.LoadGroupsFromFile()
             G.AnalyzeSingleCompound(mol)
         elif options.inchi: #-i <INCHI>
             print 'Analyzing InChI %s:' % (options.inchi)
             mol = Molecule._FromFormat(options.inchi, 'inchi')
+            G.LoadGroupsFromFile()
             G.AnalyzeSingleCompound(mol)
         elif options.cid: # -c <CID>
             print 'Analyzing Compound %C%05d:' % (options.cid)
+            G.init()
             G.AnalyzeSingleKeggCompound(options.cid, ignore_protonations=True)
         elif options.rid: # -r <RID>
             print 'Analyzing Reaction %R%05d:' % (options.rid)
+            G.init()
             reaction = G.kegg.rid2reaction(options.rid)
             dG0_r = reaction.PredictReactionEnergy(G)
             print "dG0_r = %.2f" % dG0_r
