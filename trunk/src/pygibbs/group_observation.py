@@ -31,8 +31,8 @@ class GroupObservation(object):
     def Magnesiums(self):
         return self.groupvec.Magnesiums()
 
-    def ToDatabase(self, db):
-        db.Insert('group_observations', self.ToCsvRow())
+    def ToDatabase(self, db, table_name):
+        db.Insert(table_name, self.ToCsvRow())
     
     @staticmethod 
     def FromDatabaseRow(row, groups_data):
@@ -89,10 +89,7 @@ class GroupObervationCollection(object):
         
         self.html_writer.write('<br><b>List of compounds for training</b>')
         self.html_writer.insert_toggle(start_here=True)
-        if not self.transformed:
-            self.AddChemicalFormationEnergies()
-        else:
-            self.AddBiochemicalFormationEnergies()
+        self.AddFormationEnergies()
         self.html_writer.div_end()
         
         if self.use_pkas:
@@ -192,10 +189,10 @@ class GroupObervationCollection(object):
             logging.debug('Adding the formation energy of %s', name)
             self.html_writer.write("<b>%s (C%05d), %s</b></br>\n" % 
                                    (name, cid, ref))
-            self.html_writer.write('&#x394;<sub>f</sub> G\'<super>o</super> = %.2f, '
+            self.html_writer.write('&#x394;<sub>f</sub> G\'<sup>0</sup> = %.2f, '
                                    'pH = %g, I = %g, pMg = %g, T = %g</br>\n' % 
                                    (dG0_prime, pH, I, pMg, T))
-            mol = self.dissociation.GetMostAbundantMol(cid, pH, I, pMg, T)
+            mol = self.dissociation.GetAnyMol(cid)
             if mol is None:
                 raise Exception("%s [C%05d] does not have a SMILES "
                                 "expression in the dissociation constant table" 
@@ -220,8 +217,9 @@ class GroupObervationCollection(object):
             self.Add(groupvec, dG0_prime, name, id="C%05d" % cid, obs_type='formation')
             self.html_writer.write('<font size="1">Decomposition = %s</font></br>\n' % groupvec)
             
-    def AddChemicalFormationEnergies(self,
-            obs_fname="../data/thermodynamics/formation_energies.csv"):
+    def AddFormationEnergies(self,
+            obs_fname="../data/thermodynamics/formation_energies.csv",
+            pH=default_pH, I=default_I, pMg=default_pMg, T=default_T):
         train_species = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname, label='training')
         for cid in train_species.get_all_cids():
             pmap = train_species.cid2PseudoisomerMap(cid)
@@ -233,14 +231,19 @@ class GroupObervationCollection(object):
             logging.debug('Adding the formation energy of %s', name)
             self.html_writer.write("<b>%s (C%05d), %s</b></br>\n" % 
                                    (name, cid, train_species.cid2SourceString(cid)))
-            self.html_writer.write('&#x394;G<sub>f</sub> = %.2f, '
+            self.html_writer.write('&#x394;<sub>f</sub> G<sup>0</sup> = %.2f, '
                                    'nH = %d, nMg = %d</br>\n' % (dG0, nH, nMg))
             diss_table = self.dissociation.GetDissociationTable(cid, 
                                                         create_if_missing=True)
+            diss_table.SetFormationEnergyByNumHydrogens(dG0, nH, nMg)
+            dG0_prime = diss_table.Transform(pH, I, pMg, T)
             if diss_table is None:
                 raise Exception("%s [C%05d, nH=%d, nMg=%d] does not have a " 
                                 "dissociation table"
                                 % (name, cid, nH, nMg))
+            self.html_writer.write('&#x394;<sub>f</sub> G\'<sup>0</sup> = %.2f, '
+                                   'pH = %g, I = %g, pMg = %g, T = %g</br>\n' %
+                                   (dG0_prime, pH, I, pMg, T))
             mol = diss_table.GetMol(nH=nH, nMg=nMg)
             if mol is None:
                 raise Exception("%s [C%05d, nH=%d, nMg=%d] does not have a SMILES "
@@ -263,7 +266,10 @@ class GroupObervationCollection(object):
                 raise e
             
             groupvec = decomposition.AsVector()
-            self.Add(groupvec, dG0, name, id="C%05d" % cid, obs_type='formation')
+            if self.transformed:
+                self.Add(groupvec, dG0_prime, name, id="C%05d" % cid, obs_type='formation')
+            else:
+                self.Add(groupvec, dG0, name, id="C%05d" % cid, obs_type='formation')
             self.html_writer.write('<font size="1">Decomposition = %s</font></br>\n' % groupvec)
             
             gc_nH, gc_charge = decomposition.Hydrogens(), decomposition.NetCharge()
@@ -329,8 +335,7 @@ class GroupObervationCollection(object):
                 anchored_cids.append(cid)
             else:
                 try:
-                    mol = self.dissociation.GetMostAbundantMol(cid, pH=default_pH, 
-                        I=0.0, pMg=14.0, T=default_T)
+                    mol = self.dissociation.GetAnyMol(cid)
                     if mol is None:
                         raise GroupDecompositionError("This pseudoisomer does not "
                         "have an explicit formula in the dissociation table: "
@@ -360,13 +365,13 @@ class GroupObervationCollection(object):
                 (coeff, self.kegg.cid2link(cid), cid, self.kegg.cid2name(cid)) 
                 for (cid, coeff) in sparse.iteritems()])
             self.html_writer.write("Biochemical reaction: " + biochemical_reaction + "</br>\n")
-            self.html_writer.write('&#x394;<sub>r</sub>G\'<super>o</super> = %.2f</br>\n' % dG0_prime[r, 0])
+            self.html_writer.write('&#x394;<sub>r</sub> G\'<sup>0</sup> = %.2f</br>\n' % dG0_prime[r, 0])
 
             for cid in set(sparse.keys()).intersection(anchored_cids):
                 del sparse[cid]
             
             self.html_writer.write("Truncated reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
-            self.html_writer.write('&#x394;<sub>r</sub>G\'<super>o</super> (truncated) = %.2f</br>\n' % dG0_prime_noanchors[r, 0])
+            self.html_writer.write('&#x394;<sub>r</sub> G\'<sup>0</sup> (truncated) = %.2f</br>\n' % dG0_prime_noanchors[r, 0])
 
             unresolved_cids = set(sparse.keys()).difference(good_cids)
             if not unresolved_cids:
@@ -488,13 +493,13 @@ class GroupObervationCollection(object):
                 (coeff, self.kegg.cid2link(cid), cid, self.kegg.cid2name(cid), cid2nH[cid]) 
                 for (cid, coeff) in sparse.iteritems()])
             self.html_writer.write("Chemical reaction: " + chemical_reaction + "</br>\n")
-            self.html_writer.write('&#x394;G<sub>r</sub> = %.2f</br>\n' % dG0[r, 0])
+            self.html_writer.write('&#x394;<sub>r</sub> G<sup>0</sup> = %.2f</br>\n' % dG0[r, 0])
 
             for cid in set(sparse.keys()).intersection(anchored_cids):
                 del sparse[cid]
             
             self.html_writer.write("Truncated reaction: " + self.kegg.sparse_to_hypertext(sparse, show_cids=False) + "</br>\n")
-            self.html_writer.write('&#x394;G<sub>r</sub> (truncated) = %.2f</br>\n' % dG0_noanchors[r, 0])
+            self.html_writer.write('&#x394;<sub>r</sub> G<sup>0</sup>(truncated) = %.2f</br>\n' % dG0_noanchors[r, 0])
 
             unresolved_cids = set(sparse.keys()).difference(good_cids)
             if not unresolved_cids:
@@ -512,7 +517,9 @@ class GroupObervationCollection(object):
     def ToDatabase(self):
         # This table is used only as an output for checking results
         # it is not used elsewhere in the code
-        self.db.CreateTable(self.TRAIN_GROUPS_TABLE_NAME, 'name TEXT, nH INT, z INT, nMg INT')
+        self.db.CreateTable(self.TRAIN_GROUPS_TABLE_NAME, 
+                            'name TEXT, nH INT, z INT, nMg INT',
+                            drop_if_exists=True)
         for group in self.groups_data.all_groups:
             self.db.Insert(self.TRAIN_GROUPS_TABLE_NAME, [group.name, group.hydrogens,
                                             group.charge, group.nMg])
@@ -521,10 +528,11 @@ class GroupObervationCollection(object):
         # that is used for training later
         titles = ['%s REAL' % t for t in self.groupvec_titles] + \
                  ['dG0 REAL', 'name TEXT', 'id TEXT', 'obs_type TEXT']
-        self.db.CreateTable(self.OBSERVATION_TABLE_NAME, ','.join(titles))
+        self.db.CreateTable(self.OBSERVATION_TABLE_NAME, ','.join(titles),
+                            drop_if_exists=True)
 
         for obs in self.observations:
-            obs.ToDatabase(self.db)
+            obs.ToDatabase(self.db, table_name=self.OBSERVATION_TABLE_NAME)
         self.db.Commit()
         
     def ToCSV(self, fname):
@@ -550,19 +558,20 @@ class GroupObervationCollection(object):
             Makes sure that there are no duplicates (two identical rows in A)
             by averaging the observed values.
         """
-        
-        hash2obs_vec = {}
+
+        groupvec2observation_list = {}
         for obs in self.observations:
-            hash2obs_vec.setdefault(obs, []).append(obs)
-        
+            v = obs.groupvec.Flatten(self.transformed)
+            groupvec2observation_list.setdefault(v, []).append(obs)
+            
         A = []
         b = []
         obs_types = []
         names = []
-        for h, obs_vec in hash2obs_vec.iteritems():
-            A.append(h.groupvec)
-            b.append(np.mean([obs.dG0 for obs in obs_vec]))
-            obs_types.append(h.obs_type)
-            names.append(' ; '.join([obs.name for obs in obs_vec]))
+        for v, observation_list in groupvec2observation_list.iteritems():
+            A.append(v)
+            b.append(np.mean([obs.dG0 for obs in observation_list]))
+            obs_types.append(observation_list[0].obs_type)
+            names.append(';'.join([obs.name for obs in observation_list]))
             
         return np.matrix(A), np.array(b), obs_types, names

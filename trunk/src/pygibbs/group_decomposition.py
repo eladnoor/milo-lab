@@ -37,7 +37,7 @@ class GroupDecomposition(object):
             else:
                 for n_set in node_sets:
                     s = '%30s | %2d | %2d | %2d | %s\n' % \
-                        (group.name, group.hydrogens, group.charge, group.nMg,
+                        (group.name, group.hydrogens or 0, group.charge or 0, group.nMg or 0,
                          ','.join([str(i) for i in n_set]))
                     l.append(s)
 
