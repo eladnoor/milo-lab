@@ -222,9 +222,9 @@ class GroupsData(object):
         self.groups = groups
         self.all_groups = self._GetAllGroups(self.groups)
         self.all_group_names = [str(g) for g in self.all_groups]
-        self.all_group_hydrogens = pylab.array([g.hydrogens for g in self.all_groups])
-        self.all_group_charges = pylab.array([g.charge for g in self.all_groups])
-        self.all_group_mgs = pylab.array([g.nMg for g in self.all_groups])
+        self.all_group_hydrogens = pylab.array([g.hydrogens or 0 for g in self.all_groups])
+        self.all_group_charges = pylab.array([g.charge or 0 for g in self.all_groups])
+        self.all_group_mgs = pylab.array([g.nMg or 0 for g in self.all_groups])
     
     def Count(self):
         return len(self.all_groups)

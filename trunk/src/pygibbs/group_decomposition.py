@@ -29,11 +29,17 @@ class GroupDecomposition(object):
              spacer]
                 
         for group, node_sets in self.groups:
-            for n_set in node_sets:
-                s = '%30s | %2d | %2d | %2d | %s\n' % (group.name, group.hydrogens,
-                                                       group.charge, group.nMg,
-                                                       ','.join([str(i) for i in n_set]))
-                l.append(s)
+            if group.hydrogens is None and group.charge is None and group.nMg is None:
+                for n_set in node_sets:
+                    s = '%30s |    |    |     | %s\n' % \
+                        (group.name, ','.join([str(i) for i in n_set]))
+                    l.append(s)
+            else:
+                for n_set in node_sets:
+                    s = '%30s | %2d | %2d | %2d | %s\n' % \
+                        (group.name, group.hydrogens, group.charge, group.nMg,
+                         ','.join([str(i) for i in n_set]))
+                    l.append(s)
 
         if self.unassigned_nodes:
             l.append('\nUnassigned nodes: \n')
@@ -52,9 +58,12 @@ class GroupDecomposition(object):
         """Convert the groups to a string."""        
         group_strs = []
         for group, node_sets in self.NonEmptyGroups():
-            group_strs.append('%s [H%d %d %d] x %d' % (group.name, group.hydrogens,
-                                                       group.charge, group.nMg,
-                                                       len(node_sets)))
+            if group.hydrogens is None and group.charge is None and group.nMg is None:
+                group_strs.append('%s x %d' % (group.name, len(node_sets)))
+            else:
+                group_strs.append('%s [H%d %d %d] x %d' % 
+                    (group.name, group.hydrogens, group.charge, group.nMg, 
+                     len(node_sets)))
         return " | ".join(group_strs)
     
     def __len__(self):
