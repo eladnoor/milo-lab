@@ -29,6 +29,7 @@
 111,"dihydroxyacetonephos",-1095.7,7,0.25,14,298.15,"training","Alberty (2006)",
 469,"ethanol",62.96,7,0.25,14,298.15,"testing","Alberty (2006)","too small"
 849,"ethylacetate",-11.52,7,0.25,14,298.15,"training","Alberty (2006)",
+67,"formaldehyde",-49.1,7,0.25,14,298.15,testing,"Thauer (1977)","too small, calculated using Legendre transform from chemical table"
 58,"formate",-311.04,7,0.25,14,298.15,"testing","Alberty (2006)","too small"
 95,"fructose",-426.32,7,0.25,14,298.15,"training","Alberty (2006)",
 354,"fructose16phos",-2206.78,7,0.25,14,298.15,"training","Alberty (2006)",
@@ -92,6 +93,7 @@
 247,"sorbose",-422.76,7,0.25,14,298.15,"training","Alberty (2006)",
 42,"succinate",-530.64,7,0.25,14,298.15,"training","Alberty (2006)",
 89,"sucrose",-667.85,7,0.25,14,298.15,"training","Alberty (2006)",
+59,"sulfate",-747.8,7,0.25,14,298.15,"testing","Alberty (2006)","too small, calculated using Legendre transform from chemical table"
 78,"tryptophaneL",374.49,7,0.25,14,298.15,"training","Alberty (2006)",
 82,"tyrosineL",77.73,7,0.25,14,298.15,"training","Alberty (2006)",
 366,"urate",-204.41,7,0.25,14,298.15,"testing","Alberty (2006)","too small"

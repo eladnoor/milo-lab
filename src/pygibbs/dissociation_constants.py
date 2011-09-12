@@ -303,8 +303,13 @@ class DissociationConstants(object):
         diss_table = self.GetDissociationTable(cid)
         if diss_table is None:
             return None
-        nH, nMg = diss_table.GetMostAbundantPseudoisomer(pH, I, pMg, T)
-        return self.GetMol(cid, nH, nMg)
+        return diss_table.GetMostAbundantMol(pH, I, pMg, T)
+
+    def GetAnyMol(self, cid):
+        diss_table = self.GetDissociationTable(cid)
+        if diss_table is None:
+            return None
+        return diss_table.GetAnyMol()
         
     def WriteToHTML(self, html_writer):
         for cid in sorted(self.GetAllCids()):
@@ -695,6 +700,12 @@ class DissociationTable(object):
     def GetMostAbundantMol(self, pH, I, pMg, T):
         nH, nMg = self.GetMostAbundantPseudoisomer(pH, I, pMg, T)
         return self.GetMol(nH, nMg)
+        
+    def GetAnyMol(self):
+        for mol in self.mol_dict.values():
+            if mol is not None:
+                return mol
+        return None
     
     def Transform(self, pH, I, pMg, T):    
         return self.min_dG0 + self.GetDeltaDeltaG0(pH, I, pMg, T, nH=self.min_nH)

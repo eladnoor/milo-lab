@@ -94,3 +94,24 @@ class GroupVector(list):
             v[int(i)] = x
         return GroupVector(groups_data, v)
     
+    def Flatten(self, transformed=False):
+        # map all pseudoisomeric group indices to Biochemical group indices (which are fewer)
+        # use the names of each group and ignore the nH, z and nMg.
+        if transformed:
+            biochemical_group_names = []
+            index_old2new = {}
+             
+            for i, group in enumerate(self.groups_data.all_groups):
+                if group.name in biochemical_group_names:
+                    index_old2new[i] = biochemical_group_names.index(group.name)
+                else:
+                    index_old2new[i] = len(biochemical_group_names)
+                    biochemical_group_names.append(group.name)
+            
+            biochemical_vector = [0] * len(biochemical_group_names)
+            for i, x in enumerate(self):
+                biochemical_vector[index_old2new[i]] += x
+            return tuple(biochemical_vector)        
+        else:
+            return tuple(self)
+    
