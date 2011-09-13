@@ -2,17 +2,14 @@ import csv, logging, sys
 from kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel,\
-    default_I, default_pH, default_pMg
+    default_pH
 import numpy as np
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
-from pygibbs.nist import Nist
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.html_writer import HtmlWriter
 from toolbox.molecule import Molecule, OpenBabelError
-from pygibbs.kegg_reaction import Reaction
 from optparse import OptionParser
 
 class MissingDissociationConstantError(Exception):
@@ -422,7 +419,7 @@ class DissociationTable(object):
         
     def SetMolString(self, nH, nMg, s):
         self.UpdateMinNumHydrogens(nH)
-        if s is not None:
+        if s:
             mol = Molecule.FromSmiles(str(s))
             self.mol_dict[nH, nMg] = mol
     
