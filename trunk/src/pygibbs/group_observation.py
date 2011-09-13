@@ -1,5 +1,4 @@
 import logging
-import os
 import numpy as np
 from pygibbs.kegg import Kegg
 from pygibbs.group_decomposition import GroupDecompositionError
@@ -7,7 +6,6 @@ from pygibbs.group_vector import GroupVector
 from pygibbs.nist_regression import NistRegression
 from toolbox.html_writer import NullHtmlWriter
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
-from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_T,\
     default_pMg
 import csv
@@ -79,6 +77,12 @@ class GroupObervationCollection(object):
         self.OBSERVATION_TABLE_NAME = 'pgc_observations'
         
     def FromFiles(self):
+        if not self.transformed and self.use_pkas:
+            self.html_writer.write('<br><b>List of pKa for training</b>')
+            self.html_writer.insert_toggle(start_here=True)
+            self.AddDissociationTable()
+            self.html_writer.div_end()
+
         self.html_writer.write('</br><b>List of NIST reactions for training</b>')
         self.html_writer.insert_toggle(start_here=True)
         if not self.transformed:
@@ -91,12 +95,6 @@ class GroupObervationCollection(object):
         self.html_writer.insert_toggle(start_here=True)
         self.AddFormationEnergies()
         self.html_writer.div_end()
-        
-        if self.use_pkas:
-            self.html_writer.write('<b>List of pKa for training</b>')
-            self.html_writer.insert_toggle(start_here=True)
-            self.obs_collection.AddDissociationTable()
-            self.html_writer.div_end()
         
     def Add(self, groupvec, dG0, name, id, obs_type):
         obs = GroupObservation()
@@ -288,15 +286,21 @@ class GroupObervationCollection(object):
         nist = Nist()
         all_cids = sorted(nist.GetAllCids())
 
-        S = np.zeros((0, len(all_cids))) # stoichiometric matrix
-        dG0_prime = np.zeros((0, 1))
+        # create a dictionary from each unique reaction to the list of measured dG0_primes
+        reaction_to_dG0_prime_list = {}
         for nist_row_data in nist.SelectRowsFromNist():
-            dG0_prime = np.vstack([dG0_prime, nist_row_data.dG0_r])
-            #pH = nist_row_data.pH
-            #I = nist_row_data.I
-            #pMg = nist_row_data.pMg
+            rxn = nist_row_data.reaction
+            dg = nist_row_data.dG0_r
+            reaction_to_dG0_prime_list.setdefault(rxn, []).append(dg)
+
+        # convert the dictionary into a stoichimetric matrix (S) and 
+        # corresponding vector of average dG'0 values (dG0_prime)
+        S = np.zeros((0, len(all_cids)))
+        dG0_prime = np.zeros((0, 1))
+        for rxn, dG0_prime_list in reaction_to_dG0_prime_list.iteritems():
+            dG0_prime = np.vstack([dG0_prime, np.mean(dG0_prime_list)])
             stoichiometric_row = np.zeros((1, len(all_cids)))
-            for cid, coeff in nist_row_data.reaction.iteritems():
+            for cid, coeff in rxn.iteritems():
                 stoichiometric_row[0, all_cids.index(cid)] = coeff
             S = np.vstack([S, stoichiometric_row])
 

@@ -166,6 +166,7 @@ class Nist(object):
         self.db = SqliteDatabase('../data/public_data.sqlite')
         self.kegg = Kegg.getInstance()
         self.T_range = T_range
+        self.pH_range = None
         self.override_I = None
         self.override_pMg = None
         self.override_T = None
@@ -584,7 +585,10 @@ class Nist(object):
             dict_list.append(d)
         html_writer.write_table(dict_list, table_headers)
             
-    def SelectRowsFromNist(self, reaction=None, check_reverse=True):
+    def SelectRowsFromNist(self, reaction=None, check_reverse=True, 
+                           T_range=None, pH_range=None):
+        T_range = T_range or self.T_range
+        pH_range = pH_range or self.pH_range
         rows = []
         checklist = []
         if reaction:
@@ -592,7 +596,9 @@ class Nist(object):
             if check_reverse:
                 checklist.append(reaction.reverse())
         for nist_row_data in self.data:
-            if self.T_range and not (self.T_range[0] < nist_row_data.T < self.T_range[1]):
+            if T_range and not (T_range[0] < nist_row_data.T < T_range[1]):
+                continue 
+            if pH_range and not (pH_range[0] < nist_row_data.pH < pH_range[1]):
                 continue 
             if checklist and nist_row_data.reaction not in checklist:
                 continue
