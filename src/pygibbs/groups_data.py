@@ -361,3 +361,14 @@ class GroupsData(object):
             return self.all_groups.index(gr)
         except ValueError:
             raise ValueError('group %s is not defined' % str(gr))
+    
+    def GetGroupNames(self, transformed=False):
+        if not transformed:
+            return self.all_group_names
+
+        # find the unique group names (ignoring nH, z, nMg)
+        biochemical_group_names = []
+        for group in self.all_groups:
+            if group.name not in biochemical_group_names:
+                biochemical_group_names.append(group.name)
+        return biochemical_group_names

@@ -266,6 +266,9 @@ class NistRegression(PsuedoisomerTableThermodynamics):
     def WriteUniqueReactionReport(self, unique_sparse_reactions, 
                                   unique_data_mat, full_data_mat):
         
+        fig1 = plt.figure(figsize=[6.0, 6.0], dpi=100)
+        plt.plot()
+        
         total_std = np.std(full_data_mat[:, 2:4], 0)
         
         fig = plt.figure()

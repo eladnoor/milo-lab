@@ -221,10 +221,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             '<td width="20%%">Name</td>'
             '<td width="5%%">&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
             '<td width="70%%">Group Vector</td></tr>')
+        group_names = self.groups_data.GetGroupNames(self.transformed)
         for i in xrange(self.group_matrix.shape[0]):
             group_vector = self.group_matrix[i, :]
             nonzero_columns = pylab.find(abs(group_vector) > 1e-10)
-            s_vector = " | ".join(["%g : %s" % (group_vector[0, j], self.groups_data.all_groups[j].name)
+            s_vector = " | ".join(["%g : %s" % (group_vector[0, j], group_names[j])
                 for j in nonzero_columns])
             #s_vector = ['%s : %d' % (self.groups_data.all_groups[j].name, group_vector[0, j])
             #     for j in xrange(self.group_matrix.shape[1]) if group_vector[0, j] != 0]
@@ -241,21 +242,29 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.div_start(div_id)
         self.html_writer.write('</br><font size="1">\n')
         dict_list = []
-        for j, group in enumerate(self.groups_data.all_groups):
-            dG0_gr = self.group_contributions[j]
+        for j, dG0_gr in enumerate(self.group_contributions):
             obs_lists_dict = {'acid-base':[], 'formation':[], 'reaction':[]}
             for k in pylab.find(self.group_matrix[:, j]):
                 obs_lists_dict[self.obs_types[k]].append(self.obs_names[k])
-            d = {"#":"%d" % j, "Group Name":group.name, 
-                 "nH":group.hydrogens, "charge":group.charge, "nMg":group.nMg,
+            d = {"#":"%d" % j, "Group Name":group_names[j], 
                  "&#x394;<sub>gr</sub>G [kJ/mol]":"%8.2f" % dG0_gr,
                  "dissociations":' | '.join(obs_lists_dict['acid-base']),
                  "formations":' | '.join(obs_lists_dict['formation']),
                  "reactions":' | '.join(obs_lists_dict['reaction'])}
+            if not self.transformed:
+                group = self.groups_data.all_groups[j]
+                d["nH"] = group.hydrogens
+                d["charge"] = group.charge
+                d["nMg"] = group.nMg
             dict_list.append(d)
-        self.html_writer.write_table(dict_list, headers=["#", "Group Name",
-            "nH", "charge", "nMg", "&#x394;<sub>gr</sub>G [kJ/mol]", 
-            "dissociations", "formations", "reactions"])
+        if not self.transformed:
+            self.html_writer.write_table(dict_list, headers=["#", "Group Name",
+                "nH", "charge", "nMg", "&#x394;<sub>gr</sub>G [kJ/mol]", 
+                "dissociations", "formations", "reactions"])
+        else:
+            self.html_writer.write_table(dict_list, headers=["#", "Group Name",
+                "&#x394;<sub>gr</sub>G [kJ/mol]", 
+                "dissociations", "formations", "reactions"])
         self.html_writer.write('</font>\n')
         self.html_writer.div_end()
 
@@ -472,6 +481,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     # conservation laws because it might cancel out later when we 
                     # use it to calculate reactions.
                     dG0 = e.value
+                    logging.warning("C%05d: %s" % (cid, str(e)))
 
                 source_string = "Group Contribution"
                 
@@ -611,16 +621,25 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                             'gid INT, name TEXT, protons INT, charge INT, '
                             'nMg INT, dG0_gr REAL, nullspace TEXT')
         
-        for j, dG0_gr in enumerate(self.group_contributions):
-            group = self.groups_data.all_groups[j]
-            nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
-            self.db.Insert(self.CONTRIBUTION_TABLE_NAME, [j, group.name, group.hydrogens,
-                                            group.charge, group.nMg, dG0_gr,
-                                            nullspace_str])
+        if not self.transformed:
+            for j, dG0_gr in enumerate(self.group_contributions):
+                group = self.groups_data.all_groups[j]
+                nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
+                self.db.Insert(self.CONTRIBUTION_TABLE_NAME, [j, group.name, group.hydrogens,
+                                                group.charge, group.nMg, dG0_gr,
+                                                nullspace_str])
+        else:
+            biochemical_group_names = self.groups_data.GetGroupNames(transformed=True)
+            for j, dG0_prime_gr in enumerate(self.group_contributions):
+                nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
+                self.db.Insert(self.CONTRIBUTION_TABLE_NAME, 
+                    [j, biochemical_group_names[j], None, None, None, 
+                     dG0_prime_gr, nullspace_str])
             
         self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
         for i in xrange(self.group_nullspace.shape[0]):
             groupvec = GroupVector(self.groups_data, self.group_nullspace[i, :])
+            groupvec.RemoveEpsilonValues(epsilon=1e-10)
             self.db.Insert(self.NULLSPACE_TABLE_NAME, 
                            [i, groupvec.ToJSONString()])
 
@@ -747,11 +766,11 @@ if __name__ == '__main__':
             G.LoadGroupsFromFile()
             G.AnalyzeSingleCompound(mol)
         elif options.cid: # -c <CID>
-            print 'Analyzing Compound %C%05d:' % (options.cid)
+            print 'Analyzing Compound C%05d:' % (options.cid)
             G.init()
             G.AnalyzeSingleKeggCompound(options.cid, ignore_protonations=True)
         elif options.rid: # -r <RID>
-            print 'Analyzing Reaction %R%05d:' % (options.rid)
+            print 'Analyzing Reaction R%05d:' % (options.rid)
             G.init()
             reaction = G.kegg.rid2reaction(options.rid)
             dG0_r = reaction.PredictReactionEnergy(G)
@@ -772,8 +791,7 @@ if __name__ == '__main__':
         if not options.test_only:
             G.LoadGroupsFromFile()
             G.Train()
-            if not G.transformed:
-                G.write_regression_report()
+            G.write_regression_report()
             G.analyze_training_set()
         else:
             G.init()
