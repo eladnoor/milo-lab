@@ -1,7 +1,6 @@
 import logging
 import subprocess
 import os
-from pygibbs.thermodynamic_constants import default_pH
 
 CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
 
@@ -62,10 +61,8 @@ def ParsePkaOutput(s, n_acidic, n_basic, pH_list):
                 atom2pKa.setdefault(j, [])
                 atom2pKa[j].append((pKa_list[i], acid_or_base_list[i]))
     
-    for pH in pH_list:
-        pH2smiles[pH] = splitline.pop(0)
-    
-    return atom2pKa, pH2smiles
+    smiles_list = splitline
+    return atom2pKa, smiles_list
 
 def _GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH_list=None):
     """
@@ -86,31 +83,40 @@ def _GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH_list=None):
     args += [molstring]
     
     output = RunCxcalc(args)
-    atom2pKa, pH2smiles = ParsePkaOutput(output, n_acidic, n_basic, pH_list)
+    atom2pKa, smiles_list = ParsePkaOutput(output, n_acidic, n_basic, pH_list)
     
     all_pKas = []
     for pKa_list in atom2pKa.values():
         all_pKas += [pKa for pKa, _ in pKa_list]
     
-    return sorted(all_pKas), pH2smiles
+    return sorted(all_pKas), smiles_list
 
-def GetDissociationConstants(molstring, n_acidic=10, n_basic=10):
-    all_pKas, pH2smiles = _GetDissociationConstants(molstring, n_acidic, 
-                                                    n_basic, [])
+def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7):
+    """
+        Returns a pair:
+            (diss_constants, major_ms)
+            
+        - diss_constants is a list 3-tuples: (pKa, SMILES below, SMILES above)
+        - major_ms is a SMILES string of the major pseudoisomer at pH_mid 
+    """
+    all_pKas, smiles_list = _GetDissociationConstants(molstring, n_acidic, 
+                                                    n_basic, [mid_pH])
+    major_ms = smiles_list[0]
     if all_pKas == []:
-        return all_pKas, pH2smiles
+        return [], major_ms
     
     pH_list = [all_pKas[0]-0.1]
     for i in range(len(all_pKas)-1):
         pH_list.append((all_pKas[i] + all_pKas[i+1]) * 0.5)
     pH_list.append(all_pKas[-1]+0.1)
     
-    _, pH2smiles = _GetDissociationConstants(molstring, 0, 0, pH_list)
+    _, smiles_list = _GetDissociationConstants(molstring, 0, 0, pH_list)
     
-    return all_pKas, pH2smiles
+    diss_table = []
+    for i, pKa in enumerate(all_pKas):
+        diss_table.append((pKa, smiles_list[i], smiles_list[i+1]))
+    return diss_table, major_ms
 
 if __name__ == "__main__":
-    pH_list = [1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0]
-    print "urea", GetDissociationConstants('C(=O)(N)N')
     print "glycine", GetDissociationConstants('C(=O)(O)CN')
-    print "ATP", GetDissociationConstants('Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP(O)(=O)OP(O)(=O)OP(O)(O)=O)[C@@H](O)[C@H]1O')
+    print "CO2", GetDissociationConstants('O=C=O')
