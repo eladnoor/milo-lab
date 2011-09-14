@@ -380,7 +380,7 @@ class Molecule(object):
         return [atom.formalcharge for atom in self.pybel_mol.atoms]
 
     @staticmethod
-    def _GetPseudoisomerMap(molstring, format='inchi', mid_pH=default_pH, 
+    def _GetDissociationTable(molstring, format='inchi', mid_pH=default_pH, 
                             min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
@@ -388,38 +388,41 @@ class Molecule(object):
         """
         from pygibbs.dissociation_constants import DissociationTable
 
-        try:
-            pKas, major_pseudoisomer = chemaxon.GetDissociationConstants(molstring, pH=mid_pH)
-            mol = Molecule.FromSmiles(major_pseudoisomer)
-        except chemaxon.ChemAxonError:
-            pKas = []
-            mol = Molecule._FromFormat(molstring, format)
-
-        nH, _z = mol.GetHydrogensAndCharge()
         diss_table = DissociationTable()
-        diss_table.SetOnlyPseudoisomer(mol)
+        try:
+            pKa_table, major_ms = chemaxon.GetDissociationConstants(molstring, 
+                                                                    mid_pH=mid_pH)
 
-        pKa_up = sorted([pKa for pKa in pKas if mid_pH < pKa < max_pKa])
-        pKa_down = sorted([pKa for pKa in pKas if min_pKa < pKa <= mid_pH], 
-                          reverse=True)
-        for i, pKa in enumerate(pKa_up):
-            diss_table.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
-                              nMg=0, ref='ChemAxon', T=T)
-
-        for i, pKa in enumerate(pKa_down):
-            diss_table.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
-                              nMg=0, ref='ChemAxon', T=T)
+            mol = Molecule.FromSmiles(major_ms)
+            nH, z = mol.GetHydrogensAndCharge()
+            diss_table.SetMolString(nH, nMg=0, s=major_ms)
+            diss_table.SetCharge(nH, z, nMg=0)
+            
+            pKa_higher = [x for x in pKa_table if mid_pH < x[0] < max_pKa]
+            pKa_lower = [x for x in pKa_table if mid_pH > x[0] > min_pKa]
+            for i, (pKa, _, smiles_above) in enumerate(sorted(pKa_higher)):
+                diss_table.AddpKa(pKa, nH_below=(nH-i), nH_above=(nH-i-1),
+                                  nMg=0, ref='ChemAxon', T=T)
+                diss_table.SetMolString((nH-i-1), nMg=0, s=smiles_above)
+    
+            for i, (pKa, smiles_below, _) in enumerate(sorted(pKa_lower, reverse=True)):
+                diss_table.AddpKa(pKa, nH_below=(nH+i+1), nH_above=(nH+i),
+                                  nMg=0, ref='ChemAxon', T=T)
+                diss_table.SetMolString((nH+i+1), nMg=0, s=smiles_below)
+        except chemaxon.ChemAxonError:
+            mol = Molecule._FromFormat(molstring, format)
+            diss_table.SetOnlyPseudoisomer(mol)
             
         return diss_table
 
-    def GetPseudoisomerMap(self, format='inchi', mid_pH=default_pH, 
+    def GetDissociationTable(self, format='inchi', mid_pH=default_pH, 
                            min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
             relative to the most abundant one at pH 7.
         """
         
-        return Molecule._GetPseudoisomerMap(self.ToInChI(), 'inchi',
+        return Molecule._GetDissociationTable(self.ToInChI(), 'inchi',
                                             mid_pH, min_pKa, max_pKa, T)
     
 if __name__ == "__main__":
@@ -443,8 +446,9 @@ if __name__ == "__main__":
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
 
-    print Molecule._GetPseudoisomerMap('C#O', format='smiles',
-                mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
+    diss_table = Molecule._GetDissociationTable('C(=O)(O)CN', format='smiles',
+                 mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
+    print "glycine\n", diss_table
     
     html_writer = HtmlWriter('../res/molecule.html')
     from pygibbs.kegg import Kegg
@@ -453,7 +457,7 @@ if __name__ == "__main__":
     for cid in [41]:
         m = kegg.cid2mol(cid)
         html_writer.write("<h2>C%05d : %s</h2>\n" % (cid, str(m)))
-        diss_table = m.GetPseudoisomerMap()
+        diss_table = m.GetDissociationTable()
         pmap = diss_table.GetPseudoisomerMap()
         diss_table.WriteToHTML(html_writer)
         pmap.WriteToHTML(html_writer)

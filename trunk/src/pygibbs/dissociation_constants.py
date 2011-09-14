@@ -112,7 +112,7 @@ class DissociationConstants(object):
                 except KeggParseException:
                     continue
 
-            diss_table = mol.GetPseudoisomerMap()
+            diss_table = mol.GetDissociationTable()
             diss.cid2DissociationTable[cid] = diss_table
             if diss_table and html_writer:
                 diss_table.WriteToHTML(html_writer)
@@ -810,7 +810,7 @@ if __name__ == '__main__':
             smiles = cid2smiles[cid]
             logging.info("Using ChemAxon to find the pKa values for %s - C%05d" %
                          (kegg.cid2name(cid), cid))
-            diss_table = Molecule._GetPseudoisomerMap(smiles, format='smiles',
+            diss_table = Molecule._GetDissociationTable(smiles, format='smiles',
                 mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
             dissociation.cid2DissociationTable[cid] = diss_table
             
