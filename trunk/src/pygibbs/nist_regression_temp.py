@@ -7,6 +7,8 @@ import os
 from matplotlib import mlab
 import sys
 from toolbox.sparse_kernel import SparseKernel
+from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg,\
+    default_T
 
 def vector2string(v, cids, kegg):
     nonzero_columns = np.nonzero(abs(v) > 1e-10)[0]
@@ -15,17 +17,40 @@ def vector2string(v, cids, kegg):
 
 def main():
     kegg = Kegg.getInstance()
+    prefix = '../res/prc_'
     
-    if not os.path.exists('../res/nist/regress_S.txt'):
+    fixed_cids = {} # a dictionary from CID to pairs of (nH, dG0)
+    fixed_cids[1] = (2, -237.19) # H2O
+    fixed_cids[288] = (1, -586.77) # HCO3(-1)
+    fixed_cids[9] = (1, -1096.1) # HPO3(-2)
+    fixed_cids[14] = (4, -79.31) # NH4(+1)
+    fixed_cids[59] = (0, -744.53) # SO4(-2)
+    fixed_cids[10] = (32, 0) # CoA - arbitrary
+    fixed_cids[3] = (26, 0) # NAD(ox) - arbitrary
+    fixed_cids[101] = (21, 0) # THF - arbitrary
+    fixed_cids[147] = (5, 313.40) # adenine
+    
+    if not os.path.exists(prefix + 'S.txt'):
         db = SqliteDatabase("../res/gibbs.sqlite")
         nist_regression = NistRegression(db)
-        nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
-        nist_regression.nist.T_range = None#(273.15 + 24, 273.15 + 40)
-        S, dG0, cids = nist_regression.ReverseTransform()
+        
+        cid2nH = {}
+        for cid in nist_regression.get_all_cids():
+            if cid in fixed_cids:
+                cid2nH[cid] = fixed_cids[cid][0]
+            else:
+                nH, _ = nist_regression.dissociation.GetMostAbundantPseudoisomer(
+                    cid, pH=default_pH, I=default_I, pMg=default_pMg, T=default_T)
+                cid2nH[cid] = nH
+        
+        #nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
+        #nist_regression.nist.T_range = None#(273.15 + 24, 273.15 + 40)
+        S, dG0, cids = nist_regression.ReverseTransform(cid2nH=cid2nH)
 
         # export the raw data matrices to text files
-        prefix = '../res/nist/regress_'
-        np.savetxt(prefix + 'CID.txt', np.array(cids), fmt='%d', delimiter=',')
+        
+        C = np.array([[cid, cid2nH.get(cid, 0)] for cid in cids])
+        np.savetxt(prefix + 'CID.txt', C, fmt='%d', delimiter=',')
         np.savetxt(prefix + 'S.txt', S, fmt='%g', delimiter=',')
         np.savetxt(prefix + 'dG0.txt', dG0, fmt='%.2f', delimiter=',')
         
@@ -33,12 +58,35 @@ def main():
             print i, NistRegression.ReactionVector2String(S[i, :], cids)
 
     else:
-        cids = np.loadtxt('../res/nist/regress_CID.txt', delimiter=',')
-        S = np.loadtxt('../res/nist/regress_S.txt', delimiter=',')
-        dG0 = np.loadtxt('../res/nist/regress_dG0.txt', delimiter=',')
+        C = np.loadtxt(prefix + 'CID.txt', delimiter=',')
+        cids = [int(cid) for cid in C[:,0]]
+        cid2nH = {}
+        for i, cid in enumerate(cids):
+            cid2nH[cid] = int(C[i, 1])
+        S = np.loadtxt(prefix + 'S.txt', delimiter=',')
+        dG0 = np.loadtxt(prefix + 'dG0.txt', delimiter=',')
 
-    print "S has %d rows and %d columns and rank %d" % (S.shape[0], S.shape[1], LinearRegression.Rank(S))
+    print "S has %d rows and %d columns and rank %d" % (S.shape[0], S.shape[1], np.rank(S))
+    
+    index2value = {}
+    for cid in fixed_cids.keys():
+        i = cids.index(cid)
+        nH, dG0_fixed = fixed_cids[cid]
+        index2value[i] = dG0_fixed 
+    x, K = LinearRegression.LeastSquaresWithFixedPoints(S, dG0, index2value)
 
+    for cid in fixed_cids.keys():
+        i = cids.index(cid)
+        nH, dG0_fixed = fixed_cids[cid]
+        print "%20s (C%05d): dG0 = %.1f (should be %.1f)" % \
+            (kegg.cid2name(cid), cid, x[i], dG0_fixed)
+    
+    print '-'*50
+    for i, cid in enumerate(cids):
+        print "%20s (C%05d): dG0 = %.1f" % \
+            (kegg.cid2name(cid), cid, x[i])
+    sys.exit(0)
+    
     # calculate the conservation matrix, i.e. a matrix with the known components
     # that are conserved throughout all the NIST reactions. The easiest are
     # the elements.
@@ -46,6 +94,8 @@ def main():
     conv_mat = np.zeros((len(elements), S.shape[1]))
     for col, cid in enumerate(cids):
         atom_bag = kegg.cid2atom_bag(int(cid))
+        if 'S' in atom_bag:
+            print cid
         for row, atom in enumerate(elements):
             conv_mat[row, col] = atom_bag.get(atom, 0)
 
