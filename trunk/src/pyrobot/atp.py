@@ -3,7 +3,7 @@ import csv
 import sys, os, subprocess
 import wx
 import wx.grid as gridlib
-import toolbox.tecan
+import tecan
 
 from database import MySQLDatabase
 from os import path
