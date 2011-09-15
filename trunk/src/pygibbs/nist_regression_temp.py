@@ -1,14 +1,13 @@
-from toolbox.linear_regression import LinearRegression
-from pygibbs.kegg import Kegg
+import logging, os, sys
 import numpy as np
-from toolbox.database import SqliteDatabase
-from pygibbs.nist_regression import NistRegression
-import os
 from matplotlib import mlab
-import sys
+
+from pygibbs.kegg import Kegg
+from pygibbs.nist_regression import NistRegression
+from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg, default_T
+from toolbox.linear_regression import LinearRegression
+from toolbox.database import SqliteDatabase
 from toolbox.sparse_kernel import SparseKernel
-from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg,\
-    default_T
 
 def vector2string(v, cids, kegg):
     nonzero_columns = np.nonzero(abs(v) > 1e-10)[0]
@@ -20,28 +19,49 @@ def main():
     prefix = '../res/prc_'
     
     fixed_cids = {} # a dictionary from CID to pairs of (nH, dG0)
-    fixed_cids[1] = (2, -237.19) # H2O
+    
+    # Alberty formation energies directly measured, linearly independent:
+    fixed_cids[1]   = (2, -237.19) # H2O
+    fixed_cids[9]   = (1, -1096.1) # HPO3(-2)
+    fixed_cids[14]  = (4, -79.31) # NH4(+1)
+    fixed_cids[59]  = (0, -744.53) # SO4(-2)
     fixed_cids[288] = (1, -586.77) # HCO3(-1)
-    fixed_cids[9] = (1, -1096.1) # HPO3(-2)
-    fixed_cids[14] = (4, -79.31) # NH4(+1)
-    fixed_cids[59] = (0, -744.53) # SO4(-2)
-    fixed_cids[10] = (32, 0) # CoA - arbitrary
-    fixed_cids[3] = (26, 0) # NAD(ox) - arbitrary
-    fixed_cids[101] = (21, 0) # THF - arbitrary
     fixed_cids[147] = (5, 313.40) # adenine
+
+    # Non-Alberty zeros:
+    fixed_cids[101] = (21, 0.0) # THF - not from Alberty
+
+    # Alberty zeros:
+    fixed_cids[3]   = (26, 0.0) # NAD(ox)
+    fixed_cids[10]  = (32, 0.0) # CoA
+    fixed_cids[51]  = (16, 0.0) # glutathione(ox)
+    fixed_cids[376] = (28, 0.0) # retinal(ox)
+
+    # Alberty zeros which are not in NIST:
+    #fixed_cids[524] = ( 0, 0.0) # cytochrome c(ox)
+    #fixed_cids[16]  = (31, 0.0) # FAD(ox)
+    #fixed_cids[139] = ( 0, 0.0) # ferredoxin(ox)
+    #fixed_cids[61]  = (19, 0.0) # FMN(ox)
+    #fixed_cids[343] = ( 0, 0.0) # thioredoxin(ox)
+    #fixed_cids[399] = (90, 0.0) # ubiquinone(ox)
     
     if not os.path.exists(prefix + 'S.txt'):
         db = SqliteDatabase("../res/gibbs.sqlite")
         nist_regression = NistRegression(db)
         
         cid2nH = {}
-        for cid in nist_regression.get_all_cids():
+        for cid in nist_regression.nist.GetAllCids():
             if cid in fixed_cids:
                 cid2nH[cid] = fixed_cids[cid][0]
             else:
-                nH, _ = nist_regression.dissociation.GetMostAbundantPseudoisomer(
+                tmp = nist_regression.dissociation.GetMostAbundantPseudoisomer(
                     cid, pH=default_pH, I=default_I, pMg=default_pMg, T=default_T)
-                cid2nH[cid] = nH
+                if tmp is not None:
+                    cid2nH[cid] = tmp[0]
+                else:
+                    logging.warning('The most abundant pseudoisomer of %s (C%05d) '
+                                    'cannot be resolved. Using nH = 0.' % (kegg.cid2name(cid), cid))
+                    cid2nH[cid] = 0
         
         #nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
         #nist_regression.nist.T_range = None#(273.15 + 24, 273.15 + 40)
@@ -66,25 +86,44 @@ def main():
         S = np.loadtxt(prefix + 'S.txt', delimiter=',')
         dG0 = np.loadtxt(prefix + 'dG0.txt', delimiter=',')
 
-    print "S has %d rows and %d columns and rank %d" % (S.shape[0], S.shape[1], np.rank(S))
+    print "S has %d rows and %d columns and rank %d" % (S.shape[0], S.shape[1], np.linalg.matrix_rank(S))
     
     index2value = {}
+    S_extended = S # the stoichiometric matrix, extended with elementary basis vector for the fixed compounds
     for cid in fixed_cids.keys():
         i = cids.index(cid)
+        e_i = np.zeros((1, len(cids)))
+        e_i[0, i] = 1.0
+        S_extended = np.vstack([S_extended, e_i])
         nH, dG0_fixed = fixed_cids[cid]
         index2value[i] = dG0_fixed 
     x, K = LinearRegression.LeastSquaresWithFixedPoints(S, dG0, index2value)
 
-    for cid in fixed_cids.keys():
+    for cid in sorted(fixed_cids.keys()):
         i = cids.index(cid)
         nH, dG0_fixed = fixed_cids[cid]
-        print "%20s (C%05d): dG0 = %.1f (should be %.1f)" % \
-            (kegg.cid2name(cid), cid, x[i], dG0_fixed)
+        print "%40s (C%05d [nH=%2d]): dG0 = %.1f (should be %.1f)" % \
+            (kegg.cid2name(cid), cid, cid2nH[cid], x[i], dG0_fixed)
+    print '-'*80
+    print "Null-space"
+
+    # Find all CIDs that are completely determined and do not depend on any
+    # free variable. In other words, all zeros columns in K2.
+
+    K2 = SparseKernel(S_extended)
+    underdetermined_indices = set()
+    for i, v in enumerate(K2):
+        nonzero_columns = np.where(abs(v) > 1e-10)[0]
+        underdetermined_indices.update(nonzero_columns)
+        print i, NistRegression.ReactionVector2String(v, cids)
+    print '-'*80
     
-    print '-'*50
-    for i, cid in enumerate(cids):
-        print "%20s (C%05d): dG0 = %.1f" % \
-            (kegg.cid2name(cid), cid, x[i])
+    determined_cids = set(cids).difference([cids[i] for i in underdetermined_indices])
+    for cid in sorted(determined_cids):
+        i = cids.index(cid)
+        print "%40s (C%05d [nH=%2d]): dG0 = %.1f" % \
+            (kegg.cid2name(cid), cid, cid2nH[cid], x[i])
+    
     sys.exit(0)
     
     # calculate the conservation matrix, i.e. a matrix with the known components

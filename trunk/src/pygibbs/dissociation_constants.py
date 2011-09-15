@@ -170,7 +170,7 @@ class DissociationConstants(object):
             try:
                 kegg = Kegg.getInstance()
                 mol = kegg.cid2mol(cid)
-                diss_table = DissociationTable.CreateUsingChemaxon(mol)
+                diss_table = DissociationTable.FromMolecule(mol)
             except KeggParseException:
                 diss_table = None
             self.cid2DissociationTable[cid] = diss_table 
@@ -364,6 +364,12 @@ class DissociationTable(object):
             s += "Pseudoisomer nH=%d nMg=%d : %s\n" % (nH, nMg, mol.ToSmiles())
         
         return s
+
+    @staticmethod
+    def FromMolecule(mol, cid=None, nMg=0):
+        diss_table = DissociationTable(cid)
+        diss_table.SetOnlyPseudoisomer(mol, nMg=nMg)
+        return diss_table
 
     def WriteToHTML(self, html_writer, T=default_T, draw_svg=True):
         dict_list = []
