@@ -216,7 +216,7 @@ class DissociationConstants(object):
     def GetAllCids(self):
         return set(self.cid2DissociationTable.keys())
 
-    def ReverseTranformNistRows(self, nist_rows, cid2nH=None, assume_no_pka_by_default=False):
+    def ReverseTranformNistRows(self, nist_rows, cid2nH=None):
         all_cids = set()
         for nist_row_data in nist_rows:
             all_cids.update(nist_row_data.GetAllCids())
@@ -301,6 +301,12 @@ class DissociationConstants(object):
         if diss_table is None:
             return None
         return diss_table.GetMostAbundantMol(pH, I, pMg, T)
+    
+    def GetMostAbundantPseudoisomer(self, cid, pH, I, pMg, T):
+        diss_table = self.GetDissociationTable(cid)
+        if diss_table is None:
+            return None
+        return diss_table.GetMostAbundantPseudoisomer(pH, I, pMg, T)
 
     def GetAnyMol(self, cid):
         diss_table = self.GetDissociationTable(cid)

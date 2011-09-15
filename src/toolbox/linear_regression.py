@@ -93,10 +93,26 @@ class LinearRegression(object):
         return leads, non_leads
  
     @staticmethod
-    def Rank(A, eps=1e-10):
-        _U, s, _V = np.linalg.svd(A, full_matrices=False)
-        return len(find(s > eps))
-
+    def LeastSquaresWithFixedPoints(A, y, index2value):
+        """
+            The idea is to first solve the Least Squares problem and then
+            use the kernel to move the solution to a point where the extra
+            constraints are satisfied.
+            
+            Adding anything of the type ker(A) * a to the solution does not
+            change the value of A*x. Therefore, we solve the set of equations:
+            
+            for each i in index2value: ker(A)*a[i] = index2value[i] - x[i]
+            
+        """
+        x, K = LinearRegression.LeastSquares(A, y, reduced_row_echlon=False)
+        K_trunc = K.T[index2value.keys(), :]
+        K_inv = np.linalg.pinv(K_trunc)
+        delta_x = np.array([v - x[i] for i,v in index2value.iteritems()])
+        a = np.dot(K_inv, delta_x)
+        x += np.dot(K.T, a)
+        return x, K
+ 
     @staticmethod
     def SolveLinearSystem(A, b):
         x, _residues, _rank, _s = np.linalg.lstsq(A, b, rcond=1e-10)
@@ -135,22 +151,29 @@ class LinearRegression(object):
         return K
 
 if __name__ == '__main__':
-    A = np.matrix([[1, 0, 1, 1],[0, 1, 1, 1],[1, 1, 2, 2]])
-    K = LinearRegression.FindKernel(A)
-    print A
+#    A = np.matrix([[1, 0, 1, 1],[0, 1, 1, 1],[1, 1, 2, 2]])
+#    K = LinearRegression.FindKernel(A)
+#    print A
+#    print K
+#    
+#    #y = matrix([[1],[1],[1],[1]])
+#    A = np.matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
+#    w = np.matrix([[1],[1],[1],[2],[1]])
+#
+#    w_pred, V = LinearRegression.SolveLinearSystem(A, A*w)
+#    print w_pred
+#    print V
+#    print np.dot(A, V.T)
+#    
+#    x1 = np.matrix([[0,0,0,1,0]]).T
+#    x2 = np.matrix([[-1,0,0,-1,-2]]).T
+#    
+#    print np.linalg.norm(V*x1)<1e-10, np.dot(x1.T, w_pred)[0,0], np.dot(x1.T, w)[0,0]
+#    print np.linalg.norm(V*x2)<1e-10, np.dot(x2.T, w_pred)[0,0], np.dot(x2.T, w)[0,0]
+    S = np.matrix([[0,0,1,0,-1,1,0,0],[0,-1,0,-1,1,0,0,0],[-2,0,0,1,0,0,0,0],[0,0,0,0,0,0,-1,1]])
+    b = np.matrix([[10],[20],[30],[15]])
+    f = {0:5, 1:-99, 2:1001, 7:0}
+    x, K = LinearRegression.LeastSquaresWithFixedPoints(S, b, f)
+    print x
     print K
     
-    #y = matrix([[1],[1],[1],[1]])
-    A = np.matrix([[0, 0, 0, 0, 0],[1, 0, 0, 1, 2],[2, 0, 0, 2, 4],[3,0,0,3, 6],[4,0,0,4, 8]])
-    w = np.matrix([[1],[1],[1],[2],[1]])
-
-    w_pred, V = LinearRegression.SolveLinearSystem(A, A*w)
-    print w_pred
-    print V
-    print np.dot(A, V.T)
-    
-    x1 = np.matrix([[0,0,0,1,0]]).T
-    x2 = np.matrix([[-1,0,0,-1,-2]]).T
-    
-    print np.linalg.norm(V*x1)<1e-10, np.dot(x1.T, w_pred)[0,0], np.dot(x1.T, w)[0,0]
-    print np.linalg.norm(V*x2)<1e-10, np.dot(x2.T, w_pred)[0,0], np.dot(x2.T, w)[0,0]

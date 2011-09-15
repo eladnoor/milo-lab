@@ -33,8 +33,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                  html_writer=None, nist=None):
         PsuedoisomerTableThermodynamics.__init__(self)
         self.db = db
-        self.dissociation = dissociation or DissociationConstants.FromDatabase(
-                                    self.db, 'dissociation_constants_chemaxon')
+        self.dissociation = dissociation or DissociationConstants.FromDatabase(self.db)
         self.html_writer = html_writer or NullHtmlWriter()
         self.nist = nist or Nist()
         
@@ -217,7 +216,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         self.html_writer.write_table(dict_list, ['dimension', 'kernel vector'])
     
     def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None):
-        rankS = LinearRegression.Rank(S)
+        rankS = np.rank(S)
         logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
                      (S.shape[0], S.shape[1], S.shape[1]-rankS))
         est_dG0_f, kerA = LinearRegression.LeastSquares(S, dG0)
@@ -561,7 +560,7 @@ def main():
     db = SqliteDatabase(db_loc)
     nist_regression = NistRegression(db, html_writer=html_writer)
     nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
-    nist_regression.nist.T_range = None#(273.15 + 24, 273.15 + 40)
+    #nist_regression.nist.T_range = None(273.15 + 24, 273.15 + 40)
     #nist_regression.nist.override_I = 0.25
     #nist_regression.nist.override_pMg = 14.0
 
