@@ -216,7 +216,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         self.html_writer.write_table(dict_list, ['dimension', 'kernel vector'])
     
     def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None):
-        rankS = np.rank(S)
+        rankS = np.linalg.matrix_rank(S)
         logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
                      (S.shape[0], S.shape[1], S.shape[1]-rankS))
         est_dG0_f, kerA = LinearRegression.LeastSquares(S, dG0)

@@ -2,8 +2,7 @@ import sqlite3, csv
 import os
 import types
 import logging
-import MySQLdb
-from _mysql_exceptions import ProgrammingError, OperationalError
+import pymysql
 
 class Database(object):
     """Abstract base Database class."""
@@ -186,7 +185,7 @@ class MySQLDatabase(SQLDatabase):
     """
     
     def __init__(self, host, user, passwd, db):
-        self.comm = MySQLdb.connect(host=host, user=user, 
+        self.comm = pymysql.connect(host=host, user=user, 
                                     passwd=passwd, db=db)
         
     def Execute(self, command, arguments=None):
@@ -194,7 +193,7 @@ class MySQLDatabase(SQLDatabase):
             cursor = self.comm.cursor()
             cursor.execute(command, args=arguments)
             return cursor.fetchall()
-        except (ProgrammingError, OperationalError) as e:
+        except (pymysql.ProgrammingError, pymysql.OperationalError) as e:
             if not arguments:
                 logging.error('Failed to execute database command: %s' % command)
             else:

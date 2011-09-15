@@ -11,6 +11,7 @@ def MakeOpts():
     #                      default="../res/tecan.sqlite",
     #                      help="The filename of the Sqlite database")
     opt_parser.add_option("-p", "--plate_num",
+                          type='int',
                           dest="plate_num",
                           default=1,
                           help="The number for the plate that is to be exported")

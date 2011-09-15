@@ -108,6 +108,11 @@ class LinearRegression(object):
         x, K = LinearRegression.LeastSquares(A, y, reduced_row_echlon=False)
         K_trunc = K.T[index2value.keys(), :]
         K_inv = np.linalg.pinv(K_trunc)
+        if np.linalg.matrix_rank(K_inv) < len(index2value):
+            raise Exception("Cannot set variables to desired values, since the "
+                            "truncated kernel matrix is not fully ranked and "
+                            "thus not invertible.")
+        
         delta_x = np.array([v - x[i] for i,v in index2value.iteritems()])
         a = np.dot(K_inv, delta_x)
         x += np.dot(K.T, a)
@@ -172,8 +177,12 @@ if __name__ == '__main__':
 #    print np.linalg.norm(V*x2)<1e-10, np.dot(x2.T, w_pred)[0,0], np.dot(x2.T, w)[0,0]
     S = np.matrix([[0,0,1,0,-1,1,0,0],[0,-1,0,-1,1,0,0,0],[-2,0,0,1,0,0,0,0],[0,0,0,0,0,0,-1,1]])
     b = np.matrix([[10],[20],[30],[15]])
-    f = {0:5, 1:-99, 2:1001, 7:0}
+    f = {0:5, 1:-99, 2:1001, 6:0}
     x, K = LinearRegression.LeastSquaresWithFixedPoints(S, b, f)
-    print x
-    print K
+    print "solution = ", ', '.join(['%.1f' % i for i in x])
+    print "%2s:  %7s  %7s" % ('#', 'fixed', 'sol')
+    for key, value in f.iteritems():
+        print "%2d:  %7.1f  %7.1f" % (key, value, x[key, 0])
+        
+    #print K
     
