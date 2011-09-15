@@ -1,13 +1,10 @@
 #!/usr/bin/python
 
-import csv
-import logging
-import types
-import json
+import csv, logging, types, json, sys
 
 from copy import deepcopy
 import pylab
-import sys
+import numpy as np
 from pygibbs.thermodynamic_constants import R, default_pH, default_T,\
     dG0_f_Mg, default_I, default_pMg
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
@@ -200,9 +197,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         if self.group_contributions == None or self.group_nullspace == None:
             raise Exception("You need to first Train the system before using it to estimate values")
 
-        gv = pylab.array(groupvec.Flatten(self.transformed))
-        val = pylab.dot(gv, self.group_contributions)
-        v = abs(pylab.dot(self.group_nullspace, gv))
+        gv = np.array(groupvec.Flatten(self.transformed))
+        val = np.dot(gv, self.group_contributions)
+        v = abs(np.dot(self.group_nullspace, gv))
         k_list = [i for i in pylab.find(v > 1e-10)]
         if k_list:
             raise GroupMissingTrainDataError(val, "can't estimate because the input "
@@ -215,7 +212,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.div_start(div_id)
         self.html_writer.write_ul(['observations: %d' % self.group_matrix.shape[0],
            'groups: %d' % self.group_matrix.shape[1],
-           'rank: %d' % LinearRegression.Rank(self.group_matrix)])
+           'rank: %d' % np.linalg.matrix_rank(self.group_matrix)])
         self.html_writer.write('</br><table border="1">\n<tr>'
             '<td width="5%%">#</td>'
             '<td width="20%%">Name</td>'
@@ -289,7 +286,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             if self.obs_types[i] not in ['formation', 'reaction']:
                 continue
             
-            row['fit'] = pylab.dot(self.group_matrix[i, :], self.group_contributions)[0, 0]
+            row['fit'] = np.dot(self.group_matrix[i, :], self.group_contributions)[0, 0]
             row['fit_resid'] = row['fit']-row['obs'] 
             deviations.append(row)
             logging.info('Fit Error = %.1f' % (row['fit_resid']))
@@ -304,7 +301,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             if loo_nullspace.shape[0] > self.group_nullspace.shape[0]:
                 logging.warning('example %d is not linearly dependent in the other examples' % i)
                 continue
-            row['loo'] = pylab.dot(self.group_matrix[i, :], loo_group_contributions)[0, 0]
+            row['loo'] = np.dot(self.group_matrix[i, :], loo_group_contributions)[0, 0]
             row['loo_resid'] = row['loo'] - row['obs']
             loo_deviations.append(row)
             logging.info('LOO Error = %.1f' % row['loo_resid'])
@@ -314,13 +311,13 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
 
-        obs_vec = pylab.array([row['obs'] for row in deviations])
-        fit_vec = pylab.array([row['fit'] for row in deviations])
+        obs_vec = np.array([row['obs'] for row in deviations])
+        fit_vec = np.array([row['fit'] for row in deviations])
         
-        resid_vec = pylab.array([row['fit_resid'] for row in deviations])
+        resid_vec = np.array([row['fit_resid'] for row in deviations])
         rmse = pylab.rms_flat(resid_vec)
         
-        loo_resid_vec = pylab.array([row['loo_resid'] for row in loo_deviations])
+        loo_resid_vec = np.array([row['loo_resid'] for row in loo_deviations])
         loo_rmse = pylab.rms_flat(loo_resid_vec)
 
         self.html_writer.write_ul(['fit_rmse(pred) = %.2f kJ/mol' % rmse,
