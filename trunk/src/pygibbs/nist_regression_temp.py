@@ -1,6 +1,6 @@
-import logging, os, sys
+import logging, os
 import numpy as np
-from matplotlib import mlab
+import matplotlib.pyplot as plt
 
 from pygibbs.kegg import Kegg
 from pygibbs.nist_regression import NistRegression
@@ -8,11 +8,19 @@ from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg, 
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 from toolbox.sparse_kernel import SparseKernel
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from toolbox.html_writer import HtmlWriter
 
 def vector2string(v, cids, kegg):
     nonzero_columns = np.nonzero(abs(v) > 1e-10)[0]
     gv = " + ".join(["%g %s (C%05d)" % (v[j], kegg.cid2name(int(cids[j])), cids[j]) for j in nonzero_columns])
     return gv
+
+def matrix2html(html_writer, A, cids, kegg):
+    dict_list = []
+    for i in xrange(A.shape[0]):
+        dict_list.append({'row':'%d' % i, 'reaction':vector2string(A[i,:], cids, kegg)})
+    html_writer.write_table(dict_list, headers=['row', 'reaction'])
 
 def main():
     kegg = Kegg.getInstance()
@@ -26,7 +34,6 @@ def main():
     fixed_cids[14]  = (4, -79.31) # NH4(+1)
     fixed_cids[59]  = (0, -744.53) # SO4(-2)
     fixed_cids[288] = (1, -586.77) # HCO3(-1)
-    fixed_cids[147] = (5, 313.40) # adenine
 
     # Non-Alberty zeros:
     fixed_cids[101] = (21, 0.0) # THF - not from Alberty
@@ -34,8 +41,14 @@ def main():
     # Alberty zeros:
     fixed_cids[3]   = (26, 0.0) # NAD(ox)
     fixed_cids[10]  = (32, 0.0) # CoA
-    fixed_cids[51]  = (16, 0.0) # glutathione(ox)
+    fixed_cids[127] = (30, 0.0) # glutathione(ox)
     fixed_cids[376] = (28, 0.0) # retinal(ox)
+    
+    # Directly measured values
+    fixed_cids[4]   = (27, 22.65) # NAD(red) -- relative to NAD(ox)
+    fixed_cids[147] = (5, 313.40) # adenine
+    #fixed_cids[121] = (10, -738.79) # D-ribose
+
 
     # Alberty zeros which are not in NIST:
     #fixed_cids[524] = ( 0, 0.0) # cytochrome c(ox)
@@ -45,6 +58,18 @@ def main():
     #fixed_cids[343] = ( 0, 0.0) # thioredoxin(ox)
     #fixed_cids[399] = (90, 0.0) # ubiquinone(ox)
     
+    public_db = SqliteDatabase("../data/public_data.sqlite")
+    alberty = PsuedoisomerTableThermodynamics.FromDatabase(public_db, 
+        'alberty_pseudoisomers', label=None, name='Alberty')
+    alberty_cid2dG0 = {}
+    alberty_cid2nH = {}
+    for cid in alberty.get_all_cids():
+        pmap = alberty.cid2PseudoisomerMap(cid)
+        dG0, _dG0_tag, nH, _z, _nMg = pmap.GetMostAbundantPseudoisomer(
+            pH=default_pH,I=default_I, pMg=default_pMg, T=default_T)
+        alberty_cid2nH[cid] = nH
+        alberty_cid2dG0[cid] = dG0
+    
     if not os.path.exists(prefix + 'S.txt'):
         db = SqliteDatabase("../res/gibbs.sqlite")
         nist_regression = NistRegression(db)
@@ -53,6 +78,8 @@ def main():
         for cid in nist_regression.nist.GetAllCids():
             if cid in fixed_cids:
                 cid2nH[cid] = fixed_cids[cid][0]
+            elif cid in alberty_cid2nH:
+                cid2nH[cid] = alberty_cid2nH[cid]
             else:
                 tmp = nist_regression.dissociation.GetMostAbundantPseudoisomer(
                     cid, pH=default_pH, I=default_I, pMg=default_pMg, T=default_T)
@@ -73,10 +100,6 @@ def main():
         np.savetxt(prefix + 'CID.txt', C, fmt='%d', delimiter=',')
         np.savetxt(prefix + 'S.txt', S, fmt='%g', delimiter=',')
         np.savetxt(prefix + 'dG0.txt', dG0, fmt='%.2f', delimiter=',')
-        
-        for i in xrange(S.shape[0]):
-            print i, NistRegression.ReactionVector2String(S[i, :], cids)
-
     else:
         C = np.loadtxt(prefix + 'CID.txt', delimiter=',')
         cids = [int(cid) for cid in C[:,0]]
@@ -86,7 +109,15 @@ def main():
         S = np.loadtxt(prefix + 'S.txt', delimiter=',')
         dG0 = np.loadtxt(prefix + 'dG0.txt', delimiter=',')
 
-    print "S has %d rows and %d columns and rank %d" % (S.shape[0], S.shape[1], np.linalg.matrix_rank(S))
+    html_writer = HtmlWriter('../res/regression_fast.html')
+    html_writer.write("<h1>Pseudoisomeric Reactant Contributions</h1>\n")
+    html_writer.write("<p>The stoichiometric matrix (S):")
+    html_writer.insert_toggle(start_here=True)
+    html_writer.write_ul(['%d rows' % S.shape[0], '%d columns' % S.shape[1],
+                          '%d rank' % np.linalg.matrix_rank(S)])
+    matrix2html(html_writer, S, cids, kegg)
+    html_writer.div_end()
+    html_writer.write('</p>')
     
     index2value = {}
     S_extended = S # the stoichiometric matrix, extended with elementary basis vector for the fixed compounds
@@ -96,85 +127,80 @@ def main():
         e_i[0, i] = 1.0
         S_extended = np.vstack([S_extended, e_i])
         nH, dG0_fixed = fixed_cids[cid]
-        index2value[i] = dG0_fixed 
+        index2value[i] = dG0_fixed
+    
     x, K = LinearRegression.LeastSquaresWithFixedPoints(S, dG0, index2value)
-
-    for cid in sorted(fixed_cids.keys()):
-        i = cids.index(cid)
-        nH, dG0_fixed = fixed_cids[cid]
-        print "%40s (C%05d [nH=%2d]): dG0 = %.1f (should be %.1f)" % \
-            (kegg.cid2name(cid), cid, cid2nH[cid], x[i], dG0_fixed)
-    print '-'*80
-    print "Null-space"
-
+    cid2dG0 = {}
+    for i, cid in enumerate(cids):
+        cid2dG0[cid] = x[i]
+    
+    # Calculate the Kernel of the reduced stoichiometric matrix (after removing 
+    # the columns of the fixed compounds). 
+    cids_red = [cid for cid in cids if cid not in fixed_cids]
+    index_red = [i for i in xrange(len(cids)) if i not in index2value]
+    S_red = S[:, index_red]
+    K_red = LinearRegression.Kernel(S_red)
+    
+    #print "Reduced Stoichiometric Matrix:"
+    #print matrix2string(S_red, cids_red, kegg)
+    #print '-'*80
+    
     # Find all CIDs that are completely determined and do not depend on any
     # free variable. In other words, all zeros columns in K2.
-
-    K2 = SparseKernel(S_extended)
-    underdetermined_indices = set()
-    for i, v in enumerate(K2):
-        nonzero_columns = np.where(abs(v) > 1e-10)[0]
-        underdetermined_indices.update(nonzero_columns)
-        print i, NistRegression.ReactionVector2String(v, cids)
-    print '-'*80
+    dict_list = []
     
-    determined_cids = set(cids).difference([cids[i] for i in underdetermined_indices])
-    for cid in sorted(determined_cids):
-        i = cids.index(cid)
-        print "%40s (C%05d [nH=%2d]): dG0 = %.1f" % \
-            (kegg.cid2name(cid), cid, cid2nH[cid], x[i])
-    
-    sys.exit(0)
-    
-    # calculate the conservation matrix, i.e. a matrix with the known components
-    # that are conserved throughout all the NIST reactions. The easiest are
-    # the elements.
-    elements = ['C', 'O', 'N', 'S', 'P']
-    conv_mat = np.zeros((len(elements), S.shape[1]))
-    for col, cid in enumerate(cids):
-        atom_bag = kegg.cid2atom_bag(int(cid))
-        if 'S' in atom_bag:
-            print cid
-        for row, atom in enumerate(elements):
-            conv_mat[row, col] = atom_bag.get(atom, 0)
-
-    conv_reactions = []            
-    conv_reactions += [{3:1, 4:1, 5:1, 6:1}] # NAD(P)(H)
-    conv_reactions += [{10:1, 24:1, 83:1, 91:1, 100:1, 154:1, 313:1, 332:1, 
-                        683:1, 798:1, 920:1, 1144:1, 1213:1, 2232:1, 2557:1,
-                        5268:1, 5269:1}] # CoA
-
-    for conv_reaction in conv_reactions:
-        conv_vector = np.zeros((1, S.shape[1]))
-        for col, cid in enumerate(cids):
-            conv_vector[0, col] = conv_reaction.get(cid, 0)
-        conv_mat = np.vstack([conv_mat, conv_vector])
-    
-    for i in xrange(conv_mat.shape[0]):
-        v = np.dot(S, conv_mat[i,:].T)
-        if mlab.rms_flat(v) > 1e-6:
-            print "ERROR: the %d conservation rule is not orthogonal to S" % i
-            for j in xrange(S.shape[0]):
-                if abs(v[j]) > 1e-6:
-                    print j, vector2string(S[j, :], cids, kegg)
-            sys.exit(-1)
+    determined_indices = np.where(np.sum(abs(K_red), 0) < 1e-10)[0] # all zero-columns in reducedK
+    determined_cids = [cids_red[i] for i in determined_indices]
+    plot_data = []
+    for cid in cids:
+        d = {'CID':'C%05d' % cid, 'Compound':kegg.cid2name(cid),
+             'nH':'%d' % cid2nH[cid], 'dG0 (PRC)':'%.1f' % cid2dG0[cid]}
+        if cid in alberty_cid2dG0:
+            d['dG0 (Alberty)'] = '%.1f' % alberty_cid2dG0[cid]
+            if cid not in fixed_cids:
+                plot_data.append((alberty_cid2dG0[cid], cid2dG0[cid], kegg.cid2name(cid)))
         else:
-            gv = vector2string(conv_mat[i,:], cids, kegg)
-            print "conservation %d : %s" % (i, gv)
-    
-    # remove reactions that do not appear in any reaction
-    nonzero_columns = np.sum(abs(S), 0).nonzero()[0]
-    S = S[:, nonzero_columns]
-    cids = [cids[i] for i in nonzero_columns]
+            d['dG0 (Alberty)'] = ''
         
-    dG0 = dG0.reshape((dG0.shape[0], 1))
+        if cid in fixed_cids:
+            d['Depends on'] = 'anchored'
+        elif cid in determined_cids:
+            d['Depends on'] = 'fixed compounds'
+        else:
+            d['Depends on'] = 'kernel dimensions'
+        
+        dict_list.append(d)
+        
+    dict_list.sort(key=lambda(x):(x['Depends on'], x['CID']))
+    html_writer.write("<p>Formation energies determined by the linear constraints:")
+    html_writer.insert_toggle(start_here=True)
+    html_writer.write('<font size="1">')
+    html_writer.write_table(dict_list, headers=['Compound', 'CID', 'nH', 'dG0 (PRC)', 'dG0 (Alberty)', 'Depends on'])
+    html_writer.write('</font>')
+    html_writer.div_end()
+    html_writer.write('</p>')
+
+    # Plot a comparison between PRC and Alberty formation energies    
+    fig = plt.figure(figsize=(8,8), dpi=80)
+    plt.plot([x[0] for x in plot_data], [x[1] for x in plot_data],
+             'b.', figure=fig)
+    for x, y, name in plot_data:
+        plt.text(x, y, name, fontsize=6)
+    plt.xlabel('Alberty $\Delta_f G^\circ$')
+    plt.ylabel('PRC $\Delta_f G^\circ$')
+    html_writer.write("<p>Plot comparing PRC and Alberty results:")
+    html_writer.insert_toggle(start_here=True)
+    html_writer.embed_matplotlib_figure(fig)
+    html_writer.div_end()
+    html_writer.write("</p>")
     
-    K = SparseKernel(np.vstack([S, conv_mat]))
-    #K = SparseKernel(S)
-    
-    for i, nullvector in enumerate(K):
-        gv = vector2string(nullvector, cids, kegg)
-        print "nullspace %d : %s" % (i, gv)
+    K_sparse = SparseKernel(S_red).Solve()
+    html_writer.write("<p>The null-space of the reduced stoichiometric matrix:")
+    html_writer.insert_toggle(start_here=True)
+    matrix2html(html_writer, K_sparse, cids_red, kegg)
+    html_writer.div_end()
+    html_writer.write("</p>")
+
                 
 if __name__ == "__main__":
     main()

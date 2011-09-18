@@ -247,6 +247,12 @@ class Thermodynamics(object):
         return dG0_f
     
     def GetTransfromedReactionEnergies(self, S, cids):
+        """
+            Returns:
+                A Numpy array (column matrix) of the transformed
+                formation energies of the reactions in the stiochimetric matrix
+                S. The list of cids must be the same order as the columns of S.
+        """
         dG0_f = self.GetTransformedFormationEnergies(cids)
         dG0_r = pylab.zeros((S.shape[0], 1))
         for r in xrange(S.shape[0]):

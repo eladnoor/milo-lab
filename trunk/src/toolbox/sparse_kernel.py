@@ -29,6 +29,7 @@ class SparseKernel(object):
     def __init__(self, A):
         self.upper_bound = 1000
         self.eps = 1e-10
+        self.dimension = 0
         
         try:
             self.cpl = Cplex()

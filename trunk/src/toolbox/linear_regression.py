@@ -4,6 +4,23 @@ from pylab import np, find
 class LinearRegression(object):
     
     @staticmethod
+    def Kernel(A, reduced_row_echlon=False, eps=1e-10):
+        n, m = A.shape
+        if n > m:
+            return LinearRegression.Kernel(A.T).T
+        
+        _U, s, V = np.linalg.svd(A, full_matrices=True)
+        r = len(find(s > eps)) # the rank of A
+        
+        kerA = np.zeros((m-r, m))
+        kerA[0:(m-r), :] = V[r:m,:]
+
+        if reduced_row_echlon:
+            LinearRegression.ToReducedRowEchelonForm(kerA)
+
+        return kerA
+    
+    @staticmethod
     def LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
         """
             Performs a safe LeastSquares.
@@ -176,6 +193,7 @@ if __name__ == '__main__':
 #    print np.linalg.norm(V*x1)<1e-10, np.dot(x1.T, w_pred)[0,0], np.dot(x1.T, w)[0,0]
 #    print np.linalg.norm(V*x2)<1e-10, np.dot(x2.T, w_pred)[0,0], np.dot(x2.T, w)[0,0]
     S = np.matrix([[0,0,1,0,-1,1,0,0],[0,-1,0,-1,1,0,0,0],[-2,0,0,1,0,0,0,0],[0,0,0,0,0,0,-1,1]])
+    
     b = np.matrix([[10],[20],[30],[15]])
     f = {0:5, 1:-99, 2:1001, 6:0}
     x, K = LinearRegression.LeastSquaresWithFixedPoints(S, b, f)

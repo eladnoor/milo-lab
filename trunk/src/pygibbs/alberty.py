@@ -31,8 +31,8 @@ class Alberty(Thermodynamics):
                     dH0 = NaN
                 z = int(val_list[2])
                 nH = int(val_list[3])
-                if (alberty_name.find("coA") != -1):
-                    nH += 35
+                if alberty_name.find("coA") != -1:
+                    nH += 32
                 nMg = 0
                 
                 alberty_name_to_pmap.setdefault(alberty_name, pseudoisomer.PseudoisomerMap())
