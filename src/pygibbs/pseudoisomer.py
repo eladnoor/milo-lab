@@ -147,7 +147,7 @@ class PseudoisomerMap(object):
         
         return species2abundance
 
-    def Transform(self, pH, pMg, I, T):
+    def Transform(self, pH, pMg, I,):
         """
             Transform this set of pseudoisomers to a dG value at the 
             specified conditions.

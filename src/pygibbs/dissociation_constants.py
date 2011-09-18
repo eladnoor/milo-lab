@@ -220,7 +220,7 @@ class DissociationConstants(object):
         all_cids = set()
         for nist_row_data in nist_rows:
             all_cids.update(nist_row_data.GetAllCids())
-        all_cids = list(all_cids)
+        all_cids = sorted(all_cids)
         
         data = {}
         data['dG0_r_tag'] = [] # the transformed free energy of the reactions dG'0_r
