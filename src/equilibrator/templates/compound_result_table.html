@@ -22,6 +22,14 @@
 			</td>
 		</tr>
 		{% endif %}
+		{% if compound.dg_source %}
+		<tr>
+			<td width="150px">Source</td>
+			<td colspan="2">
+				<a href="/data_refs" title="Reference list">{{ compound.dg_source }}</a>
+			</td>
+		</tr>
+		{% endif %}
 	</tr>	
 	
 	{% if delta_g_estimate != None %}
@@ -37,6 +45,42 @@
 	</tr>
 	{% endif %}
 </table>
+
+{% if compound.has_species_groups %}
+<table class="speciesInfo">
+	<tr>
+		<th colspan="4">Species Formation Energies</td>		
+	</tr>
+	<tr class="speciesHeader">
+		<td>Net Charge</td>
+		<td>&Delta;<sub>f</sub>G&deg;</td>
+		<td>&Delta;<sub>f</sub>G'&deg;</td>
+		<td>Reference</td>
+	</tr>
+
+
+  {% for sg in compound.unique_species_groups %}
+	{% for specie in sg.all_species_no_mg %}
+	<tr class="speciesSource {% if forloop.last and not forloop.parentloop.last %}last{%endif%}">
+		<td>{{ specie.net_charge }}</td>
+		<td>{{ specie.formation_energy|floatformat:1 }}</td>
+		<td>{% if specie.transformed_energy %}
+				{{ specie.transformed_energy|floatformat:1 }}
+				{% else %}
+					N/A
+			{% endif %}
+		</td>
+		
+		{% if forloop.first %}
+		<td class="reference {% if not forloop.parentloop.last %}border{% endif %}" rowspan="{{ sg.all_species|length }}">
+		<a href="/data_refs" title="Reference list">{{ sg.formation_energy_source }}</a>
+		</td>
+		{% endif %}
+	</tr>
+	{% endfor %}
+  {% endfor %}
+</table>
+{% endif %}
 
 	{% if delta_g_estimate != None%}
 	<div class="buttonSet">
