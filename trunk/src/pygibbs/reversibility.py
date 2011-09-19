@@ -823,7 +823,7 @@ def compare_annotations(reaction_list, thermo, html_writer, cmap, xlim=1e9):
     plotting.cdf(histogram['<='], label='reverse only (%d reactions)' % len(histogram['<=']),
                  style='orange', figure=fig)
 
-    pylab.xlabel('Reversability index - $\gamma$')
+    pylab.xlabel('Reversability index - $\hat{\gamma}$')
     pylab.ylabel('Cumulative Distribution')
     pylab.xscale('log')
     pylab.xlim((1/xlim, xlim))
@@ -1006,9 +1006,9 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     html_writer.div_end()
     html_writer.write('</br>\n')
     
-    fig = pylab.figure()
+    fig = pylab.figure(figsize=(5,5), dpi=100)
     pylab.xlabel(r"$K^'$", figure=fig)
-    pylab.ylabel(r"$\gamma = \left( K^' / \Gamma^{''} \right)^{2/N}$", figure=fig)
+    pylab.ylabel(r"$\hat{\gamma} = \left( K^' / Q^{''} \right)^{2/N}$", figure=fig)
     
     shading_color = (1.0, 0.7, 0.7)
     #pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=0, ymax=1, color=x_color, alpha=0.3)
@@ -1045,15 +1045,15 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     pylab.xlim(x_range, figure=fig)
     html_writer.embed_matplotlib_figure(fig, width=400, height=400, name="reversibility_vs_keq")
    
-    fig = pylab.figure()
+    fig = pylab.figure(figsize=(2,2), dpi=100)
     max_gamma = 1e9
     abs_gamma = pylab.exp(abs(pylab.log(data_mat[:,1])))
     plotting.cdf(abs_gamma, label='gamma', figure=fig)
-    pylab.plot([x_threshold, x_threshold], [0, 1], 'k--')
-    pylab.xscale('log')
-    pylab.xlabel(r'$\gamma$')
-    pylab.ylabel(r'CDF($\gamma$)')
-    pylab.xlim((1, max_gamma))
+    pylab.plot([x_threshold, x_threshold], [0, 1], 'k--', figure=fig)
+    pylab.xscale('log', figure=fig)
+    pylab.xlabel(r'$\hat{\gamma}$', figure=fig)
+    pylab.ylabel(r'CDF($\hat{\gamma}$)', figure=fig)
+    pylab.xlim((1, max_gamma), figure=fig)
     html_writer.embed_matplotlib_figure(fig, width=400, height=400, name="reversibility_cdf")
 
 def main():
