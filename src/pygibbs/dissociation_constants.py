@@ -20,76 +20,98 @@ class DissociationConstants(object):
     def __init__(self):
         self.cid2DissociationTable = {}
     
+    def ToDatabase(self, db, table_name):
+        """
+            Load the data regarding pKa values according to KEGG compound IDs.
+        """
+        kegg = Kegg.getInstance()
+        
+        db.CreateTable(table_name, """
+            cid INT, name TEXT, 
+            nH_below INT, nH_above INT, 
+            nMg_below INT, nMg_above INT, 
+            mol_below TEXT, mol_above TEXT, 
+            ddG REAL, ref TEXT""")
+        
+        for cid in sorted(self.cid2DissociationTable.keys()):
+            name = kegg.cid2name(cid)
+            diss_table = self.cid2DissociationTable[cid]
+            if diss_table is None:
+                db.Insert(table_name, [cid, name] + [None] * 8)
+            else:
+                for row in diss_table.ToDatabaseRow():
+                    db.Insert(table_name, [cid, name] + row)
+
+        db.Commit()
+            
     @staticmethod
-    def FromFile(filename='../data/thermodynamics/dissociation_constants.csv'):
+    def FromFileToDB(file_name, db, table_name):
         """
             Parses a CSV file that contains pKa and pKMg data for many compounds
             and returns a dictionary of their DissociationTables, where the key
             is the CID.
+            
+            We support to CSV formats (legacy issues, sorry):
+            1) cid, name, nH_below, nH_above, nMg_below, nMg_above, mol_below, mol_above, ddG, ref
+            2) cid, name, type, T, nH_below, nH_above, nMg_below, nMg_above, mol_below, mol_above, pK, ref
         """
-        diss = DissociationConstants()
+        
+        kegg = Kegg.getInstance()
+        db.CreateTable(table_name, """
+            cid INT, name TEXT, 
+            nH_below INT, nH_above INT, 
+            nMg_below INT, nMg_above INT, 
+            mol_below TEXT, mol_above TEXT, 
+            ddG REAL, ref TEXT""")
 
-        for i, row in enumerate(csv.DictReader(open(filename, 'r'))):
+        for i, row in enumerate(csv.DictReader(open(file_name, 'r'))):
+            if 'pK' not in row and 'ddG' not in row:
+                raise Exception("The CSV file is not in a recognized format: "
+                                "there should be a column named ddG or pK")
             try:
                 if not row['cid']:
                     continue # without a CID we cannot match this to the dG0 table
                 cid = int(row['cid'])
-                diss.cid2DissociationTable.setdefault(cid, DissociationTable(cid))
-                logging.debug("Parsing row #%d, compound C%05d" % (i, cid))
+                name = row['name'] or kegg.cid2name(cid)
+                logging.debug("Parsing row #%d, compound %s (C%05d)" %
+                              (i, name, cid))
     
                 nH_below = int(row['nH_below'])
                 nH_above = int(row['nH_above'])
                 nMg_below = int(row['nMg_below'])
                 nMg_above = int(row['nMg_above'])
-                if row['smiles_below']:
-                    mol_below = Molecule.FromSmiles(row['smiles_below'])
-                else:
-                    mol_below = None
-                    
-                if row['smiles_above']:
-                    mol_above = Molecule.FromSmiles(row['smiles_above'])
-                else:
-                    mol_above = None
-                
+                mol_below = row['mol_below'] or None
+                mol_above = row['mol_above'] or None
                 ref = row['ref']
-                T = float(row['T'] or default_T)
-                diss.UpdateMinNumHydrogens(cid, nH_above)
-    
-                if row['type'] == 'acid-base':
-                    pKa = float(row['pK'])
-                    if nMg_below != nMg_above:
-                        raise Exception('C%05d has different nMg below and above '
-                                        'the pKa = %.1f' % (cid, pKa))
-                    diss.AddpKa(cid, pKa, nH_below, nH_above, nMg_below,
-                                ref, T, mol_below, mol_above)
-                elif row['type'] == 'Mg':
-                    pKMg = float(row['pK'])
-                    if nH_below != nH_above:
-                        raise Exception('C%05d has different nH below and above '
-                                        'the pK_Mg = %.1f' % pKMg)
-                    try:
-                        diss.AddpKMg(cid, pKMg, nMg_below, nMg_above, nH_below,
-                                     ref, T, mol_below, mol_above)
-                    except Exception, e:
-                        raise Exception("In C%05d: %s" % (cid, str(e)))
-                elif row['pK']:
-                    raise ValueError('The row about C%05d has a pK although it is not "acid-base" nor "Mg"' % cid)
-                elif nMg_below != nMg_above:
-                    raise ValueError('The row about C%05d has different nMgs although it is not "Mg"' % cid)
-                elif nH_below != nH_above:
-                    raise ValueError('The row about C%05d has different nHs although it is not "acid-base"' % cid)
-                elif mol_below is not None:
-                    diss.SetOnlyPseudoisomer(cid, mol_below, nMg_below)
-                else:
-                    diss.GetDissociationTable(cid).min_nH = nH_below
-                    
-            except ValueError as e:
-                raise ValueError("At row %i: %s" % (i, str(e)))
-            except TypeError as e:
-                raise TypeError("At row %i: %s" % (i, str(e)))
+                
+                if 'ddG' in row: # this is the 1st format type
+                    ddG = float(row['ddG'])
+                elif 'pK' in row: # this is the 2nd format type
+                    pK = float(row['pK'] or 0)
+                    T = float(row['T'] or default_T)
+                    if row['type'] == 'acid-base':
+                        if nMg_below != nMg_above or nH_below != nH_above+1:
+                            raise Exception('wrong nMg and nH values')
+                        ddG = -R * T * np.log(10) * pK
+                    elif row['type'] == 'Mg':
+                        if nMg_below != nMg_above+1 or nH_below != nH_above:
+                            raise Exception('wrong nMg and nH values')
+                        ddG = -R * T * np.log(10) * pK + dG0_f_Mg
+                    elif row['type'] == '':
+                        if nMg_below != nMg_above or nH_below != nH_above:
+                            raise Exception('wrong nMg and nH values')
+                        ddG = None
+                    else:
+                        raise Exception('unknown dissociation type: ' + row['type'])
+
+            except Exception as e:
+                raise Exception("Row %i: %s" % (i, str(e)))
+
+            db.Insert(table_name, [cid, name, nH_below, nH_above, 
+                                   nMg_below, nMg_above, mol_below,
+                                   mol_above, ddG, ref])
         
-        diss.CalculateAllCharges()
-        return diss
+        db.Commit()
     
     @staticmethod
     def FromChemAxon(cid2mol=None, html_writer=None):
@@ -188,30 +210,6 @@ class DissociationConstants(object):
         for diss_table in self.cid2DissociationTable.values():
             if diss_table is not None:
                 diss_table.CalculateCharge()
-    
-    def ToDatabase(self, db, table_name):
-        """
-            Load the data regarding pKa values according to KEGG compound IDs.
-        """
-        kegg = Kegg.getInstance()
-        
-        db.CreateTable(table_name, """
-            cid INT, name TEXT, 
-            nH_below INT, nH_above INT, 
-            nMg_below INT, nMg_above INT, 
-            mol_below TEXT, mol_above TEXT, 
-            ddG REAL, ref TEXT""")
-        
-        for cid in sorted(self.cid2DissociationTable.keys()):
-            name = kegg.cid2name(cid)
-            diss_table = self.cid2DissociationTable[cid]
-            if diss_table is None:
-                db.Insert(table_name, [cid, name] + [None] * 8)
-            else:
-                for row in diss_table.ToDatabaseRow(db, table_name):
-                    db.Insert(table_name, [cid, name] + row)
-
-        db.Commit()
 
     def GetAllCids(self):
         return set(self.cid2DissociationTable.keys())
@@ -778,12 +776,14 @@ if __name__ == '__main__':
     logging.info("Writing to table: " + options.table_name)
     logging.info("Writing logs to HTML file: " + options.log_file)
 
+    if options.override_table:
+        db.Execute("DROP TABLE IF EXISTS " + options.table_name)
+    
     if options.dissociation_file:
         logging.info("Copying the data from %s to the database, table %s" % 
                      (options.dissociation_file, options.table_name))
-        dissociation = DissociationConstants.FromFile(options.dissociation_file)
-        dissociation.ToDatabase(db, options.table_name)
-        dissociation.WriteToHTML(html_writer)
+        DissociationConstants.FromFileToDB(options.dissociation_file, 
+            db, options.table_name)
     else:
         db.CreateTable(options.table_name,
             "cid INT, name TEXT, nH_below INT, nH_above INT, " 

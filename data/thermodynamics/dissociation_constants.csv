@@ -1,4 +1,4 @@
-"cid","name","type","T","nH_below","nH_above","nMg_below","nMg_above","smiles_below","smiles_above","pK","ref"
+"cid","name","type","T","nH_below","nH_above","nMg_below","nMg_above","mol_below","mol_above","pK","ref"
 1,"water",,298.15,2,2,0,0,"[OH2]",,,
 2,"ATP","acid-base",298.15,14,13,0,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O",4.68,"Alberty (2003)"
 2,"ATP","acid-base",298.15,13,12,0,0,"C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])O","C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)ncnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-]",7.6,"Alberty (2003)"
@@ -506,8 +506,8 @@
 780,"Serotonin","acid-base",298.15,13,12,0,0,,,9.8,"CRC (88th edition)"
 780,"Serotonin","acid-base",298.15,12,11,0,0,,,11.1,"CRC (88th edition)"
 785,"urocanate",,298.15,5,5,0,0,"[O-]C(=O)\C=C\c1c[nH]cn1",,,
-791,"Creatinine","acid-base",298.15,8,7,0,0,"Cn1cc([nH+]c1N)O","Cn1cc(nc1N)O",4.8,"CRC (88th edition)"
-791,"Creatinine","acid-base",298.15,7,6,0,0,"Cn1cc(nc1N)O","Cn1cc(nc1N)[O-]",9.2,"CRC (88th edition)"
+791,"Creatinine","acid-base",298.15,8,7,0,0,"CN1C=C(O)[NH+]=C1N","CN1C=C(O)N=C1N",4.8,"CRC (88th edition)"
+791,"Creatinine","acid-base",298.15,7,6,0,0,"CN1C=C(O)N=C1N","CN1C=C([O-])N=C1N",9.2,"CRC (88th edition)"
 794,"D-Sorbitol",,298.15,14,14,0,0,"OC[C@H](O)[C@@H](O)[C@H](O)[C@H](O)CO",,,
 795,"D-Tagatose",,298.15,12,12,0,0,"OCC1(O)OC[C@@H](O)[C@H](O)[C@@H]1O",,,
 797,"Ethylamine","acid-base",298.15,8,7,0,0,"CC[NH3+]","CCN",10.65,"CRC (88th edition)"

@@ -2,6 +2,7 @@
 
 import sys
 import pylab
+
 from pygibbs.thermodynamic_constants import default_T, default_I, default_pMg
 from pygibbs.kegg import Kegg
 from pygibbs.nist import NistRowData, Nist
@@ -54,23 +55,19 @@ def main():
 
     estimators = LoadAllEstimators()
     
-    pylab.rcParams['text.usetex'] = False
     pylab.rcParams['legend.fontsize'] = 8
     pylab.rcParams['font.family'] = 'sans-serif'
     pylab.rcParams['font.size'] = 12
     pylab.rcParams['lines.linewidth'] = 2
-    pylab.rcParams['lines.markersize'] = 5
-    pylab.rcParams['lines.markeredgewidth'] = 1
-    pylab.rcParams['figure.figsize'] = [5.0, 5.0]
-    pylab.rcParams['figure.dpi'] = 100
     
-    colors = {}
-    colors['hatzi_gc'] = [54.0/255, 101.0/255, 202.0/255, 1.0]
-    colors['PGC'] = [202.0/255, 101.0/255, 54.0/255, 1.0]
-    colors['alberty'] = [202.0/255, 54.0/255, 101.0/255, 1.0]
-    colors['PRC'] = [101.0/255, 202.0/255, 54.0/255, 1.0]
+    colormap = {}
+    colormap['markers'] = (64.0/255, 111.0/255, 29.0/255, 1.0)
+    colormap['hatzi_gc'] = (54.0/255, 182.0/255, 202.0/255, 1.0)
+    colormap['PGC'] = (202.0/255, 101.0/255, 54.0/255, 1.0)
+    #colormap['alberty'] = (202.0/255, 54.0/255, 101.0/255, 1.0)
+    #colormap['PRC'] = (101.0/255, 202.0/255, 54.0/255, 1.0)
     
-    fig = pylab.figure()
+    fig = pylab.figure(figsize=(4,4), dpi=100)
     
     fig.hold(True)
     if options.rid is None:
@@ -96,14 +93,15 @@ def main():
             else:
                 dG0_list.append(-row_data.dG0_r)
     
-        pylab.plot(pH_list, dG0_list, marker='+', linestyle='None',
-                   label='measured data', markeredgecolor='black')
+        pylab.plot(pH_list, dG0_list, marker='.', linestyle='none',
+                   label='measured data', markeredgecolor='none',
+                   markerfacecolor=colormap['markers'], markersize=5)
         pH_max = max(pH_list + [pH_max])
         pH_min = min(pH_list + [pH_min])
     
     pH_range = pylab.arange(pH_min-0.1, pH_max+0.1, 0.02)
     for key, thermo in estimators.iteritems():
-        if key not in colors:
+        if key not in colormap:
             continue
         print key, 'dG0 at pH=7: %.2f' % reaction.PredictReactionEnergy(thermo, 
                 pH=7.0, pMg=options.pMg, I=options.I, T=options.T)
@@ -111,11 +109,11 @@ def main():
         for pH in pH_range:
             dG0.append(reaction.PredictReactionEnergy(thermo, 
                 pH=pH, pMg=options.pMg, I=options.I, T=options.T))
-        pylab.plot(pH_range, dG0, marker='None', linestyle='solid', color=colors[key],
+        pylab.plot(pH_range, dG0, marker='None', linestyle='solid', color=colormap[key],
                    figure=fig, label=thermo.name)
 
     pylab.xlabel('pH')
-    pylab.ylabel(r'$\Delta_r G^\circ$')
+    pylab.ylabel(r'$\Delta_r G^\circ$ [kJ/mol]')
     pylab.title(kegg.reaction2string(reaction), fontsize=8)
     pylab.legend(loc='lower left')
 
