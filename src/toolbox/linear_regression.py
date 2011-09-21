@@ -1,7 +1,13 @@
 import logging
-from pylab import np, find
+import numpy as np
 
 class LinearRegression(object):
+    
+    @staticmethod
+    def MatrixRank(A, eps=1e-10):
+        _U, s, _V = np.linalg.svd(A, full_matrices=True)
+        r = len(np.where(s > eps)[0]) # the rank of A
+        return r
     
     @staticmethod
     def Kernel(A, reduced_row_echlon=False, eps=1e-10):
@@ -10,7 +16,7 @@ class LinearRegression(object):
             return LinearRegression.Kernel(A.T).T
         
         _U, s, V = np.linalg.svd(A, full_matrices=True)
-        r = len(find(s > eps)) # the rank of A
+        r = len(np.where(s > eps)[0]) # the rank of A
         
         kerA = np.zeros((m-r, m))
         kerA[0:(m-r), :] = V[r:m,:]
@@ -39,14 +45,14 @@ class LinearRegression(object):
             raise Exception('The length of y (%d) does not match the number of rows in A (%d)' % (y.shape[0], n))
         y = np.matrix(y.reshape(n, 1))
         
-        zero_columns = find([np.linalg.norm(A[:,i])<=eps for i in xrange(m)])
-        nonzero_columns = find([np.linalg.norm(A[:,i])>eps for i in xrange(m)])
+        zero_columns = np.nonzero([np.linalg.norm(A[:,i]) <= eps for i in xrange(m)])[0]
+        nonzero_columns = np.nonzero([np.linalg.norm(A[:,i]) > eps for i in xrange(m)])[0]
         A_red = A[:, nonzero_columns]
         m_red = len(nonzero_columns)
         
         U, s, V = np.linalg.svd(A_red, full_matrices=True)
 
-        r = len(find(s > eps)) # the rank of A
+        r = len(np.where(s > eps)[0]) # the rank of A
         if r < m:
             logging.debug('The rank of A (%d) is lower than the number of columns'
                           ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))

@@ -1,6 +1,7 @@
 import logging, os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import mlab
 
 from pygibbs.kegg import Kegg
 from pygibbs.nist_regression import NistRegression
@@ -10,17 +11,51 @@ from toolbox.database import SqliteDatabase
 from toolbox.sparse_kernel import SparseKernel
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.html_writer import HtmlWriter
+from pygibbs.kegg_reaction import Reaction
+from toolbox import latex
+import csv
 
-def vector2string(v, cids, kegg):
-    nonzero_columns = np.nonzero(abs(v) > 1e-10)[0]
-    gv = " + ".join(["%g %s (C%05d)" % (v[j], kegg.cid2name(int(cids[j])), cids[j]) for j in nonzero_columns])
-    return gv
+def vector2string(v, index2string, eps=1e-10):
+    nonzero_columns = np.nonzero(abs(v) > eps)[0]
+    if len(nonzero_columns) == 0:
+        return ""
+    s = ""
+    for i, j in enumerate(nonzero_columns):
+        if i == 0: # first member in the sum
+            if v[j] < 0:
+                sign = "-"
+            else:
+                sign = ""
+        else:
+            if v[j] < 0:
+                sign = " - "
+            else:
+                sign = " + "
+            
+        if abs(v[j]) == 1:
+            factor = ""
+        else:
+            factor = "%g " % abs(v[j])
 
-def matrix2html(html_writer, A, cids, kegg):
+        s += sign + factor + index2string[j]
+    return s
+
+def stoichiometric_matrix2html(html_writer, A, cids, eps=1e-10):
+    """
+        Print a table in HTML format.
+        A is a stoichiometric matrix where each row is a reaction and 
+        each column is a compound, corresponding in position to the list "cids".
+    """
     dict_list = []
     for i in xrange(A.shape[0]):
-        dict_list.append({'row':'%d' % i, 'reaction':vector2string(A[i,:], cids, kegg)})
-    html_writer.write_table(dict_list, headers=['row', 'reaction'])
+        sparse_reaction = dict([(cids[j], A[i, j]) 
+                                for j in xrange(A.shape[1]) 
+                                if abs(A[i, j]) > eps])
+        r = Reaction("reaction%d" % i, sparse_reaction=sparse_reaction)
+        dict_list.append({'reaction':r.to_hypertext()})
+    html_writer.write_ul(['%d rows' % A.shape[0], '%d columns' % A.shape[1],
+                          '%d rank' % np.linalg.matrix_rank(A)])
+    html_writer.write_table(dict_list, headers=['#', 'reaction'])
 
 def main():
     kegg = Kegg.getInstance()
@@ -109,9 +144,7 @@ def main():
     html_writer.write("<h1>Pseudoisomeric Reactant Contributions</h1>\n")
     html_writer.write("<p>The stoichiometric matrix (S):")
     html_writer.insert_toggle(start_here=True)
-    html_writer.write_ul(['%d rows' % S.shape[0], '%d columns' % S.shape[1],
-                          '%d rank' % np.linalg.matrix_rank(S)])
-    matrix2html(html_writer, S, cids, kegg)
+    stoichiometric_matrix2html(html_writer, S, cids)
     html_writer.div_end()
     html_writer.write('</p>')
     
@@ -192,12 +225,56 @@ def main():
     html_writer.write("</p>")
     
     K_sparse = SparseKernel(S_red).Solve()
-    html_writer.write("<p>The null-space of the reduced stoichiometric matrix:")
+    html_writer.write("<p>The sparse null-space of the reduced stoichiometric matrix:")
     html_writer.insert_toggle(start_here=True)
-    matrix2html(html_writer, K_sparse, cids_red, kegg)
+    stoichiometric_matrix2html(html_writer, K_sparse, cids_red)
     html_writer.div_end()
     html_writer.write("</p>")
 
-                
+    csv_writer = csv.writer(open('../res/prc_results.csv', 'w'))
+    csv_writer.writerow(['KEGG ID', 'Compound', 'nH', 'dG0 (PRC)', 'dG0 (Alberty)'])
+
+    dict_list = []
+    index2string_html = dict((i, "V<sub>%02d</sub>" % i) for i in xrange(K_sparse.shape[0]))
+    index2string  = dict((i, "V%d" % i) for i in xrange(K_sparse.shape[0]))
+    for i, cid in enumerate(cids_red):
+        d = {}
+        d['KEGG ID'] = '<a href="%s">C%05d</a>' % (kegg.cid2link(cid), cid)
+        d['KEGG ID plain'] = 'C%05d' % cid
+        d['Compound'] = kegg.cid2name(cid)
+        d['nH'] = '%d' % cid2nH[cid]
+
+        if cid in alberty_cid2dG0:
+            d['dG0 (Alberty)'] = '%.1f' % alberty_cid2dG0[cid]
+        else:
+            d['dG0 (Alberty)'] = ''
+        
+        kernel_string_html = vector2string(K_sparse[:, i], index2string_html)
+        kernel_string = vector2string(K_sparse[:, i], index2string)
+        if kernel_string:
+            d['dG0 (PRC)'] = kernel_string_html + ' + %.1f' % cid2dG0[cid]
+            d['dG0 (PRC) plain'] = kernel_string + ' + %.1f' % cid2dG0[cid]
+            d['order_key'] = 1
+        else:
+            d['dG0 (PRC)'] = '%.1f' % cid2dG0[cid]
+            d['dG0 (PRC) plain'] = '%.1f' % cid2dG0[cid]
+            d['order_key'] = 0
+        dict_list.append(d)
+        csv_writer.writerow([d['KEGG ID plain'], d['Compound'], d['nH'],
+                             d['dG0 (PRC) plain'], d['dG0 (Alberty)']])
+        
+    dict_list.sort(key=lambda(d):(d['order_key'], d['KEGG ID plain']))
+    html_writer.write("<p>All formation energies as a function of the free variables:")
+    html_writer.insert_toggle(start_here=True)
+    html_writer.write('<font size="1">')
+    html_writer.write_table(dict_list, headers=['#', 'KEGG ID', 'Compound', 'nH', 'dG0 (PRC)', 'dG0 (Alberty)'])
+    html_writer.write('</font>')
+    html_writer.div_end()
+    html_writer.write('</p>')
+    
+    fp = open('../res/prc_latex.txt', 'w')
+    fp.write(latex.table2LaTeX(dict_list, headers=['#', 'KEGG ID plain', 'Compound', 'nH', 'dG0 (PRC) plain', 'dG0 (Alberty)']))
+    fp.close()
+    
 if __name__ == "__main__":
     main()
