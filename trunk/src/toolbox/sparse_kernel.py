@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import mlab
+from toolbox.linear_regression import LinearRegression
 
 try:
     from cplex import Cplex
@@ -46,7 +47,7 @@ class SparseKernel(object):
         self.constraint_counter = 0
         for r in xrange(A.shape[0]):
             self.AddLinearConstraint(A[r, :])
-        self.kernel_rank = self.n_variables - np.linalg.matrix_rank(A)
+        self.kernel_rank = self.n_variables - LinearRegression.MatrixRank(A)
 
     def CreateAllVariables(self):
         """ 
