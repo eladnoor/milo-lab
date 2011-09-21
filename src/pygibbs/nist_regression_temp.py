@@ -35,9 +35,6 @@ def main():
     fixed_cids[59]  = (0, -744.53) # SO4(-2)
     fixed_cids[288] = (1, -586.77) # HCO3(-1)
 
-    # Non-Alberty zeros:
-    fixed_cids[101] = (21, 0.0) # THF - not from Alberty
-
     # Alberty zeros:
     fixed_cids[3]   = (26, 0.0) # NAD(ox)
     fixed_cids[10]  = (32, 0.0) # CoA
@@ -46,9 +43,8 @@ def main():
     
     # Directly measured values
     fixed_cids[4]   = (27, 22.65) # NAD(red) -- relative to NAD(ox)
-    fixed_cids[147] = (5, 313.40) # adenine
-    #fixed_cids[121] = (10, -738.79) # D-ribose
-
+    fixed_cids[212] = (13, -194.5) # adenosine
+    #fixed_cids[294] = (12, -409.2) # inosine - linearly dependent on other 'anchors'
 
     # Alberty zeros which are not in NIST:
     #fixed_cids[524] = ( 0, 0.0) # cytochrome c(ox)
@@ -152,7 +148,7 @@ def main():
     determined_indices = np.where(np.sum(abs(K_red), 0) < 1e-10)[0] # all zero-columns in reducedK
     determined_cids = [cids_red[i] for i in determined_indices]
     plot_data = []
-    for cid in cids:
+    for i, cid in enumerate(cids):
         d = {'CID':'C%05d' % cid, 'Compound':kegg.cid2name(cid),
              'nH':'%d' % cid2nH[cid], 'dG0 (PRC)':'%.1f' % cid2dG0[cid]}
         if cid in alberty_cid2dG0:
@@ -175,7 +171,8 @@ def main():
     html_writer.write("<p>Formation energies determined by the linear constraints:")
     html_writer.insert_toggle(start_here=True)
     html_writer.write('<font size="1">')
-    html_writer.write_table(dict_list, headers=['Compound', 'CID', 'nH', 'dG0 (PRC)', 'dG0 (Alberty)', 'Depends on'])
+    html_writer.write_table(dict_list, headers=['#', 'Compound', 'CID', 'nH', 
+        'dG0 (PRC)', 'dG0 (Alberty)', 'Depends on'])
     html_writer.write('</font>')
     html_writer.div_end()
     html_writer.write('</p>')

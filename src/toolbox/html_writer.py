@@ -66,6 +66,10 @@ class BaseHtmlWriter:
         self.write("</ul>\n")
         
     def write_table(self, dict_list, headers=None, border=1):
+        """
+            In order to print the row number, use the title '#' in headers and
+            write_table() will automatically fill that column with the row numbers.
+        """
         def to_string(x):
             if type(x) == types.StringType:
                 return x
@@ -81,8 +85,9 @@ class BaseHtmlWriter:
         
         self.write('<table border=%d>\n' % border)
         self.write('<tr><td><b>' + '</b></td><td><b>'.join(headers) + '</b></td></tr>\n')
-        for dict in dict_list:
-            values = [to_string(dict.get(key, "")) for key in headers]
+        for i, d in enumerate(dict_list):
+            d['#'] = '%d' % i
+            values = [to_string(d.get(key, "")) for key in headers]
             self.write('<tr><td>' + '</td><td>'.join(values) + '</td></tr>\n')
         self.write("</table>\n")
         
