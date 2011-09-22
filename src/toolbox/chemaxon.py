@@ -2,7 +2,7 @@ import logging
 import subprocess
 import os
 
-CXCALC_BIN = "/home/eladn/opt/jchem-5.5.1.0/bin/cxcalc"
+CXCALC_BIN = "/usr/bin/cxcalc"
 
 class ChemAxonError(Exception):
     pass
@@ -30,7 +30,6 @@ def ParsePkaOutput(s, n_acidic, n_basic, pH_list):
             that are assigned to that atom.
     """
     atom2pKa = {}
-    pH2smiles = {}
 
     pkaline = s.split('\n')[1]
     splitline = pkaline.split('\t')

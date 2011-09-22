@@ -795,5 +795,4 @@ if __name__ == '__main__':
 
         if not options.train_only:
             G.EstimateKeggCids()
-            #G.EstimateKeggRids()
 
