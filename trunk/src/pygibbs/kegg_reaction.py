@@ -282,7 +282,7 @@ class Reaction(object):
         return self.write_full_reaction(self.sparse, self.direction)
 
     def __str__(self):
-        return self.name + ': ' + Reaction.FullReactionString()
+        return self.name + ': ' + self.FullReactionString()
     
     def iteritems(self):
         return self.sparse.iteritems()

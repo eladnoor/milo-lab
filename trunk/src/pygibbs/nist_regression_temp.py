@@ -231,9 +231,6 @@ def main():
     html_writer.div_end()
     html_writer.write("</p>")
 
-    csv_writer = csv.writer(open('../res/prc_results.csv', 'w'))
-    csv_writer.writerow(['KEGG ID', 'Compound', 'nH', 'dG0 (PRC)', 'dG0 (Alberty)'])
-
     dict_list = []
     index2string_html = dict((i, "V<sub>%02d</sub>" % i) for i in xrange(K_sparse.shape[0]))
     index2string  = dict((i, "V%d" % i) for i in xrange(K_sparse.shape[0]))
@@ -249,21 +246,26 @@ def main():
         else:
             d['dG0 (Alberty)'] = ''
         
-        kernel_string_html = vector2string(K_sparse[:, i], index2string_html)
-        kernel_string = vector2string(K_sparse[:, i], index2string)
-        if kernel_string:
-            d['dG0 (PRC)'] = kernel_string_html + ' + %.1f' % cid2dG0[cid]
-            d['dG0 (PRC) plain'] = kernel_string + ' + %.1f' % cid2dG0[cid]
-            d['order_key'] = 1
-        else:
-            d['dG0 (PRC)'] = '%.1f' % cid2dG0[cid]
-            d['dG0 (PRC) plain'] = '%.1f' % cid2dG0[cid]
-            d['order_key'] = 0
+        d['dG0 (PRC)'] = '%.1f' % cid2dG0[cid]
+        d['dG0 (PRC) plain'] = '%.1f' % cid2dG0[cid]
+        
+        indic = np.where(abs(K_sparse[:,i]) > 1e-10, 1, 0).tolist()
+        indic.reverse()
+        d['order_key'] = indic
+        if mlab.rms_flat(K_sparse[:,i]) > 1e-10:
+            d['dG0 (PRC)'] += " + (" + vector2string(K_sparse[:, i], index2string_html) + ")"
+            d['dG0 (PRC) plain'] += " + (" + vector2string(K_sparse[:, i], index2string) + ")"
         dict_list.append(d)
-        csv_writer.writerow([d['KEGG ID plain'], d['Compound'], d['nH'],
-                             d['dG0 (PRC) plain'], d['dG0 (Alberty)']])
         
     dict_list.sort(key=lambda(d):(d['order_key'], d['KEGG ID plain']))
+
+    # Export the results to CSV
+    csv_writer = csv.writer(open('../res/prc_results.csv', 'w'))
+    csv_writer.writerow(['KEGG ID', 'Compound', 'nH', 'dG0 (PRC)', 'dG0 (Alberty)'])
+    for d in dict_list:
+        csv_writer.writerow([d['KEGG ID plain'], d['Compound'], d['nH'],
+                             d['dG0 (PRC) plain'], d['dG0 (Alberty)']])
+    
     html_writer.write("<p>All formation energies as a function of the free variables:")
     html_writer.insert_toggle(start_here=True)
     html_writer.write('<font size="1">')
