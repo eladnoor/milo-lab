@@ -509,15 +509,15 @@ class Pathway(object):
                         dgf_primes, dgf_primes[index_to_minimize], problem)
         return opt_dgs, concentrations, concentrations[index_to_minimize, 0]
 
-    def _MakeMinimumFeasbileConcentrationsProblem(self):
+    def _MakeMinimumFeasbileConcentrationsProblem(self, bounds=None, c_range=(1e-6, 1e-2)):
         """Creates the cvxmod.problem for finding minimum total concentrations.
         
         Returns:
             Two tuple (ln_concentrations var, problem).
         """
         ln_concentrations = cvxmod.optvar('ln_concs', self.Nc)
-        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(self.bounds,
-                                                                self.c_range)
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds,
+                                                                c_range=c_range)
         
         # Make the objective and problem.
         problem = cvxmod.problem()
@@ -542,7 +542,7 @@ class Pathway(object):
         problem.constr.append(ln_concentrations <= ln_conc_ub)
         return ln_concentrations, problem
 
-    def FindMinimumFeasibleConcentrations(self):
+    def FindMinimumFeasibleConcentrations(self, bounds=None):
         """Use the power of convex optimization!
         
         minimize sum (concentrations)
@@ -552,7 +552,7 @@ class Pathway(object):
         
         min sum (exp(ln(concentrations)))
         """
-        ln_concentrations, problem = self._MakeMinimumFeasbileConcentrationsProblem()
+        ln_concentrations, problem = self._MakeMinimumFeasbileConcentrationsProblem(bounds=bounds)
         problem.objective = cvxmod.minimize(cvxmod.sum(atoms.exp(ln_concentrations)))
         
         status = problem.solve(quiet=True)
@@ -574,9 +574,9 @@ class Pathway(object):
         the convexity of exponentials.         
         """
         ln_concentrations, problem = self._MakeMinimumFeasbileConcentrationsProblem()
-        scaled_fluxes = cvxmod.matrix(fluxes or [1.0]*self.Nr) * (km/kcat)
-        problem.objective = cvxmod.minimize(atoms.exp(-ln_concentrations))
-                
+        #scaled_fluxes = cvxmod.matrix(fluxes or [1.0]*self.Nr) * (km/kcat)
+        problem.objective = cvxmod.minimize(cvxmod.sum(atoms.exp(-ln_concentrations)))
+        
         status = problem.solve(quiet=True)
         if status != 'optimal':
             raise UnsolvableConvexProblemException(status, problem)
