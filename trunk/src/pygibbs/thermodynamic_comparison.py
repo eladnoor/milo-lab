@@ -297,11 +297,11 @@ class PathwayComparison(object):
             c_range = self.thermo.c_range
             
             path = pathway_modelling.Pathway(S, dG0_f)
-            dgs, concentrations, total_conc = path.FindMinimumFeasibleConcentrations()
+            dgs, concentrations, total_conc = path.FindKineticOptimum()
             
-            self.html_writer.write('<div margin="20px"><div>Total concentration<b>%f M</b></div>' % total_conc)
+            self.html_writer.write('<div margin="20px"><div>Total concentration <b>%f M</b></div>' % total_conc)
                             
-            concs_array = pylab.hstack(concentrations)
+            concs_array = pylab.array(concentrations)
             self.PlotConcentrations(max_dGs, concs_array, cids)
             
             self.html_writer.write('</div>')
@@ -508,5 +508,5 @@ if __name__ == "__main__":
         
         comparator.AddPathway(name, pathway_data)
         
-    comparator.CompareMinimalEnzymeBurden()
+    comparator.CompareMtdf()
     

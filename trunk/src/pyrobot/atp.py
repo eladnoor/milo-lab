@@ -890,10 +890,8 @@ class MyPanel(wx.Panel):
         return data
 
     def PlotGrowthCurves(self, event):
-        print 'PlotGrowthCurves'
         data = self.GenerateDataForSelectedCells()
         if len(data) > 0:
-            
             # Create an open file dialog
             dialog = wx.FileDialog(None, style=wx.SAVE)
             # Show the dialog and get user input

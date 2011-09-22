@@ -111,8 +111,8 @@ class Compound(object):
             all_names = kegg_parser.NormalizeNames(field_map.GetStringField("NAME"))
             comp.name = all_names[0]
             comp.all_names = all_names
-        if "MASS" in field_map:
-            comp.mass = field_map.GetFloatField('MASS')
+        if "EXACT_MASS" in field_map:
+            comp.mass = field_map.GetFloatField('EXACT_MASS')
         if "FORMULA" in field_map:    
             comp.formula = field_map.GetStringField('FORMULA')
         if "DBLINKS" in field_map:
