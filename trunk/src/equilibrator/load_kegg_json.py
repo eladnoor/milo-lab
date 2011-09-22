@@ -169,7 +169,9 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
                     AddPmapToCompound(pmap, c)
             
             # Add the common names.
-            names = GetOrCreateNames(cd['names'])            
+            name = models.CommonName.GetOrCreate(cd['name'])
+            c.name = name
+            names = GetOrCreateNames(cd['names'])
             for n in names:
                 c.common_names.add(n)
             c.save()
