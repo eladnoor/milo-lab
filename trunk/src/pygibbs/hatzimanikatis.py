@@ -162,7 +162,7 @@ def TestGroupMatrix():
     dG_vector = np.array(dG_vector, ndmin=2).T
     
     #print full_matrix.shape
-    #print np.linalg.matrix_rank(full_matrix)
+    #print LinearRegression.MatrixRank(full_matrix)
     #print dG_vector.shape
     
     #augmented_matrix = np.hstack([full_matrix, dG_vector])

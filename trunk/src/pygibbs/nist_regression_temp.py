@@ -54,7 +54,7 @@ def stoichiometric_matrix2html(html_writer, A, cids, eps=1e-10):
         r = Reaction("reaction%d" % i, sparse_reaction=sparse_reaction)
         dict_list.append({'reaction':r.to_hypertext()})
     html_writer.write_ul(['%d rows' % A.shape[0], '%d columns' % A.shape[1],
-                          '%d rank' % np.linalg.matrix_rank(A)])
+                          '%d rank' % LinearRegression.MatrixRank(A)])
     html_writer.write_table(dict_list, headers=['#', 'reaction'])
 
 def main():

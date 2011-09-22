@@ -212,7 +212,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.div_start(div_id)
         self.html_writer.write_ul(['observations: %d' % self.group_matrix.shape[0],
            'groups: %d' % self.group_matrix.shape[1],
-           'rank: %d' % np.linalg.matrix_rank(self.group_matrix)])
+           'rank: %d' % LinearRegression.MatrixRank(self.group_matrix)])
         self.html_writer.write('</br><table border="1">\n<tr>'
             '<td width="5%%">#</td>'
             '<td width="20%%">Name</td>'

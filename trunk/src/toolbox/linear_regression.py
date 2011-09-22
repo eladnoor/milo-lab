@@ -131,7 +131,7 @@ class LinearRegression(object):
         x, K = LinearRegression.LeastSquares(A, y, reduced_row_echlon=False)
         K_trunc = K.T[index2value.keys(), :]
         K_inv = np.linalg.pinv(K_trunc)
-        if np.linalg.matrix_rank(K_inv) < len(index2value):
+        if LinearRegression.MatrixRank(K_inv) < len(index2value):
             raise Exception("Cannot set variables to desired values, since the "
                             "truncated kernel matrix is not fully ranked and "
                             "thus not invertible.")

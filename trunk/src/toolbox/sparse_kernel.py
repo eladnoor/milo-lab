@@ -172,7 +172,7 @@ class SparseKernel(object):
             nonzero_indices = np.nonzero(g_plus > 0.5)[0].tolist() + np.nonzero(g_minus > 0.5)[0].tolist()
             self.K[self.dimension, nonzero_indices] = coeffs[nonzero_indices]
             
-            if np.linalg.matrix_rank(self.K) < self.dimension+1:
+            if LinearRegression.MatrixRank(self.K) < self.dimension+1:
                 self.K[self.dimension, :] = 0
             else:
                 # normalize the kernel vector so that it will have nice coefficients
