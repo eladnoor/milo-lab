@@ -13,7 +13,8 @@ class Histogram(object):
         self.projected_data = projected_data
         self.raw_data = projected_data.raw_data
         self.filter_values = filter_values
-        self.pairs = list(self.projected_data.Iterate(filter_values=self.filter_values))
+        self.triples = list(self.projected_data.Iterate(filter_values=self.filter_values))
+        self.name_hist = self.MakeNameHist()
         self.counts = self.MakeCounts()
         self.weights = self.MakeWeights()
         self.dep_keys = self.GetDepKeys()
@@ -22,12 +23,33 @@ class Histogram(object):
     def AllPossiblePairs(self):
         return itertools.product(self.ind_keys, self.dep_keys)
     
+    def FilteredIndCounts(self):
+        """Post-filtered counts."""
+        c = {}
+        for ind, unused_dep, unused_name in self.triples:
+            c[ind] = c.get(ind, 0) + 1
+        return c
+
+    def FilteredDepCounts(self):
+        """Post-filtered counts."""
+        c = {}
+        for unused_ind, dep, unused_name in self.triples:
+            c[dep] = c.get(dep, 0) + 1
+        return c
+    
     def GetWeight(self, ind, dep):
         return self.weights.get(ind, {}).get(dep, 0.0)
     
+    def MakeNameHist(self):
+        names = {}
+        for ind, dep, name in self.triples:
+            pair = (ind, dep)
+            names.setdefault(pair, set()).add(name)
+        return names
+    
     def MakeCounts(self):
         counts = {}
-        for ind, dep in self.pairs:
+        for ind, dep, unused_name in self.triples:
             val_dict = counts.setdefault(ind, {})
             val_dict[dep] = val_dict.get(dep, 0) + 1
         return counts
@@ -47,17 +69,22 @@ class Histogram(object):
             dep_keys.update(count_d.keys())
         return dep_keys
     
-    def BarPlot(self, axes):
+    def BarPlot(self, axes, show_ind_none=False):
         weight_array, count_array = [], []
+        labels = []
         ind_keys = self.ind_keys
         dep_keys = sorted(self.dep_keys)
         for ind in ind_keys:
+            if not ind and not show_ind_none:
+                continue
+                
             weight_array.append(self.weights.get(ind, {}))
-            count_array.append(self.counts.get(ind, {}))        
+            count_array.append(self.counts.get(ind, {}))
+            labels.append(ind or "None given")        
 
         colormap = ColorMap(dep_keys)
-        indices = pylab.arange(len(ind_keys))
-        current_bottom = pylab.zeros(len(ind_keys))
+        indices = pylab.arange(len(weight_array))
+        current_bottom = pylab.zeros(len(weight_array))
         for dep in dep_keys:
             heights = pylab.array([w.get(dep, 0.0) for w in weight_array])
             pylab.bar(indices, heights, color=colormap[dep],
@@ -77,6 +104,5 @@ class Histogram(object):
         pylab.xlabel(self.projected_data.ind, fontsize='large')
 
         size_12 = FontProperties(size=12)
-        labels = [a or "None given" for a in ind_keys]
         pylab.xticks(indices + 0.25, labels, fontproperties=size_12)
         axes.yaxis.set_major_locator(pylab.NullLocator())

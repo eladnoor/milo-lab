@@ -18,6 +18,8 @@ class MonteCarloTester(object):
         self.all_pairs = sorted(self.hist.AllPossiblePairs())
         self.all_ind = list(set([p[0] for p in self.all_pairs]))
         self.all_dep = list(set([p[1] for p in self.all_pairs]))
+        self.non_empty_ind = filter(None, self.all_ind)
+        self.non_empty_dep = filter(None, self.all_dep)
         self.greater_p = None
         self.lower_p = None
         
@@ -59,9 +61,9 @@ class MonteCarloTester(object):
         return self.greater_p, self.lower_p
     
     def MakeMatrix(self, p_dict):
-        m = pylab.zeros((len(self.all_ind), len(self.all_dep)))
-        for i, ind in enumerate(self.all_ind):
-            for j, dep in enumerate(self.all_dep):
+        m = pylab.zeros((len(self.non_empty_ind), len(self.non_empty_dep)))
+        for i, ind in enumerate(self.non_empty_ind):
+            for j, dep in enumerate(self.non_empty_dep):
                 m[i][j] = p_dict.get((ind, dep), pylab.NAN)
         return m
     
@@ -69,21 +71,23 @@ class MonteCarloTester(object):
         lower_mat = self.MakeMatrix(self.lower_p)
         upper_mat = self.MakeMatrix(self.greater_p)
         
-        nx = float(len(self.all_ind))
-        ny = float(len(self.all_dep))
-        x_indices = pylab.arange(nx) / nx  
-        y_indices = pylab.arange(ny) / ny
+        nx = float(len(self.non_empty_dep))
+        ny = float(len(self.non_empty_ind))
+        x_indices = (pylab.arange(nx) + 0.5) / nx
+        y_indices = (pylab.arange(ny-1, -1, -1) + 0.5) / ny
         
         pylab.subplot(211, figure=figure)
         pylab.imshow(lower_mat, interpolation="nearest", figure=figure)
         pylab.title('Lower p-values', figure=figure)
-        pylab.xticks(x_indices, self.all_ind, figure=figure)
-        pylab.yticks(y_indices, self.all_dep, figure=figure)
+        pylab.xticks(x_indices, self.non_empty_dep, rotation=20, ha='right', figure=figure)
+        pylab.yticks(y_indices, self.non_empty_ind, figure=figure)
+        pylab.colorbar()
         pylab.axis('scaled')
         
         pylab.subplot(212, figure=figure)
         pylab.imshow(upper_mat, interpolation="nearest", figure=figure)
         pylab.title('Upper p-values', figure=figure)
-        pylab.xticks(x_indices, self.all_ind, figure=figure)
-        pylab.yticks(y_indices, self.all_dep, figure=figure)
+        pylab.xticks(x_indices, self.non_empty_dep, rotation=20, ha='right', figure=figure)
+        pylab.yticks(y_indices, self.non_empty_ind, figure=figure)
+        pylab.colorbar()
         pylab.axis('scaled')

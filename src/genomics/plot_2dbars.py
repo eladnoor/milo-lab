@@ -31,6 +31,9 @@ def MakeOpts():
 	opt_parser.add_option("-c", "--third_col",
 						  dest="third_col",
 						  help="Third column in 2-way histogram")
+	opt_parser.add_option("-d", "--name_col",
+						  dest="name_col",
+						  help="Column corresponding to the name")
 	opt_parser.add_option("-v", "--second_col_key",
 						  dest="second_col_key",
 						  help="First column in 2-way histogram")
@@ -49,6 +52,11 @@ def MakeOpts():
 	opt_parser.add_option("-y", "--filter_cols_vals",
 						  dest="filter_cols_vals",
 						  help="Values to keep, one per column")
+	opt_parser.add_option("-n", "--num_trials",
+						  dest="num_trials",
+						  default=1000,
+						  type="int",
+						  help="Number of monte-carlo samples.")
 	return opt_parser
 	
 
@@ -82,22 +90,55 @@ def Main():
 	data = RawData.FromCsvFile(options.input_filename,
 							   options.first_col,
 							   dependent_cols,
+							   name_col=options.name_col,
 							   row_filterer=row_filterer)
-	histogram = data.Project().MakeHistogram(filter_values=filter_values)
+	projected = data.Project()
+	histogram = projected.MakeHistogram(filter_values=filter_values)
+	
+	print len(histogram.triples), 'filtered examples'
+	
+	print 'Name breakdown'
+	for key, names in histogram.name_hist.iteritems():
+		print key
+		print ',\n'.join(names)
+	
+	# Unfiltered overall distribution.
+	dep_counts = projected.DepCounts()
+	
+	deps = sorted(dep_counts.keys())
+	dcounts = [dep_counts[l] for l in deps]
+	dlabels = [l or 'None given' for l in deps]
+	fig4 = pylab.figure(4)
+	pylab.pie(dcounts, labels=dlabels, autopct='%.1f%%')
+	
+	# Filtered overall distribution.
+	ind_counts = histogram.FilteredIndCounts()
+	dep_counts = histogram.FilteredDepCounts()
+	
+	inds = sorted(ind_counts.keys())
+	icounts = [ind_counts[l] for l in inds]
+	ilabels = [l or 'None given' for l in inds]
+	fig0 = pylab.figure(0)
+	pylab.pie(icounts, labels=ilabels, autopct='%.1f%%')
+
+	deps = sorted(dep_counts.keys())
+	dcounts = [dep_counts[l] for l in deps]
+	dlabels = [l or 'None given' for l in deps]
+	fig1 = pylab.figure(1)
+	pylab.pie(dcounts, labels=dlabels, autopct='%.1f%%')
 	
 	# Calculate and print p-values
 	sampler = MonteCarloTester(histogram)
-	sampler.Test(20)
-	fig1 = pylab.figure(0)
-	sampler.HeatMap(fig1)
-	fig1.show()
+	sampler.Test(options.num_trials)
+	fig2 = pylab.figure(2)
+	sampler.HeatMap(fig2)
 	
 	# Bar plot histogram
-	fig2 = pylab.figure(1)
+	fig3 = pylab.figure(3)
 	axes = pylab.axes()
-	fig2.add_axes(axes)
+	fig3.add_axes(axes)
 	title = options.title or '%s vs. %s' % (options.first_col, options.second_col)
-	pylab.title(title, figure=fig2)
+	pylab.title(title, figure=fig3)
 	
 	histogram.BarPlot(axes)
 	pylab.legend()

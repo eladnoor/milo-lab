@@ -72,7 +72,6 @@ def Main():
         
         row['KEGG ID'] = kegg_id
         w.writerow(row)
-    
 
 
 if __name__ == '__main__':

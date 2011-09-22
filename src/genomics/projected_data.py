@@ -13,14 +13,21 @@ class ProjectedData(object):
     
         self.ind = self.raw_data.ind
         self.ind_vals = self.raw_data.ind_vals
-        self.dep_vals = self.ProjectAllBinary(self.raw_data.dep_vals) 
+        self.names = self.raw_data.names
+        self.dep_vals = self.ProjectAllBinary(self.raw_data.dep_vals)
+    
+    def DepCounts(self):
+        c = {}
+        for dep in self.dep_vals:
+            c[dep] = c.get(dep, 0) + 1
+        return c
     
     def Iterate(self, filter_values=None):
         ignores = set(filter_values or [])
-        for ind, dep in itertools.izip(self.ind_vals, self.dep_vals):
+        for ind, dep, name in itertools.izip(self.ind_vals, self.dep_vals, self.names):
             if dep in ignores:
                 continue
-            yield ind, dep
+            yield ind, dep, name
         
     def MakeHistogram(self, filter_values=None):
         return Histogram(self, filter_values=filter_values)
