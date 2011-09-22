@@ -193,7 +193,10 @@ class Compound(models.Model):
     
     # InChI representation of the compound.
     inchi = models.CharField(max_length=2048, null=True)
-        
+    
+    # The main name of the compound.
+    name = models.ForeignKey(CommonName, related_name='primary_name_of')
+    
     # A list of common names of the compound, used for searching.
     common_names = models.ManyToManyField(CommonName)
     
