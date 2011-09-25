@@ -90,12 +90,22 @@ def _GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH_list=None):
     
     return sorted(all_pKas), smiles_list
 
-def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7):
+def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7,
+                             calculate_all_ms=False):
     """
+        Arguments:
+            molstring - a text description of the molecule (SMILES or InChI)
+            n_acidic  - the max no. of acidic pKas to calculate
+            n_basic   - the max no. of basic pKas to calculate
+            mid_pH    - the default pH for which the major pseudoisomer is calculated
+            calculate_all_ms - if True, uses ChamAxon to find all SMILES descriptors
+                               of all pseudoisomers. Otherwise only the major one
+                               is returned.
+        
         Returns a pair:
             (diss_constants, major_ms)
             
-        - diss_constants is a list 3-tuples: (pKa, SMILES below, SMILES above)
+        - diss_constants is a list of 3-tuples: (pKa, SMILES below, SMILES above)
         - major_ms is a SMILES string of the major pseudoisomer at pH_mid 
     """
     all_pKas, smiles_list = _GetDissociationConstants(molstring, n_acidic, 
@@ -104,12 +114,20 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7):
     if all_pKas == []:
         return [], major_ms
     
-    pH_list = [all_pKas[0]-0.1]
-    for i in range(len(all_pKas)-1):
-        pH_list.append((all_pKas[i] + all_pKas[i+1]) * 0.5)
-    pH_list.append(all_pKas[-1]+0.1)
-    
-    _, smiles_list = _GetDissociationConstants(molstring, 0, 0, pH_list)
+    if calculate_all_ms:
+        pH_list = [all_pKas[0]-0.1]
+        for i in range(len(all_pKas)-1):
+            pH_list.append((all_pKas[i] + all_pKas[i+1]) * 0.5)
+        pH_list.append(all_pKas[-1]+0.1)
+        
+        _, smiles_list = _GetDissociationConstants(molstring, 0, 0, pH_list)
+    else: # find the index of the major pseudoisomer and use None for all the others
+        smiles_list = [None] * (len(all_pKas) + 1)
+        if mid_pH < min(all_pKas):
+            major_i = 0
+        else:
+            major_i = 1 + max([i for i, pKa in enumerate(all_pKas) if pKa < mid_pH])
+        smiles_list[major_i] = major_ms
     
     diss_table = []
     for i, pKa in enumerate(all_pKas):
@@ -119,3 +137,4 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7):
 if __name__ == "__main__":
     print "glycine", GetDissociationConstants('C(=O)(O)CN')
     print "CO2", GetDissociationConstants('O=C=O')
+    print "ATP", GetDissociationConstants('Nc1ncnc2n(cnc12)C1OC(COP([O-])(=O)OP([O-])(=O)OP(O)([O-])=O)C(O)C1O')
