@@ -731,7 +731,7 @@ def MakeOpts():
     opt_parser = OptionParser()
     opt_parser.add_option("-k", "--kegg", action="store_true",
                           dest="kegg", default=False,
-                          help="Calculate pKas all KEGG compounds")
+                          help="Calculate pKas all KEGG compounds (if False, calculates only for NIST compounds)")
     opt_parser.add_option("-s", "--smiles_file", action="store",
                           dest="smiles_file",
                           default="../data/kegg/smiles.csv",
