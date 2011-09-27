@@ -646,9 +646,12 @@ class DissociationTable(object):
                     nH = nH_below # creating a pseudoisomer with more nH than pdata
                 elif nH_above < pdata.hydrogens:
                     nH = nH_above # creating a pseudoisomer with less nH than pdata
-            elif nMg_below == nMg_above + 1:
+            elif nMg_below == nMg_above + 1: # this is a pK_Mg
                 nH = nH_below # it doesn't matter which, since nH_below == nH_above
                 nMg = nMg_below # since we always start from nMg=0 and go up
+            else: # this is the only pseudoisomer and therefore nH and nMg all equal
+                nH = nH_below
+                nMg = nMg_below
                     
             pseudoisomers[nH, nMg] = self.ConvertPseudoisomerEntry(pdata, nH, nMg)
             pseudoisomers[nH, nMg].ref = ref
