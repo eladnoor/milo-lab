@@ -138,6 +138,8 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             inchi = cd.get('InChI')
             num_electrons = cd.get('num_electrons')
             group_vector = cd.get('group_vector')
+            name = models.CommonName.GetOrCreate(cd['name'])
+        
             
             if formula is None:
                 raise KeyError('Missing formula for CID %s' % cid)
@@ -152,6 +154,7 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
                                 formula=formula,
                                 inchi=inchi,
                                 mass=mass,
+                                name=name,
                                 group_vector=group_vector)
             
             if num_electrons is not None:
@@ -169,8 +172,6 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
                     AddPmapToCompound(pmap, c)
             
             # Add the common names.
-            name = models.CommonName.GetOrCreate(cd['name'])
-            c.name = name
             names = GetOrCreateNames(cd['names'])
             for n in names:
                 c.common_names.add(n)
