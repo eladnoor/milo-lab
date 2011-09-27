@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 
-import os
 import sys
 import StringIO
 from django.core.management import setup_environ, call_command
 
 print "Setting Up Environment... ",
 try:
-	import settings # Assumed to be in the same directory.
+    import settings # Assumed to be in the same directory.
 except ImportError:
-	sys.stderr.write("Error: Can't find the file 'settings.py' in the directory containing %r.\n"
-									 "(If the file settings.py does indeed exist, it's causing an ImportError somehow.)\n" % __file__)
-	sys.exit(1)
+    sys.stderr.write("Error: Can't find the file 'settings.py' in the directory containing %r.\n"
+                                     "(If the file settings.py does indeed exist, it's causing an ImportError somehow.)\n" % __file__)
+    sys.exit(1)
 
 setup_environ(settings)
 print "Done"
@@ -44,7 +43,7 @@ queries = buffer.getvalue().split(';')[1:-2]
 
 cursor = connection.cursor()
 for query in queries:
-	cursor.execute(query.strip())
+    cursor.execute(query.strip())
 print "Done"
 
 print "Sync-ing Database... "
