@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import logging
 import itertools
 
 from genomics.histogram import Histogram
@@ -13,7 +14,6 @@ class ProjectedData(object):
     
         self.ind = self.raw_data.ind
         self.ind_vals = self.raw_data.ind_vals
-        self.names = self.raw_data.names
         self.dep_vals = self.ProjectAllBinary(self.raw_data.dep_vals)
     
     def DepCounts(self):
@@ -24,10 +24,10 @@ class ProjectedData(object):
     
     def Iterate(self, filter_values=None):
         ignores = set(filter_values or [])
-        for ind, dep, name in itertools.izip(self.ind_vals, self.dep_vals, self.names):
+        for ind, dep in itertools.izip(self.ind_vals, self.dep_vals):
             if dep in ignores:
                 continue
-            yield ind, dep, name
+            yield ind, dep
         
     def MakeHistogram(self, filter_values=None):
         return Histogram(self, filter_values=filter_values)

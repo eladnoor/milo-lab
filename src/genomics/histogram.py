@@ -13,8 +13,7 @@ class Histogram(object):
         self.projected_data = projected_data
         self.raw_data = projected_data.raw_data
         self.filter_values = filter_values
-        self.triples = list(self.projected_data.Iterate(filter_values=self.filter_values))
-        self.name_hist = self.MakeNameHist()
+        self.pairs = list(self.projected_data.Iterate(filter_values=self.filter_values))
         self.counts = self.MakeCounts()
         self.weights = self.MakeWeights()
         self.dep_keys = self.GetDepKeys()
@@ -26,30 +25,23 @@ class Histogram(object):
     def FilteredIndCounts(self):
         """Post-filtered counts."""
         c = {}
-        for ind, unused_dep, unused_name in self.triples:
+        for ind, unused_dep in self.pairs:
             c[ind] = c.get(ind, 0) + 1
         return c
 
     def FilteredDepCounts(self):
         """Post-filtered counts."""
         c = {}
-        for unused_ind, dep, unused_name in self.triples:
+        for unused_ind, dep in self.pairs:
             c[dep] = c.get(dep, 0) + 1
         return c
     
     def GetWeight(self, ind, dep):
         return self.weights.get(ind, {}).get(dep, 0.0)
     
-    def MakeNameHist(self):
-        names = {}
-        for ind, dep, name in self.triples:
-            pair = (ind, dep)
-            names.setdefault(pair, set()).add(name)
-        return names
-    
     def MakeCounts(self):
         counts = {}
-        for ind, dep, unused_name in self.triples:
+        for ind, dep in self.pairs:
             val_dict = counts.setdefault(ind, {})
             val_dict[dep] = val_dict.get(dep, 0) + 1
         return counts
