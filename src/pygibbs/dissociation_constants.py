@@ -805,7 +805,7 @@ if __name__ == '__main__':
             cids_to_calculate = set([options.cid])
         else:
             if options.kegg:
-                for cid in kegg.get_all_cids():
+                for cid in set(kegg.get_all_cids()).difference(cid2smiles.keys()):
                     try:
                         cid2smiles[cid] = kegg.cid2smiles(cid)
                     except KeggParseException:
