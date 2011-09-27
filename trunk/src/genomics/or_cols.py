@@ -23,18 +23,19 @@ def MakeOpts():
     
     return opt_parser
 
-def ToBool(str):
-    if not str:
+def ToBool(string):
+    if not string:
         return False
     
-    l = str.lower()
+    l = string.lower()
     return l == 'true'
 
 def Main():
     options, _ = MakeOpts().parse_args(sys.argv)
     assert options.input_filename and options.cols
 
-    colnames = options.cols.split(',')
+    colnames = map(str.strip, options.cols.split(','))
+    
 
     r = csv.DictReader(open(options.input_filename))
     for row in r:
