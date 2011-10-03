@@ -34,14 +34,17 @@ class GroupObservation(object):
     
     @staticmethod 
     def FromDatabaseRow(row, groups_data):
-        n_groups = len(groups_data.all_groups)
         obs = GroupObservation()
-        obs.groupvec = GroupVector(groups_data, row[0:n_groups])
-        obs.dG0, obs.name, obs.cid, obs.obs_type = row[n_groups:]
+        obs.name = row['name']
+        obs.cid = row['kegg_id']
+        obs.obs_type = row['obs_type']
+        obs.dG0 = row['dG0']
+        obs.groupvec = GroupVector.FromJSONString(groups_data, row['groupvec'])
         return obs
         
     def ToCsvRow(self):
-        return list(self.groupvec) + [self.dG0, self.name, self.id, self.obs_type]
+        return [self.name, self.id, self.obs_type, self.dG0, 
+                self.groupvec.ToJSONString()]
     
     def __hash__(self):
         return hash(str(self.groupvec))
@@ -530,8 +533,7 @@ class GroupObervationCollection(object):
 
         # the table 'group_observation' will contain all the observed data
         # that is used for training later
-        titles = ['%s REAL' % t for t in self.groupvec_titles] + \
-                 ['dG0 REAL', 'name TEXT', 'id TEXT', 'obs_type TEXT']
+        titles = ['name TEXT', 'kegg_id TEXT', 'obs_type TEXT', 'dG0 REAL', 'groupvec TEXT']
         self.db.CreateTable(self.OBSERVATION_TABLE_NAME, ','.join(titles),
                             drop_if_exists=True)
 
@@ -541,15 +543,14 @@ class GroupObervationCollection(object):
         
     def ToCSV(self, fname):
         csv_writer = csv.writer(open(fname, 'w'))
-        titles = ['%s REAL' % t for t in self.groupvec_titles] + \
-                 ['dG0 REAL', 'name TEXT', 'id TEXT', 'obs_type TEXT']
+        titles = ['name TEXT', 'kegg_id TEXT', 'obs_type TEXT', 'dG0 REAL', 'groupvec TEXT']
         csv_writer.writerow(titles)
         for obs in self.observations:
             csv_writer.writerow(obs.ToCsvRow())
             
     def FromDatabase(self):
         self.observations = []
-        for row in self.db.Execute("SELECT * FROM %s" % self.OBSERVATION_TABLE_NAME):
+        for row in self.db.DictReader(self.OBSERVATION_TABLE_NAME):
             obs = GroupObservation.FromDatabaseRow(row, self.groups_data)
             self.observations.append(obs)
         
