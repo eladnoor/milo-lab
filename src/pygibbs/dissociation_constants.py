@@ -11,6 +11,7 @@ from pygibbs.kegg_errors import KeggParseException
 from toolbox.html_writer import HtmlWriter
 from toolbox.molecule import Molecule, OpenBabelError
 from optparse import OptionParser
+import time
 
 class MissingDissociationConstantError(Exception):
     pass
@@ -767,6 +768,10 @@ def MakeOpts():
                           dest="cid",
                           default=None,
                           help="Calculate the dissociation table for a single KEGG compound")
+    opt_parser.add_option("-e", "--export_csv", action="store",
+                          dest="export_csv",
+                          default=None,
+                          help="Export all data from the database to CSV file")
     return opt_parser
 
 if __name__ == '__main__':
@@ -793,25 +798,32 @@ if __name__ == '__main__':
             "nMg_below INT, nMg_above INT, mol_below TEXT, mol_above TEXT, " 
             "ddG REAL, ref TEXT", drop_if_exists=options.override_table)
 
-        cid2smiles = {}
+        cid2smiles_and_mw = {}
         for row in csv.DictReader(open(options.smiles_file, 'r')):
             cid, smiles = int(row['cid']), row['smiles']
             logging.debug("Overriding the SMILES of C%05d with: %s" % (cid, smiles))
-            cid2smiles[cid] = smiles
+            # always start with the compounds in the CSV file, no matter what their MW is
+            cid2smiles_and_mw[cid] = (smiles, -1)
             
+        if options.export_csv is not None:
+            logging.info("Exporting data from database to " + options.export_csv)
+            db.Table2CSV(options.export_csv, options.table_name)
+            sys.exit(0)
         if options.cid:
-            if options.cid not in cid2smiles:
+            if options.cid not in cid2smiles_and_mw:
                 raise Exception("Cannot find the SMILES for C%05d" % options.cid)
             cids_to_calculate = set([options.cid])
         else:
             if options.kegg:
-                for cid in set(kegg.get_all_cids()).difference(cid2smiles.keys()):
+                for cid in set(kegg.get_all_cids()).difference(cid2smiles_and_mw.keys()):
                     try:
-                        cid2smiles[cid] = kegg.cid2smiles(cid)
+                        comp = kegg.cid2compound(cid)
+                        mol = comp.GetMolecule()
+                        cid2smiles_and_mw[cid] = (mol.ToSmiles(), mol.GetExactMass())
                     except KeggParseException:
                         logging.debug("%s (C%05d) has no SMILES, skipping..." %
                                       (kegg.cid2name(cid), cid))
-            cids_to_calculate = set(cid2smiles.keys())
+            cids_to_calculate = set(cid2smiles_and_mw.keys())
             
         if options.skip_calculated_compounds:
             # Do not recalculate pKas for CIDs that are already in the database
@@ -821,16 +833,23 @@ if __name__ == '__main__':
             cids_to_calculate.difference_update(cids_in_db)
             
         dissociation = DissociationConstants()
-        for cid in sorted(cids_to_calculate):
-            smiles = cid2smiles[cid]
-            logging.info("Using ChemAxon to find the pKa values for %s - C%05d" %
-                         (kegg.cid2name(cid), cid))
+        for cid in sorted(cids_to_calculate, key=lambda(cid):cid2smiles_and_mw[cid][1]):
+            smiles, mw = cid2smiles_and_mw[cid]
+            if not smiles:
+                logging.info("The following compound is blacklisted: %s - C%05d" %
+                             (kegg.cid2name(cid), cid))
+                continue
+            logging.info("Using ChemAxon to find the pKa values for %s - C%05d, MW = %g" %
+                         (kegg.cid2name(cid), cid, mw))
+            start_time = time.time()
+
             diss_table = Molecule._GetDissociationTable(smiles, format='smiles',
                 mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
             dissociation.cid2DissociationTable[cid] = diss_table
             
             name = kegg.cid2name(cid)
             html_writer.write('<h2>%s - C%05d</h2>\n' % (name, cid))
+            html_writer.write('Molecular Weight = %g gr/mole\n' % (mw))
             if diss_table is not None:
                 diss_table.WriteToHTML(html_writer, T=default_T)
                 html_writer.write('</br>\n')
@@ -839,6 +858,9 @@ if __name__ == '__main__':
             else:
                 db.Insert(options.table_name, [cid, name] + [None] * 8)
             db.Commit()
+
+            elapsed_time = time.time() - start_time
+            logging.info("Elapsed time = %s" % str(elapsed_time))
                 
     #cid2mol = {117:None}
     #dissociation = DissociationConstants.FromChemAxon(cid2mol, html_writer)

@@ -689,7 +689,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         diss_table = self.GetDissociationTable(cid)
         if diss_table is None:
             print "This compounds doesn't have a dissociation table"
-            return # TODO: replace this with the method that uses ChamAxon to find pKas
+            return
         mol = diss_table.GetMostAbundantMol(pH=default_pH, I=0, 
                                             pMg=14, T=default_T)
         if mol is None:
