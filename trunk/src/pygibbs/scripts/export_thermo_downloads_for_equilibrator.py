@@ -5,6 +5,7 @@ import subprocess
 thermo_sources = ('alberty', 'PGC')
 phs = ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5',
        '8.0', '8.5', '9.0']
+i_s = '0.1'
 
 for thermo in thermo_sources:
     for ph in phs:
@@ -18,5 +19,6 @@ for thermo in thermo_sources:
                 '-c', compounds_fname,
                 '-r', reactions_fname,
                 '-t', thermo,
-                '-H', ph]
+                '-H', ph,
+                '-I', i_s]
         subprocess.call(args)
