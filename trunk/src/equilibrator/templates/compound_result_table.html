@@ -64,7 +64,7 @@
 	<tr class="speciesSource {% if forloop.last and not forloop.parentloop.last %}last{%endif%}">
 		<td>{{ specie.net_charge }}</td>
 		<td>{{ specie.formation_energy|floatformat:1 }}</td>
-		<td>{% if specie.transformed_energy %}
+		<td>{% if specie.transformed_energy != None %}
 				{{ specie.transformed_energy|floatformat:1 }}
 				{% else %}
 					N/A
