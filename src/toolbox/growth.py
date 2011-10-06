@@ -110,9 +110,12 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         stationary_indices = filter(lambda x: x >= max_i, order)
         stationary_indices = pylab.array(filter(lambda x: res_mat[x,3] > 0,
                                                 stationary_indices))
-        stationary_level = res_mat[stationary_indices[0], 3]
         
-        if True:
+        stationary_level = 0.0
+        if stationary_indices.any():
+            stationary_level = res_mat[stationary_indices[0], 3]
+        
+        if False:
             pylab.hold(True)
             pylab.plot(times, norm_counts)
             pylab.plot(times, res_mat[:,0])
