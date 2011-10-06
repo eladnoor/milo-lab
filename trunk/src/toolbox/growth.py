@@ -2,16 +2,13 @@
 
 import pylab
 import numpy
+import scipy.optimize
 
 
 class GrowthCalculator(object):
     
     def __init__(self):
         pass
-    
-    @staticmethod
-    def ToMinutes(times):
-        return times / 60
     
     @staticmethod
     def NormalizeTimes(times):
@@ -36,7 +33,7 @@ class GrowthCalculator(object):
             baseline_levels: a 1d numpy.array of levels per timestamp
                 in a baseline condition.
         """
-        new_times = self.ToMinutes(self.NormalizeTimes(times))        
+        new_times = self.NormalizeTimes(times)        
         return self.CalculateGrowthInternal(new_times, levels)
     
     def CalculateStationary(self, times, levels):
@@ -130,14 +127,84 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
             
             pylab.yscale('log')
             pylab.legend(['OD', 'growth rate', 'threshold', 'fit', 'stationary'])
-            
-
         
         return res_mat[max_i, 0], stationary_level
 
 
+class FitSigmoidGrowthCalculator(GrowthCalculator):
+    
+    def __init__(self):
+        GrowthCalculator.__init__(self)
+    
+    @staticmethod
+    def Sigmoid(params, x):
+        x0,y0,c,k = params
+        y = c / (1 + numpy.exp(-k*(x-x0))) + y0
+        return y
+    
+    @staticmethod
+    def Residuals(params, x, y):
+        return y - FitSigmoidGrowthCalculator.Sigmoid(params, x)
+
+    @staticmethod
+    def FitSigmoid(x, y):
+        p_guess=(numpy.median(x), numpy.median(y),
+                 max(y), min(y))
+        p, cov, infodict, mesg, ier = scipy.optimize.leastsq(
+            FitSigmoidGrowthCalculator.Residuals,
+            p_guess, args=(x,y),
+            full_output=1)                        
+        return p
+    
+    @staticmethod
+    def Midpoint(params):
+        x0,y0,c,k = params
+        ymid = y0 + (c / 2.0)
+        xmid = (-1/k)*numpy.log((c/(ymid-y0)) - 1) + x0
+        return xmid, ymid 
+
+    @staticmethod
+    def GrowthRate(params):
+        x0,y0,c,k = params
+        xmid, ymid = FitSigmoidGrowthCalculator.Midpoint(params) 
+        e = numpy.exp(-k*(xmid-x0))
+        rate = k*c*e / (1+e)**2
+        offset = ymid - rate*xmid
+        return rate, offset
+    
+    @staticmethod
+    def Stationary(params):
+        x0,y0,c,k = params
+        return c + y0
+    
+    @staticmethod
+    def SigmoidStr(params):
+        x0,y0,c,k = params    
+        return '%.2g + %.2g / (1 + exp(%.2g (x - %.2g)))' % (y0, c, -k, x0)
+    
+    def CalculateGrowthInternal(self, times, levels):
+        new_levels = levels / max(levels)
+        new_times = times / (100.0*max(times))
+        log_levels = numpy.log(new_levels)
+        params = self.FitSigmoid(new_times, log_levels)
+        
+        print 'sigmoid'
+        print self.SigmoidStr(params)
+                
+        pylab.plot(new_times, log_levels, 'b.')
+        pylab.plot(new_times, self.Sigmoid(params, new_times), 'g-')
+        
+        slope, offset = self.GrowthRate(params)
+        pylab.plot(new_times, slope*new_times + offset, 'r-')
+
+        stationary = self.Stationary(params)
+        pylab.plot(new_times, pylab.ones(len(new_times))*stationary)
+        
+        return None, None
+
+
 if __name__ == '__main__':
-    """
+    
     noisy_vals =[0.0374,0.0363,0.0396,0.0396,0.0394,0.0393,0.0394,0.0394,0.0395,0.0395,
                  0.0397,0.0397,0.0398,0.0395,0.0399,0.0399,0.04,0.0402,0.04,0.0401,0.0402,
                  0.0405,0.0403,0.0406,0.0402,0.0407,0.0409,0.041,0.0411,0.0412,0.0414,0.0418,
@@ -147,15 +214,15 @@ if __name__ == '__main__':
                  0.1615,0.1762,0.1848,0.1962,0.2133,0.2276,0.2386,0.2501,0.2645,0.273,
                  0.2845,0.2947,0.3062,0.3115,0.3189,0.3274,0.3355,0.3401,0.3458,0.3464,
                  0.3494,0.358,0.3508,0.3537,0.3406,0.334,0.3411,0.3301,0.326]
-    """
-    times = [1.315494075e9,1.31549589e9,1.315497673e9,1.315499473e9,1.315501273e9,1.315503073e9,1.315504873e9,1.315506673e9,1.315508473e9,1.315510273e9,1.315512073e9,1.315513874e9,1.315515672e9,1.315517472e9,1.315519273e9,1.315521073e9,1.315522873e9,1.315524672e9,1.315526473e9,1.315528272e9,1.315530098e9,1.315531873e9,1.315533673e9,1.315535474e9,1.315537274e9,1.315539075e9,1.315540875e9,1.315542673e9,1.315544475e9,1.315546275e9,1.315548073e9,1.315549873e9,1.315551674e9,1.315553493e9,1.315555275e9,1.315557074e9,1.315558875e9,1.315560675e9,1.315562475e9,1.315564276e9,1.315566075e9,1.315567875e9,1.315569675e9,1.315571476e9,1.315573276e9,1.315575075e9,1.315576876e9,1.315578676e9]
-    noisy_vals = [5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.338541666666655e-3,7.2385416666666536e-3,9.638541666666653e-3,1.1738541666666658e-2,1.7638541666666653e-2,2.2438541666666652e-2,2.8338541666666654e-2,3.013854166666665e-2,3.403854166666665e-2,4.033854166666665e-2,4.693854166666666e-2,5.703854166666666e-2,6.783854166666667e-2,7.773854166666666e-2,9.023854166666664e-2,0.10373854166666666,0.11543854166666664,0.12933854166666664,0.14513854166666665,0.15813854166666666,0.17763854166666665,0.19113854166666666,0.19433854166666664,0.19213854166666666,0.19063854166666666,0.18833854166666664,0.18663854166666666,0.18543854166666665,0.18783854166666664,0.18783854166666664,0.18693854166666665,0.18263854166666665,0.17973854166666664,0.18753854166666664,0.18343854166666665,0.18523854166666665,0.18553854166666664]
-    times = pylab.array(times)
+    
+    #times = [1.315494075e9,1.31549589e9,1.315497673e9,1.315499473e9,1.315501273e9,1.315503073e9,1.315504873e9,1.315506673e9,1.315508473e9,1.315510273e9,1.315512073e9,1.315513874e9,1.315515672e9,1.315517472e9,1.315519273e9,1.315521073e9,1.315522873e9,1.315524672e9,1.315526473e9,1.315528272e9,1.315530098e9,1.315531873e9,1.315533673e9,1.315535474e9,1.315537274e9,1.315539075e9,1.315540875e9,1.315542673e9,1.315544475e9,1.315546275e9,1.315548073e9,1.315549873e9,1.315551674e9,1.315553493e9,1.315555275e9,1.315557074e9,1.315558875e9,1.315560675e9,1.315562475e9,1.315564276e9,1.315566075e9,1.315567875e9,1.315569675e9,1.315571476e9,1.315573276e9,1.315575075e9,1.315576876e9,1.315578676e9]
+    #noisy_vals = [5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.0e-3,5.338541666666655e-3,7.2385416666666536e-3,9.638541666666653e-3,1.1738541666666658e-2,1.7638541666666653e-2,2.2438541666666652e-2,2.8338541666666654e-2,3.013854166666665e-2,3.403854166666665e-2,4.033854166666665e-2,4.693854166666666e-2,5.703854166666666e-2,6.783854166666667e-2,7.773854166666666e-2,9.023854166666664e-2,0.10373854166666666,0.11543854166666664,0.12933854166666664,0.14513854166666665,0.15813854166666666,0.17763854166666665,0.19113854166666666,0.19433854166666664,0.19213854166666666,0.19063854166666666,0.18833854166666664,0.18663854166666666,0.18543854166666665,0.18783854166666664,0.18783854166666664,0.18693854166666665,0.18263854166666665,0.17973854166666664,0.18753854166666664,0.18343854166666665,0.18523854166666665,0.18553854166666664]
+    #times = pylab.array(times)
     levels = pylab.array(noisy_vals)
-    #times = pylab.arange(0,len(noisy_vals))*1800
+    times = pylab.array(map(float, range(len(noisy_vals))))
 
     
-    calculator = SlidingWindowGrowthCalculator(window_size=5, minimum_level=0.01)
+    calculator = SlidingWindowGrowthCalculator()
     rate, stationary = calculator.CalculateGrowth(times, levels)
     print rate, stationary
     
