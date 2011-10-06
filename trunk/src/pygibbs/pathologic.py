@@ -10,11 +10,10 @@ from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
 from pygibbs.feasibility import thermodynamic_pathway_analysis
 from pygibbs.kegg_utils import write_kegg_pathway
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.html_writer import HtmlWriter
 from toolbox import util
 from toolbox.database import SqliteDatabase
-
+from pygibbs.groups import GroupContribution
 
 class Pathologic(object):
     
@@ -53,11 +52,8 @@ class Pathologic(object):
         
         self.db_public = public_db
         self.db = db
-        self.observed_thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-                                self.db_public, 'alberty_pseudoisomers')
-        self.thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-                                self.db, 'gc_pseudoisomers')
-        self.thermo.override_data(self.observed_thermo)
+        self.thermo = GroupContribution(db=self.db, transformed=False)
+        self.thermo.init()
                 
         self.flux_relaxtion_factor = None
         self.kegg_patholotic = KeggPathologic()
@@ -111,11 +107,11 @@ class Pathologic(object):
         exp_html.write('</div><br>\n')
         
         logging.debug("All compounds:")
-        for c in xrange(len(compounds)):
-            logging.debug("%05d) C%05d = %s" % (c, compounds[c].cid, compounds[c].name))
+        for i, compound in enumerate(compounds):
+            logging.debug("%05d) C%05d = %s" % (i, compound.cid, compound.name))
         logging.debug("All reactions:")
-        for r in xrange(len(reactions)):
-            logging.debug("%05d) R%05d = %s" % (r, reactions[r].rid, str(reactions[r])))
+        for i, reaction in enumerate(reactions):
+            logging.debug("%05d) R%05d = %s" % (i, reaction.rid, str(reaction)))
 
         # Find a solution with a minimal total flux
         logging.info("Preparing the CPLEX object for solving the minimal flux problem")
@@ -245,12 +241,12 @@ def main():
     db = SqliteDatabase('../res/gibbs.sqlite', 'r')
     public_db = SqliteDatabase('../data/public_data.sqlite')
     html_writer = HtmlWriter('../res/pathologic.html')
-    update_file = '../data/thermodynamics/database_updates_with_MOG_reactions.txt'
+    update_file = '../data/thermodynamics/database_updates_fermentation.txt'
     pl = Pathologic(db,
                     public_db,
                     html_writer,
                     max_solutions=5,
-                    max_reactions=11,
+                    max_reactions=14,
                     thermodynamic_method='MTDF',
                     update_file=update_file)
     pl.thermo.c_range = (1e-6, 1e-2)
@@ -258,6 +254,7 @@ def main():
     # Handy reference
     atp = 2
     adp = 8
+    pi = 9
     nad = 3
     nadh = 4
     
@@ -271,10 +268,13 @@ def main():
     pyruvate = 22
     succinyl_coa = 91
     acetyl_coa = 24
+    lactate = 186
+    acetate = 33
+    carbon = 19202
     
-    source = {succinyl_coa:1}
-    target = {acetyl_coa:2}
-    name = "SCA => 2 ACA (min steps)"
+    source = {glucose:1, adp:2}
+    target = {carbon:6, atp:2}
+    name = "glu => 6 C (2 ATP)"
     pl.thermodynamic_method = 'global'
     
     #source = {glucose:1, adp:2, nad:2}

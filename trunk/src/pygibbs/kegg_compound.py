@@ -174,10 +174,16 @@ class Compound(object):
         return row
     
     def SetInChI(self, inchi):
-        self.inchi = inchi
-        self.mol = Molecule.FromInChI(inchi)
-        self.formula = self.mol.GetFormula()
-        self.mass = self.mol.GetExactMass() 
+        if inchi == None:
+            self.inchi = None
+            self.mol = None
+            self.formula = None
+            self.mass = None
+        else:
+            self.inchi = inchi
+            self.mol = Molecule.FromInChI(inchi)
+            self.formula = self.mol.GetFormula()
+            self.mass = self.mol.GetExactMass() 
     
     def get_atom_bag(self):
         """Returns a dict containing the count for

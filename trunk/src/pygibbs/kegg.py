@@ -347,11 +347,15 @@ class Kegg(Singleton):
                     comp.all_names = [row_dict['name']]
                     self.cid2compound_map[cid] = comp
                 if row_dict['inchi']:
-                    if comp.inchi:
+                    if comp.inchi and (comp.inchi in self.inchi2cid_map.keys()):
                         logging.debug('Overriding InChI for C%05d' % cid)
                         del self.inchi2cid_map[comp.inchi]
-                    comp.SetInChI(row_dict['inchi'])
-                    self.inchi2cid_map[row_dict['inchi']] = cid
+                    
+                    if row_dict['inchi'] == 'None':
+                        comp.SetInChI(None)
+                    else:
+                        comp.SetInChI(row_dict['inchi'])
+                        self.inchi2cid_map[row_dict['inchi']] = cid
             elif row_dict['inchi']:
                 if row_dict['inchi'] in self.inchi2cid_map:
                     raise Exception("The InChI for compound %s already exists "
@@ -951,7 +955,9 @@ class KeggPathologic(object):
             if ver is not None:
                 logging.debug("R%05d is %s, not adding it to Pathologic" % (rid, ver))
             else:
-                self.reactions += self.create_reactions("R%05d" % rid, reaction.direction, reaction.sparse, rid=rid)
+                r = Reaction("R%05d" % rid, reaction.sparse, 
+                             rid=rid, direction=reaction.direction)
+                self.reactions += self.create_reactions(r)
 
     def is_specific(self, reaction):
         for cid in reaction.sparse.keys():
@@ -1026,10 +1032,10 @@ class KeggPathologic(object):
             line = line.strip()
             if (line == ''):
                 continue
-            (command, rest) = line.split(' ', 1)
+            command, rest = line.split(' ', 1)
             line = rest.strip()
             
-            if (command == 'SETR'):
+            if command == 'SETR':
                 reaction_id, formula = line.split(':')
                 try:
                     reaction = Reaction.FromFormula(formula.strip())
@@ -1048,15 +1054,15 @@ class KeggPathologic(object):
                 #if ver != None:
                 #    html_writer.write(' <b>WARNING: %s' % ver)
                 added_reactions += rxns
-            elif (command == 'DELR'):
+            elif command == 'DELR':
                 rid = int(line[1:])
                 html_writer.write("<li><b>Ban Reaction,</b> R%05d" % (rid))
                 banned_reactions.add(rid)
-            elif (command == 'DELC'):
+            elif command == 'DELC':
                 cid = int(line[1:])
                 banned_compounds.add(cid)
                 html_writer.write("<li><b>Ban Compound,</b> C%05d" % (cid))
-            elif (command == 'COFR'): # cofactor
+            elif command == 'COFR': # cofactor
                 if len(line.split()) == 1:
                     name = line.strip()
                     self.cofactors.add(name)
@@ -1120,7 +1126,7 @@ class KeggPathologic(object):
             res.append(r_forward)
         if reaction.direction in ["<=", "<=>"]:
             r_reverse = reaction.reverse()
-            r_reverse.SetNames("R%05d_F" % reaction.rid)
+            r_reverse.SetNames("R%05d_R" % reaction.rid)
             r_reverse.weight = weight
             res.append(r_reverse)
         return res
