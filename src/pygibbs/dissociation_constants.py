@@ -8,10 +8,10 @@ from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
-from toolbox.html_writer import HtmlWriter
 from toolbox.molecule import Molecule, OpenBabelError
 from optparse import OptionParser
 import time
+import threading
 
 class MissingDissociationConstantError(Exception):
     pass
@@ -20,6 +20,7 @@ class DissociationConstants(object):
     
     def __init__(self):
         self.cid2DissociationTable = {}
+        self.kegg = Kegg.getInstance()
     
     def ToDatabase(self, db, table_name):
         """
@@ -316,7 +317,7 @@ class DissociationConstants(object):
     def WriteToHTML(self, html_writer):
         for cid in sorted(self.GetAllCids()):
             diss_table = self.GetDissociationTable(cid)
-            html_writer.write('<h2>%s - C%05d</h2>\n' % (kegg.cid2name(cid), cid))
+            html_writer.write('<h2>%s - C%05d</h2>\n' % (self.kegg.cid2name(cid), cid))
             if diss_table is not None:
                 diss_table.WriteToHTML(html_writer)
                 html_writer.write('</br>\n')
@@ -730,6 +731,46 @@ class DissociationTable(object):
         return pmap
 
 ###############################################################################
+
+class DissociationThreads(threading.Thread):
+    
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+        """
+            args should contain (cid, smiles, semaphore)
+        """
+        threading.Thread.__init__(self, group, target, name, args, kwargs)
+        self.cid, self.smiles, self.semaphore, self.db_lock, self.options = args
+    
+    def run(self):
+        self.semaphore.acquire()
+        
+        start_time = time.time()
+
+        diss_table = Molecule._GetDissociationTable(self.smiles, format='smiles',
+            mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
+        
+        elapsed_time = time.time() - start_time
+        self.db_lock.acquire()
+        db = SqliteDatabase(self.options.db_file)
+        kegg = Kegg.getInstance()
+        name = kegg.cid2name(self.cid)
+        
+        if diss_table is not None:
+            for row in diss_table.ToDatabaseRow():
+                db.Insert(self.options.table_name, [self.cid, name] + row)
+        else:
+            db.Insert(self.options.table_name, [self.cid, name] + [None] * 8)
+        del db
+        self.db_lock.release()
+
+        logging.info("Completed C%05d, elapsed time = %.1f sec" %
+                     (self.cid, elapsed_time))
+
+        self.semaphore.release()
+
+        
+###############################################################################
+
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
@@ -744,10 +785,6 @@ def MakeOpts():
                           dest="dissociation_file",
                           default=None,
                           help="Copy all pKas from an input CSV file (overrides using ChemAxon)")
-    opt_parser.add_option("-l", "--log_file", action="store",
-                          dest="log_file",
-                          default="../res/dissociation_constants.html",
-                          help="Destination file for writing the log (HTML)")
     opt_parser.add_option("-d", "--database", action="store",
                           dest="db_file",
                           default="../res/gibbs.sqlite",
@@ -760,10 +797,6 @@ def MakeOpts():
                           dest="override_table",
                           default=False,
                           help="Drop the DB table and start from scratch")
-    opt_parser.add_option("-u", "--skip_calculated", action="store_true",
-                          dest="skip_calculated_compounds",
-                          default=False,
-                          help="Do not calculate pKas for compounds that are in the DB")
     opt_parser.add_option("-c", "--cid", action="store", type="int",
                           dest="cid",
                           default=None,
@@ -772,17 +805,20 @@ def MakeOpts():
                           dest="export_csv",
                           default=None,
                           help="Export all data from the database to CSV file")
+    opt_parser.add_option("-p", "--threads", action="store", type="int",
+                          dest="n_threads",
+                          default=1,
+                          help="Number of threads to use in parallel for calculating pKas")
     return opt_parser
 
-if __name__ == '__main__':
-    options, args = MakeOpts().parse_args(sys.argv)
+
+def main():
+    options, _ = MakeOpts().parse_args(sys.argv)
     db = SqliteDatabase(options.db_file)
     kegg = Kegg.getInstance()
-    html_writer = HtmlWriter(options.log_file)
     
     logging.info("Using SQLite database: " + options.db_file)
     logging.info("Writing to table: " + options.table_name)
-    logging.info("Writing logs to HTML file: " + options.log_file)
 
     if options.override_table:
         db.Execute("DROP TABLE IF EXISTS " + options.table_name)
@@ -792,92 +828,58 @@ if __name__ == '__main__':
                      (options.dissociation_file, options.table_name))
         DissociationConstants.FromFileToDB(options.dissociation_file, 
             db, options.table_name)
+        sys.exit(0)
+
+    db.CreateTable(options.table_name,
+        "cid INT, name TEXT, nH_below INT, nH_above INT, " 
+        "nMg_below INT, nMg_above INT, mol_below TEXT, mol_above TEXT, " 
+        "ddG REAL, ref TEXT", drop_if_exists=options.override_table)
+
+    cid2smiles_and_mw = {}
+    for row in csv.DictReader(open(options.smiles_file, 'r')):
+        cid, smiles = int(row['cid']), row['smiles']
+        logging.debug("Overriding the SMILES of C%05d with: %s" % (cid, smiles))
+        # always start with the compounds in the CSV file, no matter what their MW is
+        cid2smiles_and_mw[cid] = (smiles, -1)
+        
+    if options.export_csv is not None:
+        logging.info("Exporting data from database to " + options.export_csv)
+        db.Table2CSV(options.export_csv, options.table_name)
+        sys.exit(0)
+    if options.cid:
+        if options.cid not in cid2smiles_and_mw:
+            raise Exception("Cannot find the SMILES for C%05d" % options.cid)
+        cids_to_calculate = set([options.cid])
     else:
-        db.CreateTable(options.table_name,
-            "cid INT, name TEXT, nH_below INT, nH_above INT, " 
-            "nMg_below INT, nMg_above INT, mol_below TEXT, mol_above TEXT, " 
-            "ddG REAL, ref TEXT", drop_if_exists=options.override_table)
-
-        cid2smiles_and_mw = {}
-        for row in csv.DictReader(open(options.smiles_file, 'r')):
-            cid, smiles = int(row['cid']), row['smiles']
-            logging.debug("Overriding the SMILES of C%05d with: %s" % (cid, smiles))
-            # always start with the compounds in the CSV file, no matter what their MW is
-            cid2smiles_and_mw[cid] = (smiles, -1)
-            
-        if options.export_csv is not None:
-            logging.info("Exporting data from database to " + options.export_csv)
-            db.Table2CSV(options.export_csv, options.table_name)
-            sys.exit(0)
-        if options.cid:
-            if options.cid not in cid2smiles_and_mw:
-                raise Exception("Cannot find the SMILES for C%05d" % options.cid)
-            cids_to_calculate = set([options.cid])
-        else:
-            if options.kegg:
-                for cid in set(kegg.get_all_cids()).difference(cid2smiles_and_mw.keys()):
-                    try:
-                        comp = kegg.cid2compound(cid)
-                        mol = comp.GetMolecule()
-                        cid2smiles_and_mw[cid] = (mol.ToSmiles(), mol.GetExactMass())
-                    except KeggParseException:
-                        logging.debug("%s (C%05d) has no SMILES, skipping..." %
-                                      (kegg.cid2name(cid), cid))
-            cids_to_calculate = set(cid2smiles_and_mw.keys())
-            
-        if options.skip_calculated_compounds:
-            # Do not recalculate pKas for CIDs that are already in the database
-            cids_in_db = set()
-            for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
-                cids_in_db.add(row[0])
-            cids_to_calculate.difference_update(cids_in_db)
-            
-        dissociation = DissociationConstants()
-        for cid in sorted(cids_to_calculate, key=lambda(cid):cid2smiles_and_mw[cid][1]):
-            smiles, mw = cid2smiles_and_mw[cid]
-            if not smiles:
-                logging.info("The following compound is blacklisted: %s - C%05d" %
-                             (kegg.cid2name(cid), cid))
-                continue
-            logging.info("Using ChemAxon to find the pKa values for %s - C%05d, MW = %g" %
-                         (kegg.cid2name(cid), cid, mw))
-            start_time = time.time()
-
-            diss_table = Molecule._GetDissociationTable(smiles, format='smiles',
-                mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
-            dissociation.cid2DissociationTable[cid] = diss_table
-            
-            name = kegg.cid2name(cid)
-            html_writer.write('<h2>%s - C%05d</h2>\n' % (name, cid))
-            html_writer.write('Molecular Weight = %g gr/mole\n' % (mw))
-            if diss_table is not None:
-                diss_table.WriteToHTML(html_writer, T=default_T)
-                html_writer.write('</br>\n')
-                for row in diss_table.ToDatabaseRow():
-                    db.Insert(options.table_name, [cid, name] + row)
-            else:
-                db.Insert(options.table_name, [cid, name] + [None] * 8)
-            db.Commit()
-
-            elapsed_time = time.time() - start_time
-            logging.info("Elapsed time = %s" % str(elapsed_time))
-                
-    #cid2mol = {117:None}
-    #dissociation = DissociationConstants.FromChemAxon(cid2mol, html_writer)
-    #for cid in cid2mol.keys():
-    #    diss_table = dissociation.GetDissociationTable(cid)
-    #    print "*** C%05d ***" % cid
-    #    print diss_table
-            
-    #dissociation1 = DissociationConstants.FromDatabase(db,'dissociation_constants')
-    #dissociation2 = DissociationConstants.FromDatabase(db,'dissociation_constants_chemaxon')
-    #reaction = Reaction(names='dihydroorotase', sparse_reaction={1:-1, 337:-1, 438:1})
+        if options.kegg:
+            for cid in set(kegg.get_all_cids()).difference(cid2smiles_and_mw.keys()):
+                try:
+                    comp = kegg.cid2compound(cid)
+                    mol = comp.GetMolecule()
+                    cid2smiles_and_mw[cid] = (mol.ToSmiles(), mol.GetExactMass())
+                except KeggParseException:
+                    logging.debug("%s (C%05d) has no SMILES, skipping..." %
+                                  (kegg.cid2name(cid), cid))
+        cids_to_calculate = set(cid2smiles_and_mw.keys())
+        
+    # Do not recalculate pKas for CIDs that are already in the database
+    for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
+        if row[0] in cids_to_calculate:
+            cids_to_calculate.remove(row[0])
+    cids_to_calculate = list(cids_to_calculate)
+    cids_to_calculate.sort(key=lambda(cid):(cid2smiles_and_mw[cid][1], cid))
     
-    #for cid in reaction.get_cids():
-    #    print "C%05d" % cid
-    #    print dissociation1.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
-    #    print dissociation2.GetDissociationTable(cid).GetTransformedDeltaGs(pH=7, I=0, pMg=0, T=298.15)
+    db_lock = threading.Lock()
+    semaphore = threading.Semaphore(options.n_threads)
+    for cid in cids_to_calculate:
+        smiles, _ = cid2smiles_and_mw[cid]
+        if not smiles:
+            logging.info("The following compound is blacklisted: C%05d" % cid)
+            continue
 
-    #print dissociation1.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
-    #print dissociation2.ReverseTransformReaction(reaction, pH=7, I=0, pMg=0, T=298.15, cid2nH={1:2, 438:6, 337:5})
+        thread = DissociationThreads(group=None, target=None, name=None,
+                                     args=(cid, smiles, semaphore, db_lock, options), kwargs={})
+        thread.start()
     
+if __name__ == '__main__':
+    main()
