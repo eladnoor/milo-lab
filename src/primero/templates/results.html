@@ -1,0 +1,24 @@
+<html>
+	<title>Primero Results</title>
+    <head>
+        <center><a href="../search/"><img src="/media/capture.jpg" alt="Primero"/></a></center>
+    </head>
+<body>
+<h1 align=center>Results for: "{{query}}"</h1>
+
+<table border="1" align="center">
+<tr><td><b>Primer</b></td><td><b>Box</b></td><td><b>Location</b></td><td><b>Sequence</b></td></tr>
+{% for item in primers_list %}
+    <tr>
+        <td><a href="../update_loc/?query={{query}}&loc_id={{item.loc_id}}#" title="update location">{{item.name}}</a></td>
+        <td>{{ item.box }}</td>
+        <td>{{ item.row|upper }}{{ item.col }}</td>
+        <td>{{ item.seq }}</td>
+    </tr>
+{% endfor %}
+</table>
+<p align="center">
+    Click on the name of the primer to change its location or to delete it completely
+</p>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<html>
+	<title>Primers location valiated</title>
+    <head>
+        <center><a href="../search/"><img src="/media/capture.jpg" alt="Primero"/></a></center>
+    </head>
+<body>
+
+<h2 align="center">Please place the following primers in their new locations: </h2>
+<table border="1" align="center">
+<tr><td><b>Primer</b></td><td><b>Box</b></td><td><b>Well</b></td></tr>
+{% for item in primers_list %}
+    <tr><td>{{item.name}}</td><td>{{ item.box }}</td><td>{{ item.row }}{{ item.col }}</td></tr>
+{% endfor %}
+</table>
+
+<p align="center">
+<a href="../pending/">Continue to submit/delete</a>
+</p>
+
+</body>
+</html>
