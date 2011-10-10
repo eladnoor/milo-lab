@@ -1,0 +1,29 @@
+<html>
+    <title>Change Location</title>
+    <head>
+        <center><a href="../search/"><img src="/media/capture.jpg" alt="Primero"/></a></center>
+    </head>
+<body>
+    </br></br></br></br>
+    <h3 align="center">Change location of primer</h3>
+    <center>
+    <table border="0">
+    <tr><td>Primer:</td><td>{{primer.name}}</td></tr>
+    <tr><td>Sequence:</td><td>{{primer.seq}}</td></tr>    
+    <form action="../update_loc/?query={{query}}&loc_id={{primer.loc_id}}#" method="POST">
+        <tr><td>Box:</td><td><input type="text" name="box" size="5" value="{{primer.box}}"/></td></tr>
+        <tr><td>Row:</td><td><input type="text" name="row" size="5" value="{{primer.row|upper}}"/></td></tr>
+        <tr><td>Column:</td><td><input type="text" name="col" size="5" value="{{primer.col}}"/></td></tr>
+        <tr><td>
+        </br>
+        </br>
+        </td></tr>
+        <tr>
+        <td><input type="submit" value="Submit" name="Submit"/></td>
+        <td><input type="submit" value="Delete" name="Delete"/></td>
+        </tr>
+    </form>
+    </table>
+    </center>
+</body>
+</html>

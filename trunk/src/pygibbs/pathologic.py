@@ -272,9 +272,9 @@ def main():
     acetate = 33
     carbon = 19202
     
-    source = {glucose:1, adp:2}
-    target = {carbon:6, atp:2}
-    name = "glu => 6 C (2 ATP)"
+    source = {glucose:1, adp:3}
+    target = {lactate:2, atp:3}
+    name = "glu => 2 lactate (3 ATP)"
     pl.thermodynamic_method = 'global'
     
     #source = {glucose:1, adp:2, nad:2}

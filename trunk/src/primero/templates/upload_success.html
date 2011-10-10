@@ -1,0 +1,30 @@
+<html>
+    <title>Primero Results</title>
+    <head>
+        <center><a href="../search/"><img src="/media/capture.jpg" alt="Primero"/></a></center>
+    </head>
+<body>
+
+    <table border="1" align="center">
+    <tr><td><b>Primer</b></td><td><b>Sequence</b></td></tr>
+    {% for item in primers_list %}
+        <tr><td>{{item.name}}</td><td>{{item.seq}}</td></tr>
+    {% endfor %}
+    </table>
+    
+    </br></br></br></br>
+
+    <center>
+    <form action="../upload/" enctype="multipart/form-data" method="post">
+    Upload another PDF:
+    <input type="file" name="file" size="40">
+    <input type="submit" value="Send">
+    </form>
+    </center>
+    
+    <p align="center">
+        <a href="../pending/">Handle pending primers</a>
+    </p>
+
+</body>
+</html>
