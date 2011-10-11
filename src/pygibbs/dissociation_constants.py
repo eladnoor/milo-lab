@@ -515,7 +515,10 @@ class DissociationTable(object):
             self.SetCharge(nH, z, nMg)
     
     def UpdateMinNumHydrogens(self, min_nH):
-        if not self.min_nH or self.min_nH > min_nH: 
+        if not self.min_nH:
+            self.min_nH = min_nH
+        elif self.min_nH > min_nH: 
+            self.min_charge -= (self.min_nH - min_nH)
             self.min_nH = min_nH
 
     def GetSingleStep(self, nH_from, nH_to, nMg_from, nMg_to):
