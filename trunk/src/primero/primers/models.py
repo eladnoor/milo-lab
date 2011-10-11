@@ -34,15 +34,29 @@ class Primer(models.Model):
         return self.name
     
     @staticmethod
-    def get_loc_id(box, row, col):
+    def BoxRowCol2LocID(box, row, col):
         return (box-1)*81 + (ord(row)-ord('A'))*9 + (col-1)
     
     @staticmethod
-    def loc_id2location(loc_id):
+    def LocID2BoxRowCol(loc_id):
         box = int(floor(loc_id / 81)) + 1
         residual = loc_id % 81
         row = chr(int(floor(residual / 9)) + 65)
         residual = residual % 9
         col = residual + 1
         return box, row, col
+    
+    @staticmethod
+    def GetNextAvailableLocID():
+        existing_primers = Primer.objects.all()
+        set_of_ids = set()
+        for primer in existing_primers:
+            set_of_ids.add(primer.loc_id)
+        if len(set_of_ids) == 0:
+            return 0
+        else:
+            all_ints_in_range = set(range(1, max(set_of_ids) + 2))
+            available_ids = all_ints_in_range.difference(set_of_ids)
+            return min(available_ids)
+
     
