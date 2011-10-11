@@ -52,7 +52,7 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         self.window_size = window_size
         self.minimum_level = minimum_level
 
-    def CalculateGrowthInternal(self, times, levels):
+    def CalculateRates(self, times, levels):
         N = len(levels)    
         t_mat = pylab.matrix(times).T
         
@@ -84,6 +84,12 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
             res_mat[i, 1] = a[1]
             res_mat[i, 2] = residues
             res_mat[i, 3] = pylab.mean(count_matrix[i_range,0])
+        
+        return res_mat
+        
+
+    def CalculateGrowthInternal(self, times, levels):
+        res_mat = self.CalculateRates(times, levels)
 
         """
         for i in range(N):

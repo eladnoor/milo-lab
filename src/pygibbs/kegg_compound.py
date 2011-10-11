@@ -280,7 +280,7 @@ class Compound(object):
         
         return "C%05d" % self.cid
 
-    def ToJSONDict(self, verbose=False):
+    def ToJSONDict(self, light=False):
         """Converts to a JSON-formatted dictionary."""
         d = {'CID': self.get_string_cid(),
              'mass': self.mass,
@@ -290,7 +290,8 @@ class Compound(object):
         d['name'] = self.name
         
         # rid of duplicate names and convert to ASCII
-        d['names'] = sorted(set([str(x) for x in self.all_names]))
+        if not light:
+            d['names'] = sorted(set([str(x) for x in self.all_names]))
 
         try:
             d['InChI'] = self.get_inchi()
@@ -307,7 +308,7 @@ class Compound(object):
         elif self.pmap_error:
             d['error'] = self.pmap_error
 
-        if self.groupvector_string:
+        if self.groupvector_string and not light:
             d['group_vector'] = self.groupvector_string
             
         return d
