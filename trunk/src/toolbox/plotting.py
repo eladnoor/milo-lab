@@ -98,6 +98,7 @@ def bubble_plot(x, y, s, e=None, c=None, figure=None):
             y - a list of y-values for the bubbles
             s - a list of the areas of the bubbles
             e - a list of pairs of min and max areas for the error bars
+            c - a list of RGB-tuples
             
     """
     if figure is None:
