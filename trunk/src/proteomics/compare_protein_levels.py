@@ -3,7 +3,8 @@
 
 import pylab
 import sys
-import csv
+import cvxmod
+
 from proteomics import util
 from optparse import OptionParser
 
@@ -17,9 +18,17 @@ def MakeOpts():
     opt_parser.add_option("-a", "--protein_levels_a",
                           dest="protein_levels_a",
                           help="input CSV of protein levels")
+    opt_parser.add_option("-l", "--a_label",
+                          dest="a_label",
+                          default="Protein levels A",
+                          help="label for levels A")
     opt_parser.add_option("-b", "--protein_levels_b",
                           dest="protein_levels_b",
                           help="input CSV of second protein levels")
+    opt_parser.add_option("-m", "--b_label",
+                          dest="b_label",
+                          default="Protein levels B",
+                          help="label for levels B")
     return opt_parser
     
 
@@ -32,49 +41,69 @@ def Main():
     print 'Reading genes list from', options.genes_filename
     gene_ids = util.ReadProteinIDs(options.genes_filename)
     
-    print 'Reading protein data from', options.protein_levels_a
+    print 'Reading protein data A from', options.protein_levels_a
     gene_counts_a = util.ReadProteinCounts(options.protein_levels_a)
-    total_a = sum(gene_counts_a.values())
-    print 'Reading protein data from', options.protein_levels_b
+    print 'Reading protein data B from', options.protein_levels_b
     gene_counts_b = util.ReadProteinCounts(options.protein_levels_b)
-    total_b = sum(gene_counts_b.values())
 
     my_counts_a = dict((id, (count, name)) for id, name, count in
                        util.ExtractCounts(gene_counts_a, gene_ids))
     my_counts_b = dict((id, (count, name)) for id, name, count in
                        util.ExtractCounts(gene_counts_b, gene_ids))
-    
+        
     overlap_ids = set(my_counts_a.keys()).intersection(my_counts_b.keys())
     x = pylab.matrix([my_counts_a[id][0] for id in overlap_ids])
     y = pylab.matrix([my_counts_b[id][0] for id in overlap_ids])
     labels = [my_counts_b[id][1] for id in overlap_ids]
-    x = pylab.log(x)
-    y = pylab.log(y)
     
-    print x
-    print y
-    mx = pylab.vstack([x, pylab.ones(x.shape)]).T
-    my = pylab.matrix(y).T
-    print mx.shape
-    print my.shape
-    a = pylab.lstsq(mx, my)[0]
-    slope = a[0, 0]
-    offset = a[1, 0]
-    print slope, offset
+    xlog = pylab.log10(x)
+    ylog = pylab.log10(y)
+    a = cvxmod.optvar('a', 1)
+    mx = cvxmod.matrix(xlog.T)
+    my = cvxmod.matrix(ylog.T)
+    
+    p = cvxmod.problem(cvxmod.minimize(cvxmod.norm2(my - a - mx)))
+    p.solve(quiet=True)
+    offset = cvxmod.value(a)
+    lin_factor = 10**offset
+    lin_label = 'Y = %.2g*X' % lin_factor
+    log_label = 'log10(Y) = %.2g + log10(X)' % offset
+    
+    f1 = pylab.figure(0)
+    pylab.title('Linear scale')
+    xylim = max([x.max(), y.max()]) + 5000
+    linxs = pylab.arange(0.0, xylim, 0.1)
+    linys = linxs * lin_factor
+    pylab.plot(x.tolist()[0], y.tolist()[0], 'g.', label='Protein Data')
+    pylab.plot(linxs, linys, 'b-', label=lin_label)
+    for x_val, y_val, label in zip(x.tolist()[0], y.tolist()[0], labels):
+        pylab.text(x_val, y_val, label, fontsize=8)
 
-    xylim = max([x.max(), y.max()])
+    pylab.xlabel(options.a_label)
+    pylab.ylabel(options.b_label)
+    pylab.legend()
     pylab.xlim((0.0, xylim))
     pylab.ylim((0.0, xylim))
     
-    pylab.plot(x, y, 'g.')
+    f2 = pylab.figure(1)
+    pylab.title('Log10 scale')
+    xylim = max([xlog.max(), ylog.max()]) + 1.0    
+    pylab.plot(xlog.tolist()[0], ylog.tolist()[0], 'g.', label='Log10 Protein Data')
     linxs = pylab.arange(0.0, xylim, 0.1)
-    linys = slope * linxs + offset
-    print linxs, linys
-    pylab.plot(linxs, linys, 'b-')
-    for x_val, y_val, label in zip(x, y, labels):
-        pylab.text(x_val+0.1, y_val+0.1, label, fontsize=8)
+    linys = linxs + offset
+    pylab.plot(linxs, linys, 'b-', label=log_label)
     
-
+    for x_val, y_val, label in zip(xlog.tolist()[0], ylog.tolist()[0], labels):
+        pylab.text(x_val, y_val, label, fontsize=8)
+    
+    pylab.xlabel(options.a_label + ' (log10)')
+    pylab.ylabel(options.b_label + ' (log10)')
+    pylab.legend()
+    pylab.xlim((0.0, xylim))
+    pylab.ylim((0.0, xylim))
+    
+    
+    
     pylab.show()
         
     

@@ -3,11 +3,10 @@ import csv
 import sys, os, subprocess
 import wx
 import wx.grid as gridlib
-import tecan
 
 from database import MySQLDatabase
 from os import path
-
+from toolbox import tecan
 
 PLOT_EXP_DATA_EXE = 'plotExpData'
 PLOT_EXP_DATA_LINUX = '/home/ayelet/pyrobot/PlotExpData'
@@ -610,8 +609,8 @@ class MyPanel(wx.Panel):
     
         #message = "Importing data into DB..."
         #self.busy = PBI.PyBusyInfo(message, parent=None, title="Importing to DB")
-        MES = toolbox.tecan.CollectData(tar_fname, number_of_plates)
-        exp_id = toolbox.tecan.GetExpDate(MES)
+        MES = tecan.CollectData(tar_fname, number_of_plates)
+        exp_id = tecan.GetExpDate(MES)
         self.db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
         """dlg = wx.ProgressDialog("Retriving data from DB",
                                "Time Remaining",
@@ -908,8 +907,8 @@ class MyPanel(wx.Panel):
             plot_growth_rate = (dialog.ShowModal() == wx.ID_YES)
             dialog.Destroy()
 
-            toolbox.tecan.PlotGrowthCurves(data, pdf_fname,
-                                           plot_growth_rate=plot_growth_rate)
+            tecan.PlotGrowthCurves(data, pdf_fname,
+                                   plot_growth_rate=plot_growth_rate)
             dlg = wx.MessageDialog(self, 'Plots written succesfully to:\n%s' % pdf_fname,
                             'Done Plotting',
                             wx.OK | wx.ICON_INFORMATION)

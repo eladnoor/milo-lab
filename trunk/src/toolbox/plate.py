@@ -54,7 +54,7 @@ class Plate96(object):
             wells[row][col].setdefault(reading_label, []).append(m)
         
         return Plate96(wells, reading_labels)
-            
+    
     def SelectReading(self, reading_label):
         if reading_label not in self.reading_labels:
             return []
@@ -83,21 +83,44 @@ if __name__ == '__main__':
     
     p = Plate96.FromDatabase(db, exp_id, plate)
     times, ods, labels = p.SelectReading('OD600')
+    gfp_times, gfps, _labels = p.SelectReading('GFP')
     blanks = pylab.find(labels == 'BLANK')
     promoterless = pylab.find(labels == 'AZ01 F3 U66')
-
-
+    
     f1 = pylab.figure(0)
-    pylab.plot(times[blanks, :], ods[blanks, :], 'b.', figure=f1)
-    pylab.plot(times[promoterless, :], ods[promoterless, :], 'g.', figure=f1)    
+    pylab.semilogy(times[blanks, :], ods[blanks, :], 'b.', figure=f1)
+    pylab.semilogy(times[promoterless, :], ods[promoterless, :], 'g.', figure=f1)
+    pylab.title('OD600')
     
-
+    calculator = growth.SlidingWindowGrowthCalculator(window_size=6, minimum_level=0.01)
+    n = promoterless.size
+    all_rates = []
+    all_errors = []
     f2 = pylab.figure(1)
-    pylab.plot(times, numpy.log(ods), 'b.', figure=f2)
+    for i in xrange(n):
+        rates = calculator.CalculateRates(gfp_times[promoterless[i], :],
+                                          gfps[promoterless[i], :])
+        all_rates.append(rates[:, 0])
+        all_errors.append(rates[:, 2])
+        pylab.errorbar(gfp_times[promoterless[i], :],
+                       rates[:, 0].T,
+                       yerr=rates[:, 2].T,
+                       fmt='g.', figure=f2)
+    pylab.title('GFP Growth Rate')
+    
+    f3 = pylab.figure(2)
+    pylab.semilogy(gfp_times[blanks, :], gfps[blanks, :], 'b.', figure=f3)
+    pylab.semilogy(gfp_times[promoterless, :], gfps[promoterless, :], 'g.', figure=f3)
+    pylab.title('GFP')
     
     
+    f4 = pylab.figure(3)
+    gfp_to_od = gfps / ods
+    pylab.semilogy(gfp_times[blanks, :], gfp_to_od[blanks, :], 'b.', figure=f3)
+    pylab.semilogy(gfp_times[promoterless, :], gfp_to_od[promoterless, :], 'g.', figure=f3)
+    pylab.title('GFP/OD600')
     
-    calculator = growth.SlidingWindowGrowthCalculator()
+    
     rows, _ = times.shape
     rates = []
     stationaries = []
@@ -106,11 +129,13 @@ if __name__ == '__main__':
         rates.append(rate)
         stationaries.append(stationary)
     
+    """
     f3 = pylab.figure(2)
     pylab.hist(rates, figure=f3)
     
     f4 = pylab.figure(3)
     pylab.hist(stationaries, figure=f3)
+    """
     pylab.show()
     
     
