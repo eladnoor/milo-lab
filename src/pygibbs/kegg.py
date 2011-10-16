@@ -250,6 +250,8 @@ class Kegg(Singleton):
             ecs = set()
             for reaction in self.rid2reaction_map.values():
                 ecs.update(reaction.ec_list)
+            if '-.-.-.-' in ecs:
+                ecs.remove('-.-.-.-')
             ec_list = list(ecs)
         
         kegg_step = 100
