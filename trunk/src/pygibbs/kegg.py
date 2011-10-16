@@ -235,7 +235,39 @@ class Kegg(Singleton):
 
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
+    
+    def FetchMissingECs(self, ec_list=None):
+        """Get specific ECs using the API.
+        
+        Args:
+            ec_list: the list of ECs to fetch. If None, fetch all
+                ECs for which there are reactions but no enzymes in the DB.
+        """
+        logging.info("Connecting to KEGG using SOAP")
+        serv = WSDL.Proxy(Kegg.WSDL_URL)
+        
+        if ec_list == None:
+            ecs = set()
+            for reaction in self.rid2reaction_map.values():
+                ecs.update(reaction.ec_list)
+            ec_list = list(ecs)
+        
+        kegg_step = 100
+        wanted_ecs = set(ec_list)
+        all_ecs = set(self.ec2enzyme_map.keys())
+        remaining_ecs = sorted(wanted_ecs.difference(all_ecs))
+        logging.info("Fetching %d Enzymes", len(remaining_ecs))
+        logging.info("Fetching ECs: %s" % ', '.join(remaining_ecs))
+        
+        for i in xrange(0, len(remaining_ecs), kegg_step):
+            sub_ec_numbers = remaining_ecs[i:(i+kegg_step)]
+            entry_id_list = ['ec %s' % j for j in sub_ec_numbers]
+            logging.info("Parsing KEGG Enzymes %s - %s" %
+                         (entry_id_list[0], entry_id_list[-1]))
+            s = serv.bget(' '.join(entry_id_list))
+            self._ReadEnzymeEntries(s)
             
+    
     def CompleteMissingInchies(self):
         serv = WSDL.Proxy(Kegg.WSDL_URL)
         for row in self.db.Execute("SELECT cid FROM kegg_compound " 
@@ -1444,6 +1476,8 @@ def export_compound_connectivity():
         csv_file.writerow((cid, len(rid_list)))
     
 if __name__ == '__main__':
-    kegg = Kegg.getInstance(loadFromAPI=True)
-    kegg.CompleteMissingInchies()
+    kegg = Kegg.getInstance(loadFromAPI=False)
+
+    kegg.FetchMissingECs()
+    #kegg.CompleteMissingInchies()
     kegg.ToDatabase()
