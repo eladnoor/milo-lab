@@ -1,0 +1,109 @@
+[
+{
+	"NAME": "EMP Glycolysis",
+	"ENZYME_SETS": [
+		{
+		"NAME": "phosphoglucoisomerase",
+		"ECS": ["5.3.1.9"]
+		},
+		{
+		"NAME": "6-phosphofructokinase",
+		"ECS": ["2.7.1.11","2.7.1.90","2.7.1.146"]
+		},
+		{
+		"NAME": "fructose-bisphosphate aldolase",
+		"ECS": ["4.1.2.13"]
+		},
+		{
+		"NAME": "triose-phosphate isomerase",
+		"ECS": ["5.3.1.1"]
+		},
+		{
+		"NAME": "GAP dehydrogenase (phosphorylating)",
+		"ECS": ["1.2.1.12","1.2.1.59"]
+		},
+		{
+		"NAME": "phosphoglycerate kinase",
+		"ECS": ["2.7.2.3","2.7.2.10"]
+		},
+		{
+		"NAME": "phosphoglycerate mutase",
+		"ECS": ["5.4.2.1"]
+		},
+		{
+		"NAME": "enolase",
+		"ECS": ["4.2.1.11"]
+		},
+		{
+		"NAME": "pyruvate kinase",
+		"ECS": ["2.7.1.40"]
+		}
+		]
+},
+{
+	"NAME": "ED Pathway",
+	"ENZYME_SETS": [
+		{
+		"NAME": "phosphogluconate dehydratase",
+		"ECS": ["4.2.1.12"]
+		},
+		{
+		"NAME": "kdpg aldolase",
+		"ECS": ["4.1.2.14"]
+		},
+		{
+		"NAME": "GAP dehydrogenase (phosphorylating)",
+		"ECS": ["1.2.1.12","1.2.1.59"]
+		},
+		{
+		"NAME": "phosphoglycerate kinase",
+		"ECS": ["2.7.2.3","2.7.2.10"]
+		},
+		{
+		"NAME": "phosphoglycerate mutase",
+		"ECS": ["5.4.2.1"]
+		},
+		{
+		"NAME": "enolase",
+		"ECS": ["4.2.1.11"]
+		},
+		{
+		"NAME": "pyruvate kinase",
+		"ECS": ["2.7.1.40"]
+		}
+		]
+},
+{
+	"NAME": "SemiP ED Pathway",
+	"ENZYME_SETS": [
+		{
+		"NAME": "2-keto-3-deoxygluconokinase",
+		"ECS": ["2.7.1.45"]
+		},
+		{
+		"NAME": "kdpg aldolase",
+		"ECS": ["4.1.2.14"]
+		},
+		{
+		"NAME": "GAP dehydrogenase (phosphorylating)",
+		"ECS": ["1.2.1.12","1.2.1.59"]
+		},
+		{
+		"NAME": "phosphoglycerate kinase",
+		"ECS": ["2.7.2.3","2.7.2.10"]
+		},
+		{
+		"NAME": "phosphoglycerate mutase",
+		"ECS": ["5.4.2.1"]
+		},
+		{
+		"NAME": "enolase",
+		"ECS": ["4.2.1.11"]
+		},
+		{
+		"NAME": "pyruvate kinase",
+		"ECS": ["2.7.1.40"]
+		}
+		]
+}
+]
