@@ -23,6 +23,10 @@ def MakeOpts():
     opt_parser.add_option("-o", "--output_filename",
                           dest="output_filename",
                           help="output CSV file of organism data")
+    opt_parser.add_option("-m", "--max_missing_genes",
+                          default=0, type="int", 
+                          dest="max_missing_genes",
+                          help="the maximum number of pathway genes missing")
     return opt_parser
 
 def GetEnzymeSets(filename):
@@ -84,7 +88,7 @@ def Main():
     
     total = len(enzyme_sets)
     counts = [[total - count, org] for org,count in orgs_to_count.iteritems()]
-    counts = sorted(filter(lambda x: x[0] <= 0, counts))
+    counts = sorted(filter(lambda x: x[0] <= options.max_missing_genes, counts))
     print len(counts), 'Organisms'
     print ', '.join(['%s:%d' % (o, c) for c, o in counts])
     orgs = set([org for _, org in counts])
