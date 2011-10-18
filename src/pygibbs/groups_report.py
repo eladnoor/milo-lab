@@ -68,7 +68,7 @@ def dissociation_decomposition_test():
         Verifies that the decomposition of the compounds in the dissociation table match the nH of each species.
     """
     db = SqliteDatabase('../res/gibbs.sqlite')
-    dissociation = DissociationConstants.FromFile()
+    dissociation = DissociationConstants.FromPublicDB()
     groups_data = GroupsData.FromDatabase(db)
     group_decomposer = GroupDecomposer(groups_data)
     kegg = Kegg.getInstance()

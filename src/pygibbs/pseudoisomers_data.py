@@ -178,9 +178,7 @@ class PseudoisomersData(object):
 if __name__ == '__main__':
     from pygibbs.dissociation_constants import DissociationConstants
 
-    pdata = PseudoisomersData.FromFile(
-        '../data/thermodynamics/dG0.csv')
-    dissociation = DissociationConstants.FromFile(
-        '../data/thermodynamics/dissociation_constants.csv')
+    pdata = PseudoisomersData.FromFile('../data/thermodynamics/dG0.csv')
+    dissociation = DissociationConstants.FromPublicDB()
     pdata.ReadDissociationData(dissociation)
     

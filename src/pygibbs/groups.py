@@ -100,7 +100,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             of self.dissociation.
         """
         if self.dissociation is None:
-            self.dissociation = DissociationConstants.FromDatabase(self.db)
+            self.dissociation = DissociationConstants.FromPublicDB()
         return self.dissociation
     
     def GetDissociationTable(self, cid):

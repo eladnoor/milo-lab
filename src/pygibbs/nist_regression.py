@@ -33,7 +33,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                  html_writer=None, nist=None):
         PsuedoisomerTableThermodynamics.__init__(self)
         self.db = db
-        self.dissociation = dissociation or DissociationConstants.FromDatabase(self.db)
+        self.dissociation = dissociation or DissociationConstants.FromPublicDB()
         self.html_writer = html_writer or NullHtmlWriter()
         self.nist = nist or Nist()
         

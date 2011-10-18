@@ -11,7 +11,7 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 db = SqliteDatabase("../res/gibbs.sqlite")
 kegg = Kegg.getInstance()
-dissociation = DissociationConstants.FromFile()
+dissociation = DissociationConstants.FromPublicDB()
 
 nist_row_data = NistRowData()
 nist_row_data.pH = 7.77
