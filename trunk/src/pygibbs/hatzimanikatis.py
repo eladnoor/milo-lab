@@ -20,7 +20,7 @@ class Hatzi (Thermodynamics):
     def __init__(self, use_pKa=True):
         if use_pKa:
             Thermodynamics.__init__(self, "Jankowski et al. (+pKa)")
-            self.dissociation = DissociationConstants.FromDatabase(self.db)
+            self.dissociation = DissociationConstants.FromPublicDB()
         else:
             Thermodynamics.__init__(self, "Jankowski et al.")
             self.dissociation = None

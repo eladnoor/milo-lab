@@ -163,6 +163,11 @@ class DissociationConstants(object):
         diss.CalculateAllCharges()
         return diss
     
+    @staticmethod
+    def FromPublicDB():
+        db = SqliteDatabase('../data/public_data.sqlite')
+        return DissociationConstants.FromDatabase(db)
+    
     def AddpKa(self, cid, pKa, nH_below, nH_above, nMg=0, ref="", T=default_T, 
                mol_below=None, mol_above=None):
         diss_table = self.GetDissociationTable(cid)
@@ -790,7 +795,7 @@ def MakeOpts():
                           help="Copy all pKas from an input CSV file (overrides using ChemAxon)")
     opt_parser.add_option("-d", "--database", action="store",
                           dest="db_file",
-                          default="../res/gibbs.sqlite",
+                          default="../data/public_data.sqlite",
                           help="The SQLite database to write to")
     opt_parser.add_option("-t", "--table_name", action="store",
                           dest="table_name",

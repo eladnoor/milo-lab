@@ -16,6 +16,7 @@ from pygibbs.feist_ecoli import Feist
 from pygibbs.groups import GroupContribution
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
+from toolbox.molecule import OpenBabelError
 
 def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
@@ -69,7 +70,7 @@ def main():
         try:
             reaction.Balance(balance_water=True, exception_if_unknown=True)
             reactions['KEGG'].append(reaction)
-        except (KeggReactionNotBalancedException, KeggParseException):
+        except (KeggReactionNotBalancedException, KeggParseException, OpenBabelError):
             pass
         
     reactions['FEIST'] = Feist.FromFiles().reactions
