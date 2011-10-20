@@ -1,0 +1,10 @@
+"Name","Gene","Identifier"
+"fused glucose-specific PTS enzymes",ptsG,MPN207
+"glucosephosphate isomerase",pgi,MPN250
+"fructose-bisphosphate aldolase",fba,MPN025
+"triosephosphate isomerase",tpiA,MPN629
+"glyceraldehyde-3-phosphate dehydrogenase A",gapA,MPN430
+"phosphoglycerate kinase",pgk,MPN429
+"phosphoglycero mutase III, cofactor-independent",gpmI,MPN628
+"enolase",eno,MPN606
+"pyruvate kinase",pyk,MPN303
