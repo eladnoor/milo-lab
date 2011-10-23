@@ -1,0 +1,15 @@
+"Name","Gene","Identifier"
+"maltose and glucose-specific II ABC",malX,SDY_1842
+"glucose-specific PTS IIA component",crr,SDY_2614
+"glucose-specific PTS IIB component",ptsG,SDY_2049
+"glucosephosphate isomerase",pgi,SDY_4226
+"fructose-bisphosphate aldolase",fba,SDY_3157
+"triosephosphate isomerase",tpiA,SDY_3826
+"glyceraldehyde-3-phosphate dehydrogenase A",gapA,SDY_1488
+"phosphoglycerate kinase",pgk,SDY_3156
+"phosphoglyceromutase 1",gpmA,SDY_0702
+"phosphoglyceromutase",gpmB,SDY_4656
+"phosphoglycero mutase",gpmI,SDY_4045
+"enolase",eno,SDY_2996
+"pyruvate kinase",pykF,SDY_1905
+"pyruvate kinase",pykA,SDY_1141
