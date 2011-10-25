@@ -506,19 +506,32 @@ class GroupObervationCollection(object):
                 i_pseudoisomer = id2index[id]
                 S[i_observation, i_pseudoisomer] = coeff
             dG_vec[i_observation, 0] = obs.dG0
-            
-        # "squeeze" S and dG_vec such that repeating rows will be combined into a single
-        # row, and its observation will be their mean dG0.
-        S_unique, row_mapping = LinearRegression.RowUnique(S)
         
-        dG_vec_unique = np.zeros((len(row_mapping), 1))
-        obs_types = []
-        names = []
-        for i in xrange(len(row_mapping)):
-            old_indices = row_mapping[i]
-            dG_vec_unique = np.mean(dG_vec[old_indices, 0])
-            obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
-            names.append(','.join([self.observations[i].name for i in old_indices]))
-
-        regression_matrix = np.dot(S_unique, G)
+        if False:
+            # "squeeze" S and dG_vec such that repeating rows will be combined into a single
+            # row, and its observation will be their mean dG0.
+            S_unique, row_mapping = LinearRegression.RowUnique(S, remove_zero=True)
+            
+            dG_vec_unique = np.zeros((S_unique.shape[0], 1))
+            obs_types = []
+            names = []
+            for i in xrange(len(row_mapping)):
+                old_indices = row_mapping[i]
+                dG_vec_unique[i, 0] = np.mean(dG_vec[old_indices, 0])
+                obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not a perfect solution)
+                names.append(','.join([self.observations[i].name for i in old_indices]))
+    
+            regression_matrix = np.dot(S_unique, G)
+        else: # find unique observation according to group-vectors (not whole reactants)
+            SG = np.dot(S, G)
+            regression_matrix, row_mapping = LinearRegression.RowUnique(SG, remove_zero=True)
+            dG_vec_unique = np.zeros((regression_matrix.shape[0], 1))
+            obs_types = []
+            names = []
+            for i in xrange(len(row_mapping)):
+                old_indices = row_mapping[i]
+                dG_vec_unique[i, 0] = np.mean(dG_vec[old_indices, 0])
+                obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
+                names.append(','.join([self.observations[i].name for i in old_indices]))            
+            
         return regression_matrix, dG_vec_unique, obs_types, names

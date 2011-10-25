@@ -197,7 +197,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             raise Exception("You need to first Train the system before using it to estimate values")
 
         gv = np.array(groupvec.Flatten(self.transformed))
-        val = np.dot(gv, self.group_contributions)
+        val = float(np.dot(gv, self.group_contributions))
         v = abs(np.dot(self.group_nullspace, gv))
         k_list = [i for i in np.where(v > 1e-10)[0]]
         if k_list:
@@ -326,7 +326,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 
         self.html_writer.write('<font size="1">\n')
         self.html_writer.table_start()
-        headers = ['Compound Name',
+        headers = ['Observation Name',
                    '&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
                    '&#x394;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',
                    'Residual [kJ/mol]',
@@ -787,7 +787,7 @@ if __name__ == '__main__':
                               transformed=options.transformed)
         if not options.test_only:
             G.LoadGroupsFromFile()
-            G.Train(FromFiles=False)
+            G.Train(FromFiles=True)
             G.WriteRegressionReport()
             G.analyze_training_set()
         else:
