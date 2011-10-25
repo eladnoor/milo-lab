@@ -509,10 +509,16 @@ class GroupObervationCollection(object):
             
         # "squeeze" S and dG_vec such that repeating rows will be combined into a single
         # row, and its observation will be their mean dG0.
-        S, dG_vec = LinearRegression.RowUnique(S, dG_vec)
+        S_unique, row_mapping = LinearRegression.RowUnique(S)
         
-        obs_types = [obs.obs_type for obs in self.observations]
-        names = [obs.name for obs in self.observations]
+        dG_vec_unique = np.zeros((len(row_mapping), 1))
+        obs_types = []
+        names = []
+        for i in xrange(len(row_mapping)):
+            old_indices = row_mapping[i]
+            dG_vec_unique = np.mean(dG_vec[old_indices, 0])
+            obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
+            names.append(','.join([self.observations[i].name for i in old_indices]))
 
-        regression_matrix = np.dot(S, G)
-        return regression_matrix, dG_vec, obs_types, names
+        regression_matrix = np.dot(S_unique, G)
+        return regression_matrix, dG_vec_unique, obs_types, names
