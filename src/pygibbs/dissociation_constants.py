@@ -14,8 +14,13 @@ import time
 import threading
 
 class MissingDissociationConstantError(Exception):
-    pass
-
+    
+    def __init__(self, value, cid):
+        self.value = value
+        self.cid = cid
+    def __str__(self):
+        return repr(self.value)
+     
 class DissociationConstants(object):
     
     def __init__(self):
@@ -216,12 +221,28 @@ class DissociationConstants(object):
     def CalculateAllCharges(self):
         for diss_table in self.cid2DissociationTable.values():
             if diss_table is not None:
-                diss_table.CalculateCharge()
+                try:
+                    diss_table.CalculateCharge()
+                except OpenBabelError as e:
+                    raise Exception("error calculating charge for C%05d" % diss_table.cid
+                                    + "\n" + str(e))
 
     def GetAllCids(self):
         return set(self.cid2DissociationTable.keys())
 
-    def ReverseTranformNistRows(self, nist_rows, cid2nH=None):
+    def GetCid2nH_nMg(self, pH, I, pMg, T):
+        cid2nH_nMg = {} # the nH that is to be used in the reverse transform
+        for cid in self.GetAllCids():
+            diss_table = self.GetDissociationTable(cid)
+            if diss_table is not None:
+                nH, nMg = diss_table.GetMostAbundantPseudoisomer(pH=pH, I=I, pMg=pMg, T=T)
+                cid2nH_nMg[cid] = (nH, nMg)
+            else:
+                # assume nH=0 and nMg=0 by default for compounds without explicit formulas
+                cid2nH_nMg[cid] = (0, 0)
+        return cid2nH_nMg
+
+    def ReverseTranformNistRows(self, nist_rows, cid2nH_nMg=None):
         all_cids = set()
         for nist_row_data in nist_rows:
             all_cids.update(nist_row_data.GetAllCids())
@@ -240,23 +261,21 @@ class DissociationConstants(object):
         
         for nist_row_data in nist_rows:
             # check that all participating compounds have a known pKa
+            dG0_prime = nist_row_data.dG0_r
             try:
-                ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
-                    nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
-                    nist_row_data.T, cid2nH=cid2nH)
-            except MissingDissociationConstantError:
-                logging.debug('A reaction contains compounds with missing pKa '
-                              'values: ' + str(nist_row_data.reaction))
-                continue
+                dG0 = self.ReverseTransformNistRow(nist_row_data, cid2nH_nMg)
+            except MissingDissociationConstantError as e:
+                logging.debug('A reaction contains compounds (C%05d) with missing pKa '
+                              'values: %s' % (e.cid, str(nist_row_data.reaction)))
             
-            data['dG0_r_tag'].append(nist_row_data.dG0_r)
+            data['dG0_r_tag'].append(dG0_prime)
             data['pH'].append(nist_row_data.pH)
             data['I'].append(nist_row_data.I)
             data['pMg'].append(nist_row_data.pMg)
             data['T'].append(nist_row_data.T)
             data['nist_rows'].append(nist_row_data)
-            data['ddG0_r'].append(ddG)
-            data['dG0_r'].append(nist_row_data.dG0_r - ddG)
+            data['ddG0_r'].append(dG0_prime - dG0)
+            data['dG0_r'].append(dG0)
             
             # convert the reaction's sparse representation to a row vector
             stoichiometric_row = np.zeros((1, len(all_cids)))
@@ -271,20 +290,31 @@ class DissociationConstants(object):
         
         return data
     
-    def ReverseTransformReaction(self, reaction, pH, I, pMg, T, cid2nH=None):
+    def ReverseTransformNistRow(self, nist_row_data, cid2nH_nMg=None):
         """
-            Calculates the difference between dG'0_r and dG0_r
+            Given a NistRowData object, returns the reverse Legendre transform
+            value for its dG0.
+        """
+        ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
+            nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
+            nist_row_data.T, cid2nH_nMg=cid2nH_nMg)
+        return nist_row_data.dG0_r - ddG
+    
+    def ReverseTransformReaction(self, reaction, pH, I, pMg, T, cid2nH_nMg=None):
+        """
+            Calculates the difference between dG0_prime and dG0
         """
         ddG0 = 0
         for cid, coeff in reaction.iteritems():
             diss_table = self.GetDissociationTable(cid)
             if diss_table is None:
                 # probably a compound without an implicit formula
-                raise MissingDissociationConstantError
-            elif not cid2nH:
+                raise MissingDissociationConstantError("", cid)
+            elif not cid2nH_nMg:
                 ddG0 += coeff * diss_table.GetDeltaDeltaG0(pH, I, pMg, T)
             else:
-                ddG0 += coeff * diss_table.GetDeltaDeltaG0(pH, I, pMg, T, nH=cid2nH[cid])
+                nH, nMg = cid2nH_nMg[cid]
+                ddG0 += coeff * diss_table.GetDeltaDeltaG0(pH, I, pMg, T, nH=nH, nMg=nMg)
         
         return ddG0
         
@@ -547,7 +577,8 @@ class DissociationTable(object):
         except KeyError:
             raise MissingDissociationConstantError(
                 'The dissociation constant for C%05d: (nH=%d,nMg=%d) -> '
-                '(nH=%d,nMg=%d) is missing' % (self.cid, nH_from, nMg_from, nH_to, nMg_to))
+                '(nH=%d,nMg=%d) is missing' % (self.cid, nH_from, nMg_from, nH_to, nMg_to),
+                self.cid)
 
         raise Exception('A dissociation constant can either represent a'
                 ' change in only one hydrogen or magnesium')
@@ -616,9 +647,14 @@ class DissociationTable(object):
     
     def CalculateCharge(self):
         """ Calculate the charge for the most basic species """
-        # get the charge and nH of the default pseudoisomer in KEGG:
-        kegg = Kegg.getInstance()
-        nH_z_pair = kegg.cid2nH_and_charge(self.cid)
+        mol = self.GetAnyMol()
+        if mol is None:
+            # get the charge and nH of the default pseudoisomer in KEGG:
+            kegg = Kegg.getInstance()
+            nH_z_pair = kegg.cid2nH_and_charge(self.cid)
+        else:
+            nH_z_pair = mol.GetHydrogensAndCharge()
+        
         if nH_z_pair:
             nH, z = nH_z_pair
             self.min_charge = z + (self.min_nH - nH)

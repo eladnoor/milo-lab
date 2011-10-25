@@ -78,6 +78,7 @@ class Hatzi (Thermodynamics):
         
         charge = self.cid2charge_dict[cid]
         dG0_tag = self.cid2dG0_tag_dict[cid]
+        dG0_hplus = -R * self.T * np.log(10) * self.Hatzi_pH
         if self.dissociation is not None:
             diss_table = self.dissociation.GetDissociationTable(cid)
             if diss_table.min_nH == None:
@@ -92,9 +93,7 @@ class Hatzi (Thermodynamics):
             else:
                 nH = diss_table.min_nH + (charge - diss_table.min_charge)
             
-            dG0_hplus = -R * self.T * np.log(10) * self.Hatzi_pH
             dG0_tag -= nH*dG0_hplus
-            
             diss_table.SetTransformedFormationEnergy(
                 dG0_tag, pH=self.Hatzi_pH, I=self.Hatzi_I, 
                 pMg=self.Hatzi_pMg, T=self.Hatzi_T)

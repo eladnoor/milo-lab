@@ -46,7 +46,7 @@ class GroupMissingTrainDataError(Exception):
     def Explain(self, gc):
         missing_single_groups = []
         for i in self.kernel_rows:
-            nonzero_columns = pylab.find(abs(gc.group_nullspace[i, :]) > 1e-10)
+            nonzero_columns = np.where(abs(gc.group_nullspace[i, :]) > 1e-10)[0]
             if len(nonzero_columns) == 1:
                 missing_single_groups.append(nonzero_columns[0])
             else:
@@ -164,10 +164,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         if FromFiles:
             self.obs_collection.FromFiles()
             self.obs_collection.ToDatabase()
-            self.obs_collection.ToCSV('../res/observations.csv')
+            self.obs_collection.ToCSV('../res/gc_pseudoisomers.csv',
+                                      '../res/gc_observations.csv')
         else:
             self.obs_collection.FromDatabase()
-            
         self.group_matrix, self.obs, self.obs_types, self.obs_names = \
             self.obs_collection.GetRegressionData()
         
@@ -175,10 +175,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.SaveContributionsToDB()
             
     def RunLinearRegression(self):
-        group_contributions, _nullspace = LinearRegression.LeastSquares(
+        group_contributions, nullspace = LinearRegression.LeastSquares(
                         self.group_matrix, self.obs, reduced_row_echlon=False)
         
-        nullspace = _nullspace
         if self.sparse_kernel:
             try:
                 nullspace = SparseKernel(self.group_matrix).Solve()
@@ -186,7 +185,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 logging.warning("CPLEX is not installed on this system, using a non-sparse"
                                 " method for describing the Kernel of the group matrix")
             
-        return list(group_contributions.flat), nullspace
+        return group_contributions, nullspace
     
     def does_table_exist(self, table_name):
         for unused_ in self.db.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
@@ -200,13 +199,13 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         gv = np.array(groupvec.Flatten(self.transformed))
         val = np.dot(gv, self.group_contributions)
         v = abs(np.dot(self.group_nullspace, gv))
-        k_list = [i for i in pylab.find(v > 1e-10)]
+        k_list = [i for i in np.where(v > 1e-10)[0]]
         if k_list:
             raise GroupMissingTrainDataError(val, "can't estimate because the input "
                 "is not orthogonal to the kernel", k_list)
         return val
     
-    def write_regression_report(self, T=default_T, pH=default_pH):        
+    def WriteRegressionReport(self, T=default_T, pH=default_pH):        
         self.html_writer.write('</br><b>Regression report</b>')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
@@ -221,11 +220,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         group_names = self.groups_data.GetGroupNames(self.transformed)
         for i in xrange(self.group_matrix.shape[0]):
             group_vector = self.group_matrix[i, :]
-            nonzero_columns = pylab.find(abs(group_vector) > 1e-10)
-            s_vector = " | ".join(["%g : %s" % (group_vector[0, j], group_names[j])
+            nonzero_columns = np.where(abs(group_vector) > 1e-10)[0]
+            s_vector = " | ".join(["%g : %s" % (group_vector[j], group_names[j])
                 for j in nonzero_columns])
-            #s_vector = ['%s : %d' % (self.groups_data.all_groups[j].name, group_vector[0, j])
-            #     for j in xrange(self.group_matrix.shape[1]) if group_vector[0, j] != 0]
+            #s_vector = ['%s : %d' % (self.groups_data.all_groups[j].name, group_vector[j])
+            #     for j in xrange(self.group_matrix.shape[1]) if group_vector[j] != 0]
             self.html_writer.write('<tr>' +
                 '<td width="5%%">%d</td>' % i +
                 '<td width="20%%">%s</td>' % self.obs_names[i] + 
@@ -241,7 +240,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         dict_list = []
         for j, dG0_gr in enumerate(self.group_contributions):
             obs_lists_dict = {'acid-base':[], 'formation':[], 'reaction':[]}
-            for k in pylab.find(self.group_matrix[:, j]):
+            for k in self.group_matrix[:, j].nonzero()[0]:
                 obs_lists_dict[self.obs_types[k]].append(self.obs_names[k])
             d = {"#":"%d" % j, "Group Name":group_names[j], 
                  "&#x394;<sub>gr</sub>G [kJ/mol]":"%8.2f" % dG0_gr,
@@ -286,7 +285,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             if self.obs_types[i] not in ['formation', 'reaction']:
                 continue
             
-            row['fit'] = np.dot(self.group_matrix[i, :], self.group_contributions)[0, 0]
+            row['fit'] = float(np.dot(self.group_matrix[i, :], self.group_contributions))
             row['fit_resid'] = row['fit']-row['obs'] 
             deviations.append(row)
             logging.info('Fit Error = %.1f' % (row['fit_resid']))
@@ -301,7 +300,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             if loo_nullspace.shape[0] > self.group_nullspace.shape[0]:
                 logging.warning('example %d is not linearly dependent in the other examples' % i)
                 continue
-            row['loo'] = np.dot(self.group_matrix[i, :], loo_group_contributions)[0, 0]
+            row['loo'] = float(np.dot(self.group_matrix[i, :], loo_group_contributions))
             row['loo_resid'] = row['loo'] - row['obs']
             loo_deviations.append(row)
             logging.info('LOO Error = %.1f' % row['loo_resid'])
@@ -617,21 +616,21 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
                             'gid INT, name TEXT, protons INT, charge INT, '
                             'nMg INT, dG0_gr REAL, nullspace TEXT')
-        
-        if not self.transformed:
-            for j, dG0_gr in enumerate(self.group_contributions):
+
+        all_group_names = self.groups_data.GetGroupNames(transformed=self.transformed)
+                
+        for j, group_name in enumerate(all_group_names):
+            dG0_gr = self.group_contributions[j, 0]
+            nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
+            
+            if self.transformed:
+                nH, z, nMg = None, None, None
+            else:
                 group = self.groups_data.all_groups[j]
-                nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
-                self.db.Insert(self.CONTRIBUTION_TABLE_NAME, [j, group.name, group.hydrogens,
-                                                group.charge, group.nMg, dG0_gr,
-                                                nullspace_str])
-        else:
-            biochemical_group_names = self.groups_data.GetGroupNames(transformed=True)
-            for j, dG0_prime_gr in enumerate(self.group_contributions):
-                nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
-                self.db.Insert(self.CONTRIBUTION_TABLE_NAME, 
-                    [j, biochemical_group_names[j], None, None, None, 
-                     dG0_prime_gr, nullspace_str])
+                nH, z, nMg = group.hydrogens, group.charge, group.nMg
+
+            self.db.Insert(self.CONTRIBUTION_TABLE_NAME,
+                [j, group_name, nH, z, nMg, dG0_gr, nullspace_str])
             
         self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
         for i in xrange(self.group_nullspace.shape[0]):
@@ -643,7 +642,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.db.Commit()
 
     def GroupMatrixRowToString(self, r):
-        nonzero_columns = pylab.find(abs(r) > 1e-10)
+        nonzero_columns = np.where(abs(r) > 1e-10)[0]
         return " | ".join(["%g : %s" % (r[j], self.groups_data.all_groups[j].name)
                            for j in nonzero_columns])
             
@@ -654,12 +653,13 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         for row in self.db.DictReader(self.CONTRIBUTION_TABLE_NAME):
             self.group_contributions.append(row['dG0_gr'])
             nullspace_mat.append([float(x) for x in row['nullspace'].split(',')])
-        self.group_nullspace = pylab.matrix(nullspace_mat).T
+        self.group_contributions = pylab.array([self.group_contributions]).T
+        self.group_nullspace = pylab.array(nullspace_mat).T
                         
     def GetGroupContribution(self, name, nH, z, nMg=0):
         gr = Group(None, name, nH, z, nMg)
         gid = self.groups_data.Index(gr)
-        dG0_gr = self.group_contributions[gid]
+        dG0_gr = self.group_contributions[gid, 0]
         return dG0_gr
     
     def GetPkaOfGroup(self, name, nH, z, nMg=0):
@@ -787,8 +787,8 @@ if __name__ == '__main__':
                               transformed=options.transformed)
         if not options.test_only:
             G.LoadGroupsFromFile()
-            G.Train()
-            G.write_regression_report()
+            G.Train(FromFiles=False)
+            G.WriteRegressionReport()
             G.analyze_training_set()
         else:
             G.init()

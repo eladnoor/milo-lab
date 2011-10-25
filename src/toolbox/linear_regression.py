@@ -1,11 +1,12 @@
 import logging
 import numpy as np
+import sys
 
 class LinearRegression(object):
     
     @staticmethod
     def MatrixRank(A, eps=1e-10):
-        _U, s, _V = np.linalg.svd(A, full_matrices=True)
+        _U, s, _V = np.linalg.svd(A, full_matrices=False)
         r = len(np.where(s > eps)[0]) # the rank of A
         return r
     
@@ -177,8 +178,146 @@ class LinearRegression(object):
         b = np.zeros((A.shape[0], 1))
         _x, K = LinearRegression.SolveLinearSystem(A, b)
         return K
+    
+    @staticmethod
+    def ColumnProjection(A, eps=1e-10):
+        """
+            Given a matrix A, calculates two projection matrices.
+            
+            Arguments:
+                A - a 2D NumPy array
+                eps - the eigenvalue threshold for the null-space definition (default: 1e-10)
+            
+            Returns: (P_C, P_L)
+                P_C is the projection onto the column-space of A
+                P_L is the projection onto the null-space of the columns of A
+            
+            Note:
+                P_C + P_L = I
+        """
+        _U, s, V = np.linalg.svd(A, full_matrices=True)
+        r = len(np.where(s > eps)[0]) # the rank of A
+        P_C = np.dot(V[:r,:].T, V[:r,:]) # a projection matrix onto the column space of A
+        P_L = np.dot(V[r:,:].T, V[r:,:]) # a projection matrix onto the column space of A
+        return P_C, P_L
 
+    @staticmethod
+    def RowProjection(A, eps=1e-10):
+        """
+            Given a matrix A, calculates two projection matrices.
+            
+            Arguments:
+                A - a 2D NumPy array
+                eps - the eigenvalue threshold for the null-space definition (default: 1e-10)
+            
+            Returns: (P_R, P_N)
+                P_R is the projection onto the row-space of A
+                P_N is the projection onto the null-space of the rows of A
+            
+            Note:
+                P_R + P_N = I
+        """
+        P_R, P_N = LinearRegression.ColumnProjection(A.T, eps)
+        return P_R, P_N
+
+    @staticmethod
+    def RowUniqueRegression(A, y):
+        """
+            A procedure usually performed before linear regression (i.e. solving Ax = y).
+            If the matrix A contains repeating rows, it is advisable to combine
+            all of them to one row, and the observed value corresponding to that
+            row will be the average of the original observations.
+            
+            Returns:
+                A_unique, y_unique
+                
+                where A_unique has the same number of columns as A, but with
+                unique rows, and y_unique is shorter as well.
+        """
+        if len(y.shape) > 1 and y.shape[1] != 1:
+            raise Exception('y is not a column vector')
+        if y.shape[0] != A.shape[0]:
+            raise Exception('The length of y (%d) does not match the number of rows in A (%d)' % (y.shape[0], n))
+        y = np.array(y.reshape(A.shape[0], 1))
+
+        A_unique, row_mapping = LinearRegression.RowUnique(A)
+        y_unique = np.zeros((A_unique.shape[0], 1))
+
+        for i in xrange(A_unique.shape[0]):
+            row_indices = row_mapping[i]
+            y_unique[i, 0] = np.mean(y[row_indices, 0])
+        
+        return A_unique, y_unique
+
+    @staticmethod
+    def RowUnique(A):
+        """
+            A procedure usually performed before linear regression (i.e. solving Ax = y).
+            If the matrix A contains repeating rows, it is advisable to combine
+            all of them to one row, and the observed value corresponding to that
+            row will be the average of the original observations.
+            
+            Returns:
+                A_unique, row_mapping
+                
+                where A_unique has the same number of columns as A, but with
+                unique rows.
+                row_mapping is a dictionary whose keys are rows in A_unique and
+                whose values are lists of corresponding rows in A.
+        """
+        A_unique = np.unique([tuple(A[i,:].flat) for i in xrange(A.shape[0])])
+        A_unique = np.array(A_unique)
+
+        row_mapping = {}
+        for i in xrange(A_unique.shape[0]):
+            
+            # find the indices of rows in A which correspond to this unique row in A_unique
+            row_vector = A_unique[i:i+1,:]
+            diff = abs(A - np.repeat(row_vector, A.shape[0], 0))
+            row_mapping[i] = np.where(np.sum(diff, 1) == 0)[0].tolist()
+        
+        return A_unique, row_mapping
+    
 if __name__ == '__main__':
+    eps = 1e-10
+    A = np.matrix([[1,0,0],[0,1,0],[0,0,0],[1,0,0],[0,1,0],[0,1,0]])
+    b = np.matrix([[1],[2],[1],[3],[4],[1]])
+    A, b = LinearRegression.RowUniqueRegression(A, b)
+    print A
+    print b.T.tolist()[0]
+    
+    G = np.matrix([[1],[2],[0]])
+    P_R, P_N = LinearRegression.RowProjection(A)
+    P_R2, P_N2 = LinearRegression.RowProjection(A*G)
+
+    n = A.shape[0]
+    print "b:", b.T.tolist()[0]
+    b_R = np.dot(P_R, b)
+    b_N = np.dot(P_N, b)
+    print "b_R:", b_R.T.tolist()[0]
+    print "b_N:", b_N.T.tolist()[0]
+
+    b_R2 = np.dot(P_R2, b)
+    b_N2 = np.dot(P_N2, b)
+    print "b_R2:", b_R2.T.tolist()[0]
+    print "b_N2:", b_N2.T.tolist()[0]
+
+    #x, _ = LinearRegression.LeastSquares(A, b)
+    #print "A*x - b:", (np.dot(A, x) - b).T.tolist()[0]
+
+    x_R, _ = LinearRegression.LeastSquares(np.dot(A, G), b_R)
+    print "A*x_R - b_R:", abs(np.dot(np.dot(A, G), x_R) - b_R).T.tolist()[0]
+    print abs((P_R - P_R2) * b).T.tolist()[0]
+    
+    #x_N, _ = LinearRegression.LeastSquares(A, b_N)
+    #print "A*x_N - b_N:", (np.dot(A, x_N) - b_N).T.tolist()[0]
+
+    #print (P_R * b).T.tolist()[0]
+    #print (P_R2 * b).T.tolist()[0]
+    #print (P_R2 * P_R * b).T.tolist()[0]
+    #print (P_R * P_R2 * b).T.tolist()[0]
+    sys.exit(0)
+
 #    A = np.matrix([[1, 0, 1, 1],[0, 1, 1, 1],[1, 1, 2, 2]])
 #    K = LinearRegression.FindKernel(A)
 #    print A
