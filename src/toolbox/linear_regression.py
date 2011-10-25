@@ -44,7 +44,6 @@ class LinearRegression(object):
             raise Exception('y is not a column vector')
         if y.shape[0] != n:
             raise Exception('The length of y (%d) does not match the number of rows in A (%d)' % (y.shape[0], n))
-        y = np.matrix(y.reshape(n, 1))
         
         zero_columns = np.nonzero([np.linalg.norm(A[:,i]) <= eps for i in xrange(m)])[0]
         nonzero_columns = np.nonzero([np.linalg.norm(A[:,i]) > eps for i in xrange(m)])[0]
@@ -250,12 +249,16 @@ class LinearRegression(object):
         return A_unique, y_unique
 
     @staticmethod
-    def RowUnique(A):
+    def RowUnique(A, remove_zero=False):
         """
             A procedure usually performed before linear regression (i.e. solving Ax = y).
             If the matrix A contains repeating rows, it is advisable to combine
             all of them to one row, and the observed value corresponding to that
             row will be the average of the original observations.
+
+            Input:
+                A - a 2D NumPy array
+                remove_zero - if True, removes any only-zero rows from the result
             
             Returns:
                 A_unique, row_mapping
@@ -265,12 +268,13 @@ class LinearRegression(object):
                 row_mapping is a dictionary whose keys are rows in A_unique and
                 whose values are lists of corresponding rows in A.
         """
-        A_unique = np.unique([tuple(A[i,:].flat) for i in xrange(A.shape[0])])
+        A_unique = np.unique([tuple(A[i,:].flat)
+                              for i in xrange(A.shape[0])
+                              if (not remove_zero or (A[i,:] != 0).any())])
         A_unique = np.array(A_unique)
 
         row_mapping = {}
         for i in xrange(A_unique.shape[0]):
-            
             # find the indices of rows in A which correspond to this unique row in A_unique
             row_vector = A_unique[i:i+1,:]
             diff = abs(A - np.repeat(row_vector, A.shape[0], 0))
@@ -281,6 +285,7 @@ class LinearRegression(object):
 if __name__ == '__main__':
     eps = 1e-10
     A = np.matrix([[1,0,0],[0,1,0],[0,0,0],[1,0,0],[0,1,0],[0,1,0]])
+    print LinearRegression.RowUnique(A, remove_zero=True)
     b = np.matrix([[1],[2],[1],[3],[4],[1]])
     A, b = LinearRegression.RowUniqueRegression(A, b)
     print A
