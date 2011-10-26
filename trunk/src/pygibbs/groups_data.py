@@ -273,24 +273,18 @@ class GroupsData(object):
             
             try:
                 group_name = row['NAME']
-                protons = row.get('PROTONS', None)
-                charge = row.get('CHARGE', None)
+                protons = int(row['PROTONS'])
+                charge = int(row['CHARGE'])
+                mgs = int(row['MAGNESIUMS'])
                 smarts = row['SMARTS']
-                focal_atoms = row['FOCAL_ATOMS']
+                focal_atoms = FocalSet(row['FOCAL_ATOMS'])
                 _remark = row['REMARK']
-                
-                focal_atoms = FocalSet(focal_atoms)
-                if protons:
-                    protons = int(protons)
-                if charge:
-                    charge = int(charge)
                 
                 # Check that the smarts are good.
                 if not Molecule.VerifySmarts(smarts):
                     raise GroupsDataError('Cannot parse SMARTS from line %d: %s' %
                                           (group_csv_file.line_num, smarts))
                 
-                mgs = None
                 group = Group(gid, group_name, protons, charge, mgs, str(smarts),
                               focal_atoms)
                 list_of_groups.append(group)

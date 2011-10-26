@@ -32,8 +32,8 @@ class TestThermoJsonOutput(unittest.TestCase):
                                     db_reader, warn_for_conflicting_refs=False)
 
     def testGetJsonDictionary(self):
-        json_list = [self.fake_thermo_csv.get_json_dictionary(),
-                     self.fake_thermo_db.get_json_dictionary()]
+        json_list = [self.fake_thermo_csv.GetJSONDictionary(),
+                     self.fake_thermo_db.GetJSONDictionary()]
         
         for json_data in json_list:
             self.assertEqual(json_data[0]['cid'], 1)

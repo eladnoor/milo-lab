@@ -146,7 +146,7 @@ class Thermodynamics(object):
             for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
                 writer.writerow([cid, nH, z, nMg, dG0])
 
-    def get_json_dictionary(self):
+    def GetJSONDictionary(self):
         """Returns a JSON formatted thermodynamic data."""
         kegg = Kegg.getInstance()
         formations = []
@@ -174,14 +174,13 @@ class Thermodynamics(object):
         
         return formations
 
-    def write_data_to_json(self, json_fname):
+    def WriteDataToJSON(self, json_fname):
         """Write JSON data to a file.
         
         Args:
             json_fname: the filename to write to.
         """
-        formations = self.get_json_dictionary()
-        
+        formations = self.GetJSONDictionary()
         json_file = open(json_fname, 'w')
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
