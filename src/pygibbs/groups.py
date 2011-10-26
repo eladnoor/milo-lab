@@ -93,6 +93,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.GROUPVEC_TABLE_NAME = prefix + '_groupvector'
         self.NULLSPACE_TABLE_NAME = prefix + '_nullspace'
         self.CONTRIBUTION_TABLE_NAME = prefix + '_contribution'
+        self.REGRESSION_TABLE_NAME = prefix + '_regression'
         
     def GetDissociationConstants(self):
         """
@@ -113,7 +114,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         if self.db.DoesTableExist(self.PMAP_TABLE_NAME):
             self.FromDatabase(self.db, table_name=self.PMAP_TABLE_NAME)
         
-    def write_data_to_json(self, json_fname, kegg):
+    def WriteDataToJSON(self, json_fname, kegg):
         formations = []
         for row in self.db.DictReader('gc_cid2error'):
             h = {}
@@ -168,15 +169,57 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                       '../res/gc_observations.csv')
         else:
             self.obs_collection.FromDatabase()
-        self.group_matrix, self.obs, self.obs_types, self.obs_names = \
-            self.obs_collection.GetRegressionData()
         
+        self.group_matrix, self.obs_values, self.obs_types, self.obs_names = \
+            self.obs_collection.GetRegressionData()
+        self.SaveRegressionDataToDB()
+
         self.group_contributions, self.group_nullspace = self.RunLinearRegression()
         self.SaveContributionsToDB()
+
+    def SaveRegressionDataToDB(self):
+        self.db.CreateTable(self.REGRESSION_TABLE_NAME,
+                            'name TEXT, type TEXT, groupvec TEXT, dG0 REAL')
+        for r in xrange(self.group_matrix.shape[0]):
+            groupvec = GroupVector(self.groups_data, self.group_matrix[r, :])
+            self.db.Insert(self.REGRESSION_TABLE_NAME,
+                           [self.obs_names[r], self.obs_types[r], 
+                            groupvec.ToJSONString(), self.obs_values[r, 0]])
+
+    def SaveContributionsToDB(self):
+        logging.info("storing the group contribution data in the database")
+        
+        # write a table of the group contributions
+        self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
+                            'gid INT, name TEXT, protons INT, charge INT, '
+                            'nMg INT, dG0_gr REAL, nullspace TEXT')
+        all_group_names = self.groups_data.GetGroupNames(transformed=self.transformed)
+                
+        for j, group_name in enumerate(all_group_names):
+            dG0_gr = self.group_contributions[j, 0]
+            nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
+            
+            if self.transformed:
+                nH, z, nMg = None, None, None
+            else:
+                group = self.groups_data.all_groups[j]
+                nH, z, nMg = group.hydrogens, group.charge, group.nMg
+
+            self.db.Insert(self.CONTRIBUTION_TABLE_NAME,
+                [j, group_name, nH, z, nMg, dG0_gr, nullspace_str])
+            
+        self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
+        for i in xrange(self.group_nullspace.shape[0]):
+            groupvec = GroupVector(self.groups_data, self.group_nullspace[i, :])
+            groupvec.RemoveEpsilonValues(epsilon=1e-10)
+            self.db.Insert(self.NULLSPACE_TABLE_NAME, 
+                           [i, groupvec.ToJSONString()])
+
+        self.db.Commit()
             
     def RunLinearRegression(self):
         group_contributions, nullspace = LinearRegression.LeastSquares(
-                        self.group_matrix, self.obs, reduced_row_echlon=False)
+                        self.group_matrix, self.obs_values, reduced_row_echlon=False)
         
         if self.sparse_kernel:
             try:
@@ -228,7 +271,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.html_writer.write('<tr>' +
                 '<td width="5%%">%d</td>' % i +
                 '<td width="20%%">%s</td>' % self.obs_names[i] + 
-                '<td width="5%%">%8.2f</td>' % self.obs[i] +
+                '<td width="5%%">%8.2f</td>' % self.obs_values[i] +
                 '<td width="70%%">%s</td></tr>' % s_vector)
         self.html_writer.write('</table>')
         self.html_writer.div_end()
@@ -278,7 +321,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         loo_deviations = [] # a list of only the examples which are included in the LOO test
         
         for i in xrange(n_obs):
-            row = {'name':self.obs_names[i], 'obs':self.obs[i]}
+            row = {'name':self.obs_names[i], 'obs':self.obs_values[i, 0]}
             # skip the cross-validation of the pKa values since group
             # contribution is not meant to give any real prediction for pKas
             # except the mean of the class of pKas.
@@ -295,7 +338,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             subset = range(n_obs)
             subset.pop(i)
             loo_group_contributions, loo_nullspace = LinearRegression.LeastSquares(
-                self.group_matrix[subset, :], self.obs[subset])
+                self.group_matrix[subset, :], self.obs_values[subset, :])
             
             if loo_nullspace.shape[0] > self.group_nullspace.shape[0]:
                 logging.warning('example %d is not linearly dependent in the other examples' % i)
@@ -611,36 +654,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         else:
             raise MissingCompoundFormationEnergy(self.cid2error.get(cid, ""), cid)
         
-    def SaveContributionsToDB(self):
-        logging.info("storing the group contribution data in the database")
-        self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
-                            'gid INT, name TEXT, protons INT, charge INT, '
-                            'nMg INT, dG0_gr REAL, nullspace TEXT')
-
-        all_group_names = self.groups_data.GetGroupNames(transformed=self.transformed)
-                
-        for j, group_name in enumerate(all_group_names):
-            dG0_gr = self.group_contributions[j, 0]
-            nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
-            
-            if self.transformed:
-                nH, z, nMg = None, None, None
-            else:
-                group = self.groups_data.all_groups[j]
-                nH, z, nMg = group.hydrogens, group.charge, group.nMg
-
-            self.db.Insert(self.CONTRIBUTION_TABLE_NAME,
-                [j, group_name, nH, z, nMg, dG0_gr, nullspace_str])
-            
-        self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
-        for i in xrange(self.group_nullspace.shape[0]):
-            groupvec = GroupVector(self.groups_data, self.group_nullspace[i, :])
-            groupvec.RemoveEpsilonValues(epsilon=1e-10)
-            self.db.Insert(self.NULLSPACE_TABLE_NAME, 
-                           [i, groupvec.ToJSONString()])
-
-        self.db.Commit()
-
     def GroupMatrixRowToString(self, r):
         nonzero_columns = np.where(abs(r) > 1e-10)[0]
         return " | ".join(["%g : %s" % (r[j], self.groups_data.all_groups[j].name)

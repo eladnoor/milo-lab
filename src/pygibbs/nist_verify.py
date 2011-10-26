@@ -77,7 +77,7 @@ def main():
     reactions['NIST'] = nist.GetUniqueReactionSet()
     
     
-    pairs = [('hatzi_gc', 'PGC'), ('PGC', 'PRC')] # + [('alberty', 'PRC')]
+    pairs = [] #[('hatzi_gc', 'PGC'), ('PGC', 'PRC')] # + [('alberty', 'PRC')]
     for t1, t2 in pairs:
         logging.info('Writing the NIST report for %s vs. %s' % 
                      (estimators[t1].name, estimators[t2].name))

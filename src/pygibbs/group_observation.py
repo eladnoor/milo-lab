@@ -80,14 +80,15 @@ class GroupObervationCollection(object):
         self.transformed = transformed
         self.use_pkas = False
         self.html_writer = html_writer
-        if self.transformed:
-            self.TRAIN_GROUPS_TABLE_NAME = 'bgc_train_groups'
-            self.PSEUDOISOMER_GV_TABLE_NAME = 'bgc_pseudoisomer_groupvector'
-            self.OBSERVATION_TABLE_NAME = 'bgc_observations'
+
+        if transformed:
+            prefix = 'bgc'
         else:
-            self.TRAIN_GROUPS_TABLE_NAME = 'pgc_train_groups'
-            self.PSEUDOISOMER_GV_TABLE_NAME = 'pgc_pseudoisomer_groupvector'
-            self.OBSERVATION_TABLE_NAME = 'pgc_observations'
+            prefix = 'pgc'
+
+        self.TRAIN_GROUPS_TABLE_NAME = prefix + '_train_groups'
+        self.PSEUDOISOMER_GV_TABLE_NAME = prefix + '_pseudoisomer_groupvector'
+        self.OBSERVATION_TABLE_NAME = prefix + '_observations'
             
     def FromFiles(self):
         if self.use_pkas:
@@ -380,16 +381,17 @@ class GroupObervationCollection(object):
         # create a dictionary from each unique reaction to the list of measured dG0'
         # and subtract from dG0' the formation energies of the anchored compounds
         for r, nist_row_data in enumerate(nist.SelectRowsFromNist()):
-            name="NIST%03d" % r
-            dG0 = nist_row_data.dG0_r
+            name = "NIST%03d" % r
             if not self.transformed:
                 try:
-                    dG0 -= self.dissociation.ReverseTransformNistRow(
+                    dG0 = self.dissociation.ReverseTransformNistRow(
                                                     nist_row_data, cid2nH_nMg)
                 except MissingDissociationConstantError as e:
                     logging.warning('Cannot reverse transform NIST%03d because of'
                     ' of a missing dissociation constant for C%05d' % (r, e.cid))
                     continue
+            else:
+                dG0 = nist_row_data.dG0_r # we are using transformed energies
             
             sparse = {}
             for cid, coeff in nist_row_data.reaction.iteritems():
@@ -507,31 +509,41 @@ class GroupObervationCollection(object):
                 S[i_observation, i_pseudoisomer] = coeff
             dG_vec[i_observation, 0] = obs.dG0
         
-        if False:
-            # "squeeze" S and dG_vec such that repeating rows will be combined into a single
-            # row, and its observation will be their mean dG0.
+        # Here, we are about to deal with repeating rows in the 
+        # regression matrix. Of course, for each set of rows that is
+        # united, the Y-value for the new row is the average of the
+        # corresponding Y-values.
+        # There are 3 options of how to do this:
+        # 1) To use the full S*G matrix for the linear regression, without
+        #    uniting rows.
+        # 2) To 'unique' the rows of S, so that recurring
+        #    reactions will not be used more than once. This is probably the
+        #    most logical step, since we also do this when evaluating the
+        #    accuracy of PGC later in the NIST benchmark.
+        #    Note that this option was not possible before the major code
+        #    change of storing S and G separately.
+        # 3) To 'unique' the rows of S*G, since we don't want to give some groupvec
+        #    samples more weight than others when performing linear regression.
+        #    This method is the one which was used before making the change to
+        #    store the S and G matrices separately.  
+        
+        if False: # option (1)
+            regression_matrix = np.dot(S, G)
+            row_mapping = dict([(i, [i]) for i in xrange(S.regression_matrix[0])]) # a trivial mapping
+        elif True: # option (2)
             S_unique, row_mapping = LinearRegression.RowUnique(S, remove_zero=True)
-            
-            dG_vec_unique = np.zeros((S_unique.shape[0], 1))
-            obs_types = []
-            names = []
-            for i in xrange(len(row_mapping)):
-                old_indices = row_mapping[i]
-                dG_vec_unique[i, 0] = np.mean(dG_vec[old_indices, 0])
-                obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not a perfect solution)
-                names.append(','.join([self.observations[i].name for i in old_indices]))
-    
             regression_matrix = np.dot(S_unique, G)
-        else: # find unique observation according to group-vectors (not whole reactants)
+        elif False: # option (3)
             SG = np.dot(S, G)
             regression_matrix, row_mapping = LinearRegression.RowUnique(SG, remove_zero=True)
-            dG_vec_unique = np.zeros((regression_matrix.shape[0], 1))
-            obs_types = []
-            names = []
-            for i in xrange(len(row_mapping)):
-                old_indices = row_mapping[i]
-                dG_vec_unique[i, 0] = np.mean(dG_vec[old_indices, 0])
-                obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
-                names.append(','.join([self.observations[i].name for i in old_indices]))            
+
+        y_values = np.zeros((regression_matrix.shape[0], 1))
+        obs_types = []
+        names = []
+        for i in xrange(len(row_mapping)):
+            old_indices = row_mapping[i]
+            y_values[i, 0] = np.mean(dG_vec[old_indices, 0])
+            obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
+            names.append(','.join([self.observations[i].name for i in old_indices]))            
             
-        return regression_matrix, dG_vec_unique, obs_types, names
+        return regression_matrix, y_values, obs_types, names
