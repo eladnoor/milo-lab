@@ -24,10 +24,10 @@ class GroupVector(list):
     def __str__(self):
         """Return a sparse string representation of this group vector."""
         group_strs = []
-        
-        for i, name in enumerate(self.groups_data.all_group_names):
-            if self[i]:
-                group_strs.append('%s x %d' % (name, self[i]))
+        gv_flat = self.Flatten()
+        for i, name in enumerate(self.groups_data.GetGroupNames()):
+            if gv_flat[i]:
+                group_strs.append('%s x %d' % (name, gv_flat[i]))
         return " | ".join(group_strs)
     
     def __iadd__(self, other):
@@ -99,13 +99,13 @@ class GroupVector(list):
             v[int(i)] = x
         return GroupVector(groups_data, v)
     
-    def Flatten(self, transformed=False):
-        if not transformed:
+    def Flatten(self):
+        if not self.groups_data.transformed:
             return tuple(self)
         
         # map all pseudoisomeric group indices to Biochemical group indices (which are fewer)
         # use the names of each group and ignore the nH, z and nMg.
-        biochemical_group_names = self.groups_data.GetGroupNames(transformed)
+        biochemical_group_names = self.groups_data.GetGroupNames()
         biochemical_vector = [0] * len(biochemical_group_names)
         for i, x in enumerate(self):
             group_name = self.groups_data.all_groups[i].name

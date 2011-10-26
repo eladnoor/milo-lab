@@ -147,12 +147,14 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         #    fname = "../data/thermodynamics/groups_species_transformed.csv"
         #else:
         fname = "../data/thermodynamics/groups_species.csv"
-        self.groups_data = GroupsData.FromGroupsFile(fname)
+        self.groups_data = GroupsData.FromGroupsFile(fname,
+                                                     transformed=self.transformed)
         self.groups_data.ToDatabase(self.db)
         self.group_decomposer = GroupDecomposer(self.groups_data)
     
     def LoadGroupsFromDatabase(self):
-        self.groups_data = GroupsData.FromDatabase(self.db)
+        self.groups_data = GroupsData.FromDatabase(self.db,
+                                                   transformed=self.transformed)
         self.group_decomposer = GroupDecomposer(self.groups_data)
             
     def Train(self, FromFiles=True):
@@ -193,9 +195,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
                             'gid INT, name TEXT, protons INT, charge INT, '
                             'nMg INT, dG0_gr REAL, nullspace TEXT')
-        all_group_names = self.groups_data.GetGroupNames(transformed=self.transformed)
-                
-        for j, group_name in enumerate(all_group_names):
+        for j, group_name in enumerate(self.groups_data.GetGroupNames()):
             dG0_gr = self.group_contributions[j, 0]
             nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[:, j]])
             
@@ -239,7 +239,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         if self.group_contributions == None or self.group_nullspace == None:
             raise Exception("You need to first Train the system before using it to estimate values")
 
-        gv = np.array(groupvec.Flatten(self.transformed))
+        gv = np.array(groupvec.Flatten())
         val = float(np.dot(gv, self.group_contributions))
         v = abs(np.dot(self.group_nullspace, gv))
         k_list = [i for i in np.where(v > 1e-10)[0]]
@@ -260,19 +260,13 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             '<td width="20%%">Name</td>'
             '<td width="5%%">&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
             '<td width="70%%">Group Vector</td></tr>')
-        group_names = self.groups_data.GetGroupNames(self.transformed)
         for i in xrange(self.group_matrix.shape[0]):
-            group_vector = self.group_matrix[i, :]
-            nonzero_columns = np.where(abs(group_vector) > 1e-10)[0]
-            s_vector = " | ".join(["%g : %s" % (group_vector[j], group_names[j])
-                for j in nonzero_columns])
-            #s_vector = ['%s : %d' % (self.groups_data.all_groups[j].name, group_vector[j])
-            #     for j in xrange(self.group_matrix.shape[1]) if group_vector[j] != 0]
+            groupvec = GroupVector(self.groups_data, self.group_matrix[i, :])
             self.html_writer.write('<tr>' +
                 '<td width="5%%">%d</td>' % i +
                 '<td width="20%%">%s</td>' % self.obs_names[i] + 
                 '<td width="5%%">%8.2f</td>' % self.obs_values[i] +
-                '<td width="70%%">%s</td></tr>' % s_vector)
+                '<td width="70%%">%s</td></tr>' % str(groupvec))
         self.html_writer.write('</table>')
         self.html_writer.div_end()
         
@@ -281,6 +275,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.div_start(div_id)
         self.html_writer.write('</br><font size="1">\n')
         dict_list = []
+        group_names = self.groups_data.GetGroupNames()
         for j, dG0_gr in enumerate(self.group_contributions):
             obs_lists_dict = {'acid-base':[], 'formation':[], 'reaction':[]}
             for k in self.group_matrix[:, j].nonzero()[0]:
@@ -800,7 +795,7 @@ if __name__ == '__main__':
                               transformed=options.transformed)
         if not options.test_only:
             G.LoadGroupsFromFile()
-            G.Train(FromFiles=True)
+            G.Train(FromFiles=False)
             G.WriteRegressionReport()
             G.analyze_training_set()
         else:

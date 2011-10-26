@@ -213,18 +213,28 @@ class GroupsData(object):
     MIDDLE_PHOSPHATES_TO_MGS = ((PHOSPHATE_DICT['initial chain H0'], PHOSPHATE_DICT['initial chain Mg1']),)    
     FINAL_PHOSPHATES_TO_MGS = ((PHOSPHATE_DICT['middle chain H0'], PHOSPHATE_DICT['middle chain Mg1']),)
     
-    def __init__(self, groups, include_mg=True):
+    def __init__(self, groups, transformed=False):
         """Construct GroupsData.
         
         Args:
             groups: a list of Group objects.
         """
+        self.transformed = transformed
         self.groups = groups
         self.all_groups = self._GetAllGroups(self.groups)
         self.all_group_names = [str(g) for g in self.all_groups]
         self.all_group_hydrogens = pylab.array([g.hydrogens or 0 for g in self.all_groups])
         self.all_group_charges = pylab.array([g.charge or 0 for g in self.all_groups])
         self.all_group_mgs = pylab.array([g.nMg or 0 for g in self.all_groups])
+
+        if self.transformed:
+            # find the unique group names (ignoring nH, z, nMg)
+            # note that Group.name is does not contain these values,
+            # unlike Group.__str__() which concatenates the name and the nH, z, nMg
+            self.biochemical_group_names = []
+            for group in self.all_groups:
+                if group.name not in self.biochemical_group_names:
+                    self.biochemical_group_names.append(group.name)
     
     def Count(self):
         return len(self.all_groups)
@@ -256,7 +266,7 @@ class GroupsData(object):
         return set([int(c) for c in focal_atoms_str.split('|')])
     
     @staticmethod
-    def FromGroupsFile(filename):
+    def FromGroupsFile(filename, transformed=False):
         """Factory that initializes a GroupData from a CSV file."""
         assert filename
         list_of_groups = []
@@ -299,10 +309,10 @@ class GroupsData(object):
             gid += 1
         logging.info('Done reading groups data.')
         
-        return GroupsData(list_of_groups)    
+        return GroupsData(list_of_groups, transformed)    
 
     @staticmethod
-    def FromDatabase(db, filename=None):
+    def FromDatabase(db, filename=None, transformed=False):
         """Factory that initializes a GroupData from a DB connection.
         
         Args:
@@ -336,7 +346,7 @@ class GroupsData(object):
             list_of_groups.append(Group(gid, group_name, protons, charge, nMg, str(smarts), focal_atoms))
         logging.info('Done reading groups data.')
         
-        return GroupsData(list_of_groups)
+        return GroupsData(list_of_groups, transformed)
     
     def ToDatabase(self, db):
         """Write the GroupsData to the database."""
@@ -356,13 +366,8 @@ class GroupsData(object):
         except ValueError:
             raise ValueError('group %s is not defined' % str(gr))
     
-    def GetGroupNames(self, transformed=False):
-        if not transformed:
+    def GetGroupNames(self):
+        if self.transformed:
+            return self.biochemical_group_names
+        else:
             return self.all_group_names
-
-        # find the unique group names (ignoring nH, z, nMg)
-        biochemical_group_names = []
-        for group in self.all_groups:
-            if group.name not in biochemical_group_names:
-                biochemical_group_names.append(group.name)
-        return biochemical_group_names
