@@ -405,9 +405,11 @@ class GroupObervationCollection(object):
                         pseudoisomer_id = "C%05d_nH%d_nMg%d" % (cid, nH, nMg)
                     sparse[pseudoisomer_id] = coeff
 
-            if not set(sparse.keys()).issubset(self.id2gv.keys()):
+            missing_pseudoisomers = set(sparse.keys()).difference(self.id2gv.keys())
+            if len(missing_pseudoisomers) > 0:
                 logging.warning('Cannot reverse transform NIST%03d because it'
-                                ' involves implicit-formula reactants' % (r, e.cid))
+                                ' involves implicit-formula reactants: %s' %
+                                (r, ', '.join(missing_pseudoisomers)))
                 continue
             
             self.AddTrainingExample(sparse, dG0, name=name,
@@ -493,19 +495,19 @@ class GroupObervationCollection(object):
 
         # first create the group matrix G (rows=pseudoisomer, cols=groups)
         id_list = sorted(self.id2gv.keys())
-        id2index = dict([(id, i) for (i, id) in enumerate(id_list)])
+        id2index = dict([(pid, i) for (i, pid) in enumerate(id_list)])
         
-        G = np.zeros((len(id_list), len(self.groups_data.all_groups)))
-        for i_pseudoisomer, id in enumerate(id_list):
-            for i_group, coeff in enumerate(self.id2gv[id]):
+        G = np.zeros((len(id_list), len(self.groups_data.GetGroupNames())))
+        for i_pseudoisomer, pid in enumerate(id_list):
+            for i_group, coeff in enumerate(self.id2gv[pid].Flatten()):
                 G[i_pseudoisomer, i_group] = coeff
                 
         # then create the stoichiometric matrix S (rows=observation, cols=pseudoisomers)
         S = np.zeros((len(self.observations), len(id_list)))
         dG_vec = np.zeros((len(self.observations), 1))
         for i_observation, obs in enumerate(self.observations):
-            for id, coeff in obs.sparse.iteritems():
-                i_pseudoisomer = id2index[id]
+            for pid, coeff in obs.sparse.iteritems():
+                i_pseudoisomer = id2index[pid]
                 S[i_observation, i_pseudoisomer] = coeff
             dG_vec[i_observation, 0] = obs.dG0
         
