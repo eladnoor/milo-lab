@@ -184,20 +184,20 @@ class LinearRegression(object):
             Given a matrix A, calculates two projection matrices.
             
             Arguments:
-                A - a 2D NumPy array
-                eps - the eigenvalue threshold for the null-space definition (default: 1e-10)
+                A - a 2D NumPy array of size n x m
+                eps - the eigenvalue threshold for calculating rank (default: 1e-10)
             
             Returns: (P_C, P_L)
                 P_C is the projection onto the column-space of A
-                P_L is the projection onto the null-space of the columns of A
+                P_L is the projection onto the left-null-space of the columns of A
             
             Note:
                 P_C + P_L = I
+                Both are of size n x n
+                rank(P_C) = rank(A)
+                rank(P_L) = n - rank(A) 
         """
-        _U, s, V = np.linalg.svd(A, full_matrices=True)
-        r = len(np.where(s > eps)[0]) # the rank of A
-        P_C = np.dot(V[:r,:].T, V[:r,:]) # a projection matrix onto the column space of A
-        P_L = np.dot(V[r:,:].T, V[r:,:]) # a projection matrix onto the column space of A
+        P_C, P_L = LinearRegression.RowProjection(A.T, eps)
         return P_C, P_L
 
     @staticmethod
@@ -206,8 +206,8 @@ class LinearRegression(object):
             Given a matrix A, calculates two projection matrices.
             
             Arguments:
-                A - a 2D NumPy array
-                eps - the eigenvalue threshold for the null-space definition (default: 1e-10)
+                A - a 2D NumPy array of size n x m
+                eps - the eigenvalue threshold for calculating rank (default: 1e-10)
             
             Returns: (P_R, P_N)
                 P_R is the projection onto the row-space of A
@@ -215,8 +215,14 @@ class LinearRegression(object):
             
             Note:
                 P_R + P_N = I
+                Both are of size m x m
+                rank(P_R) = rank(A)
+                rank(P_N) = m - rank(A) 
         """
-        P_R, P_N = LinearRegression.ColumnProjection(A.T, eps)
+        _U, s, V = np.linalg.svd(A, full_matrices=True)
+        r = len(np.where(s > eps)[0]) # the rank of A
+        P_R = np.dot(V[:r,:].T, V[:r,:]) # a projection matrix onto the row-space of A
+        P_N = np.dot(V[r:,:].T, V[r:,:]) # a projection matrix onto the null-space of A
         return P_R, P_N
 
     @staticmethod
@@ -287,32 +293,35 @@ if __name__ == '__main__':
     A = np.matrix([[1,0,0],[0,1,0],[0,0,0],[1,0,0],[0,1,0],[0,1,0]])
     print LinearRegression.RowUnique(A, remove_zero=True)
     b = np.matrix([[1],[2],[1],[3],[4],[1]])
-    A, b = LinearRegression.RowUniqueRegression(A, b)
-    print A
-    print b.T.tolist()[0]
+    #A, b = LinearRegression.RowUniqueRegression(A, b)
+    print 'A:\n', A
+    print 'b:\n', b.T.tolist()[0]
     
     G = np.matrix([[1],[2],[0]])
-    P_R, P_N = LinearRegression.RowProjection(A)
-    P_R2, P_N2 = LinearRegression.RowProjection(A*G)
+    P_C, P_L = LinearRegression.ColumnProjection(A)
+    print "P_C:\n", P_C
+    print "P_C * P_C^T:\n", np.dot(P_C, P_C.T)
+    
+    P_C2, P_L2 = LinearRegression.ColumnProjection(A*G)
 
     n = A.shape[0]
-    print "b:", b.T.tolist()[0]
-    b_R = np.dot(P_R, b)
-    b_N = np.dot(P_N, b)
-    print "b_R:", b_R.T.tolist()[0]
-    print "b_N:", b_N.T.tolist()[0]
+    print "b:\n", b.T.tolist()[0]
+    b_C = np.dot(P_C, b)
+    b_L = np.dot(P_L, b)
+    print "b_C:\n", b_C.T.tolist()[0]
+    print "b_L:\n", b_L.T.tolist()[0]
 
-    b_R2 = np.dot(P_R2, b)
-    b_N2 = np.dot(P_N2, b)
-    print "b_R2:", b_R2.T.tolist()[0]
-    print "b_N2:", b_N2.T.tolist()[0]
+    b_C2 = np.dot(P_C2, b)
+    b_L2 = np.dot(P_L2, b)
+    print "b_C2:\n", b_C2.T.tolist()[0]
+    print "b_L2:\n", b_L2.T.tolist()[0]
 
     #x, _ = LinearRegression.LeastSquares(A, b)
     #print "A*x - b:", (np.dot(A, x) - b).T.tolist()[0]
 
-    x_R, _ = LinearRegression.LeastSquares(np.dot(A, G), b_R)
-    print "A*x_R - b_R:", abs(np.dot(np.dot(A, G), x_R) - b_R).T.tolist()[0]
-    print abs((P_R - P_R2) * b).T.tolist()[0]
+    x_C, _ = LinearRegression.LeastSquares(np.dot(A, G), b_C)
+    print "A*x_C - b_C:\n", abs(np.dot(np.dot(A, G), x_C) - b_C).T.tolist()[0]
+    print abs((P_C - P_C2) * b).T.tolist()[0]
     
     #x_N, _ = LinearRegression.LeastSquares(A, b_N)
     #print "A*x_N - b_N:", (np.dot(A, x_N) - b_N).T.tolist()[0]

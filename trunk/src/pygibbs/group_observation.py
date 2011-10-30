@@ -11,6 +11,7 @@ from pygibbs.nist import Nist
 import json
 from pygibbs.dissociation_constants import MissingDissociationConstantError
 from toolbox.linear_regression import LinearRegression
+import pylab
 
 class GroupObservation(object):
     
@@ -528,6 +529,21 @@ class GroupObervationCollection(object):
         #    samples more weight than others when performing linear regression.
         #    This method is the one which was used before making the change to
         #    store the S and G matrices separately.  
+
+        P_C1, P_L1 = LinearRegression.ColumnProjection(S)
+        P_C2, P_L2 = LinearRegression.ColumnProjection(np.dot(S, G))
+        
+        r_obs = np.dot(P_L1, dG_vec)
+        r_est = np.dot(P_L2 - P_L1, dG_vec)
+        r_tot = np.dot(P_L2, dG_vec)
+        
+        self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
+        self.html_writer.insert_toggle(start_here=True)
+        residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_obs),
+                         'r<sub>estimation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_est),
+                         'r<sub>total</sub> = %.2f kJ/mol' % pylab.rms_flat(r_tot)]
+        self.html_writer.write_ul(residual_text)
+        self.html_writer.div_end()
         
         if False: # option (1)
             regression_matrix = np.dot(S, G)
@@ -547,5 +563,5 @@ class GroupObervationCollection(object):
             y_values[i, 0] = np.mean(dG_vec[old_indices, 0])
             obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
             names.append(','.join([self.observations[i].name for i in old_indices]))            
-            
+
         return regression_matrix, y_values, obs_types, names
