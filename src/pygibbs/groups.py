@@ -250,8 +250,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
     
     def WriteRegressionReport(self, T=default_T, pH=default_pH):        
         self.html_writer.write('</br><b>Regression report</b>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.div_start(div_id)
+        self.html_writer.insert_toggle(start_here=True)
         self.html_writer.write_ul(['observations: %d' % self.group_matrix.shape[0],
            'groups: %d' % self.group_matrix.shape[1],
            'rank: %d' % LinearRegression.MatrixRank(self.group_matrix)])
@@ -465,10 +464,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.cid2source_string = {}
         self.cid2error = {}
         self.cid2groupvec = {}
-        
+
+        self.html_writer.write('</br><b>Estimated formation energies for KEGG compounds</b></br>\n')
+        self.html_writer.insert_toggle(start_here=True)
         for cid in sorted(cid_list or self.kegg.get_all_cids()):
-            self.html_writer.write('</br>\n')
-            self.html_writer.write('<b>C%05d - %s</b>\n' % (cid, self.kegg.cid2name(cid)))
+            self.html_writer.write('<b>C%05d - %s</b></br>\n' % (cid, self.kegg.cid2name(cid)))
 
             diss_table = self.GetDissociationTable(cid)
             pmap = None
@@ -491,7 +491,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                         "overriding the dissociation table" % cid)
                     pmap = pmap_obs
             elif diss_table is None:
-                self.html_writer.write('</br>Warning: no dissociation table')
+                self.html_writer.write('Warning: no dissociation table</br>\n')
                 continue
             else:
                 nH, nMg = diss_table.GetMostAbundantPseudoisomer(
@@ -504,7 +504,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                                            ignore_protonations=False)
                 except GroupDecompositionError as e:
                     self.cid2error[cid] = str(e)
-                    self.html_writer.write('</br>Error: %s\n' % str(e))
+                    self.html_writer.write('Error: %s</br>\n' % str(e))
+                    logging.debug("C%05d: %s" % (cid, str(e)))
                     continue
 
                 groupvector = decomposition.AsVector()
@@ -515,10 +516,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     # conservation laws because it might cancel out later when we 
                     # use it to calculate reactions.
                     dG0 = e.value
-                    logging.warning("C%05d: %s" % (cid, str(e)))
+                    self.html_writer.write('Warning: %s</br>\n' % str(e))
+                    logging.debug("C%05d: %s" % (cid, str(e)))
+                    self.cid2error[cid] = str(e)
 
                 source_string = "Group Contribution"
-                
                 
                 if self.transformed:
                     diss_table.SetTransformedFormationEnergy(dG0_tag=dG0, 
@@ -528,17 +530,15 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                         err_msg = "The most abundant pseudoisomer is [nH=%d, nMg=%d], " \
                             "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
                             "" % (nH, nMg, groupvector.Hydrogens(), groupvector.Magnesiums())
-                        self.html_writer.write('</br>ERROR: %s\n' % err_msg)
+                        self.html_writer.write('ERROR: %s</br>\n' % err_msg)
                         self.cid2error[cid] = err_msg
                         continue
                     diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
                 pmap = diss_table.GetPseudoisomerMap()
 
-            self.html_writer.insert_toggle('C%05d' % cid, start_here=True)
-            self.html_writer.div_start('C%05d' % cid)
-            if diss_table is not None:
-                self.html_writer.write('<b>Dissociation table:</b></br>\n')
-                diss_table.WriteToHTML(self.html_writer)
+            #if diss_table is not None:
+            #    self.html_writer.write('<b>Dissociation table:</b></br>\n')
+            #    diss_table.WriteToHTML(self.html_writer)
             
             if groupvector:
                 self.html_writer.write('Group vector = %s</br>\n' % str(groupvector))
@@ -550,11 +550,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.SetPseudoisomerMap(cid, pmap)
             self.cid2groupvec[cid] = groupvector
             self.cid2source_string[cid] = source_string
-
-            self.html_writer.write('<b>Pseudoisomer table:</b></br>\n')
-            pmap.WriteToHTML(self.html_writer)
+            #self.html_writer.write('<b>Pseudoisomer table:</b></br>\n')
+            #pmap.WriteToHTML(self.html_writer)
             
-            self.html_writer.div_end()
+        self.html_writer.div_end()
         
         logging.info("Writing the results to the database")
         G.ToDatabase(self.db, table_name=self.PMAP_TABLE_NAME, 
@@ -783,19 +782,23 @@ if __name__ == '__main__':
     else:
         # use the flag -i or --train for train only
         # use the flag -e or --test for test only
+        if options.transformed:
+            prefix = 'bgc'
+        else:
+            prefix = 'pgc'
         
         if options.test_only:
-            html_writer = HtmlWriter('../res/groups_test.html')
+            html_writer = HtmlWriter('../res/%s_test.html' % prefix)
         elif options.train_only:
-            html_writer = HtmlWriter('../res/groups_train.html')
+            html_writer = HtmlWriter('../res/%s_train.html' % prefix)
         else:
-            html_writer = HtmlWriter('../res/groups.html')
+            html_writer = HtmlWriter('../res/%s.html' % prefix)
             
         G = GroupContribution(db=db, html_writer=html_writer,
                               transformed=options.transformed)
         if not options.test_only:
             G.LoadGroupsFromFile()
-            G.Train(FromFiles=False)
+            G.Train()
             G.WriteRegressionReport()
             G.analyze_training_set()
         else:
