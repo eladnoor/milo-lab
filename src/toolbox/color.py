@@ -10,11 +10,10 @@ def RgbToHex(rgb):
 	r *= 255
 	g *= 255
 	b *= 255
-	print r, g, b
 	return '#%02x%02x%02x' % (r,g,b)
 	
 
-def ColorMap(items, saturation=0.5, value=0.95):
+def ColorMap(items, saturation=0.7, value=0.95):
 	n = len(items)
 	hues = numpy.arange(float(n)) / float(n)
 	f = lambda h: RgbToHex(colorsys.hsv_to_rgb(h, saturation, value)) 
