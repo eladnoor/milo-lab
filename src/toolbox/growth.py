@@ -87,27 +87,11 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         
         return res_mat
         
-
     def CalculateGrowthInternal(self, times, levels):
         res_mat = self.CalculateRates(times, levels)
-
-        """
-        for i in range(N):
-            try:
-                # calculate the indices covered by the window
-                i_range = get_frame_range(times, i, self.window_size)
-                x = pylab.hstack([t_mat[i_range, 0], pylab.ones((len(i_range), 1))])
-                y = c_mat[i_range, 0]
-                if min(pylab.exp(y)) < self.minimum_level: # the measurements are still too low to use (because of noise)
-                    raise ValueError()
-                (a, residues) = pylab.lstsq(x, y)[0:2]
-                res_mat[i, 0] = a[0]
-                res_mat[i, 1] = a[1]
-                res_mat[i, 2] = residues
-                res_mat[i, 3] = pylab.mean(count_matrix[i_range,0])
-            except ValueError:
-                pass
-        """
+        t_mat = pylab.matrix(times).T
+        count_matrix = pylab.matrix(levels).T
+        norm_counts = count_matrix - min(levels)
         max_i = res_mat[:,0].argmax()
 
         abs_res_mat = pylab.array(res_mat)
@@ -230,7 +214,6 @@ if __name__ == '__main__':
     levels = pylab.array(noisy_vals)
     times = pylab.array(map(float, range(len(noisy_vals))))
 
-    
     calculator = SlidingWindowGrowthCalculator()
     rate, stationary = calculator.CalculateGrowth(times, levels)
     print rate, stationary

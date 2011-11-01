@@ -1,10 +1,13 @@
 import numpy as np
 import scipy.stats as st
 
-def MeanWithInterval(Y, confidence=0.95):
+def MeanWithConfidenceInterval(Y, confidence=0.95):
     """
-        Use the fact that (mean(Y) - mu) / (std(Y)/sqrt(n))
-        is a Student T distribution with n-1 degrees of freedom
+    Use the fact that (mean(Y) - mu) / (std(Y)/sqrt(n))
+    is a Student T distribution with n-1 degrees of freedom
+    
+    Returns:
+        2 tuple (mean, symmetric confidence interval size).
     """
     n = len(Y)
     Y_bar = np.mean(Y)
@@ -16,7 +19,20 @@ def MeanWithInterval(Y, confidence=0.95):
     t = st.t.ppf((confidence + 1.0)/2.0, n-1)
     SD = np.std(Y, ddof=1) # use the unbiased estimator: sqrt(y^2 / (n-1))
     SE = SD / np.sqrt(len(Y))
-    return Y_bar - t*SE, Y_bar + t*SE
+    return Y_bar, t*SE
+
+
+def MeanWithInterval(Y, confidence=0.95):
+    """
+        Use the fact that (mean(Y) - mu) / (std(Y)/sqrt(n))
+        is a Student T distribution with n-1 degrees of freedom
+    """
+    Y_bar, err = MeanWithConfidenceInterval(Y, confidence)
+    
+    return Y_bar - err, Y_bar + err
+
+
+
 
 def GetSlopeInterval(x, y, confidence=0.95):
     slope, _intercept, _r_value, _p_value, std_err = st.linregress(x,y)
