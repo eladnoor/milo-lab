@@ -83,7 +83,12 @@ def CalculateThermo():
         diss_table = Molecule._GetDissociationTable(mol_dict['mol'],
                                                     format=mol_dict['format'])
         try:
-            mol = diss_table.GetMostAbundantMol(pH, I, pMg, T)
+            mol = diss_table.GetMostAbundantMol(pH, I, pMg, T) or \
+                  diss_table.GetAnyMol()
+            if mol is None:
+                raise Exception("Cannot convert input string to Molecule: " + 
+                                mol_dict['mol'])
+            
             decomposition = G.Mol2Decomposition(mol, 
                 ignore_protonations=ignore_protonations)
             groupvec = decomposition.AsVector()
