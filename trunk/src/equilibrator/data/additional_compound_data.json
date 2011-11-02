@@ -68,6 +68,12 @@
         ]
     }, 
     {
+        "CID": "C00127",
+        "names": [
+            "Glutathione(ox)"
+        ]
+    },
+    {
         "CID": "C00186",
         "names": [
             "Lactate" 
