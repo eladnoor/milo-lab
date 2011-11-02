@@ -47,10 +47,14 @@ class GrowthCalculator(object):
     
 class SlidingWindowGrowthCalculator(GrowthCalculator):
     
-    def __init__(self, window_size=5, minimum_level=0.01):
+    def __init__(self,
+                 window_size=5,
+                 minimum_level=0.01,
+                 maximum_level=0.3):
         GrowthCalculator.__init__(self)
         self.window_size = window_size
         self.minimum_level = minimum_level
+        self.maximum_level = maximum_level
 
     def CalculateRates(self, times, levels):
         N = len(levels)    
@@ -69,7 +73,7 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
     
         c_mat = pylab.log(c_mat)
         
-        res_mat = pylab.zeros((N, 4)) # columns are: slope, offset, error, avg_value
+        res_mat = pylab.zeros((N, 5)) # columns are: slope, offset, error, avg_value, max_value
         for i in xrange(N-self.window_size):
             i_range = range(i, i+self.window_size)
             x = pylab.hstack([t_mat[i_range, 0], pylab.ones((len(i_range), 1))])
@@ -78,12 +82,13 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
             # Measurements in window must all be above the min.
             if min(pylab.exp(y)) < self.minimum_level:
                 continue
-            
+                        
             (a, residues) = pylab.lstsq(x, y)[0:2]
             res_mat[i, 0] = a[0]
             res_mat[i, 1] = a[1]
             res_mat[i, 2] = residues
             res_mat[i, 3] = pylab.mean(count_matrix[i_range,0])
+            res_mat[i, 4] = max(pylab.exp(y))
         
         return res_mat
         
@@ -92,7 +97,8 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         t_mat = pylab.matrix(times).T
         count_matrix = pylab.matrix(levels).T
         norm_counts = count_matrix - min(levels)
-        max_i = res_mat[:,0].argmax()
+        allowed_vals = pylab.find(res_mat[:,4] < self.maximum_level)
+        max_i = res_mat[allowed_vals,0].argmax()
 
         abs_res_mat = pylab.array(res_mat)
         abs_res_mat[:,0] = pylab.absolute(res_mat[:,0])
@@ -105,21 +111,23 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         if stationary_indices.any():
             stationary_level = res_mat[stationary_indices[0], 3]
         
-        if False:
-            pylab.hold(True)
-            pylab.plot(times, norm_counts)
-            pylab.plot(times, res_mat[:,0])
-            pylab.plot([0, times.max()], [self.minimum_level, self.minimum_level], 'r--')
-            i_range = range(max_i, max_i+self.window_size)
-            
-            x = pylab.hstack([t_mat[i_range, 0], pylab.ones((len(i_range), 1))])
-            y = x * pylab.matrix(res_mat[max_i, 0:2]).T
-            pylab.plot(x[:,0], pylab.exp(y), 'k:', linewidth=4)
-                    
-            pylab.plot([0, max(times)], [stationary_level, stationary_level], 'k-')
-            
-            pylab.yscale('log')
-            pylab.legend(['OD', 'growth rate', 'threshold', 'fit', 'stationary'])
+        """
+        pylab.hold(True)
+        pylab.plot(times, norm_counts)
+        pylab.plot(times, res_mat[:,0])
+        pylab.plot([0, times.max()], [self.minimum_level, self.minimum_level], 'r--')
+        pylab.plot([0, times.max()], [self.maximum_level, self.maximum_level], 'r--')
+        i_range = range(max_i, max_i+self.window_size)
+        
+        x = pylab.hstack([t_mat[i_range, 0], pylab.ones((len(i_range), 1))])
+        y = x * pylab.matrix(res_mat[max_i, 0:2]).T
+        pylab.plot(x[:,0], pylab.exp(y), 'k:', linewidth=4)
+                
+        pylab.plot([0, max(times)], [stationary_level, stationary_level], 'k-')
+        
+        pylab.yscale('log')
+        pylab.legend(['OD', 'growth rate', 'threshold', 'fit', 'stationary'])
+        """
         
         return res_mat[max_i, 0], stationary_level
 
