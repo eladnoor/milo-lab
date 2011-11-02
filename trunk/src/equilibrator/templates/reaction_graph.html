@@ -61,7 +61,7 @@
 					var nh = specie.nh;
 					var nmg = specie.nmg;
 					var nc = specie.nc;
-					var dgf = specie.dgf;
+					var dgf = specie.dgzero;
 					var prot_pot = nh * this.rt * Math.log(10) * ph;
 					var ionic_pot = 2.91482 * (Math.pow(nc, 2) - nh) * Math.sqrt(is);
                     ionic_pot /= 1 + 1.6 * Math.sqrt(is);
@@ -92,7 +92,7 @@
                 	for (var i = 0; i < side.length; ++i) {
                 		var compound = side[i];
                 		var coeff = compound.coeff;
-                		var species = compound.species;
+                		var species = compound.species.species;
                 		
                 		sum += coeff * this.getDgfSpecies(species, ph, is);
                 	}
@@ -127,7 +127,7 @@
                 	var points = [];
                 	
                 	while (curPh < 11.0) {
-                		var dg = this.getDgTagReaction(curPh, this.is);
+                		var dg = this.getDgTagReaction(curPh, this.is).toFixed(2);
                 		points.push([curPh, dg]);
                 		
                 		curPh += 0.1;
@@ -145,7 +145,7 @@
                 	var points = [];
                 	
                 	while (curIs < 0.35) {
-                		var dg = this.getDgTagReaction(this.ph, curIs);
+                		var dg = this.getDgTagReaction(this.ph, curIs).toFixed(2);
                 		points.push([curIs, dg]);
                 		
                 		curIs += 0.0001;
