@@ -5,6 +5,7 @@ COLORS = 'grbcmyk'
 import colorsys
 import numpy
 
+
 def RgbToHex(rgb):
 	r, g, b = rgb
 	r *= 255
