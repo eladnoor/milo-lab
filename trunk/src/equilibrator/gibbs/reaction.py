@@ -479,11 +479,16 @@ class Reaction(object):
         return '/reaction?%s' % '&'.join(params)
 
     def GetBalanceElectronsLink(self, query=None):
-        """Returns a link to balance this reaction with water."""
+        """Returns a link to balance this reaction with NAD:NADH."""
         params = self._GetUrlParams(query)
         params.append('balance_electrons=1')
     
         return '/reaction?%s' % '&'.join(params)
+
+    def GetHalfReactionLink(self, query=None):
+        """Returns a link to balance this reaction with water."""
+        params = self._GetUrlParams(query)
+        return '/half_reaction?%s' % '&'.join(params)
 
     def GetReplaceCO2Link(self, query=None):
         """Returns a link to balance this reaction with water."""
@@ -546,6 +551,29 @@ class Reaction(object):
             True if the collection is electron-wise balanced.
         """
         return self._GetElectronDiff() == 0
+    
+    def IsHalfReaction(self):
+        """Checks if the reaction is a half-reaction (excess electrons).
+        
+        Returns:
+            True if the collection is electron-wise balanced.
+        """
+        return self._GetElectronDiff() != 0
+    
+    def StandardizeHalfReaction(self):
+        """Checks if the reaction is a half-reaction (excess electrons).
+        
+        Returns:
+            True if the collection is electron-wise balanced.
+        """
+        if self._GetElectronDiff() > 0:
+            self.SwapSides()
+            
+    def E0_tag(self):
+        """Returns the standard transformed reduction potential of this reaction."""
+        delta_electrons = abs(self._GetElectronDiff())
+        assert delta_electrons != 0
+        return - self.dg0_tag / (constants.F*delta_electrons)
     
     def _ExtraWaters(self):
         atom_diff = self._GetAtomDiff()
@@ -704,13 +732,6 @@ class Reaction(object):
         
         return self.TryBalanceWithWater()
 
-    def CanBalanceElectrons(self):
-        """Returns True if balanced with or extra electrons."""
-        net_electrons = self._GetElectronDiff()
-        if net_electrons % 2 == 0:
-            return True
-        return False
-
     def BalanceElectrons(self,
                          acceptor_id='C00003',           # NAD+
                          reduced_acceptor_id='C00004'):  # NADH
@@ -759,14 +780,13 @@ class Reaction(object):
             c = compound_w_coeff.compound
             coeff = compound_w_coeff.coeff
             
-            
             est = c.DeltaG(pH=pH, pMg=pMg, ionic_strength=ionic_strength)
             if est == None:
                 logging.info('No estimate for compound %s', c.kegg_id)
                 return None
             
             sum += coeff * est
-        
+    
         return sum
     
     def _GetConcentrationCorrection(self):
@@ -805,10 +825,11 @@ class Reaction(object):
             self.reactants, pH=0, pMg=0, ionic_strength=0)
         products_sum = self.GetTotalFormationEnergy(
             self.products, pH=0, pMg=0, ionic_strength=0)
-        if not products_sum:
+        if products_sum is None:
             logging.warning('Failed to get products formation energy.')
             return None
-        if not reactants_sum:
+        if reactants_sum is None:
+            print reactants_sum
             logging.warning('Failed to get reactants formation energy.')
             return None
         
@@ -828,10 +849,10 @@ class Reaction(object):
             self.reactants, pH=ph, pMg=pmg, ionic_strength=i_s)
         products_sum = self.GetTotalFormationEnergy(
             self.products, pH=ph, pMg=pmg, ionic_strength=i_s)
-        if not products_sum:
+        if products_sum is None:
             logging.warning('Failed to get products formation energy.')
             return None
-        if not reactants_sum:
+        if reactants_sum is None:
             logging.warning('Failed to get reactants formation energy.')
             return None
         
@@ -911,8 +932,8 @@ class Reaction(object):
     
     contains_co2 = property(ContainsCO2)
     is_balanced = property(IsBalanced)
-    can_balance_electrons = property(CanBalanceElectrons)
     is_electron_balanced = property(IsElectronBalanced)
+    is_half_reaction = property(IsHalfReaction)
     balanced_with_water = property(CanBalanceWithWater)
     extra_atoms = property(ExtraAtoms)
     missing_atoms = property(MissingAtoms)
@@ -923,6 +944,7 @@ class Reaction(object):
     dg0_tag = property(DeltaG0Tag)
     dg_tag = property(DeltaGTag)
     k_eq_tag = property(KeqTag)
+    e0_tag = property(E0_tag)
     no_dg_explanation = property(NoDeltaGExplanation)
     standard_concentrations = property(StandardConcentrations)
     ph_graph_link = property(GetPhGraphLink)
