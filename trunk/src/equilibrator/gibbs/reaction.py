@@ -240,10 +240,12 @@ class Reaction(object):
              'chemically_balanced': self.is_balanced,
              'redox_balanced': self.is_electron_balanced,
              'dgzero': round(self.dg0, 1),
-             'dgzero_tag': round(self.dg0_tag, 1),
-             'keq_tag': self.k_eq_tag,
-             'pH': self.ph,
-             'ionic_strength': self.i_s,
+             'dgzero_tag': {'value': round(self.dg0_tag, 1),
+                            'pH': self.ph,
+                            'ionic_strength': self.i_s},
+             'keq_tag': {'value': self.k_eq_tag,
+                         'pH': self.ph,
+                         'ionic_strength': self.i_s},
              'KEGG_ID': None}
         
         if self.stored_reaction:

@@ -366,13 +366,35 @@ class Compound(models.Model):
         return None
     
     def SpeciesJson(self):
+        """Returns JSON for the species."""
         l = []
+        d = {'source': str(self._species_group.formation_energy_source)}
         for s in self._species_group.all_species:
-            l.append({"nh": int(s.number_of_hydrogens),
-                      "nc": int(s.net_charge),
-                      "nmg": int(s.number_of_mgs),
-                      "dgf": float(s.formation_energy)})
-        return l
+            l.append({'nh': int(s.number_of_hydrogens),
+                      'nc': int(s.net_charge),
+                      'nmg': int(s.number_of_mgs),
+                      'dgzero': float(s.formation_energy)})
+        d['species'] = l
+        return d
+    
+    def ToJson(self, pH=constants.DEFAULT_PH,
+               pMg=constants.DEFAULT_PMG,
+               ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
+        d = {'name': str(self.name), 
+             'dgzero': round(self.dgf_zero, 1),
+             'dgzero_tag': {'value': round(self.DeltaG(pH, pMg, ionic_strength), 1),
+                            'pH': pH,
+                            'ionic_strength': ionic_strength},
+             'KEGG_ID': self.kegg_id,
+             'InChI': self.inchi,
+             'mass': self.mass,
+             'formula': self.formula,
+             'num_electrons': self.num_electrons,
+             'species_data': self.SpeciesJson(),
+             'note': None}
+        if self.note:
+            d['note'] = self.note
+        return d
 
     def GetSpeciesGroups(self):
         """Gets the list of SpeciesGroups."""
