@@ -365,17 +365,21 @@ class Compound(models.Model):
         # TODO(flamholz): Should we return something here?
         return None
     
-    def SpeciesJson(self):
+    def SpeciesJson(self, species_group=None):
         """Returns JSON for the species."""
+        sg = species_group or self._species_group
         l = []
-        d = {'source': str(self._species_group.formation_energy_source)}
-        for s in self._species_group.all_species:
+        d = {'source': str(sg.formation_energy_source)}
+        for s in sg.all_species:
             l.append({'nh': int(s.number_of_hydrogens),
                       'nc': int(s.net_charge),
                       'nmg': int(s.number_of_mgs),
                       'dgzero': float(s.formation_energy)})
         d['species'] = l
         return d
+    
+    def AllSpeciesJson(self):
+        return [self.SpeciesJson(sg) for sg in self.all_species_groups]
     
     def ToJson(self, pH=constants.DEFAULT_PH,
                pMg=constants.DEFAULT_PMG,
@@ -390,7 +394,7 @@ class Compound(models.Model):
              'mass': self.mass,
              'formula': self.formula,
              'num_electrons': self.num_electrons,
-             'species_data': self.SpeciesJson(),
+             'species_data': self.AllSpeciesJson(),
              'note': None}
         if self.note:
             d['note'] = self.note

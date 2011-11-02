@@ -10,7 +10,7 @@ from gibbs import models
 from gibbs import reaction
 
 
-MAX_COMPOUNDS = 200
+MAX_COMPOUNDS = 50
 
 @csrf_exempt
 def CompoundAPI(request):
@@ -55,15 +55,10 @@ def CompoundAPI(request):
                                     .filter(kegg_id__in=kegg_ids))
     except Exception, e:
         # TODO(flamholz): catch more specific errors
-        print e
         logging.error(e)
         return HttpResponseServerError('DB Query failed. Try again.')
         
-    try:
-        json_compounds = [c.ToJson() for c in stored_compounds]
-        print json_compounds
-    except Exception, e:
-        print e
+    json_compounds = [c.ToJson() for c in stored_compounds]
     json_dict = {'compounds': json_compounds,
                  'pH': ph,
                  'ionic_strength': i_s}

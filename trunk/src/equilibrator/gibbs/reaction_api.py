@@ -10,7 +10,7 @@ from gibbs import models
 from gibbs import reaction
 
 
-MAX_REACTIONS = 200
+MAX_REACTIONS = 50
 
 @csrf_exempt
 def ReactionAPI(request):    
