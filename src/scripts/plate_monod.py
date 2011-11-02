@@ -37,9 +37,14 @@ def MakeOpts():
                           help="Window size for computing the growth rate.")
     opt_parser.add_option("-l", "--lower_bound",
                           dest="lower_bound",
-                          type='int',
+                          type='float',
                           default=0.1,
                           help="Minimum reading to consider valid.")
+    opt_parser.add_option("-u", "--upper_bound",
+                          dest="upper_bound",
+                          type='float',
+                          default=0.3,
+                          help="Maximum reading to consider valid.")
     return opt_parser
 
 
@@ -56,7 +61,8 @@ def Main():
 
     print 'Calculating growth rates'
     lux_calculator = growth.SlidingWindowGrowthCalculator(window_size=options.window_size,
-                                                          minimum_level=options.lower_bound)
+                                                          minimum_level=options.lower_bound,
+                                                          maximum_level=options.upper_bound)
     n = labels.size
     colors = ColorMap(set(labels))
     rates = {}
