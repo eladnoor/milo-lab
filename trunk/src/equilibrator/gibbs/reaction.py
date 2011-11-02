@@ -48,10 +48,11 @@ class CompoundWithCoeff(object):
         return '%d %s' % (self.coeff, name)
     
     def ToJson(self, include_species=True):
-        d = {"coeff": self.coeff,
-             "KEGG_ID": self.compound.kegg_id,
-             "concentration": self.concentration,
-             "name": str(self.compound.first_name)}
+        d = {'coeff': self.coeff,
+             'KEGG_ID': self.compound.kegg_id,
+             'concentration': self.concentration,
+             'name': str(self.compound.first_name),
+             'source_used': str(self.compound._species_group.formation_energy_source)}
         
         if include_species:
             d["species"] = self.compound.SpeciesJson()

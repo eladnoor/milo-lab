@@ -184,6 +184,14 @@ class SpeciesGroup(models.Model):
         scaled_offset_transforms = [(st - offset) for st in scaled_transforms]
         sum_exp = sum(numpy.exp(scaled_offset_transforms))
         return - _r * _t * (offset + numpy.log(sum_exp))
+    
+    def DeltaGZero(self):
+        """Get a dG0 estimate for the species group.
+        
+        Returns:
+            The estimated delta G in standard conditions.
+        """
+        return self.DeltaG(pH=0.0, pMg=0.0, ionic_strength=0.0)
 
 
 class Compound(models.Model):
@@ -365,11 +373,18 @@ class Compound(models.Model):
         # TODO(flamholz): Should we return something here?
         return None
     
-    def SpeciesJson(self, species_group=None):
+    def SpeciesJson(self, species_group=None,
+                    pH=constants.DEFAULT_PH,
+                    pMg=constants.DEFAULT_PMG,
+                    ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Returns JSON for the species."""
         sg = species_group or self._species_group
         l = []
-        d = {'source': str(sg.formation_energy_source)}
+        d = {'source': str(sg.formation_energy_source),
+             'dgzero': round(sg.DeltaGZero(), 1),
+             'dgzero_tag': {'value': round(sg.DeltaG(pH, pMg, ionic_strength), 1),
+                            'pH': pH,
+                            'ionic_strength': ionic_strength}}
         for s in sg.all_species:
             l.append({'nh': int(s.number_of_hydrogens),
                       'nc': int(s.net_charge),
@@ -378,23 +393,19 @@ class Compound(models.Model):
         d['species'] = l
         return d
     
-    def AllSpeciesJson(self):
+    def AllSpeciesGroupsJson(self):
         return [self.SpeciesJson(sg) for sg in self.all_species_groups]
     
     def ToJson(self, pH=constants.DEFAULT_PH,
                pMg=constants.DEFAULT_PMG,
                ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         d = {'name': str(self.name), 
-             'dgzero': round(self.dgf_zero, 1),
-             'dgzero_tag': {'value': round(self.DeltaG(pH, pMg, ionic_strength), 1),
-                            'pH': pH,
-                            'ionic_strength': ionic_strength},
              'KEGG_ID': self.kegg_id,
              'InChI': self.inchi,
              'mass': self.mass,
              'formula': self.formula,
              'num_electrons': self.num_electrons,
-             'species_data': self.AllSpeciesJson(),
+             'thermodynamic_data': self.AllSpeciesGroupsJson(),
              'note': None}
         if self.note:
             d['note'] = self.note
