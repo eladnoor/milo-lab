@@ -131,7 +131,10 @@ class Reaction(object):
     
     def _SetCompoundPriorities(self):
         """Returns a set of (int, SpeciesGroup) tuples for the reaction."""
-        compounds = [c.compound for c in self.reactants] + [c.compound for c in self.products]
+        # Hack - ignore H+ because it has the wrong priority for the Alberty data.
+        compounds = self._FilterHydrogen(self.reactants + self.products)
+        compounds = [c.compound for c in compounds]
+        
         sentinel = 1<<10;
         get_min_priority = lambda c: min(c.GetSpeciesGroupPriorities() + [sentinel])
         min_priorities = map(get_min_priority, compounds)
