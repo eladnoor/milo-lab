@@ -1,11 +1,10 @@
 "Name","Gene","Identifier"
-"fused glucose-specific PTS enzymes",ptsG,MPN207
-"glucosephosphate isomerase",pgi,VNG1992G
-"fructose-bisphosphate aldolase",VNG0309C,VNG0309C
-"triosephosphate isomerase",tpiA,VNG1027G
-"glyceraldehyde-3-phosphate dehydrogenase A",VNG0937G,VNG0937G
-"glyceraldehyde-3-phosphate dehydrogenase",gapB,VNG0095G
-"phosphoglycerate kinase",pgk,VNG1216G
-"phosphoglyceromutase",gpmI,VNG1887G
-"enolase",eno,VNG1142G
+"Phosphoglucose isomerase",pgi,VNG1992G
+"Fructose-bisphosphate aldolase",VNG0309C,VNG0309C
+"Triosephosphate isomerase",tpiA,VNG1027G
+"Glyceraldehyde-3-phosphate dehydrogenase",VNG0937G,VNG0937G
+"Glyceraldehyde-3-phosphate dehydrogenase",gapB,VNG0095G
+"Phosphoglycerate kinase",pgk,VNG1216G
+"Phosphoglycerate mutase",gpmI,VNG1887G
+"Enolase",eno,VNG1142G
 "pyruvate kinase",pykA,VNG0324G

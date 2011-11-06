@@ -1,21 +1,21 @@
 "Name","Gene","Identifier"
 "Glucokinase",GLK1,YCL040W
-"Hexokinase-1",HXK1,YFR053C
-"Hexokinase-2",HXK2,YGL253W
-"Glucose-6-phosphate isomerase",PGI1,YBR196C
-"6-phosphofructokinase subunit alpha",PFK1,YGR240C
-"6-phosphofructokinase subunit beta",PFK2,YMR205C
+"Hexokinase",HXK1,YFR053C
+"Hexokinase",HXK2,YGL253W
+"Phosphoglucose isomerase",PGI1,YBR196C
+"6-phosphofructokinase",PFK1,YGR240C
+"6-phosphofructokinase",PFK2,YMR205C
 "Fructose-bisphosphate aldolase",FBA1,YKL060C
 "Triosephosphate isomerase",TPI1,YDR050C
-"Glyceraldehyde-3-phosphate dehydrogenase 1",TDH1,YJL052W
-"Glyceraldehyde-3-phosphate dehydrogenase 2",TDH2,YJR009C
-"Glyceraldehyde-3-phosphate dehydrogenase 3",TDH3,YGR192C
-"Phosphoglycerate mutase 1",GPM1,YKL152C
-"Phosphoglycerate mutase 2",GPM2,YDL021W
-"Phosphoglycerate mutase 3",GPM3,YOL056W
+"Glyceraldehyde-3-phosphate dehydrogenase",TDH1,YJL052W
+"Glyceraldehyde-3-phosphate dehydrogenase",TDH2,YJR009C
+"Glyceraldehyde-3-phosphate dehydrogenase",TDH3,YGR192C
 "Phosphoglycerate kinase",PGK1,YCR012W
-"Enolase 1",ENO1,YGR254W
-"Enolase 2",ENO2,YHR174W
-"Pyruvate kinase 1",CDC19,YAL038W
-"Pyruvate kinase 2",PYK2,YOR347C
+"Phosphoglycerate mutase",GPM1,YKL152C
+"Phosphoglycerate mutase",GPM2,YDL021W
+"Phosphoglycerate mutase",GPM3,YOL056W
+"Enolase",ENO1,YGR254W
+"Enolase",ENO2,YHR174W
+"pyruvate kinase",CDC19,YAL038W
+"pyruvate kinase",PYK2,YOR347C
 

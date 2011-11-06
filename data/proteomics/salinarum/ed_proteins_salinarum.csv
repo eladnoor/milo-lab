@@ -1,0 +1,13 @@
+"Name","Gene","Identifier"
+"glucose dehydrogenase",gcd,VNG0446G
+"UDP-glucose dehydrogenase",ugd,VNG0046G
+"UDP-glucose dehydrogenase 1",ugd1,VNG1048G
+"glucosephosphate isomerase",pgi,VNG1992G
+"fructose-bisphosphate aldolase",VNG0309C,VNG0309C
+"triosephosphate isomerase",tpiA,VNG1027G
+"glyceraldehyde-3-phosphate dehydrogenase A",VNG0937G,VNG0937G
+"glyceraldehyde-3-phosphate dehydrogenase",gapB,VNG0095G
+"phosphoglycerate kinase",pgk,VNG1216G
+"phosphoglyceromutase",gpmI,VNG1887G
+"enolase",eno,VNG1142G
+"pyruvate kinase",pykA,VNG0324G

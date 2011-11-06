@@ -1,0 +1,18 @@
+"Name","Gene","Identifier"
+"fused glucose-specific PTS enzymes",ptsG,b1101
+"glucosephosphate isomerase",pgi,b4025
+"fructose-bisphosphate aldolase, class II",fbaA,b2925
+"fructose-bisphosphate aldolase class I",fbaB,b2097
+"triosephosphate isomerase",tpiA,b3919
+
+
+"glyceraldehyde-3-phosphate dehydrogenase subunit 1",GAPC,141580
+"glyceraldehyde-3-phosphate dehydrogenase subunit 2",GAPC2,129770
+
+
+"phosphoglycerate kinase",pgk,b2926
+"phosphoglyceromutase 1",gpmA,b0755
+"phosphoglycero mutase III, cofactor-independent",gpmI,b3612
+"enolase",eno,b2779
+"pyruvate kinase I",pykF,b1676
+"pyruvate kinase II",pykA,b1854
