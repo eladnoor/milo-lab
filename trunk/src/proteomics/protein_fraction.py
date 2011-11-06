@@ -5,6 +5,7 @@ import pylab
 import sys
 import csv
 from proteomics import util
+from toolbox.color import ColorMap
 from optparse import OptionParser
 
 
@@ -16,6 +17,9 @@ def MakeOpts():
                           help="input CSV of genes")
     opt_parser.add_option("-c", "--counts_filename",
                           dest="counts_filename",
+                          help="input CSV of counts")
+    opt_parser.add_option("-o", "--output_filename",
+                          dest="output_filename",
                           help="input CSV of counts")
     return opt_parser
     
@@ -33,24 +37,48 @@ def Main():
     total = sum(gene_counts.values())
     print 'total count', total
     
-    counts = []
-    labels = []
+    counts = {}
     for id, name, count in util.ExtractCounts(gene_counts, gene_ids):
-        counts.append(count)
-        labels.append(name)
+        counts[name] = counts.get(name, 0) + count
         
-    counts = pylab.array(counts)
-    pcts = counts * 100 / total
+    array_counts = pylab.array(counts.values())
+    pcts = array_counts * 100 / total
     pct = sum(pcts)
     print 'Category makes up %.2f%% of total protein' % pct
     
     fig1 = pylab.figure(0)
-    pylab.hist(pcts, figure=fig1)
+    counts_w_names = sorted([(c, n) for n,c in gene_counts.iteritems()],
+                            reverse=True)
+    counts_in_set = [(i, t[0]) for i, t in enumerate(counts_w_names)
+                     if t[1] in gene_ids]
+    
+    set_idx = [t[0] for t in counts_in_set]
+    set_counts = [t[1] for t in counts_in_set]
+    all_counts = [t[0] for t in counts_w_names]
+    max_counts = min(500, len(all_counts))
+    pylab.gca().set_yscale('log')
+    pylab.bar(range(max_counts), all_counts[:max_counts],
+              color='g', edgecolor='g', width=2.0, figure=fig1)
+    pylab.bar(set_idx, set_counts, color='r',
+              figure=fig1, width=2.0)
+    pylab.xlim(0, max_counts)
     
     fig2 = pylab.figure(1)
-    pie_labels = ['%s %.2f%%' % t for t in zip(labels, pcts)]
-    pylab.pie(counts, labels=pie_labels)
+    pie_labels = sorted(counts.keys())
+    colormap = ColorMap(pie_labels)
+    colors = [colormap[l] for l in pie_labels]
+    all_counts = [counts[k] for k in pie_labels]
+    pylab.pie(all_counts, labels=pie_labels, colors=colors)
+    
+    for label in pie_labels:
+        print label
+    for count in all_counts:
+        print count * 100.0 / total
+        
     pylab.show()
+    
+    
+    
     
     
 if __name__ == '__main__':
