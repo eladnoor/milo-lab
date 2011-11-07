@@ -33,10 +33,12 @@
 61,"FMN(ox)","fmnox"
 64,"L-Glutamine","glutamine"
 65,"L-Serine","serineL"
+67,"Formaldehyde","formaldehyde"
 73,"L-Methionine","methionineL"
 74,"Phosphoenolpyruvate","pep"
 78,"L-Tryptophan","tryptophanL"
 79,"L-Phenylalanine","phenylalanineL"
+80,"H+","hplus"
 81,"ITP","itp"
 82,"L-Tyrosine","tyrosineL"
 84,"Acetaldehyde","acetaldehyde"
@@ -177,10 +179,10 @@
 1382,"I2","i2cr"
 1384,"Maleate","maleate"
 1412,"Butanal","butanal"
-1417,"Cyanate",
+1417,"Cyanate","cyanate"
 1438,"Methane(aq)","methaneaq"
 1507,"L-Iditol","iditol"
-1563,"Carbamate",
+1563,"Carbamate","carbamate"
 1801,"Deoxyribose","deoxyribose"
 1845,"2-propanol","propanol2"
 1845,"isopropanol",
@@ -196,6 +198,7 @@
 3384,"D-Galactose-1-phosphate","galactose1phos"
 4348,"Malyl-CoA","malylcoA"
 5379,"Oxalosuccinate","oxalosuccinate"
+5572,"Ketoglutaramate","ketoglutaramate"
 5979,"n-propanol","propanoln"
 6142,"n-Butanol","butanoln"
 7064,"Lactulose","lactulose"
