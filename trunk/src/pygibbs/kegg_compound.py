@@ -5,7 +5,7 @@ import logging
 import re
 
 from pygibbs import kegg_errors, kegg_parser
-from toolbox.molecule import Molecule
+from toolbox.molecule import Molecule, OpenBabelError
 from pygibbs.kegg_errors import KeggParseException
 
 class Compound(object):
@@ -301,6 +301,10 @@ class Compound(object):
         try:
             d['num_electrons'] = self.get_num_electrons()
         except KeggParseException:
+            d['num_electrons'] = None
+        except OpenBabelError as e:
+            logging.warning("Error calculating #electrons (%s): %s"
+                            % (self.get_string_cid(), str(e)))
             d['num_electrons'] = None
         
         if self.pmaps:
