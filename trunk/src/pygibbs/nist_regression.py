@@ -75,7 +75,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         return stoich_and_temps, dG0_r, cids_to_estimate
         
     
-    def ReverseTransform(self, anchors=None, cid2nH=None):
+    def ReverseTransform(self, anchors=None, cid2nH_nMg=None):
         """
             Performs the reverse Legendre transform on all the data in NIST where
             it is possible, i.e. where all reactants have pKa values in the range
@@ -100,7 +100,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             self.anchors.update(anchors.get_all_cids())
         
         data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized,
-                                                         cid2nH=cid2nH)
+                                                         cid2nH_nMg=cid2nH_nMg)
         
         stoichiometric_matrix = data['S']
         cids_to_estimate = data['cids_to_estimate']

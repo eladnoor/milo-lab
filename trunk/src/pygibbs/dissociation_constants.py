@@ -267,6 +267,7 @@ class DissociationConstants(object):
             except MissingDissociationConstantError as e:
                 logging.debug('A reaction contains compounds (C%05d) with missing pKa '
                               'values: %s' % (e.cid, str(nist_row_data.reaction)))
+                continue
             
             data['dG0_r_tag'].append(dG0_prime)
             data['pH'].append(nist_row_data.pH)
