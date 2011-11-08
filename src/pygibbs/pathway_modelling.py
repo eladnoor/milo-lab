@@ -4,7 +4,6 @@ import cvxmod
 import numpy
 import pylab
 
-from cvxmod import atoms
 from pygibbs.thermodynamic_constants import default_T, R
 from matplotlib.font_manager import FontProperties
 from pygibbs.kegg import Kegg
@@ -553,7 +552,7 @@ class Pathway(object):
         min sum (exp(ln(concentrations)))
         """
         ln_concentrations, problem = self._MakeMinimumFeasbileConcentrationsProblem(bounds=bounds)
-        problem.objective = cvxmod.minimize(cvxmod.sum(atoms.exp(ln_concentrations)))
+        problem.objective = cvxmod.minimize(cvxmod.sum(cvxmod.atoms.exp(ln_concentrations)))
         
         status = problem.solve(quiet=True)
         if status != 'optimal':
@@ -575,7 +574,7 @@ class Pathway(object):
         """
         ln_concentrations, problem = self._MakeMinimumFeasbileConcentrationsProblem()
         #scaled_fluxes = cvxmod.matrix(fluxes or [1.0]*self.Nr) * (km/kcat)
-        problem.objective = cvxmod.minimize(cvxmod.sum(atoms.exp(-ln_concentrations)))
+        problem.objective = cvxmod.minimize(cvxmod.sum(cvxmod.atoms.exp(-ln_concentrations)))
         
         status = problem.solve(quiet=True)
         if status != 'optimal':
