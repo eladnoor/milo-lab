@@ -15,10 +15,7 @@ from pygibbs.feasibility import pC_to_range, find_mtdf, find_pCr
 from pygibbs.feasibility import LinProgNoSolutionException, find_ratio
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
-from pygibbs import kegg_utils
 from pygibbs.pathway import PathwayData
-from pygibbs.pseudoisomer import PseudoisomerMap
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import transform
 from pygibbs.thermodynamic_constants import default_T, default_pH
 from pygibbs.thermodynamic_constants import default_I, R, F
@@ -30,7 +27,6 @@ import matplotlib.pyplot as plt
 from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException
 from pygibbs.nist_verify import LoadAllEstimators
-import csv
 from pygibbs.compound_abundance import CompoundAbundance
 
 class ThermodynamicAnalysis(object):
@@ -66,8 +62,8 @@ class ThermodynamicAnalysis(object):
             logging.info("analyzing pathway: " + key)
 
             function_dict = {'PROFILE':self.analyze_profile,
-                             'SLACK':self.analyze_slack,
-                             'MARGIN':self.analyze_margin,
+                             'PCR':self.analyze_pCr,
+                             'MTDF':self.analyze_mtdf,
                              'REDOX':self.analyze_redox3,
                              'PROTONATION':self.analyze_protonation,
                              'STANDARD':self.analyze_standard_conditions}
@@ -293,7 +289,7 @@ class ThermodynamicAnalysis(object):
         pylab.ylabel("dG [kJ/mol]")
         self.html_writer.embed_matplotlib_figure(profile_fig, width=800, heigh=600)
     
-    def analyze_slack(self, key, pathway_data):
+    def analyze_pCr(self, key, pathway_data):
         self.html_writer.write('<ul>\n')
         self.html_writer.write('<li>Conditions:</br><ol>\n')
         # c_mid the middle value of the margin: min(conc) < c_mid < max(conc)
@@ -301,7 +297,7 @@ class ThermodynamicAnalysis(object):
         pH, I, T = default_pH, default_I, default_T
         concentration_bounds = copy.deepcopy(self.kegg.cid2bounds)
         if len(pathway_data.conditions) > 1:
-            raise Exception('More than 1 condition listed for SLACK analysis')
+            raise Exception('More than 1 condition listed for pCr analysis')
         
         if pathway_data.conditions:
             c = pathway_data.conditions[0]
@@ -407,7 +403,7 @@ class ThermodynamicAnalysis(object):
             self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%g</td>\n' % (rid_str, reaction_str, fluxes[r]))
         self.html_writer.write('</table><br>\n')
 
-    def analyze_margin(self, key, pathway_data):
+    def analyze_mtdf(self, key, pathway_data):
         self.get_conditions(pathway_data)
         cid2bounds = self.get_bounds(key, pathway_data)
         self.write_bounds_to_html(cid2bounds, self.thermo.c_range)

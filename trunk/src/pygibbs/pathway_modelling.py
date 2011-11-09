@@ -1,7 +1,7 @@
 #/usr/bin/python
 
 import cvxmod
-import numpy
+import numpy as np
 import pylab
 
 from pygibbs.thermodynamic_constants import default_T, R
@@ -63,7 +63,7 @@ class Pathway(object):
             raise UnsolvableConvexProblemException(status, problem)
             
         opt_val = cvxmod.value(output_var)
-        opt_dgs = numpy.array(cvxmod.value(dgf_primes))        
+        opt_dgs = np.array(cvxmod.value(dgf_primes))        
         concentrations = pylab.exp((opt_dgs - self.dG0_f)/RT)
         return opt_dgs, concentrations, opt_val
 
@@ -98,8 +98,8 @@ class Pathway(object):
             # If a concentration range is provided, constrain
             # formation energies accordingly.
             c_lower, c_upper = c_range
-            formation_lb = cvxmod.matrix(self.dG0_f + RT*numpy.log(c_lower))
-            formation_ub = cvxmod.matrix(self.dG0_f + RT*numpy.log(c_upper))
+            formation_lb = cvxmod.matrix(self.dG0_f + RT*np.log(c_lower))
+            formation_ub = cvxmod.matrix(self.dG0_f + RT*np.log(c_upper))
         else:
             # Otherwise, all compound activities are limited -1e6 < dGf < 1e6.
             formation_lb = cvxmod.matrix(self.DEFAULT_FORMATION_LB, size=(self.Nc, 1))
@@ -113,9 +113,9 @@ class Pathway(object):
                     continue
                 lb, ub = bound
                 if lb is not None:
-                    formation_lb[i, 0] = dgf + RT*numpy.log(lb)
+                    formation_lb[i, 0] = dgf + RT*np.log(lb)
                 if ub is not None:
-                    formation_ub[i, 0] = dgf + RT*numpy.log(ub)
+                    formation_ub[i, 0] = dgf + RT*np.log(ub)
 
         lb_nan_indices = pylab.isnan(formation_lb).nonzero()[0].tolist()
         ub_nan_indices = pylab.isnan(formation_ub).nonzero()[0].tolist()
@@ -559,7 +559,7 @@ class Pathway(object):
             raise UnsolvableConvexProblemException(status, problem)
             
         opt_val = cvxmod.value(problem.objective)
-        ln_concentrations = numpy.array(cvxmod.value(ln_concentrations))
+        ln_concentrations = np.array(cvxmod.value(ln_concentrations))
         concentrations = pylab.exp(ln_concentrations)
         opt_dgs = RT*ln_concentrations + self.dG0_f
         return opt_dgs, concentrations, opt_val
@@ -581,7 +581,7 @@ class Pathway(object):
             raise UnsolvableConvexProblemException(status, problem)
             
         opt_val = cvxmod.value(problem.objective)
-        ln_concentrations = numpy.array(cvxmod.value(ln_concentrations))
+        ln_concentrations = np.array(cvxmod.value(ln_concentrations))
         concentrations = pylab.exp(ln_concentrations)
         opt_dgs = RT*ln_concentrations + self.dG0_f
         return opt_dgs, concentrations, opt_val
@@ -603,8 +603,20 @@ class KeggPathway(Pathway):
         self.kegg = Kegg.getInstance()
 
     def GetReactionString(self, r):
+        rid = self.rids[r]
         sparse = dict([(self.cids[c], self.S[r,c]) for c in self.S[r,:].nonzero()[0]])
-        return Reaction.write_full_reaction(sparse)
+        if self.fluxes[r] >= 0:
+            direction = '=>'
+        else:
+            direction = '<='
+        reaction = Reaction("R%05d" % rid, sparse, rid=rid, direction=direction)
+        return reaction.to_hypertext(show_cids=True)
+
+    def GetTotalReactionString(self):
+        total_S = np.dot(self.S.T, self.fluxes)
+        sparse = dict([(self.cids[c], total_S[c]) for c in total_S.nonzero()[0]])
+        reaction = Reaction("Total", sparse, direction="=>")
+        return reaction.to_hypertext(show_cids=True)
 
     def FindMtdf(self):
         """Find the MTDF (Maximal Thermodynamic Driving Force).
@@ -655,7 +667,7 @@ class KeggPathway(Pathway):
         if pylab.isnan(dG):
             return "N/A"
         else:
-            return "%.2f" % dG
+            return "%.1f" % dG
 
     def PlotProfile(self, dG_f, figure=None):
         if figure is None:
@@ -727,19 +739,29 @@ class KeggPathway(Pathway):
             d = {}
             d['KEGG RID'] = '<a href="%s" title="%s">R%05d</a>' % \
                         (self.kegg.rid2link(rid), self.kegg.rid2name(rid), rid)
+            d['flux'] = "%g" % abs(self.fluxes[r])
             d['formula'] = self.GetReactionString(r)
-            d['flux'] = self.fluxes[r]
-            d["dG'0_r [kJ/mol]"] = KeggPathway.EnergyToString(dG0_r[r, 0])
-            d["dG'_r [kJ/mol]"] = KeggPathway.EnergyToString(dG_r[r, 0])
+            d["dG'0_r [kJ/mol]"] = KeggPathway.EnergyToString(
+                                    np.sign(self.fluxes[r]) * dG0_r[r, 0])
+            d["dG'_r [kJ/mol]"] = KeggPathway.EnergyToString(
+                                    np.sign(self.fluxes[r]) * dG_r[r, 0])
             dict_list.append(d)
 
+        d = {'KEGG RID':'Total',
+             'flux':'1',
+             'formula':self.GetTotalReactionString(),
+             "dG'0_r [kJ/mol]":KeggPathway.EnergyToString(float(np.dot(dG0_r.T, self.fluxes))),
+             "dG'_r [kJ/mol]":KeggPathway.EnergyToString(float(np.dot(dG_r.T, self.fluxes)))}
+        dict_list.append(d)
+        
         html_writer.write_table(dict_list, 
-            headers=["KEGG RID", 'formula', 'flux', "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]"])
+            headers=["KEGG RID", 'formula', 'flux', 
+                     "dG'0_r [kJ/mol]", "dG'_r [kJ/mol]"])
 
 if __name__ == '__main__':
-    S = numpy.array([[-1,1,0,0],[0,-1,1,0],[0,0,1,-1]])
-    dGs = numpy.array([0, 10, 12, 2]).T
-    fluxes = numpy.array([1, 1, -1])
+    S = np.array([[-1,1,0,0],[0,-1,1,0],[0,0,1,-1]])
+    dGs = np.array([0, 10, 12, 2]).T
+    fluxes = np.array([1, 1, -1])
     rids = [1, 2, 3]
     cids = [1, 2, 3, 4]
     #keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
@@ -753,9 +775,9 @@ if __name__ == '__main__':
     print 'MDTF: %g' % mtdf
 
     
-    S = numpy.array([[-1,1,0],[0,-1,1]])
+    S = np.array([[-1,1,0],[0,-1,1]])
     cvxmod.randseed()
-    dGs = numpy.array(cvxmod.randn(3,1,std=1000))
+    dGs = np.array(cvxmod.randn(3,1,std=1000))
     print 'Random dGs'
     print dGs
     path = Pathway(S, dGs)

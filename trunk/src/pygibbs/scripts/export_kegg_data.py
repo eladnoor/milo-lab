@@ -6,6 +6,7 @@ from toolbox.database import SqliteDatabase
 from pygibbs.kegg_compound import Compound
 from pygibbs.kegg_reaction import Reaction
 from pygibbs.kegg_enzyme import Enzyme
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 class KeggEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -34,6 +35,10 @@ def MakeOpts(estimators):
                           dest="nullspace_out_filename",
                           default="../res/kegg_gc_nullspace.json",
                           help="Null-space matrix for the GC estimations")
+    opt_parser.add_option("-p", "--priority",
+                          dest="thermodynamics_csv",
+                          default="../data/thermodynamics/formation_energy_priority_one.csv",
+                          help="Priority 1 table of pseudoisomers (a CSV file)")
     opt_parser.add_option("-s", "--thermodynamics_source",
                           dest="thermodynamics_source",
                           type="choice",
@@ -53,13 +58,15 @@ def ExportJSONFiles():
     estimators = LoadAllEstimators()
     options, _ = MakeOpts(estimators).parse_args(sys.argv)
     
-    thermo = estimators[options.thermodynamics_source]
-    print "Using the thermodynamic estimations of: " + thermo.name
+    thermo_list = []
+    thermo_list.append(PsuedoisomerTableThermodynamics.FromCsvFile(options.thermodynamics_csv))
+    thermo_list.append(estimators[options.thermodynamics_source])
 
     # Make sure we have all the data.
     kegg = Kegg.getInstance()
-    kegg.AddThermodynamicData(estimators['alberty'], priority=1)
-    kegg.AddThermodynamicData(thermo, priority=2)
+    for i, thermo in enumerate(thermo_list):
+        print "Priority %d - formation energies of: %s" % (i+1, thermo.name)
+        kegg.AddThermodynamicData(thermo, priority=(i+1))
     
     db = SqliteDatabase('../res/gibbs.sqlite')
     kegg.AddGroupVectorData(db, table_name='pgc_groupvector')
