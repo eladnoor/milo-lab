@@ -1,7 +1,7 @@
 ENTRY       M-METHYLGLYOXAL-PATHWAY-DIRECT
 SKIP        TRUE
 NAME        Methylglyoxal Pathway direct to Pyruvate from Methylglyoxal
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7,I=0.1,T=298.15
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -16,7 +16,7 @@ REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
 ENTRY       M-ED-LATE-PHOSPHORYLATION
 SKIP        TRUE
 NAME        Entner-Doudoroff full, phosphorylating glycerate
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -32,7 +32,7 @@ REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
 ENTRY       M-ED-MID-PHOSPHORYLATION
 SKIP        TRUE
 NAME        Entner-Doudoroff full, phosphorylating KDG
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -50,7 +50,7 @@ REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
 ENTRY       M-ED-FULL
 SKIP        TRUE
 NAME        Entner-Doudoroff full, phosphorylating glucose
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -77,7 +77,7 @@ I           0.0 0.02 0.04 0.06 0.08 0.10 0.12 0.14 0.16 0.18 0.20 0.22 0.24 0.26
 ENTRY       M-C4-glyoxlyate_pure_KEGG
 SKIP        TRUE
 NAME        C4-glyoxlyate (pure KEGG)
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -96,7 +96,7 @@ REACTION    R00227  C00001 + C00024 -> C00010 + C00033 (x1)
 ENTRY       M-MOG_ALA
 SKIP        TRUE
 NAME        MOG-Alanine
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -118,7 +118,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
 ENTRY       S-MOG_ALA
 SKIP        TRUE
 NAME        MOG-Alanine
-TYPE        SLACK
+TYPE        PCR
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 PHYSIO      4
@@ -140,7 +140,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
 ENTRY       M-MOG_LAC
 SKIP        TRUE
 NAME        MOG-Lactate
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -165,7 +165,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
 ENTRY       S-MOG_LAC
 SKIP        TRUE
 NAME        MOG-Lactate
-TYPE        SLACK
+TYPE        PCR
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 PHYSIO      4
@@ -190,7 +190,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013 (x1.333
 ENTRY       M-SHORT_CF
 SKIP        TRUE
 NAME        4-STEP CARBON FIXATION CYCLE
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -205,7 +205,7 @@ REACTION    R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.666
 ENTRY       S-SHORT_CF
 SKIP        TRUE
 NAME        4-STEP CARBON FIXATION CYCLE
-TYPE        SLACK
+TYPE        PCR
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.666)
@@ -219,7 +219,7 @@ REACTION    R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.666
 ENTRY       M-CALVIN_NADP
 SKIP        TRUE
 NAME        rPP cycle - NADP
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -240,7 +240,7 @@ REACTION    R00024  C01182 + C00011 + C00001 -> 2 C00197 (x1)
 ENTRY       S-CALVIN_NADP
 SKIP        TRUE
 NAME        rPP cycle - NADP
-TYPE        SLACK
+TYPE        PCR
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00024  C01182 + C00011 + C00001 -> 2 C00197 (x1)
@@ -260,7 +260,7 @@ REACTION    R00024  C01182 + C00011 + C00001 -> 2 C00197 (x1)
 ENTRY       M-3HP-4HB
 SKIP        TRUE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -284,7 +284,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
 ENTRY       S-3HP-4HP
 SKIP        TRUE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
-TYPE        SLACK
+TYPE        PCR
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
@@ -307,7 +307,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
 ENTRY       M-3HP
 SKIP        TRUE
 NAME        3-Hydroxypropionate Cycle
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -329,7 +329,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
 ENTRY       S-3HP
 SKIP        TRUE
 NAME        3-Hydroxypropionate Cycle
-TYPE        SLACK
+TYPE        PCR
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
@@ -350,7 +350,7 @@ REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
 ENTRY       M-rTCA
 SKIP        TRUE
 NAME        rTCA cycle
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -367,8 +367,8 @@ REACTION    R00342  C00036 + C00004 -> C00149 + C00003 (x0.5)
 ///
 ENTRY       S-rTCA
 SKIP        TRUE
-NAME        rTCA cycle (Slack)
-TYPE        SLACK
+NAME        rTCA cycle (PCR)
+TYPE        PCR
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00342  C00036 + C00004 -> C00149 + C00003 (x0.5)
@@ -385,7 +385,7 @@ REACTION    R00342  C00036 + C00004 -> C00149 + C00003 (x0.5)
 ENTRY       M-CALVIN_NADP_V2
 SKIP        TRUE
 NAME        rPP cycle (NADP) without fructose aldolase
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00024  C00001 + C00011 + C01182 -> 2 C00197 (x3)
@@ -404,7 +404,7 @@ REACTION    R00024  C00001 + C00011 + C01182 -> 2 C00197 (x3)
 ENTRY       M-C4G_01
 SKIP        TRUE
 NAME        MOG-Lactate
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013
@@ -423,7 +423,7 @@ REACTION    R00206  C00002 + C00022 + C00009 -> C00020 + C00074 + C00013
 ENTRY       M-THREONINE
 SKIP        TRUE
 NAME        Threonine Biosynthesis (M00025)
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 MODULE      M00025
@@ -431,7 +431,7 @@ MODULE      M00025
 ENTRY       M-ACETOGENIC
 SKIP        TRUE
 NAME        Acetyl-CoA Wood-Ljungdahl Pathway
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006
@@ -446,7 +446,7 @@ REACTION    R00134  C00011 + C00005 -> C00058 + C00006
 ENTRY       M00093
 SKIP        TRUE
 NAME        Uridine monophosphate biosynthesis
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 MODULE      M00093
@@ -456,7 +456,7 @@ MAP_CID     C00201 C00002
 ENTRY       M-OPP
 SKIP        TRUE
 NAME        Oxidative pentose phosphate (M00006)
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -465,7 +465,7 @@ MODULE      M00006
 ENTRY       M-NOPP
 SKIP        TRUE
 NAME        Non-oxidative pentose phosphate (M00007)
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -474,7 +474,7 @@ MODULE      M00007
 ENTRY       M-ED
 SKIP        TRUE
 NAME        Entner-Doudoroff (M00008)
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -483,7 +483,7 @@ MODULE      M00008
 ENTRY       M-TCA
 SKIP        TRUE
 NAME        TCA cycle (M00009)
-TYPE        MARGIN
+TYPE        MTDF
 CONDITIONS  pH=7.0,I=0.1,T=300
 C_MID       1e-3
 C_RANGE     1e-6 1e-2
@@ -492,10 +492,21 @@ MODULE      M00009
 ENTRY       M-GLYCOLYSIS
 SKIP        FALSE
 NAME        Glycolysis
-TYPE        MARGIN
+TYPE        MTDF
 PH          7.2
 I           0.2
 C_MID       1e-3
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00031  1e-2
+            C00022  1e-6  
 REACTION    R01786  C00002 + C00031 -> C00008 + C00092
             R02740  C00092 -> C00085
             R04779  C00002 + C00085 -> C00008 + C00354
@@ -510,8 +521,22 @@ REACTION    R01786  C00002 + C00031 -> C00008 + C00092
 ENTRY       M-TCA_SHORT
 SKIP        FALSE
 NAME        TCA cycle - shortened
-TYPE        MARGIN
+TYPE        MTDF
 C_MID       1e-3
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00024  1e-2
+            C00010  1e-6
+            C00011  1e-6
+            C80059  1e-3
+            C80060  1e-3            
 REACTION    R00351  C00001 + C00024 + C00036 -> C00010 + C00158
             R01324  C00158 -> C00311
             R00267  C00006 + C00311 -> C00005 + C00011 + C00026
