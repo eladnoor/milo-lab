@@ -10,7 +10,8 @@ from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.nist import Nist
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics,\
+    BinaryThermodynamics
 from pygibbs.kegg import Kegg
 from pygibbs.feist_ecoli import Feist
 from pygibbs.groups import GroupContribution
@@ -42,6 +43,9 @@ def LoadAllEstimators():
     estimators['PGC'] = GroupContribution(db=db_gibbs, transformed=False)
     estimators['PGC'].init()
     estimators['PGC'].name = 'our method (PGC)'
+    
+    estimators['merged'] = BinaryThermodynamics(estimators['alberty'],
+                                                estimators['PGC']) 
 
     return estimators
 

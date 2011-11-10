@@ -1,5 +1,6 @@
 import csv
-import pylab
+import numpy as np
+import matplotlib.pyplot as plt
 import logging
 import json
 
@@ -11,8 +12,25 @@ from pygibbs.kegg_errors import KeggParseException,\
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
     MissingReactionEnergy
 from toolbox.util import calc_r2
+from toolbox.linear_regression import LinearRegression
+from toolbox.database import SqliteDatabase
+
+def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
+    """
+        Technically, this simply performs np.dot(S, dG0_f).
+        However, since some values in dG0_f might be NaN, this makes sure
+        that the rows which are not affected by these NaNs are correctly
+        calculated.
+    """
+    dG0_r = np.zeros((S.shape[0], 1))
+    for r in xrange(S.shape[0]):
+        dG0_r[r, 0] = 0.0
+        for c in np.nonzero(S[r, :])[0]:
+            dG0_r[r, 0] += S[r, c] * dG0_f[c, 0]
+    return dG0_r    
 
 class Thermodynamics(object):
+    
     def __init__(self, name="Unknown Thermodynamics"):
         self.name = name
         self.pH = default_pH
@@ -236,13 +254,13 @@ class Thermodynamics(object):
     
     def GetTransformedFormationEnergies(self, cids):
         """ calculate the dG0_f of each compound """
-        dG0_f = pylab.zeros((len(cids), 1))
+        dG0_f = np.zeros((len(cids), 1))
         for c, cid in enumerate(cids):
             try:
                 dG0_f[c] = self.cid2dG0_tag(cid)
             except MissingCompoundFormationEnergy:
                 # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
-                dG0_f[c] = pylab.nan
+                dG0_f[c] = np.nan
         return dG0_f
     
     def GetTransfromedReactionEnergies(self, S, cids):
@@ -253,12 +271,7 @@ class Thermodynamics(object):
                 S. The list of cids must be the same order as the columns of S.
         """
         dG0_f = self.GetTransformedFormationEnergies(cids)
-        dG0_r = pylab.zeros((S.shape[0], 1))
-        for r in xrange(S.shape[0]):
-            dG0_r[r, 0] = 0.0
-            for c in pylab.find(S[r, :]):
-                dG0_r[r, 0] += S[r, c] * dG0_f[c, 0]
-        return dG0_r
+        return GetReactionEnergiesFromFormationEnergies(S, dG0_f)
         
     def WriteFormationEnergiesToHTML(self, html_writer, cids):
         """ calculate the dG0_f of each compound """
@@ -319,31 +332,31 @@ class Thermodynamics(object):
             return 0, 0
         
         # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 12
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 6
-        pylab.rcParams['figure.figsize'] = [6.0, 6.0]
-        pylab.rcParams['figure.dpi'] = 100
+        plt.rcParams['text.usetex'] = False
+        plt.rcParams['legend.fontsize'] = 12
+        plt.rcParams['font.family'] = 'sans-serif'
+        plt.rcParams['font.size'] = 12
+        plt.rcParams['lines.linewidth'] = 2
+        plt.rcParams['lines.markersize'] = 6
+        plt.rcParams['figure.figsize'] = [6.0, 6.0]
+        plt.rcParams['figure.dpi'] = 100
         
-        vec_dG0_self = pylab.array([x['self'] for x in total_list])
-        vec_dG0_other = pylab.array([x['other'] for x in total_list])
+        vec_dG0_self = np.array([x['self'] for x in total_list])
+        vec_dG0_other = np.array([x['other'] for x in total_list])
         vec_rid = [x['rid'] for x in total_list]
         
-        fig = pylab.figure()
-        pylab.hold(True)
+        fig = plt.figure()
+        fig.hold(True)
         max_dG0 = max(vec_dG0_self.max(), vec_dG0_other.max())
         min_dG0 = min(vec_dG0_self.min(), vec_dG0_other.min())
-        pylab.plot([min_dG0, max_dG0], [min_dG0, max_dG0], 'k--', figure=fig)
-        pylab.plot(vec_dG0_self, vec_dG0_other, '.', figure=fig)
+        plt.plot([min_dG0, max_dG0], [min_dG0, max_dG0], 'k--', figure=fig)
+        plt.plot(vec_dG0_self, vec_dG0_other, '.', figure=fig)
         for i, rid in enumerate(vec_rid):
-            pylab.text(vec_dG0_self[i], vec_dG0_other[i], '%d' % rid, fontsize=6)
+            plt.text(vec_dG0_self[i], vec_dG0_other[i], '%d' % rid, fontsize=6)
         r2 = calc_r2(vec_dG0_self, vec_dG0_other)
-        pylab.title("$\Delta_r G^{'\circ}$ comparison per reaction, $r^2$ = %.2f" % r2)
-        pylab.xlabel(self.name + ' (in kJ/mol)', figure=fig)
-        pylab.ylabel(other.name + ' (in kJ/mol)', figure=fig)
+        plt.title("$\Delta_r G^{'\circ}$ comparison per reaction, $r^2$ = %.2f" % r2)
+        plt.xlabel(self.name + ' (in kJ/mol)', figure=fig)
+        plt.ylabel(other.name + ' (in kJ/mol)', figure=fig)
         html_writer.embed_matplotlib_figure(fig, width=200, height=200, name=fig_name)
         
    
@@ -352,6 +365,21 @@ class PsuedoisomerTableThermodynamics(Thermodynamics):
     def __init__(self, name="Unknown PsuedoisomerTableThermodynamics"):
         Thermodynamics.__init__(self, name)
         self.cid2pmap_dict = {}
+
+    def Clone(self):
+        other = PsuedoisomerTableThermodynamics()
+        other.name = self.name
+        other.pH = self.pH
+        other.I = self.I
+        other.T = self.T
+        other.pMg = self.pMg
+        other.c_mid = self.c_mid
+        other.c_range = self.c_range
+        other.bounds = dict(self.bounds)
+        other.cid2source_string = dict(self.cid2source_string)
+        other.anchors = set(self.anchors)
+        other.cid2pmap_dict = dict(self.cid2pmap_dict)
+        return other
     
     @staticmethod
     def _FromDictReader(reader, thermo, label=None, 
@@ -444,7 +472,7 @@ class PsuedoisomerTableThermodynamics(Thermodynamics):
         return sorted(self.cid2pmap_dict.keys())
 
     def test(self):
-        pMg_vec = pylab.arange(0, 10, 0.1)
+        pMg_vec = np.arange(0, 10, 0.1)
         dG_vec = []
         dG_f_mat = []
         sparse = {20:-1, 13:-1, 147:1, 119:1}
@@ -460,14 +488,141 @@ class PsuedoisomerTableThermodynamics(Thermodynamics):
                 dG += coeff * dG_f
             dG_f_mat.append(dG_f_vec)
             dG_vec.append(dG)
-        pylab.plot(pMg_vec, dG_vec)
+        plt.plot(pMg_vec, dG_vec)
         #pylab.plot(pMg_vec, dG_f_mat)
-        pylab.show()
+        plt.show()
 
+class BinaryThermodynamics(Thermodynamics):
+    
+    def __init__(self, thermo0, thermo1):
+        Thermodynamics.__init__(self, name=thermo0.name + ' / ' + thermo1.name)
+        self.thermo = (thermo0, thermo1)
+
+    def cid2PseudoisomerMap(self, cid):
+        for thermo in self.thermo:
+            try:
+                return thermo.cid2PseudoisomerMap(cid)
+            except MissingCompoundFormationEnergy:
+                continue
+        format_str = ("The compound C%05d does not have a value "
+                      "for its formation energy of any of its pseudoisomers")
+        raise MissingCompoundFormationEnergy(format_str % cid, cid)
+    
+    def get_all_cids(self):
+        cids = set(self.thermo[0].get_all_cids() + self.thermo[1].get_all_cids())
+        return sorted(cids)
+    
+    def reaction_to_dG0(self, reaction, pH=None, pMg=None, I=None, T=None):
+        """
+            Input:
+                A reaction in sparse representation and the aqueous conditions 
+                (pH, I, pMg)
+            
+            Returns:
+                The biochemical dG'0_r (i.e. transformed changed in Gibbs free 
+                energy of reaction)
+        """
+        for thermo in self.thermo:
+            try:
+                # if at least one of the 'thermodynamics' in the stack verify
+                # this reaction, then it is okay.
+                return thermo.reaction_to_dG0(reaction, pH, pMg, I, T)
+            except MissingReactionEnergy:
+                continue
+        
+        raise MissingReactionEnergy('None of the Thermodynamic estimators can '
+                                    'calculate the Gibbs free energy of this '
+                                    'reaction')
+            
+    def VerifyReaction(self, reaction):
+        """
+            Input:
+                A Reaction
+            
+            Raises a MissingReactionEnergy exception in case something is preventing
+            this reaction from having a delta-G prediction. For example, if one of the
+            compounds has a non-trivial reference point (such as guanosine=0) but that
+            reference point is not balanced throughout the reaction.
+        """
+        for thermo in self.thermodynamic_stack:
+            try:
+                # if at least one of the 'thermodynamics' in the stack verify
+                # this reaction, then it is okay.
+                thermo.VerifyReaction(reaction)
+                return
+            except MissingReactionEnergy:
+                continue
+        
+        raise MissingReactionEnergy('None of the Thermodynamic estimators can '
+                                    'calculate the Gibbs free energy of this '
+                                    'reaction')
+
+    def GetTransformedFormationEnergies(self, cids):
+        """
+            Return the estimates of thermo[0] if all of them are known.
+            Otherwise, use thermo[1] if all of them are known.
+            If both have 'missing' estimates, use thermo[0] anyway.
+        """
+        
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
+        if not np.any(np.isnan(dG0_f0)):
+            return dG0_f0
+
+        dG0_f1 = self.thermo[1].GetTransformedFormationEnergies(cids)
+        if not np.any(np.isnan(dG0_f1)):
+            return dG0_f1
+
+        return dG0_f0
+    
+    def GetTransfromedReactionEnergies(self, S, cids):
+        """
+            Find the set of reaction Gibbs energies that are completely
+            consistent with thermo[0], and also close to the energies provided
+            by thermo[1].
+            To find this solution, we project the vector of Gibbs energies
+            obtained using thermo[1] onto the subspace spanned by the columns
+            of the stoichiometric matrix (where some of the values are fixed
+            according to thermo[0]).
+        """
+
+        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids)
+        if not np.any(np.isnan(dG0_r0)):
+            return dG0_r0
+        
+        # if thermo[1] cannot estimate all reactions, just use thermo[0].
+        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids)
+        if np.any(np.isnan(dG0_r1)):
+            return dG0_r0
+
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
+        
+        finite_cols = np.where(np.isfinite(dG0_f0))[0]
+        nan_cols = np.where(np.isnan(dG0_f0))[0]
+        fixed_dG0_r = np.dot(S[:, finite_cols], dG0_f0[finite_cols])
+
+        P_C, P_L = LinearRegression.ColumnProjection(S[:, nan_cols])
+        dG0_r = np.dot(P_C, dG0_r1) + np.dot(P_L, fixed_dG0_r)
+        
+        return dG0_r
+        
 if __name__ == "__main__":
-    T = PsuedoisomerTableThermodynamics.FromCsvFile(
-        '../data/thermodynamics/alberty_pseudoisomers.csv')
-    #T.test()
-    all_reactions = Kegg.getInstance().AllReactions()
-    print "Alberty coverage over KEGG: ", T.CalculateCoverage(all_reactions)
-    print "Out of %d reactions" % len(all_reactions)
+
+    from pygibbs.groups import GroupContribution
+    
+    db_public = SqliteDatabase('../data/public_data.sqlite')
+    db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
+    alberty = PsuedoisomerTableThermodynamics.FromDatabase(\
+                        db_public, 'alberty_pseudoisomers', name='alberty')
+    
+    pgc = GroupContribution(db=db_gibbs, transformed=False)
+    pgc.init()
+    pgc.name = "PGC"
+    
+    merged = BinaryThermodynamics(alberty, pgc)
+    
+    S = np.array([[-1, 1, 0, 0, 0, 0, 0, 0, 0], [0, -1, -1, 1, 0, 0, -1, 1, 1], [0, 0, 0, -1, 1, 1, 0, 0, 0], [0, -1, -1, 0, 1, 1, -1, 1, 1]])
+    cids = [311, 158, 10, 566, 24, 36, 2, 8, 9]
+    
+    print alberty.GetTransfromedReactionEnergies(S, cids).T
+    print pgc.GetTransfromedReactionEnergies(S, cids).T
+    print merged.GetTransfromedReactionEnergies(S, cids).T
