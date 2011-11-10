@@ -28,6 +28,7 @@ from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException
 from pygibbs.nist_verify import LoadAllEstimators
 from pygibbs.compound_abundance import CompoundAbundance
+from toolbox.linear_regression import LinearRegression
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -411,7 +412,15 @@ class ThermodynamicAnalysis(object):
         self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
                 
         #thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
-        dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+        #dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+        
+        # TODO: This is a very bad way to use the dG0_r. Instead of converting
+        # them back to formation energies, we should use them directly as the
+        # constraint parameters in KeggPathway, and let the log concentrations be
+        # the optimization variables. 
+        dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
+        dG0_f, _ = LinearRegression.LeastSquares(S, dG0_r)
+        
         keggpath = KeggPathway(S, rids, fluxes, cids, dG0_f,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
         try:
@@ -424,7 +433,7 @@ class ThermodynamicAnalysis(object):
             self.html_writer.write("%s" % problem_str)
             return
         
-        profile_fig = keggpath.PlotProfile(dG_f)
+        profile_fig = keggpath.PlotProfile(dG0_f, dG_f)
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=profile_fig)
         self.html_writer.embed_matplotlib_figure(profile_fig)
         
@@ -686,7 +695,6 @@ if __name__ == "__main__":
         
     print 'Will read pathway definitions from %s' % input_filename
     print 'Will write output to %s' % output_filename
-    
     
     db_loc = options.db_filename
     print 'Reading from DB %s' % db_loc

@@ -669,7 +669,7 @@ class KeggPathway(Pathway):
         else:
             return "%.1f" % dG
 
-    def PlotProfile(self, dG_f, figure=None):
+    def PlotProfile(self, dG0_f, dG_f, figure=None):
         if figure is None:
             figure = pylab.figure()
         pylab.title(r'Thermodynamic profile', figure=figure)
@@ -678,9 +678,19 @@ class KeggPathway(Pathway):
         pylab.xticks(pylab.arange(1, self.Nr + 1),
                      ['R%05d' % self.rids[i] for i in xrange(self.Nr)],
                      fontproperties=FontProperties(size=8), rotation=30)
+
+        if not np.any(np.isnan(dG0_f)):
+            dG0_r = self.CalculateReactionEnergies(dG0_f)
+            cum_dG0_r = pylab.cumsum([0] + [dG0_r[r, 0] * self.fluxes[r] for r in xrange(self.Nr)])
+            pylab.plot(pylab.arange(0.5, self.Nr + 1), cum_dG0_r, 'g--', 
+                       figure=figure, label="$\Delta_r G^{'\circ}$")
+
         dG_r = self.CalculateReactionEnergies(dG_f)
         cum_dG_r = pylab.cumsum([0] + [dG_r[r, 0] * self.fluxes[r] for r in xrange(self.Nr)])
-        pylab.plot(pylab.arange(0.5, self.Nr + 1), cum_dG_r, figure=figure, label='Standard [1M]')
+        pylab.plot(pylab.arange(0.5, self.Nr + 1), cum_dG_r, 'b-', 
+                   figure=figure, label="$\Delta_r G^'$")
+
+        pylab.legend(loc='lower left')
         return figure
         
     def PlotConcentrations(self, concentrations, figure=None):

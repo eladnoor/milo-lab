@@ -476,10 +476,10 @@ if __name__ == "__main__":
         thermo.SetPseudoisomerMap(440, PseudoisomerMap(nH=25, z=0, nMg=0, dG0=32.1)) # 5-Methyl-THF
     elif thermo_source == 'milo_only':
         thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-            db, 'gc_pseudoisomers')
+            db, 'pgc_pseudoisomers')
     elif thermo_source == 'milo_merged':
         thermo = PsuedoisomerTableThermodynamics.FromDatabase(
-            db, 'gc_pseudoisomers')
+            db, 'pgc_pseudoisomers')
         thermo.override_data(observed_thermo)
     elif thermo_source == 'observed_only':
         thermo = observed_thermo
