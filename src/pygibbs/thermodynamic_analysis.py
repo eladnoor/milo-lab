@@ -419,12 +419,12 @@ class ThermodynamicAnalysis(object):
         # constraint parameters in KeggPathway, and let the log concentrations be
         # the optimization variables. 
         dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
-        dG0_f, _ = LinearRegression.LeastSquares(S, dG0_r)
+        #dG0_f, _ = LinearRegression.LeastSquares(S, dG0_r)
         
-        keggpath = KeggPathway(S, rids, fluxes, cids, dG0_f,
+        keggpath = KeggPathway(S, rids, fluxes, cids, dG0_r,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
         try:
-            dG_f, concentrations, mtdf = keggpath.FindMtdf()
+            _, concentrations, mtdf = keggpath.FindMtdf()
         except UnsolvableConvexProblemException as e:
             self.html_writer.write("<b>WARNING: cannot calculate MTDF "
                                    "because the problem is %s:</b></br>\n" %
@@ -433,7 +433,7 @@ class ThermodynamicAnalysis(object):
             self.html_writer.write("%s" % problem_str)
             return
         
-        profile_fig = keggpath.PlotProfile(dG0_f, dG_f)
+        profile_fig = keggpath.PlotProfile(concentrations)
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=profile_fig)
         self.html_writer.embed_matplotlib_figure(profile_fig)
         
@@ -441,7 +441,7 @@ class ThermodynamicAnalysis(object):
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=concentration_fig)
         self.html_writer.embed_matplotlib_figure(concentration_fig)
         
-        keggpath.WriteResultsToHtmlTables(self.html_writer, dG_f, concentrations)
+        keggpath.WriteResultsToHtmlTables(self.html_writer, concentrations)
 
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map
