@@ -407,21 +407,12 @@ class ThermodynamicAnalysis(object):
     def analyze_mtdf(self, key, pathway_data):
         self.get_conditions(pathway_data)
         cid2bounds = self.get_bounds(key, pathway_data)
-        self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
+        #self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
         S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
-        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
-                
-        #thermodynamic_pathway_analysis(S, rids, fluxes, cids, self.thermo, self.html_writer)
-        #dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-        
-        # TODO: This is a very bad way to use the dG0_r. Instead of converting
-        # them back to formation energies, we should use them directly as the
-        # constraint parameters in KeggPathway, and let the log concentrations be
-        # the optimization variables. 
+        #self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
-        #dG0_f, _ = LinearRegression.LeastSquares(S, dG0_r)
         
-        keggpath = KeggPathway(S, rids, fluxes, cids, dG0_r,
+        keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
         try:
             _, concentrations, mtdf = keggpath.FindMtdf()
@@ -436,12 +427,12 @@ class ThermodynamicAnalysis(object):
         profile_fig = keggpath.PlotProfile(concentrations)
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=profile_fig)
         self.html_writer.embed_matplotlib_figure(profile_fig)
+        keggpath.WriteProfileToHtmlTable(self.html_writer, concentrations)
         
         concentration_fig = keggpath.PlotConcentrations(concentrations)
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=concentration_fig)
         self.html_writer.embed_matplotlib_figure(concentration_fig)
-        
-        keggpath.WriteResultsToHtmlTables(self.html_writer, concentrations)
+        keggpath.WriteConcentrationsToHtmlTable(self.html_writer, concentrations)
 
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map
