@@ -172,7 +172,8 @@ class Pathway(object):
         to_mid = lambda x: x + RT*pylab.log(c_mid)
         return map(to_mid, self.dG0_f_prime[:,0].tolist())
     
-    def _MakeMtdfProblem(self, c_range=(1e-6, 1e-2), bounds=None):
+    def _MakeMtdfProblem(self, c_range=(1e-6, 1e-2), bounds=None,
+                         normalize_dG_by_flux=True):
         """Create a cvxmod.problem for finding the Maximal Thermodynamic
         Driving Force (MTDF).
         
@@ -191,7 +192,7 @@ class Pathway(object):
         ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds,
                                                                c_range=c_range)
         # Make the objective and problem.
-        motive_force = cvxmod.optvar('B', 1)
+        motive_force_lb = cvxmod.optvar('B', 1)
         problem = cvxmod.problem()
         S = cvxmod.matrix(self.S)
         dg0r_primes = cvxmod.matrix(self.dG0_r_prime)
@@ -206,23 +207,25 @@ class Pathway(object):
                 continue
             
             curr_dgr = dg0r_primes[i, 0] + RT * S[i, :] * ln_conc
-            if flux > 0:
-                problem.constr.append(curr_dgr <= motive_force)
-                problem.constr.append(curr_dgr >= self.DEFAULT_REACTION_LB)
-            elif flux == 0:
+            if flux == 0:
                 problem.constr.append(curr_dgr == 0)
             else:
-                problem.constr.append(curr_dgr >= -motive_force)
-                problem.constr.append(curr_dgr <= -self.DEFAULT_REACTION_LB)
+                if normalize_dG_by_flux:
+                    motive_force = -curr_dgr * flux
+                else:
+                    motive_force = -curr_dgr * np.sign(flux)
+
+                problem.constr.append(motive_force >= motive_force_lb)
+                #problem.constr.append(motive_force <= -self.DEFAULT_REACTION_LB)
         
         # Set the constraints.
         problem.constr.append(ln_conc >= ln_conc_lb)
         problem.constr.append(ln_conc <= ln_conc_ub)
         
-        return ln_conc, motive_force, problem
+        return ln_conc, motive_force_lb, problem
 
 
-    def FindMtdf(self, c_range=(1e-6, 1e-2), bounds=None):
+    def _FindMtdf(self, c_range=(1e-6, 1e-2), bounds=None):
         """Find the MTDF (Maximal Thermodynamic Driving Force).
         
         Args:
@@ -233,9 +236,9 @@ class Pathway(object):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal mtdf).
         """
-        ln_conc, motive_force, problem = self._MakeMtdfProblem(c_range, bounds)
-        problem.objective = cvxmod.minimize(motive_force)
-        return self._RunThermoProblem(ln_conc, motive_force, problem)
+        ln_conc, motive_force_lb, problem = self._MakeMtdfProblem(c_range, bounds)
+        problem.objective = cvxmod.maximize(motive_force_lb)
+        return self._RunThermoProblem(ln_conc, motive_force_lb, problem)
 
     def FindMtdf_Regularized(self, c_range=(1e-6, 1e-2), bounds=None,
                              c_mid=1e-3,
@@ -687,10 +690,7 @@ class KeggPathway(Pathway):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal mtdf).
         """
-        ln_conc, motive_force, problem = self._MakeMtdfProblem(self.c_range, self.bounds)
-        problem.objective = cvxmod.minimize(motive_force)
-        opt_ln_conc, concentrations, opt_val = self._RunThermoProblem(ln_conc, motive_force, problem)
-        return opt_ln_conc, concentrations, opt_val
+        return self._FindMtdf(self.c_range, self.bounds)
         
     def FindMinimalFeasibleConcentration(self, cid_to_minimize):
         """
@@ -772,7 +772,7 @@ class KeggPathway(Pathway):
         self.WriteProfileToHtmlTables(html_writer, concentrations)
 
     def WriteConcentrationsToHtmlTable(self, html_writer, concentrations):
-        html_writer.write('<h3>Compound Concentrations</h3>\n')
+        #html_writer.write('<b>Compound Concentrations</b></br>\n')
         dict_list = []
         for c, cid in enumerate(self.cids):
             d = {}
@@ -788,7 +788,7 @@ class KeggPathway(Pathway):
                      'Concentration [M]', 'Concentration UB [M]'])
     
     def WriteProfileToHtmlTable(self, html_writer, concentrations):
-        html_writer.write('<h3>Biochemical Reaction Energies</h3>\n')
+        #html_writer.write('<b>Biochemical Reaction Energies</b></br>\n')
         dG_r_prime = self.dG0_r_prime + RT * np.dot(self.S, np.log(concentrations))
         dict_list = []
         for r, rid in enumerate(self.rids):

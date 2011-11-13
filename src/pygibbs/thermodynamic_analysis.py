@@ -28,7 +28,6 @@ from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException
 from pygibbs.nist_verify import LoadAllEstimators
 from pygibbs.compound_abundance import CompoundAbundance
-from toolbox.linear_regression import LinearRegression
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -51,8 +50,7 @@ class ThermodynamicAnalysis(object):
                 logging.info("Skipping pathway: %s", key)
                 continue
             try:
-                self.html_writer.write('<p>\n')
-                self.html_writer.write('<h2>%s - %s</h2>\n' % (p_data.name,
+                self.html_writer.write('<b>%s - %s</b>\n' % (p_data.name,
                                                                p_data.analysis_type))
                 if insert_toggles:
                     self.html_writer.insert_toggle(key)
@@ -75,11 +73,10 @@ class ThermodynamicAnalysis(object):
                 raise Exception("Unknown analysis type: " + p_data.analysis_type)
             if insert_toggles:
                 self.html_writer.div_end()
-            self.html_writer.write('</p>\n')
+            self.html_writer.write('</br>\n')
         
         if write_measured_concentrations:    
-            self.html_writer.write('<p>\n')
-            self.html_writer.write('<h2>Measured concentration table:</h2>\n')
+            self.html_writer.write('<b>Measured concentration table:</b></br>\n')
             if insert_toggles:
                 div_id = self.html_writer.insert_toggle()
                 self.html_writer.div_start(div_id)
@@ -88,7 +85,6 @@ class ThermodynamicAnalysis(object):
                                column_names=["cid", "media", "concentration [mM]"])
             if insert_toggles:
                 self.html_writer.div_end()
-            self.html_writer.write('</p>\n')
 
     @staticmethod
     def get_float_parameter(s, name, default_value):
