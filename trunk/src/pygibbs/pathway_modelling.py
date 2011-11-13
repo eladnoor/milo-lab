@@ -26,20 +26,20 @@ class Pathway(object):
     DEFAULT_REACTION_UB = 0.0
     DEFAULT_C_RANGE = (1e-6, 0.1)
     
-    def __init__(self, S, formation_energies, fluxes=None):
+    def __init__(self, S, reaction_energies, fluxes=None):
         """Create a pathway object.
         
         Args:
             S: Stoichiometric matrix of the pathway.
                 Reactions are on the rows, compounds on the columns.
-            formation_energies: formation energies for the compounds
+            reaction_energies: the change in Gibbs energy for the reactions
                 in standard conditions, corrected for pH, ionic strength, etc.
                 Should be a column vector in numpy.array format.
         """
         self.S = S
-        self.dG0_f = formation_energies
+        self.dG0_r_prime = reaction_energies
         self.Nr, self.Nc = S.shape
-        assert self.dG0_f.shape[0] == self.Nc
+        assert self.dG0_r_prime.shape[0] == self.Nr
 
         if fluxes is None:
             self.fluxes = [1]*self.Nr
@@ -47,7 +47,7 @@ class Pathway(object):
             assert len(fluxes) == self.Nr
             self.fluxes = fluxes
         
-    def _RunThermoProblem(self, dgf_primes, output_var, problem):
+    def _RunThermoProblem(self, ln_conc, output_var, problem):
         """Helper that runs a thermodynamic cvxmod.problem.
         
         Args:
@@ -63,9 +63,9 @@ class Pathway(object):
             raise UnsolvableConvexProblemException(status, problem)
             
         opt_val = cvxmod.value(output_var)
-        opt_dgs = np.array(cvxmod.value(dgf_primes))        
-        concentrations = pylab.exp((opt_dgs - self.dG0_f)/RT)
-        return opt_dgs, concentrations, opt_val
+        opt_ln_conc = np.array(cvxmod.value(ln_conc))        
+        concentrations = pylab.exp(opt_ln_conc)
+        return opt_ln_conc, concentrations, opt_val
 
     def _MakeLnConcentratonBounds(self, bounds=None, c_range=None):
         """Make bounds on logarithmic concentrations."""
@@ -151,32 +151,39 @@ class Pathway(object):
             A tuple (dgf_var, motive_force_var, problem_object).
         """
         # Make the formation energy variables and bounds.
-        dgf_primes = cvxmod.optvar('dGf', self.Nc)
-        formation_lb, formation_ub = self._MakeFormationBounds(bounds=bounds,
+        ln_conc = cvxmod.optvar('lnC', self.Nc)
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds,
                                                                c_range=c_range)
         # Make the objective and problem.
         motive_force = cvxmod.optvar('B', 1)
         problem = cvxmod.problem()
         S = cvxmod.matrix(self.S)
+        dg0r_primes = cvxmod.matrix(self.dG0_r_prime)
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr in the direction of the flux.
         # Reactions with a flux of 0 must be in equilibrium. 
         for i, flux in enumerate(self.fluxes):
+            
+            # if the dG0 is unknown, this reaction imposes no new constraints
+            if np.isnan(self.dG0_r_prime[i, 0]):
+                continue
+            
+            curr_dgr = dg0r_primes[i, 0] + RT * S[i, :] * ln_conc
             if flux > 0:
-                problem.constr.append(S[i,:]*dgf_primes <= motive_force)
-                problem.constr.append(S[i,:]*dgf_primes >= self.DEFAULT_REACTION_LB)
+                problem.constr.append(curr_dgr <= motive_force)
+                problem.constr.append(curr_dgr >= self.DEFAULT_REACTION_LB)
             elif flux == 0:
-                problem.constr.append(S[i,:]*dgf_primes == 0)
+                problem.constr.append(curr_dgr == 0)
             else:
-                problem.constr.append(S[i,:]*dgf_primes >= -motive_force)
-                problem.constr.append(S[i,:]*dgf_primes <= -self.DEFAULT_REACTION_LB)
+                problem.constr.append(curr_dgr >= -motive_force)
+                problem.constr.append(curr_dgr <= -self.DEFAULT_REACTION_LB)
         
         # Set the constraints.
-        problem.constr.append(dgf_primes >= formation_lb)
-        problem.constr.append(dgf_primes <= formation_ub)
+        problem.constr.append(ln_conc >= ln_conc_lb)
+        problem.constr.append(ln_conc <= ln_conc_ub)
         
-        return dgf_primes, motive_force, problem
+        return ln_conc, motive_force, problem
 
 
     def FindMtdf(self, c_range=(1e-6, 1e-2), bounds=None):
@@ -190,9 +197,9 @@ class Pathway(object):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal mtdf).
         """
-        dgf_primes, motive_force, problem = self._MakeMtdfProblem(c_range, bounds)
+        ln_conc, motive_force, problem = self._MakeMtdfProblem(c_range, bounds)
         problem.objective = cvxmod.minimize(motive_force)
-        return self._RunThermoProblem(dgf_primes, motive_force, problem)
+        return self._RunThermoProblem(ln_conc, motive_force, problem)
 
     def FindMtdf_Regularized(self, c_range=(1e-6, 1e-2), bounds=None,
                              c_mid=1e-3,
@@ -589,9 +596,9 @@ class Pathway(object):
 
 class KeggPathway(Pathway):
     
-    def __init__(self, S, rids, fluxes, cids, formation_energies,
+    def __init__(self, S, rids, fluxes, cids, reaction_energies,
                   cid2bounds=None, c_range=None):
-        Pathway.__init__(self, S, formation_energies, fluxes=fluxes)
+        Pathway.__init__(self, S, reaction_energies, fluxes=fluxes)
         self.rids = rids
         self.cids = cids
         if cid2bounds:
@@ -629,10 +636,10 @@ class KeggPathway(Pathway):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal mtdf).
         """
-        dgf_primes, motive_force, problem = self._MakeMtdfProblem(self.c_range, self.bounds)
+        ln_conc, motive_force, problem = self._MakeMtdfProblem(self.c_range, self.bounds)
         problem.objective = cvxmod.minimize(motive_force)
-        opt_dgs, concentrations, opt_val = self._RunThermoProblem(dgf_primes, motive_force, problem)
-        return opt_dgs, concentrations, opt_val
+        opt_ln_conc, concentrations, opt_val = self._RunThermoProblem(ln_conc, motive_force, problem)
+        return opt_ln_conc, concentrations, opt_val
         
     def FindMinimalFeasibleConcentration(self, cid_to_minimize):
         """
@@ -648,20 +655,6 @@ class KeggPathway(Pathway):
         index = self.cids.index(cid_to_minimize)
         return Pathway.FindMinimalFeasibleConcentration(self, index)
 
-    def CalculateReactionEnergies(self, dG_f):
-        if pylab.isnan(dG_f).any():
-            # if there are NaN values in dG_f, multiplying the matrices will not
-            # work, since pylab will not convert 0*NaN into 0 in the sum. Therefore,
-            # the multiplication must be done explicitly and using only the nonzero
-            # stoichiometric coefficients and their corresponding dG_f. 
-            dG_r = pylab.zeros((self.Nr, 1))
-            for r in xrange(self.Nr):
-                reactants = pylab.find(self.S[r,:])
-                dG_r[r, 0] = pylab.dot(self.S[r, reactants], dG_f[reactants])
-            return dG_r
-        else:
-            return pylab.dot(self.S, dG_f)
-
     @staticmethod
     def EnergyToString(dG):
         if pylab.isnan(dG):
@@ -669,7 +662,7 @@ class KeggPathway(Pathway):
         else:
             return "%.1f" % dG
 
-    def PlotProfile(self, dG0_f, dG_f, figure=None):
+    def PlotProfile(self, concentrations, figure=None):
         if figure is None:
             figure = pylab.figure()
         pylab.title(r'Thermodynamic profile', figure=figure)
@@ -679,16 +672,18 @@ class KeggPathway(Pathway):
                      ['R%05d' % self.rids[i] for i in xrange(self.Nr)],
                      fontproperties=FontProperties(size=8), rotation=30)
 
-        if not np.any(np.isnan(dG0_f)):
-            dG0_r = self.CalculateReactionEnergies(dG0_f)
-            cum_dG0_r = pylab.cumsum([0] + [dG0_r[r, 0] * self.fluxes[r] for r in xrange(self.Nr)])
+        if not np.any(np.isnan(self.dG0_r_prime)):
+            dG_r_prime = self.dG0_r_prime + RT * np.dot(self.S, np.log(concentrations))
+
+            cum_dG0_r = pylab.cumsum([0] + [self.dG0_r_prime[r, 0] * self.fluxes[r] 
+                                            for r in xrange(self.Nr)])
+            cum_dG_r = pylab.cumsum([0] + [dG_r_prime[r, 0] * self.fluxes[r]
+                                           for r in xrange(self.Nr)])
+
             pylab.plot(pylab.arange(0.5, self.Nr + 1), cum_dG0_r, 'g--', 
                        figure=figure, label="$\Delta_r G^{'\circ}$")
-
-        dG_r = self.CalculateReactionEnergies(dG_f)
-        cum_dG_r = pylab.cumsum([0] + [dG_r[r, 0] * self.fluxes[r] for r in xrange(self.Nr)])
-        pylab.plot(pylab.arange(0.5, self.Nr + 1), cum_dG_r, 'b-', 
-                   figure=figure, label="$\Delta_r G^'$")
+            pylab.plot(pylab.arange(0.5, self.Nr + 1), cum_dG_r, 'b-', 
+                       figure=figure, label="$\Delta_r G^'$")
 
         pylab.legend(loc='lower left')
         return figure
@@ -726,7 +721,7 @@ class KeggPathway(Pathway):
         pylab.axis([x_min, x_max, y_min, y_max], figure=figure)
         return figure
     
-    def WriteResultsToHtmlTables(self, html_writer, dG_f, concentrations):
+    def WriteResultsToHtmlTables(self, html_writer, concentrations):
         html_writer.write('<h3>Biochemical Compound Formation Energies</h3>\n')
         dict_list = []
         for c, cid in enumerate(self.cids):
@@ -734,16 +729,12 @@ class KeggPathway(Pathway):
             d['KEGG CID'] = '<a href="%s">C%05d</a>' % (self.kegg.cid2link(cid), cid)
             d['Compound Name'] = self.kegg.cid2name(cid)
             d['Concentration [M]'] = '%.2e' % concentrations[c, 0]
-            d["dG'0_f [kJ/mol]"] = KeggPathway.EnergyToString(self.dG0_f[c, 0])
-            d["dG'_f [kJ/mol]"] = KeggPathway.EnergyToString(dG_f[c, 0])
             dict_list.append(d)
         html_writer.write_table(dict_list, 
-            headers=["KEGG CID", 'Compound Name', 'Concentration [M]', 
-                     "dG'0_f [kJ/mol]", "dG'_f [kJ/mol]"])
+            headers=["KEGG CID", 'Compound Name', 'Concentration [M]'])
 
         html_writer.write('<h3>Biochemical Reaction Energies</h3>\n')
-        dG0_r = self.CalculateReactionEnergies(self.dG0_f)
-        dG_r = self.CalculateReactionEnergies(dG_f)
+        dG_r_prime = self.dG0_r_prime + RT * np.dot(self.S, np.log(concentrations))
         dict_list = []
         for r, rid in enumerate(self.rids):
             d = {}
@@ -752,16 +743,16 @@ class KeggPathway(Pathway):
             d['flux'] = "%g" % abs(self.fluxes[r])
             d['formula'] = self.GetReactionString(r)
             d["dG'0_r [kJ/mol]"] = KeggPathway.EnergyToString(
-                                    np.sign(self.fluxes[r]) * dG0_r[r, 0])
+                            np.sign(self.fluxes[r]) * self.dG0_r_prime[r, 0])
             d["dG'_r [kJ/mol]"] = KeggPathway.EnergyToString(
-                                    np.sign(self.fluxes[r]) * dG_r[r, 0])
+                            np.sign(self.fluxes[r]) * dG_r_prime[r, 0])
             dict_list.append(d)
 
         d = {'KEGG RID':'Total',
              'flux':'1',
              'formula':self.GetTotalReactionString(),
-             "dG'0_r [kJ/mol]":KeggPathway.EnergyToString(float(np.dot(dG0_r.T, self.fluxes))),
-             "dG'_r [kJ/mol]":KeggPathway.EnergyToString(float(np.dot(dG_r.T, self.fluxes)))}
+             "dG'0_r [kJ/mol]":KeggPathway.EnergyToString(float(np.dot(self.dG0_r_prime.T, self.fluxes))),
+             "dG'_r [kJ/mol]":KeggPathway.EnergyToString(float(np.dot(dG_r_prime.T, self.fluxes)))}
         dict_list.append(d)
         
         html_writer.write_table(dict_list, 
