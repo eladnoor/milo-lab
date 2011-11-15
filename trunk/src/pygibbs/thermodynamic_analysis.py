@@ -412,7 +412,7 @@ class ThermodynamicAnalysis(object):
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
         try:
             _, concentrations, mtdf = keggpath.FindMtdf(
-                                    normalization=DeltaGNormalization.DIVIDE_BY_FLUX)
+                                    normalization=DeltaGNormalization.SIGN_FLUX)
         except UnsolvableConvexProblemException as e:
             self.html_writer.write("<b>WARNING: cannot calculate MTDF "
                                    "because the problem is %s:</b></br>\n" %
