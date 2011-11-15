@@ -25,7 +25,7 @@ from toolbox.util import _mkdir
 import scipy.io
 import matplotlib.pyplot as plt
 from pygibbs.pathway_modelling import KeggPathway,\
-    UnsolvableConvexProblemException
+    UnsolvableConvexProblemException, DeltaGNormalization
 from pygibbs.nist_verify import LoadAllEstimators
 from pygibbs.compound_abundance import CompoundAbundance
 
@@ -411,7 +411,8 @@ class ThermodynamicAnalysis(object):
         keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
         try:
-            _, concentrations, mtdf = keggpath.FindMtdf()
+            _, concentrations, mtdf = keggpath.FindMtdf(
+                                    normalization=DeltaGNormalization.DIVIDE_BY_FLUX)
         except UnsolvableConvexProblemException as e:
             self.html_writer.write("<b>WARNING: cannot calculate MTDF "
                                    "because the problem is %s:</b></br>\n" %
