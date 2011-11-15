@@ -16,6 +16,12 @@ class UnsolvableConvexProblemException(Exception):
         Exception.__init__(self, msg)
         self.problem = problem
         
+class DeltaGNormalization:
+    TIMES_FLUX = 1 # motivation is having the most uniform entropy production
+    DIVIDE_BY_FLUX = 2 # motivation is requiring more force in reaction that have more flux
+    SIGN_FLUX = 3 # motivation is putting limits on the allowed backward/forward fluxes
+    
+    DEFAULT = SIGN_FLUX
 
 class Pathway(object):
     """Container for doing pathway-level thermodynamic analysis."""
@@ -173,7 +179,7 @@ class Pathway(object):
         return map(to_mid, self.dG0_f_prime[:,0].tolist())
     
     def _MakeMtdfProblem(self, c_range=(1e-6, 1e-2), bounds=None,
-                         normalize_dG_by_flux=True):
+                         normalization=DeltaGNormalization.DEFAULT):
         """Create a cvxmod.problem for finding the Maximal Thermodynamic
         Driving Force (MTDF).
         
@@ -210,10 +216,15 @@ class Pathway(object):
             if flux == 0:
                 problem.constr.append(curr_dgr == 0)
             else:
-                if normalize_dG_by_flux:
+                if normalization == DeltaGNormalization.DIVIDE_BY_FLUX:
+                    motive_force = -curr_dgr * (1.0/flux)
+                elif normalization == DeltaGNormalization.TIMES_FLUX:
                     motive_force = -curr_dgr * flux
-                else:
+                elif normalization == DeltaGNormalization.SIGN_FLUX:
                     motive_force = -curr_dgr * np.sign(flux)
+                else:
+                    raise ValueError("bad value for normalization method: "
+                                     + str(normalization))
 
                 problem.constr.append(motive_force >= motive_force_lb)
                 #problem.constr.append(motive_force <= -self.DEFAULT_REACTION_LB)
@@ -225,7 +236,8 @@ class Pathway(object):
         return ln_conc, motive_force_lb, problem
 
 
-    def _FindMtdf(self, c_range=(1e-6, 1e-2), bounds=None):
+    def _FindMtdf(self, c_range=(1e-6, 1e-2), bounds=None, 
+                  normalization=DeltaGNormalization.DEFAULT):
         """Find the MTDF (Maximal Thermodynamic Driving Force).
         
         Args:
@@ -236,7 +248,8 @@ class Pathway(object):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal mtdf).
         """
-        ln_conc, motive_force_lb, problem = self._MakeMtdfProblem(c_range, bounds)
+        ln_conc, motive_force_lb, problem = self._MakeMtdfProblem(
+                                                c_range, bounds, normalization)
         problem.objective = cvxmod.maximize(motive_force_lb)
         return self._RunThermoProblem(ln_conc, motive_force_lb, problem)
 
@@ -679,7 +692,7 @@ class KeggPathway(Pathway):
         reaction = Reaction("Total", sparse, direction="=>")
         return reaction.to_hypertext(show_cids=show_cids)
 
-    def FindMtdf(self):
+    def FindMtdf(self, normalization=DeltaGNormalization.DEFAULT):
         """Find the MTDF (Maximal Thermodynamic Driving Force).
         
         Args:
@@ -690,7 +703,7 @@ class KeggPathway(Pathway):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal mtdf).
         """
-        return self._FindMtdf(self.c_range, self.bounds)
+        return self._FindMtdf(self.c_range, self.bounds, normalization)
         
     def FindMinimalFeasibleConcentration(self, cid_to_minimize):
         """
