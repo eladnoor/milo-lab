@@ -474,7 +474,7 @@ class Kegg(Singleton):
             for c in range(Nc):
                 S[r,c] = spr.get(cids[c], 0)
         
-        return (S, rids, fluxes, cids)
+        return S, rids, fluxes, cids
             
     def parse_module(self, module_name, field_map):
         """
