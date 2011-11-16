@@ -68,11 +68,13 @@ class ThermodynamicAnalysis(object):
                              'STANDARD':self.analyze_standard_conditions}
 
             if p_data.analysis_type in function_dict:
-                function_dict[p_data.analysis_type](key, p_data)     
+                msg = function_dict[p_data.analysis_type](key, p_data)     
             else:
                 raise Exception("Unknown analysis type: " + p_data.analysis_type)
             if insert_toggles:
                 self.html_writer.div_end()
+            if msg is not None:
+                self.html_writer.write(msg)
             self.html_writer.write('</br>\n')
         
         if write_measured_concentrations:    
@@ -175,14 +177,14 @@ class ThermodynamicAnalysis(object):
         
         for r in range(S.shape[0]):
             self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + '>R%05d ' % rids[r] + '</a>')
-            self.html_writer.write('[x%g, &#x394;G<sub>r</sub><sup>0</sup> = %.1f] : ' % (fluxes[r], dG0_r[r, 0]))
+            self.html_writer.write("[x%g, &#x394;<sub>r</sub>G'<sup>0</sup> = %.1f] : " % (fluxes[r], dG0_r[r, 0]))
             self.html_writer.write(self.kegg.vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
             self.html_writer.write('</li>\n')
         
         v_total = pylab.dot(pylab.matrix(fluxes), S).flat
         dG0_total = pylab.dot(pylab.matrix(fluxes), dG0_r)[0,0]
         self.html_writer.write('<li><b>Total </b>')
-        self.html_writer.write('[&#x394;G<sub>r</sub><sup>0</sup> = %.1f kJ/mol] : \n' % dG0_total)
+        self.html_writer.write('[&#x394;<sub>r</sub>G<sup>0</sup> = %.1f kJ/mol] : \n' % dG0_total)
         self.html_writer.write(self.kegg.vector_to_hypertext(v_total, cids, show_cids=show_cids))
         self.html_writer.write("</li></ul></li>\n")
         
@@ -191,7 +193,25 @@ class ThermodynamicAnalysis(object):
             draw a graph representation of the pathway
         """        
         Gdot = self.kegg.draw_pathway(S, rids, cids)
-        self.html_writer.embed_dot(Gdot, name, width=400, height=400)
+        Gdot.set_size("6, 8")
+        #Gdot.set_dpi("90")
+        self.html_writer.embed_dot(Gdot, name, width=600, height=800)
+        self.html_writer.write('</br>')
+
+    def write_formation_energies_to_html(self, cids):
+        dG0_f_prime = self.thermo.GetTransformedFormationEnergies(cids)
+        dict_list = []
+        for i, cid in enumerate(cids):
+            d = {}
+            d['CID'] = '<a href="%s">C%05d</a>' % (self.kegg.cid2link(cid), cid)
+            d['name'] = self.kegg.cid2name(cid)
+            if np.isnan(dG0_f_prime[i, 0]):
+                d["&#x394;<sub>f</sub>G'<sup>0</sup>"] = 'N/A'
+            else:
+                d["&#x394;<sub>f</sub>G'<sup>0</sup>"] = '%.1f' % dG0_f_prime[i, 0]
+            dict_list.append(d)
+        self.html_writer.write_table(dict_list, 
+                headers=['CID', 'name', "&#x394;<sub>f</sub>G'<sup>0</sup>"])
 
     def get_conditions(self, pathway_data):
         self.thermo.pH = pathway_data.pH or self.thermo.pH
@@ -405,7 +425,6 @@ class ThermodynamicAnalysis(object):
         cid2bounds = self.get_bounds(key, pathway_data)
         #self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
         S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
-        #self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
         dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
         
         keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
@@ -430,6 +449,12 @@ class ThermodynamicAnalysis(object):
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=concentration_fig)
         self.html_writer.embed_matplotlib_figure(concentration_fig)
         keggpath.WriteConcentrationsToHtmlTable(self.html_writer, concentrations)
+
+        self.write_metabolic_graph(key, S, rids, cids)
+        self.write_formation_energies_to_html(cids)
+        dG_r_prime = keggpath.CalculateReactionEnergiesUsingConcentrations(concentrations)
+        return "MTDF = %.1f [kJ/mol], Total &#x394;<sub>r</sub>G' = %.1f [kJ/mol]" % \
+            (mtdf, float(np.dot(dG_r_prime.T, fluxes)))
 
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map
