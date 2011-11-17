@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 import itertools
+import scipy
 import pylab
+import math
 
 from genomics.colormap import ColorMap
 from matplotlib.font_manager import FontProperties
@@ -55,6 +57,68 @@ class Histogram(object):
             
         return weights
     
+    def CalcPValues(self):
+        filtered_ind = filter(None, self.ind_keys)
+        filtered_dep = filter(None, self.dep_keys)
+        filtered_pairs = filter(lambda x: x[0] != None and x[1] != None,
+                                self.pairs)
+        m = pylab.zeros((len(filtered_ind), len(filtered_dep)))
+        total = len(filtered_pairs)
+        total2 = float(total**2)
+        for i, ind_key in enumerate(filtered_ind):
+            for j, dep_key in enumerate(filtered_dep):
+                ind_counts = self.counts.get(ind_key, {})
+                
+                total_ind_count = float(sum(ind_counts.itervalues()))
+                print ind_key, ':', total_ind_count / float(total)
+                total_dep_count = float(len(filter(lambda x: x[1] == dep_key,
+                                                   self.pairs)))
+                print dep_key, ':', total_dep_count / float(total)
+                
+                prob = total_ind_count * total_dep_count / total2
+                observed_successes = ind_counts.get(dep_key, 0)
+                pvals = []
+                for successes in xrange(observed_successes, total + 1):
+                    
+                    pval = math.log(scipy.comb(total, successes, exact=True))
+                    pval += (successes*math.log(prob))
+                    pval += ((total-successes)*math.log(1-prob))
+                    pvals.append(math.exp(pval))
+                pval = sum(pvals)
+                print ind_key, dep_key, pval
+                m[i][j] = pval
+        
+        return m
+    
+    def PValHeatMap(self, figure):
+        pmat = self.CalcPValues()
+        print pmat
+        
+        max_x, max_y = pmat.shape
+        print max_x, max_y
+        
+        dep_labels = filter(None, self.dep_keys)
+        ind_labels = filter(None, self.ind_keys)
+                
+        pylab.imshow(pmat, interpolation="nearest", figure=figure)
+        nx = float(len(dep_labels))
+        ny = float(len(ind_labels))
+        pylab.xticks(pylab.arange(nx), dep_labels, rotation=20, ha='right', figure=figure)
+        pylab.yticks(pylab.arange(ny), ind_labels, figure=figure)
+        
+        idx = zip(*(pmat < 1e-2).nonzero())
+        print idx
+        for y,x in idx:
+            s = '*'
+            if pmat[y][x] < 1e-5:
+                s = '**'
+            pylab.text(x, y, s,
+                       color='w', weight='bold', ha='center')
+        
+        pylab.title('p-values', figure=figure)
+        pylab.colorbar()
+        pylab.axis('scaled')
+        
     def GetDepKeys(self):
         dep_keys = set()
         for count_d in self.counts.values():

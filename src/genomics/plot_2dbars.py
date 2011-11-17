@@ -115,10 +115,11 @@ def Main():
     pylab.pie(dcounts, labels=dlabels, autopct='%.1f%%')
     
     # Calculate and print p-values
-    sampler = MonteCarloTester(histogram)
-    sampler.Test(options.num_trials)
+    #sampler = MonteCarloTester(histogram)
+    #sampler.Test(options.num_trials)
     fig2 = pylab.figure(2)
-    sampler.HeatMap(fig2)
+    #sampler.HeatMap(fig2)
+    histogram.PValHeatMap(fig2)
     
     # Bar plot histogram
     fig3 = pylab.figure(3)
