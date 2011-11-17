@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-COLORS = 'grbcmykw'
+COLORS = 'grbcmyk'
 
 def GetColor(i):
 	index = i % len(COLORS)

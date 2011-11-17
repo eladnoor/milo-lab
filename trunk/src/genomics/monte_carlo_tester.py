@@ -70,6 +70,7 @@ class MonteCarloTester(object):
     def HeatMap(self, figure):
         lower_mat = self.MakeMatrix(self.lower_p)
         upper_mat = self.MakeMatrix(self.greater_p)
+        print upper_mat
         
         nx = float(len(self.non_empty_dep))
         ny = float(len(self.non_empty_ind))
