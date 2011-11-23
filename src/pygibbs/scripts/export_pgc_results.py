@@ -9,6 +9,9 @@ from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
 import csv
 from pygibbs.kegg_errors import KeggReactionNotBalancedException,\
     KeggParseException
+from pygibbs.thermodynamic_constants import default_pH, default_pMg, default_I,\
+    default_T
+from toolbox.molecule import OpenBabelError
 
 def MakeOpts(estimators):
     """Returns an OptionParser object with all the default options."""
@@ -26,6 +29,14 @@ def MakeOpts(estimators):
                           dest="transformed",
                           action="store_true", default=False,
                           help="Use biochemical (transformed) Group Contributions")
+    opt_parser.add_option("-p", "--ph", dest="ph", type="float",
+                          default=default_pH, help="The pH")
+    opt_parser.add_option("-m", "--pmg", dest="pmg", type="float",
+                          default=default_pMg, help="The pMg")
+    opt_parser.add_option("-i", "--ionic_strength", dest="i_s", type="float",
+                          default=default_I, help="The ionic strength, in M")
+    opt_parser.add_option("-t", "--temperature", dest="temp", type="float",
+                          default=default_T, help="The temperature, in K")
     return opt_parser
 
 def main():
@@ -50,18 +61,21 @@ def main():
         
     print 'Exporting KEGG reactions to %s' % options.reactions_out_filename
     csv_writer = csv.writer(open(options.reactions_out_filename, 'w'))
-    csv_writer.writerow(["KEGG ID", "dG0_r"])
+    csv_writer.writerow(["KEGG ID", "dG'0_r (pH=%.1f, I=%.2f, pMg=%.1f, T=%.1f)" % 
+                         (options.ph, options.i_s, options.pmg, options.temp)])
     for rid in sorted(G.kegg.get_all_rids()):
         reaction = G.kegg.rid2reaction(rid)
         try:
             reaction.Balance(balance_water=True)
-            dG0_r = reaction.PredictReactionEnergy(G)
+            dG0_r = reaction.PredictReactionEnergy(G, pH=options.ph,
+                        pMg=options.pmg, I=options.i_s, T=options.temp)
             csv_writer.writerow(["R%05d" % rid, "%.1f" % dG0_r])
         except (KeggParseException,
                 MissingCompoundFormationEnergy, 
                 KeggReactionNotBalancedException,
                 MissingReactionEnergy,
-                KeyError) as e:
+                KeyError,
+                OpenBabelError) as e:
             csv_writer.writerow(["R%05d" % rid, str(e)])
     
 if __name__ == '__main__':

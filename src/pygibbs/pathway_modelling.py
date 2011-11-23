@@ -31,6 +31,7 @@ class Pathway(object):
     DEFAULT_REACTION_LB = -1e3
     DEFAULT_REACTION_UB = 0.0
     DEFAULT_C_RANGE = (1e-6, 0.1)
+    DEFAULT_PHYSIOLOGICAL_CONC = 1e-4
     
     def __init__(self, S, 
                  formation_energies=None, reaction_energies=None, fluxes=None):
@@ -97,6 +98,17 @@ class Pathway(object):
             return dG_r_prime
         else:
             return self.dG0_r_prime + RT * np.dot(self.S, log_conc)
+
+    def GetPhysiologicalConcentrations(self, bounds=None):
+        conc = np.ones((self.Nc, 1)) * self.DEFAULT_PHYSIOLOGICAL_CONC
+        if bounds:
+            for i, bound in enumerate(bounds):
+                lb, ub = bound
+                if lb is not None and ub is not None:
+                    if not (lb < conc[i, 0] < ub):
+                        conc[i, 0] = np.sqrt(lb * ub)
+        
+        return conc
 
     def _RunThermoProblem(self, ln_conc, output_var, problem):
         """Helper that runs a thermodynamic cvxmod.problem.
@@ -189,6 +201,34 @@ class Pathway(object):
 
         to_mid = lambda x: x + RT*np.log(c_mid)
         return map(to_mid, self.dG0_f_prime[:,0].tolist())
+
+    def _GetTotalReactionEnergy(self, c_range=(1e-6, 1e-2), bounds=None):
+        """
+            Calculates the overall reaction and finds the minimal and maximal
+            values for its deltaG', for the given concentration bounds.
+        """
+        problem = cvxmod.problem()
+
+        # Define and apply the constraints on the concentrations
+        ln_conc = cvxmod.optvar('lnC', self.Nc, 1)
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds,
+                                                                c_range=c_range)
+        problem.constr.append(ln_conc >= ln_conc_lb)
+        problem.constr.append(ln_conc <= ln_conc_ub)
+        
+        # find the row vector describing the overall stoichiometry
+        S = cvxmod.matrix(self.S)
+        f = cvxmod.matrix(np.array(self.fluxes)).T
+        g0 = cvxmod.matrix(self.dG0_r_prime)
+        total_g = f * g0 + RT * f * S * ln_conc
+        
+        problem.objective = cvxmod.maximize(total_g)
+        _, _, max_total_g = self._RunThermoProblem(ln_conc, total_g, problem)
+
+        problem.objective = cvxmod.minimize(total_g)
+        _, _, min_total_g = self._RunThermoProblem(ln_conc, total_g, problem)
+        
+        return min_total_g, max_total_g
     
     def _MakeMtdfProblem(self, c_range=(1e-6, 1e-2), bounds=None,
                          normalization=DeltaGNormalization.DEFAULT):
@@ -205,19 +245,23 @@ class Pathway(object):
         Returns:
             A tuple (dgf_var, motive_force_var, problem_object).
         """
-        # Make the formation energy variables and bounds.
+        problem = cvxmod.problem()
+
+        # Define and apply the constraints on the concentrations
         ln_conc = cvxmod.optvar('lnC', self.Nc)
         ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds,
-                                                               c_range=c_range)
-        # Make the objective and problem.
+                                                                c_range=c_range)
+        problem.constr.append(ln_conc >= ln_conc_lb)
+        problem.constr.append(ln_conc <= ln_conc_ub)
+
+        # Make the objective
         motive_force_lb = cvxmod.optvar('B', 1)
-        problem = cvxmod.problem()
-        S = cvxmod.matrix(self.S)
-        dg0r_primes = cvxmod.matrix(self.dG0_r_prime)
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr in the direction of the flux.
         # Reactions with a flux of 0 must be in equilibrium. 
+        S = cvxmod.matrix(self.S)
+        dg0r_primes = cvxmod.matrix(self.dG0_r_prime)
         for i, flux in enumerate(self.fluxes):
             
             # if the dG0 is unknown, this reaction imposes no new constraints
@@ -241,12 +285,7 @@ class Pathway(object):
                 problem.constr.append(motive_force >= motive_force_lb)
                 #problem.constr.append(motive_force <= -self.DEFAULT_REACTION_LB)
         
-        # Set the constraints.
-        problem.constr.append(ln_conc >= ln_conc_lb)
-        problem.constr.append(ln_conc <= ln_conc_ub)
-        
         return ln_conc, motive_force_lb, problem
-
 
     def _FindMtdf(self, c_range=(1e-6, 1e-2), bounds=None, 
                   normalization=DeltaGNormalization.DEFAULT):
@@ -716,6 +755,9 @@ class KeggPathway(Pathway):
             A 3 tuple (optimal dGfs, optimal concentrations, optimal mtdf).
         """
         return self._FindMtdf(self.c_range, self.bounds, normalization)
+
+    def GetTotalReactionEnergy(self):
+        return self._GetTotalReactionEnergy(self.c_range, self.bounds)
         
     def FindMinimalFeasibleConcentration(self, cid_to_minimize):
         """
@@ -738,6 +780,13 @@ class KeggPathway(Pathway):
         else:
             return "%.1f" % dG
 
+    @staticmethod
+    def _AddProfileToFigure(figure, dGs, fluxes, style, label):
+        Nr = dGs.shape[0]
+        cum_dG = np.cumsum([0] + [dGs[r, 0] * fluxes[r] for r in xrange(Nr)])
+        plt.plot(np.arange(0.5, Nr + 1), cum_dG, style, 
+                 figure=figure, label=label)
+    
     def PlotProfile(self, concentrations, figure=None):
         if figure is None:
             figure = plt.figure()
@@ -748,18 +797,20 @@ class KeggPathway(Pathway):
                      ['R%05d' % self.rids[i] for i in xrange(self.Nr)],
                      fontproperties=FontProperties(size=8), rotation=30)
 
-        if not np.isnan(self.dG0_r_prime).any():
-            dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
+        if np.isnan(self.dG0_r_prime).any():
+            return figure
+        
+        KeggPathway._AddProfileToFigure(figure, self.dG0_r_prime, self.fluxes,
+                                        'm--', "$\Delta_r G^{'\circ}$")
+        
+        phys_concentrations = self.GetPhysiologicalConcentrations(self.bounds)
+        dGm_r_prime = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
+        KeggPathway._AddProfileToFigure(figure, dGm_r_prime, self.fluxes,
+                                        'g--', "$\Delta_r G^{'m}$")
 
-            cum_dG0_r = np.cumsum([0] + [self.dG0_r_prime[r, 0] * self.fluxes[r] 
-                                            for r in xrange(self.Nr)])
-            cum_dG_r = np.cumsum([0] + [dG_r_prime[r, 0] * self.fluxes[r]
-                                           for r in xrange(self.Nr)])
-
-            plt.plot(np.arange(0.5, self.Nr + 1), cum_dG0_r, 'g--', 
-                     figure=figure, label="$\Delta_r G^{'\circ}$")
-            plt.plot(np.arange(0.5, self.Nr + 1), cum_dG_r, 'b-', 
-                     figure=figure, label="$\Delta_r G^'$")
+        dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
+        KeggPathway._AddProfileToFigure(figure, dG_r_prime, self.fluxes,
+                                        'b-', "$\Delta_r G^'$")
 
         plt.legend(loc='lower left')
         return figure
