@@ -430,11 +430,13 @@ class ThermodynamicAnalysis(object):
         keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
         try:
+            min_total_dG_prime, max_total_dG_prime = keggpath.GetTotalReactionEnergy()
+            
             _, concentrations, mtdf = keggpath.FindMtdf(
                                     normalization=DeltaGNormalization.SIGN_FLUX)
         except UnsolvableConvexProblemException as e:
             self.html_writer.write("<b>WARNING: cannot calculate MTDF "
-                                   "because the problem is %s:</b></br>\n" %
+                                   "because %s:</b></br>\n" %
                                    str(e))
             problem_str = str(e.problem).replace('\n', '</br>\n')
             self.html_writer.write("%s" % problem_str)
@@ -442,19 +444,20 @@ class ThermodynamicAnalysis(object):
         
         profile_fig = keggpath.PlotProfile(concentrations)
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=profile_fig)
-        self.html_writer.embed_matplotlib_figure(profile_fig)
+        self.html_writer.embed_matplotlib_figure(profile_fig, name=key+"_prfl")
         keggpath.WriteProfileToHtmlTable(self.html_writer, concentrations)
         
         concentration_fig = keggpath.PlotConcentrations(concentrations)
         pylab.title('MTDF = %.1f [kJ/mol]' % mtdf, figure=concentration_fig)
-        self.html_writer.embed_matplotlib_figure(concentration_fig)
+        self.html_writer.embed_matplotlib_figure(concentration_fig, name=key+"_conc")
         keggpath.WriteConcentrationsToHtmlTable(self.html_writer, concentrations)
 
-        self.write_metabolic_graph(key, S, rids, cids)
+        self.write_metabolic_graph(key+"_grph", S, rids, cids)
         self.write_formation_energies_to_html(cids)
         dG_r_prime = keggpath.CalculateReactionEnergiesUsingConcentrations(concentrations)
-        return "MTDF = %.1f [kJ/mol], Total &#x394;<sub>r</sub>G' = %.1f [kJ/mol]" % \
-            (mtdf, float(np.dot(dG_r_prime.T, fluxes)))
+        return "MTDF = %.1f kJ/mol, Total &#x394;<sub>r</sub>G' = %.1f [min = %.1f, max = %.1f] kJ/mol" % \
+            (mtdf, float(np.dot(dG_r_prime.T, fluxes)), 
+             min_total_dG_prime, max_total_dG_prime)
 
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map

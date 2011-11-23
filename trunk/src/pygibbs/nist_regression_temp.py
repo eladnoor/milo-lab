@@ -139,6 +139,7 @@ def main():
             cid2nH[cid] = int(C[i, 1])
         S = np.loadtxt(prefix + 'S.txt', delimiter=',')
         dG0 = np.loadtxt(prefix + 'dG0.txt', delimiter=',')
+        dG0 = np.reshape(dG0, (dG0.shape[0], 1))
 
     html_writer = HtmlWriter('../res/regression_fast.html')
     html_writer.write("<h1>Pseudoisomeric Reactant Contributions</h1>\n")
@@ -158,7 +159,7 @@ def main():
         nH, dG0_fixed = fixed_cids[cid]
         index2value[i] = dG0_fixed
     
-    x, K = LinearRegression.LeastSquaresWithFixedPoints(S, dG0, index2value)
+    x, _K = LinearRegression.LeastSquaresWithFixedPoints(S, dG0, index2value)
     cid2dG0 = {}
     for i, cid in enumerate(cids):
         cid2dG0[cid] = x[i]
