@@ -4,14 +4,20 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "phosphoglucoisomerase",
+		"ECO": "pgi",
+		"RID": "R00771",
 		"ECS": ["5.3.1.9"]
 		},
 		{
 		"NAME": "6-phosphofructokinase",
+		"ECO": "pfk",
+		"RID": "R00756",
 		"ECS": ["2.7.1.11","2.7.1.90","2.7.1.146"]
 		},
 		{
 		"NAME": "fructose-bisphosphate aldolase",
+		"ECO": "fba",
+		"RID": "R01068",
 		"ECS": ["4.1.2.13"]
 		}
 		]
@@ -21,10 +27,14 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "phosphogluconate dehydratase",
+		"ECO": "edd",
+		"RID": "R02036",
 		"ECS": ["4.2.1.12"]
 		},
 		{
 		"NAME": "kdpg aldolase",
+		"ECO": "eda",
+		"RID": "R05605",
 		"ECS": ["4.1.2.14"]
 		}
 		]
@@ -34,14 +44,20 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "gluconate/altronate dehydratase",
+		"ECO": "uxa",
+		"RID": "R01530",
 		"ECS": ["4.2.1.39", "4.2.1.7"]
 		},
 		{
 		"NAME": "2-keto-3-deoxygluconokinase",
+		"ECO": "kdg",
+		"RID": "R01541",
 		"ECS": ["2.7.1.45"]
 		},
 		{
 		"NAME": "kdpg aldolase",
+		"ECO": "eda",
+		"RID": "R05605",
 		"ECS": ["4.1.2.14"]
 		}
 		]
@@ -51,38 +67,56 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "phosphoglucoisomerase",
+        "ECO": "pgi",
+        "RID": "R00771",
 		"ECS": ["5.3.1.9"]
 		},
 		{
 		"NAME": "6-phosphofructokinase",
+        "ECO": "pfk",
+        "RID": "R00756",
 		"ECS": ["2.7.1.11","2.7.1.90","2.7.1.146"]
 		},
 		{
 		"NAME": "fructose-bisphosphate aldolase",
+        "ECO": "fba",
+        "RID": "R01068",
 		"ECS": ["4.1.2.13"]
 		},
 		{
 		"NAME": "triose-phosphate isomerase",
+		"ECO": "tpi",
+		"RID": "R01015",
 		"ECS": ["5.3.1.1"]
 		},
 		{
 		"NAME": "GAP dehydrogenase (phosphorylating)",
+		"ECO": "gap",
+		"RID": "R01061",
 		"ECS": ["1.2.1.12","1.2.1.59"]
 		},
 		{
 		"NAME": "phosphoglycerate kinase",
+		"ECO": "pgk",
+		"RID": "R01512",
 		"ECS": ["2.7.2.3","2.7.2.10"]
 		},
 		{
 		"NAME": "phosphoglycerate mutase",
+		"ECO": "gpm",
+		"RID": "R01518",
 		"ECS": ["5.4.2.1"]
 		},
 		{
 		"NAME": "enolase",
+		"ECO": "eno",
+		"RID": "R00658",
 		"ECS": ["4.2.1.11"]
 		},
 		{
 		"NAME": "pyruvate kinase",
+		"ECO": "pyk",
+		"RID": "R00200",
 		"ECS": ["2.7.1.40"]
 		}
 		]
@@ -92,42 +126,61 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "glucose dehydrogenase",
+		"ECO": "gcd",
+		"RID": "R06620",
 		"ECS": ["1.1.1.47","1.1.5.2"]
 		},
 		{
 		"NAME": "gluconolactonase",
+		"RID": "R01519",
 		"ECS": ["3.1.1.17"]
 		},
 		{
 		"NAME": "gluconokinase",
+		"ECO": "gnt",
+		"RID": "R01737",
 		"ECS": ["2.7.1.12"]
 		},		
 		{
 		"NAME": "phosphogluconate dehydratase",
+        "ECO": "edd",
+        "RID": "R02036",
 		"ECS": ["4.2.1.12"]
 		},
 		{
 		"NAME": "kdpg aldolase",
+        "ECO": "eda",
+        "RID": "R05605",
 		"ECS": ["4.1.2.14"]
 		},
 		{
 		"NAME": "GAP dehydrogenase (phosphorylating)",
+        "ECO": "gap",
+        "RID": "R01061",
 		"ECS": ["1.2.1.12","1.2.1.59"]
 		},
 		{
 		"NAME": "phosphoglycerate kinase",
+        "ECO": "pgk",
+        "RID": "R01512",
 		"ECS": ["2.7.2.3","2.7.2.10"]
 		},
 		{
 		"NAME": "phosphoglycerate mutase",
+        "ECO": "gpm",
+        "RID": "R01518",
 		"ECS": ["5.4.2.1"]
 		},
 		{
 		"NAME": "enolase",
+        "ECO": "eno",
+        "RID": "R00658",
 		"ECS": ["4.2.1.11"]
 		},
 		{
 		"NAME": "pyruvate kinase",
+        "ECO": "pyk",
+        "RID": "R00200",
 		"ECS": ["2.7.1.40"]
 		}
 		]
@@ -137,38 +190,56 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "glucose-6-phosphate dehydrogenase",
+		"ECO": "zwf",
+		"RID": "R00835",
 		"ECS": ["1.1.1.49"]
 		},
 		{
 		"NAME": "6-phosphogluconolactonase",
+		"ECO": "pgl",
+		"RID": "R02035",
 		"ECS": ["3.1.1.31"]
 		},
 		{
 		"NAME": "phosphogluconate dehydratase",
+		"ECO": "edd",
+		"RID": "R02036",
 		"ECS": ["4.2.1.12"]
 		},
 		{
 		"NAME": "kdpg aldolase",
+		"ECO": "eda",
+		"RID": "R05605",
 		"ECS": ["4.1.2.14"]
 		},
 		{
 		"NAME": "GAP dehydrogenase (phosphorylating)",
+        "ECO": "gap",
+        "RID": "R01061",
 		"ECS": ["1.2.1.12","1.2.1.59"]
 		},
 		{
 		"NAME": "phosphoglycerate kinase",
+        "ECO": "pgk",
+        "RID": "R01512",
 		"ECS": ["2.7.2.3","2.7.2.10"]
 		},
 		{
 		"NAME": "phosphoglycerate mutase",
+        "ECO": "gpm",
+        "RID": "R01518",
 		"ECS": ["5.4.2.1"]
 		},
 		{
 		"NAME": "enolase",
+        "ECO": "eno",
+        "RID": "R00658",
 		"ECS": ["4.2.1.11"]
 		},
 		{
 		"NAME": "pyruvate kinase",
+        "ECO": "pyk",
+        "RID": "R00200",
 		"ECS": ["2.7.1.40"]
 		}
 		]
@@ -178,36 +249,52 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "gluconokinase",
+		"ECO": "gnt",
+		"RID": "R01737",
 		"ECS": ["2.7.1.12"]
 		},
 		{
 		"NAME": "phosphogluconate dehydratase",
+		"ECO": "edd",
+		"RID": "R02036",
 		"ECS": ["4.2.1.12"]
 		},
 		{
 		"NAME": "kdpg aldolase",
+        "ECO": "eda",
+        "RID": "R05605",
 		"ECS": ["4.1.2.14"]
 		},
-		{
-		"NAME": "GAP dehydrogenase (phosphorylating)",
-		"ECS": ["1.2.1.12","1.2.1.59"]
-		},
-		{
-		"NAME": "phosphoglycerate kinase",
-		"ECS": ["2.7.2.3","2.7.2.10"]
-		},
-		{
-		"NAME": "phosphoglycerate mutase",
-		"ECS": ["5.4.2.1"]
-		},
-		{
-		"NAME": "enolase",
-		"ECS": ["4.2.1.11"]
-		},
-		{
-		"NAME": "pyruvate kinase",
-		"ECS": ["2.7.1.40"]
-		}
+        {
+        "NAME": "GAP dehydrogenase (phosphorylating)",
+        "ECO": "gap",
+        "RID": "R01061",
+        "ECS": ["1.2.1.12","1.2.1.59"]
+        },
+        {
+        "NAME": "phosphoglycerate kinase",
+        "ECO": "pgk",
+        "RID": "R01512",
+        "ECS": ["2.7.2.3","2.7.2.10"]
+        },
+        {
+        "NAME": "phosphoglycerate mutase",
+        "ECO": "gpm",
+        "RID": "R01518",
+        "ECS": ["5.4.2.1"]
+        },
+        {
+        "NAME": "enolase",
+        "ECO": "eno",
+        "RID": "R00658",
+        "ECS": ["4.2.1.11"]
+        },
+        {
+        "NAME": "pyruvate kinase",
+        "ECO": "pyk",
+        "RID": "R00200",
+        "ECS": ["2.7.1.40"]
+        }
 		]
 },
 {
@@ -215,32 +302,46 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "2-keto-3-deoxygluconokinase",
+        "ECO": "kdg",
+        "RID": "R01541",
 		"ECS": ["2.7.1.45"]
 		},
 		{
 		"NAME": "kdpg aldolase",
+        "ECO": "eda",
+        "RID": "R05605",
 		"ECS": ["4.1.2.14"]
 		},
-		{
-		"NAME": "GAP dehydrogenase (phosphorylating)",
-		"ECS": ["1.2.1.12","1.2.1.59"]
-		},
-		{
-		"NAME": "phosphoglycerate kinase",
-		"ECS": ["2.7.2.3","2.7.2.10"]
-		},
-		{
-		"NAME": "phosphoglycerate mutase",
-		"ECS": ["5.4.2.1"]
-		},
-		{
-		"NAME": "enolase",
-		"ECS": ["4.2.1.11"]
-		},
-		{
-		"NAME": "pyruvate kinase",
-		"ECS": ["2.7.1.40"]
-		}
+        {
+        "NAME": "GAP dehydrogenase (phosphorylating)",
+        "ECO": "gap",
+        "RID": "R01061",
+        "ECS": ["1.2.1.12","1.2.1.59"]
+        },
+        {
+        "NAME": "phosphoglycerate kinase",
+        "ECO": "pgk",
+        "RID": "R01512",
+        "ECS": ["2.7.2.3","2.7.2.10"]
+        },
+        {
+        "NAME": "phosphoglycerate mutase",
+        "ECO": "gpm",
+        "RID": "R01518",
+        "ECS": ["5.4.2.1"]
+        },
+        {
+        "NAME": "enolase",
+        "ECO": "eno",
+        "RID": "R00658",
+        "ECS": ["4.2.1.11"]
+        },
+        {
+        "NAME": "pyruvate kinase",
+        "ECO": "pyk",
+        "RID": "R00200",
+        "ECS": ["2.7.1.40"]
+        }
 		]
 },
 {
@@ -248,35 +349,50 @@
 	"ENZYME_SETS": [
 		{
 		"NAME": "phosphoglucoisomerase",
+        "ECO": "pgi",
+        "RID": "R00771",
 		"ECS": ["5.3.1.9"]
 		},
 		{
 		"NAME": "6-phosphofructokinase",
+        "ECO": "pfk",
+        "RID": "R00756",
 		"ECS": ["2.7.1.11","2.7.1.90","2.7.1.146"]
 		},
 		{
 		"NAME": "fructose-bisphosphate aldolase",
+        "ECO": "fba",
+        "RID": "R01068",
 		"ECS": ["4.1.2.13"]
 		},
 		{
 		"NAME": "triose-phosphate isomerase",
+        "ECO": "tpi",
+        "RID": "R01015",
 		"ECS": ["5.3.1.1"]
 		},
 		{
 		"NAME": "GAP dehydrogenase (NADP)",
+		"RID": "R01058",
 		"ECS": ["1.2.1.9"]
 		},
 		{
-		"NAME": "phosphoglycerate mutase",
-		"ECS": ["5.4.2.1"]
-		},
-		{
-		"NAME": "enolase",
-		"ECS": ["4.2.1.11"]
-		},
-		{
-		"NAME": "pyruvate kinase",
-		"ECS": ["2.7.1.40"]
+        "NAME": "phosphoglycerate mutase",
+        "ECO": "gpm",
+        "RID": "R01518",
+        "ECS": ["5.4.2.1"]
+        },
+        {
+        "NAME": "enolase",
+        "ECO": "eno",
+        "RID": "R00658",
+        "ECS": ["4.2.1.11"]
+        },
+        {
+        "NAME": "pyruvate kinase",
+        "ECO": "pyk",
+        "RID": "R00200",
+        "ECS": ["2.7.1.40"]
 		}
 		]
 }

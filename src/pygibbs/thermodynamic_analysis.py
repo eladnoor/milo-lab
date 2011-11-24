@@ -176,7 +176,8 @@ class ThermodynamicAnalysis(object):
         self.html_writer.write("<li>Reactions:</br><ul>\n")
         
         for r in range(S.shape[0]):
-            self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + '>R%05d ' % rids[r] + '</a>')
+            self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + 
+                                   '>%s ' % self.kegg.rid2string(rids[r]) + '</a>')
             self.html_writer.write("[x%g, &#x394;<sub>r</sub>G'<sup>0</sup> = %.1f] : " % (fluxes[r], dG0_r[r, 0]))
             self.html_writer.write(self.kegg.vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
             self.html_writer.write('</li>\n')
@@ -637,12 +638,14 @@ class ThermodynamicAnalysis(object):
                 cid2bounds[5] = (1e-5*r, 1e-5*r) # NADPH
                 logging.debug("E = %g, ratio = %.1g" % (redox, r))
                 
-                keggpath = KeggPathway(S, rids, fluxes, cids, dG0_f,
-                                       cid2bounds, c_range=self.thermo.c_range)
+                keggpath = KeggPathway(S, rids, fluxes, cids,
+                                       formation_energies=dG0_f,
+                                       cid2bounds=cid2bounds,
+                                       c_range=self.thermo.c_range)
                 try:
                     # minimize CO2 concentration
-                    _dGf, _concentrations, min_conc = keggpath.FindMinimalFeasibleConcentration(11)
-                    ratio_mat[i, j] = pylab.log10(min_conc)
+                    _, _, min_ln_conc = keggpath.FindMinimalFeasibleConcentration(11)
+                    ratio_mat[i, j] = min_ln_conc
                 except UnsolvableConvexProblemException:
                     ratio_mat[i, j] = cid2bounds[11][1] + 1.0 # i.e. 10 times higher than the upper bound
         

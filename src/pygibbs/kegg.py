@@ -19,6 +19,7 @@ from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.kegg_reaction import Reaction
 from SOAPpy import WSDL
 import openbabel
+import types
     
 class Kegg(Singleton):
 
@@ -438,12 +439,7 @@ class Kegg(Singleton):
         sparse_reactions = []
         cids = []
         for line in field_map["REACTION"].split('\t'):
-            for rid_clause, left_clause, right_clause, remainder in re.findall('([R,0-9]+)  ([C\s\+\d\.]+) -> ([C\s\+\d\.]+)(.*)', line):
-                # TODO: we take only the first RID from the list of options in this line in the module!
-                # there must be a better way to choose it!
-                
-                rid = rid_clause.split(',')[0]
-                rid = int(rid[1:])
+            for rid, left_clause, right_clause, remainder in re.findall('([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+->\s+([C\s\+\d\.]+)(.*)', line):
                 flux = 1
                 if remainder != "":
                     for (f) in re.findall('\(x([0-9\.\-\s]+)\)', remainder):
@@ -574,8 +570,32 @@ class Kegg(Singleton):
     def reaction2rid(self, reaction):
         return self.reaction2rid_map.get(reaction, None)
 
-    def rid2link(self, rid):
-        return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % rid
+    @staticmethod
+    def rid2link(rid):
+        if type(rid) == types.IntType:
+            return "http://www.genome.jp/dbget-bin/www_bget?rn:R%05d" % rid
+        elif type(rid) == types.StringType and re.findall('^R\d\d\d\d\d$', rid) != []:
+            return "http://www.genome.jp/dbget-bin/www_bget?rn:%s" % rid
+        else:
+            return "http://www.genome.jp/"
+    
+    @staticmethod
+    def rid2string(rid):
+        if type(rid) == types.IntType:
+            return "R%05d" % rid
+        elif type(rid) == types.StringType:
+            return rid
+        else:
+            return str(rid)
+    
+    @staticmethod
+    def cid2string(cid):
+        if type(cid) == types.IntType:
+            return "C%05d" % cid
+        elif type(cid) == types.StringType:
+            return cid
+        else:
+            return str(cid)
     
     def cid2inchi(self, cid):
         comp = self.cid2compound(cid)
@@ -809,17 +829,17 @@ class Kegg(Singleton):
         return node
 
     def create_reaction_nodes(self, Gdot, rid):
-        node_in = pydot.Node("R%05d in" % rid)
+        node_in = pydot.Node("%s in" % Kegg.rid2string(rid))
         node_in.set_label("")
         node_in.set_shape("point")
-        node_in.set_tooltip('"-> R%05d"' % rid)
+        node_in.set_tooltip('"-> %s"' % Kegg.rid2string(rid))
         node_in.set_color(self.edge_color)
         Gdot.add_node(node_in)
 
-        node_out = pydot.Node("R%05d out" % rid)
+        node_out = pydot.Node("%s out" % Kegg.rid2string(rid))
         node_out.set_label("")
         node_out.set_shape("point")
-        node_out.set_tooltip('"R%05d ->"' % rid)
+        node_out.set_tooltip('"%s ->"' % Kegg.rid2string(rid))
         node_out.set_color(self.edge_color) # edge connector-point color
         Gdot.add_node(node_out)
         
@@ -832,14 +852,14 @@ class Kegg(Singleton):
             Create an edge for a reaction
         """
         edge = pydot.Edge(node_from, node_to)
-        edge.set_label('"R%05d"' % rid)
+        edge.set_label(Kegg.rid2string(rid))
         edge.set_color(self.edge_color) # edge line color
         edge.set_fontcolor(self.edge_fontcolor) # edge label color
         edge.set_arrowhead(arrowhead)
         edge.set_arrowtail(arrowtail)
         edge.set_fontname(self.font)
         edge.set_fontsize("12")
-        edge.set_URL('"http://www.genome.jp/Fig/reaction/R%05d.gif"' % rid)
+        edge.set_URL('"' + Kegg.rid2link(rid) + '"')
         Gdot.add_edge(edge)
         return edge
         
@@ -870,7 +890,8 @@ class Kegg(Singleton):
             node_map = {}
             if (cids[c] in self.cofactors2names):
                 for r in pylab.find(S[:,c] != 0): # this is a co-factor, create a new node for each reaction
-                    node_map[r] = self.create_compound_node(Gdot, cids[c], "C%05d_R%05d" % (cids[c], rids[r]))
+                    node_map[r] = self.create_compound_node(Gdot, cids[c],
+                        Kegg.cid2string(cids[c]) + '_' + Kegg.rid2string(rids[r]))
             else:
                 node = self.create_compound_node(Gdot, cids[c])
                 for r in pylab.find(S[:,c] != 0): # point the node_map to the same node for every reaction
@@ -885,7 +906,8 @@ class Kegg(Singleton):
                 c_s = s_indices[0]
                 c_p = p_indices[0]
                 if (S[r,c_s] == -1 and S[r,c_p] == 1):
-                    self.create_reaction_edge(Gdot, c_nodes[c_s][r], c_nodes[c_p][r], rid=rid, arrowhead="open", arrowtail="none")
+                    self.create_reaction_edge(Gdot, c_nodes[c_s][r], 
+                        c_nodes[c_p][r], rid=rid, arrowhead="open", arrowtail="none")
                     continue
             
             # this is not a simple 1-to-1 reaction
