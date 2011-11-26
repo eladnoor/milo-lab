@@ -608,7 +608,8 @@ class Pathway(object):
         # Set the constraints.
         return ln_conc, problem
 
-    def FindMinimalFeasibleConcentration(self, index_to_minimize):
+    def FindMinimalFeasibleConcentration(self, index_to_minimize,
+                                         bounds=None, c_range=(1e-6, 1e-2)):
         """
             Compute the smallest ratio between two concentrations which makes the pathway feasible.
             All other compounds except these two are constrained by 'bounds' or unconstrained at all.
@@ -620,11 +621,12 @@ class Pathway(object):
             Returns:
                 dGs, concentrations, target-concentration
         """
-        ln_conc, problem = self._MakeMinimalFeasbileConcentrationProblem()
+        ln_conc, problem = self._MakeMinimalFeasbileConcentrationProblem(bounds, c_range)
         problem.objective = cvxmod.minimize(ln_conc[index_to_minimize]) 
         return self._RunThermoProblem(ln_conc, ln_conc[index_to_minimize], problem)
 
-    def _MakeMinimumFeasbileConcentrationsProblem(self, bounds=None, c_range=(1e-6, 1e-2)):
+    def _MakeMinimumFeasbileConcentrationsProblem(self, bounds=None,
+                                                  c_range=(1e-6, 1e-2)):
         """Creates the cvxmod.problem for finding minimum total concentrations.
         
         Returns:
@@ -778,7 +780,8 @@ class KeggPathway(Pathway):
                 dGs, concentrations, target-concentration
         """
         index = self.cids.index(cid_to_minimize)
-        return Pathway.FindMinimalFeasibleConcentration(self, index)
+        return Pathway.FindMinimalFeasibleConcentration(self, index,
+                                                    self.bounds, self.c_range)
 
     @staticmethod
     def _EnergyToString(dG):
