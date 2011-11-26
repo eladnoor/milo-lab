@@ -44,6 +44,16 @@ class Thermodynamics(object):
         self.cid2source_string = {}
         self.anchors = set()
 
+    def SetConditions(self, pH=None, I=None, T=None, pMg=None):
+        if pH is not None:
+            self.pH = pH
+        if I is not None:
+            self.I = I
+        if T is not None:
+            self.T = T
+        if pMg is not None:
+            self.pMg = pMg
+
     def cid2SourceString(self, cid):
         return self.cid2source_string.get(cid, "")
 
@@ -534,6 +544,10 @@ class BinaryThermodynamics(Thermodynamics):
                                     'calculate the Gibbs free energy of this '
                                     'reaction')
             
+    def SetConditions(self, pH=None, I=None, T=None, pMg=None):
+        self.thermo[0].SetConditions(pH, I, T, pMg)
+        self.thermo[1].SetConditions(pH, I, T, pMg)
+    
     def VerifyReaction(self, reaction):
         """
             Input:
@@ -544,18 +558,15 @@ class BinaryThermodynamics(Thermodynamics):
             compounds has a non-trivial reference point (such as guanosine=0) but that
             reference point is not balanced throughout the reaction.
         """
-        for thermo in self.thermodynamic_stack:
-            try:
-                # if at least one of the 'thermodynamics' in the stack verify
-                # this reaction, then it is okay.
-                thermo.VerifyReaction(reaction)
-                return
-            except MissingReactionEnergy:
-                continue
-        
-        raise MissingReactionEnergy('None of the Thermodynamic estimators can '
-                                    'calculate the Gibbs free energy of this '
-                                    'reaction')
+        try:
+            # if at least one of the 'thermodynamics' in the stack verify
+            # this reaction, then it is okay.
+            self.thermo[0].VerifyReaction(reaction)
+            self.thermo[1].VerifyReaction(reaction)
+        except MissingReactionEnergy:
+            raise MissingReactionEnergy('None of the Thermodynamic estimaters can '
+                                        'calculate the Gibbs free energy of this '
+                                        'reaction')
 
     def GetTransformedFormationEnergies(self, cids):
         """

@@ -16,7 +16,7 @@ from pygibbs.feasibility import LinProgNoSolutionException, find_ratio
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs.pathway import PathwayData
-from pygibbs.thermodynamic_constants import transform
+from pygibbs.thermodynamic_constants import transform, default_pMg
 from pygibbs.thermodynamic_constants import default_T, default_pH
 from pygibbs.thermodynamic_constants import default_I, R, F
 from toolbox.database import SqliteDatabase
@@ -625,8 +625,12 @@ class ThermodynamicAnalysis(object):
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
         ratio_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        
+        cid_to_minimize = 11 # CO2
+        cid2bounds[cid_to_minimize] = (1e-50, 1.0)
+        
         for i, pH in enumerate(pH_list):
-            self.thermo.pH = pH
+            self.thermo.SetConditions(pH=pH)
             dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
             for j, redox in enumerate(redox_list):
                 pH_mat[i, j] = pH
@@ -644,10 +648,12 @@ class ThermodynamicAnalysis(object):
                                        c_range=self.thermo.c_range)
                 try:
                     # minimize CO2 concentration
-                    _, _, min_ln_conc = keggpath.FindMinimalFeasibleConcentration(11)
-                    ratio_mat[i, j] = min_ln_conc
-                except UnsolvableConvexProblemException:
-                    ratio_mat[i, j] = cid2bounds[11][1] + 1.0 # i.e. 10 times higher than the upper bound
+                    _, _, min_ln_conc = keggpath.FindMinimalFeasibleConcentration(cid_to_minimize)
+                    ratio_mat[i, j] = min_ln_conc / np.log(10) # change to base 10
+                except UnsolvableConvexProblemException as e:
+                    logging.debug(str(e))
+                    ratio_mat[i, j] = np.log10(cid2bounds[cid_to_minimize][1]) + \
+                                      1.0 # i.e. 10 times higher than the upper bound
         
         field_map = pathway_data.field_map  
         matfile = field_map.GetStringField("MATFILE", "")
@@ -660,13 +666,15 @@ class ThermodynamicAnalysis(object):
         contour_fig = pylab.figure()
         pylab.hold(True)
         matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
-        CS = plt.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-4.5, 0.01, 0.5), colors='k')
-        plt.clabel(CS, inline=1, fontsize=7, colors='black')
-        plt.xlim(min(pH_list), max(pH_list))
-        plt.ylim(min(redox_list), max(redox_list))
+        #CS = plt.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-4.5, 0.01, 0.5), colors='k')
+        #plt.clabel(CS, inline=1, fontsize=7, colors='black')
+        #plt.xlim(min(pH_list), max(pH_list))
+        #plt.ylim(min(redox_list), max(redox_list))
+        collection = plt.pcolor(pH_mat, redox_mat, ratio_mat, figure=contour_fig)
+        plt.colorbar(mappable=collection)
         plt.xlabel("pH")
         plt.ylabel("$E^'$ (V)")
-        plt.title("minimal $\\log{[CO_2]}$ required for feasibility")
+        plt.title("minimal $\\log([CO_2]/1M)$ required for feasibility")
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
 
     def analyze_standard_conditions(self, key, pathway_data):
