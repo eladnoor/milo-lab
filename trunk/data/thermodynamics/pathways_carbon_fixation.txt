@@ -1,20 +1,21 @@
 ENTRY       R01-CALVIN_NADP
-SKIP        TRUE
+SKIP        FALSE
 NAME        rPP cycle (with NADP)
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r01_calvin.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
+            C00139  1
 REACTION    R00024  C01182 + C00288 -> 2 C00197 (x1)
             R01512  C00002 + C00197 -> C00008 + C00236 (x2)
             R01063  C00236 + C00005 -> C00118 + C00009 + C00006 (x2)
@@ -28,56 +29,24 @@ REACTION    R00024  C01182 + C00288 -> 2 C00197 (x1)
             R01056  C00117 -> C00199 (x0.333)
             R01529  C00231 -> C00199 (x0.666)
             R01523  C00002 + C00199 -> C00008 + C01182 (x1)
+            R01195  2 C00138 + C00006 -> 2 C00139 + C00005 (x0)
             R00004  C00013 + C00001 -> 2 C00009 (x0)
             R00127  C00002 + C00020 -> 2 C00008 (x0)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
-ENTRY       M01-CALVIN_NADP
-SKIP        TRUE
-NAME        rPP cycle (with NADP)
-TYPE        MARGIN
-PH          8.5
-C_RANGE     1e-6 1e-3
-BOUND       C00002  1e-2
-            C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
-            C00288  1e-50 1e50
-            C00139  1e-50 1e50
-            C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
-            C00005  1e-7
-            C00006  1e-5
-REACTION    R00024  C01182 + C00288 -> 2 C00197 (x1)
-            R01512  C00002 + C00197 -> C00008 + C00236 (x2)
-            R01063  C00236 + C00005 -> C00118 + C00009 + C00006 (x2)
-            R01015  C00118 -> C00111 (x0.666)
-            R01068  C00111 + C00118 -> C00354 (x0.333)
-            R00762  C00354 + C00001 -> C00085 + C00009 (x0.333)
-            R01067  C00085 + C00118 -> C00279 + C00231 (x0.333)
-            R01829  C00111 + C00279 -> C00447 (x0.333)
-            R01845  C00447 + C00001 -> C05382 + C00009 (x0.333)
-            R01641  C05382 + C00118 -> C00117 + C00231 (x0.333)
-            R01056  C00117 -> C00199 (x0.333)
-            R01529  C00231 -> C00199 (x0.666)
-            R01523  C00002 + C00199 -> C00008 + C01182 (x1)
-            R00004  C00013 + C00001 -> 2 C00009 (x0)
-            R00127  C00002 + C00020 -> 2 C00008 (x0)
-            R90000  C00011 + C00001 -> C00288 (x0)
-///
-ENTRY       R01-rTCA
+ENTRY       R02-rTCA
 SKIP        FALSE
 NAME        rTCA cycle
 TYPE        REDOX
 C_RANGE     1e-6 1e-2
-MATFILE     ../res/thermo_analysis/r01_tca.mat
+MATFILE     ../res/thermo_analysis/r02_tca.mat
 BOUND       C00001  1
             C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
             C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
             C00020  1e-50 1e50
             C00013  1e-50 1e50
@@ -96,55 +65,24 @@ REACTION    R00343  C00036 + C00005 -> C00149 + C00006 (x1)
             R00127  C00002 + C00020 -> 2 C00008 (x0)
             R90000  C00011 + C00001 -> C00288 (x0)
 ///
-ENTRY       R02-rTCA
-SKIP        TRUE
-NAME        rTCA cycle
-TYPE        REDOX
-C_RANGE     1e-6 1e-3
-MATFILE     ../res/thermo_analysis/r02_tca.mat
-BOUND       C00002  1e-2
-            C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
-            C00288  1e-50 1e50
-            C00139  1e-50 1e50
-            C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
-REACTION    R00343  C00036 + C00005 -> C00149 + C00006 (x0.5)
-            R01082  C00149 -> C00122 + C00001 (x0.5)
-            R90105  C00122 + C00005 -> C00042 + C00006 (x0.5)
-            R00405  C00002 + C00042 + C00010 -> C00008 + C00009 + C00091 (x0.5)
-            R01197  2 C00138 + C00091 + C00288 -> C00001 + 2 C00139 + C00026 + C00010 (x0.5)
-            R00267  C00026 + C00011 + C00005 -> C00311 + C00006 (x0.5)
-            R01900  C00311 -> C00417 + C00001 (x0.5)
-            R01325  C00417 + C00001 -> C00158 (x0.5)
-            R01322  C00002 + C00158 + C00010 -> C00008 + C00009 + C00024 + C00036 (x0.5)
-            R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0.5)
-            R01195  2 C00138 + C00006 -> 2 C00139 + C00005 (x0)
-            R00004  C00013 + C00001 -> 2 C00009 (x0)
-            R00127  C00002 + C00020 -> 2 C00008 (x0)
-            R90000  C00011 + C00001 -> C00288 (x0)
-///
 ENTRY       R03-DC-4HB
 SKIP        FALSE
 NAME        Dicarboxylate / 4-Hydroxybutyrate
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r03_DC-4HB.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
+            C00139  1
 REACTION    R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0.5)
             R00199  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009 (x0.5)
             R00345  C00001 + C00074 + C00288 -> C00001 + C00009 + C00036 (x0.5)
@@ -169,18 +107,21 @@ ENTRY       R04-3HP-4HB
 SKIP        FALSE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r04_3HP-4HB.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
+            C00139  1
+            C00399  1
             C00390  1e-50 1e50
 REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
             R00740  C00083 + C00005 -> C00222 + C00010 + C00006 (x1)
@@ -212,18 +153,21 @@ ENTRY       R05-3HP
 SKIP        FALSE
 NAME        3-Hydroxypropionate Cycle
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r05_3HP.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
+            C00139  1
+            C00399  1
             C00390  1e-50 1e50
 REACTION    R00742  C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x0.5)
             R00740  C00083 + C00005 -> C00222 + C00010 + C00006 (x0.5)
@@ -251,19 +195,20 @@ ENTRY       R06-C1-1
 SKIP        FALSE
 NAME        C1-1
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r06_C1-1.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
+            C00139  1
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x0.5)
             R01655  C00234 -> C00445 + C00001 (x0.5)
@@ -278,19 +223,20 @@ ENTRY       R07-C1-3
 SKIP        FALSE
 NAME        C1-3
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r07_C1-3.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
+            C00139  1
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x0.5)
             R01655  C00234 -> C00445 + C00001 (x0.5)
@@ -302,19 +248,20 @@ ENTRY       R08-C1-4
 SKIP        FALSE
 NAME        C1-4
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r08_C1-4.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
+            C00139  1
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x1)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x1)
             R01655  C00234 -> C00445 + C00001 (x1)
@@ -327,19 +274,20 @@ ENTRY       R09-C1-5
 SKIP        FALSE
 NAME        C1-5
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r09_C1-5.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
+            C00139  1
 REACTION    R00134  C00011 + C00005 -> C00058 + C00006 (x0.5)
             R00943  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x0.5)
             R01655  C00234 -> C00445 + C00001 (x0.5)
@@ -353,19 +301,20 @@ ENTRY       R10-Ivanovsky
 SKIP        FALSE
 NAME        Ivanovsky pathway
 TYPE        REDOX
-C_RANGE     1e-6 1e-3
+C_RANGE     1e-6 1e-2
 MATFILE     ../res/thermo_analysis/r10_ivanovsky.mat
-BOUND       C00002  1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00003  5e-3
+            C00004  5e-5
             C00008  5e-4
-            C00020  1e-50 1e50
-            C00009  3e-2
-            C00013  1e-50 1e50
-            C00011  1e-6 1
+            C00009  5e-3
+            C00011  1e-5
             C00288  1e-50 1e50
-            C00139  1e-50 1e50
+            C00020  1e-50 1e50
+            C00013  1e-50 1e50
             C00138  1e-50 1e50
-            C00399  1e-50 1e50
-            C00390  1e-50 1e50
+            C00139  1
 REACTION    R01196  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x0.5)
             R00199  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009 (x0.5)
             R00345  C00001 + C00074 + C00288 -> C00001 + C00009 + C00036 (x0.5)
