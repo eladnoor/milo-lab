@@ -98,7 +98,6 @@ class PathwayData(object):
         p.skip = field_map.GetBoolField('SKIP', default_value=False)
         p.name = field_map.get('NAME')
         
-        
         p.conditions = PathwayConditions.FromString(field_map.get('CONDITIONS'))
         
         try:

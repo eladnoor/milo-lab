@@ -28,6 +28,7 @@ from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException, DeltaGNormalization
 from pygibbs.nist_verify import LoadAllEstimators
 from pygibbs.compound_abundance import CompoundAbundance
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
@@ -63,6 +64,7 @@ class ThermodynamicAnalysis(object):
             function_dict = {'PROFILE':self.analyze_profile,
                              'PCR':self.analyze_pCr,
                              'MTDF':self.analyze_mtdf,
+                             'MTDF2D':self.analyze_mtdf_2d,
                              'REDOX':self.analyze_redox3,
                              'PROTONATION':self.analyze_protonation,
                              'STANDARD':self.analyze_standard_conditions}
@@ -611,6 +613,11 @@ class ThermodynamicAnalysis(object):
         self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
         
     def analyze_redox3(self, key, pathway_data):
+        """
+            Plot the minimal concentration of a compound (e.g. CO2) required
+            for the pathway to be feasible, at different pH and redox states.
+            The redox state is defined as the E' of NADP(ox) -> NADP(red).
+        """
         self.get_conditions(pathway_data)
         cid2bounds = self.get_bounds(key, pathway_data)
         self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
@@ -619,15 +626,16 @@ class ThermodynamicAnalysis(object):
         self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
         self.html_writer.write('</br>\n')
         
-        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.25)
-        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.025)
+        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.1)
+        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.01)
         
         pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
         redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
         ratio_mat = pylab.zeros((len(pH_list), len(redox_list)))
         
         cid_to_minimize = 11 # CO2
-        cid2bounds[cid_to_minimize] = (1e-50, 1.0)
+        max_allowed_concentration = 1.0 # 1M
+        cid2bounds[cid_to_minimize] = (1e-50, max_allowed_concentration)
         
         for i, pH in enumerate(pH_list):
             self.thermo.SetConditions(pH=pH)
@@ -652,7 +660,7 @@ class ThermodynamicAnalysis(object):
                     ratio_mat[i, j] = min_ln_conc / np.log(10) # change to base 10
                 except UnsolvableConvexProblemException as e:
                     logging.debug(str(e))
-                    ratio_mat[i, j] = np.log10(cid2bounds[cid_to_minimize][1]) + \
+                    ratio_mat[i, j] = np.log10(max_allowed_concentration) + \
                                       1.0 # i.e. 10 times higher than the upper bound
         
         field_map = pathway_data.field_map  
@@ -663,19 +671,96 @@ class ThermodynamicAnalysis(object):
                 "fluxes":np.array(fluxes), "cids":np.array(cids),
                 "dG0_f":dG0_f}, oned_as='column')
         
-        contour_fig = pylab.figure()
+        fig = pylab.figure()
         pylab.hold(True)
-        matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
+        #matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
         #CS = plt.contour(pH_mat, redox_mat, ratio_mat, pylab.arange(-4.5, 0.01, 0.5), colors='k')
         #plt.clabel(CS, inline=1, fontsize=7, colors='black')
-        #plt.xlim(min(pH_list), max(pH_list))
-        #plt.ylim(min(redox_list), max(redox_list))
-        collection = plt.pcolor(pH_mat, redox_mat, ratio_mat, figure=contour_fig)
+        collection = plt.pcolor(pH_mat, redox_mat, ratio_mat, figure=fig)
         plt.colorbar(mappable=collection)
+        plt.xlim(min(pH_list), max(pH_list))
+        plt.ylim(min(redox_list), max(redox_list))
         plt.xlabel("pH")
         plt.ylabel("$E^'$ (V)")
         plt.title("minimal $\\log([CO_2]/1M)$ required for feasibility")
-        self.html_writer.embed_matplotlib_figure(contour_fig, width=640, height=480)
+        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
+
+    def analyze_mtdf_2d(self, key, pathway_data, contour=True):
+        """
+            Plot the MTDF of a pathway, at different pH and redox states.
+            The redox state is defined as the E' of NADP(ox) -> NADP(red).
+        """
+        self.get_conditions(pathway_data)
+        cid2bounds = self.get_bounds(key, pathway_data)
+        
+        for cid in [28, 30]: # oxidized/reduced electron carrier
+            # set the standard redox potential to 0V and concentrations to 1M 
+            # the formation energy will be used only for the dG in the tables
+            # but will later be overridden by the value or 'redox' which is
+            # determined by the Y-axis in the contour plot. 
+            try:
+                self.thermo.cid2PseudoisomerMap(cid)
+            except MissingCompoundFormationEnergy:
+                self.thermo.AddPseudoisomer(cid, nH=0, z=0, nMg=0, dG0=0) # oxidized electron carrier
+                cid2bounds[cid] = (1.0, 1.0)
+
+        self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
+        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
+        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
+        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
+        self.html_writer.write('</br>\n')
+        
+        pH_list = pathway_data.pH_values or pylab.arange(5.0, 9.01, 0.25)
+        redox_list = pathway_data.redox_values or pylab.arange(-0.500, -0.249999, 0.025)
+        
+        pH_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        redox_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        mtdf_mat = pylab.zeros((len(pH_list), len(redox_list)))
+        
+        cid_to_minimize = 11 # CO2
+        max_allowed_concentration = 1.0 # 1M
+        cid2bounds[cid_to_minimize] = (1e-50, max_allowed_concentration)
+        
+        for i, pH in enumerate(pH_list):
+            self.thermo.SetConditions(pH=pH)
+            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
+            for j, redox in enumerate(redox_list):
+                pH_mat[i, j] = pH
+                redox_mat[i, j] = redox
+                
+                # override the formation energy of the reduced species to match
+                # the value of 'redox'.
+                dG_redox = -(F/1000) * redox # convert redox potential in V to kJ/mol
+                dG0_f[cids.index(28)] = 0
+                dG0_f[cids.index(30)] = dG_redox
+                logging.debug("E = %.3f V, dG = %.1f kJ/mol" % (redox, dG_redox))
+
+                keggpath = KeggPathway(S, rids, fluxes, cids,
+                                       formation_energies=dG0_f,
+                                       cid2bounds=cid2bounds,
+                                       c_range=self.thermo.c_range)
+                try:
+                    _, _, mtdf = keggpath.FindMtdf()
+                    mtdf_mat[i, j] = mtdf
+                except UnsolvableConvexProblemException as e:
+                    logging.debug(str(e))
+                    mtdf_mat[i, j] = np.NaN
+        
+        fig = pylab.figure()
+        pylab.hold(True)
+        if contour:
+            matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
+            CS = plt.contour(pH_mat, redox_mat, mtdf_mat, pylab.arange(-20.0, 20.01, 2.0), colors='k')
+            plt.clabel(CS, inline=1, fontsize=7, colors='black')
+        else:
+            collection = plt.pcolor(pH_mat, redox_mat, mtdf_mat, figure=fig)
+            plt.colorbar(mappable=collection)
+        plt.xlim(min(pH_list), max(pH_list))
+        plt.ylim(min(redox_list), max(redox_list))
+        plt.xlabel("pH")
+        plt.ylabel("$E^'$ (V)")
+        plt.title("MTDF (in kJ/mol)")
+        self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
 
     def analyze_standard_conditions(self, key, pathway_data):
         self.get_conditions(pathway_data)
