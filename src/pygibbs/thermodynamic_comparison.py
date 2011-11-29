@@ -445,14 +445,14 @@ if __name__ == "__main__":
     
     # dG0 =  -E'*nE*F - R*T*ln(10)*nH*pH
     # Where: 
-    #    F  = 0.1 (kJ/mol)/mV
+    #    F  = 96.48 kC/mol
     #    nE - change in e-
     #    nH - change in H+
     #    pH - the conditions in which the E' was measured
     #
-    # Ferredoxin  ox/red: E' = -380mV (nE = 1, nH = 0) -> dG0 = 38.0 kJ/mol [1]
-    # Ubiqinone   ox/red: E' =  113mV (nE = 2, nH = 2) -> dG0 = -103.2 kJ/mol [1]
-    # Menaquinone ox/red: E' =  -74mV (nE = 2, nH = 2) -> dG0 = -65.8 kJ/mol [1]
+    # Ferredoxin  ox/red: E' = -0.380V (nE = 1, nH = 0) -> dG0 = 38.0 kJ/mol [1]
+    # Ubiqinone   ox/red: E' =  0.113V (nE = 2, nH = 2) -> dG0 = -103.2 kJ/mol [1]
+    # Menaquinone ox/red: E' = -0.074V (nE = 2, nH = 2) -> dG0 = -65.8 kJ/mol [1]
     #
     # [1] - Thauer 1977
     

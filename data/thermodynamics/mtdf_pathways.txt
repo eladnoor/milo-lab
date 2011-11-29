@@ -1,5 +1,5 @@
 ENTRY       P01-ED
-SKIP        FALSE
+SKIP        TRUE
 NAME        ED (phosphorylating glucose)
 TYPE        MTDF
 PH          7
@@ -28,7 +28,7 @@ REACTION    glk  C00002 + C00031 -> C00008 + C00092 (x1)
             pyk  C00008 + C00074 -> C00002 + C00022 (x1)
 ///
 ENTRY       P02-GLYCOLYSIS
-SKIP        FALSE
+SKIP        TRUE
 NAME        Glycolysis
 TYPE        MTDF
 PH          7
@@ -57,7 +57,7 @@ REACTION    glk  C00002 + C00031 -> C00008 + C00092
             pyk  C00008 + C00074 -> C00002 + C00022 (x2)
 ///
 ENTRY       P03-GLUCONEOGENESIS
-SKIP        FALSE
+SKIP        TRUE
 NAME        Gluconeogenesis
 TYPE        MTDF
 PH          7
@@ -85,7 +85,7 @@ REACTION    pck  C00002 + C00036 -> C00008 + C00074 + C00011 (x2)
             pgi  C00085 -> C00092 (x1)
 ///
 ENTRY       P04-TCA
-SKIP        FALSE
+SKIP        TRUE
 NAME        TCA cycle
 TYPE        MTDF
 PH          7
@@ -114,7 +114,7 @@ REACTION    glt  C00001 + C00024 + C00036 -> C00010 + C00158
             mdh  C00003 + C00149 -> C00004 + C00036
 ///
 ENTRY       P05-TCA_FORK
-SKIP        FALSE
+SKIP        TRUE
 NAME        TCA cycle - forked
 TYPE        MTDF
 PH          7
@@ -143,7 +143,7 @@ REACTION    ppc    C00001 + C00074 + C00011 -> C00009 + C00036 (x2)
             nqo    C00828 + C00004 -> C05819 + C00003 (x1)
 ///
 ENTRY       P06-RPP
-SKIP        FALSE
+SKIP        TRUE
 NAME        reductive Pentose Phosphate cycle
 TYPE        MTDF
 PH          7
@@ -175,7 +175,7 @@ REACTION    rbc    C01182 + C00011 + C00001 -> 2 C00197 (x1)
             prk    C00002 + C00199 -> C00008 + C01182 (x1)
 ///
 ENTRY       P07-PP
-SKIP        FALSE
+SKIP        TRUE
 NAME        Pentose Phosphate cycle
 TYPE        MTDF
 PH          7
@@ -206,7 +206,7 @@ REACTION    zwf    C00092 + C00006 -> C01236 + C00005 (x2)
             pgi    C00085 -> C00092 (x1.666)
 ///
 ENTRY       P08-RTCA
-SKIP        FALSE
+SKIP        TRUE
 NAME        reductive TCA cycle
 TYPE        MTDF
 PH          7
@@ -235,7 +235,7 @@ REACTION    mdh    C00036 + C00005 -> C00149 + C00006 (x1)
             acl    C00002 + C00158 + C00010 -> C00008 + C00009 + C00024 + C00036 (x1)
 ///
 ENTRY       P09-DC-4HB
-SKIP        FALSE
+SKIP        TRUE
 NAME        Dicarboxylate / 4-Hydroxybutyrate
 TYPE        MTDF
 PH          7
@@ -271,7 +271,7 @@ REACTION    por  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
             ato    C00010 + C00332 -> 2 C00024 (x1)
 ///
 ENTRY       P10-3HP-4HB
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
 TYPE        MTDF
 PH          7
@@ -315,7 +315,7 @@ REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
             mae    C00149 + C00006 -> C00022 + C00011 + C00005 (x0.5)
 ///
 ENTRY       P11-3HP
-SKIP        FALSE
+SKIP        TRUE
 NAME        3-Hydroxypropionate Cycle
 TYPE        MTDF
 PH          7
@@ -486,7 +486,7 @@ REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
             pcc    C00002 + C00100 + C00288 -> C00008 + C00009 + C00683 (x1)
             mce    C00683 -> C01213 (x1)
             scp    C01213 -> C00091 (x1)
-            ssd    C00091 + 2 C00030 -> C00232 + C00028 + 2 C00010 (x0.5)
+            ssd    C00091 + 2 C00030 -> C00232 + 2 C00028 + C00010 (x0.5)
             ssr    C00232 + 2 C00030 -> C00989 + 2 C00028 (x0.5)
             hbs    C00989 + C00002 + C00010 -> C11062 + C00020 + C00013 (x0.5)
             abf1   C11062 -> C02331 + C00001 (x0.5)

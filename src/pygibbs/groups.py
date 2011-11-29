@@ -6,7 +6,7 @@ from copy import deepcopy
 import pylab
 import numpy as np
 from pygibbs.thermodynamic_constants import R, default_pH, default_T,\
-    dG0_f_Mg, default_I, default_pMg
+    dG0_f_Mg, default_I, default_pMg, F
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
@@ -439,7 +439,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 
         # dG0 =  -E'*F * deltaE - R*T*ln(10)*pH * deltaH
         # Where: 
-        F = 96.485 # (kJ/mol)/V
+        #    F = 96.48 # kC/mol
         #    R*T*ln(10) = 5.7 kJ/mol
         #    deltaE - change in e-
         #    deltaH - change in H+

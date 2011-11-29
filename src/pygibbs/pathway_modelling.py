@@ -799,7 +799,7 @@ class KeggPathway(Pathway):
     
     def PlotProfile(self, concentrations, figure=None):
         if figure is None:
-            figure = plt.figure()
+            figure = plt.figure(figsize=(6,6), dpi=100)
         plt.title(r'Thermodynamic profile', figure=figure)
         plt.ylabel(r'cumulative $\Delta G_r$ [kJ/mol]', figure=figure)
         plt.xlabel(r'Reaction', figure=figure)
