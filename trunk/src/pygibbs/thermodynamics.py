@@ -518,6 +518,10 @@ class BinaryThermodynamics(Thermodynamics):
                       "for its formation energy of any of its pseudoisomers")
         raise MissingCompoundFormationEnergy(format_str % cid, cid)
     
+    def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=""):
+        self.thermo[0].AddPseudoisomer(cid, nH, z, nMg, dG0, ref)
+        self.thermo[1].AddPseudoisomer(cid, nH, z, nMg, dG0, ref)
+    
     def get_all_cids(self):
         cids = set(self.thermo[0].get_all_cids() + self.thermo[1].get_all_cids())
         return sorted(cids)

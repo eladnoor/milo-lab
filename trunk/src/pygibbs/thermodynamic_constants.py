@@ -2,7 +2,7 @@ from math import sqrt, log
 from toolbox.util import log_sum_exp
 
 R = 8.31e-3 # kJ/(K*mol)
-F = 96483.3399 # C/mol
+F = 96.48 # kC/mol
 J_per_cal = 4.184
 default_T = 298.15 # K
 default_I = 0.25 # mM
