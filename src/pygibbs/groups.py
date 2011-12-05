@@ -6,7 +6,7 @@ from copy import deepcopy
 import pylab
 import numpy as np
 from pygibbs.thermodynamic_constants import R, default_pH, default_T,\
-    dG0_f_Mg, default_I, default_pMg, F
+    dG0_f_Mg, default_I, default_pMg, F, RedoxCarriers
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
@@ -437,28 +437,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         observed_species = PsuedoisomerTableThermodynamics.FromCsvFile(
             '../data/thermodynamics/formation_energies.csv', label='testing')
 
-        # dG0 =  -E'*F * deltaE - R*T*ln(10)*pH * deltaH
-        # Where: 
-        #    F = 96.48 # kC/mol
-        #    R*T*ln(10) = 5.7 kJ/mol
-        #    deltaE - change in e-
-        #    deltaH - change in H+
-        #    pH - the conditions in which the E' was measured
-        for row in csv.DictReader(open('../data/thermodynamics/redox.csv', 'r')):
-            cid_o = int(row['CID_ox'])
-            cid_r = int(row['CID_red'])
-            nH_o = int(row['nH_ox'])
-            z_o = int(row['charge_ox'])
-            nH_r = int(row['nH_red'])
-            z_r = int(row['charge_red'])
-            E_tag = float(row['E_tag'])
-            pH = float(row['pH'])
-            
-            deltaH = nH_r - nH_o
-            deltaE = (nH_r - nH_o) - (z_r - z_o)
-            dG0 = -E_tag*F * deltaE - R*default_T*pylab.log(10)*pH * deltaH
-            observed_species.AddPseudoisomer(cid_o, nH=nH_o, z=z_o, nMg=0, dG0=0.0)
-            observed_species.AddPseudoisomer(cid_r, nH=nH_r, z=z_r, nMg=0, dG0=dG0)
+        for rc in RedoxCarriers().itervalues():
+            observed_species.AddPseudoisomer(rc.cid_ox, nH=rc.nH_ox, z=rc.z_ox,
+                                             nMg=0, dG0=0.0)
+            observed_species.AddPseudoisomer(rc.cid_red, nH=rc.nH_red, z=rc.z_red,
+                                             nMg=0, dG0=rc.ddG0)
             
         self.cid2pmap_dict = {}
         self.cid2source_string = {}

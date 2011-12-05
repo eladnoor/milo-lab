@@ -793,7 +793,7 @@ class KeggPathway(Pathway):
     @staticmethod
     def _AddProfileToFigure(figure, dGs, fluxes, style, label):
         Nr = dGs.shape[0]
-        cum_dG = np.cumsum([0] + [dGs[r, 0] * fluxes[r] for r in xrange(Nr)])
+        cum_dG = np.cumsum([0] + [dGs[r, 0] * f for r, f in enumerate(fluxes)])
         plt.plot(np.arange(0.5, Nr + 1), cum_dG, style,
                  figure=figure, label=label)
     
@@ -803,24 +803,28 @@ class KeggPathway(Pathway):
         plt.title(r'Thermodynamic profile', figure=figure)
         plt.ylabel(r'cumulative $\Delta G_r$ [kJ/mol]', figure=figure)
         plt.xlabel(r'Reaction', figure=figure)
-        plt.xticks(np.arange(1, self.Nr + 1),
-                     [self.kegg.rid2string(self.rids[i]) for i in xrange(self.Nr)],
-                     fontproperties=FontProperties(size=10), rotation=30)
+        
+        nonzero_reactions = np.nonzero(self.fluxes)[0]
+        nonzero_fluxes = [self.fluxes[i] for i in nonzero_reactions]
+        
+        plt.xticks(np.arange(0, len(nonzero_fluxes)) + 1,
+                   [self.kegg.rid2string(self.rids[i]) for i in nonzero_reactions],
+                   fontproperties=FontProperties(size=10), rotation=30)
 
         if np.isnan(self.dG0_r_prime).any():
             return figure
         
-        KeggPathway._AddProfileToFigure(figure, self.dG0_r_prime, self.fluxes,
-                                        'm--', "$\Delta_r G^{'\circ}$")
+        KeggPathway._AddProfileToFigure(figure,
+            self.dG0_r_prime[nonzero_reactions, :], nonzero_fluxes, 'm--', "$\Delta_r G^{'\circ}$")
         
         phys_concentrations = self.GetPhysiologicalConcentrations(self.bounds)
         dGm_r_prime = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
-        KeggPathway._AddProfileToFigure(figure, dGm_r_prime, self.fluxes,
-                                        'g--', "$\Delta_r G^{'m}$")
+        KeggPathway._AddProfileToFigure(figure, 
+            dGm_r_prime[nonzero_reactions, :], nonzero_fluxes, 'g--', "$\Delta_r G^{'m}$")
 
         dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
-        KeggPathway._AddProfileToFigure(figure, dG_r_prime, self.fluxes,
-                                        'b-', "$\Delta_r G^'$")
+        KeggPathway._AddProfileToFigure(figure, 
+            dG_r_prime[nonzero_reactions, :], nonzero_fluxes, 'b-', "$\Delta_r G^'$")
 
         plt.legend(loc='lower left')
         return figure
