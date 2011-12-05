@@ -45,14 +45,10 @@ class Thermodynamics(object):
         self.anchors = set()
 
     def SetConditions(self, pH=None, I=None, T=None, pMg=None):
-        if pH is not None:
-            self.pH = pH
-        if I is not None:
-            self.I = I
-        if T is not None:
-            self.T = T
-        if pMg is not None:
-            self.pMg = pMg
+        self.pH = pH or self.pH
+        self.I = I or self.I
+        self.T = T or self.T
+        self.pMg = pMg or self.pMg
 
     def cid2SourceString(self, cid):
         return self.cid2source_string.get(cid, "")
