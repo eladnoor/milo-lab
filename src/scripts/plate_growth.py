@@ -47,12 +47,13 @@ def MakeOpts():
                           help="Maximum reading to consider valid.")
     return opt_parser
 
-def TryFloat(x):
+
+def MaybeFloat(x):
     try:
         return float(x)
     except Exception, e:
-        return False
-
+        return x
+    
 
 def Main():
     options, _ = MakeOpts().parse_args(sys.argv)
@@ -72,54 +73,27 @@ def Main():
     n = labels.size
     colors = ColorMap(set(labels))
     rates = {}
-    stationaries = {}
     for i in xrange(n):
-        label = labels[i]
-        if not TryFloat(label):
-            continue
-        
-        rate, stationary = lux_calculator.CalculateGrowth(times[i,:], readings[i,:])
+        rate, unused_stationary = lux_calculator.CalculateGrowth(times[i,:], readings[i,:])
         scaled_rate = rate * 60 * 60
-        
+        label = labels[i]
         rates.setdefault(label, []).append(scaled_rate)
-        stationaries.setdefault(label, []).append(stationary)
     
-    print 'Calculating mean growth rate and error'
-    f = pylab.figure(0)
-    mean_rates = []
-    rate_err = []
-    for label in rates.iterkeys():
-        r = pylab.array(rates[label])
-        mean_rate, r_err = MeanWithConfidenceInterval(r)
-        mean_rates.append(mean_rate)
-        rate_err.append(r_err)
-        pct = TryFloat(label)
-        if not pct:
-            continue
-        pct *= 100
-        s = pylab.array(stationaries[label]) / pct
-        
-        s_mean, s_err = MeanWithConfidenceInterval(s)
-        pylab.loglog(pct, s_mean, color=colors[label], marker='.',
-                     linestyle='None', figure=f, markersize=20, label=label)
-        pylab.errorbar(pct, s_mean, yerr=s_err) 
-    pylab.xlabel('Substrate Concentration (%)')
-    pylab.ylabel('Yield per Input Concentration (%s/%%)' % (options.reading_label))
-    pylab.legend(loc='upper right')
+    sorted_labels = sorted(rates.keys(), key=MaybeFloat, reverse=False)
+    xpts = pylab.arange(len(sorted_labels))
+    ticks = xpts + 0.5
+    mean_and_err_rates = [MeanWithConfidenceInterval(rates[l])
+                          for l in sorted_labels]
+    means = [t[0] for t in mean_and_err_rates]
+    errs = [t[1] for t in mean_and_err_rates]
     
-    pylab.figure(2)
-    concs = pylab.array([float(l) for l in rates.keys()])
-    for conc, rate, err in zip(concs, mean_rates, rate_err):
-        print '%s: %.2g +- %.2g' % (conc, rate, err)
+    for label, mean_rate, err in zip(sorted_labels, means, errs):
+        print '%s: %.2g +- %.2g' % (label, mean_rate, err)
     
-    
-    idx = range(len(concs))
-    pylab.semilogx(concs, mean_rates, 'g.')
-    pylab.errorbar(concs, mean_rates, yerr=rate_err, fmt=None)
-    pylab.xlabel('Substrate Concentration (%)')
-    pylab.ylabel('Specific Growth Rate (/hour)')
-    pylab.xlim((1.0e-10, concs.max()+1))
-
+    pylab.figure()
+    pylab.bar(xpts, means)
+    pylab.errorbar(ticks, means, yerr=errs, linestyle='None')
+    pylab.xticks(ticks, sorted_labels, rotation='vertical')
     pylab.show()
     
     
