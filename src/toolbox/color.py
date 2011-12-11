@@ -20,3 +20,7 @@ def ColorMap(items, saturation=0.7, value=0.95):
 	f = lambda h: RgbToHex(colorsys.hsv_to_rgb(h, saturation, value)) 
 	rgbs = map(f, hues)
 	return dict(zip(items, rgbs))
+
+
+def BooleanColorMap(saturation=0.7, value=0.95):
+	return ColorMap((False, True), saturation=saturation, value=value)
