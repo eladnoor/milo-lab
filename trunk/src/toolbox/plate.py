@@ -67,8 +67,8 @@ class Plate96(object):
                 times.append([m.time for m in measurements])
                 
         
-        readings = numpy.vstack(readings)
-        times = numpy.vstack(times)
+        readings = numpy.array(readings)
+        times = numpy.array(times)
         return times, readings, numpy.array(labels)
     
     

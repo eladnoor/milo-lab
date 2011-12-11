@@ -13,7 +13,7 @@ class GrowthCalculator(object):
     @staticmethod
     def NormalizeTimes(times):
         return times - min(times)
-    
+
     def CalculateGrowthInternal(self, times, levels):
         """Internal implementation of CalculateGrowth.
         
@@ -35,6 +35,25 @@ class GrowthCalculator(object):
         """
         new_times = self.NormalizeTimes(times)        
         return self.CalculateGrowthInternal(new_times, levels)
+    
+    def CalculatePlateGrowth(self, plate, reading_label):
+        """Calculate the growth rates for a whole plate."""
+        times, readings, labels = plate.SelectReading(reading_label)
+        
+        n = labels.size
+        rates = {}
+        stationaries = {}
+        for i in xrange(n):
+            label = labels[i]
+            
+            rate, stationary = self.CalculateGrowth(times[i,:], readings[i,:])
+            scaled_rate = rate * 60 * 60
+            
+            rates.setdefault(label, []).append(scaled_rate)
+            stationaries.setdefault(label, []).append(stationary)
+        
+        return rates, stationaries
+
     
     def CalculateStationary(self, times, levels):
         """Return the stationary level."""
@@ -123,10 +142,11 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         y = x * pylab.matrix(res_mat[max_i, 0:2]).T
         pylab.plot(x[:,0], pylab.exp(y), 'k:', linewidth=4)
                 
-        pylab.plot([0, max(times)], [stationary_level, stationary_level], 'k-')
+        #pylab.plot([0, max(times)], [stationary_level, stationary_level], 'k-')
         
         pylab.yscale('log')
-        pylab.legend(['OD', 'growth rate', 'threshold', 'fit', 'stationary'])
+        pylab.legend(['OD', 'growth rate', 'threshold', 'fit'])
+        #, 'stationary'])
         """
         
         return res_mat[max_i, 0], stationary_level
