@@ -1,3 +1,3 @@
 #!/bin/bash
 
-mysqldump --databases djtest -u djangouser -p > data/sqldump.txt
+mysqldump -u djangouser -p djtest > data/sqldump.txt
