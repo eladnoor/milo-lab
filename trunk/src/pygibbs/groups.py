@@ -442,8 +442,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                              nMg=0, dG0=0.0, ref=rc.ref)
             observed_species.AddPseudoisomer(rc.cid_red, nH=rc.nH_red, z=rc.z_red,
                                              nMg=0, dG0=rc.ddG0, ref=rc.ref)
-            observed_species.cid2SourceString[rc.cid_ox] = rc.ref
-            observed_species.cid2SourceString[rc.cid_red] = rc.ref
+            observed_species.cid2source_string[rc.cid_ox] = rc.ref
+            observed_species.cid2source_string[rc.cid_red] = rc.ref
             
         self.cid2pmap_dict = {}
         self.cid2source_string = {}
