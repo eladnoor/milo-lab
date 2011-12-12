@@ -354,7 +354,7 @@ cid,name,dG0,dH0,z,nH,nMg,compound_ref,remark
 543,"dimethylamine",-3.3,,1,8,0,"Wagman (1982)",
 565,"trimethylamine",37.40,,1,10,0,"Wagman (1982)",
 565,"trimethylamine",93.13,,0,9,0,"Wagman (1982)",
-257,"D-gluconate",-1128.3,,-1,11,0,training,"Thauer (1977)",
+257,"D-gluconate",-1128.3,,-1,11,0,"Thauer (1977)",
 1326,"HCN",119.6,,0,1,0,"Wagman (1982)",
 1326,"HCN",172.4,,-1,0,0,"Wagman (1982)",
 5984,"2-hydroxybutanoic acid",-506.3,,-1,7,0,"Thauer (1977)",
