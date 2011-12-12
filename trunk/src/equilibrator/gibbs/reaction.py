@@ -174,7 +174,6 @@ class Reaction(object):
         rlist = map(str, self.reactants)
         plist = map(str, self.products)
         return '%s <=> %s' % (' + '.join(rlist), ' + '.join(plist))
-        
     
     def SameChemicalReaction(self, stored_reaction):
         """Checks that the two chemical reactions are the same."""
