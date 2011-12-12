@@ -7,7 +7,7 @@ import re
 
 from django.db import models
 from gibbs import constants
-from util import inchi
+from gibbs import formula_parser
 
 
 class CommonName(models.Model):
@@ -240,6 +240,9 @@ class Compound(models.Model):
                                          blank=True,
                                          null=True)
 
+    # A single static parser
+    FORMULA_PARSER = formula_parser.FormulaParser()
+
     def __init__(self, *args, **kwargs):        
         super(Compound, self).__init__(*args, **kwargs)
         self._all_species_groups = None
@@ -315,14 +318,7 @@ class Compound(models.Model):
             logging.error('Formula is not defined for KEGG ID %s', self.kegg_id)
             return None
         
-        if '(' in self.formula or ')' in self.formula:
-            return None
-            
-        atom_bag = {}
-        for atom, count in re.findall("([A-Z][a-z]*)([0-9]*)", self.formula):
-            count = count or 1
-            count = int(count)
-            atom_bag[atom] = count
+        atom_bag = self.FORMULA_PARSER.GetAtomBag(self.formula)
         
         # Wildcards are not allowed.
         if 'R' in atom_bag:
