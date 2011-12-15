@@ -429,14 +429,10 @@ class Kegg(Singleton):
         """Return all the enzymes."""
         return self.ec2enzyme_map.values()
 
-    def parse_explicit_module(self, field_map, cid_mapping):
-        """
-            Unlike parse_module, this method doesn't use the RIDs of the reactions in the module to understand the reactions
-            but rather uses the explicit reaction given on each line as the actual reaction
-        """
+    def parse_explicit_module_to_reactions(self, field_map, cid_mapping):
         rids = []
         fluxes = []
-        sparse_reactions = []
+        reactions = []
         cids = []
         for line in field_map["REACTION"].split('\t'):
             for rid, left_clause, right_clause, remainder in re.findall('([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+->\s+([C\s\+\d\.]+)(.*)', line):
@@ -460,16 +456,35 @@ class Kegg(Singleton):
     
                 rids.append(rid)
                 fluxes.append(flux)
-                sparse_reactions.append(spr)
+                reactions.append(reaction)
         
-        Nr = len(rids)
+        return rids, fluxes, cids, reactions
+
+    def reaction_list_to_S(self, reactions, cids=None):
+        if cids is None:
+            cids = set()
+            for reaction in reactions:
+                cids.update(reaction.get_cids())
+            if 80 in cids: # don't include H+ as a compound
+                cids.remove(80)
+            cids = sorted(cids)
+        
+        Nr = len(reactions)
         Nc = len(cids)
         S = pylab.zeros((Nr, Nc))
-        for r in range(Nr):
-            spr = sparse_reactions[r]
-            for c in range(Nc):
-                S[r,c] = spr.get(cids[c], 0)
-        
+        for r, reaction in enumerate(reactions):
+            spr = reaction.sparse
+            for c, cid in enumerate(cids):
+                S[r,c] = spr.get(cid, 0)
+        return S, cids
+
+    def parse_explicit_module(self, field_map, cid_mapping):
+        """
+            Unlike parse_module, this method doesn't use the RIDs of the reactions in the module to understand the reactions
+            but rather uses the explicit reaction given on each line as the actual reaction
+        """
+        rids, fluxes, cids, reactions = self.parse_explicit_module_to_reactions(field_map, cid_mapping)
+        S, _ = self.reaction_list_to_S(reactions, cids)
         return S, rids, fluxes, cids
             
     def parse_module(self, module_name, field_map):
