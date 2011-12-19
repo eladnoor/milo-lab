@@ -5,7 +5,6 @@ from pygibbs.kegg import Kegg
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg,\
     default_T
 from pygibbs.nist_verify import LoadAllEstimators
-from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.pathway import PathwayData
 

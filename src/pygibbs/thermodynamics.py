@@ -597,7 +597,7 @@ class BinaryThermodynamics(Thermodynamics):
         """
 
         dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids)
-        if not np.any(np.isnan(dG0_r0)):
+        if np.all(np.isfinite(dG0_r0)):
             return dG0_r0
         
         # if thermo[1] cannot estimate all reactions, just use thermo[0].
