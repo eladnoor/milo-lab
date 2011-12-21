@@ -127,7 +127,7 @@ class Compound(object):
         """Build a Compound from a database row."""
         comp = Compound(cid=row_dict['cid'])
         comp.name = row_dict['name']
-        comp.all_names = json.loads(row_dict['all_names'])
+        comp.all_names = list(set(json.loads(row_dict['all_names'])))
         comp.mass = row_dict['mass']
         comp.formula = row_dict['formula']
         
@@ -314,6 +314,8 @@ class Compound(object):
 
         if self.groupvector_string and not light:
             d['group_vector'] = self.groupvector_string
+            
+        d['from_kegg'] = str(self.from_kegg)
             
         return d
     

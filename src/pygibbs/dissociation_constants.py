@@ -905,6 +905,9 @@ def main():
                 except KeggParseException:
                     logging.debug("%s (C%05d) has no SMILES, skipping..." %
                                   (kegg.cid2name(cid), cid))
+                except OpenBabelError:
+                    logging.debug("%s (C%05d) cannot be converted to SMILES, skipping..." %
+                                  (kegg.cid2name(cid), cid))
         cids_to_calculate = set(cid2smiles_and_mw.keys())
         
     # Do not recalculate pKas for CIDs that are already in the database

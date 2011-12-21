@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
-import csv, logging, types, json, sys
+import logging, types, json, sys
 
 from copy import deepcopy
 import pylab
 import numpy as np
 from pygibbs.thermodynamic_constants import R, default_pH, default_T,\
-    dG0_f_Mg, default_I, default_pMg, F, RedoxCarriers
+    dG0_f_Mg, default_I, default_pMg, RedoxCarriers
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer

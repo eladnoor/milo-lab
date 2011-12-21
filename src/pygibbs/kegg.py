@@ -375,12 +375,14 @@ class Kegg(Singleton):
                 self.name2cid_map[row_dict['name']] = cid
                 try:
                     comp = self.cid2compound(cid)
-                    comp.all_names.append(row_dict['name'])
+                    if row_dict['name'] not in comp.all_names:
+                        comp.all_names.append(row_dict['name'])
                 except KeyError:
                     comp = kegg_compound.Compound(cid)
                     comp.name = row_dict['name']
                     comp.all_names = [row_dict['name']]
                     self.cid2compound_map[cid] = comp
+                comp.from_kegg = (row_dict['from_kegg'] == 'yes')
                 if row_dict['inchi']:
                     if comp.inchi and (comp.inchi in self.inchi2cid_map.keys()):
                         logging.debug('Overriding InChI for C%05d' % cid)
@@ -398,6 +400,7 @@ class Kegg(Singleton):
                                     self.inchi2cid_map[row_dict['inchi']]))
                 new_cid = max(self.cid2compound_map.keys() + [90000]) + 1
                 comp = kegg_compound.Compound(new_cid)
+                comp.from_kegg = False
                 comp.SetInChI(row_dict['inchi'])
                 self.inchi2cid_map[row_dict['inchi']] = new_cid
                 comp.name = row_dict['name']

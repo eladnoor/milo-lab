@@ -15,6 +15,10 @@ def MakeOpts():
                           dest="smiles",
                           default=None,
                           help="a single molecule input in SMILES format")
+    opt_parser.add_option("-n", "--inchi",
+                          dest="inchi",
+                          default=None,
+                          help="a single molecule input in InChI format")
     opt_parser.add_option("-c", "--csv_input_filename",
                           dest="csv_input_filename",
                           default=None,
@@ -56,6 +60,9 @@ def CalculateThermo():
     if options.smiles:
         list_of_mols.append({'id':options.smiles, 'mol':options.smiles,
             'format':'smiles'})
+    elif options.inchi:
+        list_of_mols.append({'id':options.inchi, 'mol':options.inchi,
+            'format':'inchi'})
     elif options.csv_input_filename:
         for row in csv.DictReader(open(options.csv_input_filename, 'r')):
             if "InChI" in row:
