@@ -184,9 +184,9 @@ class MySQLDatabase(SQLDatabase):
         
     """
     
-    def __init__(self, host, user, passwd, db):
-        self.comm = pymysql.connect(host=host, user=user, 
-                                    passwd=passwd, db=db)
+    def __init__(self, host, user, passwd, db, port=3306):
+        self.comm = pymysql.connect(host=host, user=user, passwd=passwd, db=db,
+                                    port=port)
         
     def Execute(self, command, arguments=None):
         try:
