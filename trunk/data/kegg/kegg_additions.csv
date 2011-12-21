@@ -1,149 +1,154 @@
 "name","cid","from_kegg","inchi"
-"ferredoxin(ox)","139","yes","InChI=1S/Fe/q+3"
-"ferredoxin(red)","138","yes","InChI=1S/Fe/q+2"
-"1-dodecanoic acid","2679","yes",
-",-trehalose 6-phosphate","689","yes",
-"nad(ox)","3","yes",
-"nad(red)","4","yes",
-"nadp(red)","5","yes",
-"nadp(ox)","6","yes",
-"gdpglucose","394","yes",
-"adpglucose","498","yes",
-"dadp","206","yes",
-"3-oxobutanoate","164","yes",
-"pyrophosphate  this is an approximate result.","13","yes",
-"vitamin a alcohol","473","yes",
-"n-decanoic acid","1571","yes",
-"2'-deoxyinosine","5512","yes",
-"n-octonic acid","6423","yes",
-"n-octanoic acid","6423","yes",
-"orotidine 5 '-phosphate","1103","yes",
-"5-pregnane-17,21-diol-3,11,20-trione","5469","yes",
-"n-w-phospho-l-arginine","5945","yes",
-"nomega-phospho-l-arginine","5945","yes",
-"6-amino-d-glucose 6-phosphate","352","yes",
-"cis-cis-hexadienedioate","2480","yes",
-"lyxose","1508","yes",
-"adenosine 3':5'-(cyclic)phosphate","575","yes",
-"l-arginyl-trna-arg","2163","yes",
-"udpgalactose","52","yes",
-"d-1-piperidine-2-carboxylate","4092","yes",
-"gdpmannose","96","yes",
-"benzyloxycarbonylglycine","3710","yes",
-"l-tyrosyl-trna-tyr","2839","yes",
-"guanosine 5 '-phosphate","144","yes",
-"adp--s","1469","yes",
-"\)-1-phenyl-1-propyl acetate","17666","yes",
-"adenylyl-[l-glutamate:ammonia ligase(adp-forming)]","1299","yes",
-")-1-phenyl ethanol","7112","yes",
-"dihydro--lipoate","2147","yes",
-"trna-tyr","787","yes",
-"phosphotaurocyamine","3149","yes",
-"trna-arg","1636","yes",
-"d-glucose 6-phosphate-2-","92","yes",
-"1-phenyl-1-ethanone","7113","yes",
-",-trehalose","1083","yes",
-"(r)-3-phosphoglycerate","197","yes",
-"[l-glutamate:ammonia ligase(adp-forming)]","1281","yes",
-"1,2,3-trioctanoyl glycerol","13044","yes",
-"trna-phe","1648","yes",
-"trna-lys","1646","yes",
-"trna-his","1643","yes",
-"trna-ser","1650","yes",
-"trna-ile","1644","yes",
-"l-isoleusine","407","yes",
-"estradiol-17","951","yes",
-"trna-thr","1651","yes",
-"trna-val","1653","yes",
-"h2o(1)","1","yes",
-"l-arginosuccinate","3406","yes",
-"glucose 1-phosphate","103","yes",
-"pyruvate-","22","yes",
-"l-lysyl-trna-lys","1931","yes",
-"l-histidyl-trna-his","2988","yes",
-"l-seryl-trna-ser","2553","yes",
-"l-isoleucyl-trna-ile","3127","yes",
-"5-amino-1--d-ribosyl-4-imidazolecarboxamide 5'-phosphate","4677","yes",
-"3'-phosphoadenylylsulfate","53","yes",
-"5-androstane-3,17-dione","674","yes",
+"Ferredoxin(ox)","139","yes","InChI=1S/Fe/q+3"
+"Ferredoxin(red)","138","yes","InChI=1S/Fe/q+2"
+"1-Dodecanoic acid","2679","yes",
+",-Trehalose 6-phosphate","689","yes",
+"NAD(ox)","3","yes",
+"NAD(red)","4","yes",
+"NADP(red)","5","yes",
+"NADP(ox)","6","yes",
+"GDPglucose","394","yes",
+"ADPglucose","498","yes",
+"dADP","206","yes",
+"3-Oxobutanoate","164","yes",
+"Pyrophosphate  this is an approximate result.","13","yes",
+"Vitamin A alcohol","473","yes",
+"n-Decanoic acid","1571","yes",
+"2'-Deoxyinosine","5512","yes",
+"n-Octonic acid","6423","yes",
+"n-Octanoic acid","6423","yes",
+"Orotidine 5 '-phosphate","1103","yes",
+"5-Pregnane-17,21-diol-3,11,20-trione","5469","yes",
+"n-w-phospho-L-arginine","5945","yes",
+"nomega-phospho-L-arginine","5945","yes",
+"6-amino-D-glucose 6-phosphate","352","yes",
+"cis-cis-Hexadienedioate","2480","yes",
+"Lyxose","1508","yes",
+"Adenosine 3':5'-(cyclic)phosphate","575","yes",
+"L-arginyl-tRNA-arg","2163","yes",
+"UDPgalactose","52","yes",
+"d-1-Piperidine-2-carboxylate","4092","yes",
+"GDPmannose","96","yes",
+"Benzyloxycarbonylglycine","3710","yes",
+"L-tyrosyl-tRNA-tyr","2839","yes",
+"Guanosine 5 '-phosphate","144","yes",
+"ADP--s","1469","yes",
+"\)-1-Phenyl-1-propyl acetate","17666","yes",
+"Adenylyl-[l-glutamate:ammonia ligase(adp-forming)]","1299","yes",
+")-1-Phenyl ethanol","7112","yes",
+"Dihydro--lipoate","2147","yes",
+"tRNA-tyr","787","yes",
+"Phosphotaurocyamine","3149","yes",
+"tRNA-arg","1636","yes",
+"D-glucose 6-phosphate-2-","92","yes",
+"1-Phenyl-1-ethanone","7113","yes",
+",-Trehalose","1083","yes",
+"(r)-3-Phosphoglycerate","197","yes",
+"[L-glutamate:ammonia ligase(adp-forming)]","1281","yes",
+"1,2,3-Trioctanoyl glycerol","13044","yes",
+"tRNA-phe","1648","yes",
+"tRNA-lys","1646","yes",
+"tRNA-his","1643","yes",
+"tRNA-ser","1650","yes",
+"tRNA-ile","1644","yes",
+"L-isoleusine","407","yes",
+"Estradiol-17","951","yes",
+"tRNA-thr","1651","yes",
+"tRNA-val","1653","yes",
+"H2O(1)","1","yes",
+"L-arginosuccinate","3406","yes",
+"Glucose 1-phosphate","103","yes",
+"Pyruvate-","22","yes",
+"L-lysyl-tRNA-lys","1931","yes",
+"L-histidyl-tRNA-his","2988","yes",
+"L-seryl-tRNA-ser","2553","yes",
+"L-isoleucyl-tRNA-ile","3127","yes",
+"5-Amino-1--d-ribosyl-4-imidazolecarboxamide 5'-phosphate","4677","yes",
+"3'-Phosphoadenylylsulfate","53","yes",
+"5-Androstane-3,17-dione","674","yes",
 "L--glycerophosphate(aq)","93","yes",
-"glutathione (reduced)","51","yes",
-"glutathoine(red)","51","yes",
-"dimethylmaleate","922","yes",
-"(s)-proline","148","yes",
-"octanal","1545","yes",
-"orthophospate","9","yes",
-"d-ribulose 1,5-biphosphate","1182","yes",
-"heptanoate","17714","yes",
-"propanonyl-coa","100","yes",
-"(r)-glyceraldehyde","577","yes",
-"ammonium carbamate","1563","yes",
-"tributyrylglycerol","13870","yes",
-"3-oxobutanoyl-coa","332","yes",
-"monodehydro-L-ascorbate",1041,"yes","InChI=1S/C6H7O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-8,10H,1H2/t2-,5+/m0/s1"
+"Glutathione (reduced)","51","yes",
+"Glutathoine(red)","51","yes",
+"Dimethylmaleate","922","yes",
+"(S)-Proline","148","yes",
+"Octanal","1545","yes",
+"Orthophospate","9","yes",
+"D-ribulose 1,5-biphosphate","1182","yes",
+"Heptanoate","17714","yes",
+"Propanonyl-coa","100","yes",
+"(R)-Glyceraldehyde","577","yes",
+"Ammonium carbamate","1563","yes",
+"Tributyrylglycerol","13870","yes",
+"3-Oxobutanoyl-coa","332","yes",
+"Monodehydro-L-ascorbate",1041,"yes","InChI=1S/C6H7O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-8,10H,1H2/t2-,5+/m0/s1"
 "L-ascorbate",72,"yes","InChI=1S/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1"
 "ADP-D-glycero-D-manno-heptose",6397,"yes","InChI=1S/C17H27N5O16P2/c18-14-7-15(20-3-19-14)22(4-21-7)16-11(28)8(25)6(35-16)2-34-39(30,31)38-40(32,33)37-17-12(29)9(26)10(27)13(36-17)5(24)1-23/h3-6,8-13,16-17,23-29H,1-2H2,(H,30,31)(H,32,33)(H2,18,19,20)/t5-,6-,8-,9+,10+,11-,12+,13-,16-,17?/m1/s1"
 "ADP-L-glycero-D-manno-heptose",6398,"yes","InChI=1S/C17H27N5O16P2/c18-14-7-15(20-3-19-14)22(4-21-7)16-11(28)8(25)6(35-16)2-34-39(30,31)38-40(32,33)37-17-12(29)9(26)10(27)13(36-17)5(24)1-23/h3-6,8-13,16-17,23-29H,1-2H2,(H,30,31)(H,32,33)(H2,18,19,20)/t5-,6+,8+,9-,10-,11+,12-,13+,16+,17?/m0/s1"
-"sulfur",87,"yes",
-"hydrogen sulfide",283,"yes","InChI=1S/H2S/h1H2"
-"1-methyl-L-histidine",80001,"no","InChI=1S/C7H11N3O2/c1-10-3-5(9-4-10)2-6(8)7(11)12/h3-4,6H,2,8H2,1H3,(H,11,12)/p+1/t6-/m0/s1"
-"monochlorobenzene",80002,"no","InChI=1S/C6H5Cl/c7-6-4-2-1-3-5-6/h1-5H"
-"1,2-dichlorobenzene",80003,"no","InChI=1S/C6H4Cl2/c7-5-3-1-2-4-6(5)8/h1-4H"
-"1,3-dichlorobenzene",80004,"no","InChI=1S/C6H4Cl2/c7-5-2-1-3-6(8)4-5/h1-4H"
-"1,4-dichlorobenzene",80005,"no","InChI=1S/C6H4Cl2/c7-5-1-2-6(8)4-3-5/h1-4H"
-"1,2,3-trichlorobenzene",80006,"no","InChI=1S/C6H3Cl3/c7-4-2-1-3-5(8)6(4)9/h1-3H"
-"1,2,4-trichlorobenzene",80007,"no","InChI=1S/C6H3Cl3/c7-4-1-2-5(8)6(9)3-4/h1-3H"
-"1,3,5-trichlorobenzene",80008,"no","InChI=1S/C6H3Cl3/c7-4-1-5(8)3-6(9)2-4/h1-3H"
-"1,2,3,4-tetrachlorobenzene",80009,"no","InChI=1S/C6H2Cl4/c7-3-1-2-4(8)6(10)5(3)9/h1-2H"
-"1,2,3,5-tetrachlorobenzene",80010,"no","InChI=1S/C6H2Cl4/c7-3-1-4(8)6(10)5(9)2-3/h1-2H"
-"1,2,4,5-tetrachlorobenzene",80011,"no","InChI=1S/C6H2Cl4/c7-3-1-4(8)6(10)2-5(3)9/h1-2H"
-"pentachlorobenzene",80012,"no","InChI=1S/C6HCl5/c7-2-1-3(8)5(10)6(11)4(2)9/h1H"
-"hexachlorobenzene",80013,"no","InChI=1S/C6Cl6/c7-1-2(8)4(10)6(12)5(11)3(1)9"
-"3-chlorobenzoate",80014,"no","InChI=1S/C7H5ClO2/c8-6-3-1-2-5(4-6)7(9)10/h1-4H,(H,9,10)"
-"2,3-dichlorobenzoate",80015,"no","InChI=1S/C7H4Cl2O2/c8-5-3-1-2-4(6(5)9)7(10)11/h1-3H,(H,10,11)"
-"2,5-dichlorobenzoate",80016,"no","InChI=1S/C7H4Cl2O2/c8-4-1-2-6(9)5(3-4)7(10)11/h1-3H,(H,10,11)"
-"2,6-dichlorobenzoate",80017,"no","InChI=1S/C7H4Cl2O2/c8-4-2-1-3-5(9)6(4)7(10)11/h1-3H,(H,10,11)"
-"3,4-dichlorobenzoate",80018,"no","InChI=1S/C7H4Cl2O2/c8-5-2-1-4(7(10)11)3-6(5)9/h1-3H,(H,10,11)"
-"3,5-dichlorobenzoate",80019,"no","InChI=1S/C7H4Cl2O2/c8-5-1-4(7(10)11)2-6(9)3-5/h1-3H,(H,10,11)"
-"2,3,5-trichlorobenzoate",80020,"no","InChI=1S/C7H3Cl3O2/c8-3-1-4(7(11)12)6(10)5(9)2-3/h1-2H,(H,11,12)"
-"3,4,5-trichlorobenzoate",80021,"no","InChI=1S/C7H3Cl3O2/c8-4-1-3(7(11)12)2-5(9)6(4)10/h1-2H,(H,11,12)"
-"2-bromobenzoate",80022,"no","InChI=1S/C7H5BrO2/c8-6-4-2-1-3-5(6)7(9)10/h1-4H,(H,9,10)"
-"3-bromobenzoate",80023,"no","InChI=1S/C7H5BrO2/c8-6-3-1-2-5(4-6)7(9)10/h1-4H,(H,9,10)"
-"4-bromobenzoate",80024,"no","InChI=1S/C7H5BrO2/c8-6-3-1-5(2-4-6)7(9)10/h1-4H,(H,9,10)"
-"2-iodobenzoate",80025,"no","InChI=1S/C7H5IO2/c8-6-4-2-1-3-5(6)7(9)10/h1-4H,(H,9,10)"
-"3-iodobenzoate",80026,"no","InChI=1S/C7H5IO2/c8-6-3-1-2-5(4-6)7(9)10/h1-4H,(H,9,10)"
-"4-iodobenzoate",80027,"no","InChI=1S/C7H5IO2/c8-6-3-1-5(2-4-6)7(9)10/h1-4H,(H,9,10)"
-"2-amino-5-chlorobenzoate",80028,"no","InChI=1S/C7H6ClNO2/c8-4-1-2-6(9)5(3-4)7(10)11/h1-3H,9H2,(H,10,11)"
-"2-hydroxy-5-chlorobenzoate",80029,"no","InChI=1S/C7H5ClO3/c8-4-1-2-6(9)5(3-4)7(10)11/h1-3,9H,(H,10,11)"
-"2-methyl-5-chlorobenzoate",80030,"no","InChI=1S/C8H7ClO2/c1-5-2-3-6(9)4-7(5)8(10)11/h2-4H,1H3,(H,10,11)"
-"2,3-dichlorophenol",80031,"no","InChI=1S/C6H4Cl2O/c7-4-2-1-3-5(9)6(4)8/h1-3,9H"
-"3,5-dichlorophenol",80032,"no","InChI=1S/C6H4Cl2O/c7-4-1-5(8)3-6(9)2-4/h1-3,9H"
-"2,3,4-trichlorophenol",80033,"no","InChI=1S/C6H3Cl3O/c7-3-1-2-4(10)6(9)5(3)8/h1-2,10H"
-"2,4,5-trichlorophenol",80034,"no","InChI=1S/C6H3Cl3O/c7-3-1-5(9)6(10)2-4(3)8/h1-2,10H"
-"2,4,6-trichlorophenol",80035,"no","InChI=1S/C6H3Cl3O/c7-3-1-4(8)6(10)5(9)2-3/h1-2,10H"
-"2,3,5-trichlorophenol",80036,"no","InChI=1S/C6H3Cl3O/c7-3-1-4(8)6(9)5(10)2-3/h1-2,10H"
-"2,3,6-trichlorophenol",80037,"no","InChI=1S/C6H3Cl3O/c7-3-1-2-4(8)6(10)5(3)9/h1-2,10H"
-"3,4,5-trichlorophenol",80038,"no","InChI=1S/C6H3Cl3O/c7-4-1-3(10)2-5(8)6(4)9/h1-2,10H"
-"2,3,4,5-tetrachlorophenol",80039,"no","InChI=1S/C6H2Cl4O/c7-2-1-3(11)5(9)6(10)4(2)8/h1,11H"
-"2,3,4,6-tetrachlorophenol",80040,"no","InChI=1S/C6H2Cl4O/c7-2-1-3(8)6(11)5(10)4(2)9/h1,11H"
-"2,3,5,6-tetrachlorophenol",80041,"no","InChI=1S/C6H2Cl4O/c7-2-1-3(8)5(10)6(11)4(2)9/h1,11H"
-"pentachlorophenol",80042,"no","InChI=1S/C6HCl5O/c7-1-2(8)4(10)6(12)5(11)3(1)9/h12H"
-"chloromethane",80043,"no","InChI=1S/CH3Cl/c1-2/h1H3"
-"trichloromethane",13827,"yes",
-"ethane",80045,"no","InChI=1S/C2H6/c1-2/h1-2H3"
-"1,1,2,2-tetrachloroethane",80046,"no","InChI=1S/C2H2Cl4/c3-1(4)2(5)6/h1-2H"
-"propane",80047,"no","InChI=1S/C3H8/c1-3-2/h3H2,1-2H3"
-"1-chloropropane",80048,"no","InChI=1S/C3H7Cl/c1-2-3-4/h2-3H2,1H3"
-"1,3-dichloropropane",80049,"no","InChI=1S/C3H6Cl2/c4-2-1-3-5/h1-3H2"
-"butane",80050,"no","InChI=1S/C4H10/c1-3-4-2/h3-4H2,1-2H3"
-"1-chlorobutane",80051,"no","InChI=1S/C4H9Cl/c1-2-3-4-5/h2-4H2,1H3"
-"2-chlorobutane",80052,"no","InChI=1S/C4H9Cl/c1-3-4(2)5/h4H,3H2,1-2H3"
-"pentane",80053,"no","InChI=1S/C5H12/c1-3-5-4-2/h3-5H2,1-2H3"
-"1-chloropentane",80054,"no","InChI=1S/C5H11Cl/c1-2-3-4-5-6/h2-5H2,1H3"
+"Sulfur",87,"yes",
+"Hydrogen sulfide",283,"yes","InChI=1S/H2S/h1H2"
+"1-Methyl-L-histidine",80001,"no","InChI=1S/C7H11N3O2/c1-10-3-5(9-4-10)2-6(8)7(11)12/h3-4,6H,2,8H2,1H3,(H,11,12)/p+1/t6-/m0/s1"
+"Monochlorobenzene",80002,"no","InChI=1S/C6H5Cl/c7-6-4-2-1-3-5-6/h1-5H"
+"1,2-Dichlorobenzene",80003,"no","InChI=1S/C6H4Cl2/c7-5-3-1-2-4-6(5)8/h1-4H"
+"1,3-Dichlorobenzene",80004,"no","InChI=1S/C6H4Cl2/c7-5-2-1-3-6(8)4-5/h1-4H"
+"1,4-Dichlorobenzene",80005,"no","InChI=1S/C6H4Cl2/c7-5-1-2-6(8)4-3-5/h1-4H"
+"1,2,3-Trichlorobenzene",80006,"no","InChI=1S/C6H3Cl3/c7-4-2-1-3-5(8)6(4)9/h1-3H"
+"1,2,4-Trichlorobenzene",80007,"no","InChI=1S/C6H3Cl3/c7-4-1-2-5(8)6(9)3-4/h1-3H"
+"1,3,5-Trichlorobenzene",80008,"no","InChI=1S/C6H3Cl3/c7-4-1-5(8)3-6(9)2-4/h1-3H"
+"1,2,3,4-Tetrachlorobenzene",80009,"no","InChI=1S/C6H2Cl4/c7-3-1-2-4(8)6(10)5(3)9/h1-2H"
+"1,2,3,5-Tetrachlorobenzene",80010,"no","InChI=1S/C6H2Cl4/c7-3-1-4(8)6(10)5(9)2-3/h1-2H"
+"1,2,4,5-Tetrachlorobenzene",80011,"no","InChI=1S/C6H2Cl4/c7-3-1-4(8)6(10)2-5(3)9/h1-2H"
+"Pentachlorobenzene",80012,"no","InChI=1S/C6HCl5/c7-2-1-3(8)5(10)6(11)4(2)9/h1H"
+"Hexachlorobenzene",80013,"no","InChI=1S/C6Cl6/c7-1-2(8)4(10)6(12)5(11)3(1)9"
+"3-Chlorobenzoate",80014,"no","InChI=1S/C7H5ClO2/c8-6-3-1-2-5(4-6)7(9)10/h1-4H,(H,9,10)"
+"2,3-Dichlorobenzoate",80015,"no","InChI=1S/C7H4Cl2O2/c8-5-3-1-2-4(6(5)9)7(10)11/h1-3H,(H,10,11)"
+"2,5-Dichlorobenzoate",80016,"no","InChI=1S/C7H4Cl2O2/c8-4-1-2-6(9)5(3-4)7(10)11/h1-3H,(H,10,11)"
+"2,6-Dichlorobenzoate",80017,"no","InChI=1S/C7H4Cl2O2/c8-4-2-1-3-5(9)6(4)7(10)11/h1-3H,(H,10,11)"
+"3,4-Dichlorobenzoate",80018,"no","InChI=1S/C7H4Cl2O2/c8-5-2-1-4(7(10)11)3-6(5)9/h1-3H,(H,10,11)"
+"3,5-Dichlorobenzoate",80019,"no","InChI=1S/C7H4Cl2O2/c8-5-1-4(7(10)11)2-6(9)3-5/h1-3H,(H,10,11)"
+"2,3,5-Trichlorobenzoate",80020,"no","InChI=1S/C7H3Cl3O2/c8-3-1-4(7(11)12)6(10)5(9)2-3/h1-2H,(H,11,12)"
+"3,4,5-Trichlorobenzoate",80021,"no","InChI=1S/C7H3Cl3O2/c8-4-1-3(7(11)12)2-5(9)6(4)10/h1-2H,(H,11,12)"
+"2-Bromobenzoate",80022,"no","InChI=1S/C7H5BrO2/c8-6-4-2-1-3-5(6)7(9)10/h1-4H,(H,9,10)"
+"3-Bromobenzoate",80023,"no","InChI=1S/C7H5BrO2/c8-6-3-1-2-5(4-6)7(9)10/h1-4H,(H,9,10)"
+"4-Bromobenzoate",80024,"no","InChI=1S/C7H5BrO2/c8-6-3-1-5(2-4-6)7(9)10/h1-4H,(H,9,10)"
+"2-Iodobenzoate",80025,"no","InChI=1S/C7H5IO2/c8-6-4-2-1-3-5(6)7(9)10/h1-4H,(H,9,10)"
+"3-Iodobenzoate",80026,"no","InChI=1S/C7H5IO2/c8-6-3-1-2-5(4-6)7(9)10/h1-4H,(H,9,10)"
+"4-Iodobenzoate",80027,"no","InChI=1S/C7H5IO2/c8-6-3-1-5(2-4-6)7(9)10/h1-4H,(H,9,10)"
+"2-Amino-5-chlorobenzoate",80028,"no","InChI=1S/C7H6ClNO2/c8-4-1-2-6(9)5(3-4)7(10)11/h1-3H,9H2,(H,10,11)"
+"2-Hydroxy-5-chlorobenzoate",80029,"no","InChI=1S/C7H5ClO3/c8-4-1-2-6(9)5(3-4)7(10)11/h1-3,9H,(H,10,11)"
+"2-Methyl-5-chlorobenzoate",80030,"no","InChI=1S/C8H7ClO2/c1-5-2-3-6(9)4-7(5)8(10)11/h2-4H,1H3,(H,10,11)"
+"2,3-Dichlorophenol",80031,"no","InChI=1S/C6H4Cl2O/c7-4-2-1-3-5(9)6(4)8/h1-3,9H"
+"3,5-Dichlorophenol",80032,"no","InChI=1S/C6H4Cl2O/c7-4-1-5(8)3-6(9)2-4/h1-3,9H"
+"2,3,4-Trichlorophenol",80033,"no","InChI=1S/C6H3Cl3O/c7-3-1-2-4(10)6(9)5(3)8/h1-2,10H"
+"2,4,5-Trichlorophenol",80034,"no","InChI=1S/C6H3Cl3O/c7-3-1-5(9)6(10)2-4(3)8/h1-2,10H"
+"2,4,6-Trichlorophenol",80035,"no","InChI=1S/C6H3Cl3O/c7-3-1-4(8)6(10)5(9)2-3/h1-2,10H"
+"2,3,5-Trichlorophenol",80036,"no","InChI=1S/C6H3Cl3O/c7-3-1-4(8)6(9)5(10)2-3/h1-2,10H"
+"2,3,6-Trichlorophenol",80037,"no","InChI=1S/C6H3Cl3O/c7-3-1-2-4(8)6(10)5(3)9/h1-2,10H"
+"3,4,5-Trichlorophenol",80038,"no","InChI=1S/C6H3Cl3O/c7-4-1-3(10)2-5(8)6(4)9/h1-2,10H"
+"2,3,4,5-Tetrachlorophenol",80039,"no","InChI=1S/C6H2Cl4O/c7-2-1-3(11)5(9)6(10)4(2)8/h1,11H"
+"2,3,4,6-Tetrachlorophenol",80040,"no","InChI=1S/C6H2Cl4O/c7-2-1-3(8)6(11)5(10)4(2)9/h1,11H"
+"2,3,5,6-Tetrachlorophenol",80041,"no","InChI=1S/C6H2Cl4O/c7-2-1-3(8)5(10)6(11)4(2)9/h1,11H"
+"Pentachlorophenol",80042,"no","InChI=1S/C6HCl5O/c7-1-2(8)4(10)6(12)5(11)3(1)9/h12H"
+"Chloromethane",80043,"no","InChI=1S/CH3Cl/c1-2/h1H3"
+"Trichloromethane",13827,"yes",
+"Ethane",80045,"no","InChI=1S/C2H6/c1-2/h1-2H3"
+"1,1,2,2-Tetrachloroethane",80046,"no","InChI=1S/C2H2Cl4/c3-1(4)2(5)6/h1-2H"
+"Propane",80047,"no","InChI=1S/C3H8/c1-3-2/h3H2,1-2H3"
+"1-Chloropropane",80048,"no","InChI=1S/C3H7Cl/c1-2-3-4/h2-3H2,1H3"
+"1,3-Dichloropropane",80049,"no","InChI=1S/C3H6Cl2/c4-2-1-3-5/h1-3H2"
+"Butane",80050,"no","InChI=1S/C4H10/c1-3-4-2/h3-4H2,1-2H3"
+"1-Chlorobutane",80051,"no","InChI=1S/C4H9Cl/c1-2-3-4-5/h2-4H2,1H3"
+"2-Chlorobutane",80052,"no","InChI=1S/C4H9Cl/c1-3-4(2)5/h4H,3H2,1-2H3"
+"Pentane",80053,"no","InChI=1S/C5H12/c1-3-5-4-2/h3-5H2,1-2H3"
+"1-Chloropentane",80054,"no","InChI=1S/C5H11Cl/c1-2-3-4-5-6/h2-5H2,1H3"
 "CH3NHp",80055,"no","InChI=1S/C3H10NO/c1-4(2,3)5/h5H,1-3H3/q+1"
-"s-aminomethyldihydro-lipoate",80056,"no","InChI=1/C9H19NO2S2/c10-7-14-6-5-8(13)3-1-2-4-9(11)12/h8,13H,1-7,10H2,(H,11,12)"
-"ap-nad",80057,"no","InChI=1S/C22H28N6O14P2/c1-10(29)11-3-2-4-27(5-11)21-17(32)15(30)12(40-21)6-38-43(34,35)42-44(36,37)39-7-13-16(31)18(33)22(41-13)28-9-26-14-19(23)24-8-25-20(14)28/h2-5,8-9,12-13,15-18,21-22,30-33H,6-7H2,1H3,(H3-,23,24,25,34,35,36,37)/p+1"
-"ap-nadh",80058,"no","InChI=1S/C22H30N6O14P2/c1-10(29)11-3-2-4-27(5-11)21-17(32)15(30)12(40-21)6-38-43(34,35)42-44(36,37)39-7-13-16(31)18(33)22(41-13)28-9-26-14-19(23)24-8-25-20(14)28/h2,4-5,8-9,12-13,15-18,21-22,30-33H,3,6-7H2,1H3,(H,34,35)(H,36,37)(H2,23,24,25)"
+"S-Aminomethyldihydro-lipoate",80056,"no","InChI=1/C9H19NO2S2/c10-7-14-6-5-8(13)3-1-2-4-9(11)12/h8,13H,1-7,10H2,(H,11,12)"
+"ap-NAD",80057,"no","InChI=1S/C22H28N6O14P2/c1-10(29)11-3-2-4-27(5-11)21-17(32)15(30)12(40-21)6-38-43(34,35)42-44(36,37)39-7-13-16(31)18(33)22(41-13)28-9-26-14-19(23)24-8-25-20(14)28/h2-5,8-9,12-13,15-18,21-22,30-33H,6-7H2,1H3,(H3-,23,24,25,34,35,36,37)/p+1"
+"ap-NADH",80058,"no","InChI=1S/C22H30N6O14P2/c1-10(29)11-3-2-4-27(5-11)21-17(32)15(30)12(40-21)6-38-43(34,35)42-44(36,37)39-7-13-16(31)18(33)22(41-13)28-9-26-14-19(23)24-8-25-20(14)28/h2,4-5,8-9,12-13,15-18,21-22,30-33H,3,6-7H2,1H3,(H,34,35)(H,36,37)(H2,23,24,25)"
 "FADenz(ox)",80059,"no",
 "FADenz(red)",80060,"no",
 "3-(3,4-Dihydroxypyridin-1-yl)-L-alanine",4446,"yes","InChI=1S/C8H10N2O4/c9-5(8(13)14)3-10-2-1-6(11)7(12)4-10/h1-2,4-5,12H,3,9H2,(H,13,14)/p+1"
+"Isobutanal",80061,"no","InChI=1S/C4H8O/c1-4(2)3-5/h3-4H,1-2H3"
+"Isobutanol",14710,"yes",
+"alpha-Acetolactic acid",900,"yes",
+"alpha,beta-Dihydroxy-isovalerate",4039,"yes",
+"2-Ketoisovalerate",141,"yes",
