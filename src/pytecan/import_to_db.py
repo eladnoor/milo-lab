@@ -48,7 +48,7 @@ def main():
     opt_parser = MakeOpts()
     options, _ = opt_parser.parse_args(sys.argv)
 
-    db = MySQLDatabase(host='132.77.80.238', user='ronm', 
+    db = MySQLDatabase(host='hldbv02', user='ronm', port=3306,
                        passwd='a1a1a1', db='tecan')
 
     if options.generate_exp_id:
@@ -63,7 +63,6 @@ def main():
             If this Experiment ID 
         """
         
-        
         if not os.path.exists(options.tar_filename):
             print "File not found: " + options.tar_filename
             sys.exit(-1)
@@ -77,8 +76,9 @@ def main():
         # delete any previous data regarding this exp_id
         db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
         db.Execute("DELETE FROM tecan_experiments WHERE exp_id='%s'" % exp_id)
-        db.Insert('tecan_experiments', [exp_id, \
-                            "Imported from TAR file on " + GetTimeString()])
+        db.Insert('tecan_experiments', [exp_id, options.plate_id, 
+                                        "Imported from TAR file on " + 
+                                        GetTimeString()])
         WriteToDatabase(MES, db, exp_id)
     elif options.xml_dir or options.xml_filename:
         if options.plate_id is None:

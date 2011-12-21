@@ -32,7 +32,7 @@ def main():
     print "Experiment ID: " + options.exp_id
     print "Plate num: %d" % options.plate_num
     
-    db = MySQLDatabase(host='132.77.80.238', user='ronm', 
+    db = MySQLDatabase(host='hldbv02', user='ronm', 
                        passwd='a1a1a1', db='tecan')
     
     for row in db.Execute("SELECT * from tecan_readings "
