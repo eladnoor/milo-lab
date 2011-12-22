@@ -363,7 +363,7 @@ class Pathway(object):
         Returns:
             A 3 tuple (dGfs, concentrations, MTDF value).
         """
-        _, _, opt_mtdf = self.FindMtdf(c_range, bounds)
+        _, _, opt_mtdf = self._FindMtdf(c_range, bounds)
         return self.FindMtdf_Regularized(c_range, bounds, c_mid,
                                          max_mtdf=opt_mtdf)
 
@@ -700,8 +700,10 @@ class Pathway(object):
         #scaled_fluxes = cvxmod.matrix(fluxes or [1.0]*self.Nr) * (km/kcat)
         problem.objective = cvxmod.minimize(cvxmod.sum(cvxmod.atoms.exp(-ln_concentrations)))
         
-        status = problem.solve(quiet=True)
+        print problem.classify()
+        status = problem.solve(quiet=False)
         if status != 'optimal':
+            
             raise UnsolvableConvexProblemException(status, problem)
             
         opt_val = cvxmod.value(problem.objective)
