@@ -23,13 +23,17 @@ class TestThermoJsonOutput(unittest.TestCase):
     def setUp(self):
         fake_csv_file = StringIO(CSV_DATA)
         csv_reader = csv.DictReader(fake_csv_file)
+        self.fake_thermo_csv = PsuedoisomerTableThermodynamics()
         self.fake_thermo_csv = PsuedoisomerTableThermodynamics._FromDictReader(
-                                    csv_reader, warn_for_conflicting_refs=False)
+                                    csv_reader, self.fake_thermo_csv,
+                                    warn_for_conflicting_refs=False)
         
         db = SqliteDatabase(PUBLIC_DB_FNAME)
         db_reader = db.DictReader('fake_pseudoisomers')
+        self.fake_thermo_db = PsuedoisomerTableThermodynamics()
         self.fake_thermo_db = PsuedoisomerTableThermodynamics._FromDictReader(
-                                    db_reader, warn_for_conflicting_refs=False)
+                                    db_reader, self.fake_thermo_db,
+                                    warn_for_conflicting_refs=False)
 
     def testGetJsonDictionary(self):
         json_list = [self.fake_thermo_csv.GetJSONDictionary(),

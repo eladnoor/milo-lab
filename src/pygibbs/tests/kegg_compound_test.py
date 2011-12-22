@@ -2,6 +2,8 @@
 
 import unittest
 
+import json
+
 from pygibbs import kegg_compound
 from pygibbs import pseudoisomer
 
@@ -51,9 +53,12 @@ class TestKeggCompound(unittest.TestCase):
     def testAddThermodynamicData(self):
         pmap = pseudoisomer.PseudoisomerMap(nH=8, z=0, nMg=0, dG0=18.8)
         source_string = 'Noor, Bar-Even 2011'
-        self.test_compound.AddThermodynamicData(pmap, source_string)
-        self.assertEqual(pmap, self.test_compound.pmap)
-        self.assertEqual(source_string, self.test_compound.pmap_source)
+        self.test_compound.AddThermodynamicData(pmap,
+                                                source_string=source_string,
+                                                priority=2)
+        pmap = self.test_compound.pmaps[-1]
+        self.assertEqual(source_string, pmap['source'])
+        self.assertEqual(2, pmap['priority'])        
     
     def testSetThermodynamicError(self):
         error = 'Group contribution failed to solve your problems.'
@@ -64,19 +69,20 @@ class TestKeggCompound(unittest.TestCase):
         json_dict = self.test_compound.ToJSONDict()
         
         key_set = set(json_dict.keys())
-        expected_keys = set(['CID', 'mass', 'formula',
+        expected_keys = set(['CID', 'mass', 'formula', 'name',
                              'names', 'InChI', 'num_electrons'])
         self.assertEqual(expected_keys, key_set)
         
         self.assertEqual(self.test_compound.get_string_cid(), json_dict['CID'])
         self.assertEqual(self.mass, json_dict['mass'])
         self.assertEqual(self.formula, json_dict['formula'])
-        self.assertEqual(self.names, json_dict['names'])
+        self.assertEqual(self.names[0], json_dict['name'])
+        self.assertEqual(sorted(self.names), json_dict['names'])
         self.assertEqual(self.inchi, json_dict['InChI'])
         self.assertTrue(json_dict['num_electrons'] is not None)
     
     def testToDBRow(self):
-        expected_row = [self.cid, self.name, ';'.join(self.names),
+        expected_row = [self.cid, self.name, json.dumps(self.names),
                         self.mass, self.formula, self.inchi,
                         self.test_compound.get_num_electrons(),
                         self.test_compound.from_kegg,

@@ -67,7 +67,7 @@ class TestKeggEnzyme(unittest.TestCase):
         key_set = set(json_dict.keys())
         expected_keys = set(['EC', 'title', 'names', 'reaction_ids',
                              'substrates', 'products', 'cofactors',
-                             'organisms'])
+                             'organisms', 'orthology', 'genes'])
         self.assertEqual(expected_keys, key_set)
         
         self.assertEqual(self.ec, json_dict['EC'])
