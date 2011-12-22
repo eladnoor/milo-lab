@@ -8,7 +8,7 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from toolbox.database import SqliteDatabase
 
 
-CSV_DATA = """"smiles","cid","compound name","dG0","dH0","z","nH","nMg","use for","ref","remark"
+CSV_DATA = """"smiles","cid","compound name","dG0","dH0","z","nH","nMg","use for","compound_ref","remark"
 ,1,"H2O",-237.19,-285.83,0,2,0,"test","Alberty (2003)",
 ,2,"ATP",-2768.1,-3619.21,-4,12,0,"train","Alberty (2003)",
 ,2,"ATP",-3258.7,-4063.31,-2,12,1,"test","Alberty (2006)","with Mg"
