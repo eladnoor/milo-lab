@@ -86,7 +86,7 @@ class PathwayComparison(object):
         self.html_writer.write("<li>Reactions:</br><ul>\n")
         
         for r in range(S.shape[0]):
-            self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + '>R%05d ' % rids[r] + '</a>')
+            self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + '>%s ' % rids[r] + '</a>')
             self.html_writer.write('[x%g, &#x394;G<sub>r</sub><sup>0</sup> = %.1f] : ' % (fluxes[r], dG0_r[r, 0]))
             self.html_writer.write(self.kegg.vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
             self.html_writer.write('</li>\n')
@@ -195,7 +195,7 @@ class PathwayComparison(object):
             pylab.xlabel('Reaction KEGG ID', figure=profile_fig)
             pylab.grid(True, figure=profile_fig)
             
-            rids = ['R%05d' % rids[i] for i in xrange(Nr)]
+            rids = ['%s' % rids[i] for i in xrange(Nr)]
             pylab.xticks(pylab.arange(1, Nr + 1), rids,
                          fontproperties=FontProperties(size=8),
                          rotation=30)
