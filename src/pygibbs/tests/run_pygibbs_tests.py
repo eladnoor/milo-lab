@@ -8,12 +8,17 @@ from pygibbs.tests import kegg_enzyme_test
 from pygibbs.tests import pathway_test
 from pygibbs.tests import thermo_json_output_test
 
+from pygibbs.tests.metabolic_modelling import bounds_test
+from pygibbs.tests.metabolic_modelling import mtdf_optimizer_test
+
 
 def main():
     test_modules = (kegg_compound_test,
                     kegg_enzyme_test,
                     pathway_test,
-                    thermo_json_output_test)
+                    thermo_json_output_test,
+                    bounds_test,
+                    mtdf_optimizer_test)
     
     modules_str = ', '.join(m.__name__ for m in test_modules)
     logging.info('Running test suites from modules %s' % modules_str)
