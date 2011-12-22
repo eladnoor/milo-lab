@@ -104,7 +104,8 @@ class MTDFOptimizer(object):
         # Constrain concentrations
         ln_conc = cvxmod.optvar('lnC', self.Nc)
         # TODO(flamholz): push this method into the bounds object.
-        ln_conc_lb, ln_conc_ub = self._LnConcentrationBounds(bounds)
+        ln_conc_lb, ln_conc_ub = bounds.GetLnBounds(self.compounds)
+        ln_conc_lb, ln_conc_ub = cvxmod.matrix(ln_conc_lb), cvxmod.matrix(ln_conc_ub) 
         problem.constr.append(ln_conc >= ln_conc_lb)
         problem.constr.append(ln_conc <= ln_conc_ub)
         

@@ -39,7 +39,7 @@ class TestMTDFOptimizer(unittest.TestCase):
     def testDummyProblem(self):
         stoich_model = FakeStoichModel()
         thermo = FakeThermoData()
-
+        
         S = stoich_model.GetStoichiometricMatrix()
         dg0r_primes = thermo.GetDGrPrime(S)
         
