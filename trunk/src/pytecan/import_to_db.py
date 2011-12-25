@@ -8,8 +8,8 @@ import time
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
-    opt_parser.add_option("-h", "--host",
-                          dest="hist",
+    opt_parser.add_option("-o", "--host",
+                          dest="host",
                           default="hldbv02",
                           help="The hostname for the MySQL database")
     opt_parser.add_option("-t", "--tar_filename",
