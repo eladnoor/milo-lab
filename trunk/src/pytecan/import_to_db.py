@@ -8,10 +8,10 @@ import time
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
-    #opt_parser.add_option("-d", "--sqlite_db_filename",
-    #                      dest="sqlite_db_filename",
-    #                      default="../res/tecan.sqlite",
-    #                      help="The filename of the Sqlite database")
+    opt_parser.add_option("-h", "--host",
+                          dest="hist",
+                          default="hldbv02",
+                          help="The hostname for the MySQL database")
     opt_parser.add_option("-t", "--tar_filename",
                           dest="tar_filename",
                           default=None,
@@ -48,7 +48,7 @@ def main():
     opt_parser = MakeOpts()
     options, _ = opt_parser.parse_args(sys.argv)
 
-    db = MySQLDatabase(host='hldbv02', user='ronm', port=3306,
+    db = MySQLDatabase(host=options.host, user='ronm', port=3306,
                        passwd='a1a1a1', db='tecan')
 
     if options.generate_exp_id:
