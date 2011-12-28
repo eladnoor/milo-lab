@@ -6,6 +6,39 @@ import numpy as np
 from pygibbs.metabolic_modelling import bounds
 
 
+class TestExplicitBounds(unittest.TestCase):
+    
+    def testEmptyBounds(self):
+        b = bounds.ExplicitBounds()
+        keys = ('a', 'askdjn', 'hobos', None, 1, 0.232)
+        
+        for t in keys:
+            self.assertRaises(KeyError, b.GetLowerBound, t)
+            self.assertRaises(KeyError, b.GetUpperBound, t)
+        
+        key, my_lb, my_ub = 'b', 5, 10
+        b.SetBounds(key, my_lb, my_ub)
+        self.assertEquals(my_lb, b.GetLowerBound(key))
+        self.assertEquals(my_ub, b.GetUpperBound(key))
+        
+        for t in keys:
+            self.assertRaises(KeyError, b.GetLowerBound, t)
+            self.assertRaises(KeyError, b.GetUpperBound, t)
+            
+        keys = [key]
+        expected_lb = [my_lb]
+        expected_ub = [my_ub]
+        lb, ub = b.GetBounds(keys)
+        self.assertEqual(expected_lb, list(lb))
+        self.assertEqual(expected_ub, list(ub))
+        
+        lb, ub = b.GetLnBounds(keys)
+        expected_lb = [np.log(my_lb)]
+        expected_ub = [np.log(my_ub)]
+        self.assertEqual(expected_lb, list(lb))
+        self.assertEqual(expected_ub, list(ub))
+        
+
 class TestBounds(unittest.TestCase):
     
     def testDefaults(self):
@@ -72,7 +105,9 @@ class TestBounds(unittest.TestCase):
         
 
 def Suite():
-    return unittest.makeSuite(TestBounds,'test')
+    suites = (unittest.makeSuite(TestBounds,'test'),
+              unittest.makeSuite(TestExplicitBounds,'test'))
+    return unittest.TestSuite(suites)
     
 
 if __name__ == '__main__':

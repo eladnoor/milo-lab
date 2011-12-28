@@ -45,12 +45,24 @@ class BaseBounds(object):
         """
         lb, ub = self.GetBounds(keys)
         return np.log(lb), np.log(ub)
+    
+    def SetBounds(self, key, lb, ub):
+        """Set bounds for a specific key.
+        
+        Args:
+            key: the key for the bounds.
+            lb: the lower bound value.
+            ub: the upper bound value.
+        """
+        assert lb <= ub
+        self.lower_bounds[key] = lb
+        self.upper_bounds[key] = ub
 
 
 class ExplicitBounds(BaseBounds):
     """Contains upper and lower bounds for various keys."""
 
-    def __init__(self, lower_bounds, upper_bounds):
+    def __init__(self, lower_bounds=None, upper_bounds=None):
         """Initialize the ExplicitBounds object.
         
         Must provide upper and lower bounds for all compounds.
@@ -58,18 +70,15 @@ class ExplicitBounds(BaseBounds):
         Args:
             lower_bounds: a dictionary mapping strings to float lower bounds.
             upper_bounds: a dictionary mapping strings to float upper bounds.
-        """
-        # Must declare both bounds
-        assert lower_bounds
-        assert upper_bounds
+        """        
+        self.lower_bounds = lower_bounds or {}
+        self.upper_bounds = upper_bounds or {}
         
         # Must have the same keys for both
-        lb_keys = set(lower_bounds.keys())
-        ub_keys = set(upper_bounds.keys())
+        lb_keys = set(self.lower_bounds.keys())
+        ub_keys = set(self.upper_bounds.keys())
         assert lb_keys == ub_keys
-        
-        self.lower_bounds = lower_bounds
-        self.upper_bounds = upper_bounds
+
 
     def GetLowerBound(self, key):
         """Get the lower bound for this key.
@@ -91,7 +100,8 @@ class ExplicitBounds(BaseBounds):
         if key not in self.upper_bounds:
             raise KeyError('Unknown key %s' % key)
         
-        return self.lower_bounds[key]
+        return self.upper_bounds[key]
+    
     
 
 class Bounds(BaseBounds):
