@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from scipy import stats
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
@@ -6,8 +8,8 @@ from pygibbs.thermodynamic_constants import R
 from pygibbs.groups import GroupContribution
 import pylab
 from pygibbs.kegg import Kegg
-from pygibbs.kegg_errors import KeggNonCompoundException,\
-    KeggReactionNotBalancedException
+from pygibbs.kegg_errors import KeggNonCompoundException
+from pygibbs.kegg_errors import KeggReactionNotBalancedException
 from pygibbs.kegg_reaction import Reaction
 from toolbox import plotting
 from SOAPpy import WSDL 
@@ -18,9 +20,9 @@ import matplotlib
 import re
 import numpy
 import random
-from pygibbs.nist_verify import LoadAllEstimators
-from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
-    MissingReactionEnergy
+from pygibbs.thermodynamic_estimators import LoadAllEstimators
+from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
+from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.feist_ecoli import Feist
 from pygibbs.compound_abundance import CompoundAbundance
 

@@ -26,9 +26,9 @@ import scipy.io
 import matplotlib.pyplot as plt
 from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException, DeltaGNormalization
-from pygibbs.nist_verify import LoadAllEstimators
+from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.compound_abundance import CompoundAbundance
-import csv
+
 
 class ThermodynamicAnalysis(object):
     def __init__(self, db, html_writer, thermodynamics):
