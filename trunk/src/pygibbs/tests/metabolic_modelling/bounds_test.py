@@ -8,7 +8,7 @@ from pygibbs.metabolic_modelling import bounds
 
 class TestExplicitBounds(unittest.TestCase):
     
-    def testEmptyBounds(self):
+    def testBasic(self):
         b = bounds.ExplicitBounds()
         keys = ('a', 'askdjn', 'hobos', None, 1, 0.232)
         
@@ -37,7 +37,19 @@ class TestExplicitBounds(unittest.TestCase):
         expected_ub = [np.log(my_ub)]
         self.assertEqual(expected_lb, list(lb))
         self.assertEqual(expected_ub, list(ub))
+    
+    def testAddOldStyleBounds(self):
+        b = bounds.ExplicitBounds()
+        old_style_bounds = {'a': (5,10),
+                            'b': (0,9),
+                            'c': (1, 101)}
+        b.AddOldStyleBounds(old_style_bounds)
         
+        for id, bounds_tuple in old_style_bounds.iteritems():
+            lb, ub = bounds_tuple
+            self.assertEqual(lb, b.GetLowerBound(id))
+            self.assertEqual(ub, b.GetUpperBound(id))
+            
 
 class TestBounds(unittest.TestCase):
     

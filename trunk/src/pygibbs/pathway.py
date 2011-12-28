@@ -2,8 +2,11 @@
 
 import re
 
-from pygibbs.thermodynamic_constants import default_T, default_pH, default_I, default_pMg
-from pygibbs.thermodynamic_constants import default_c0, default_c_mid, default_c_range
+from pygibbs import kegg_parser
+from pygibbs.thermodynamic_constants import default_T, default_pH, default_I
+from pygibbs.thermodynamic_constants import default_pMg, default_c0
+from pygibbs.thermodynamic_constants import default_c_range, default_c_mid
+
 
 
 class PathwayConditions(object):
@@ -139,7 +142,29 @@ class PathwayData(object):
             p.dG_methods.append('HATZI')
         
         return p
+
+
+def KeggPathwayIterator(object):
+    
+    def __init__(self, parsed_kegg_file):
+        self.parsed_kegg_file = parsed_kegg_file
         
+    @staticmethod
+    def FromFilename(fname):
+        """Initialize a KeggPathwayIterator from a filename.
+        
+        Args:
+            fname: a valid path to the file containing pathway definitions.
+        """
+        parsed = kegg_parser.ParsedKeggFile.FromKeggFile(fname)
+        return KeggPathwayIterator(parsed)
+    
+    def __iter__(self):
+        """Iterate over pathways."""
+        for key in sorted(self.parsed_kegg_file.keys()):
+            field_map = self.parsed_kegg_file[key]
+            yield PathwayData.FromFieldMap(field_map)
+    
         
         
         
