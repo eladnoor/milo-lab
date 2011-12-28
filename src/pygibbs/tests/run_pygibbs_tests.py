@@ -10,6 +10,7 @@ from pygibbs.tests import thermo_json_output_test
 
 from pygibbs.tests.metabolic_modelling import bounds_test
 from pygibbs.tests.metabolic_modelling import mtdf_optimizer_test
+from pygibbs.tests.metabolic_modelling import stoich_model_test
 
 
 def main():
@@ -18,7 +19,8 @@ def main():
                     pathway_test,
                     thermo_json_output_test,
                     bounds_test,
-                    mtdf_optimizer_test)
+                    mtdf_optimizer_test,
+                    stoich_model_test)
     
     modules_str = ', '.join(m.__name__ for m in test_modules)
     logging.info('Running test suites from modules %s' % modules_str)
