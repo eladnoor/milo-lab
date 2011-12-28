@@ -1,16 +1,23 @@
 #!/usr/bin/python
 
+import logging
+import sys
+
+from optparse import OptionParser
+from os import path
 
 from metabolic_modelling import bounds
 from metabolic_modelling import mtdf_optimizer
 from metabolic_modelling import stoich_model
 from metabolic_modelling import thermodynamic_data
+from pygibbs import kegg
 from pygibbs import thermodynamic_estimators
+from toolbox import database
+from toolbox import util
 
-from optparse import OptionParser
 
 
-def MakeOpts(estimator_names):
+def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
     opt_parser.add_option("-k", "--kegg_database_location", 
@@ -37,38 +44,41 @@ def MakeOpts(estimator_names):
                           help="Where to write output to.")
     return opt_parser
 
-
-if __name__ == "__main__":
+def Main():
     options, _ = MakeOpts().parse_args(sys.argv)
     estimators = thermodynamic_estimators.LoadAllEstimators()
-
     
-    input_filename = os.path.abspath(options.input_filename)
-    output_filename = os.path.abspath(options.output_filename)
-    if not os.path.exists(input_filename):
+    input_filename = path.abspath(options.input_filename)
+    if not path.exists(input_filename):
         logging.fatal('Input filename %s doesn\'t exist' % input_filename)
         
     print 'Will read pathway definitions from %s' % input_filename
-    print 'Will write output to %s' % output_filename
     
     db_loc = options.db_filename
     print 'Reading from DB %s' % db_loc
-    db = SqliteDatabase(db_loc)
+    db = database.SqliteDatabase(db_loc)
 
     thermo = estimators[options.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
     
-    kegg = Kegg.getInstance()
-    thermo.bounds = deepcopy(kegg.cid2bounds)
-    
-    dirname = os.path.dirname(output_filename)
-    if not os.path.exists(dirname):
-        print 'Making output directory %s' % dirname
-        _mkdir(dirname)
-    
-    print 'Executing thermodynamic pathway analysis'
-    html_writer = HtmlWriter(output_filename)
-    thermo_analyze = ThermodynamicAnalysis(db, html_writer, thermodynamics=thermo)
-    thermo_analyze.analyze_pathway(input_filename)
+    # Create a bounds instance
+    kegg_instance = kegg.Kegg.getInstance()
+    kegg_bounds = kegg_instance.cid2bounds
+    my_bounds = bounds.Bounds()
+    my_bounds.AddOldStyleBounds(kegg_bounds)
 
+    """
+    output_filename = path.abspath(options.output_filename)
+    print 'Will write output to %s' % output_filename
+    dirname = path.dirname(output_filename)
+    if not path.exists(dirname):
+        print 'Making output directory %s' % dirname
+        util._mkdir(dirname)
+    """
+    
+    print 'Executing MTDF analysis'
+
+
+if __name__ == "__main__":
+    Main()
     

@@ -2,8 +2,15 @@
     
 import numpy as np
 
+from copy import deepcopy
+
+
 class BaseBounds(object):
     """A base class for declaring bounds on things."""
+
+    def Copy(self):
+        """Returns a (deep) copy of self."""
+        raise NotImplementedError
 
     def GetLowerBound(self, key):
         """Get the lower bound for this key.
@@ -57,6 +64,18 @@ class BaseBounds(object):
         assert lb <= ub
         self.lower_bounds[key] = lb
         self.upper_bounds[key] = ub
+    
+    def AddOldStyleBounds(self, bounds_dict):
+        """Add bounds from the old-style bounds dictionary.
+        
+        Args:
+            bounds_dict: a dictionary mapping keys to (lb, ub) tuples.
+        """
+        for key, bounds in bounds_dict.iteritems():
+            lb, ub = bounds
+            self.lower_bounds[key] = lb
+            self.upper_bounds[key] = ub
+            
 
 
 class ExplicitBounds(BaseBounds):
@@ -79,6 +98,11 @@ class ExplicitBounds(BaseBounds):
         ub_keys = set(self.upper_bounds.keys())
         assert lb_keys == ub_keys
 
+    def Copy(self):
+        """Returns a deep copy of self."""
+        new_lb = deepcopy(self.lower_bounds)
+        new_ub = deepcopy(self.upper_bounds)
+        return ExplicitBounds(new_lb, new_ub)
 
     def GetLowerBound(self, key):
         """Get the lower bound for this key.
@@ -125,6 +149,13 @@ class Bounds(BaseBounds):
         self.default_lb = default_lb
         self.default_ub = default_ub
         
+    def Copy(self):
+        """Returns a deep copy of self."""
+        new_lb = deepcopy(self.lower_bounds)
+        new_ub = deepcopy(self.upper_bounds)
+        return Bounds(new_lb, new_ub,
+                      self.default_lb,
+                      self.default_ub)
     
     def GetLowerBound(self, key):
         """Get the lower bound for this key.
