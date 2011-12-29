@@ -63,7 +63,8 @@ class MTDFOptimizer(object):
         self.reactions = pathway_model.GetReactionIDs()
         self.compounds = pathway_model.GetCompoundIDs()
         self.fluxes = pathway_model.GetFluxes()
-        self.dG0_r_prime = thermodynamic_data.GetDGrPrime(self.S)
+        self.dG0_r_prime = thermodynamic_data.GetDGrTagZero_ForModel(
+                self._model)
 
     def DefaultConcentrationBounds(self):
         """Default Bounds objects."""
@@ -117,6 +118,7 @@ class MTDFOptimizer(object):
         # Reactions with a flux of 0 must be in equilibrium.
         S = cvxmod.matrix(self.S)
         dg0r_primes = cvxmod.matrix(self.dG0_r_prime)
+        
         for i, flux in enumerate(self.fluxes):
             
             # if the dG0 is unknown, this reaction imposes no new constraints

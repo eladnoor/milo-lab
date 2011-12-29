@@ -2,6 +2,9 @@
 
 import numpy as np
 
+from pygibbs import thermodynamics
+from pygibbs import thermodynamic_errors
+
 
 class BaseThermoData(object):
     """Base class defining the interface."""
@@ -93,7 +96,9 @@ class FormationBasedThermoData(BaseThermoData):
     def GetDGrTagZero_ForModel(self, stoich_model):
         S = stoich_model.GetStoichiometricMatrix()
         formation_energies = self.GetDGfTagZero_ForModel(stoich_model)
-        return np.dot(S, formation_energies)
+        return thermodynamics.GetReactionEnergiesFromFormationEnergies(
+            S, formation_energies)
+    
 
 
 class ReactionBasedThermoData(BaseThermoData):
@@ -114,4 +119,20 @@ class ReactionBasedThermoData(BaseThermoData):
             reaction_id: the ID of the reaction.
         """
         return self.reaction_energies.get(reaction_id, np.NAN)
+    
+    
+class WrapperThermoData(ReactionBasedThermoData):
+    
+    def __init__(self, thermo_instance):
+        """Initialize the wrapper.
+        
+        Args:
+            thermo_instance: an instance of pygibbs.Thermodynamics. 
+        """
+        self.thermo_instance = thermo_instance
+
+    def GetDGrTagZero_ForModel(self, stoich_model):
+        S = stoich_model.GetStoichiometricMatrix()
+        cids = stoich_model.GetCompoundIDs()
+        return self.thermo_instance.GetTransfromedReactionEnergies(S, cids)
         

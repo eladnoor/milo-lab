@@ -70,7 +70,7 @@ class TestKeggCompound(unittest.TestCase):
         
         key_set = set(json_dict.keys())
         expected_keys = set(['CID', 'mass', 'formula', 'name',
-                             'names', 'InChI', 'num_electrons'])
+                             'names', 'InChI', 'num_electrons', 'from_kegg'])
         self.assertEqual(expected_keys, key_set)
         
         self.assertEqual(self.test_compound.get_string_cid(), json_dict['CID'])
