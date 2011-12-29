@@ -14,9 +14,13 @@ PLOT_EXP_DATA_LINUX = '/home/ayelet/pyrobot/PlotExpData'
 ####################################################
 
 def connect():
-        
+    return MySQLDatabase(host='hldbv02', user='ronm', 
+                         passwd='a1a1a1', db='tecan')
+    
+    """
     return MySQLDatabase(host='132.77.80.238', user='ronm', 
                          passwd='a1a1a1', db='tecan')
+    """
     
     #from toolbox.database import SqliteDatabase
     #return SqliteDatabase("C:\\TEMP\\mydatabase.sqlite", flag='r')
