@@ -7,6 +7,9 @@ from pygibbs.thermodynamic_constants import default_T, default_pH, default_I
 from pygibbs.thermodynamic_constants import default_pMg, default_c0
 from pygibbs.thermodynamic_constants import default_c_range, default_c_mid
 
+from pygibbs.metabolic_modelling import stoich_model
+from pygibbs.metabolic_modelling import bounds
+
 
 
 class PathwayConditions(object):
@@ -94,6 +97,87 @@ class PathwayData(object):
         self.dG_methods = []
     
     @staticmethod
+    def _RemapCompounds(S, cids, cid_mapping):
+        """Remap the compounds in S.
+        
+        Args:
+            S: the stoichiometric matrix.
+            cids: the listing of cids in the matrix.
+            cid_mapping: the mapping to replace them.
+            
+        Returns:
+            Tuple of updated values (S, cids).
+        """
+        for i, cid in enumerate(list(cids)):
+            if cid in cid_mapping:
+                new_cid, coeff = cid_mapping[cid]
+                cids[i] = new_cid
+                S[:, i] *= coeff
+        
+        return S, cids
+    
+    def GetBounds(self):
+        """Get a bounds.Bounds object."""
+        lower_bounds = {1: 1}
+        upper_bounds = {1: 1} # the default for H2O is 1
+        
+        bound_str = self.field_map.get("BOUND", "")
+        for line in bound_str.strip().split('\t'):
+            tokens = line.split(None)
+            cid = int(tokens[0][1:])
+            
+            try:
+                b_lower = float(tokens[1])
+            except ValueError:
+                b_lower = None    
+
+            if len(tokens) == 2:
+                b_upper = b_lower
+            elif len(tokens) == 3:
+                try:
+                    b_upper = float(tokens[2])
+                except ValueError:
+                    b_upper = None    
+            else:
+                raise ValueError("Parsing error in BOUND definition for %s: %s" %
+                                 (self.name, line))
+                
+            lower_bounds[cid] = b_lower
+            upper_bounds[cid] = b_upper
+        
+        default_lb, default_ub = self.c_range
+        return bounds.Bounds(lower_bounds, upper_bounds,
+                             default_lb=default_lb, default_ub=default_ub)
+
+    def GetStoichiometricModel(self, kegg):
+        """Make a stoichiometric model from this pathway.
+        
+        Args:
+            kegg: a Kegg instance.
+        
+        Returns:
+            A StoichiometricModel instance.
+        """
+        # Explicitly map some of the CIDs to new ones.
+        # This is useful, for example, when a KEGG module uses unspecific co-factor pairs,
+        # like NTP => NDP, and we replace them with ATP => ADP 
+        cid_mapping = self.cid_mapping
+        field_map = self.field_map
+        
+        # Case 1: it's a module
+        if self.kegg_module_id is not None:
+            S, rids, fluxes, cids = kegg.get_module(self.kegg_module_id)
+            S, cids = self._RemapCompounds(S, cids, cid_mapping)
+        # Case 2: it's an explicitly defined pathway.
+        else:
+            S, rids, fluxes, cids = kegg.parse_explicit_module(field_map, cid_mapping) 
+        
+        model = stoich_model.StoichiometricModel(S, rids, cids,
+                                                 fluxes=fluxes)
+        return model
+        
+    
+    @staticmethod
     def FromFieldMap(field_map):
         p = PathwayData()
         p.field_map = field_map
@@ -144,7 +228,7 @@ class PathwayData(object):
         return p
 
 
-def KeggPathwayIterator(object):
+class KeggPathwayIterator(object):
     
     def __init__(self, parsed_kegg_file):
         self.parsed_kegg_file = parsed_kegg_file

@@ -12,9 +12,10 @@ from metabolic_modelling import stoich_model
 from metabolic_modelling import thermodynamic_data
 from pygibbs import kegg
 from pygibbs import thermodynamic_estimators
+from pygibbs import pathway
 from toolbox import database
-from toolbox import util
 
+import numpy as np
 
 
 def MakeOpts():
@@ -60,12 +61,10 @@ def Main():
 
     thermo = estimators[options.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
+    thermo_data = thermodynamic_data.WrapperThermoData(thermo)
     
     # Create a bounds instance
     kegg_instance = kegg.Kegg.getInstance()
-    kegg_bounds = kegg_instance.cid2bounds
-    my_bounds = bounds.Bounds()
-    my_bounds.AddOldStyleBounds(kegg_bounds)
 
     """
     output_filename = path.abspath(options.output_filename)
@@ -77,7 +76,32 @@ def Main():
     """
     
     print 'Executing MTDF analysis'
-
+    pathway_iterator = pathway.KeggPathwayIterator.FromFilename(input_filename)
+    for pathway_data in pathway_iterator:
+        if pathway_data.skip:
+            print 'Skipping pathway', pathway_data.name
+            continue
+        
+        
+        print 'Analyzing pathway', pathway_data.name
+        
+        model = pathway_data.GetStoichiometricModel(kegg_instance)
+        model_bounds = pathway_data.GetBounds()
+        
+        mtdf_opt = mtdf_optimizer.MTDFOptimizer(model, thermo_data)
+        concentrations, mtdf = mtdf_opt.FindMTDF(model_bounds)
+        
+        dGr0_tag = thermo_data.GetDGrTagZero_ForModel(model)
+        S = model.GetStoichiometricMatrix()
+        
+        dGr_tag = dGr0_tag + mtdf_optimizer.RT * np.dot(S, np.log(concentrations))
+        
+        reaction_ids = model.GetReactionIDs()
+        print reaction_ids
+        print np.hstack((dGr0_tag, dGr_tag))
+        
+        print '\tMTDF for', pathway_data.name, '= %.2g' % mtdf 
+        
 
 if __name__ == "__main__":
     Main()

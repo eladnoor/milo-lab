@@ -24,7 +24,7 @@ class FakeStoichModel(object):
 
 class FakeThermoData(object):
     
-    def GetDGrPrime(self, unused_s):
+    def GetDGrTagZero_ForModel(self, unused_model):
         return np.array([[11.1],
                          [-2.1]])
     
@@ -41,7 +41,7 @@ class TestMTDFOptimizer(unittest.TestCase):
         thermo = FakeThermoData()
         
         S = stoich_model.GetStoichiometricMatrix()
-        dg0r_primes = thermo.GetDGrPrime(S)
+        dg0r_primes = thermo.GetDGrTagZero_ForModel(S)
         
         opt = mtdf_optimizer.MTDFOptimizer(stoich_model, thermo)
         conc, mtdf = opt.FindMTDF()
@@ -56,7 +56,7 @@ class TestMTDFOptimizer(unittest.TestCase):
         thermo = FakeThermoData()
         
         S = stoich_model.GetStoichiometricMatrix()
-        dg0r_primes = thermo.GetDGrPrime(S)
+        dg0r_primes = thermo.GetDGrTagZero_ForModel(S)
         
         b = self.MyBounds()        
         opt = mtdf_optimizer.MTDFOptimizer(stoich_model, thermo)
