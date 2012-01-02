@@ -173,7 +173,8 @@ class PathwayData(object):
             S, rids, fluxes, cids = kegg.parse_explicit_module(field_map, cid_mapping) 
         
         model = stoich_model.StoichiometricModel(S, rids, cids,
-                                                 fluxes=fluxes)
+                                                 fluxes=fluxes,
+                                                 name=self.name)
         return model
         
     

@@ -13,6 +13,7 @@ from metabolic_modelling import thermodynamic_data
 from pygibbs import kegg
 from pygibbs import thermodynamic_estimators
 from pygibbs import pathway
+from pygibbs import templates
 from toolbox import database
 
 import numpy as np
@@ -66,17 +67,10 @@ def Main():
     # Create a bounds instance
     kegg_instance = kegg.Kegg.getInstance()
 
-    """
-    output_filename = path.abspath(options.output_filename)
-    print 'Will write output to %s' % output_filename
-    dirname = path.dirname(output_filename)
-    if not path.exists(dirname):
-        print 'Making output directory %s' % dirname
-        util._mkdir(dirname)
-    """
     
     print 'Executing MTDF analysis'
     pathway_iterator = pathway.KeggPathwayIterator.FromFilename(input_filename)
+    mtdf_results = []
     for pathway_data in pathway_iterator:
         if pathway_data.skip:
             print 'Skipping pathway', pathway_data.name
@@ -89,19 +83,19 @@ def Main():
         model_bounds = pathway_data.GetBounds()
         
         mtdf_opt = mtdf_optimizer.MTDFOptimizer(model, thermo_data)
-        concentrations, mtdf = mtdf_opt.FindMTDF(model_bounds)
+        mtdf_result = mtdf_opt.FindMTDF(model_bounds)
+        mtdf_results.append(mtdf_result)
         
-        dGr0_tag = thermo_data.GetDGrTagZero_ForModel(model)
-        S = model.GetStoichiometricMatrix()
-        
-        dGr_tag = dGr0_tag + mtdf_optimizer.RT * np.dot(S, np.log(concentrations))
-        
-        reaction_ids = model.GetReactionIDs()
-        print reaction_ids
-        print np.hstack((dGr0_tag, dGr_tag))
-        
-        print '\tMTDF for', pathway_data.name, '= %.2g' % mtdf 
-        
+        mtdf = mtdf_result.mtdf
+        print '\tMTDF for', pathway_data.name, '= %.2g' % mtdf
+    
+    
+    output_filename = path.abspath(options.output_filename)
+    template_data = {'mtdf_results':mtdf_results}
+    templates.render_to_file('mtdf_results.html',
+                             template_data,
+                             output_filename)
+    
 
 if __name__ == "__main__":
     Main()

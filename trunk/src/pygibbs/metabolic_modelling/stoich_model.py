@@ -11,7 +11,7 @@ class StoichiometricModel(object):
     """
     
     def __init__(self, S, reaction_ids, compound_ids,
-                 fluxes=None):
+                 fluxes=None, name=None):
         """Initialize the stoichiometric model.
         
         Args:
@@ -21,6 +21,7 @@ class StoichiometricModel(object):
             compound_ids: the ids/names of the compounds (columns).
             fluxes: the list of relative fluxes through all reactions.
                     if not supplied, assumed to be 1.0 for all reactions.
+            name: a string name for this model.
         """
         self.S = S
         self.reaction_ids = reaction_ids
@@ -28,6 +29,7 @@ class StoichiometricModel(object):
         self.fluxes = fluxes
         self.Nr = len(self.reaction_ids)
         self.Nc = len(self.compound_ids)
+        self.name = name
         
         expected_Nr, expected_Nc = self.S.shape
         if self.Nr != expected_Nr:
