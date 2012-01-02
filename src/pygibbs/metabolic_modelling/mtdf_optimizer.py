@@ -3,6 +3,7 @@
 import cvxmod
 import numpy as np
 
+from pygibbs.kegg import Kegg
 from pygibbs.metabolic_modelling import bounds
 from pygibbs.thermodynamic_constants import default_T, R
 
@@ -14,6 +15,110 @@ class UnsolvableConvexProblemException(Exception):
         Exception.__init__(self, msg)
         self.problem = problem
 
+
+class MTDFResult(object):
+    """A class containing the result of an MTDF optimization."""
+    
+    def __init__(self, model, thermodynamic_data,
+                 bounds, normalization,
+                 mtdf_value, ln_concentrations):
+        self.model = model
+        self.thermo = thermodynamic_data
+        self.bounds = bounds
+        self.normalization = normalization
+        self.S = model.GetStoichiometricMatrix()
+        self.mtdf_value = mtdf_value
+        self.ln_concentrations = ln_concentrations
+        self.dGr0_tag = thermodynamic_data.GetDGrTagZero_ForModel(
+                self.model)
+        
+        self.concentrations = np.exp(self.ln_concentrations)
+        conc_correction = RT * np.dot(self.S, self.ln_concentrations)
+        self.dGr_tag = self.dGr0_tag + conc_correction
+        
+        self.compound_ids = self.model.GetCompoundIDs()
+        self.reaction_ids = self.model.GetReactionIDs()
+    
+    def GetConcentrations(self):
+        return self.concentrations
+    
+    def GetLnConcentrations(self):
+        return self.ln_concentrations
+    
+    def GetMTDF(self):
+        return self.mtdf_value
+    mtdf = property(GetMTDF)
+    
+    def GetThermodynamicEfficiency(self):
+        """Computes the thermodynamic efficiency at the MTDF.
+        
+        Efficiency = (J+ - J-) / (J- + J+)
+        According to the formula of Beard and Qian
+        """
+        term_1 = 1.0 / (1.0 + np.exp(-self.mtdf/RT))
+        term_2 = 1.0 / (1.0 + np.exp(self.mtdf/RT))
+        return term_1 - term_2
+    thermodynamic_efficiency = property(GetThermodynamicEfficiency)
+    
+    def GetDGrZeroTag(self):
+        """Returns the standard dGr values."""
+        return self.dGr0_tag
+    
+    def GetDGrTag(self):
+        """Returns the transformed dGr values at the optimum."""
+        return self.dGr_tag
+    
+    def ConcentrationsList(self):
+        return list(self.concentrations.flatten())
+    
+    def CompoundNames(self):
+        """Presumes compound IDs are from KEGG."""
+        kegg_instance = Kegg.getInstance()
+        return map(kegg_instance.cid2name, self.compound_ids)
+    
+    def CompoundDetails(self):
+        names = self.CompoundNames()
+        concentrations = self.ConcentrationsList()
+        for i, id in enumerate(self.compound_ids):
+            ub = self.bounds.GetUpperBound(id)
+            lb = self.bounds.GetLowerBound(id)
+            conc = concentrations[i]
+            conc_class = None
+            if ub == lb:
+                conc_class = 'fixedConc'
+            elif abs(ub-conc) < 1e-9:
+                conc_class = 'concAtUB'
+            elif abs(conc-lb) < 1e-9:
+                conc_class = 'concAtLB'
+            d = {'id': id,
+                 'name': names[i],
+                 'concentration': conc,
+                 'class': conc_class,
+                 'ub': ub,
+                 'lb': lb}
+            yield d
+    compound_details = property(CompoundDetails)
+
+    def ReactionStandardEnergyList(self):
+        v = list(self.dGr0_tag.flatten())
+        return v
+    
+    def ReactionTransformedEnergyList(self):
+        v = list(self.dGr_tag.flatten())
+        return v
+
+    def ReactionDetails(self):
+        dGr0_tags = self.ReactionStandardEnergyList()
+        dGr_tags = self.ReactionTransformedEnergyList()
+        for i, id in enumerate(self.reaction_ids):
+            diff = abs(dGr_tags[i] + self.mtdf)
+            d = {'id': id,
+                 'dGr0_tag': dGr0_tags[i],
+                 'dGr_tag': dGr_tags[i],
+                 'at_mtdf': diff < 1e-6}
+            yield d
+    reaction_details = property(ReactionDetails)
+        
 
 class MTDFOptimizer(object):
     """Finds the pathway MTDF."""
@@ -140,8 +245,9 @@ class MTDFOptimizer(object):
             raise UnsolvableConvexProblemException(status, problem)
         
         mtdf = cvxmod.value(motive_force_lb)
-        opt_ln_conc = np.array(cvxmod.value(ln_conc))        
-        concentrations = np.exp(opt_ln_conc)
-        return concentrations, mtdf
+        opt_ln_conc = np.array(cvxmod.value(ln_conc))
+        return MTDFResult(self._model, self._thermo,
+                          bounds, normalization,
+                          mtdf, opt_ln_conc)
         
         

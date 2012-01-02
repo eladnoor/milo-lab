@@ -9,7 +9,7 @@ from pygibbs import groups_data
 from pygibbs import pseudoisomers_data
 from pygibbs import templates
 from toolbox import util
-from gibbs_site.util import topk
+from equilibrator.util import topk
 
 
 class PairwiseGroupMap(object):

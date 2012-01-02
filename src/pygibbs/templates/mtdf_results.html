@@ -1,0 +1,82 @@
+<html>
+	<head>
+		<title>MTDF Results</title>
+		<style>
+			.pathwayResult {
+				margin: 0 0 10px 0;
+			}
+			.pathwayName {
+				font-weight: bold;
+				font-size: 20px;
+			}
+			.resultValue {
+				font-weight: bold;
+				font-size: 16px;
+			}
+			.resultTable {
+				margin: 0 0 5px 0;
+			}
+			.fixedConc {
+				background-color: #FFFF66;
+			}
+			.concAtLB {
+				background-color: #00FF99;
+			}
+			.concAtUB {
+				background-color: #00CCFF;
+			}
+			.rxnAtMTDF {
+				background-color: #00CCFF;
+			}
+		</style>
+	</head>
+	<body>
+	{% for result in mtdf_results %}		
+		<div class="pathwayResult">
+			<div class="pathwayName">{{result.model.name}}</div>
+			<div class="resultValue">MTDF = {{result.mtdf|stringformat:".2g"}}</div>
+			<div class="resultValue">Thermodyanmic Efficiency = {{result.thermodynamic_efficiency|stringformat:".2g"}}</div>
+			
+			<div class="resultTable">
+				<div class="tableTitle">Compound Concentrations (M)</div>
+				<table border="1">
+					<tr>
+						<td>Compound Name</td>
+						<td>Compound ID</td>
+						<td>Concentration LB</td>
+						<td>Concentration UB</td>
+						<td>Concentration</td>
+					</tr>
+				{% for deets in result.compound_details %}
+					<tr {% if deets.class != None %}class="{{deets.class}}"{% endif %}>
+						<td>{{deets.name}}</td>
+						<td>{{deets.id}}</td>
+						<td>{{deets.lb|stringformat:".2g"}}</td>
+						<td>{{deets.ub|stringformat:".2g"}}</td>
+						<td>{{deets.concentration|stringformat:".2g"}}</td>
+					</tr>
+				{% endfor %}
+				</table>
+			</div>
+			
+			<div class="resultTable">
+				<div class="tableTitle">Reaction Gibbs Energies (kJ/mol)</div>
+				<table border="1">
+					<tr>
+						<td>Reaction ID</td>
+						<td>&Delta;<sub>r</sub>G'&deg;</td>
+						<td>&Delta;<sub>r</sub>G'</td>
+					</tr>
+				{% for deets in result.reaction_details %}
+					<tr {% if deets.at_mtdf %}class="rxnAtMTDF"{% endif %}>
+						<td>{{deets.id}}</td>
+						<td>{{deets.dGr0_tag|stringformat:".4g"}}</td>
+						<td>{{deets.dGr_tag|stringformat:".4g"}}</td>
+					</tr>
+				{% endfor %}
+				</table>
+			</div>
+		</div>
+	{% endfor %}
+	</body>
+</html>
