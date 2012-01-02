@@ -7,6 +7,7 @@ from pygibbs.tests import kegg_compound_test
 from pygibbs.tests import kegg_enzyme_test
 from pygibbs.tests import pathway_test
 from pygibbs.tests import thermo_json_output_test
+from pygibbs.tests import group_decomposition_test
 
 from pygibbs.tests.metabolic_modelling import bounds_test
 from pygibbs.tests.metabolic_modelling import mtdf_optimizer_test
@@ -19,6 +20,7 @@ def main():
                     kegg_enzyme_test,
                     pathway_test,
                     thermo_json_output_test,
+                    group_decomposition_test,
                     bounds_test,
                     mtdf_optimizer_test,
                     stoich_model_test,
