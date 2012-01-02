@@ -1,8 +1,15 @@
+"""
+    This script was intended to use a numerical solver to infer chemical formation
+    energies from biochemical energies (without explicitly using pKa values).
+    
+    This file is deprecated since it hasn't been used for too long and the
+    packages it depends on have new APIs. 
+"""
 import csv, re, random
 from pygibbs.thermodynamics import Thermodynamics
 from pygibbs.thermodynamic_constants import R, correction_function,\
     array_transform
-from scipy.stats.stats import mean
+from numpy import mean
 from numpy.linalg.linalg import inv, LinAlgError, array
 from matplotlib.pyplot import hold, figure, subplot, plot, xlabel, ylabel, title,\
     legend, show
