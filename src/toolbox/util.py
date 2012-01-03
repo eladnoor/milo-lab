@@ -4,6 +4,14 @@ import Levenshtein
 import re
 import itertools
 
+
+SLUG_RE = re.compile(r'[\s\-\\\/]+')
+
+def slugify(val):
+    l = val.lower()
+    return SLUG_RE.sub('_', l)
+    
+
 def read_simple_mapfile(filename, default_value=""):
     map = {}
     file = open(filename, 'r')
