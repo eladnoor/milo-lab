@@ -10,14 +10,14 @@ def MeanWithConfidenceInterval(Y, confidence=0.95):
         2 tuple (mean, symmetric confidence interval size).
     """
     n = len(Y)
-    Y_bar = np.mean(Y)
+    Y_bar = st.nanmean(Y)
 
     # According to the Student T-test distribution for n-1 degrees of freedom
     # find the position where the CDF is 0.975 (assuming we want a confidence
     # of 0.95). The lower part of the tail will account for the other 0.025
     # chance.
     t = st.t.ppf((confidence + 1.0)/2.0, n-1)
-    SD = np.std(Y, ddof=1) # use the unbiased estimator: sqrt(y^2 / (n-1))
+    SD = st.nanstd(Y, bias=False) # use the unbiased estimator: sqrt(y^2 / (n-1))
     SE = SD / np.sqrt(len(Y))
     return Y_bar, t*SE
 
