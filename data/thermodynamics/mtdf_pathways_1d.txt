@@ -27,9 +27,9 @@ REACTION    glk  C00002 + C00031 -> C00008 + C00092 (x1)
             eno  C00631 -> C00001 + C00074 (x1)
             pyk  C00008 + C00074 -> C00002 + C00022 (x1)
 ///
-ENTRY       P02-GLYCOLYSIS
+ENTRY       P02-EMP
 SKIP        FALSE
-NAME        Glycolysis
+NAME        EMP
 TYPE        MTDF
 PH          7
 I           0.1
