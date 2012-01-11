@@ -27,9 +27,10 @@ class Well(dict):
 
 class Plate96(object):
     
-    def __init__(self, wells, reading_labels):
+    def __init__(self, wells, reading_labels, id=None):
         self.wells = wells
         self.reading_labels = set(reading_labels)
+        self.id = id
     
     @staticmethod
     def FromDatabase(database, exp_id, plate):
@@ -41,16 +42,19 @@ class Plate96(object):
         sql = "SELECT row, col, label FROM tecan_labels WHERE plate='%s' AND exp_id='%s'" % (plate, exp_id)
         well_labels = database.Execute(sql)
         for row, col, label in well_labels:
+            if row > 7 or col > 11:
+                continue
+            
             wells[row][col].update(row, col, label)
         
         readings = database.Execute("SELECT row, col, reading_label, time, measurement from tecan_readings WHERE plate='%s' AND exp_id='%s'" % (plate, exp_id))
         for r in readings:
-            row, col, reading_label, time, measurement = r            
+            row, col, reading_label, time, measurement = r
             
             m = TimedMeasurement(time, measurement)
             wells[row][col].setdefault(reading_label, []).append(m)
         
-        return Plate96(wells, reading_labels)
+        return Plate96(wells, reading_labels, id=plate)
     
     def SelectReading(self, reading_label):
         if reading_label not in self.reading_labels:
