@@ -84,7 +84,9 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         norm_counts = count_matrix - min(levels)
         c_mat = pylab.matrix(norm_counts)
         if c_mat[-1, 0] == 0:
-            c_mat[-1, 0] = min(c_mat[pylab.find(c_mat > 0)])
+            ge_zero = c_mat[pylab.find(c_mat > 0)]
+            if ge_zero.any():
+                c_mat[-1, 0] = min(ge_zero)                
     
         for i in pylab.arange(N-1, 0, -1):
             if c_mat[i-1, 0] <= 0:
@@ -110,14 +112,28 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
             res_mat[i, 4] = max(pylab.exp(y))
         
         return res_mat
+    
+    def FindMaximumGrowthRate(self, res_mat):
+        """Calculates the maximum growth rate from the res_mat.
         
+        Args:
+            res_mat: the return value of CalculateRates.
+        
+        Returns:
+            The index of the entry corresponding to the
+            maximum growth rate in the allowed range.
+        """
+        allowed_vals = pylab.find(res_mat[:,4] < self.maximum_level)
+        max_i = res_mat[allowed_vals,0].argmax()
+        return max_i
+    
     def CalculateGrowthInternal(self, times, levels):
         res_mat = self.CalculateRates(times, levels)
+        max_i = self.FindMaximumGrowthRate(res_mat)
+        
         t_mat = pylab.matrix(times).T
         count_matrix = pylab.matrix(levels).T
         norm_counts = count_matrix - min(levels)
-        allowed_vals = pylab.find(res_mat[:,4] < self.maximum_level)
-        max_i = res_mat[allowed_vals,0].argmax()
 
         abs_res_mat = pylab.array(res_mat)
         abs_res_mat[:,0] = pylab.absolute(res_mat[:,0])
@@ -130,7 +146,6 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         if stationary_indices.any():
             stationary_level = res_mat[stationary_indices[0], 3]
         
-        """
         pylab.hold(True)
         pylab.plot(times, norm_counts)
         pylab.plot(times, res_mat[:,0])
@@ -147,7 +162,6 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         pylab.yscale('log')
         pylab.legend(['OD', 'growth rate', 'threshold', 'fit'])
         #, 'stationary'])
-        """
         
         return res_mat[max_i, 0], stationary_level
 

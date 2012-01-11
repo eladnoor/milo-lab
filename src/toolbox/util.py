@@ -5,7 +5,7 @@ import re
 import itertools
 
 
-SLUG_RE = re.compile(r'[\s\-\\\/]+')
+SLUG_RE = re.compile(r'[\s\-\\\/\?]+')
 
 def slugify(val):
     l = val.lower()
