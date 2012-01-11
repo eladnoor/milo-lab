@@ -121,12 +121,13 @@ def Main():
     pylab.subplot(121)
     pylab.xlabel('CAP Concentration (fraction of standard concentration)')
     pylab.ylabel('Relative Specific Growth Rate (/hour)')
+    pylab.xlim(-0.1,0.2)
     
     pylab.subplot(122)
     pylab.xlabel('CAP Concentration (fraction of standard concentration)')
     pylab.ylabel('Absolute Specific Growth Rate (/hour)')
     
-    
+    pylab.xlim(-0.1,0.2)
     pylab.legend()
     pylab.show()
     

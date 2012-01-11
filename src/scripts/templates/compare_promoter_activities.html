@@ -1,0 +1,84 @@
+<html>
+	<head>
+		<title>Comparing Promoter Activity</title>
+	</head>
+	<body>
+	
+	<div class='generalInfo'>
+		<div>Experiment: {{ experiment_id }}</div>
+		<div>First plates: {{ first_plate_ids|join:", " }}</div>
+		<div>Second plates: {{ second_plate_ids|join:", " }}</div>
+		<div>Culture growth label: {{ culture_label }}</div>
+		<div>Reporter label: {{ reporter_label }}</div>
+		{% for fname in summary_figure_fnames %}
+		<div class='graph'>
+			<img src='imgs/{{ fname }}' />
+		</div>
+		{% endfor %}
+	</div>
+	
+	<div class='diffsInfo'>
+		<ul>Differential maximal expression (Gluconate - Glucose)
+	{% for s in diffs_data %}
+		<li>{{ s.label }}
+		{% if s.fold_change %}
+			- fold induction = {{ s.fold_change|floatformat:2 }}, log2(fold) = {{ s.log_fold|floatformat:2 }}
+			{% else %}
+			- Not Measured
+		{% endif %}
+		</li>
+	{% endfor %}
+		</ul>
+	</div>
+	
+
+	<div class='strainsInfo'>
+	{% for strain in strains_data.all_strains %}
+		<div class='strain'>
+			<div class='title'>{{ strain.label }}</div>
+			<div class='graph'>
+				<img src='imgs/{{ strain.raw_levels_fname }}' />
+			</div>
+			<div class='graph'>
+				<img src='imgs/{{ strain.vs_bg_fname }}' />
+			</div>
+			<div class='graph'>
+				<img src='imgs/{{ strain.levels_fname }}' />
+			</div>
+			<div class='graph'>
+				<img src='imgs/{{ strain.activity_fname }}' />
+			</div>
+		</div>
+	{% endfor %}
+	</div>
+	
+	<div class='platesInfo'>
+	{% for plate in first_plates %}
+		<div>
+			<div class='title'>Plate {{ plate.plate.id }}</div>
+			<div class='removedLabels'>Labels Filtered Out
+				<ul>
+					{% for l in plate.labels_removed %}
+					<li>{{ l }}</li>
+					{% endfor %}
+				</ul>
+			</div>
+		</div>
+	{% endfor %}
+	{% for plate in second_plates %}
+		<div>
+			<div class='title'>Plate {{ plate.plate.id }}</div>
+			<div class='removedLabels'>Labels Filtered Out
+				<ul>
+					{% for l in plate.labels_removed %}
+					<li>{{ l }}</li>
+					{% endfor %}
+				</ul>
+			</div>
+		</div>
+	{% endfor %}
+	</div>
+	
+	
+	</body>
+</html>

@@ -100,6 +100,9 @@ def Main():
         s = pylab.array(stationaries[label]) / pct
         
         s_mean, s_err = MeanWithConfidenceInterval(s)
+        if s_mean == 0.0:
+            continue
+        
         pylab.loglog(pct, s_mean, color=colors[label], marker='.',
                      linestyle='None', figure=f, markersize=20, label=label)
         pylab.errorbar(pct, s_mean, yerr=s_err) 
@@ -111,7 +114,6 @@ def Main():
     concs = pylab.array([float(l) for l in rates.keys()])
     for conc, rate, err in zip(concs, mean_rates, rate_err):
         print '%s: %.2g +- %.2g' % (conc, rate, err)
-    
     
     idx = range(len(concs))
     pylab.semilogx(concs, mean_rates, 'g.')
