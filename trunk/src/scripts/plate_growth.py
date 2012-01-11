@@ -60,7 +60,7 @@ def Main():
     assert options.experiment_id and options.plate_id and options.reading_label
     print 'Reading plate %s from experiment %s' % (options.plate_id, options.experiment_id)
     
-    db = MySQLDatabase(host='132.77.80.238', user='ronm', 
+    db = MySQLDatabase(host='hldbv02', user='ronm', 
                        passwd='a1a1a1', db='tecan')
     p = Plate96.FromDatabase(db, options.experiment_id,
                              options.plate_id)
