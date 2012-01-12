@@ -3,55 +3,7 @@ import scipy.misc as misc
 import scipy.ndimage as ndimage
 import numpy as np
 import matplotlib.pyplot as plt
-import mahotas
 import pymorph
-
-def NumpyLoadImage(fname):
-    #im = Image.open(fname)
-    #_, _, height, width = im.getbbox()
-    #bitmap = np.zeros((width, height, 3))
-    #for i, (r, g, b) in enumerate(im.getdata()):
-    #    bitmap[i/height, i%height, :] = (1.0-r/256.0, 1.0-g/256.0, 1.0-b/256.0)
-    
-    bitmap = misc.imread(fname) / 256.0
-    greyscale = np.mean(bitmap, 2)
-    threshold = 0.7
-    greyscale[np.where(greyscale > threshold)] = 1.0
-    greyscale[np.where(greyscale <= threshold)] = 0.0
-    
-    plt.imshow(greyscale, cmap=plt.cm.gray)
-    plt.show()
-
-def DetectHough(img):
-    grey = cv.CreateImage((img.width, img.height), cv.IPL_DEPTH_8U, 1)
-    cv.CvtColor(img, grey, cv.CV_RGB2GRAY)
-    
-    thresholded = cv.CreateImage((img.width, img.height), cv.IPL_DEPTH_8U, 1)
-    cv.InRangeS(grey, 150, 256, thresholded)
-    storage = cv.CreateMat(1, 1000, cv.CV_32FC3)      
-    cv.HoughCircles(thresholded, storage, cv.CV_HOUGH_GRADIENT, 1, 
-                    thresholded.height/4, 100, 40, 20, 200)
-    print storage[0, 0]
-    #for i in xrange(storage.width):
-    #    print storage[i, 0], storage[i, 1], storage[i, 2]
-
-def DetectEdge(img, N=7):
-    img_b = cv.CreateImage((img.width+N-1, img.height+N-1), 8, 3)
-    img_g = cv.CreateImage((img.width+N-1, img.height+N-1), 8, 1)
-    out = cv.CreateImage((img.width+N-1, img.height+N-1), 8, 1)
-    
-    # Add convolution borders
-    offset = ((N-1)/2, (N-1)/2)
-    cv.CopyMakeBorder(img, img_b, offset, 0, 0)
-    cv.CvtColor(img_b, img_g, cv.CV_RGB2GRAY)
-    
-    # Edge Detection Variables
-    aperture_size = N
-    lowThresh = 60.0 * N**2
-    highThresh = 80.0 * N**2
-    
-    cv.Canny(img_g, out, lowThresh, highThresh, aperture_size=aperture_size)
-    cv.ShowImage("edge", out)
 
 def GetCircle(center, radius):
     x_points = []
@@ -66,15 +18,12 @@ def GetCircle(center, radius):
             x_points += [int(np.floor(center[0] + radius - x))]*len(r_y)
     return (x_points, y_points)
 
-def NumpyDetectEdge(fname, color_filter=(1, 1, 1), radius=510, center=(582, 791)):
+def NumpyDetectEdge(fname, color_filter=(1, 1, 1), 
+                    radius=510, center=(582, 791), show=False):
     plate_circle = GetCircle(center, radius)
     
     im = misc.imread(fname)
     im_gray = np.dot(im, color_filter) / sum(color_filter)
-    #im_gray[plate_circle] = 0
-    #plt.imshow(im_gray, plt.cm.gray)
-    #plt.show()
-    #return
 
     imf = ndimage.gaussian_filter(im_gray, sigma=2)
     imf = 256 - imf # invert color
@@ -93,8 +42,7 @@ def NumpyDetectEdge(fname, color_filter=(1, 1, 1), radius=510, center=(582, 791)
     for i in xrange(n_colonies):
         seed = np.where(seeds==i)
         l = len(seed[0])
-        # filter seeds which are touching the perimeter of 
-        # the circle (false alarms)
+        # filter seeds which are touching the perimeter (or 5 pixel away from it) 
         perimeter = False
         for j in xrange(l):
             if np.sqrt((radius-seed[0][j])**2 + (radius-seed[1][j])**2) > radius-5:
@@ -107,13 +55,6 @@ def NumpyDetectEdge(fname, color_filter=(1, 1, 1), radius=510, center=(582, 791)
         meanx = np.mean(seedx)
         meany = np.mean(seedy)
         
-        #av = np.mean(im[(seedx, seedy)])
-        #if av < T:
-        #    continue
-        
-        #for j in xrange(l):
-        #    im[seedx[j], seedy[j], :] = (255, 0, 0)
-        #print meanx, meany
         colony_circle = GetCircle((meanx, meany), 3)
         colony_color = np.min(imf[colony_circle])
         if colony_color >= 110:
@@ -132,10 +73,10 @@ def NumpyDetectEdge(fname, color_filter=(1, 1, 1), radius=510, center=(582, 791)
             im[meanx, meany, :] = (255, 0, 255) # magenta
         elif 150 < colony_color:
             im[meanx, meany, :] = (255, 255, 255) # white
-        
-    #plt.imshow(im)
-    #plt.imshow(im_gray, plt.cm.gray)
-    #plt.show()
+    
+    if show:
+        plt.imshow(im)
+        plt.show()
     return count
 
 if __name__ == "__main__":

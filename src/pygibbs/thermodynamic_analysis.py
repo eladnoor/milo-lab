@@ -1,10 +1,8 @@
 #!/usr/bin/python
 
-import copy
 import logging
 import matplotlib
 import os
-from pylab import meshgrid
 import re
 import sys 
 import numpy as np
@@ -15,13 +13,13 @@ from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs.pathway import PathwayData
 from pygibbs.thermodynamic_constants import transform, RedoxCarriers
-from pygibbs.thermodynamic_constants import default_T, default_pH
-from pygibbs.thermodynamic_constants import default_I, R, F
+from pygibbs.thermodynamic_constants import default_T, R, F
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from toolbox.util import _mkdir
 import scipy.io
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from pygibbs.pathway_modelling import KeggPathway,\
     UnsolvableConvexProblemException, DeltaGNormalization
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
@@ -451,10 +449,21 @@ class ThermodynamicAnalysis(object):
 
         self.write_metabolic_graph(key+"_grph", S, rids, cids)
         self.write_formation_energies_to_html(cids)
-        dG_r_prime = keggpath.CalculateReactionEnergiesUsingConcentrations(concentrations)
-        return "ODFE = %.1f%%, Total &#x394;<sub>r</sub>G' = %.1f [min = %.1f, max = %.1f] kJ/mol" % \
-            (odfe, float(np.dot(dG_r_prime.T, fluxes)), 
-             min_total_dG_prime, max_total_dG_prime)
+        
+        #dG_r_prime = keggpath.CalculateReactionEnergiesUsingConcentrations(concentrations)
+        #return "ODFE = %.1f%%, Total &#x394;<sub>r</sub>G' = %.1f [min = %.1f, max = %.1f] kJ/mol" % \
+        #    (odfe, float(np.dot(dG_r_prime.T, fluxes)), 
+        #     min_total_dG_prime, max_total_dG_prime)
+        
+        average_dG_prime = min_total_dG_prime/np.sum(fluxes)
+        average_dfe = 100 * np.tanh(-average_dG_prime / (2*R*self.thermo.T))
+        
+        print ','.join([key, '%.1f' % mtdf, '%.1f' % -average_dG_prime, 
+                        '%.1f' % odfe, '%.1f' % average_dfe, 
+                        '%.1f' % min_total_dG_prime, '%g' % np.sum(fluxes)])
+        return "MTDF = %.1f (avg. = %.1f) kJ/mol, ODFE = %.1f%% (avg. = %.1f%%), Total &#x394;<sub>r</sub>G' = %.1f kJ/mol, no. steps = %g" %\
+            (mtdf, -average_dG_prime, odfe, average_dfe, min_total_dG_prime, np.sum(fluxes))
+        
 
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map
@@ -678,7 +687,7 @@ class ThermodynamicAnalysis(object):
         plt.title("minimal $\\log([CO_2]/1M)$ required for feasibility")
         self.html_writer.embed_matplotlib_figure(fig)
 
-    def analyze_mtdf_2d(self, key, pathway_data, contour=True):
+    def analyze_mtdf_2d(self, key, pathway_data, contour=False):
         """
             Plot the MTDF of a pathway, at different pH and redox states.
             The redox state is defined as the E' of NADP(ox) -> NADP(red).
@@ -729,8 +738,7 @@ class ThermodynamicAnalysis(object):
         
         min_pH, max_pH = 5.0, 9.0
         min_E, max_E = -0.5, -0.1
-        resolution = 20
-        steps = np.arange(0.0, 1.01, 1.0/(resolution-1))
+        steps = np.r_[0:1:21j] # array of 21 numbers evenly spaced from 0 to 1
 
         pH_list = pathway_data.pH_values or (min_pH + steps*(max_pH-min_pH)) 
         E_list = pathway_data.redox_values or (min_E + steps*(max_E-min_E)) 
@@ -762,20 +770,29 @@ class ThermodynamicAnalysis(object):
                     logging.debug(str(e))
                     odfe_mat[i, j] = np.NaN
         
-        fig = plt.figure()
-        fig.hold(True)
         if contour:
-            CS = plt.contour(pH_mat, E_mat, odfe_mat, 
-                             np.arange(0, 100.01, 20), colors='k')
-            plt.clabel(CS, inline=1, fontsize=7, colors='black')
+            fig = plt.figure()
+            CS = plt.contour(pH_mat, E_mat, odfe_mat, np.r_[0:100:6j], 
+                             colors='k', figure=fig)
+            plt.clabel(CS, inline=1, fontsize=7, colors='black', figure=fig)
         else:
-            collection = plt.pcolor(pH_mat, E_mat, odfe_mat, figure=fig)
-            plt.colorbar(mappable=collection)
-        plt.xlim(min(pH_list), max(pH_list))
-        plt.ylim(min(E_list), max(E_list))
-        plt.xlabel("pH")
-        plt.ylabel("$E^'$ (V)")
-        plt.title("ODFE (in %)")
+            fig = plt.figure(figsize=(8.0, 6.0)) # make more room for colorbar
+            cdict = {'red': ((0.0, 1.0, 1.0),
+                            (1.0, 0.0, 0.0)),
+                    'green': ((0.0, 0.0, 0.0),
+                              (1.0, 1.0, 1.0)),
+                    'blue': ((0.0, 0.0, 0.0),
+                             (1.0, 0.0, 0.0))}
+            cmap = colors.LinearSegmentedColormap('red_green', cdict, 256)
+            plt.contourf(pH_mat, E_mat, odfe_mat,
+                         levels=[0, 20, 40, 60, 80, 100], 
+                         cmap=cmap, figure=fig)
+            plt.colorbar()
+        fig.axes[0].set_xlim(min(pH_list), max(pH_list))
+        fig.axes[0].set_ylim(min(E_list), max(E_list))
+        plt.xlabel("pH", figure=fig)
+        plt.ylabel("$E^'$ (V)", figure=fig)
+        plt.title("ODFE (in %)", figure=fig)
         
         redox = RedoxCarriers()
         for name in ['NADP', 'ferredoxin', 'FAD']:
@@ -784,8 +801,10 @@ class ThermodynamicAnalysis(object):
             E_max = rc.E_prime + 0.5*R*default_T*np.log(10)/(F*rc.delta_e)
             if min(E_list) > E_max or max(E_list) < E_min:
                 continue
-            plt.axhspan(ymin=E_min, ymax=E_max, facecolor='r', alpha=0.3, figure=fig)
-            plt.text(max(pH_list), rc.E_prime, name)
+            plt.axhspan(ymin=E_min, ymax=E_max, facecolor='w', 
+                        alpha=0.5, figure=fig)
+            #plt.text(max(pH_list)-10, rc.E_prime, name,
+            #         alpha=1.0, ha='right', va='center')
         
         self.html_writer.embed_matplotlib_figure(fig, name=key+"_cntr")
 
