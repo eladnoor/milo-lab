@@ -32,7 +32,7 @@ class Pathway(object):
     DEFAULT_REACTION_LB = -1e3
     DEFAULT_REACTION_UB = 0.0
     DEFAULT_C_RANGE = (1e-6, 0.1)
-    DEFAULT_PHYSIOLOGICAL_CONC = 1e-4
+    DEFAULT_PHYSIOLOGICAL_CONC = 1e-3
     
     def __init__(self, S,
                  formation_energies=None, reaction_energies=None, fluxes=None):
@@ -915,7 +915,14 @@ class KeggPathway(Pathway):
     
     def WriteProfileToHtmlTable(self, html_writer, concentrations):
         #html_writer.write('<b>Biochemical Reaction Energies</b></br>\n')
+        phys_concentrations = np.ones(concentrations.shape) * self.DEFAULT_PHYSIOLOGICAL_CONC
+        dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
         dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
+        
+        headers=["reaction", 'formula', 'flux', 
+                 "&#x394;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC, 
+                 "&#x394;<sub>r</sub>G' [kJ/mol]"]
+        
         dict_list = []
         for r, rid in enumerate(self.rids):
             d = {}
@@ -928,9 +935,9 @@ class KeggPathway(Pathway):
                 d['reaction'] = self.kegg.rid2string(rid)
             d['flux'] = "%g" % abs(self.fluxes[r])
             d['formula'] = self.GetReactionString(r, show_cids=False)
-            d["&#x394;<sub>r</sub>G'<sup>0</sup> [kJ/mol]"] = KeggPathway._EnergyToString(
-                            np.sign(self.fluxes[r]) * self.dG0_r_prime[r, 0])
-            d["&#x394;<sub>r</sub>G' [kJ/mol]"] = KeggPathway._EnergyToString(
+            d[headers[3]] = \
+                KeggPathway._EnergyToString(np.sign(self.fluxes[r]) * dG_r_prime_c[r, 0])
+            d[headers[4]] = KeggPathway._EnergyToString(
                             np.sign(self.fluxes[r]) * dG_r_prime[r, 0])
             dict_list.append(d)
 
@@ -939,15 +946,12 @@ class KeggPathway(Pathway):
         d = {'reaction':'Total',
              'flux':'1',
              'formula':self.GetTotalReactionString(show_cids=False),
-             "&#x394;<sub>r</sub>G'<sup>0</sup> [kJ/mol]":total_dG0,
-             "&#x394;<sub>r</sub>G' [kJ/mol]":total_dG}
+             headers[3]:total_dG0,
+             headers[4]:total_dG}
         dict_list.append(d)
         
-        html_writer.write_table(dict_list,
-            headers=["reaction", 'formula', 'flux',
-                     "&#x394;<sub>r</sub>G'<sup>0</sup> [kJ/mol]",
-                     "&#x394;<sub>r</sub>G' [kJ/mol]"])
-
+        html_writer.write_table(dict_list, headers=headers)
+        
 if __name__ == '__main__':
     S = np.array([[-1, 1, 0, 0], [0, -1, 1, 0], [0, 0, 1, -1]])
     dGs = np.array([0, 10, 12, 2]).T

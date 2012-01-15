@@ -1,27 +1,5 @@
 ENTRY       CF01-RPP
-SKIP        FALSE
 NAME        reductive Pentose Phosphate cycle
-TYPE        MTDF
-PH          7
-I           0.1
-T           298.15
-C_RANGE     1e-6 1e-2
-BOUND       C00001  1
-            C00011  1e-5
-            C00288  9e-5
-            C00002  5e-3
-            C00008  5e-4
-            C00009  5e-3
-            C00020  1e-4
-            C00013  3e-9
-            C00003  1e-3
-            C00004  1e-4 1e-2
-            C00006  1e-3
-            C00005  1e-4 1e-2
-            C00399  1e-3
-            C00390  1e-4 1e-2
-            C00138  1e-3
-            C00139  1e-4 1e-2
 REACTION    tpi    C00118 -> C00111 (x2)
             fba1   C00111 + C00118 -> C00354 (x1)
             fbp1   C00354 + C00001 -> C00085 + C00009 (x1)
@@ -40,29 +18,7 @@ REACTION    tpi    C00118 -> C00111 (x2)
             pyk    C00008 + C00074 -> C00002 + C00022 (x1)
 ///
 ENTRY       CF02-RTCA
-SKIP        FALSE
 NAME        reductive TCA cycle
-TYPE        MTDF
-PH          7
-I           0.1
-T           298.15
-C_RANGE     1e-6 1e-2
-BOUND       C00001  1
-            C00011  1e-5
-            C00288  9e-5
-            C00002  5e-3
-            C00008  5e-4
-            C00009  5e-3
-            C00020  1e-4
-            C00013  3e-9
-            C00003  1e-3
-            C00004  1e-4 1e-2
-            C00006  1e-3
-            C00005  1e-4 1e-2
-            C00399  1e-3
-            C00390  1e-4 1e-2
-            C00138  1e-3
-            C00139  1e-4 1e-2
 REACTION    mdh    C00036 + C00005 -> C00149 + C00006 (x1)
             fum    C00149 -> C00122 + C00001 (x1)
             sdh    C00122 + C00004 -> C00042 + C00003 (x1)
@@ -74,29 +30,7 @@ REACTION    mdh    C00036 + C00005 -> C00149 + C00006 (x1)
             por    2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
 ///
 ENTRY       CF03-DC-4HB
-SKIP        FALSE
 NAME        Dicarboxylate / 4-Hydroxybutyrate
-TYPE        MTDF
-PH          7
-I           0.1
-T           298.15
-C_RANGE     1e-6 1e-2
-BOUND       C00001  1
-            C00011  1e-5
-            C00288  9e-5
-            C00002  5e-3
-            C00008  5e-4
-            C00009  5e-3
-            C00020  1e-4
-            C00013  3e-9
-            C00003  1e-3
-            C00004  1e-4 1e-2
-            C00006  1e-3
-            C00005  1e-4 1e-2
-            C00399  1e-3
-            C00390  1e-4 1e-2
-            C00138  1e-3
-            C00139  1e-4 1e-2
 REACTION    por  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x2)
             pps  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009 (x1)
             ppc  C00001 + C00074 + C00288 -> C00001 + C00009 + C00036 (x1)
@@ -114,29 +48,7 @@ REACTION    por  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x2)
             ato    C00010 + C00332 -> 2 C00024 (x1)
 ///
 ENTRY       CF04-3HP-4HB
-SKIP        FALSE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
-TYPE        MTDF
-PH          7
-I           0.1
-T           298.15
-C_RANGE     1e-6 1e-2
-BOUND       C00001  1
-            C00011  1e-5
-            C00288  9e-5
-            C00002  5e-3
-            C00008  5e-4
-            C00009  5e-3
-            C00020  1e-4
-            C00013  3e-9
-            C00003  1e-3
-            C00004  1e-4 1e-2
-            C00006  1e-3
-            C00005  1e-4 1e-2
-            C00399  1e-3
-            C00390  1e-4 1e-2
-            C00138  1e-3
-            C00139  1e-4 1e-2
 REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x2)
             R90100  C00222 + C00005 -> C01013 + C00006 (x2)
@@ -160,29 +72,7 @@ REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             mae    C00149 + C00006 -> C00022 + C00011 + C00005 (x1)
 ///
 ENTRY       CF05-3HP
-SKIP        FALSE
 NAME        3-Hydroxypropionate Cycle
-TYPE        MTDF
-PH          7
-I           0.1
-T           298.15
-C_RANGE     1e-6 1e-2
-BOUND       C00001  1
-            C00011  1e-5
-            C00288  9e-5
-            C00002  5e-3
-            C00008  5e-4
-            C00009  5e-3
-            C00020  1e-4
-            C00013  3e-9
-            C00003  1e-3
-            C00004  1e-4 1e-2
-            C00006  1e-3
-            C00005  1e-4 1e-2
-            C00399  1e-3
-            C00390  1e-4 1e-2
-            C00138  1e-3
-            C00139  1e-4 1e-2
 REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x2)
             hpd    C00222 + C00005 -> C01013 + C00006 (x2)
@@ -201,3 +91,16 @@ REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             mch2   C06028 + C00001 -> C01011 (x1)
             mcl3   C01011 -> C00024 + C00022 (x1)
 ///
+ENTRY       CF06-C1-4
+NAME        C1-4
+REACTION    fdh  C00011 + C00005 -> C00058 + C00006 (x2)
+            fhs  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x2)
+            fol1 C00234 -> C00445 + C00001 (x2)
+            fol2 C00445 + C00005 -> C00143 + C00006 (x2)
+            gcvT C02972 + C00143 + C00014 -> C01242 + C00101 (x1)
+            gcvP C01242 + C00011 -> C00037 + C02051 (x1)
+            lpd  C02051 + C00004 -> C02972 + C00003 (x1)
+            gly  C00143 + C00037 + C00001 -> C00101 + C00065 (x1)
+            sda  C00065 -> C00022 + C00014 (x1)
+///
+
