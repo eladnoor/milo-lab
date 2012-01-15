@@ -58,6 +58,10 @@ class CultureShifter(object):
         left_mat = numpy.diag(1/maxes)
 
         scaled = numpy.dot(left_mat, zeroed_levels)
+        max_culture_idx = numpy.argmin(numpy.abs(scaled - 1.0), 1)
+        for i, j in enumerate(max_culture_idx):
+            scaled[i,j+1:] = 100
+            
         min_is = numpy.argmin(numpy.abs(scaled - 0.2), 1)
         
         # Set all cells to cross 20% culture level at time 0.
@@ -75,7 +79,7 @@ class CultureShifter(object):
 
 class ReporterBackgroundSubtracter(object):
     
-    def __init__(self, background_label='BACKGROUND'):
+    def __init__(self, background_label):
         self.background_label = background_label
         
     def SubtractBackground(self, reporter_mat, levels_mat, labels):
@@ -86,7 +90,7 @@ class ReporterBackgroundSubtracter(object):
         bg_index = bg_index[0]
         bg_reporter = reporter_mat[bg_index, :]
         bg_levels = levels_mat[bg_index, :]
-        
+                
         Nr, Nc = reporter_mat.shape
         bg_reporter_mat = numpy.zeros((Nr, Nc))
                 
@@ -94,14 +98,17 @@ class ReporterBackgroundSubtracter(object):
             for j in xrange(Nc):
                 level = levels_mat[i, j]
                 bg_min = numpy.abs(level - bg_levels)
-                bg_min_idx = numpy.argsort(bg_min)
-                closest_bg_i = None
-                for k in bg_min_idx:
-                    if bg_min[k] > 0:
-                        closest_bg_i = k
+                
+                cur_v = bg_min[0]
+                cur_i = 0
+                for idx, v in enumerate(bg_min):
+                    if v < 0:
                         break
+                    
+                    cur_v = v
+                    cur_i = idx
 
-                bg_reporter_mat[i, j] = bg_reporter[closest_bg_i]
+                bg_reporter_mat[i, j] = bg_reporter[cur_i]
         
         return reporter_mat - bg_reporter_mat
 
@@ -163,6 +170,22 @@ class ReporterActivityCalculator(object):
     
         return averaged
     
+    def SmoothAllActivities(self, activities):
+        """Smooths all activities.
+        
+        Args:
+            activities: matrix of calculated activities, row per well.
+           
+        Returns:
+            smoothed activities matrix
+        """
+        Nr, Nc = activities.shape
+        smooth_activities = numpy.zeros((Nr, Nc))
+        for i in xrange(Nr):
+            ac = activities[i,:]
+            smooth_activities[i, :] = self._MovingAverage(ac)
+        return smooth_activities
+    
     def CalculateAllMaxActivities(self, culture_levels, activities):
         """Calculates the maximal activities for all conditions.
         
@@ -194,16 +217,16 @@ class ReporterActivityCalculator(object):
         Returns:
             The maximal (smoothed) reporter level within the
             allowed range of culture levels.
-        """        
+        """
         abovemin_i = pylab.find(culture_levels >= self.min_culture_level)
-        belowmax_i = pylab.find(culture_levels <= self.max_culture_level)
-        if not abovemin_i.any():
+        abovemax_i = pylab.find(culture_levels >= self.max_culture_level)
+        if not abovemin_i.any() or not abovemax_i.any():
             return numpy.NAN
         
-        lower_i = abovemin_i[0]
-        upper_i = belowmax_i[-1]
+        lower_i = numpy.min(abovemin_i)
+        upper_i = numpy.min(abovemax_i)
         if lower_i >= upper_i:
-            return numpy.NAN        
+            return numpy.NAN
         
         window_size = upper_i - lower_i
         

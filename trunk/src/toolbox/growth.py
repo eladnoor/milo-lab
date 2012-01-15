@@ -123,13 +123,14 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
             The index of the entry corresponding to the
             maximum growth rate in the allowed range.
         """
-        allowed_vals = pylab.find(res_mat[:,4] < self.maximum_level)
-        max_i = res_mat[allowed_vals,0].argmax()
+        disallowed_vals = pylab.find(res_mat[:,4] > self.maximum_level)
+        upper_b = numpy.min(disallowed_vals)
+        max_i = res_mat[0:upper_b,0].argmax()
         return max_i
     
     def CalculateGrowthInternal(self, times, levels):
         res_mat = self.CalculateRates(times, levels)
-        max_i = self.FindMaximumGrowthRate(res_mat)
+        max_i = self.FindMaximumGrowthRate(res_mat)        
         
         t_mat = pylab.matrix(times).T
         count_matrix = pylab.matrix(levels).T
