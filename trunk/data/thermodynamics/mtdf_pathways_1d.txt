@@ -3,7 +3,7 @@ SKIP        FALSE
 NAME        ED (phosphorylating glucose)
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -32,7 +32,7 @@ SKIP        FALSE
 NAME        EMP
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -61,7 +61,7 @@ SKIP        FALSE
 NAME        Gluconeogenesis
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -89,7 +89,7 @@ SKIP        FALSE
 NAME        TCA cycle
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -118,7 +118,7 @@ SKIP        FALSE
 NAME        TCA cycle - forked
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -147,7 +147,7 @@ SKIP        FALSE
 NAME        reductive Pentose Phosphate cycle
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -160,26 +160,26 @@ BOUND       C00001  1
             C00005  5e-4
             C00006  5e-5
             C00011  1e-5
-REACTION    rbc    C01182 + C00011 + C00001 -> 2 C00197 (x1)
-            pgk    C00002 + C00197 -> C00008 + C00236 (x2)
-            gap    C00236 + C00005 -> C00118 + C00009 + C00006 (x2)
-            tpi    C00118 -> C00111 (x0.666)
-            fba1   C00111 + C00118 -> C00354 (x0.333)
-            fbp1   C00354 + C00001 -> C00085 + C00009 (x0.333)
-            tkt1   C00085 + C00118 -> C00279 + C00231 (x0.333)
-            fba2   C00111 + C00279 -> C00447 (x0.333)
-            fbp2   C00447 + C00001 -> C05382 + C00009 (x0.333)
-            tkt2   C05382 + C00118 -> C00117 + C00231 (x0.333)
-            rpi    C00117 -> C00199 (x0.333)
-            rpe    C00231 -> C00199 (x0.666)
-            prk    C00002 + C00199 -> C00008 + C01182 (x1)
+REACTION    rbc    C01182 + C00011 + C00001 -> 2 C00197 (x3)
+            pgk    C00002 + C00197 -> C00008 + C00236 (x6)
+            gap    C00236 + C00005 -> C00118 + C00009 + C00006 (x6)
+            tpi    C00118 -> C00111 (x2)
+            fba1   C00111 + C00118 -> C00354 (x1)
+            fbp1   C00354 + C00001 -> C00085 + C00009 (x1)
+            tkt1   C00085 + C00118 -> C00279 + C00231 (x1)
+            fba2   C00111 + C00279 -> C00447 (x1)
+            fbp2   C00447 + C00001 -> C05382 + C00009 (x1)
+            tkt2   C05382 + C00118 -> C00117 + C00231 (x1)
+            rpi    C00117 -> C00199 (x1)
+            rpe    C00231 -> C00199 (x2)
+            prk    C00002 + C00199 -> C00008 + C01182 (x3)
 ///
 ENTRY       P07-PP
 SKIP        FALSE
 NAME        Pentose Phosphate cycle
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -210,7 +210,7 @@ SKIP        FALSE
 NAME        reductive TCA cycle
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -233,13 +233,14 @@ REACTION    mdh    C00036 + C00005 -> C00149 + C00006 (x1)
             icd    C00026 + C00011 + C00005 -> C00311 + C00006 (x1)
             acn    C00311 -> C00158 (x1)
             acl    C00002 + C00158 + C00010 -> C00008 + C00009 + C00024 + C00036 (x1)
+            por    2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
 ///
 ENTRY       P09-DC-4HB
 SKIP        FALSE
 NAME        Dicarboxylate / 4-Hydroxybutyrate
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -256,7 +257,7 @@ BOUND       C00001  1
             C00288  9e-5
             C00138  1e-2
             C00139  1e-6
-REACTION    por  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
+REACTION    por  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x2)
             pps  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009 (x1)
             ppc  C00001 + C00074 + C00288 -> C00001 + C00009 + C00036 (x1)
             mdh  C00036 + C00005 -> C00149 + C00006 (x1)
@@ -277,7 +278,7 @@ SKIP        FALSE
 NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -294,34 +295,34 @@ BOUND       C00001  1
             C00288  9e-5
             C00399  1e-6
             C00390  1e-6
-REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
-            mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x1)
-            R90100  C00222 + C00005 -> C01013 + C00006 (x1)
-            hib    C01013 + C00010 + C00002 -> C05668 + C00009 + C00008 (x1)
-            paa    C05668 -> C00894 + C00001 (x1)
-            adh    C00894 + C00005 -> C00100 + C00006 (x1)
-            pcc    C00002 + C00100 + C00288 -> C00008 + C00009 + C00683 (x1)
-            mce    C00683 -> C01213 (x1)
-            scp    C01213 -> C00091 (x1)
-            ssd    C00091 + C00005 -> C00232 + C00006 + C00010 (x0.5)
-            ssr    C00232 + C00005 -> C00989 + C00006 (x0.5)
-            hbs    C00989 + C00002 + C00010 -> C11062 + C00020 + C00013 (x0.5)
-            abf1   C11062 -> C02331 + C00001 (x0.5)
-            abf2   C02331 -> C00877 (x0.5)
-            paa    C00877 + C00001 -> C01144 (x0.5)
-            fad    C01144 + C00003 -> C00332 + C00004 (x0.5)
-            ato    C00010 + C00332 -> 2 C00024 (x0.5)
-            sucCD  C00008 + C00009 + C00091 -> C00002 + C00042 + C00010 (x0.5)
-            sdh    C00399 + C00042 -> C00390 + C00122 (x0.5)
-            fum    C00122 + C00001 -> C00149 (x0.5)
-            mae    C00149 + C00006 -> C00022 + C00011 + C00005 (x0.5)
+REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
+            mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x2)
+            R90100  C00222 + C00005 -> C01013 + C00006 (x2)
+            hib    C01013 + C00010 + C00002 -> C05668 + C00009 + C00008 (x2)
+            paa    C05668 -> C00894 + C00001 (x2)
+            adh    C00894 + C00005 -> C00100 + C00006 (x2)
+            pcc    C00002 + C00100 + C00288 -> C00008 + C00009 + C00683 (x2)
+            mce    C00683 -> C01213 (x2)
+            scp    C01213 -> C00091 (x2)
+            ssd    C00091 + C00005 -> C00232 + C00006 + C00010 (x1)
+            ssr    C00232 + C00005 -> C00989 + C00006 (x1)
+            hbs    C00989 + C00002 + C00010 -> C11062 + C00020 + C00013 (x1)
+            abf1   C11062 -> C02331 + C00001 (x1)
+            abf2   C02331 -> C00877 (x1)
+            paa    C00877 + C00001 -> C01144 (x1)
+            fad    C01144 + C00003 -> C00332 + C00004 (x1)
+            ato    C00010 + C00332 -> 2 C00024 (x1)
+            sucCD  C00008 + C00009 + C00091 -> C00002 + C00042 + C00010 (x1)
+            sdh    C00399 + C00042 -> C00390 + C00122 (x1)
+            fum    C00122 + C00001 -> C00149 (x1)
+            mae    C00149 + C00006 -> C00022 + C00011 + C00005 (x1)
 ///
 ENTRY       P11-3HP
 SKIP        FALSE
 NAME        3-Hydroxypropionate Cycle
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -338,12 +339,12 @@ BOUND       C00001  1
             C00288  9e-5
             C00399  1e-6
             C00390  1e-6
-REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x1)
-            mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x1)
-            hpd    C00222 + C00005 -> C01013 + C00006 (x1)
-            acs    C01013 + C00010 + C00002 -> C05668 + C00013 + C00020 (x1)
-            paa    C05668 -> C00894 + C00001 (x1)
-            adh    C00894 + C00005 -> C00100 + C00006 (x1)
+REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
+            mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x2)
+            hpd    C00222 + C00005 -> C01013 + C00006 (x2)
+            acs    C01013 + C00010 + C00002 -> C05668 + C00013 + C00020 (x2)
+            paa    C05668 -> C00894 + C00001 (x2)
+            adh    C00894 + C00005 -> C00100 + C00006 (x2)
             pcc    C00002 + C00100 + C00288 -> C00008 + C00009 + C00683 (x1)
             mce    C00683 -> C01213 (x1)
             scp    C01213 -> C00091 (x1)
