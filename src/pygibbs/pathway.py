@@ -183,7 +183,7 @@ class PathwayData(object):
     def FromFieldMap(field_map):
         p = PathwayData()
         p.field_map = field_map
-        p.analysis_type = field_map.GetStringField('TYPE')
+        p.analysis_type = field_map.GetStringField('TYPE', default_value='None')
         p.skip = field_map.GetBoolField('SKIP', default_value=False)
         p.name = field_map.get('NAME')
         

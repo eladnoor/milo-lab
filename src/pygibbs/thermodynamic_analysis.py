@@ -463,7 +463,6 @@ class ThermodynamicAnalysis(object):
         return "MTDF = %.1f (avg. = %.1f) kJ/mol, ODFE = %.1f%% (avg. = %.1f%%), Total &#x394;<sub>r</sub>G' = %.1f kJ/mol, no. steps = %g" %\
             (mtdf, -average_dG_prime, odfe, average_dfe, total_dG_prime, np.sum(fluxes))
         
-
     def analyze_protonation(self, key, pathway_data):
         field_map = pathway_data.field_map
         pH_list = pathway_data.pH_values
