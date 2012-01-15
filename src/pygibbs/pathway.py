@@ -9,6 +9,7 @@ from pygibbs.thermodynamic_constants import default_c_range, default_c_mid
 
 from pygibbs.metabolic_modelling import stoich_model
 from pygibbs.metabolic_modelling import bounds
+from pygibbs.kegg import Kegg
 
 
 
@@ -227,7 +228,10 @@ class PathwayData(object):
             p.dG_methods.append('HATZI')
         
         return p
-
+    
+    def get_explicit_reactions(self):
+        kegg = Kegg.getInstance()
+        return kegg.parse_explicit_module(self.field_map, self.cid_mapping) 
 
 class KeggPathwayIterator(object):
     
@@ -249,12 +253,3 @@ class KeggPathwayIterator(object):
         for key in sorted(self.parsed_kegg_file.keys()):
             field_map = self.parsed_kegg_file[key]
             yield PathwayData.FromFieldMap(field_map)
-    
-        
-        
-        
-
-        
-        
-        
-        

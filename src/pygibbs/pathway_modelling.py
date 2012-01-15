@@ -232,6 +232,28 @@ class Pathway(object):
         
         return min_total_g, max_total_g
     
+    def _GetMaxReactionEnergy(self, c_range=(1e-6, 1e-2), bounds=None, min_driving_force=0):
+        problem = cvxmod.problem()
+
+        # Define and apply the constraints on the concentrations
+        ln_conc = cvxmod.optvar('lnC', self.Nc, 1)
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds,
+                                                                c_range=c_range)
+        problem.constr.append(ln_conc >= ln_conc_lb)
+        problem.constr.append(ln_conc <= ln_conc_ub)
+        
+        # find the row vector describing the overall stoichiometry
+        S = cvxmod.matrix(self.S)
+        f = cvxmod.matrix(np.array(self.fluxes)).T
+        g0 = cvxmod.matrix(self.dG0_r_prime)
+        g = g0 + RT * S * ln_conc
+        problem.constr.append(g <= -min_driving_force)
+
+        total_g = f * g
+        
+        problem.objective = cvxmod.maximize(total_g)
+        return self._RunThermoProblem(ln_conc, total_g, problem)
+            
     def _MakeMtdfProblem(self, c_range=(1e-6, 1e-2), bounds=None,
                          normalization=DeltaGNormalization.DEFAULT):
         """Create a cvxmod.problem for finding the Maximal Thermodynamic
@@ -769,6 +791,18 @@ class KeggPathway(Pathway):
 
     def GetTotalReactionEnergy(self):
         return self._GetTotalReactionEnergy(self.c_range, self.bounds)
+    
+    def GetMaxReactionEnergy(self, min_driving_force=0):
+        """
+            Maximizes the total pathway dG' (i.e. minimize energetic cost).
+            Arguments:
+                min_driving_force - the lower limit on each reaction's driving force
+                                    (it is common to provide the optimize driving force
+                                    in order to find the concentrations that minimize the
+                                    cost, without affecting the MTDF).
+        """
+        return self._GetMaxReactionEnergy(self.c_range, self.bounds, min_driving_force)
+        
         
     def FindMinimalFeasibleConcentration(self, cid_to_minimize):
         """

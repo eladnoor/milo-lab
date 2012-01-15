@@ -423,10 +423,9 @@ class ThermodynamicAnalysis(object):
         keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
         try:
-            min_total_dG_prime, max_total_dG_prime = keggpath.GetTotalReactionEnergy()
+            _, _, mtdf = keggpath.FindMtdf(normalization=DeltaGNormalization.SIGN_FLUX)
+            _, concentrations, total_dG_prime = keggpath.GetMaxReactionEnergy(mtdf)
             
-            _, concentrations, mtdf = keggpath.FindMtdf(
-                                    normalization=DeltaGNormalization.SIGN_FLUX)
         except UnsolvableConvexProblemException as e:
             self.html_writer.write("<b>WARNING: cannot calculate MTDF "
                                    "because %s:</b></br>\n" %
@@ -455,14 +454,14 @@ class ThermodynamicAnalysis(object):
         #    (odfe, float(np.dot(dG_r_prime.T, fluxes)), 
         #     min_total_dG_prime, max_total_dG_prime)
         
-        average_dG_prime = min_total_dG_prime/np.sum(fluxes)
+        average_dG_prime = total_dG_prime/np.sum(fluxes)
         average_dfe = 100 * np.tanh(-average_dG_prime / (2*R*self.thermo.T))
         
         print ','.join([key, '%.1f' % mtdf, '%.1f' % -average_dG_prime, 
                         '%.1f' % odfe, '%.1f' % average_dfe, 
-                        '%.1f' % min_total_dG_prime, '%g' % np.sum(fluxes)])
+                        '%.1f' % total_dG_prime, '%g' % np.sum(fluxes)])
         return "MTDF = %.1f (avg. = %.1f) kJ/mol, ODFE = %.1f%% (avg. = %.1f%%), Total &#x394;<sub>r</sub>G' = %.1f kJ/mol, no. steps = %g" %\
-            (mtdf, -average_dG_prime, odfe, average_dfe, min_total_dG_prime, np.sum(fluxes))
+            (mtdf, -average_dG_prime, odfe, average_dfe, total_dG_prime, np.sum(fluxes))
         
 
     def analyze_protonation(self, key, pathway_data):
