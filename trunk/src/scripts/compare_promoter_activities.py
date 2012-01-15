@@ -50,12 +50,12 @@ def MakeOpts():
     opt_parser.add_option("-w", "--window_size",
                           dest="window_size",
                           type='int',
-                          default=12,
+                          default=7,
                           help="Window size for computing the growth rate.")
     opt_parser.add_option("-m", "--min_culture_level",
                           dest="min_culture_level",
                           type='float',
-                          default=0.1,
+                          default=0.2,
                           help="Minimum culture level to consider valid.")
     opt_parser.add_option("-n", "--min_reporter_level",
                           dest="min_reporter_level",
@@ -115,7 +115,6 @@ def GetGeneTextColor(label):
 class PlateActivityRunner(object):
     
     def __init__(self,
-                 plate,
                  culture_label,
                  reporter_label,
                  filterer,
@@ -135,7 +134,7 @@ class PlateActivityRunner(object):
             activity_calc: a ReporterActivityCalculator that calculates
                 the activity level.
         """
-        self.plate = plate
+        self.plates = []
         self.culture_label = culture_label
         self.reporter_label = reporter_label
         self.filterer = filterer
@@ -143,13 +142,30 @@ class PlateActivityRunner(object):
         self.reporter_bg_subtracter = background_subtracter
         self.activity_calc = activity_calc
         
+    def AddPlate(self, plate):
+        self.plates.append(plate)
+    
+    def GetReadings(self, reading_label):
+        times = []
+        levels = []
+        labels = []
+        for plate in self.plates:
+            t, lev, lab = plate.SelectReading(reading_label)
+            times.append(t)
+            levels.append(lev)
+            labels.append(lab)
+        
+        return numpy.vstack(times), numpy.vstack(levels), numpy.hstack(labels)
+    
     def Run(self):
         """Runs the analysis. Stores all output in self."""
         # Fetch data from the plate
-        culture_times, culture_levels, culture_labels = self.plate.SelectReading(
+        culture_times, culture_levels, culture_labels = self.GetReadings(
                 self.culture_label)
-        unused_times, reporter_levels, unused_labels = self.plate.SelectReading(
+        unused_times, reporter_levels, unused_labels = self.GetReadings(
                 self.reporter_label)
+        
+        assert reporter_levels.shape[0] == culture_levels.shape[0]
         
         self.raw_times = culture_times
         self.raw_labels = culture_labels
@@ -163,8 +179,10 @@ class PlateActivityRunner(object):
         self.filtered_labels = self.raw_labels[self.indices_kept]
         kept_set = set(self.indices_kept)
         self.indices_removed = numpy.array([i for i in xrange(len(self.raw_labels))
-                                             if i not in kept_set])
-        self.labels_removed = self.raw_labels[self.indices_removed]
+                                            if i not in kept_set])
+        self.labels_removed = numpy.array([])
+        if self.indices_removed.any():
+            self.labels_removed = self.raw_labels[self.indices_removed]
         
         self.filtered_times = self.raw_times[self.indices_kept, :]
         self.filtered_culture_levels = self.raw_culture_levels[self.indices_kept, :]
@@ -183,6 +201,10 @@ class PlateActivityRunner(object):
         self.filtered_activities = self.activity_calc.CalculateAllActivities(
             self.filtered_culture_levels, self.filtered_reporter_levels_no_bg,
             self.filtered_times)
+        
+        # Compute the smoothed activities of strains over time.
+        self.smooth_filtered_activities = self.activity_calc.SmoothAllActivities(
+            self.filtered_activities)
         
         # Compute the maximal activities of each strain.
         self.filtered_max_activities = self.activity_calc.CalculateAllMaxActivities(
@@ -205,6 +227,7 @@ class StrainData(object):
         self.conditions_to_reporter_levels = {}
         self.conditions_to_times = {}
         self.conditions_to_activities = {}
+        self.conditions_to_smooth_activities = {}
         
         self.slug_label = util.slugify(self.label)
         self.raw_levels_fname = '%s_raw_levels.png' % self.slug_label
@@ -233,14 +256,18 @@ class StrainData(object):
     def AddConditionActivities(self, condition, activities, max_activity):
         t = (activities, max_activity)
         self.conditions_to_activities.setdefault(condition, []).append(t)
-    
+
+    def AddConditionSmoothActivities(self, condition, activities, max_activity):
+        t = (activities, max_activity)
+        self.conditions_to_smooth_activities.setdefault(condition, []).append(t)
+
     def GetMeanMaxActivity(self, condition):
         activity_vals = self.conditions_to_activities.get(condition, None)
         if activity_vals is None:
             return numpy.NAN
         
         maxes = [v[1] for v in activity_vals]
-        return st.nanmean(maxes)
+        return MeanWithConfidenceInterval(maxes)
     
     def MakeFigures(self, dirname, background_strain):
         colormap = ColorMap(self.conditions_to_raw_times.keys())
@@ -312,11 +339,25 @@ class StrainData(object):
                       format='png')
         
         pylab.figure()
+        pylab.subplot('211')
         pylab.title('Activity for %s' % self.label)
         pylab.xlabel('Time (s)')
         pylab.ylabel('Reporter Activity')
         for condition, times_list in self.conditions_to_times.iteritems():
             activities_list = self.conditions_to_activities[condition]
+            color = colormap[condition]
+            for i, (times, activities_data) in enumerate(zip(times_list, activities_list)):
+                activities, max_activity = activities_data
+                pylab.plot(times, activities, color=color,
+                           linestyle='-')
+                pylab.plot(times, [max_activity]*len(times),
+                           color=color, linestyle='--')
+        
+        pylab.subplot('212')
+        pylab.xlabel('Time (s)')
+        pylab.ylabel('Smoothed Reporter Activity')
+        for condition, times_list in self.conditions_to_times.iteritems():
+            activities_list = self.conditions_to_smooth_activities[condition]
             color = colormap[condition]
             for i, (times, activities_data) in enumerate(zip(times_list, activities_list)):
                 label = None
@@ -331,8 +372,8 @@ class StrainData(object):
                 pylab.plot(times, [max_activity]*len(times),
                            color=color, label=max_label,
                            linestyle='--')
-                
-        pylab.legend(loc='upper left', prop=LEGEND_FONT)
+        
+        pylab.legend(loc='lower right', prop=LEGEND_FONT)
 
         # Save the activity figure.
         pylab.savefig(path.join(dirname, self.activity_fname),
@@ -373,10 +414,11 @@ class StrainData(object):
         
 class StrainConditionsData(object):
     
-    def __init__(self, background_label='BACKGROUND'):
+    def __init__(self, background_label):
         self.strains = {}
         self.conditions = set()
         self.background_label = background_label
+        self.plates = {}
     
     def GetStrainLabels(self):
         return sorted(self.strains.keys())
@@ -391,6 +433,7 @@ class StrainConditionsData(object):
                      ignore_labels=None):
         my_ignore_labels = ignore_labels or set()
         self.conditions.add(condition)
+        self.plates.setdefault(condition, []).append(plate_runner)
         
         # Add raw data
         labels = plate_runner.raw_labels
@@ -421,8 +464,10 @@ class StrainConditionsData(object):
                 condition, plate_runner.shifted_times[i, :])
             
             activities = plate_runner.filtered_activities[i, :]
+            smooth_activities = plate_runner.smooth_filtered_activities[i, :]
             max_activity = plate_runner.filtered_max_activities[i]
             strain.AddConditionActivities(condition, activities, max_activity)
+            strain.AddConditionSmoothActivities(condition, smooth_activities, max_activity)
     
     def MakeStrainFigures(self, dirname):
         background_strain = self.strains[self.background_label]
@@ -431,15 +476,61 @@ class StrainConditionsData(object):
 
     def GetMeanMaxActivities(self, labels, condition):
         activities = []
+        intervals = []
         for l in labels:
             s = self.strains[l]
-            activities.append(s.GetMeanMaxActivity(condition))
-        return activities
+            ac, err = s.GetMeanMaxActivity(condition)
+            activities.append(ac)
+            intervals.append(err)
+        return activities, intervals
+    
+    def MakePerPlateFigures(self, dirname):
+        fnames = []
+        for condition, plates in self.plates.iteritems():
+            for plate in plates:
+                
+                labels = plate.filtered_labels
+                order = numpy.argsort(labels)
+                smooth_activity = plate.smooth_filtered_activities
+                max_activity = plate.filtered_max_activities
+                left_mat = numpy.diag(1/max_activity)
+                scaled_activity = numpy.dot(left_mat, smooth_activity)
+
+                scaled_culture = plate.scaled_culture_levels
+                max_culture_idx = numpy.argmin(numpy.abs(scaled_culture - 1.0), 1)
+                for i, j in enumerate(max_culture_idx):
+                    scaled_culture[i,j+1:] = 100
+                
+                Nr, _ = scaled_activity.shape
+                od_fracs = numpy.arange(0.0, 1.0, 0.001)
+                activity_per_od_frac = numpy.zeros((Nr, len(od_fracs)))
+                for j, frac in enumerate(od_fracs):
+                    abs_min = numpy.abs(scaled_culture - frac)
+                    idxs = numpy.argmin(abs_min, 1)
+                    for i in order:
+                        idx = idxs[i]
+                        activity_per_od_frac[i,j] = scaled_activity[i, idx]
+                
+                pylab.figure()
+                pylab.title(condition)
+                pylab.imshow(activity_per_od_frac, aspect='auto')
+                
+                condition_plate_name = util.slugify(condition)
+                fname = '%s.png' % condition_plate_name
+                pylab.savefig(path.join(dirname, fname),
+                              format='png')
+                
+                fnames.append(fname)
+            
+        return fnames
         
+    
     def MakeSummaryFigures(self, dirname, condition1, condition2):
         labels = self.GetStrainLabels()
-        condition1_maxes = self.GetMeanMaxActivities(labels, condition1)
-        condition2_maxes = self.GetMeanMaxActivities(labels, condition2)
+        condition1_maxes, condition1_errs = self.GetMeanMaxActivities(
+            labels, condition1)
+        condition2_maxes, condition2_errs = self.GetMeanMaxActivities(
+            labels, condition2)
         
         # Summary of all points
         pylab.figure()
@@ -447,22 +538,29 @@ class StrainConditionsData(object):
         pylab.xlabel('Maximum in %s' % condition1)
         pylab.ylabel('Maximum in %s' % condition2)
         pylab.loglog(condition1_maxes, condition2_maxes, 'b.', basey=2)
+        pylab.errorbar(condition1_maxes, condition2_maxes, yerr=condition2_errs,
+                       xerr=condition1_errs, fmt=None)
         
         log_x = numpy.log2(condition1_maxes)
         log_y = numpy.log2(condition2_maxes)
+        min_x, max_x = numpy.min(log_x), numpy.max(log_x)
+        log_x_range = numpy.arange(min_x, max_x, 0.5)
         y_int = st.nanmean(log_y) - st.nanmean(log_x)
         predicted_y = log_x + y_int
         diffs = log_y - predicted_y
         res = abs(diffs)
         r2 = util.calc_r2(log_y, predicted_y)
         pylab.loglog(numpy.exp2(log_x), numpy.exp2(log_x), 'k--',
-                     basey=2, label='y = x')
-        pylab.loglog(numpy.exp2(log_x), numpy.exp2(predicted_y), 'b--',
-                     basey=2, label='y = x + %.2g (r2 = %.2g)' % (y_int, r2))
+                     basey=2, basex=2,
+                     label='y = x')
+        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range + y_int), 'b--',
+                     basey=2, basex=2,
+                     label='y = x + %.2g (r2 = %.2g)' % (y_int, r2))
         
         # ~28% induction is the minimum.
-        far_points = pylab.find(res > 0.35)
-        for i in far_points:
+        far_points = pylab.find(res > 0.4)
+        #for i in far_points:
+        for i in xrange(len(res)):
             color = GetGeneTextColor(labels[i])
             pylab.text(condition1_maxes[i], condition2_maxes[i],
                        labels[i], color=color)
@@ -484,33 +582,33 @@ class StrainConditionsData(object):
         above_line = pylab.find(big_diffs > 0)
         below_line = pylab.find(big_diffs < 0)
         
-        pylab.loglog(numpy.exp2(log_x), numpy.exp2(log_x), 'k--',
-                     label='y = x', basey=2)
+        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range), 'k--',
+                     label='y = x', basey=2, basex=2)
         
         # Plot points lying above the line
         above_line_logx = far_logx[above_line]
         above_line_logy = far_logy[above_line]
         pylab.loglog(numpy.exp2(above_line_logx), numpy.exp2(above_line_logy),
-                     'g.', basey=2)
+                     'g.', basey=2, basex=2)
         
         y_int = pylab.mean(above_line_logy) - pylab.mean(above_line_logx)
         predicted_y = above_line_logx + y_int
         r2 = util.calc_r2(above_line_logy, predicted_y)
-        pylab.loglog(numpy.exp2(above_line_logx), numpy.exp2(predicted_y),
-                     'g--', basey=2,
+        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range + y_int),
+                     'g--', basey=2, basex=2,
                      label='f=x + %.2g (r2=%.2f)' % (y_int, r2))
         
         # Plot points lying below the line.
         below_line_logx = far_logx[below_line]
         below_line_logy = far_logy[below_line]
         pylab.loglog(numpy.exp2(below_line_logx), numpy.exp2(below_line_logy),
-                     'r.', basey=2)
+                     'r.', basey=2, basex=2)
         
         y_int = pylab.mean(below_line_logy) - pylab.mean(below_line_logx)
         predicted_y = below_line_logx + y_int
         r2 = util.calc_r2(below_line_logy, predicted_y)
-        pylab.loglog(numpy.exp2(below_line_logx), numpy.exp2(predicted_y),
-                     'r--', basey=2,
+        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range + y_int),
+                     'r--', basey=2, basex=2,
                      label='f=x + %.2g (r2=%.2f)' % (y_int, r2))
         
         for i in far_points:
@@ -518,7 +616,7 @@ class StrainConditionsData(object):
             pylab.text(condition1_maxes[i], condition2_maxes[i],
                        labels[i], color=color)
             
-        pylab.legend(loc='lower right')
+        pylab.legend(loc='lower right', prop=LEGEND_FONT)
         diff_fname = 'differential.png'
         pylab.savefig(path.join(dirname, diff_fname),
                       format='png')
@@ -526,8 +624,6 @@ class StrainConditionsData(object):
         return [summary_fname, diff_fname]
         
         
-        
-
 def Main():
     options, _ = MakeOpts().parse_args(sys.argv)
     assert options.experiment_id
@@ -553,45 +649,45 @@ def Main():
     db = MySQLDatabase(host='hldbv02', user='ronm', 
                        passwd='a1a1a1', db='tecan')
 
-
     filterer = promoter_activity.CultureReporterFilterer(options.min_culture_level,
                                                          options.min_reporter_level)
-    reporter_bg_sub = promoter_activity.ReporterBackgroundSubtracter()
+    reporter_bg_sub = promoter_activity.ReporterBackgroundSubtracter(
+        options.background_label)
     culture_shifter = promoter_activity.CultureShifter()
     activity_calc = promoter_activity.ReporterActivityCalculator(
         options.lower_culture_bound, options.upper_culture_bound,
-        min_reporter_level=options.lower_reporter_bound)
+        min_reporter_level=options.lower_reporter_bound,
+        window_size=options.window_size)
 
     first_plate_runners = []
     second_plate_runners = []
-    max_activities1 = {}
-    max_activities2 = {}
     print 'Calculating promoter activities for first condition'
+    runner1 = PlateActivityRunner(
+        options.culture_label, options.reporter_label,
+        filterer, culture_shifter, reporter_bg_sub, activity_calc)
+    
     for plate_id in first_plate_ids:
         plate = Plate96.FromDatabase(db, options.experiment_id, plate_id)
-        runner = PlateActivityRunner(
-            plate, options.culture_label, options.reporter_label,
-            filterer, culture_shifter, reporter_bg_sub, activity_calc)
-        runner.Run()
-        
-        UpdateActivitiesDict(max_activities1, runner.filtered_max_activities_dict)
-        first_plate_runners.append(runner)
-        
+        runner1.AddPlate(plate)
     
+    runner1.Run()
+    first_plate_runners.append(runner1)
+
     print 'Calculating promoter activities for second condition'
+    runner2 = PlateActivityRunner(
+        options.culture_label, options.reporter_label,
+        filterer, culture_shifter, reporter_bg_sub, activity_calc)
+    
     for plate_id in second_plate_ids:
         plate = Plate96.FromDatabase(db, options.experiment_id, plate_id)
-        runner = PlateActivityRunner(
-            plate, options.culture_label, options.reporter_label,
-            filterer, culture_shifter, reporter_bg_sub, activity_calc)
-        runner.Run()
-        
-        UpdateActivitiesDict(max_activities2, runner.filtered_max_activities_dict)
-        second_plate_runners.append(runner)
+        runner2.AddPlate(plate)
+    
+    runner2.Run()
+    second_plate_runners.append(runner2)
     
     # Unify strain data.
     print 'Saving figures'
-    strains_data = StrainConditionsData()
+    strains_data = StrainConditionsData(options.background_label)
     for plate_data in first_plate_runners:
         strains_data.AddPlateData('Glucose', plate_data,
                                   ignore_labels=labels_to_ignore)
@@ -601,11 +697,14 @@ def Main():
     strains_data.MakeStrainFigures(imgs_path)
     summary_fignames = strains_data.MakeSummaryFigures(
         imgs_path, 'Glucose', 'Gluconate')
+    plate_fignames = strains_data.MakePerPlateFigures(imgs_path)
     
     
     labels = strains_data.GetStrainLabels()
-    condition1_activities = strains_data.GetMeanMaxActivities(labels, 'Glucose')
-    condition2_activities = strains_data.GetMeanMaxActivities(labels, 'Gluconate')
+    condition1_activities, condition1_errs = strains_data.GetMeanMaxActivities(
+        labels, 'Glucose')
+    condition2_activities, condition2_errs = strains_data.GetMeanMaxActivities(
+        labels, 'Gluconate')
     log_1 = numpy.log2(condition1_activities)
     log_2 = numpy.log2(condition2_activities)
     diffs = log_2 - log_1
@@ -634,146 +733,13 @@ def Main():
                      'second_plates': second_plate_runners,
                      'strains_data': strains_data,
                      'diffs_data': diffs_data,
-                     'summary_figure_fnames': summary_fignames}
+                     'summary_figure_fnames': summary_fignames,
+                     'per_plate_figure_fnames': plate_fignames}
     template_fname = path.join(options.output_dir, 'results.html')
     templates.render_to_file(
         'compare_promoter_activities.html', template_data, template_fname)
     
     return
-    
-    # Filter out data that is only available in 1 condition.
-    shared_keys = set(max_activities1.keys()).intersection(max_activities2.keys())
-    print shared_keys
-    max_activities1 = dict((key, val) for key, val in max_activities1.iteritems()
-                           if key in shared_keys)
-    max_activities2 = dict((key, val) for key, val in max_activities2.iteritems()
-                           if key in shared_keys)
-    
-    xlabels = sorted(max_activities1.keys())
-    means1, errs1 = GetMeansAndErrors(max_activities1, xlabels)
-    means2, errs2 = GetMeansAndErrors(max_activities2, xlabels)
-    
-    filtered_means1 = []
-    filtered_means2 = []
-    filtered_xlabels = []
-    for i, label in enumerate(xlabels):
-        if label == options.background_label:
-            continue
-        
-        if label.strip() == 'BLANK':
-            continue
-        
-        if pylab.isnan(means1[i]) or pylab.isnan(means2[i]):
-            continue
-        
-        filtered_xlabels.append(label)
-        filtered_means1.append(means1[i])
-        filtered_means2.append(means2[i])
-        
-    log_means1 = pylab.log2(filtered_means1)
-    log_means2 = pylab.log2(filtered_means2)
-    pylab.figure()
-    pylab.plot(log_means1, log_means2, 'g.')
-    pylab.xlabel('Condition 1 (Glucose)')
-    pylab.ylabel('Condition 2 (Gluconate)')
-
-    y_int = pylab.mean(log_means2) - pylab.mean(log_means1)    
-    
-    predicted_y = log_means1 + y_int
-    diffs = log_means2-predicted_y
-    residues = abs(diffs)
-    mean_residue = pylab.mean(residues)
-    std_residue = pylab.std(residues)
-    far_points = pylab.find(residues > (mean_residue + 0.3*std_residue))
-    
-    r2 = util.calc_r2(log_means2, predicted_y)
-    max_x = max(max(log_means1), max(log_means2))
-    min_x = min(min(log_means1), min(log_means2))
-    xs = pylab.arange(min_x, max_x)
-    ys = xs + y_int
-    pylab.plot(xs, ys, 'k--',
-               label='fit (f=x + %.2g, r2=%.2f)' % (y_int, r2))
-    pylab.plot(xs, xs, 'b--', label='1:1')
-    pylab.legend(loc='lower right')
-    
-    sorted_residues = list(pylab.argsort(residues))
-    sorted_residues.reverse()
-    for i in sorted_residues:
-        print filtered_xlabels[i], residues[i]    
-    
-    for i in far_points:
-        label = filtered_xlabels[i]
-        color = GetGeneTextColor(label)
-        
-        pylab.text(log_means1[i], log_means2[i],
-                   label, color=color)
-    
-    big_diff_log_means1 = log_means1[far_points]
-    big_diff_log_means2 = log_means2[far_points]
-    big_diffs = big_diff_log_means2 - big_diff_log_means1
-    above_line = pylab.find(big_diffs > 0)
-    below_line = pylab.find(big_diffs < 0)
-    
-    pylab.figure()
-    pylab.xlabel('Condition 1 (Glucose)')
-    pylab.ylabel('Condition 2 (Gluconate)')
-    pylab.plot(xs, xs, 'k', label='1:1')
-    
-    above_line1 = big_diff_log_means1[above_line]
-    above_line2 = big_diff_log_means2[above_line]
-    pylab.plot(above_line1, above_line2, 'g.')
-    y_int = pylab.mean(above_line2) - pylab.mean(above_line1)
-    predicted_y = above_line1 + y_int
-    r2 = util.calc_r2(above_line2, predicted_y)
-    ys = xs + y_int
-    pylab.plot(xs, ys, 'g--',
-               label='fit (f=x + %.2g, r2=%.2f)' % (y_int, r2))
-    
-    below_line1 = big_diff_log_means1[below_line]
-    below_line2 = big_diff_log_means2[below_line]
-    pylab.plot(below_line1, below_line2, 'r.')
-    y_int = pylab.mean(below_line2) - pylab.mean(below_line1)
-    predicted_y = below_line1 + y_int
-    r2 = util.calc_r2(below_line2, predicted_y)
-    ys = xs + y_int
-    pylab.plot(xs, ys, 'r--',
-               label='fit (f=x + %.2g, r2=%.2f)' % (y_int, r2))
-    for i in far_points:
-        label = filtered_xlabels[i]
-        color = GetGeneTextColor(label)
-        pylab.text(log_means1[i], log_means2[i],
-                   label, color=color)
-    pylab.legend(loc='lower right')
-    
-    num_to_filter = len(far_points)
-    low_residue_indices = sorted_residues[num_to_filter:]
-    filtered_log_means1 = log_means1[low_residue_indices]
-    filtered_log_means2 = log_means2[low_residue_indices]
-    pylab.figure()
-    pylab.plot(filtered_log_means1, filtered_log_means2, 'b.')
-    pylab.xlabel('Condition 1 (Glucose)')
-    pylab.ylabel('Condition 2 (Gluconate)')
-    
-    for i in low_residue_indices:
-        label = filtered_xlabels[i]
-        color = GetGeneTextColor(label)
-        pylab.text(log_means1[i], log_means2[i],
-                   label, color=color)
-    
-    y_int = pylab.mean(filtered_log_means1) - pylab.mean(filtered_log_means2)    
-    
-    predicted_y = filtered_log_means1 + y_int
-    residues = abs(filtered_log_means2-predicted_y)
-    r2 = util.calc_r2(filtered_log_means2, predicted_y)
-    ys = xs + y_int
-    pylab.plot(xs, ys, 'b--',
-               label='fit (f=x + %.2g, r2=%.2f)' % (y_int, r2))
-    pylab.legend(loc='lower right')
-    
-    
-    pylab.show()
-        
-        
         
     
     

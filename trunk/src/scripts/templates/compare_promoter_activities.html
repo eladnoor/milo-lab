@@ -16,7 +16,15 @@
 		</div>
 		{% endfor %}
 	</div>
-	
+
+	<div class='platesInfo'>
+		{% for fname in per_plate_figure_fnames %}
+		<div class='graph'>
+			<img src='imgs/{{ fname }}' />
+		</div>
+		{% endfor %}
+	</div>
+
 	<div class='diffsInfo'>
 		<ul>Differential maximal expression (Gluconate - Glucose)
 	{% for s in diffs_data %}
