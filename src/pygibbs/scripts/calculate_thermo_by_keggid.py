@@ -1,7 +1,6 @@
 import sys
 import csv
 from optparse import OptionParser
-from pygibbs.kegg import Kegg
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_pMg,\
     default_T
 from pygibbs.nist_verify import LoadAllEstimators
@@ -52,9 +51,8 @@ def CalculateThermo():
         sys.exit(-1)
     
     estimator = estimators[options.thermodynamics_source]
-    
     pH, I, pMg, T = options.pH, options.I, options.pMg, options.T
-    kegg = Kegg.getInstance()
+    estimator.SetConditions(pH=pH, I=I, pMg=pMg, T=T)
 
     if options.csv_output_filename is not None:
         out_fp = open(options.csv_output_filename, 'w')
@@ -63,30 +61,35 @@ def CalculateThermo():
         out_fp = sys.stdout
     
     csv_reader = csv.reader(open(options.csv_input_filename, 'r'))
+
     headers = csv_reader.next()
     cid_index = headers.index('kegg id')
-    
     csv_writer = csv.writer(out_fp)
     if options.biochemical:
         csv_writer.writerow(headers + ['dG0\'', 'pH', 'I', 'pMg', 'T'])
     else:
         csv_writer.writerow(headers + ['dG0', 'nH', 'z', 'nMg'])
 
-    for row in csv_reader:
+    csv_rows = list(csv_reader)
+    cids = []
+    for row in csv_rows:
         try:
-            cid = int(row[cid_index][1:])
+            cids.append(int(row[cid_index][1:]))
         except ValueError:
             csv_writer.writerow(row + ['NaN', 'cannot parse KEGG ID'])
             continue
-        try:
-            if options.biochemical:
-                dG0_prime = estimator.cid2dG0_tag(cid, pH=pH, I=I, pMg=pMg, T=T)
-                csv_writer.writerow(row + [dG0_prime, pH, I, pMg, T])
-            else:
+        
+    if options.biochemical:
+        dG0_f_prime = estimator.GetTransformedFormationEnergies(cids)
+        for i, cid in enumerate(cids):
+            csv_writer.writerow(csv_rows[i] + [str(dG0_f_prime[i, 0]), pH, I, pMg, T])
+    else:
+        for cid in cids:
+            try:
                 for nH, z, nMg, dG0 in estimator.cid2PseudoisomerMap(cid).ToMatrix():
                     csv_writer.writerow(row + [dG0, nH, z, nMg])
-        except MissingCompoundFormationEnergy as e:
-            csv_writer.writerow(row + ['NaN', str(e)])
+            except MissingCompoundFormationEnergy as e:
+                csv_writer.writerow(row + ['nan', str(e)])
 
 if __name__ == '__main__':
     CalculateThermo()
