@@ -104,20 +104,6 @@ class Thermodynamics(object):
         pMg = pMg or self.pMg
         return self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
     
-    def reaction_to_dG0(self, reaction, pH=None, pMg=None, I=None, T=None):
-        """
-            Input:
-                A reaction in sparse representation and the aqueous conditions 
-                (pH, I, pMg)
-            
-            Returns:
-                The biochemical dG'0_r (i.e. transformed changed in Gibbs free 
-                energy of reaction)
-        """
-        self.VerifyReaction(reaction)
-        return sum([coeff * self.cid2dG0_tag(cid, pH, pMg, I, T) for 
-                    cid, coeff in reaction.sparse.iteritems()])
-    
     def VerifyReaction(self, reaction):
         """
             Input:
@@ -559,14 +545,127 @@ class BinaryThermodynamics(Thermodynamics):
             reference point is not balanced throughout the reaction.
         """
         try:
-            # if at least one of the 'thermodynamics' in the stack verify
-            # this reaction, then it is okay.
             self.thermo[0].VerifyReaction(reaction)
-            self.thermo[1].VerifyReaction(reaction)
+            return # it's enough if the first estimator verifies this reaction
         except MissingReactionEnergy:
-            raise MissingReactionEnergy('None of the Thermodynamic estimaters can '
-                                        'calculate the Gibbs free energy of this '
-                                        'reaction')
+            pass
+        
+        try:
+            self.thermo[1].VerifyReaction(reaction)
+            return # it's enough if the second estimator verifies this reaction
+        except MissingReactionEnergy:
+            pass
+
+        raise MissingReactionEnergy('None of the Thermodynamic estimators can '
+                                    'calculate the Gibbs free energy of this '
+                                    'reaction')
+
+    def GetTransformedFormationEnergies(self, cids):
+        """
+            Return the estimates of thermo[0] if all of them are known.
+            Otherwise, use thermo[1] if all of them are known.
+            If both have 'missing' estimates, use thermo[0] anyway.
+        """
+        
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
+        if not np.any(np.isnan(dG0_f0)):
+            return dG0_f0
+
+        dG0_f1 = self.thermo[1].GetTransformedFormationEnergies(cids)
+        if not np.any(np.isnan(dG0_f1)):
+            return dG0_f1
+
+        return dG0_f0
+    
+    def GetTransfromedReactionEnergies(self, S, cids):
+        """
+            Find the set of reaction Gibbs energies that are completely
+            consistent with thermo[0], and also close to the energies provided
+            by thermo[1].
+            To find this solution, we project the vector of Gibbs energies
+            obtained using thermo[1] onto the subspace spanned by the columns
+            of the stoichiometric matrix (where some of the values are fixed
+            according to thermo[0]).
+        """
+
+        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids)
+        if np.all(np.isfinite(dG0_r0)):
+            return dG0_r0
+        
+        # if thermo[1] cannot estimate all reactions, just use thermo[0].
+        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids)
+        if np.any(np.isnan(dG0_r1)):
+            return dG0_r0
+
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
+        
+        finite_cols = np.where(np.isfinite(dG0_f0))[0]
+        nan_cols = np.where(np.isnan(dG0_f0))[0]
+        fixed_dG0_r = np.dot(S[:, finite_cols], dG0_f0[finite_cols])
+
+        P_C, P_L = LinearRegression.ColumnProjection(S[:, nan_cols])
+        dG0_r = np.dot(P_C, dG0_r1) + np.dot(P_L, fixed_dG0_r)
+        
+        return dG0_r
+
+class MergedThermodynamics(Thermodynamics):
+    """
+        Assume we are given a precise source of thermodynamic information in the
+        form of a list of dGf. Unfortunately, we are required to
+        calculate the dGr of a set of reaction which is not completely
+        covered by these formation energies (there is a subset of compounds
+        which are missing from the table). However, we do have some unreliable
+        estimations for the dGr of all these reactions (say empirical
+        data, or from the group contribution method).
+        
+        This class merges the reliable dGf with the unreliable dGr in the best
+        way possible, without violating stoichiometric constraints.
+    """
+    
+    def __init__(self, thermo, reactions, dG0_rs):
+        Thermodynamics.__init__(self, name=thermo.name + ' + empirical data')
+        self.thermo = thermo
+        self.reactions = reactions
+        self.dG0_rs = dG0_rs
+
+    def cid2PseudoisomerMap(self, cid):
+        return self.thermo.cid2PseudoisomerMap(cid)
+    
+    def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=""):
+        self.thermo.AddPseudoisomer(cid, nH, z, nMg, dG0, ref)
+    
+    def get_all_cids(self):
+        return self.thermo.get_all_cids()
+    
+    def SetConditions(self, pH=None, I=None, T=None, pMg=None):
+        self.thermo[0].SetConditions(pH, I, T, pMg)
+        self.thermo[1].SetConditions(pH, I, T, pMg)
+    
+    def VerifyReaction(self, reaction):
+        """
+            Input:
+                A Reaction
+            
+            Raises a MissingReactionEnergy exception in case something is preventing
+            this reaction from having a delta-G prediction. For example, if one of the
+            compounds has a non-trivial reference point (such as guanosine=0) but that
+            reference point is not balanced throughout the reaction.
+        """
+        try:
+            self.thermo[0].VerifyReaction(reaction)
+            return # it's enough if the first estimator verifies this reaction
+        except MissingReactionEnergy:
+            pass
+        
+        try:
+            self.thermo[1].VerifyReaction(reaction)
+            return # it's enough if the second estimator verifies this reaction
+        except MissingReactionEnergy:
+            pass
+
+        raise MissingReactionEnergy('None of the Thermodynamic estimators can '
+                                    'calculate the Gibbs free energy of this '
+                                    'reaction')
 
     def GetTransformedFormationEnergies(self, cids):
         """

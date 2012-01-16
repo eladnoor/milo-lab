@@ -152,3 +152,7 @@
 "alpha-Acetolactic acid",900,"yes",
 "alpha,beta-Dihydroxy-isovalerate",4039,"yes",
 "2-Ketoisovalerate",141,"yes",
+"3-Ketoarabinitol",80062,"no","InChI=1S/C5H6O7/c6-1(2(7)4(9)10)3(8)5(11)12/h2-3,7-8H,(H,9,10)(H,11,12)"
+"3-Ketoarabinitol 1,5-bisphosphate",80063,"no","InChI=1S/C5H8O13P2/c6-1(2(7)4(9)17-19(11,12)13)3(8)5(10)18-20(14,15)16/h2-3,7-8H,(H2,11,12,13)(H2,14,15,16)"
+"2-Carboxy-3-ketoarabinitol",80064,"no","InChI=1S/C6H6O9/c7-1(3(9)10)2(8)6(15,4(11)12)5(13)14/h1,7,15H,(H,9,10)(H,11,12)(H,13,14)"
+"2-Carboxy-3-ketoarabinitol 1,5-bisphosphate",80065,"no","InChI=1S/C6H8O15P2/c7-1(3(9)20-22(14,15)16)2(8)6(13,4(10)11)5(12)21-23(17,18)19/h1,7,13H,(H,10,11)(H2,14,15,16)(H2,17,18,19)"
