@@ -38,6 +38,12 @@ class MTDFResult(object):
         
         self.compound_ids = self.model.GetCompoundIDs()
         self.reaction_ids = self.model.GetReactionIDs()
+        self.pathway_graph_filename = None
+    
+    def WritePathwayGraph(self, filename):
+        self.pathway_graph_filename = filename
+        gdot = self.model.GetPathwayGraph()
+        gdot.write(filename, prog='dot', format='svg')
     
     def GetConcentrations(self):
         return self.concentrations

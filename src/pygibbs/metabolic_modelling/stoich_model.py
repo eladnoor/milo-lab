@@ -2,6 +2,8 @@
     
 import numpy as np
 
+from pygibbs.kegg import Kegg
+
 
 class StoichiometricModel(object):
     """A stoichiometric model (of a pathway or metabolic system).
@@ -23,6 +25,7 @@ class StoichiometricModel(object):
                     if not supplied, assumed to be 1.0 for all reactions.
             name: a string name for this model.
         """
+        self.kegg = Kegg.getInstance()
         self.S = S
         self.reaction_ids = reaction_ids
         self.compound_ids = compound_ids
@@ -55,5 +58,11 @@ class StoichiometricModel(object):
     def GetFluxes(self):
         """Returns the compound IDs."""
         return self.fluxes
+    
+    def GetPathwayGraph(self):
+        """Gets the graph of the pathway."""
+        gdot = self.kegg.draw_pathway(
+            self.S, self.reaction_ids, self.compound_ids)
+        return gdot
     
         
