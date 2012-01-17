@@ -151,7 +151,7 @@ class NistRowData:
         cids_to_remove = set()
         for cid, coeff in self.reaction.sparse.iteritems():
             try:
-                dG0_f_tag = thermodynamics.cid2dG0_tag(cid, 
+                dG0_f_tag = thermodynamics.GetTransformedFormationEnergies(cid, 
                     pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
                 cids_to_remove.add(cid)
                 self.dG0_r -= coeff * dG0_f_tag

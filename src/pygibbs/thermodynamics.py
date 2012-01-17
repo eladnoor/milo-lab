@@ -14,6 +14,8 @@ from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
 from toolbox.util import calc_r2
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
+import types
+from pygibbs.thermodynamic_constants import transform
 
 def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
     """
@@ -27,7 +29,7 @@ def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
         dG0_r[r, 0] = 0.0
         for c in np.nonzero(S[r, :])[0]:
             dG0_r[r, 0] += S[r, c] * dG0_f[c, 0]
-    return dG0_r    
+    return dG0_r
 
 class Thermodynamics(object):
     
@@ -87,22 +89,6 @@ class Thermodynamics(object):
                 return dG0
         raise MissingCompoundFormationEnergy("C%05d doesn't have a formation "
             "energy for the species (nH=%d, nMg=%d)" % (cid, nH, nMg))
-
-    def cid2dG0_tag(self, cid, pH=None, pMg=None, I=None, T=None):
-        """
-            Input:
-                A CID of a compound and the aqueous conditions 
-                (pH, I, pMg)
-            
-            Returns:
-                The biochemical dG'0_f (i.e. transformed Gibbs free energy
-                of formation)
-        """
-        pH = pH or self.pH
-        I = I or self.I
-        T = T or self.T
-        pMg = pMg or self.pMg
-        return self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
     
     def VerifyReaction(self, reaction):
         """
@@ -244,25 +230,35 @@ class Thermodynamics(object):
         #    if row['anchor']:
         #        self.anchors.add(row['cid'])
     
-    def GetTransformedFormationEnergies(self, cids):
+    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
         """ calculate the dG0_f of each compound """
-        dG0_f = np.zeros((len(cids), 1))
-        for c, cid in enumerate(cids):
-            try:
-                dG0_f[c] = self.cid2dG0_tag(cid)
-            except MissingCompoundFormationEnergy:
-                # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
-                dG0_f[c] = np.nan
-        return dG0_f
+        pH = pH or self.pH
+        I = I or self.I
+        T = T or self.T
+        pMg = pMg or self.pMg
+        
+        if type(cids) == types.IntType:
+            return self.cid2PseudoisomerMap(cids).Transform(pH=pH, pMg=pMg, I=I, T=T)
+        elif type(cids) == types.ListType:
+            dG0_f = np.zeros((len(cids), 1))
+            for c, cid in enumerate(cids):
+                try:
+                    dG0_f[c] = self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
+                except MissingCompoundFormationEnergy:
+                    # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
+                    dG0_f[c] = np.nan
+            return dG0_f
+        else:
+            raise ValueError("Input argument must be 'int' or 'list' of integers")
     
-    def GetTransfromedReactionEnergies(self, S, cids):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
         """
             Returns:
                 A Numpy array (column matrix) of the transformed
                 formation energies of the reactions in the stiochimetric matrix
                 S. The list of cids must be the same order as the columns of S.
         """
-        dG0_f = self.GetTransformedFormationEnergies(cids)
+        dG0_f = self.GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
         return GetReactionEnergiesFromFormationEnergies(S, dG0_f)
         
     def WriteFormationEnergiesToHTML(self, html_writer, cids):
@@ -508,31 +504,9 @@ class BinaryThermodynamics(Thermodynamics):
         cids = set(self.thermo[0].get_all_cids() + self.thermo[1].get_all_cids())
         return sorted(cids)
     
-    def reaction_to_dG0(self, reaction, pH=None, pMg=None, I=None, T=None):
-        """
-            Input:
-                A reaction in sparse representation and the aqueous conditions 
-                (pH, I, pMg)
-            
-            Returns:
-                The biochemical dG'0_r (i.e. transformed changed in Gibbs free 
-                energy of reaction)
-        """
-        for thermo in self.thermo:
-            try:
-                # if at least one of the 'thermodynamics' in the stack verify
-                # this reaction, then it is okay.
-                return thermo.reaction_to_dG0(reaction, pH, pMg, I, T)
-            except MissingReactionEnergy:
-                continue
-        
-        raise MissingReactionEnergy('None of the Thermodynamic estimators can '
-                                    'calculate the Gibbs free energy of this '
-                                    'reaction')
-            
     def SetConditions(self, pH=None, I=None, T=None, pMg=None):
-        self.thermo[0].SetConditions(pH, I, T, pMg)
-        self.thermo[1].SetConditions(pH, I, T, pMg)
+        self.thermo[0].SetConditions(pH=pH, I=I, T=T, pMg=pMg)
+        self.thermo[1].SetConditions(pH=pH, I=I, T=T, pMg=pMg)
     
     def VerifyReaction(self, reaction):
         """
@@ -560,24 +534,24 @@ class BinaryThermodynamics(Thermodynamics):
                                     'calculate the Gibbs free energy of this '
                                     'reaction')
 
-    def GetTransformedFormationEnergies(self, cids):
+    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
         """
             Return the estimates of thermo[0] if all of them are known.
             Otherwise, use thermo[1] if all of them are known.
             If both have 'missing' estimates, use thermo[0] anyway.
         """
         
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
         if not np.any(np.isnan(dG0_f0)):
             return dG0_f0
 
-        dG0_f1 = self.thermo[1].GetTransformedFormationEnergies(cids)
+        dG0_f1 = self.thermo[1].GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
         if not np.any(np.isnan(dG0_f1)):
             return dG0_f1
 
         return dG0_f0
     
-    def GetTransfromedReactionEnergies(self, S, cids):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
         """
             Find the set of reaction Gibbs energies that are completely
             consistent with thermo[0], and also close to the energies provided
@@ -588,16 +562,16 @@ class BinaryThermodynamics(Thermodynamics):
             according to thermo[0]).
         """
 
-        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids)
+        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
         if np.all(np.isfinite(dG0_r0)):
             return dG0_r0
         
         # if thermo[1] cannot estimate all reactions, just use thermo[0].
-        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids)
+        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
         if np.any(np.isnan(dG0_r1)):
             return dG0_r0
 
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
         
         finite_cols = np.where(np.isfinite(dG0_f0))[0]
         nan_cols = np.where(np.isnan(dG0_f0))[0]
@@ -608,112 +582,81 @@ class BinaryThermodynamics(Thermodynamics):
         
         return dG0_r
 
-class MergedThermodynamics(Thermodynamics):
-    """
-        Assume we are given a precise source of thermodynamic information in the
-        form of a list of dGf. Unfortunately, we are required to
-        calculate the dGr of a set of reaction which is not completely
-        covered by these formation energies (there is a subset of compounds
-        which are missing from the table). However, we do have some unreliable
-        estimations for the dGr of all these reactions (say empirical
-        data, or from the group contribution method).
-        
-        This class merges the reliable dGf with the unreliable dGr in the best
-        way possible, without violating stoichiometric constraints.
-    """
+class ReactionThermodynamics(Thermodynamics):
     
-    def __init__(self, thermo, reactions, dG0_rs):
-        Thermodynamics.__init__(self, name=thermo.name + ' + empirical data')
-        self.thermo = thermo
-        self.reactions = reactions
-        self.dG0_rs = dG0_rs
-
-    def cid2PseudoisomerMap(self, cid):
-        return self.thermo.cid2PseudoisomerMap(cid)
+    def __init__(self, S, cids, dG0_r, name='reaction thermodynamic data'):
+        """
+            arguments:
+                S      - a stoichiometric matrix of the reactions from the unreliable source
+                cids   - the KEGG compound IDs of the columns of S
+                dG0_r  - the dG0_r' of the reactions in S, according to the unreliable source
+        """
+        Thermodynamics.__init__(self, name)
+        self.S = S
+        self.cids = cids
+        self.dG0_r_primes = dG0_r
     
     def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=""):
-        self.thermo.AddPseudoisomer(cid, nH, z, nMg, dG0, ref)
+        if cid not in self.cids:
+            self.S = np.hstack([self.S, np.zeros((self.S.shape[0], 1))]) # add a column to S
+            self.cids.append(cid)
+            
+        ind = self.cids.index(cid)
+        self.S = np.vstack([self.S, np.zeros((1, self.S.shape[1]))]) # add a row to S
+        self.S[-1,ind] = 1
+        
+        dG0_prime = transform(dG0, nH, z, nMg, pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
+        self.dG0_r_primes = np.vstack([self.dG0_r_primes, dG0_prime])
     
     def get_all_cids(self):
-        return self.thermo.get_all_cids()
+        return []
     
-    def SetConditions(self, pH=None, I=None, T=None, pMg=None):
-        self.thermo[0].SetConditions(pH, I, T, pMg)
-        self.thermo[1].SetConditions(pH, I, T, pMg)
-    
+    def _VerifyReactionVector(self, v):
+        _, P_N = LinearRegression.RowProjection(self.S)
+        if np.any(abs(np.dot(P_N, v)) > 1e-10):
+            raise MissingReactionEnergy('Reaction is not orthogonal to the nullspace '
+                                        'of measured reactions')
+
     def VerifyReaction(self, reaction):
         """
-            Input:
-                A Reaction
-            
-            Raises a MissingReactionEnergy exception in case something is preventing
-            this reaction from having a delta-G prediction. For example, if one of the
-            compounds has a non-trivial reference point (such as guanosine=0) but that
-            reference point is not balanced throughout the reaction.
-        """
-        try:
-            self.thermo[0].VerifyReaction(reaction)
-            return # it's enough if the first estimator verifies this reaction
-        except MissingReactionEnergy:
-            pass
-        
-        try:
-            self.thermo[1].VerifyReaction(reaction)
-            return # it's enough if the second estimator verifies this reaction
-        except MissingReactionEnergy:
-            pass
-
-        raise MissingReactionEnergy('None of the Thermodynamic estimators can '
-                                    'calculate the Gibbs free energy of this '
-                                    'reaction')
-
-    def GetTransformedFormationEnergies(self, cids):
-        """
-            Return the estimates of thermo[0] if all of them are known.
-            Otherwise, use thermo[1] if all of them are known.
-            If both have 'missing' estimates, use thermo[0] anyway.
+            Check that the reaction is in the row-space of S,
+            (actually that it is orthogonal to the null-space) 
         """
         
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
-        if not np.any(np.isnan(dG0_f0)):
-            return dG0_f0
-
-        dG0_f1 = self.thermo[1].GetTransformedFormationEnergies(cids)
-        if not np.any(np.isnan(dG0_f1)):
-            return dG0_f1
-
-        return dG0_f0
+        try:
+            v = np.zeros((len(cids), 1))
+            for cid, coeff in reaction.sparse.iteritems():
+                v[cids.index(cid)] = coeff
+        except ValueError:
+            raise MissingReactionEnergy('Reaction involves compounds which are not '
+                                        'in the database of measured reactions at all')
+        self._VerifyReactionVector(v)
+        
+    def _ConvertStoichiometricMatrix(self, S, cids):
+        if not set(self.cids).issuperset(cids):
+            return None
+        
+        new_S = np.zeros((S.shape[0], self.S.shape[1]))
+        for c in xrange(S.shape[1]):
+            new_c = self.cids.index(cids[c])
+            new_S[:, new_c] = S[:, c]
+        return new_S
     
-    def GetTransfromedReactionEnergies(self, S, cids):
-        """
-            Find the set of reaction Gibbs energies that are completely
-            consistent with thermo[0], and also close to the energies provided
-            by thermo[1].
-            To find this solution, we project the vector of Gibbs energies
-            obtained using thermo[1] onto the subspace spanned by the columns
-            of the stoichiometric matrix (where some of the values are fixed
-            according to thermo[0]).
-        """
-
-        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids)
-        if np.all(np.isfinite(dG0_r0)):
-            return dG0_r0
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
+        if pH != None or I != None or T != None or pMg != None:
+            raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics')
         
-        # if thermo[1] cannot estimate all reactions, just use thermo[0].
-        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids)
-        if np.any(np.isnan(dG0_r1)):
-            return dG0_r0
-
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids)
+        new_S = self._ConvertStoichiometricMatrix(S, cids)
+        if new_S is None:
+            raise MissingReactionEnergy('A reaction involves compounds which are not '
+                                        'in the database of measured reactions at all')
+            
+        dG0_f_primes, kerS = LinearRegression.LeastSquares(self.S, self.dG0_r_primes)
+        if np.any(abs(np.dot(kerS, new_S.T)) > 1e-10): # verify that new_S is orthogonal to the nullspace of self.S  
+            raise MissingReactionEnergy('A reaction is not orthogonal to the nullspace '
+                                        'of measured reactions')
         
-        finite_cols = np.where(np.isfinite(dG0_f0))[0]
-        nan_cols = np.where(np.isnan(dG0_f0))[0]
-        fixed_dG0_r = np.dot(S[:, finite_cols], dG0_f0[finite_cols])
-
-        P_C, P_L = LinearRegression.ColumnProjection(S[:, nan_cols])
-        dG0_r = np.dot(P_C, dG0_r1) + np.dot(P_L, fixed_dG0_r)
-        
-        return dG0_r
+        return np.dot(new_S, dG0_f_primes)
         
 if __name__ == "__main__":
 
@@ -730,9 +673,20 @@ if __name__ == "__main__":
     
     merged = BinaryThermodynamics(alberty, pgc)
     
-    S = np.array([[-1, 1, 0, 0, 0, 0, 0, 0, 0], [0, -1, -1, 1, 0, 0, -1, 1, 1], [0, 0, 0, -1, 1, 1, 0, 0, 0], [0, -1, -1, 0, 1, 1, -1, 1, 1]])
+    S = np.array([[-1,  1,  0,  0,  0,  0,  0,  0,  0], 
+                  [ 0, -1, -1,  1,  0,  0, -1,  1,  1], 
+                  [ 0,  0,  0, -1,  1,  1,  0,  0,  0], 
+                  [ 0, -1, -1,  0,  1,  1, -1,  1,  1]])
     cids = [311, 158, 10, 566, 24, 36, 2, 8, 9]
     
+    print alberty.GetTransformedFormationEnergies(cids).T
     print alberty.GetTransfromedReactionEnergies(S, cids).T
     print pgc.GetTransfromedReactionEnergies(S, cids).T
-    print merged.GetTransfromedReactionEnergies(S, cids).T
+    dG0_r_primes = merged.GetTransfromedReactionEnergies(S, cids)
+    print dG0_r_primes.T 
+    
+    react = ReactionThermodynamics(S, cids, dG0_r_primes)
+    
+    S2 = np.array([[1, -1, -1]])
+    cids2 = [566, 24, 36]
+    print react.GetTransfromedReactionEnergies(S2, cids2).T

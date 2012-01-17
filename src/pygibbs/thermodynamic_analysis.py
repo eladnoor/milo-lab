@@ -66,11 +66,9 @@ class ThermodynamicAnalysis(object):
 
             logging.info("analyzing pathway: " + key)
 
-            function_dict = {'PROFILE':self.analyze_profile,
-                             #'PCR':self.analyze_pCr,
-                             'MTDF':self.analyze_mtdf,
+            function_dict = {'MTDF':self.analyze_mtdf,
                              'MTDF2D':self.analyze_mtdf_2d,
-                             'REDOX':self.analyze_redox3,
+                             'REDOX':self.analyze_redox,
                              'PROTONATION':self.analyze_protonation,
                              'STANDARD':self.analyze_standard_conditions}
 
@@ -237,181 +235,6 @@ class ThermodynamicAnalysis(object):
                           'Concentration range = %g - %g M' % self.thermo.c_range,
                           'Default concentration = %g M' % self.thermo.c_mid]
         self.html_writer.write_ul(condition_list)
-
-    def analyze_profile(self, key, pathway_data):
-        self.html_writer.write('<ul>\n')
-        self.html_writer.write('<li>Conditions:</br><ol>\n')
-        # read the list of conditions from the command file
-        for condition in pathway_data.conditions:
-            media, pH, I = condition.media, condition.pH, condition.I
-            T, c0 = condition.T, condition.c0
-            self.html_writer.write('<li>Conditions: media = %s, pH = %g, I = %g M, T = %g K, c0 = %g</li>\n' % (media, pH, I, T, c0))
-        self.html_writer.write('</ol></li>\n')
-        
-        # prepare the legend for the profile graph
-        legend = []
-        dG_profiles = {}
-        params_list = []
-        for condition in pathway_data.conditions:
-            for method in pathway_data.dG_methods:
-                media, pH, I = condition.media, condition.pH, condition.I
-                T, c0 = condition.T, condition.c0
-                plot_key = method + ' dG (media=%s,pH=%g,I=%g,T=%g,c0=%g)' % (str(media), pH, I, T, c0)
-                legend.append(plot_key)
-                dG_profiles[plot_key] = []
-                params_list.append((method, media, pH, I, T, c0, plot_key))
-
-        (S, rids, fluxes, cids) = self.get_reactions(key, pathway_data)
-        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
-        self.html_writer.write('</ul>')
-        self.write_metabolic_graph(key, S, rids, cids)
-        
-        (Nr, Nc) = S.shape
-
-        # calculate the dG_f of each compound, and then use S to calculate dG_r
-        dG0_f = {}
-        dG0_r = {}
-        dG_f = {}
-        dG_r = {}
-        abundance = CompoundAbundance.LoadConcentrationsFromBennett()
-        for (method, media, pH, I, T, c0, plot_key) in params_list:
-            dG0_f[plot_key] = np.zeros((Nc, 1))
-            dG_f[plot_key] = np.zeros((Nc, 1))
-            for c in range(Nc):
-                if method == "MILO":
-                    dG0_f[plot_key][c] = self.thermo.cid2dG0_tag(cids[c], pH=pH, I=I, T=T)
-                elif method == "HATZI":
-                    dG0_f[plot_key][c] = self.thermo.hatzi.cid2dG0_tag(cids[c], pH=pH, I=I, T=T)
-                else:
-                    raise Exception("Unknown dG evaluation method: " + method)
-                # add the effect of the concentration on the dG_f (from dG0_f to dG_f)
-                dG_f[plot_key][c] = dG0_f[plot_key][c] + R * T * np.log(abundance.GetConcentration(cids[c], c0, media))
-            dG0_r[plot_key] = np.dot(S, dG0_f[plot_key])
-            dG_r[plot_key] = np.dot(S, dG_f[plot_key])
-        
-        # plot the profile graph
-        profile_fig = plt.figure()
-        profile_fig.hold(True)
-        data = np.zeros((Nr + 1, len(legend)))
-        for i, label in enumerate(legend):
-            for r in range(1, Nr + 1):
-                data[r, i] = sum(dG_r[label][:r, 0])
-        plt.plot(data, fig=profile_fig)
-        plt.legend(legend, loc="lower left")
-
-        for i, rid in enumerate(rids):
-            plt.text(i + 0.5, np.mean(data[i:(i + 2), 0]), rid,
-                     fontsize=6, horizontalalignment='center',
-                     backgroundcolor='white', fig=profile_fig)
-        
-        plt.xlabel("Reaction no.")
-        plt.ylabel("dG [kJ/mol]")
-        self.html_writer.embed_matplotlib_figure(profile_fig, name=key+'_prfl')
-    
-#    def analyze_pCr(self, key, pathway_data):
-#        self.html_writer.write('<ul>\n')
-#        self.html_writer.write('<li>Conditions:</br><ol>\n')
-#        # c_mid the middle value of the margin: min(conc) < c_mid < max(conc)
-#        c_mid = 1e-3
-#        pH, I, T = default_pH, default_I, default_T
-#        concentration_bounds = copy.deepcopy(self.kegg.cid2bounds)
-#        if len(pathway_data.conditions) > 1:
-#            raise Exception('More than 1 condition listed for pCr analysis')
-#        
-#        if pathway_data.conditions:
-#            c = pathway_data.conditions[0]
-#            pH, I, T = c.pH, c.I, c.T
-#            self.html_writer.write('<li>Conditions: pH = %g, I = %g M, T = %g K' % (pH, I, T))
-#            
-#        if pathway_data.c_mid:
-#            c_mid = pathway_data.c_mid
-#            
-#        self.html_writer.write('</ol></li>')
-#                    
-#        # The method for how we are going to calculate the dG0
-#        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
-#        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
-#        self.html_writer.write('</ul>\n')
-#        self.write_metabolic_graph(key, S, rids, cids)
-#
-#        field_map = pathway_data.field_map        
-#        physiological_pC = field_map.GetFloatField('PHYSIO', default_value=4)
-#        Nr, Nc = S.shape
-#
-#        # calculate the dG_f of each compound, and then use S to calculate dG_r
-#        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-#        dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-#        bounds = [concentration_bounds.get(cid, (None, None)) for cid in cids]
-#        pC = np.arange(0, 20, 0.1)
-#        B_vec = np.zeros(len(pC))
-#        #label_vec = [""] * len(pC)
-#        #limiting_reactions = set()
-#        for i in xrange(len(pC)):
-#            c_range = pC_to_range(pC[i], c_mid=c_mid)
-#            unused_dG_f, unused_concentrations, B = find_mtdf(S, dG0_f, c_range=c_range, bounds=bounds)
-#            B_vec[i] = B
-#            #curr_limiting_reactions = set(find(abs(dG_r - B) < 1e-9)).difference(limiting_reactions)
-#            #label_vec[i] = ", ".join(["%d" % rids[r] for r in curr_limiting_reactions]) # all RIDs of reactions that have dG_r = B
-#            #limiting_reactions |= curr_limiting_reactions
-#
-#        try:
-#            unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
-#        except LinProgNoSolutionException:
-#            pCr = None
-#            
-#        try:
-#            c_range = pC_to_range(physiological_pC, c_mid=c_mid)
-#            unused_dG_f, unused_concentrations, B_physiological = find_mtdf(S, dG0_f, c_range=c_range, bounds=bounds) 
-#        except LinProgNoSolutionException:
-#            B_physiological = None
-#        
-#        slack_fig = plt.figure()
-#        plt.plot(pC, B_vec, 'b', fig=slack_fig)
-#        #for i in xrange(len(pC)):
-#        #    plt.text(pC[i], B_vec[i], label_vec[i], fontsize=6, 
-#        #             horizontalalignment='left', backgroundcolor='white')
-#        plt.xlabel('pC')
-#        plt.ylabel('slack [kJ/mol]')
-#        (ymin, _) = plt.ylim()
-#        (xmin, _) = plt.xlim()
-##        broken_barh([(xmin, pCr), (pCr, xmax)], (ymin, 0), facecolors=('yellow', 'green'), alpha=0.3)
-#        plt.axhspan(ymin, 0, facecolor='b', alpha=0.15)
-#        title = 'C_mid = %g' % c_mid
-#        if (pCr != None and pCr < pC.max()):
-#            title += ', pCr = %.1f' % pCr
-#            plt.plot([pCr, pCr], [ymin, 0], 'k--')
-#            plt.text(pCr, 0, 'pCr = %.1f' % pCr, fontsize=8)
-#            if (pCr < physiological_pC):
-#                plt.axvspan(pCr, physiological_pC, facecolor='g', alpha=0.3)
-#        if (B_physiological != None and physiological_pC < pC.max()):
-#            title += ', slack = %.1f [kJ/mol]' % B_physiological
-#            plt.plot([xmin, physiological_pC], [B_physiological, B_physiological], 'k--')
-#            plt.text(physiological_pC, B_physiological, 'B=%.1f' % B_physiological, fontsize=8)
-#        
-#        plt.title(title)
-#        plt.ylim(ymin=ymin)
-#        self.html_writer.embed_matplotlib_figure(slack_fig)
-#
-#        # write a table of the compounds and their dG0_f
-#        self.html_writer.write('<table border="1">\n')
-#        self.html_writer.write('  <td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG CID", "Compound Name", "dG0_f' [kJ/mol]"))
-#        for c in range(Nc):
-#            compound = self.kegg.cid2compound(cids[c])
-#            cid_str = '<a href="%s">C%05d</a>' % (compound.get_link(), compound.cid)
-#            self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%.1f</td>\n' % (cid_str, compound.name, dG0_f[c, 0]))
-#        self.html_writer.write('</table><br>\n')
-#        
-#        # write a table of the reactions and their dG0_r
-#        self.html_writer.write('<table border="1">\n')
-#        self.html_writer.write('  <td>%s</td><td>%s</td><td>%s</td>\n' % ("KEGG RID", "Reaction", "flux"))
-#        for r in range(Nr):
-#            rid_str = '<a href="http://www.genome.jp/dbget-bin/www_bget?rn:R%05d">R%05d</a>' % (rids[r], rids[r])
-#            spr = {}
-#            for c in np.nonzero(S[r, :])[0]:
-#                spr[cids[c]] = S[r, c]
-#            reaction_str = self.kegg.sparse_to_hypertext(spr)
-#            self.html_writer.write('<tr><td>%s</td><td>%s</td><td>%g</td>\n' % (rid_str, reaction_str, fluxes[r]))
-#        self.html_writer.write('</table><br>\n')
 
     def analyze_mtdf(self, key, pathway_data):
         self.get_conditions(pathway_data)
@@ -613,7 +436,7 @@ class ThermodynamicAnalysis(object):
 #        plt.title("minimal $\\log{\\frac{[NADH]}{[NAD+]}}$ required for feasibility")
 #        self.html_writer.embed_matplotlib_figure(contour_fig, name=key+'mesh')
         
-    def analyze_redox3(self, key, pathway_data):
+    def analyze_redox(self, key, pathway_data):
         """
             Plot the minimal concentration of a compound (e.g. CO2) required
             for the pathway to be feasible, at different pH and redox states.
