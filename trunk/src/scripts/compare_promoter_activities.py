@@ -22,6 +22,7 @@ from matplotlib.font_manager import FontProperties
 
 
 LEGEND_FONT = FontProperties(size=8)
+TICKS_FONT = FontProperties(size=4)
 
 
 def MakeOpts():
@@ -532,6 +533,22 @@ class StrainConditionsData(object):
         condition2_maxes, condition2_errs = self.GetMeanMaxActivities(
             labels, condition2)
         
+        pylab.figure()
+        pylab.title('Expression Fold Change (%s / %s)' % (condition2, condition1))
+        pylab.ylabel('Fold Change')
+        fold_change = numpy.array(condition2_maxes) / numpy.array(condition1_maxes)
+        sorted_idx = list(numpy.argsort(fold_change))
+        sorted_idx.reverse()
+        sorted_fold_change = [fold_change[i] for i in sorted_idx]
+        sorted_labels = [labels[i] for i in sorted_idx]
+        pylab.stem(range(len(sorted_idx)), sorted_fold_change)
+        pylab.xticks(range(len(sorted_idx)), sorted_labels,
+                     rotation=40, font_properties=TICKS_FONT)
+        
+        fold_fname = 'fold_change_summary.png'
+        pylab.savefig(path.join(dirname, fold_fname),
+                      format='png')
+        
         # Summary of all points
         pylab.figure()
         pylab.title('Maximal Activity of All Measured Strains')
@@ -621,7 +638,7 @@ class StrainConditionsData(object):
         pylab.savefig(path.join(dirname, diff_fname),
                       format='png')
         
-        return [summary_fname, diff_fname]
+        return [fold_fname, summary_fname, diff_fname]
         
         
 def Main():
