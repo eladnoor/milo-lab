@@ -76,6 +76,15 @@
 				{% endfor %}
 				</table>
 			</div>
+			
+			{% if result.pathway_graph_filename != None %}
+			<div class="pathwayGraph">
+				<object data="{{result.pathway_graph_filename}}"
+					    type="image/svg+xml" width=320 height=240
+					    name="{{result.model.name}}" frameborder="0"
+					    marginwidth="0" marginheight="0"/></object>
+			</div>
+			{% endif %}
 		</div>
 	{% endfor %}
 	</body>
