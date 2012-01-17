@@ -89,7 +89,7 @@ for element_annotation in model_annotation.getElementAnnotations():
             rowdict['SBML Element Name'] = species_ids_to_names.get(element_annotation.id, '')
             rowdict['KEGG name'] = kegg.cid2name(cid)
             #rowdict['kegg id'] = annotation.id
-            rowdict['Value'] = '%.1f' % thermo.cid2dG0_tag(cid)
+            rowdict['Value'] = '%.1f' % thermo.GetTransformedFormationEnergies(cid)
             rowdict['Unit'] = 'kJ/mol'
             rowdicts.append(rowdict)
         if annotation.db == 'KEGG Reaction':
