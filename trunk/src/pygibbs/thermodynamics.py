@@ -612,11 +612,12 @@ class ReactionThermodynamics(Thermodynamics):
         return []
     
     def _VerifyReactionVector(self, v):
-        _, P_N = LinearRegression.RowProjection(self.S)
-        if np.any(abs(np.dot(P_N, v)) > 1e-10):
-            raise MissingReactionEnergy('Reaction is not orthogonal to the nullspace '
-                                        'of measured reactions')
-
+        """
+            Returns true iff v is orthogonal to the null-space of self.S
+        """
+        _, P_N = LinearRegression.RowProjection(self.S) # the projection onto the null-space of self.S
+        return np.any(abs(np.dot(P_N, v)) > 1e-10)
+            
     def VerifyReaction(self, reaction):
         """
             Check that the reaction is in the row-space of S,
@@ -629,9 +630,14 @@ class ReactionThermodynamics(Thermodynamics):
                 v[cids.index(cid)] = coeff
         except ValueError:
             raise MissingReactionEnergy('Reaction involves compounds which are not '
-                                        'in the database of measured reactions at all')
-        self._VerifyReactionVector(v)
+                                        'in the database of measured reactions at all',
+                                        reaction.sparse)
         
+        if not self._VerifyReactionVector(v):
+            raise MissingReactionEnergy('Reaction is not orthogonal to the nullspace '
+                                        'of measured reactions',
+                                        reaction.sparse)
+
     def _ConvertStoichiometricMatrix(self, S, cids):
         if not set(self.cids).issuperset(cids):
             return None
@@ -644,17 +650,18 @@ class ReactionThermodynamics(Thermodynamics):
     
     def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
         if pH != None or I != None or T != None or pMg != None:
-            raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics')
+            raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics', None)
         
         new_S = self._ConvertStoichiometricMatrix(S, cids)
         if new_S is None:
             raise MissingReactionEnergy('A reaction involves compounds which are not '
-                                        'in the database of measured reactions at all')
+                                        'in the database of measured reactions at all',
+                                        None)
             
         dG0_f_primes, kerS = LinearRegression.LeastSquares(self.S, self.dG0_r_primes)
         if np.any(abs(np.dot(kerS, new_S.T)) > 1e-10): # verify that new_S is orthogonal to the nullspace of self.S  
             raise MissingReactionEnergy('A reaction is not orthogonal to the nullspace '
-                                        'of measured reactions')
+                                        'of measured reactions', None)
         
         return np.dot(new_S, dG0_f_primes)
         
@@ -687,6 +694,6 @@ if __name__ == "__main__":
     
     react = ReactionThermodynamics(S, cids, dG0_r_primes)
     
-    S2 = np.array([[1, -1, -1]])
+    S2 = np.array([[1, -2, -1]])
     cids2 = [566, 24, 36]
     print react.GetTransfromedReactionEnergies(S2, cids2).T
