@@ -1,0 +1,18 @@
+"acronym","enzyme","ec","rid","formula","dG0_r_prime"
+"fdh","formate dehydrogenase","1.2.1.43","R00143","C00058 + C00006 + C00001 -> C00288 + C00005",18.3
+"fhs","Formate THF ligase","6.3.4.3","R00943","C00101 + C00058 + C00002 -> C00008 + C00009 + C00234",-10
+"fol1","CH-THF cyclohydrolase","3.5.4.9","R01655","C00234 -> C00445 + C00001",6
+"fol2","CH2-THF dehydrogenase","1.5.1.5","R01220","C00445 + C00005 -> C00143 + C00006",-5
+"metF","CH2-THF reductase","1.5.1.20","R01224","C00143 + C00005 -> C00440 + C00006",-23
+"cdh","CO dehydrogenase","1.2.99.2","","C00288 + 2 C00138 -> C00237 + 2 C00001 + 2 C00139",37.7
+"cod1","acetyl-CoA synthase","2.3.1.169","R02289+R08433","C00237 + C00010 + C00440 -> C00101 + C00024",-38
+"gcvT","aminomethyl transferase","2.1.2.10","R04125","C02972 + C00143 + C00014 -> C01242 + C00101",-3
+"gcvP","glycine dehydrogenase","1.4.4.2","R03425","C01242 + C00288 -> C00001 + C00037 + C02051",-9
+"lpd","dehydrolipoyl dehydrogenase","1.8.1.4","R03815","C02051 + C00004 -> C02972 + C00003",-4
+"glyA","serine hydroxymethyltransferase","2.1.2.1.","C00143 + C00037 + C00001 -> C00101 + C00065",6
+"fhcC","formyl-MFR dehydrogenase","1.2.99.5","R08060","C00058 + C00862 -> C01001 + C00001",41.3
+"fhcD","formyl-MFR:H4MPT formyltransferase","2.3.1.101","R03390","C01001 + C01217 -> C00862 + C01274",-3.5
+"mhc","methenyl-H4MPT cyclohydrolase","3.5.4.27","R03464","C01274 -> C04330 + C00001",-4.2
+"mtd","methylene-H4MPT dehydrogenase","1.5.99.9","R04456","C04330 + C01080 -> C04377 + C00876",2
+"mer","methylene-H4MPT reductase","1.5.99.11","R04464","C04377 + C01080 -> C04488 + C00876",-1.7
+"cod2","acetyl-CoA synthase (methanogen)","1.2.7.4","R09096","C04488 + C00237 + C00010 -> C00024 + C01217",-102.7
