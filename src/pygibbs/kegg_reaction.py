@@ -228,7 +228,7 @@ class Reaction(object):
         pMg = pMg or thermodynamics.pMg
         I = I or thermodynamics.I
         T = T or thermodynamics.T
-        return thermodynamics.reaction_to_dG0(self, pH=pH, pMg=pMg, I=I, T=T)
+        return thermodynamics.GetTransfromedKeggReactionEnergies([self], pH=pH, pMg=pMg, I=I, T=T)[0]
     
     def HashableReactionString(self):
         """

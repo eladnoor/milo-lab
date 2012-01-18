@@ -2,13 +2,10 @@ from pygibbs.thermodynamics import ReactionThermodynamics,\
     PsuedoisomerTableThermodynamics, BinaryThermodynamics
 import csv
 from pygibbs.kegg_reaction import Reaction
-from pygibbs.kegg import Kegg
 from toolbox.html_writer import HtmlWriter
 from toolbox.database import SqliteDatabase
 
 def GetC1Thermodynamics(html_writer, reaction_fname='../data/thermodynamics/c1_reaction_thermodynamics.csv'):
-    #kegg = Kegg.getInstance()
-    
     html_writer.write("<h1>C1 thermodynamics</h1>\n")
     
     dict_list = []
@@ -35,8 +32,6 @@ def GetC1Thermodynamics(html_writer, reaction_fname='../data/thermodynamics/c1_r
     html_writer.write_table(dict_list, headers=['acronym', 'enzyme', 'formula', 'dG0_r_prime'])
     
     reacthermo._Recalculate()
-    print reacthermo.GetTransfromedKeggReactionEnergies(c1_reactions)
-    
     return reacthermo
     
 if __name__ == "__main__":

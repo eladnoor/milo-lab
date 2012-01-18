@@ -916,6 +916,10 @@ class KeggPathway(Pathway):
     def WriteProfileToHtmlTable(self, html_writer, concentrations):
         #html_writer.write('<b>Biochemical Reaction Energies</b></br>\n')
         phys_concentrations = np.ones(concentrations.shape) * self.DEFAULT_PHYSIOLOGICAL_CONC
+        if 1 in self.cids:
+            # C00001 (water) is an exception, its concentration is always set to 1
+            phys_concentrations[self.cids.index(1), 0] = 1.0
+        
         dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
         dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
         

@@ -52,6 +52,9 @@ class Thermodynamics(object):
         self.I = I or self.I
         self.T = T or self.T
         self.pMg = pMg or self.pMg
+        
+    def SetConditionsToDefault(self):
+        self.SetConditions(pH=default_pH, I=default_I, T=default_T, pMg=default_pMg)
 
     def cid2SourceString(self, cid):
         return self.cid2source_string.get(cid, "")
@@ -606,14 +609,34 @@ class ReactionThermodynamics(Thermodynamics):
         self.var_cids = []
         self.var_nullspace = None
     
-    def AddReaction(self, kegg_reaction, dG0_r_prime):
+    @staticmethod
+    def FromCsv(csv_fname, formation_thermo):
+        data = []
+        for row in csv.DictReader(open(csv_fname, 'r')):
+            r = Reaction.FromFormula(row['formula'])
+            r.Balance(balance_water=False)
+            r.SetNames(row['enzyme'])
+            dG0_r_prime = float(row['dG0_r_prime'])
+            pH, I, T, pMg = float(row['pH']), float(row['I']), \
+                            float(row['T']), float(row.get('pMg', '10'))
+            data.append((r, dG0_r_prime, pH, I, T, pMg))
+        
+        reacthermo = ReactionThermodynamics(formation_thermo)
+        reacthermo.SetConditions(pH=pH, I=I, T=T, pMg=pMg)
+        for r, dG0, pH, I, T, pMg in data:
+            reacthermo.AddReaction(r, dG0, pH=pH, I=I, T=T, pMg=pMg)
+        reacthermo._Recalculate()
+        return reacthermo
+    
+    def AddReaction(self, kegg_reaction, dG0_r_prime, pH, I, T, pMg):
+        if self.pH != pH or self.I != I or self.T != T or self.pMg != pMg:
+            raise ValueError('Reverse Legendre Transform not implemented yet. '
+                             'All reaction conditions must be the same')
         self.reactions.append(kegg_reaction)
         self.dG0_r_primes = np.vstack([self.dG0_r_primes, dG0_r_prime])
          
     def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=""):
-        r = Reaction('C%05d formation' % cid, sparse={cid:1})
-        dG0_prime = transform(dG0, nH, z, nMg, pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
-        self.AddReaction(r, dG0_prime)
+        self.formations.AddPseudoisomer(cid, nH, z, nMg, dG0, ref)
     
     def _Recalculate(self):
         S, cids = self.kegg.reaction_list_to_S(self.reactions)
@@ -658,33 +681,36 @@ class ReactionThermodynamics(Thermodynamics):
                                         'of measured reactions',
                                         reaction.sparse)
 
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
+    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
         if pH != None or I != None or T != None or pMg != None:
             raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics', None)
 
+        dG0_f_prime = self.formations.GetTransformedFormationEnergies(cids, 
+            pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
+        
+        for i, cid in enumerate(cids):
+            if cid in self.var_cids:
+                dG0_f_prime[i, 0] = self.cid2dG0_f[cid]
+                
+        return dG0_f_prime
+
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
+        dG0_f_prime = self.GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
+        dG0_r_prime = GetReactionEnergiesFromFormationEnergies(S, dG0_f_prime)
+
+        # make sure that each of the rows in S does not violate conservation laws 
+        # formed by the null-space of the stoichiometric matrix of measured reactions.
         var_S = np.zeros((S.shape[0], len(self.var_cids)))
         for i, cid in enumerate(self.var_cids):
             if cid in cids:
                 var_S[:, i] = S[:, cids.index(cid)]
+                
+        # each row that is not orthogonal to the null-space is changed to NaN
+        for i in xrange(S.shape[0]):
+            if np.any(abs(np.dot(self.var_nullspace, var_S.T)) > 1e-10):
+                dG0_r_prime[i, 0] = np.NaN
         
-        if np.any(abs(np.dot(self.var_nullspace, var_S.T)) > 1e-10):
-            raise MissingReactionEnergy('A reaction is not orthogonal to the nullspace '
-                                        'of measured reactions',
-                                        None)
-        
-        dG0_f = self.formations.GetTransformedFormationEnergies(cids, 
-                                pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
-        
-        for i, cid in enumerate(cids):
-            if cid in self.var_cids:
-                dG0_f[i, 0] = self.cid2dG0_f[cid]
-
-        if np.any(np.isnan(dG0_f)):
-            raise MissingReactionEnergy('A reaction involves compounds which are not '
-                                        'in the database of measured reactions at all',
-                                        None)
-            
-        return np.dot(S, dG0_f)
+        return dG0_r_prime
         
 if __name__ == "__main__":
 
