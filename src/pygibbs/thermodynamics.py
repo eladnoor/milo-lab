@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import logging
 import json
 
-from thermodynamic_constants import default_T, default_pH, default_I, default_pMg
+from pygibbs.thermodynamic_constants import default_T, default_pH, default_I, default_pMg
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException,\
@@ -16,6 +16,7 @@ from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 import types
 from pygibbs.thermodynamic_constants import transform
+from pygibbs.kegg_reaction import Reaction
 
 def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
     """
@@ -251,6 +252,11 @@ class Thermodynamics(object):
         else:
             raise ValueError("Input argument must be 'int' or 'list' of integers")
     
+    def GetTransfromedKeggReactionEnergies(self, kegg_reactions, pH=None, I=None, T=None, pMg=None):
+        kegg = Kegg.getInstance()
+        S, cids = kegg.reaction_list_to_S(kegg_reactions)
+        return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
+
     def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
         """
             Returns:
@@ -550,7 +556,7 @@ class BinaryThermodynamics(Thermodynamics):
             return dG0_f1
 
         return dG0_f0
-    
+        
     def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
         """
             Find the set of reaction Gibbs energies that are completely
@@ -584,7 +590,7 @@ class BinaryThermodynamics(Thermodynamics):
 
 class ReactionThermodynamics(Thermodynamics):
     
-    def __init__(self, S, cids, dG0_r, name='reaction thermodynamic data'):
+    def __init__(self, formation_thermo, name='reaction thermodynamic data'):
         """
             arguments:
                 S      - a stoichiometric matrix of the reactions from the unreliable source
@@ -592,78 +598,93 @@ class ReactionThermodynamics(Thermodynamics):
                 dG0_r  - the dG0_r' of the reactions in S, according to the unreliable source
         """
         Thermodynamics.__init__(self, name)
-        self.S = S
-        self.cids = cids
-        self.dG0_r_primes = dG0_r
+        self.formations = formation_thermo
+        self.kegg = Kegg.getInstance()
+        self.reactions = []
+        self.dG0_r_primes = np.zeros((0, 1), dtype='float')
+        self.cid2dG0_f = {}
+        self.var_cids = []
+        self.var_nullspace = None
     
+    def AddReaction(self, kegg_reaction, dG0_r_prime):
+        self.reactions.append(kegg_reaction)
+        self.dG0_r_primes = np.vstack([self.dG0_r_primes, dG0_r_prime])
+         
     def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=""):
-        if cid not in self.cids:
-            self.S = np.hstack([self.S, np.zeros((self.S.shape[0], 1))]) # add a column to S
-            self.cids.append(cid)
-            
-        ind = self.cids.index(cid)
-        self.S = np.vstack([self.S, np.zeros((1, self.S.shape[1]))]) # add a row to S
-        self.S[-1,ind] = 1
-        
+        r = Reaction('C%05d formation' % cid, sparse={cid:1})
         dG0_prime = transform(dG0, nH, z, nMg, pH=self.pH, pMg=self.pMg, I=self.I, T=self.T)
-        self.dG0_r_primes = np.vstack([self.dG0_r_primes, dG0_prime])
+        self.AddReaction(r, dG0_prime)
+    
+    def _Recalculate(self):
+        S, cids = self.kegg.reaction_list_to_S(self.reactions)
+        dG0_f0 = self.formations.GetTransformedFormationEnergies(cids, 
+                                pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
+        
+        # subtract the part of the dG0 which is fixed, and leave only the part
+        # which is attributed to the NaN compounds.
+        fix_cols = np.where(np.isfinite(dG0_f0))[0]
+        var_cols = np.where(np.isnan(dG0_f0))[0]
+        fix_dG0_r = np.dot(S[:, fix_cols], dG0_f0[fix_cols, :])
+
+        self.var_cids = [cids[j] for j in var_cols]
+        var_S = S[:, var_cols]
+        var_P_C, var_P_L = LinearRegression.ColumnProjection(var_S)
+
+        # project the dG0_r on the column-space of var_S to eliminate inconsistencies
+        # between the dG0_r and the fixed formation energies.
+        # then subtract the fixed part of the dG0_r.
+        var_dG0_r = np.dot(var_P_C, self.dG0_r_primes) - fix_dG0_r      
+
+        # find the best estimation for the variable formation energies using
+        # linear regression on the residual dG0_r values.
+        var_dG0_f, self.var_nullspace = LinearRegression.LeastSquares(var_S, var_dG0_r)
+        self.cid2dG0_f = dict(zip(self.var_cids, var_dG0_f[:, 0]))
     
     def get_all_cids(self):
-        return []
+        return sorted(self.formations.get_all_cids() + self.var_cids)
     
-    def _VerifyReactionVector(self, v):
-        """
-            Returns true iff v is orthogonal to the null-space of self.S
-        """
-        _, P_N = LinearRegression.RowProjection(self.S) # the projection onto the null-space of self.S
-        return np.any(abs(np.dot(P_N, v)) > 1e-10)
-            
     def VerifyReaction(self, reaction):
         """
-            Check that the reaction is in the row-space of S,
-            (actually that it is orthogonal to the null-space) 
+            Check that the reaction is orthogonal to the var_nullspace
         """
-        
-        try:
-            v = np.zeros((len(cids), 1))
-            for cid, coeff in reaction.sparse.iteritems():
-                v[cids.index(cid)] = coeff
-        except ValueError:
-            raise MissingReactionEnergy('Reaction involves compounds which are not '
-                                        'in the database of measured reactions at all',
+        if not reaction.get_cids().issubset(self.get_all_cids()):
+            raise MissingReactionEnergy('Reaction involves compounds for which there '
+                                        'is no data',
                                         reaction.sparse)
         
-        if not self._VerifyReactionVector(v):
+        v = np.array([reaction.sparse.get(cid, 0) for cid in self.var_cids], ndmax=2).T
+        if np.any(abs(np.dot(self.var_nullspace, v)) > 1e-10):
             raise MissingReactionEnergy('Reaction is not orthogonal to the nullspace '
                                         'of measured reactions',
                                         reaction.sparse)
 
-    def _ConvertStoichiometricMatrix(self, S, cids):
-        if not set(self.cids).issuperset(cids):
-            return None
-        
-        new_S = np.zeros((S.shape[0], self.S.shape[1]))
-        for c in xrange(S.shape[1]):
-            new_c = self.cids.index(cids[c])
-            new_S[:, new_c] = S[:, c]
-        return new_S
-    
     def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
         if pH != None or I != None or T != None or pMg != None:
             raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics', None)
+
+        var_S = np.zeros((S.shape[0], len(self.var_cids)))
+        for i, cid in enumerate(self.var_cids):
+            if cid in cids:
+                var_S[:, i] = S[:, cids.index(cid)]
         
-        new_S = self._ConvertStoichiometricMatrix(S, cids)
-        if new_S is None:
+        if np.any(abs(np.dot(self.var_nullspace, var_S.T)) > 1e-10):
+            raise MissingReactionEnergy('A reaction is not orthogonal to the nullspace '
+                                        'of measured reactions',
+                                        None)
+        
+        dG0_f = self.formations.GetTransformedFormationEnergies(cids, 
+                                pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
+        
+        for i, cid in enumerate(cids):
+            if cid in self.var_cids:
+                dG0_f[i, 0] = self.cid2dG0_f[cid]
+
+        if np.any(np.isnan(dG0_f)):
             raise MissingReactionEnergy('A reaction involves compounds which are not '
                                         'in the database of measured reactions at all',
                                         None)
             
-        dG0_f_primes, kerS = LinearRegression.LeastSquares(self.S, self.dG0_r_primes)
-        if np.any(abs(np.dot(kerS, new_S.T)) > 1e-10): # verify that new_S is orthogonal to the nullspace of self.S  
-            raise MissingReactionEnergy('A reaction is not orthogonal to the nullspace '
-                                        'of measured reactions', None)
-        
-        return np.dot(new_S, dG0_f_primes)
+        return np.dot(S, dG0_f)
         
 if __name__ == "__main__":
 
