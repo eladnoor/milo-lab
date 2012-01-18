@@ -98,11 +98,11 @@ def pareto(html_writer, thermo,
     return fig
     
 if __name__ == "__main__":
-    thermo = LoadAllEstimators()['merged']
+    thermo = LoadAllEstimators()['merged_C1']
     output_filename = '../res/odfe_vs_atp_carbon_fixation.html'
     html_writer = HtmlWriter(output_filename)
     for pH in [5, 7]:
-        thermo.SetConditions(pH=pH, I=0.25, T=298.15, pMg=10)
+        thermo.SetConditions(pH=pH, I=0.1, T=298.15, pMg=10)
 
         #html_writer.write('<h1>pH = %g</h1>\n' % pH)
         html_writer.insert_toggle(start_here=True)

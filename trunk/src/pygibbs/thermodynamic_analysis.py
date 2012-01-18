@@ -12,7 +12,8 @@ from optparse import OptionParser
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs.pathway import PathwayData
-from pygibbs.thermodynamic_constants import transform, RedoxCarriers
+from pygibbs.thermodynamic_constants import transform, RedoxCarriers, default_I,\
+    default_pH, default_pMg
 from pygibbs.thermodynamic_constants import default_T, R, F
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
@@ -175,7 +176,7 @@ class ThermodynamicAnalysis(object):
         return S, rids, fluxes, cids
 
     def write_reactions_to_html(self, S, rids, fluxes, cids, show_cids=True):
-        self.thermo.pH = 7
+        self.thermo.SetConditionsToDefault()
         dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
         
         self.html_writer.write("<li>Reactions:</br><ul>\n")
@@ -270,8 +271,8 @@ class ThermodynamicAnalysis(object):
         keggpath.WriteConcentrationsToHtmlTable(self.html_writer, concentrations)
 
         self.write_metabolic_graph(key+"_grph", S, rids, cids)
-        self.write_formation_energies_to_html(cids)
         
+        #self.write_formation_energies_to_html(cids)
         #dG_r_prime = keggpath.CalculateReactionEnergiesUsingConcentrations(concentrations)
         #return "ODFE = %.1f%%, Total &#x394;<sub>r</sub>G' = %.1f [min = %.1f, max = %.1f] kJ/mol" % \
         #    (odfe, float(np.dot(dG_r_prime.T, fluxes)), 

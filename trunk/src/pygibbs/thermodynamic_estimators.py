@@ -9,9 +9,7 @@ from pygibbs.groups import GroupContribution
 from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamics import BinaryThermodynamics
-
-
-
+from pygibbs.thermodynamics import ReactionThermodynamics
 
 ESTIMATOR_NAMES = ('hatzi_gc', 'BGC', 'PGC', 'merged')
 
@@ -46,6 +44,13 @@ def LoadAllEstimators():
     estimators['PGC'].name = 'our method (PGC)'
     
     estimators['merged'] = BinaryThermodynamics(estimators['alberty'],
-                                                estimators['PGC']) 
+                                                estimators['PGC'])
+    
+    estimators['C1'] = ReactionThermodynamics.FromCsv(
+        '../data/thermodynamics/c1_reaction_thermodynamics.csv',
+        estimators['alberty'])
+    
+    estimators['merged_C1'] = BinaryThermodynamics(estimators['C1'],
+                                                   estimators['PGC'])
 
     return estimators
