@@ -432,34 +432,40 @@ class Kegg(Singleton):
         """Return all the enzymes."""
         return self.ec2enzyme_map.values()
 
+    def parse_kegg_reaction_line(self, line):
+        rid, left_clause, right_clause, remainder = re.findall('([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+->\s+([C\s\+\d\.]+)(.*)', line)[0]
+        reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
+        reaction.rid = rid
+
+        flux = 1
+        if remainder != "":
+            for (f) in re.findall('\(x([0-9\.\-\s]+)\)', remainder):
+                flux = float(f)
+        
+        return reaction, flux
+
     def parse_explicit_module_to_reactions(self, field_map, cid_mapping):
         rids = []
         fluxes = []
         reactions = []
         cids = []
         for line in field_map["REACTION"].split('\t'):
-            for rid, left_clause, right_clause, remainder in re.findall('([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+->\s+([C\s\+\d\.]+)(.*)', line):
-                flux = 1
-                if remainder != "":
-                    for (f) in re.findall('\(x([0-9\.\-\s]+)\)', remainder):
-                        flux = float(f)
-                
-                reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
-                spr = reaction.sparse
-                for old_cid, (new_cid, factor) in cid_mapping.iteritems():
-                    if old_cid in spr:
-                        coeff = spr[old_cid]
-                        del spr[old_cid]
-                        spr.setdefault(new_cid, 0)
-                        spr[new_cid] = spr.get(new_cid, 0) + coeff * factor
-                
-                for cid in spr.keys():
-                    if cid not in cids and cid != 80: # don't include H+ as a compound
-                        cids.append(cid)
-    
-                rids.append(rid)
-                fluxes.append(flux)
-                reactions.append(reaction)
+            reaction, flux = self.parse_kegg_reaction_line(line)
+            spr = reaction.sparse
+            for old_cid, (new_cid, factor) in cid_mapping.iteritems():
+                if old_cid in spr:
+                    coeff = spr[old_cid]
+                    del spr[old_cid]
+                    spr.setdefault(new_cid, 0)
+                    spr[new_cid] = spr.get(new_cid, 0) + coeff * factor
+            
+            for cid in spr.keys():
+                if cid not in cids and cid != 80: # don't include H+ as a compound
+                    cids.append(cid)
+
+            reactions.append(reaction)
+            rids.append(reaction.rid)
+            fluxes.append(flux)
         
         return rids, fluxes, cids, reactions
 
