@@ -1,5 +1,4 @@
-ENTRY       CF01-RPP
-NAME        reductive Pentose Phosphate cycle
+ENTRY       RPP
 REACTION    tpi    C00118 -> C00111 (x2)
             fba1   C00111 + C00118 -> C00354 (x1)
             fbp1   C00354 + C00001 -> C00085 + C00009 (x1)
@@ -17,8 +16,7 @@ REACTION    tpi    C00118 -> C00111 (x2)
             eno    C00631 -> C00001 + C00074 (x1)
             pyk    C00008 + C00074 -> C00002 + C00022 (x1)
 ///
-ENTRY       CF02-RTCA
-NAME        reductive TCA cycle
+ENTRY       RTCA
 REACTION    mdh    C00036 + C00005 -> C00149 + C00006 (x1)
             fum    C00149 -> C00122 + C00001 (x1)
             sdh    C00122 + C00004 -> C00042 + C00003 (x1)
@@ -29,8 +27,7 @@ REACTION    mdh    C00036 + C00005 -> C00149 + C00006 (x1)
             acl    C00002 + C00158 + C00010 -> C00008 + C00009 + C00024 + C00036 (x1)
             por    2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
 ///
-ENTRY       CF03-DC-4HB
-NAME        Dicarboxylate / 4-Hydroxybutyrate
+ENTRY       DC-4HB
 REACTION    por  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x2)
             pps  C00002 + C00022 + C00001 -> C00020 + C00074 + C00009 (x1)
             ppc  C00001 + C00074 + C00288 -> C00001 + C00009 + C00036 (x1)
@@ -47,8 +44,7 @@ REACTION    por  2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x2)
             fad    C01144 + C00003 -> C00332 + C00004 (x1)
             ato    C00010 + C00332 -> 2 C00024 (x1)
 ///
-ENTRY       CF04-3HP-4HB
-NAME        3-Hydroxypropionate / 4-Hydroxybutyrate Cycle
+ENTRY       3HP-4HB
 REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x2)
             R90100  C00222 + C00005 -> C01013 + C00006 (x2)
@@ -71,8 +67,7 @@ REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             fum    C00122 + C00001 -> C00149 (x1)
             mae    C00149 + C00006 -> C00022 + C00011 + C00005 (x1)
 ///
-ENTRY       CF05-3HP
-NAME        3-Hydroxypropionate Cycle
+ENTRY       3HP
 REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             mms    C00083 + C00005 -> C00222 + C00010 + C00006 (x2)
             hpd    C00222 + C00005 -> C01013 + C00006 (x2)
@@ -91,15 +86,33 @@ REACTION    acc    C00002 + C00024 + C00288 -> C00008 + C00009 + C00083 (x2)
             mch2   C06028 + C00001 -> C01011 (x1)
             mcl3   C01011 -> C00024 + C00022 (x1)
 ///
-ENTRY       CF06-C1-4
-NAME        C1-4
-SKIP        FALSE
-REACTION    fdh  C00288 + C00005 -> C00001 + C00058 + C00006 (x2)
+ENTRY       C1-1
+REACTION    fdh     C00011 + C00005 -> C00058 + C00006 (x1)
+            fhs     C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x1)
+            fol1    C00234 -> C00445 + C00001 (x1)
+            fol2    C00445 + C00005 -> C00143 + C00006 (x1)
+            metF    C00143 + C00005 -> C00440 + C00006 (x1)
+            cdh     C00011 + 2 C00138 -> C00001 + 2 C00139 + C00237 (x1)
+            cod1    C00237 + C00010 + C00440 -> C00101 + C00024 (x1)
+            por     2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
+///
+ENTRY       C1-2
+REACTION    fhcC    C00011 + 2 C00138 + C00862 -> C00001 + 2 C00139 + C01001 (x1)
+            fhcD    C01001 + C01217 -> C00862 + C01274 (x1)
+            mhc     C01274 -> C04330 + C00001 (x1)
+            mtd     C04330 + C01080 -> C04377 + C00876 (x1)
+            mer     C04377 + C01080 -> C04488 + C00876 (x1)
+            cdh     C00011 + 2 C00138 -> C00001 + 2 C00139 + C00237 (x1)
+            cod2    C04488 + C00237 + C00010 -> C00024 + C01217 (x1)
+            por     2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
+///
+ENTRY       C1-4
+REACTION    fdh  C00011 + C00005 -> C00058 + C00006 (x2)
             fhs  C00101 + C00058 + C00002 -> C00008 + C00009 + C00234 (x2)
             fol1 C00234 -> C00445 + C00001 (x2)
             fol2 C00445 + C00005 -> C00143 + C00006 (x2)
             gcvT C02972 + C00143 + C00014 -> C01242 + C00101 (x1)
-            gcvP C01242 + C00288 -> C00001 + C00037 + C02051 (x1)
+            gcvP C01242 + C00011 -> C00037 + C02051 (x1)
             lpd  C02051 + C00004 -> C02972 + C00003 (x1)
             gly  C00143 + C00037 + C00001 -> C00101 + C00065 (x1)
             sda  C00065 -> C00022 + C00014 (x1)
