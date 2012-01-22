@@ -640,74 +640,75 @@ class ReactionThermodynamics(Thermodynamics):
     
     def _Recalculate(self):
         S, cids = self.kegg.reaction_list_to_S(self.reactions)
-        dG0_f0 = self.formations.GetTransformedFormationEnergies(cids, 
-                                pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
+        known_cids = self.formations.get_all_cids()
+        fix_cols = [i for i, cid in enumerate(cids) if cid in known_cids]
+        var_cols = [i for i, cid in enumerate(cids) if cid not in known_cids]
+        fix_cids = [cids[i] for i in fix_cols]
+        var_cids = [cids[i] for i in var_cols]
         
         # subtract the part of the dG0 which is fixed, and leave only the part
         # which is attributed to the NaN compounds.
-        fix_cols = np.where(np.isfinite(dG0_f0))[0]
-        var_cols = np.where(np.isnan(dG0_f0))[0]
-        fix_dG0_r = np.dot(S[:, fix_cols], dG0_f0[fix_cols, :])
-
-        self.var_cids = [cids[j] for j in var_cols]
+        fix_S = S[:, fix_cols]
         var_S = S[:, var_cols]
-        var_P_C, var_P_L = LinearRegression.ColumnProjection(var_S)
+
+        U, s, V = np.linalg.svd(var_S, full_matrices=True)
+        r = len(np.where(s > 1e-10)[0]) # the rank of A
+        var_P_C = np.dot(U[:,:r], U[:,:r].T) # a projection matrix onto the column-space of A
+        #var_P_L = np.dot(U[:,r:], U[:,r:].T) # a projection matrix onto the column null-space of A
+        #var_P_R = np.dot(V[:r,:].T, V[:r,:]) # a projection matrix onto the row-space of A
+        var_P_N = np.dot(V[r:,:].T, V[r:,:]) # a projection matrix onto the row null-space of A
+
+        # take all the known dG0_primes from self.formations
+        dG0_f_prime = self.formations.GetTransformedFormationEnergies(fix_cids, 
+                                pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
 
         # project the dG0_r on the column-space of var_S to eliminate inconsistencies
         # between the dG0_r and the fixed formation energies.
         # then subtract the fixed part of the dG0_r.
-        var_dG0_r = np.dot(var_P_C, self.dG0_r_primes) - fix_dG0_r      
+        var_dG0_r_prime = np.dot(var_P_C, self.dG0_r_primes) - np.dot(fix_S, dG0_f_prime)
 
-        # find the best estimation for the variable formation energies using
-        # linear regression on the residual dG0_r values.
-        var_dG0_f, self.var_nullspace = LinearRegression.LeastSquares(var_S, var_dG0_r)
-        self.cid2dG0_f = dict(zip(self.var_cids, var_dG0_f[:, 0]))
-    
+        inv_s = np.zeros(var_S.shape)
+        for i in xrange(r):
+            inv_s[i, i] = 1/s[i]
+
+        var_inv_S = np.dot(U, np.dot(inv_s, V)) # the pseudoinverse of var_S
+
+        # adjust dG0_r_primes, then perform linear regression to find the unknown dG0_f_primes
+        var_dG0_f_prime = np.dot(var_inv_S.T, var_dG0_r_prime)
+        return var_cids, var_dG0_f_prime, var_P_N
+
     def get_all_cids(self):
         return sorted(self.formations.get_all_cids() + self.var_cids)
     
-    def VerifyReaction(self, reaction):
-        """
-            Check that the reaction is orthogonal to the var_nullspace
-        """
-        if not reaction.get_cids().issubset(self.get_all_cids()):
-            raise MissingReactionEnergy('Reaction involves compounds for which there '
-                                        'is no data',
-                                        reaction.sparse)
-        
-        v = np.array([reaction.sparse.get(cid, 0) for cid in self.var_cids], ndmax=2).T
-        if np.any(abs(np.dot(self.var_nullspace, v)) > 1e-10):
-            raise MissingReactionEnergy('Reaction is not orthogonal to the nullspace '
-                                        'of measured reactions',
-                                        reaction.sparse)
-
     def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
+        S = np.eye(len(cids))
+        return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
+
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
         if pH != None or I != None or T != None or pMg != None:
             raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics', None)
 
+        # take all the known dG0_primes from self.formations
         dG0_f_prime = self.formations.GetTransformedFormationEnergies(cids, 
-            pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
-        
-        for i, cid in enumerate(cids):
-            if cid in self.var_cids:
-                dG0_f_prime[i, 0] = self.cid2dG0_f[cid]
-                
-        return dG0_f_prime
+                                pH=self.pH, I=self.I, T=self.T, pMg=self.pMg)
 
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
-        dG0_f_prime = self.GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
+        # adjust dG0_r_primes, then perform linear regression to find the unknown dG0_f_primes
+        var_cids, var_dG0_f_prime, var_P_N = self._Recalculate()
+
+        # place the new values into the dG0_f vector at the right places (all should be NaN)
+        for i, cid in enumerate(cids):
+            if cid in var_cids:
+                dG0_f_prime[i, 0] = var_dG0_f_prime[var_cids.index(cid), 0]
+
         dG0_r_prime = GetReactionEnergiesFromFormationEnergies(S, dG0_f_prime)
 
-        # make sure that each of the rows in S does not violate conservation laws 
-        # formed by the null-space of the stoichiometric matrix of measured reactions.
-        var_S = np.zeros((S.shape[0], len(self.var_cids)))
-        for i, cid in enumerate(self.var_cids):
-            if cid in cids:
-                var_S[:, i] = S[:, cids.index(cid)]
-                
         # each row that is not orthogonal to the null-space is changed to NaN
         for i in xrange(S.shape[0]):
-            if np.any(abs(np.dot(self.var_nullspace, var_S.T)) > 1e-10):
+            v = np.zeros((len(var_cids), 1))
+            for j, cid in enumerate(var_cids):
+                if cid in cids:
+                    v[j, 0] = S[i, cids.index(cid)]
+            if np.any(abs(np.dot(var_P_N, v)) > 1e-10):
                 dG0_r_prime[i, 0] = np.NaN
         
         return dG0_r_prime
@@ -739,8 +740,3 @@ if __name__ == "__main__":
     dG0_r_primes = merged.GetTransfromedReactionEnergies(S, cids)
     print dG0_r_primes.T 
     
-    react = ReactionThermodynamics(S, cids, dG0_r_primes)
-    
-    S2 = np.array([[1, -2, -1]])
-    cids2 = [566, 24, 36]
-    print react.GetTransfromedReactionEnergies(S2, cids2).T
