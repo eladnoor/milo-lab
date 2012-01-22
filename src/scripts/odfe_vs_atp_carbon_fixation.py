@@ -29,7 +29,7 @@ def pareto(html_writer, thermo, c_range=(1e-6, 1e-2),
             logging.info("Skipping pathway: %s", key)
             continue
 
-        html_writer.write('<h2>%s</h2>\n' % p_data.name)
+        html_writer.write('<h2>%s</h2>\n' % key)
     
         S, rids, fluxes, cids = p_data.get_explicit_reactions()
         dG0_r = thermo.GetTransfromedReactionEnergies(S, cids)
