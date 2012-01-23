@@ -8,15 +8,12 @@ from pygibbs.thermodynamic_constants import default_T, R
 from matplotlib.font_manager import FontProperties
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_reaction import Reaction
+from pygibbs.metabolic_modelling.mtdf_optimizer import UnsolvableConvexProblemException
 import types
+import sys
 
 RT = R * default_T
 
-class UnsolvableConvexProblemException(Exception):
-    def __init__(self, msg, problem):
-        Exception.__init__(self, msg)
-        self.problem = problem
-        
 class DeltaGNormalization:
     TIMES_FLUX = 1 # motivation is having the most uniform entropy production
     DIVIDE_BY_FLUX = 2 # motivation is requiring more force in reaction that have more flux
@@ -122,7 +119,11 @@ class Pathway(object):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal output value).
         """
-        status = problem.solve(quiet=True)
+        try:
+            status = problem.solve(quiet=True)
+        except ValueError as e:
+            sys.stderr.write(str(problem))
+            raise UnsolvableConvexProblemException(str(e), problem)
         if status != 'optimal':
             raise UnsolvableConvexProblemException(status, problem)
             
@@ -913,19 +914,19 @@ class KeggPathway(Pathway):
             headers=["KEGG CID", 'Compound Name', 'Concentration LB [M]',
                      'Concentration [M]', 'Concentration UB [M]'])
     
-    def WriteProfileToHtmlTable(self, html_writer, concentrations):
+    def WriteProfileToHtmlTable(self, html_writer, concentrations=None):
         #html_writer.write('<b>Biochemical Reaction Energies</b></br>\n')
-        phys_concentrations = np.ones(concentrations.shape) * self.DEFAULT_PHYSIOLOGICAL_CONC
+        phys_concentrations = np.ones((len(self.cids), 1)) * self.DEFAULT_PHYSIOLOGICAL_CONC
         if 1 in self.cids:
             # C00001 (water) is an exception, its concentration is always set to 1
             phys_concentrations[self.cids.index(1), 0] = 1.0
         
         dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
-        dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
-        
         headers=["reaction", 'formula', 'flux', 
-                 "&#x394;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC, 
-                 "&#x394;<sub>r</sub>G' [kJ/mol]"]
+                 "&#x394;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC] 
+        if concentrations is not None:
+            dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
+            headers.append("&#x394;<sub>r</sub>G' [kJ/mol]")
         
         dict_list = []
         for r, rid in enumerate(self.rids):
@@ -941,19 +942,20 @@ class KeggPathway(Pathway):
             d['formula'] = self.GetReactionString(r, show_cids=False)
             d[headers[3]] = \
                 KeggPathway._EnergyToString(np.sign(self.fluxes[r]) * dG_r_prime_c[r, 0])
-            d[headers[4]] = KeggPathway._EnergyToString(
-                            np.sign(self.fluxes[r]) * dG_r_prime[r, 0])
+            if concentrations is not None:
+                d[headers[4]] = KeggPathway._EnergyToString(
+                        np.sign(self.fluxes[r]) * dG_r_prime[r, 0])
             dict_list.append(d)
 
         total_dG0 = KeggPathway._EnergyToString(float(np.dot(self.dG0_r_prime.T, self.fluxes)))
-        total_dG = KeggPathway._EnergyToString(float(np.dot(dG_r_prime.T, self.fluxes)))
         d = {'reaction':'Total',
              'flux':'1',
              'formula':self.GetTotalReactionString(show_cids=False),
-             headers[3]:total_dG0,
-             headers[4]:total_dG}
+             headers[3]:total_dG0}
+        if concentrations is not None:
+            total_dG = KeggPathway._EnergyToString(float(np.dot(dG_r_prime.T, self.fluxes)))
+            d[headers[4]] = total_dG
         dict_list.append(d)
-        
         html_writer.write_table(dict_list, headers=headers)
         
 if __name__ == '__main__':

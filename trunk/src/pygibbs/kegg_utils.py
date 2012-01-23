@@ -110,7 +110,7 @@ def balance_reaction(kegg, sparse, balance_water=False, balance_hydrogens=False,
     chemically_balanced = len(atom_bag) == 0
     
     if not chemically_balanced:
-        raise kegg_errors.KeggReactionNotBalancedException("Reaction as written is not chemically balanced.")
+        raise kegg_errors.KeggReactionNotBalancedException("Reaction as written is not chemically balanced.", atom_bag)
     if not redox_balanced:
-        raise kegg_errors.KeggReactionNotBalancedException("Reaction as written is not redox balanced.")
+        raise kegg_errors.KeggReactionNotBalancedException("Reaction as written is not redox balanced.", atom_bag)
     
