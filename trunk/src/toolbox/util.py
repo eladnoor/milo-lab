@@ -1,6 +1,6 @@
 import os, types, pylab, sys
 from pylab import svd, find, exp, log, pi, nan, sqrt, array, dot
-import Levenshtein
+from nltk.metrics import edit_distance
 import re
 import itertools
 
@@ -343,9 +343,9 @@ def get_close_matches(word, possibilities, n=3, cutoff=None, case_sensitive=Fals
     hits = []
     for possibility in possibilities:
         if case_sensitive:
-            d = Levenshtein.distance(word, possibility)
+            d = edit_distance(word, possibility)
         else:
-            d = Levenshtein.distance(word.lower(), possibility.lower())
+            d = edit_distance(word.lower(), possibility.lower())
         if cutoff and d < cutoff:
             hits.append((possibility, d))
 
