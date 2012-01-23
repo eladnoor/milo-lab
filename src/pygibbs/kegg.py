@@ -433,7 +433,7 @@ class Kegg(Singleton):
         return self.ec2enzyme_map.values()
 
     def parse_kegg_reaction_line(self, line):
-        rid, left_clause, right_clause, remainder = re.findall('([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+->\s+([C\s\+\d\.]+)(.*)', line)[0]
+        rid, left_clause, right_clause, remainder = re.findall('([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+[-=]>\s+([C\s\+\d\.]+)(.*)', line)[0]
         reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
         reaction.rid = rid
 

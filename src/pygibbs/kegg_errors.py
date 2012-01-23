@@ -7,7 +7,9 @@ class KeggNonCompoundException(Exception):
     pass
 
 class KeggReactionNotBalancedException(Exception):
-    pass
+    def __init__(self, msg, atom_bag=None):
+        Exception.__init__(self, msg)
+        self.atom_bag = atom_bag or {}
     
 class KeggMissingModuleException(Exception):
     pass

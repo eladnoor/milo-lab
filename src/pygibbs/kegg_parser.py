@@ -161,6 +161,7 @@ class ParsedKeggFile(dict):
 
     def __init__(self):
         """Initialize the ParsedKeggFile object."""
+        self.ordered_entries = []
         pass
         
     def _AddEntry(self, entry, fields):
@@ -172,7 +173,12 @@ class ParsedKeggFile(dict):
         """
         if entry in self:
             logging.warning('Overwriting existing entry for %s', entry)
+        else:
+            self.ordered_entries.append(entry)
         self[entry] = EntryDictWrapper(fields)
+
+    def entries(self):
+        return self.ordered_entries
 
     @staticmethod
     def FromKeggFile(filename):
