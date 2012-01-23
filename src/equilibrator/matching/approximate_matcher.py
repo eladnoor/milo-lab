@@ -1,6 +1,8 @@
-import logging
 import matcher
-import Levenshtein
+try:
+    from nltk.metrics import edit_distance
+except ImportError:
+    import Levenshtein.distance as edit_distance
 import re
 
 from django.db.models import Q
@@ -50,7 +52,7 @@ class EditDistanceMatcher(RegexApproxMatcher):
         """Custom edit-distance based scoring."""
         str_query = str(query)
         str_candidate = str(match.key)
-        dist = float(Levenshtein.distance(str_query, str_candidate))
+        dist = float(edit_distance(str_query, str_candidate))
         max_len = float(max(len(str_query), len(str_candidate)))
         return (max_len - dist) / max_len
     
