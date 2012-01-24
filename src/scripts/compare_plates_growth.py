@@ -10,9 +10,11 @@ import sys
 
 from toolbox.database import MySQLDatabase
 from toolbox import growth
+from toolbox import stats
 from toolbox.stats import MeanWithConfidenceInterval
 from toolbox.color import ColorMap
 from toolbox.plate import Plate96
+from scipy.interpolate import Rbf, InterpolatedUnivariateSpline
 
 from optparse import OptionParser
 
@@ -67,7 +69,7 @@ def Main():
     print 'Reading plates %s from experiment %s' % (', '.join(plates),
                                                     options.experiment_id)
     
-    db = MySQLDatabase(host='132.77.80.238', user='ronm', 
+    db = MySQLDatabase(host='hldbv02', user='ronm', 
                        passwd='a1a1a1', db='tecan')
 
     print 'Calculating growth rates'
@@ -75,8 +77,11 @@ def Main():
                                                        minimum_level=options.lower_bound,
                                                        maximum_level=options.upper_bound)
     
+    plate_names = {'1': 'Glucose',
+                   '2': 'Gluconate'}
+    colormap = {'1': 'k',
+                '2': 'r'}
     f1 = pylab.figure(0)
-    colormap = ColorMap(plates)
     for plate_id in plates:
         p = Plate96.FromDatabase(db, options.experiment_id, plate_id)
         rates, unused_stationaries = growth_calc.CalculatePlateGrowth(
@@ -104,31 +109,53 @@ def Main():
         norm_means = means / max_mean
         norm_errors = errors / max_mean
         
-        label = 'Plate %s' % plate_id
+        label = plate_names[plate_id]
         color = colormap[plate_id]
+        """
         pylab.subplot(121)
         pylab.plot(concs, norm_means, color=color, linestyle='None',
                    marker='.', label=label)
         pylab.errorbar(concs, norm_means, yerr=norm_errors, ecolor=color,
                        fmt=None)
+        """
         
-        pylab.subplot(122)
-        pylab.plot(concs, means, color=color, linestyle='None',
-                   marker='.', label=label)
-        pylab.errorbar(concs, means, yerr=errors, ecolor=color,
-                       fmt=None)
-                
+        #pylab.subplot(122)
+        pcts = concs*100
+        idx = pylab.find(pcts > 1e-4)
+        my_pcts = pcts[idx]
+        my_means = means[idx]
+        my_errs = errors[idx]
+        
+        order = pylab.argsort(my_pcts)
+        my_pcts = my_pcts[order]
+        my_means = my_means[order]
+        my_errs = my_errs[order]
+        
+        pylab.plot(my_pcts, my_means, color=color, linestyle='--',
+                   linewidth=2, marker='.', markersize=10, label=label)
+        pylab.errorbar(my_pcts, my_means, yerr=my_errs, ecolor=color,
+                       fmt=None, linewidth=1)
+        
+    
+    """            
     pylab.subplot(121)
     pylab.xlabel('CAP Concentration (fraction of standard concentration)')
     pylab.ylabel('Relative Specific Growth Rate (/hour)')
     pylab.xlim(-0.1,0.2)
+    """
     
+    """
     pylab.subplot(122)
     pylab.xlabel('CAP Concentration (fraction of standard concentration)')
     pylab.ylabel('Absolute Specific Growth Rate (/hour)')
+    """
     
-    pylab.xlim(-0.1,0.2)
-    pylab.legend()
+    pylab.xscale('log')
+    pylab.xlabel('Substrate concentration (m/v %)')
+    pylab.ylabel('Specific Growth Rate (/hour)')
+    
+    #pylab.xlim(-0.1,0.2)
+    pylab.legend(loc='upper left')
     pylab.show()
     
     
