@@ -1,6 +1,9 @@
 import os, types, pylab, sys
 from pylab import svd, find, exp, log, pi, nan, sqrt, array, dot
-from nltk.metrics import edit_distance
+try:
+    from nltk.metrics import edit_distance
+except ImportError:
+    from Levenshtein import distance as edit_distance
 import re
 import itertools
 
