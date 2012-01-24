@@ -2,7 +2,7 @@ import matcher
 try:
     from nltk.metrics import edit_distance
 except ImportError:
-    import Levenshtein.distance as edit_distance
+    from Levenshtein import distance as edit_distance
 import re
 
 from django.db.models import Q
