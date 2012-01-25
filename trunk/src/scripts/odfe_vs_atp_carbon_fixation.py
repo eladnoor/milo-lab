@@ -28,13 +28,14 @@ def get_concentration_bounds(cids, cid2bounds, c_range):
 def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
            c_range=(1e-6, 1e-2), cid2bounds=None,
            filename='../data/thermodynamics/odfe_vs_atp_carbon_fixation.txt',
-           plot_profile=False):
+           plot_profile=False, section_prefix=""):
     
     entry2fields_map = ParsedKeggFile.FromKeggFile(filename)
     cid2bounds = cid2bounds or {}
     entries = entry2fields_map.entries()
     plot_data = np.zeros((len(entries), 4))
     
+    html_writer.write('<h2 id="%s_tables">Individual result tables</h1>\n' % section_prefix)
     remarks = []
     good_entries = []
     for i, entry in enumerate(entries):
@@ -46,7 +47,8 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
             remarks.append('skipping')
             continue
 
-        #html_writer.write('<h2>%s</h2>\n' % entry)
+        #html_writer.write('<a name="%s"></a>\n' % entry)
+        html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, entry, entry))
         thermo = estimators[field_map.get('THERMO', 'merged')]
         thermo.SetConditions(pH=pH, I=I, T=T, pMg=pMg)
 
@@ -58,19 +60,17 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
 
         motive_force_lb = cvxpy.variable(name='ODB')
         ln_conc = cvxpy.variable(len(cids), 1, name='lnC')
-        S = cvxpy.matrix(S)
-        fluxes = cvxpy.matrix(fluxes).T
-        dG_r_prime = cvxpy.matrix(dG0_r_prime) + RT * S * ln_conc
+        dG_r_prime = cvxpy.matrix(dG0_r_prime) + RT * cvxpy.matrix(S) * ln_conc
         
         ln_lbs, ln_ubs = get_concentration_bounds(cids, cid2bounds, c_range)
         constraints = cvxpy.geq(ln_conc, cvxpy.matrix(ln_lbs)) +\
                       cvxpy.leq(ln_conc, cvxpy.matrix(ln_ubs))
         
-        # Solve the MTDF
+        ##### Maximize the lower-bound on the driving force (ODB)
         
         # Add the constraints on the reaction motive forces
         for j in xrange(len(rids)):
-            curr_motive_force = -dG_r_prime[j, 0] * fluxes[j, 0]
+            curr_motive_force = -dG_r_prime[j, 0] * fluxes[j]
             constraints.append(cvxpy.geq(curr_motive_force, motive_force_lb))
         
         program_mtdf = cvxpy.program(cvxpy.maximize(motive_force_lb), constraints)
@@ -79,9 +79,11 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
         logging.info('%20s: ODB = %.1f [kJ/mol]' % (entry, odb))
         odfe = 100 * np.tanh(odb / (2*R*thermo.T))
         
+        ##### Maximize the total dG' used by the pathway
+        
         # add the ODB value as a constraint
         constraints.append(cvxpy.eq(motive_force_lb, odb)) 
-        total_dG_prime = dG_r_prime.T * fluxes
+        total_dG_prime = cvxpy.matrix(fluxes) * dG_r_prime
         
         program_total = cvxpy.program(cvxpy.maximize(total_dG_prime), constraints)
         program_total.solve(quiet=True)
@@ -91,59 +93,28 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
         good_entries.append(i)
         remarks.append('okay')
         plot_data[i, :] = [odb, odfe, optimal_total_dG, np.sum(fluxes)]
-#    
-#        keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
-#                               cid2bounds=cid2bounds, c_range=c_range)
-#
-#        mtdf = np.NaN
-#        odfe = np.NaN
-#        total_dG_prime = np.NaN
-#        concentrations = None
-#        
-#        try:
-#            _, _, mtdf = keggpath.FindMtdf(normalization=DeltaGNormalization.SIGN_FLUX)
-#            odfe = 100 * np.tanh(mtdf / (2*R*thermo.T))
-#        except UnsolvableConvexProblemException as e:
-#            warning_str = "cannot calculate MTDF because: %s" % str(e)
-#            html_writer.write("<b>WARNING - </b>" + warning_str + "</br>\n")
-#            warnings.append([warning_str])
-#        
-#        if np.isfinite(mtdf):
-#            try:
-#                _, concentrations, total_dG_prime = keggpath.GetMaxReactionEnergy(mtdf)
-#                plot_data[i, :] = [mtdf, odfe, total_dG_prime, np.sum(fluxes)]
-#            except UnsolvableConvexProblemException as e:
-#                html_writer.write("<b>WARNING: cannot calculate Total dG' "
-#                                       "because %s:</b></br>\n" %
-#                                       str(e))
-#        
-#        html_writer.write_ul(["MTDF = %.1f kJ/mol" % mtdf,
-#                              "ODFE = %.1f%%" % odfe,
-#                              "Total &#x394;<sub>r</sub>G' = %.1f kJ/mol" % total_dG_prime])
-#        
-#        if concentrations is not None and plot_profile:
-#            profile_fig = keggpath.PlotProfile(concentrations)
-#            html_writer.embed_matplotlib_figure(profile_fig, name=entry+"_prfl", height=400, width=400)
-#
-#        keggpath.WriteProfileToHtmlTable(html_writer, concentrations)
-#        keggpath.WriteConcentrationsToHtmlTable(html_writer, concentrations)
-#        
-#        if concentrations is None:
-#            problem_str = str(e.problem).replace('\n', '</br>\n')
-#            html_writer.write("<b>CVXMOD problem</b></br>\n%s</br>\n" % problem_str)
 
-    dict_list = [{'Name':entries[i],
-                  'ODB':'%.1f' % plot_data[i, 0],
+        html_writer.write_ul(["ODB = %.1f [kJ/mol]" % odb,
+                              "ODFE = %.1f%%" % odfe,
+                              "Total &#x394;<sub>r</sub>G' = %.1f [kJ/mol]" % optimal_total_dG])
+        keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r_prime,
+                               cid2bounds=cid2bounds, c_range=c_range)
+        keggpath.WriteProfileToHtmlTable(html_writer, concentrations)
+        keggpath.WriteConcentrationsToHtmlTable(html_writer, concentrations)
+
+    html_writer.write('<h2 id="%s_summary">Summary table</h1>\n' % section_prefix)
+    dict_list = [{'Name':'<a href="#%s_%s">%s</a>' % (section_prefix, entries[i], entries[i]),
+                  'ODB [kJ/mol]':'%.1f' % plot_data[i, 0],
                   'ODFE':'%.1f%%' % plot_data[i, 1],
-                  'Total dG\'':'%.1f' % plot_data[i, 2],
+                  'Total dG\' [kJ/mol]':'%.1f' % plot_data[i, 2],
                   'sum(flux)':'%g' % plot_data[i, 3],
                   'remark':remarks[i]}
                  for i in xrange(len(entries))]
     html_writer.write_table(dict_list,
-        headers=['Name', 'ODB', 'ODFE', 'Total dG\'', 'sum(flux)', 'remark'])
+        headers=['Name', 'ODB [kJ/mol]', 'ODFE', 'Total dG\' [kJ/mol]', 'sum(flux)', 'remark'])
             
-    fig = plt.figure(figsize=(10, 10), dpi=90)
-    plt.plot(plot_data[:, 2], plot_data[:, 0], '.', figure=fig)
+    fig = plt.figure(figsize=(6, 6), dpi=90)
+    plt.plot(plot_data[good_entries, 2], plot_data[good_entries, 0], '.', figure=fig)
     for i in good_entries:
         if plot_data[i, 0] < 0:
             color = 'grey'
@@ -153,7 +124,8 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
                  ha='center', va='bottom', fontsize=6, color=color)
     plt.xlabel('Optimal Energetic Efficiency [kJ/mol]', figure=fig)
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
-    #fig.axes[0].set_xlim(0, max(plot_data[:, 0]))
+    fig.axes[0].set_xlim(min(plot_data[good_entries, 2])*1.1, 0)
+    fig.axes[0].set_ylim(0, max(plot_data[good_entries, 0])*1.1)
     return fig
     
 if __name__ == "__main__":
@@ -204,13 +176,19 @@ if __name__ == "__main__":
             cid2bounds[11] = (co2_conc, co2_conc)
             cid2bounds[288] = (carbonate_conc, carbonate_conc)
             
-            #html_writer.write('<h1>pH = %g</h1>\n' % pH)
-            html_writer.insert_toggle(start_here=True)
+            section_prefix = 'pH_%g_CO2_%g' % (pH, co2_conc*1000)
+            section_title = 'pH = %g, [CO2] = %g mM' % (pH, co2_conc*1000)
+            html_writer.write('<h1 id="%s_title">%s</h1>\n' %
+                              (section_prefix, section_title))
+            html_writer.write_ul(['<a href="#%s_tables">Individual result tables</a>' % section_prefix,
+                                  '<a href="#%s_summary">Summary table</a>' % section_prefix,
+                                  '<a href="#%s_figure">Summary figure</a>' % section_prefix])
+
             fig = pareto(html_writer, estimators,
-                         pH=pH, I=I, T=T, pMg=pMg, cid2bounds=cid2bounds)
-            html_writer.div_end()
-            
-            plt.title('pH = %g, [CO2] = %g mM' % (pH, co2_conc*1000), figure=fig)
+                         pH=pH, I=I, T=T, pMg=pMg, cid2bounds=cid2bounds,
+                         section_prefix=section_prefix)
+            html_writer.write('<h2 id="%s_figure">Summary figure</h1>\n' % section_prefix)
+            plt.title(section_title, figure=fig)
             html_writer.embed_matplotlib_figure(fig)
     
     html_writer.close()
