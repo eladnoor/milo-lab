@@ -35,7 +35,15 @@
 		<div class="pathwayResult">
 			<div class="pathwayName">{{result.model.name}}</div>
 			<div class="resultValue">MTDF = {{result.mtdf|stringformat:".2g"}}</div>
-			<div class="resultValue">Thermodyanmic Efficiency = {{result.thermodynamic_efficiency|stringformat:".2g"}}</div>
+			<div class="resultValue">Total Forward Flux Fraction = {{result.forward_fraction|stringformat:".2g"}}</div>
+			
+			<div class="resultTable">
+				<ul>
+				{% for rxn in result.reaction_objects %}
+					<li>{{ rxn.hypertext|safe }}</li>
+				{% endfor %}
+				</ul>
+			</div>
 			
 			<div class="resultTable">
 				<div class="tableTitle">Compound Concentrations (M)</div>
@@ -77,10 +85,15 @@
 				</table>
 			</div>
 			
-			{% if result.pathway_graph_filename != None %}
+			{% if result.mtdf_filename != None %}
 			<div class="pathwayGraph">
-				<object data="{{result.pathway_graph_filename}}"
-					    type="image/svg+xml" width=320 height=240
+				<img src="pathway_graphs/{{ result.mtdf_filename }}" />
+			</div>
+			{% endif %}
+			{% if result.graph_filename != None %}
+			<div class="pathwayGraph">
+				<object data="pathway_graphs/{{result.graph_filename}}"
+					    type="image/svg+xml" width=480 height=800
 					    name="{{result.model.name}}" frameborder="0"
 					    marginwidth="0" marginheight="0"/></object>
 			</div>
