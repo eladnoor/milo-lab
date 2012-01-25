@@ -41,6 +41,7 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
             
         except UnsolvableConvexProblemException as e:
             keggpath.WriteProfileToHtmlTable(html_writer)
+            keggpath.WriteConcentrationsToHtmlTable(html_writer)
             html_writer.write("<b>WARNING: cannot calculate MTDF "
                                    "because %s:</b></br>\n" %
                                    str(e))
