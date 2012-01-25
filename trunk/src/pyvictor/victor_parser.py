@@ -2,10 +2,10 @@
     This program requires the xlrd package, which can be found at: http://pypi.python.org/pypi/xlrd
 """
 from xlrd import open_workbook
-from pylab import matrix, array, figure, show, subplot, plot, find, arange, \
-                  log, exp, hstack, zeros, ones, lstsq, hold, mean, yscale, \
-                  legend
-import types, os
+import numpy as np
+import matplotlib.pyplot as plt
+import types, os, re, time
+from time import strptime, strftime
 from tkFileDialog import askopenfilename      
 
 class VictorParser():
@@ -19,6 +19,15 @@ class VictorParser():
         if (not os.path.exists(fname)):
             raise Exception("Cannot locate the Excel file: " + fname)
         wd = open_workbook(fname)
+        
+        protocol_sheet = wd.sheet_by_index(2)
+        measurement_cell = protocol_sheet.row_values(98)[0]
+        try:
+            measured_on = re.findall('\. ([0-9\/\ :]+)$', measurement_cell)[0]
+        except IndexError:
+            raise Exception("cannot get measurement date in XLS file: " + fname)
+        self.measurement_time = strptime(measured_on, '%d/%m/%Y %H:%M:%S')
+        
         sheet = wd.sheet_by_index(0)
         titles = sheet.row_values(0) # [Plate, Repeat, Well, Type] + [Time, Measurement] * n
         self.measurement_names = []
@@ -47,25 +56,30 @@ class VictorParser():
                     self.plate[m_name][(well_row, well_col)].append((time, value))
                 except ValueError:
                     continue
+
+    def get_time_string(self):
+        return strftime('%Y-%m-%d %H:%M:%S', self.measurement_time)
         
     def get_data(self, m_name, row, col):
-        if (type(m_name) == types.IntType):
+        """
+            m_name - the type of measurement. Can be an index (int) according to
+                     the order the measurements have been done.
+        """
+        if type(m_name) == types.IntType:
             m_name = self.measurement_names[m_name]
-        times = []
-        values = []
-        for (time, value) in self.plate[m_name][(row, col)]:
-            times.append(time)
-            values.append(value)
-        return (array(times), array(values))
+        data_series = self.plate[m_name][(row, col)]
+        times = np.array([t for (t, v) in data_series])
+        values = np.array([v for (t, v) in data_series])
+        return times, values
     
     def show_plate(self, m_name=0):
-        figure()
+        plt.figure()
         for r in range(8):
             for c in range(12):
-                subplot(8, 12, 1+r*12+c)
+                plt.subplot(8, 12, 1+r*12+c)
                 (t, v) = self.get_data(m_name, r, c)
-                plot(t, v)
-        show()
+                plt.plot(t, v)
+        plt.show()
 
     def get_growth_rate(self, m_name, row, col, window_size=1.5, start_threshold=0.01, plot_figure=False):
         (time, cell_count) = self.get_data(m_name, row, col)
@@ -90,27 +104,27 @@ class VictorParser():
             raise Exception("The measurement time-series is too short (smaller than the windows-size)")
     
         # get the window-size in samples
-        t_mat = matrix(time).T
-        c_mat = matrix(cell_count).T - min(cell_count)
+        t_mat = np.matrix(time).T
+        c_mat = np.matrix(cell_count).T - min(cell_count)
         if (c_mat[-1, 0] == 0):
-            c_mat[-1, 0] = min(c_mat[find(c_mat > 0)])
+            c_mat[-1, 0] = min(c_mat[c_mat > 0])
     
-        for i in arange(N-1, 0, -1):
+        for i in np.arange(N-1, 0, -1):
             if (c_mat[i-1, 0] <= 0):
                 c_mat[i-1, 0] = c_mat[i, 0]
     
-        c_mat = log(c_mat)
+        c_mat = np.log(c_mat)
         
-        res_mat = zeros((N,3)) # columns are: slope, offset, error
+        res_mat = np.zeros((N,3)) # columns are: slope, offset, error
         for i in range(N):
             try:
                 # calculate the indices covered by the window
                 i_range = get_frame_range(time, i, window_size)
-                x = hstack([t_mat[i_range, 0], ones((len(i_range), 1))])
+                x = np.hstack([t_mat[i_range, 0], np.ones((len(i_range), 1))])
                 y = c_mat[i_range, 0]
-                if (min(exp(y)) < start_threshold): # the measurements are still too low to use (because of noise)
+                if (min(np.exp(y)) < start_threshold): # the measurements are still too low to use (because of noise)
                     raise ValueError()
-                (a, residues) = lstsq(x, y)[0:2]
+                (a, residues) = np.linalg.lstsq(x, y)[0:2]
                 res_mat[i, 0] = a[0]
                 res_mat[i, 1] = a[1]
                 res_mat[i, 2] = residues
@@ -120,21 +134,21 @@ class VictorParser():
         max_i = res_mat[:,0].argmax()
         
         if (plot_figure):
-            hold(True)
-            plot(time, cell_count-min(cell_count))
-            plot(time, res_mat[:,0])
-            plot([0, time.max()], [start_threshold, start_threshold], 'r--')
+            plt.hold(True)
+            plt.plot(time, cell_count-min(cell_count))
+            plt.plot(time, res_mat[:,0])
+            plt.plot([0, time.max()], [start_threshold, start_threshold], 'r--')
             i_range = get_frame_range(time, max_i, window_size)
             
-            x = hstack([t_mat[i_range, 0], ones((len(i_range), 1))])
-            y = x * matrix(res_mat[max_i, 0:2]).T
+            x = np.hstack([t_mat[i_range, 0], np.ones((len(i_range), 1))])
+            y = x * np.matrix(res_mat[max_i, 0:2]).T
             
-            plot(x[:,0], exp(y), 'k:', linewidth=4)
+            plt.plot(x[:,0], np.exp(y), 'k:', linewidth=4)
             
             #plot(time, errors / errors.max())
-            yscale('log')
+            plt.yscale('log')
             #legend(['OD', 'growth rate', 'error'])
-            legend(['OD', 'growth rate', 'threshold', 'fit'])
+            plt.legend(['OD', 'growth rate', 'threshold', 'fit'])
         
         return res_mat[max_i, 0]
     
@@ -142,20 +156,29 @@ class VictorParser():
     def fit_growth2(time, cell_count, plot_figure=False):
         def peval(t, p):
             (gr, y_min, y_max, t50) = p
-            return y_min + (y_max-y_min)/(1 + exp(-gr*(t-t50)))
+            return y_min + (y_max-y_min)/(1 + np.exp(-gr*(t-t50)))
 
         def residuals(p, y, t):  
             err = y - peval(t, p) 
             return err
         
         from scipy.optimize import leastsq
-        p0 = (1, min(cell_count), max(cell_count), mean(time))
+        p0 = (1, min(cell_count), max(cell_count), np.mean(time))
         plsq = leastsq(residuals, p0, args=(cell_count, time))[0]
         if (plot_figure):
-            plot(time, cell_count, '+')
-            plot(time, [peval(t, plsq) for t in time], 'r-')
+            plt.plot(time, cell_count, '+')
+            plt.plot(time, [peval(t, plsq) for t in time], 'r-')
         
         return plsq[0]
+
+    def write_to_database(self, db, exp_id, plate_id=0):
+        for m_name in sorted(self.plate.keys()):
+            for (row, col) in sorted(self.plate[m_name].keys()):
+                for t, v in self.plate[m_name][(row, col)]:
+                    time_in_sec = time.mktime(self.measurement_time) + 3600.0*t
+                    db_row = [exp_id, plate_id, m_name, row, col, time_in_sec, v]
+                    #print ', '.join(['%s' % x for x in db_row])
+                    db.Insert('tecan_readings', db_row)
 
 def callback():
     askopenfilename() 

@@ -15,13 +15,13 @@ def get_data(index, row, col, vp_vec):
     value_array = array([])
     last_t = 0
     for vp in vp_vec:
-        (time, value) = vp.get_data(index, row, col)
-        time_array = hstack([time_array, time + last_t])
-        value_array = hstack([value_array, value])
-        if (len(time_array) > 0):
+        times, values = vp.get_data(index, row, col)
+        time_array = hstack([time_array, times + last_t])
+        value_array = hstack([value_array, values])
+        if len(time_array) > 0:
             last_t = time_array.max()
 
-    return (time_array, value_array)
+    return time_array, value_array
 
 _mkdir('../res/victor')
 
