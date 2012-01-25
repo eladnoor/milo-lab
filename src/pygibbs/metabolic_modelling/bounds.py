@@ -40,6 +40,31 @@ class BaseBounds(object):
         lower_bounds = np.array([self.GetLowerBound(key) for key in keys])
         upper_bounds = np.array([self.GetUpperBound(key) for key in keys])
         return lower_bounds, upper_bounds
+    
+    def GetBoundsWithDefault(self, keys, default):
+        """Returns the default value for each key unless it is invalid.
+        
+        Returns:
+            A column vector.
+        """
+        res = []
+        for key in keys:
+            ub = self.GetUpperBound(key)
+            lb = self.GetLowerBound(key)
+            
+            if default < lb:
+                res.append(lb)
+                continue
+            
+            if default > ub:
+                res.append(ub)
+                continue
+            
+            res.append(default)
+        
+        a = np.array(res)
+        return a.reshape(len(res), 1)
+        
 
     def GetLnBounds(self, keys):
         """Get the bounds for a set of keys in order.

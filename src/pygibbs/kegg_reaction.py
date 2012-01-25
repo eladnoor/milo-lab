@@ -291,6 +291,7 @@ class Reaction(object):
         from pygibbs.kegg import Kegg
         kegg = Kegg.getInstance()
         return kegg.sparse_to_hypertext(self.sparse, show_cids=show_cids)
+    hypertext = property(to_hypertext)
     
     def is_not_futile(self):
         return max([abs(x) for x in self.sparse.values()]) > 0.01
