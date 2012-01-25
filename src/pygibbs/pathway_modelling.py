@@ -898,7 +898,7 @@ class KeggPathway(Pathway):
         self.WriteConcentrationsToHtmlTable(html_writer, concentrations)
         self.WriteProfileToHtmlTables(html_writer, concentrations)
 
-    def WriteConcentrationsToHtmlTable(self, html_writer, concentrations):
+    def WriteConcentrationsToHtmlTable(self, html_writer, concentrations=None):
         #html_writer.write('<b>Compound Concentrations</b></br>\n')
         dict_list = []
         for c, cid in enumerate(self.cids):
@@ -907,12 +907,18 @@ class KeggPathway(Pathway):
             d['Compound Name'] = self.kegg.cid2name(cid)
             lb, ub = self.GetConcentrationBounds(cid)
             d['Concentration LB [M]'] = '%.2e' % lb
-            d['Concentration [M]'] = '%.2e' % concentrations[c, 0]
+            if concentrations is not None:
+                d['Concentration [M]'] = '%.2e' % concentrations[c, 0]
             d['Concentration UB [M]'] = '%.2e' % ub
             dict_list.append(d)
-        html_writer.write_table(dict_list,
-            headers=["KEGG CID", 'Compound Name', 'Concentration LB [M]',
-                     'Concentration [M]', 'Concentration UB [M]'])
+        if concentrations is not None:
+            headers = ['KEGG CID', 'Compound Name', 'Concentration LB [M]',
+                         'Concentration [M]', 'Concentration UB [M]']
+        else:
+            headers = ['KEGG CID', 'Compound Name', 'Concentration LB [M]',
+                       'Concentration UB [M]']
+        
+        html_writer.write_table(dict_list, headers=headers)
     
     def WriteProfileToHtmlTable(self, html_writer, concentrations=None):
         #html_writer.write('<b>Biochemical Reaction Energies</b></br>\n')
