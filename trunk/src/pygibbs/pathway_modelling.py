@@ -142,10 +142,16 @@ class Pathway(object):
         if bounds:
             for i, bound in enumerate(bounds):
                 lb, ub = bound
-                if lb is not None:
-                    ln_conc_lb[i, 0] = np.log(lb)
-                if ub is not None:
-                    ln_conc_ub[i, 0] = np.log(ub)
+                log_lb = np.log(lb or c_lower)
+                log_ub = np.log(ub or c_upper)
+                if log_lb > log_ub:
+                    raise Exception("Lower bound is greater than upper bound: "
+                                    "%d > %d" % (log_lb, log_ub))
+                elif abs(log_lb - log_ub) < 1e-2:
+                    log_lb = log_ub - 1e-2
+                    
+                ln_conc_lb[i, 0] = log_lb
+                ln_conc_ub[i, 0] = log_ub
         
         return ln_conc_lb, ln_conc_ub
             
