@@ -19,7 +19,7 @@ class Reaction(object):
         """Initialize the reaction."""
         self.SetNames(names)
         self.sparse = sparse_reaction
-        if rid == None:
+        if rid is None:
             self.rid = Reaction.free_rid
             Reaction.free_rid -= 1
         else:
@@ -151,7 +151,7 @@ class Reaction(object):
         return compound_bag
 
     @staticmethod
-    def FromFormula(formula):
+    def FromFormula(formula, name='reaction', rid=None):
         """ 
             Parses a two-sided formula such as: 2 C00001 => C00002 + C00003 
             
@@ -172,7 +172,7 @@ class Reaction(object):
         for cid, count in Reaction.parse_reaction_formula_side(right).iteritems():
             sparse_reaction[cid] = sparse_reaction.get(cid, 0) + count 
     
-        reaction = Reaction('reaction', sparse_reaction, direction=direction)
+        reaction = Reaction(name, sparse_reaction, rid=rid, direction=direction)
         return reaction
 
     def replace_compound(self, replace_cid, with_cid):

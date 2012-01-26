@@ -24,7 +24,8 @@ class Stoichiometric_LP(object):
         self.use_dG_f = False
         self.target_reaction = None
 
-    def add_stoichiometric_constraints(self, weights, S, compounds, reactions, source, target):
+    def add_stoichiometric_constraints(self, weights, S, compounds, reactions,
+                                       net_reaction):
         """
             S is a NCxNR matrix where the rows represent compounds and the columns represent reactions.
             b is the linear constraint vector, and is NCx1
@@ -51,12 +52,10 @@ class Stoichiometric_LP(object):
             self.cpl.linear_constraints.add(names=[constraint_name], senses='E', rhs=[0])
             for r in pylab.find(self.S[c,:]):
                 self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name, self.S[c,r])
-            
-        if source:
-            self.add_flux("SOURCE", source, lb=1, ub=1)
         
-        if target:
-            self.add_flux("TARGET", target, lb=-1, ub=-1)
+        # Counter-balance the desired net reaction with the exact opposite
+        # flux.
+        self.add_flux("OVERALL", net_reaction.sparse, lb=-1, ub=-1)
 
     def add_flux(self, name, sparse, lb=1, ub=1):
         """
@@ -293,7 +292,7 @@ class Stoichiometric_LP(object):
         self.cpl.linear_constraints.add(names=[constraint_name], senses='L')
         N_active = 0
         for r in range(len(self.reactions)):
-            if (self.gammas[r] > 0.5 and self.fluxes[r] > 1e-6):
+            if self.gammas[r] > 0.5 and self.fluxes[r] > 1e-6:
                 self.cpl.linear_constraints.set_coefficients(constraint_name, self.reactions[r].name + "_gamma", 1)
                 N_active += 1
         self.cpl.linear_constraints.set_rhs(constraint_name, N_active - 1)
