@@ -19,10 +19,18 @@ def MakeOpts():
     opt_parser.add_option("-p", "--plate_id",
                           dest="plate_id", default=0, type='int',
                           help="The ID of the read plate (should always be 0)")
+    opt_parser.add_option("-d", "--xls_dir",
+                          dest="xls_dir", default='/media/vicky/',
+                          help="The path to the directory containing Victor XLS results")
     return opt_parser
 
 def GetTimeString():
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+
+def get_latest_file(path):
+    filelist = [f for f in os.listdir(path) if f[-4:] == '.xls']
+    filelist = filter(lambda x: not os.path.isdir(path + x), filelist)
+    return max(filelist, key=lambda x: os.stat(path + x).st_mtime)
 
 def main():
     """
@@ -37,9 +45,13 @@ def main():
                        passwd='a1a1a1', db='tecan')
 
     if not args:
-        print opt_parser.get_usage()
-        sys.exit(-1)
-    xls_filename = args[0]
+        if not os.path.exists(options.xls_dir):
+            print "Directory not found: " + options.xls_dir
+            sys.exit(-1)
+        xls_filename = options.xls_dir + get_latest_file(options.xls_dir)
+    else:
+        xls_filename = args[0]
+        
     if not os.path.exists(xls_filename):
         print "File not found: " + xls_filename
         sys.exit(-1)
@@ -50,10 +62,14 @@ def main():
     
     exp_id = options.exp_id or vp.get_time_string()   
     print "Experiment ID: " + exp_id
+
+    if raw_input('Ready to import Victor results? [y/n] ') != 'y':
+        sys.exit(0)
     
     # delete any previous data regarding this exp_id
     db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
     db.Execute("DELETE FROM tecan_experiments WHERE exp_id='%s'" % exp_id)
+    db.Execute("DELETE FROM tecan_plates WHERE exp_id='%s'" % exp_id)
     db.Insert('tecan_experiments', [exp_id, "Imported from XLS file on " + 
                                     GetTimeString()])
     db.Insert('tecan_plates', [exp_id, options.plate_id, ""])
