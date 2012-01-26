@@ -1,20 +1,20 @@
-SETR R91000 : C00186 <=> 3 C19202 % lactate <=> 3 C
-SETR R91001 : C00033 <=> 2 C19202 % acetate <=> 2 C
-SETR R91002 : C00022 <=> 3 C19202 % pyruvate <=> 3 C
+%SETR R91000 : C00186 <=> 3 C19202 % lactate <=> 3 C
+%SETR R91001 : C00033 <=> 2 C19202 % acetate <=> 2 C
+%SETR R91002 : C00022 <=> 3 C19202 % pyruvate <=> 3 C
 % ----------------------------- Add reactions ----------------------------------
 COFR C00001 <=> null % free H2O
 COFR C00009 <=> null % free Pi
-%COFR C05359 <=> null % free e-
+COFR C05359 <=> null % free e-
 %SETR R90000 : C00001 + C00002 <=> C00008 + C00009 % ATP hydrolysis
 % --------------------------------- Electron Donor-Acceptor Pairs --------------
-SETR R90001 : C00003 + 2 C05359 <=> C00004  % NAD+ + 2 e- <=> NADH
-SETR R90002 : C00006 + 2 C05359 <=> C00005  % NADP+ + 2 e- <=> NADPH
-SETR R90003 : C00016 + 2 C05359 <=> C01352  % FAD + 2 e- <=> FADH2
-SETR R90004 : C00138 + C05359 <=> C00139    % reduced ferredoxin + e- <=> oxidized ferredoxin
-SETR R90005 : C00030 + C05359 <=> C00028    % donor (reduced acceptor) + e- <=> acceptor
-SETR R90006 : C00125 + C05359 <=> C00126    % Ferricytochrome c + e- <=> Ferrocytochrome c
-SETR R90007 : C00996 + C05359 <=> C00999    % Ferricytochrome b5 + e- <=> Ferrocytochrome b5
-SETR R90008 : C01070 + C05359 <=> C01071    % Ferricytochrome c-553 + e- <=> Ferrocytochrome c-553
-SETR R90009 : C05906 + 2 C05359 <=> C01617  % Leucocyanidin + 2 e- <=> Taxifolin
-SETR R90010 : C00343 + 2 C05359 <=> C00342  % Thioredoxin disulfide + 2 e- <=> Thioredoxin
-SETR R90011 : C03648 + 2 C05359 <=> C00974  % cis-3,4-Leucopelargonidin + 2 e- <=> Dihydrokaempferol
+SETR NAD_redox : C00003 + 2 C05359 <=> C00004  % NAD+ + 2 e- <=> NADH
+SETR NADP_redox : C00006 + 2 C05359 <=> C00005  % NADP+ + 2 e- <=> NADPH
+%SETR R90003 : C00016 + 2 C05359 <=> C01352  % FAD + 2 e- <=> FADH2
+%SETR R90004 : C00138 + C05359 <=> C00139    % reduced ferredoxin + e- <=> oxidized ferredoxin
+%SETR R90005 : C00030 + C05359 <=> C00028    % donor (reduced acceptor) + e- <=> acceptor
+%SETR R90006 : C00125 + C05359 <=> C00126    % Ferricytochrome c + e- <=> Ferrocytochrome c
+%SETR R90007 : C00996 + C05359 <=> C00999    % Ferricytochrome b5 + e- <=> Ferrocytochrome b5
+%SETR R90008 : C01070 + C05359 <=> C01071    % Ferricytochrome c-553 + e- <=> Ferrocytochrome c-553
+%SETR R90009 : C05906 + 2 C05359 <=> C01617  % Leucocyanidin + 2 e- <=> Taxifolin
+%SETR R90010 : C00343 + 2 C05359 <=> C00342  % Thioredoxin disulfide + 2 e- <=> Thioredoxin
+%SETR R90011 : C03648 + 2 C05359 <=> C00974  % cis-3,4-Leucopelargonidin + 2 e- <=> Dihydrokaempferol

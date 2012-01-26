@@ -1037,6 +1037,9 @@ class KeggPathologic(object):
             else:
                 r = Reaction("R%05d" % rid, reaction.sparse, 
                              rid=rid, direction=reaction.direction)
+                try:
+                    r.Balance(balance_water=True, exception_if_unknown=True)
+                except kegg_errors.
                 self.reactions += self.create_reactions(r)
 
     def is_specific(self, reaction):
@@ -1084,6 +1087,8 @@ class KeggPathologic(object):
             return None
     
     def get_compound(self, cid):
+        if type(cid) != types.IntType:
+            raise ValueError("CIDs must be integers")
         if cid in self.cid2compound:
             return self.cid2compound[cid]
         else:
@@ -1122,13 +1127,9 @@ class KeggPathologic(object):
                 except kegg_errors.KeggParseException:
                     raise Exception("Syntax error in update file: " + line)
                 
-                rid = int(reaction_id.strip()[1:])
-                reaction.SetNames("R%05d" % rid)
-                reaction.rid = rid
-
-                rxns = self.create_reactions(reaction, weight=1)
-                
-                html_writer.write("<li><b>Set Reaction,</b> R%05d : %s" % (rid, 
+                reaction.SetNames([reaction_id])
+                rxns = self.create_reactions(reaction)
+                html_writer.write("<li><b>Set Reaction,</b> %s : %s" % (reaction_id, 
                     reaction.to_hypertext(show_cids=True)))
                 #ver = rxns[0].verify(self.cid2atom_bag)
                 #if ver != None:
@@ -1172,25 +1173,9 @@ class KeggPathologic(object):
             else:
                 temp_reactions.append(r)
                 
-        # Replace all compounds in all reactions with the primary compound
-        # determined earlier by the InChI identifiers.
-        temp_reactions.extend(added_reactions)
-        all_reactions = []
-        for r in temp_reactions:
-            try:
-                for cid in r.get_cids():
-                    compound = self.get_compound(cid)
-                    if compound.cid != cid:
-                            r.replace_compound(cid, compound.cid)
-            except ValueError, e:
-                logging.error(e)
-                continue
-            
-            all_reactions.append(r)
+        self.reactions = temp_reactions + added_reactions
         
-        self.reactions = all_reactions
-        
-    def create_reactions(self, reaction, weight=1):
+    def create_reactions(self, reaction, weight=1.0):
         """Creates Reaction objects needed according to the sign of the arrow."""
         if 80 in reaction.sparse:
             del reaction.sparse[80]
@@ -1201,12 +1186,12 @@ class KeggPathologic(object):
                 "Direction must be either =>, <= or <=>")
         if reaction.direction in ["=>", "<=>"]:
             r_forward = reaction.clone()
-            r_forward.SetNames("R%05d_F" % reaction.rid)
+            r_forward.SetNames(["%s_F" % n for n in reaction.names])
             r_forward.weight = weight
             res.append(r_forward)
         if reaction.direction in ["<=", "<=>"]:
             r_reverse = reaction.reverse()
-            r_reverse.SetNames("R%05d_R" % reaction.rid)
+            r_reverse.SetNames(["%s_R" % n for n in reaction.names])
             r_reverse.weight = weight
             res.append(r_reverse)
         return res
@@ -1227,32 +1212,6 @@ class KeggPathologic(object):
             backward_reaction[cid] = -coeff
         return backward_reaction
     
-    def sparse_to_hypertext(self, sparse, show_cids=True, direction='=>'):
-        s_left = []
-        s_right = []
-        for (cid, count) in sparse.iteritems():
-            comp = self.get_compound(cid)
-            url = comp.get_link()
-            name = comp.name
-            if (show_cids):
-                show_string = "C%05d" % cid
-                title = name
-            else:
-                show_string = name
-                title = "C%05d" % cid
-            
-            if (count > 0):
-                if (count == 1):
-                    s_right.append('<a href="%s" title="%s">%s</a>' % (url, title, show_string))
-                else:
-                    s_right.append('%d <a href="%s" title="%s">%s</a>' % (count, url, title, show_string))
-            elif (count < 0):
-                if (count == -1):
-                    s_left.append('<a href="%s" title="%s">%s</a>' % (url, title, show_string))
-                else:
-                    s_left.append('%d <a href="%s" title="%s">%s</a>' % (-count, url, title, show_string))
-        return ' + '.join(s_left) + ' ' + direction + ' ' + ' + '.join(s_right)
-
     @staticmethod
     def is_subreaction(spr1, spr2):
         """
@@ -1295,22 +1254,35 @@ class KeggPathologic(object):
             and store them in 'unique_reaction_map'.
         """
         logging.info("creating the Stoichiometry Matrix")
-        cids = set()
-        for r in self.reactions:
-            for cid in r.get_cids():
-                cids.add(self.get_compound(cid).cid)
 
-        cids = list(sorted(cids))
-        Ncompounds = len(cids)
+        all_reactions = []
+        all_cids = set()
+        for r in self.reactions:
+            try:
+                # Replace all compounds in all reactions with the primary compound
+                # determined earlier by the InChI identifiers.
+                for cid in r.get_cids():
+                    cannonic_cid = self.get_compound(cid).cid
+                    if cannonic_cid != cid:
+                        r.replace_compound(cid, cannonic_cid)
+                    all_cids.add(cannonic_cid)
+            except ValueError, e:
+                logging.error(e)
+                continue
+            
+            all_reactions.append(r)
+        
+        all_cids = list(sorted(all_cids))
+        Ncompounds = len(all_cids)
         cid2index = {}
-        compounds = []
+        all_compounds = []
         for c in xrange(Ncompounds):
-            cid2index[cids[c]] = c
-            compounds.append(self.get_compound(cids[c]))
+            cid2index[all_cids[c]] = c
+            all_compounds.append(self.get_compound(all_cids[c]))
 
         # Create the columns, name the reactions (RID) in the stoichiometric matrix
         reduced_sparse_reactions = []
-        for r in self.reactions:
+        for r in all_reactions:
             
             # remove the co-factor pairs from the reaction
             spr = deepcopy(r.sparse)
@@ -1319,13 +1291,13 @@ class KeggPathologic(object):
             
             reduced_sparse_reactions.append(spr)
 
-        Nreactions = len(self.reactions)
+        Nreactions = len(all_reactions)
         f = []
         S = pylab.zeros((Ncompounds, Nreactions))
 
         for r in range(Nreactions):
-            if self.reactions[r].weight != 0:
-                f.append((r, self.reactions[r].weight))
+            if all_reactions[r].weight != 0:
+                f.append((r, all_reactions[r].weight))
             
             for cid, count in reduced_sparse_reactions[r].iteritems():
                 comp = self.get_compound(cid)
@@ -1336,8 +1308,8 @@ class KeggPathologic(object):
         # share the same reactants (with different co-factors).
         # Although this is a stoichiometric redundancy, thermodynamically this is important
         # since each version of this reaction will have different constraints.
-        logging.info("the Stoichiometry matrix contains %d compounds & %d reactions" % (Ncompounds, Nreactions))
-        return f, S, compounds, self.reactions
+        logging.info("the Stoichiometry matrix contains %d all_compounds & %d reactions" % (Ncompounds, Nreactions))
+        return f, S, all_compounds, all_reactions
 
     def create_compound_node(self, Gdot, comp, node_name=None, is_cofactor=False):
         if (node_name == None):
