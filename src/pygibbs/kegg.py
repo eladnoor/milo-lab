@@ -9,7 +9,7 @@ from copy import deepcopy
 from toolbox import util
 from toolbox.database import SqliteDatabase
 from toolbox.singletonmixin import Singleton
-from toolbox.molecule import Molecule
+from toolbox.molecule import Molecule, OpenBabelError
 
 from pygibbs import kegg_compound, kegg_reaction
 from pygibbs import kegg_enzyme
@@ -1039,8 +1039,11 @@ class KeggPathologic(object):
                              rid=rid, direction=reaction.direction)
                 try:
                     r.Balance(balance_water=True, exception_if_unknown=True)
-                except kegg_errors.
-                self.reactions += self.create_reactions(r)
+                    self.reactions += self.create_reactions(r)
+                except kegg_errors.KeggReactionNotBalancedException:
+                    logging.warning("R%05d is not balanced" % rid)
+                except OpenBabelError as e:
+                    logging.warning(str(e))
 
     def is_specific(self, reaction):
         for cid in reaction.sparse.keys():

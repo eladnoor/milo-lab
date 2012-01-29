@@ -175,12 +175,12 @@ class PathwayComparison(object):
             path = pathway_modelling.Pathway(S, dG0_f)
             
             if target_mtdf is not None:
-                dG_f, conc, score = path.FindMtdf_Regularized(
+                _ln_conc, score = path.FindMtdf_Regularized(
                     c_range, bounds, c_mid,
                     min_mtdf=target_mtdf,
                     max_mtdf=target_mtdf)
             else:
-                dG_f, conc, score = path.FindMTDF_OptimizeConcentrations(
+                _ln_conc, score = path.FindMTDF_OptimizeConcentrations(
                     c_range, bounds, c_mid)
             if score is None:
                 logging.error('No MTDF score for %s', name)
