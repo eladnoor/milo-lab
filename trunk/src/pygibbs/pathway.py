@@ -233,7 +233,6 @@ class PathwayData(object):
         kegg = Kegg.getInstance()
         return kegg.parse_explicit_module(self.field_map, self.cid_mapping) 
 
-
 class KeggPathwayIterator(object):
     
     def __init__(self, parsed_kegg_file):
