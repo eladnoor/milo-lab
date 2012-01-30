@@ -138,3 +138,4 @@ if __name__ == "__main__":
     print "glycine", GetDissociationConstants('C(=O)(O)CN')
     print "CO2", GetDissociationConstants('O=C=O')
     print "ATP", GetDissociationConstants('Nc1ncnc2n(cnc12)C1OC(COP([O-])(=O)OP([O-])(=O)OP(O)([O-])=O)C(O)C1O')
+    print "3-Ketoarabinitol", GetDissociationConstants('OCC(O)C(C(O)CO)=O')
