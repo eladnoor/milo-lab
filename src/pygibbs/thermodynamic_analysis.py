@@ -12,8 +12,7 @@ from optparse import OptionParser
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.kegg import Kegg
 from pygibbs.pathway import PathwayData
-from pygibbs.thermodynamic_constants import transform, RedoxCarriers, default_I,\
-    default_pH, default_pMg
+from pygibbs.thermodynamic_constants import transform, RedoxCarriers
 from pygibbs.thermodynamic_constants import default_T, R, F
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
@@ -21,8 +20,7 @@ from toolbox.util import _mkdir
 import scipy.io
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from pygibbs.pathway_modelling import KeggPathway,\
-    UnsolvableConvexProblemException, DeltaGNormalization
+from pygibbs.pathway_modelling import KeggPathway, DeltaGNormalization
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.compound_abundance import CompoundAbundance
 
@@ -246,19 +244,21 @@ class ThermodynamicAnalysis(object):
         
         keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
-        try:
-            _, _, mtdf = keggpath.FindMtdf(normalization=DeltaGNormalization.SIGN_FLUX)
-            _, concentrations, total_dG_prime = keggpath.GetMaxReactionEnergy(mtdf)
+        keggpath.normalization = DeltaGNormalization.SIGN_FLUX
+        #try:
+        _,  mtdf = keggpath.FindMtdf()
+        ln_conc, total_dG_prime = keggpath.GetTotalReactionEnergy(mtdf, maximize=True)
             
-        except UnsolvableConvexProblemException as e:
-            self.html_writer.write("<b>WARNING: cannot calculate MTDF "
-                                   "because %s:</b></br>\n" %
-                                   str(e))
-            problem_str = str(e.problem).replace('\n', '</br>\n')
-            self.html_writer.write("%s" % problem_str)
-            return
+        #except UnsolvableConvexProblemException as e:
+        #    self.html_writer.write("<b>WARNING: cannot calculate MTDF "
+        #                           "because %s:</b></br>\n" %
+        #                           str(e))
+        #    problem_str = str(e.problem).replace('\n', '</br>\n')
+        #    self.html_writer.write("%s" % problem_str)
+        #    return
         
         odfe = 100 * np.tanh(mtdf / (2*R*self.thermo.T))
+        concentrations = np.exp(ln_conc)
         
         profile_fig = keggpath.PlotProfile(concentrations)
         plt.title('ODFE = %.1f%%' % odfe, figure=profile_fig)
@@ -537,14 +537,15 @@ class ThermodynamicAnalysis(object):
                                formation_energies=dG0_f,
                                cid2bounds=cid2bounds,
                                c_range=self.thermo.c_range)
-        try:
-            _, concentrations, mtdf = keggpath.FindMtdf()
-        except UnsolvableConvexProblemException as e:
-            self.html_writer.write("<b>WARNING: cannot calculate MTDF "
-                                   "because %s:</b></br>\n" %
-                                   str(e))
+        #try:
+        ln_conc, mtdf = keggpath.FindMtdf()
+        #except UnsolvableConvexProblemException as e:
+        #    self.html_writer.write("<b>WARNING: cannot calculate MTDF "
+        #                           "because %s:</b></br>\n" %
+        #                           str(e))
 
         odfe = 100 * np.tanh(mtdf / (2*R*self.thermo.T))
+        concentrations = np.exp(ln_concf)
         
         profile_fig = keggpath.PlotProfile(concentrations)
         plt.title('ODFE = %.1f%%' % odfe, figure=profile_fig)
@@ -584,13 +585,13 @@ class ThermodynamicAnalysis(object):
                                        formation_energies=dG0_f,
                                        cid2bounds=cid2bounds,
                                        c_range=self.thermo.c_range)
-                try:
-                    _, _, mtdf = keggpath.FindMtdf()
-                    odfe_mat[i, j] = 100 * np.tanh(mtdf / (2*R*self.thermo.T))
+                #try:
+                _, mtdf = keggpath.FindMtdf()
+                odfe_mat[i, j] = 100 * np.tanh(mtdf / (2*R*self.thermo.T))
                     
-                except UnsolvableConvexProblemException as e:
-                    logging.debug(str(e))
-                    odfe_mat[i, j] = np.NaN
+                #except UnsolvableConvexProblemException as e:
+                #    logging.debug(str(e))
+                #    odfe_mat[i, j] = np.NaN
         
         if contour:
             fig = plt.figure()

@@ -152,7 +152,8 @@
 "alpha-Acetolactic acid",900,"yes",
 "alpha,beta-Dihydroxy-isovalerate",4039,"yes",
 "2-Ketoisovalerate",141,"yes",
-"3-Ketoarabinitol",80062,"no","InChI=1S/C5H6O7/c6-1(2(7)4(9)10)3(8)5(11)12/h2-3,7-8H,(H,9,10)(H,11,12)"
-"3-Ketoarabinitol 1,5-bisphosphate",80063,"no","InChI=1S/C5H8O13P2/c6-1(2(7)4(9)17-19(11,12)13)3(8)5(10)18-20(14,15)16/h2-3,7-8H,(H2,11,12,13)(H2,14,15,16)"
-"2-Carboxy-3-ketoarabinitol",80064,"no","InChI=1S/C6H6O9/c7-1(3(9)10)2(8)6(15,4(11)12)5(13)14/h1,7,15H,(H,9,10)(H,11,12)(H,13,14)"
-"2-Carboxy-3-ketoarabinitol 1,5-bisphosphate",80065,"no","InChI=1S/C6H8O15P2/c7-1(3(9)20-22(14,15)16)2(8)6(13,4(10)11)5(12)21-23(17,18)19/h1,7,13H,(H,10,11)(H2,14,15,16)(H2,17,18,19)"
+"3-Ketoarabinitol",80062,"no","InChI=1S/C5H10O5/c6-1-3(8)5(10)4(9)2-7/h3-4,6-9H,1-2H2"
+"3-Ketoarabinitol 1,5-bisphosphate",80063,"no","InChI=1S/C5H12O11P2/c6-3(1-15-17(9,10)11)5(8)4(7)2-16-18(12,13)14/h3-4,6-7H,1-2H2,(H2,9,10,11)(H2,12,13,14)"
+"2-Carboxy-3-ketoarabinitol",80064,"no","InChI=1S/C6H10O7/c7-1-3(9)4(10)6(13,2-8)5(11)12/h3,7-9,13H,1-2H2,(H,11,12)"
+"2-Carboxy-3-ketoarabinitol 1,5-bisphosphate",80065,"no","InChI=1S/C6H12O13P2/c7-3(1-18-20(12,13)14)4(8)6(11,5(9)10)2-19-21(15,16)17/h3,7,11H,1-2H2,(H,9,10)(H2,12,13,14)(H2,15,16,17)"
+"D-Glycerate 1-phosphate",80066,"no","InChI=1S/C3H7O7P/c4-1-2(5)3(6)10-11(7,8)9/h2,4-5H,1H2,(H2,7,8,9)"
