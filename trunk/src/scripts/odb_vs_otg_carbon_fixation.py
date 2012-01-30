@@ -119,28 +119,21 @@ if __name__ == "__main__":
                   13:   (3e-9, 3e-9), # PPi (in order to keep ATP -> AMP at -110 kJ/mol)
                   #20:   (5e-3, 5e-3), # AMP (in order to keep ATP -> AMP at -55 kJ/mol)
                   #13:   (5e-2, 5e-2), # PPi (in order to keep ATP -> AMP at -55 kJ/mol)
-                  3:    (1e-4, 1e-3), # NAD_ox
-                  4:    (1e-4, 1e-3), # NAD_red (to keep ox/red between 0.1 and 10)
-                  6:    (1e-4, 1e-3), # NADP_ox
-                  5:    (1e-4, 1e-3), # NADP_red (to keep ox/red between 0.1 and 10)
-                  399:  (1e-4, 1e-3), # ubiquinone_ox
-                  390:  (1e-4, 1e-3), # ubiquinol_red (to keep ox/red between 0.1 and 10)
-                  139:  (1e-4, 1e-3), # ferredoxin_ox
-                  138:  (1e-4, 1e-3), # ferredoxin_red (to keep ox/red between 0.1 and 10)
+                  3:    (1e-4, 1e-3), # NAD (ox)
+                  4:    (1e-4, 1e-3), # NAD (red)
+                  6:    (1e-4, 1e-3), # NADP (ox)
+                  5:    (1e-4, 1e-3), # NADP (red)
+                  399:  (1e-4, 1e-3), # ubiquinone (ox)
+                  390:  (1e-4, 1e-3), # ubiquinol (red)
+                  139:  (1e-4, 1e-3), # ferredoxin (ox)
+                  138:  (1e-4, 1e-3), # ferredoxin (red)
                   
-                  828:  (1e-4, 1e-3), # menaquinone_ox
-                  5819: (1e-4, 1e-3), # menaquinone_red
-                  343:  (1e-4, 1e-3), # thioredoxin_ox
-                  342:  (1e-4, 1e-3), # thioredoxin_red
-
-                  #3:   (5e-3, 5e-3), # NAD_ox
-                  #4:   (5e-5, 5e-5), # NAD_red (to keep ox/red at 100)
-                  #6:   (5e-5, 5e-5), # NADP_ox
-                  #5:   (5e-4, 5e-4), # NADP_red (to keep ox/red at 0.1)
-                  #399: (1e-3, 1e-3), # ubiquinone_ox
-                  #390: (1e-4, 1e-2), # ubiquinol_red (to keep ox/red between 0.1 and 10)
-                  #139: (1e-6, 1e-6), # ferredoxin_ox
-                  #138: (1e-2, 1e-2), # ferredoxin_red (to keep ox/red at 1e-4)
+                  828:  (1e-4, 1e-3), # menaquinone (ox)
+                  5819: (1e-4, 1e-3), # menaquinone (red)
+                  343:  (1e-4, 1e-3), # thioredoxin (ox)
+                  342:  (1e-4, 1e-3), # thioredoxin (red)
+                  876:  (1e-4, 1e-3), # coenzyme F420 (ox)
+                  1080: (1e-4, 1e-3), # coenzyme F420 (red)
                   }
     co2_hydration = Reaction.FromFormula("C00011 + C00001 => C00288")
     
