@@ -4,12 +4,13 @@ import json
 import logging
 
 from util import django_utils
+import gzip
 
 django_utils.SetupDjango()
 
 from gibbs import models
 
-DEFAULT_COMPOUND_DATA_FILENAME = 'data/additional_compound_data.json'
+DEFAULT_COMPOUND_DATA_FILENAME = 'data/additional_compound_data.json.gz'
 
 
 def GetOrCreateNames(names_list):
@@ -22,7 +23,7 @@ def GetOrCreateNames(names_list):
     
 
 def LoadAdditionalCompoundData(json_filename=DEFAULT_COMPOUND_DATA_FILENAME):
-    parsed_json = json.load(open(json_filename))
+    parsed_json = json.load(gzip.open(json_filename))
 
     for cd in parsed_json:
         try:
@@ -54,7 +55,7 @@ def LoadAdditionalCompoundData(json_filename=DEFAULT_COMPOUND_DATA_FILENAME):
 
 def CheckData(filenames=(DEFAULT_COMPOUND_DATA_FILENAME,)):
     for json_fname in filenames:
-        json.load(open(json_fname))
+        json.load(gzip.open(json_fname))
 
 
 def LoadAllAdditionalData():

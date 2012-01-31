@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import numpy as np
 
 from pygibbs import kegg_errors, kegg_parser
 from toolbox.molecule import Molecule, OpenBabelError
@@ -72,7 +73,7 @@ class Compound(object):
         for nH, z, nMg, dG0 in pseudoisomer_map.ToMatrix():
             ref = pseudoisomer_map.GetRef(nH, z, nMg)
             d['species'].append({"nH":nH, "z":z, "nMg":nMg, 
-                                 "dG0_f":dG0, "ref":ref})
+                                 "dG0_f":np.round(dG0, 2), "ref":ref})
         self.pmaps.append(d)
     
     def SetThermodynamicError(self, error_string):

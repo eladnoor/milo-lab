@@ -5,6 +5,7 @@ import logging
 import sys, traceback
 
 from util import django_utils
+import gzip
 
 django_utils.SetupDjango()
 
@@ -62,9 +63,9 @@ def GetCompounds(cids_list):
     return compounds
         
 
-COMPOUND_FILE = 'data/kegg_compounds.json'
-REACTION_FILE = 'data/kegg_reactions.json'
-ENZYME_FILE = 'data/kegg_enzymes.json'
+COMPOUND_FILE = 'data/kegg_compounds.json.gz'
+REACTION_FILE = 'data/kegg_reactions.json.gz'
+ENZYME_FILE = 'data/kegg_enzymes.json.gz'
 
 def MakeSpeciesGroup(pmap, source, compound):
     logging.debug('Writing data from source %s', source.name)
@@ -124,7 +125,7 @@ def AddPmapToCompound(pmap, compound):
 
 
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
-    parsed_json = json.load(open(kegg_json_filename))
+    parsed_json = json.load(gzip.open(kegg_json_filename, 'r'))
     
     for i, cd in enumerate(parsed_json):
         try:
@@ -182,7 +183,7 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
         
 
 def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
-    parsed_json = json.load(open(reactions_json_filename))
+    parsed_json = json.load(gzip.open(reactions_json_filename))
 
     for rd in parsed_json:
         try:
@@ -214,7 +215,7 @@ def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
 
 
 def LoadKeggEnzymes(enzymes_json_filename=ENZYME_FILE):
-    parsed_json = json.load(open(enzymes_json_filename))
+    parsed_json = json.load(gzip.open(enzymes_json_filename))
 
     for ed in parsed_json:
         try:
@@ -259,7 +260,7 @@ def CheckData(filenames=(COMPOUND_FILE,
                          REACTION_FILE,
                          ENZYME_FILE)):
     for json_fname in filenames:
-        json.load(open(json_fname))
+        json.load(gzip.open(json_fname, 'r'))
 
 
 def LoadAllKeggData():
