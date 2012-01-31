@@ -5,7 +5,7 @@ from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 import sys
 
-def example1():
+def example_lower_glycolysis():
     pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
                     public_db=SqliteDatabase('../data/public_data.sqlite'),
                     html_writer=HtmlWriter('../res/pathologic.html'),
@@ -24,7 +24,7 @@ def example1():
 
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
-    example1()
+    example_lower_glycolysis()
 
 if __name__ == '__main__':
     main()

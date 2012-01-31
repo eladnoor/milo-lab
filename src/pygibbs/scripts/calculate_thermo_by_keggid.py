@@ -12,11 +12,11 @@ def MakeOpts(estimators):
     opt_parser.add_option("-c", "--csv_input_filename",
                           dest="csv_input_filename",
                           default=None,
-                          help="input CSV file with InChIs")
+                          help="input CSV file with a column of KEGG IDs")
     opt_parser.add_option("-o", "--csv_output_filename",
                           dest="csv_output_filename",
                           default=None,
-                          help="output CSV file with dGs and groups")
+                          help="output CSV file with dGs")
     opt_parser.add_option("-b", "--biochemical",
                           dest="biochemical",
                           default=True,
@@ -77,6 +77,8 @@ def CalculateThermo():
             cids.append(int(row[cid_index][1:]))
         except ValueError:
             csv_writer.writerow(row + ['NaN', 'cannot parse KEGG ID'])
+            continue
+        except IndexError:
             continue
         
     if options.biochemical:
