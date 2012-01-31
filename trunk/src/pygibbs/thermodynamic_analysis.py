@@ -323,120 +323,6 @@ class ThermodynamicAnalysis(object):
             self.html_writer.write('  <tr><td>%.2f</td><td>%d</td><td>%d</td></tr>\n' % (dG0, nH, z))
         self.html_writer.write('</table>')
 
-#    def analyze_redox(self, key, pathway_data):
-#        self.thermo.I = pathway_data.I or self.thermo.I
-#        self.thermo.T = pathway_data.T or self.thermo.T 
-#        pH_list = pathway_data.pH_values
-#        E_list = pathway_data.redox_values or np.arange(-3.0, 3.01, 0.5)
-#        c_mid = pathway_data.c_mid or thermo.c_mid
-#
-#        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
-#        self.kegg.write_reactions_to_html(self.html_writer, S, rids, fluxes, cids, show_cids=False)
-#        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-#
-#        pCr_mat = np.zeros((len(pH_list), len(E_list)))
-#        for i, pH in enumerate(pH_list):
-#            self.thermo.pH = pH
-#            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-#            for j, redox in enumerate(E_list):
-#                cid2bounds = deepcopy(self.kegg.cid2bounds)
-#                r = 10**(redox/2.0)
-#                cid2bounds[3] = (c_mid * r, c_mid * r) # NAD+
-#                cid2bounds[4] = (c_mid / r, c_mid / r) # NADH
-#                cid2bounds[6] = (c_mid * r, c_mid * r) # NADPH
-#                cid2bounds[5] = (c_mid / r, c_mid / r) # NADP+
-#                bounds = [cid2bounds.get(cid, (None, None)) for cid in cids]
-#                try:
-#                    unused_dG_f, unused_concentrations, pCr = find_pCr(S, dG0_f, c_mid=c_mid, bounds=bounds)
-#                except LinProgNoSolutionException:
-#                    pCr = -1
-#                pCr_mat[i, j] = pCr
-#                
-#        contour_fig = plt.figure()
-#        pH_meshlist, r_meshlist = meshgrid(pH_list, E_list)
-#        CS = plt.contour(pH_meshlist.T, r_meshlist.T, pCr_mat)       
-#        plt.clabel(CS, inline=1, fontsize=10)
-#        plt.xlabel("pH")
-#        plt.ylabel("$\\log{\\frac{[NAD(P)^+]}{[NAD(P)H]}}$")
-#        plt.title("pCr as a function of pH and Redox state")
-#        self.html_writer.embed_matplotlib_figure(contour_fig)
-#        
-#    def analyze_redox2(self, key, pathway_data):
-#        self.thermo.I = pathway_data.I or self.thermo.I
-#        self.thermo.T = pathway_data.T or self.thermo.T 
-#        pH_list = pathway_data.pH_values
-#        c_range = pathway_data.c_range or tuple(self.thermo.c_range)
-#
-#        field_map = pathway_data.field_map        
-#        co2_list = field_map.GetVFloatField("LOG_CO2", np.arange(-5.0, -1.99, 0.25))
-#        
-#        self.html_writer.write('Parameters:</br>\n')
-#        self.html_writer.write('<ul>\n')
-#        self.html_writer.write('<li>ionic strength = %g M</li>\n' % self.thermo.I)
-#        self.html_writer.write('<li>temperature = %g K</li>\n' % self.thermo.T)
-#        self.html_writer.write('<li>concentration range = %g - %g M</li>\n' % \
-#                               (c_range[0], c_range[1]))
-#        self.html_writer.write('</ul>\n')
-#        
-#        self.html_writer.insert_toggle(key)
-#        self.html_writer.div_start(key)
-#        S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
-#        self.write_reactions_to_html(S, rids, fluxes, cids, show_cids=False)
-#        self.thermo.WriteFormationEnergiesToHTML(self.html_writer, cids)
-#        self.html_writer.div_end()
-#        
-#        cid2bounds = {}
-#        cid2bounds[1] = (1.0, 1.0) # H2O
-#        cid2bounds[2] = (1e-3, 1e-3) # ATP
-#        cid2bounds[8] = (1e-4, 1e-4) # ADP
-#        cid2bounds[20] = (None, None) # AMP
-#        cid2bounds[9] = (1e-3, 1e-3) # Pi
-#        cid2bounds[13] = (None, None) # PPi
-#
-#        cid2bounds[288] = (None, None) # Co2(tot)
-#
-#        cid2bounds[3] = (None, None) # NAD+
-#        cid2bounds[4] = (None, None) # NADH
-#        
-#        cid2bounds[5] = (None, None) # NADPH
-#        cid2bounds[6] = (None, None) # NADP+
-#        cid2bounds[139] = (None, None)  # Ferrodoxin(ox)
-#        cid2bounds[138] = (None, None)  # Ferrodoxin(red)
-#        cid2bounds[399] = (None, None)  # Ubiquinone-10(ox)
-#        cid2bounds[390] = (None, None)  # Ubiquinone-10(red)
-#        cid2bounds[828] = (None, None)  # Menaquinone(ox)
-#        cid2bounds[5819] = (None, None) # Menaquinone(red)
-#        
-#        ratio_mat = np.zeros((len(pH_list), len(co2_list)))
-#        feasability_mat = np.zeros((len(pH_list), len(co2_list)))
-#        for i, pH in enumerate(pH_list):
-#            self.thermo.pH = pH
-#            dG0_f = self.thermo.GetTransformedFormationEnergies(cids)
-#            for j, log_co2 in enumerate(co2_list):
-#                c_co2 = 10**(log_co2)
-#                cid2bounds[11] = (c_co2, c_co2) # Co2(aq)
-#                try:
-#                    _, _, log_ratio = find_ratio(S, rids, fluxes, cids, dG0_f, cid_up=4, cid_down=3, 
-#                        c_range=c_range, T=self.thermo.T, cid2bounds=cid2bounds)
-#                    ratio_mat[i, j] = log_ratio
-#                    feasability_mat[i, j] = 1
-#                except LinProgNoSolutionException:
-#                    ratio_mat[i, j] = 10 # 10 is a very high value for the ratio
-#                    feasability_mat[i, j] = 0
-#                
-#        contour_fig = plt.figure()
-#        contour_fig.hold(True)
-#        pH_meshlist, atp_meshlist = meshgrid(pH_list, co2_list)
-#        #plt.contourf(pH_meshlist.T, atp_meshlist.T, feasability_mat, colors=('red','white'))
-#        #CS = plt.contour(pH_meshlist.T, atp_meshlist.T, ratio_mat)
-#        plt.pcolor(pH_meshlist.T, atp_meshlist.T, ratio_mat)
-#        plt.colorbar()
-#        #plt.clabel(CS, inline=1, fontsize=10)
-#        plt.xlabel("pH")
-#        plt.ylabel("$\\log{[CO_2]}$")
-#        plt.title("minimal $\\log{\\frac{[NADH]}{[NAD+]}}$ required for feasibility")
-#        self.html_writer.embed_matplotlib_figure(contour_fig, name=key+'mesh')
-        
     def analyze_redox(self, key, pathway_data):
         """
             Plot the minimal concentration of a compound (e.g. CO2) required
@@ -479,14 +365,14 @@ class ThermodynamicAnalysis(object):
                                        formation_energies=dG0_f,
                                        cid2bounds=cid2bounds,
                                        c_range=self.thermo.c_range)
-                try:
-                    # minimize CO2 concentration
-                    _, _, min_ln_conc = keggpath.FindMinimalFeasibleConcentration(cid_to_minimize)
-                    ratio_mat[i, j] = min_ln_conc / np.log(10) # change to base 10
-                except UnsolvableConvexProblemException as e:
-                    logging.debug(str(e))
-                    ratio_mat[i, j] = np.log10(max_allowed_concentration) + \
-                                      1.0 # i.e. 10 times higher than the upper bound
+                #try:
+                # minimize CO2 concentration
+                _ln_conc, min_ln_co2_conc = keggpath.FindMinimalFeasibleConcentration(cid_to_minimize)
+                ratio_mat[i, j] = min_ln_co2_conc / np.log(10) # change to base 10
+                #except UnsolvableConvexProblemException as e:
+                #    logging.debug(str(e))
+                #    ratio_mat[i, j] = np.log10(max_allowed_concentration) + \
+                #                      1.0 # i.e. 10 times higher than the upper bound
         
         field_map = pathway_data.field_map  
         matfile = field_map.GetStringField("MATFILE", "")
@@ -545,7 +431,7 @@ class ThermodynamicAnalysis(object):
         #                           str(e))
 
         odfe = 100 * np.tanh(mtdf / (2*R*self.thermo.T))
-        concentrations = np.exp(ln_concf)
+        concentrations = np.exp(ln_conc)
         
         profile_fig = keggpath.PlotProfile(concentrations)
         plt.title('ODFE = %.1f%%' % odfe, figure=profile_fig)
