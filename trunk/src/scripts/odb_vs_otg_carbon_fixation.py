@@ -25,7 +25,7 @@ def get_concentration_bounds(cids, cid2bounds, c_range):
     
 def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
            c_range=(1e-6, 1e-2), cid2bounds=None,
-           filename='../data/thermodynamics/odfe_vs_atp_carbon_fixation.txt',
+           filename='../data/thermodynamics/odb_vs_otg_carbon_fixation.txt',
            plot_profile=False, section_prefix=""):
     
     entry2fields_map = ParsedKeggFile.FromKeggFile(filename)
@@ -52,12 +52,16 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions()
         dG0_r_prime = thermo.GetTransfromedReactionEnergies(S, cids)
-        if np.any(np.isnan(dG0_r_prime)):
-            remarks.append('NaN reaction energy')
-            continue
-
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
                                cid2bounds=cid2bounds, c_range=c_range)
+
+        if np.any(np.isnan(dG0_r_prime)):
+            remarks.append('NaN reaction energy')
+            html_writer.write('NaN reaction energy')
+            keggpath.WriteProfileToHtmlTable(html_writer)
+            keggpath.WriteConcentrationsToHtmlTable(html_writer)
+            continue
+
         #keggpath.normalization = DeltaGNormalization.TIMES_FLUX
         keggpath.normalization = DeltaGNormalization.SIGN_FLUX
 

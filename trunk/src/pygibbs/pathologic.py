@@ -169,25 +169,26 @@ class Pathologic(object):
 
         # draw network as a graph and link to it
         Gdot = self.kegg_patholotic.draw_pathway(sol_reactions, sol_fluxes)
-        Gdot.write('../res/pathologic/%s/%s_graph.svg' % (experiment_name, solution_id), prog='dot', format='svg')
-        exp_html.write(' <a href="%s/%s_graph.svg" target="_blank">network</a>' % (experiment_name, solution_id))
+        svg_fname = '%s/%s_graph' % (experiment_name, solution_id)
+        exp_html.embed_dot_inline(Gdot, width=240, height=320, name=svg_fname)
 
-        exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n' % (solution_id))
-        exp_html.write('<div id="%s" style="display:none">' % solution_id)
+        if False:
+            exp_html.insert_toggle(start_here=True)
 
-        # write the solution for the concentrations in a table
-        if lp.use_dG_f:
-            cids, concentrations = lp.get_conc()
-            exp_html.write('<p>Compound Concentrations<br>\n')
-            exp_html.write('<table border="1">\n')
-            exp_html.write('  ' + '<td>%s</td>'*2 % ("KEGG CID", "Concentration [M]") + '\n')
-            for c in xrange(len(cids)):
-                exp_html.write('<tr><td>C%05d</td><td>%.2g</td></tr>\n' % (cids[c], concentrations[c]))
-            exp_html.write('</table></br>\n')
-        
-        # perform feasibility analysis and write the results
-        write_kegg_pathway(exp_html, sol_reactions, sol_fluxes)
-        exp_html.write('</div>\n')
+            # write the solution for the concentrations in a table
+            if lp.use_dG_f:
+                cids, concentrations = lp.get_conc()
+                exp_html.write('<p>Compound Concentrations<br>\n')
+                exp_html.write('<table border="1">\n')
+                exp_html.write('  ' + '<td>%s</td>'*2 % ("KEGG CID", "Concentration [M]") + '\n')
+                for c in xrange(len(cids)):
+                    exp_html.write('<tr><td>C%05d</td><td>%.2g</td></tr>\n' % (cids[c], concentrations[c]))
+                exp_html.write('</table></br>\n')
+            
+            # write the pathway in KEGG format
+            write_kegg_pathway(exp_html, sol_reactions, sol_fluxes)
+            
+            exp_html.div_end()
         exp_html.write('<br>\n')
 
     def show_Gdot(self, Gdot):

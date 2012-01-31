@@ -140,7 +140,7 @@ class BaseHtmlWriter:
         """
         if name:
             svg_filename = self.relative_to_full_path(name + '.svg')
-            self.write('<a href=%s.svg>' % name)
+            self.write('<a href="%s.svg">' % name)
         else:
             svg_filename = '.svg'
         
@@ -155,14 +155,23 @@ class BaseHtmlWriter:
         else:
             os.remove(svg_filename)
 
-    def embed_dot_inline(self, Gdot, width=320, height=240):
+    def embed_dot_inline(self, Gdot, width=320, height=240, name=None):
         """
             Converts the DOT graph to an SVG DOM and uses the inline SVG option to 
             add it directly into the HTML (without creating a separate SVG file).
         """
-        Gdot.write('.svg', prog='dot', format='svg')
-        self.extract_svg_from_file('.svg', width, height)
-        os.remove('.svg')
+        if name:
+            svg_filename = self.relative_to_full_path(name + '.svg')
+            self.write('<a href="%s.svg">' % name)
+        else:
+            svg_filename = '.svg'
+
+        Gdot.write(svg_filename, prog='dot', format='svg')
+        self.extract_svg_from_file(svg_filename, width=width, height=height)
+        if name:
+            self.write('</a>')
+        else:
+            os.remove(svg_filename)
 
     def embed_dot(self, Gdot, name, width=320, height=240):
         """
