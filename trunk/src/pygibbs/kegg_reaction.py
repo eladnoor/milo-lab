@@ -39,7 +39,7 @@ class Reaction(object):
             self.name = names
 
     def clone(self):
-        reaction = Reaction(self.names, self.sparse)
+        reaction = Reaction(self.names, dict(self.sparse))
         reaction.rid = self.rid
         reaction.weight = self.weight
         reaction.direction = self.direction

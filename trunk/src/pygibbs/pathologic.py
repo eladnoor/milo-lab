@@ -54,10 +54,12 @@ class Pathologic(object):
         self.kegg_patholotic = KeggPathologic()
         if update_file is not None:
             self.kegg_patholotic.update_database(update_file, self.html_writer)
-
+            
     def add_reaction(self, reaction, weight=1.0):
-        rxns = self.kegg_patholotic.create_reactions(reaction, weight)
-        self.kegg_patholotic.reactions.extend(rxns)
+        self.kegg_patholotic.add_reaction(reaction, weight)
+    
+    def add_cofactor_reaction(self, reaction):
+        self.kegg_patholotic.add_cofactor_reaction(reaction)
 
     def find_path(self, experiment_name, net_reaction):
         """Find a pathway from the source to the target.
