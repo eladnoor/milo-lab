@@ -1039,7 +1039,7 @@ class KeggPathologic(object):
                              rid=rid, direction=reaction.direction)
                 try:
                     r.Balance(balance_water=True, exception_if_unknown=True)
-                    self.reactions += self.create_reactions(r)
+                    self.add_reaction(r)
                 except kegg_errors.KeggReactionNotBalancedException:
                     logging.warning("R%05d is not balanced" % rid)
                 except OpenBabelError as e:
@@ -1131,13 +1131,9 @@ class KeggPathologic(object):
                     raise Exception("Syntax error in update file: " + line)
                 
                 reaction.SetNames([reaction_id])
-                rxns = self.create_reactions(reaction)
+                self.add_reaction(reaction)
                 html_writer.write("<li><b>Set Reaction,</b> %s : %s" % (reaction_id, 
                     reaction.to_hypertext(show_cids=True)))
-                #ver = rxns[0].verify(self.cid2atom_bag)
-                #if ver != None:
-                #    html_writer.write(' <b>WARNING: %s' % ver)
-                added_reactions += rxns
             elif command == 'DELR':
                 rid = int(line[1:])
                 html_writer.write("<li><b>Ban Reaction,</b> R%05d" % (rid))
@@ -1156,8 +1152,7 @@ class KeggPathologic(object):
                         reaction = Reaction.FromFormula(line.strip())
                     except kegg_errors.KeggParseException:
                         raise Exception("Syntax error in update file: " + line)
-                    self.cofactor_reaction_list.append((reaction.sparse, reaction.direction))
-                    self.cofactors = self.cofactors.union(reaction.get_cids())
+                    self.add_cofactor_reaction(reaction)
                     html_writer.write("<li><b>Cofactor Reaction,</b> " + 
                                       reaction.to_hypertext(show_cids=True))
     
@@ -1176,14 +1171,13 @@ class KeggPathologic(object):
             else:
                 temp_reactions.append(r)
                 
-        self.reactions = temp_reactions + added_reactions
+        self.reactions = temp_reactions
         
-    def create_reactions(self, reaction, weight=1.0):
+    def add_reaction(self, reaction, weight=1.0):
         """Creates Reaction objects needed according to the sign of the arrow."""
         if 80 in reaction.sparse:
             del reaction.sparse[80]
         
-        res = []
         if reaction.direction not in ["<=", "=>", "<=>"]:
             raise kegg_errors.KeggParseException(
                 "Direction must be either =>, <= or <=>")
@@ -1191,14 +1185,17 @@ class KeggPathologic(object):
             r_forward = reaction.clone()
             r_forward.SetNames(["%s_F" % n for n in reaction.names])
             r_forward.weight = weight
-            res.append(r_forward)
+            self.reactions.append(r_forward)
         if reaction.direction in ["<=", "<=>"]:
             r_reverse = reaction.reverse()
             r_reverse.SetNames(["%s_R" % n for n in reaction.names])
             r_reverse.weight = weight
-            res.append(r_reverse)
-        return res
-    
+            self.reactions.append(r_reverse)
+
+    def add_cofactor_reaction(self, reaction):
+        self.cofactor_reaction_list.append(reaction)
+        self.cofactors.update(reaction.get_cids())
+
     def add_compound(self, name, cid=None, formula=None, inchi=None):
         comp = kegg_compound.Compound()
         comp.name = name
@@ -1283,35 +1280,33 @@ class KeggPathologic(object):
             cid2index[all_cids[c]] = c
             all_compounds.append(self.get_compound(all_cids[c]))
 
-        # Create the columns, name the reactions (RID) in the stoichiometric matrix
-        reduced_sparse_reactions = []
-        for r in all_reactions:
-            
-            # remove the co-factor pairs from the reaction
-            spr = deepcopy(r.sparse)
-            for cofr_spr, cofr_direction in self.cofactor_reaction_list:
-                KeggPathologic.neutralize_reaction(spr, cofr_spr, cofr_direction)
-            
-            reduced_sparse_reactions.append(spr)
-
         Nreactions = len(all_reactions)
         f = []
         S = pylab.zeros((Ncompounds, Nreactions))
 
-        for r in range(Nreactions):
-            if all_reactions[r].weight != 0:
-                f.append((r, all_reactions[r].weight))
+        # Create the columns, name the reactions (RID) in the stoichiometric matrix
+        for r, reaction in enumerate(all_reactions):
+            # remove the co-factor pairs from the reaction
+            spr_no_cofactors = dict(reaction.sparse)
+            for cofr_reaction in self.cofactor_reaction_list:
+                KeggPathologic.neutralize_reaction(spr_no_cofactors,
+                                                   cofr_reaction.sparse,
+                                                   cofr_reaction.direction)
             
-            for cid, count in reduced_sparse_reactions[r].iteritems():
+            if reaction.weight != 0:
+                f.append((r, reaction.weight))
+            
+            for cid, count in spr_no_cofactors.iteritems():
                 comp = self.get_compound(cid)
                 c = cid2index[comp.cid]
                 S[c, r] = count
-                        
+
         # S can have multiple columns which are exactly the same, because a few reactions
         # share the same reactants (with different co-factors).
         # Although this is a stoichiometric redundancy, thermodynamically this is important
         # since each version of this reaction will have different constraints.
-        logging.info("the Stoichiometry matrix contains %d all_compounds & %d reactions" % (Ncompounds, Nreactions))
+        logging.info("Stoichiometric matrix is %d compounds by %d reactions"
+                     % (S.shape[0], S.shape[1]))
         return f, S, all_compounds, all_reactions
 
     def create_compound_node(self, Gdot, comp, node_name=None, is_cofactor=False):

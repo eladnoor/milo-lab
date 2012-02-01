@@ -12,11 +12,29 @@ def example_lower_glycolysis():
                     max_solutions=None,
                     max_reactions=6,
                     thermodynamic_method='global',
-                    update_file='../data/thermodynamics/database_updates_fermentation.txt')
-    #pl.add_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
-    #pl.add_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
-    #pl.add_reaction(Reaction.FromFormula("C00003 <=> C00004", name='Free NAD redox'))
-    #pl.add_reaction(Reaction.FromFormula("C00006 <=> C00005", name='Free NADP redox'))
+                    update_file=None)
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00013 <=> null", name='Free PPi'))
+
+    # all electron transfer reactions
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00003 <=> C00004", name='NAD redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00006 <=> C00005", name='NADP redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00016 <=> C01352", name='FAD redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00138 <=> C00139", name='ferredoxin redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00030 <=> C00028", name='acceptor/donor redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00125 <=> C00126", name='ferricytochrome c redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00996 <=> C00999", name='ferricytochrome b5 redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C01070 <=> C01071", name='ferricytochrome c-553 redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C05906 <=> C01617", name='leucocyanidin redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00343 <=> C00342", name='thioredoxin disulfide redox'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C03648 <=> C00974", name='cis-3,4-Leucopelargonidin redox'))
+
+    # all Adenosine phosphorylations
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00008", name='ATP to ADP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00020", name='ATP to AMP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> C00020", name='ATP to AMP'))
+
     #r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
     r = Reaction.FromFormula("C00118 => C00022")
     #r.Balance()
