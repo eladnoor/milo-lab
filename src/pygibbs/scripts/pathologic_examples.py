@@ -10,7 +10,7 @@ def example_lower_glycolysis():
                     public_db=SqliteDatabase('../data/public_data.sqlite'),
                     html_writer=HtmlWriter('../res/pathologic.html'),
                     max_solutions=None,
-                    max_reactions=6,
+                    max_reactions=8,
                     thermodynamic_method='global',
                     update_file=None)
     pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))

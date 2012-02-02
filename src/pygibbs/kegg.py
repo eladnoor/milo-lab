@@ -433,8 +433,14 @@ class Kegg(Singleton):
         return self.ec2enzyme_map.values()
 
     def parse_kegg_reaction_line(self, line):
-        rid, left_clause, right_clause, remainder = re.findall('([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+[-=]>\s+([C\s\+\d\.]+)(.*)', line)[0]
-        reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
+        rexp = '([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+(<?[-=]>?)\s+([C\s\+\d\.]+)(.*)'
+        rid, left_clause, dir_clause, right_clause, remainder = re.findall(rexp, line)[0]
+        if dir_clause in ['=>', '->', '<=>', '<->', '=', '-']:
+            reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
+        elif dir_clause in ['<=', '<-']:
+            reaction = Reaction.FromFormula(right_clause + " => " + left_clause)
+        else:
+            raise ValueError("unclear reaction direction symbol: " + dir_clause)
         reaction.rid = rid
 
         flux = 1

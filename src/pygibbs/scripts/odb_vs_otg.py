@@ -23,12 +23,11 @@ def get_concentration_bounds(cids, cid2bounds, c_range):
 
     return ln_lbs, ln_ubs
     
-def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
+def pareto(html_writer, fname, estimators, pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
            c_range=(1e-6, 1e-2), cid2bounds=None,
-           filename='../data/thermodynamics/odb_vs_otg_carbon_fixation.txt',
            plot_profile=False, section_prefix=""):
     
-    entry2fields_map = ParsedKeggFile.FromKeggFile(filename)
+    entry2fields_map = ParsedKeggFile.FromKeggFile(fname)
     cid2bounds = cid2bounds or {}
     entries = entry2fields_map.entries()
     plot_data = np.zeros((len(entries), 5)) # ODB, ODFE, min TG, max TG, sum(fluxes)
@@ -108,10 +107,44 @@ def pareto(html_writer, estimators, pH=default_pH, I=default_I, T=default_T, pMg
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
     return fig
     
+def analyze(input_fname, output_fname, estimators, cid2bounds):    
+    html_writer = HtmlWriter(output_fname)
+    co2_hydration = Reaction.FromFormula("C00011 + C00001 => C00288")
+    default_thermo = estimators['alberty']
+    
+    I, T, pMg = 0.1, 298.15, 10
+    for pH in [7]:
+        co2_hydration_dG0_prime = default_thermo.GetTransfromedKeggReactionEnergies([co2_hydration])[0, 0]
+        for co2_conc in [1e-5]:
+            carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*T))
+            cid2bounds[11] = (co2_conc, co2_conc)
+            cid2bounds[288] = (carbonate_conc, carbonate_conc)
+            
+            section_prefix = 'pH_%g_CO2_%g' % (pH, co2_conc*1000)
+            section_title = 'pH = %g, [CO2] = %g mM' % (pH, co2_conc*1000)
+            html_writer.write('<h1 id="%s_title">%s</h1>\n' %
+                              (section_prefix, section_title))
+            html_writer.write_ul(['<a href="#%s_tables">Individual result tables</a>' % section_prefix,
+                                  '<a href="#%s_summary">Summary table</a>' % section_prefix,
+                                  '<a href="#%s_figure">Summary figure</a>' % section_prefix])
+
+            pareto_fig = pareto(html_writer, input_fname, estimators,
+                pH=pH, I=I, T=T, pMg=pMg, cid2bounds=cid2bounds,
+                section_prefix=section_prefix)
+            html_writer.write('<h2 id="%s_figure">Summary figure</h1>\n' % section_prefix)
+            plt.title(section_title, figure=pareto_fig)
+            html_writer.embed_matplotlib_figure(pareto_fig)
+
+            # set axes to hide infeasible pathways and focus on feasible ones
+            pareto_fig.axes[0].set_xlim(None, 0)
+            pareto_fig.axes[0].set_ylim(0, None)
+            html_writer.embed_matplotlib_figure(pareto_fig)
+    
+    html_writer.close()
+
 if __name__ == "__main__":
     estimators = LoadAllEstimators()
-    output_filename = '../res/odb_vs_otg_carbon_fixation.html'
-    html_writer = HtmlWriter(output_filename)
+    
     cid2bounds = {
                   1:    (1,    1),    # water
                   #11:   (1e-5, 1e-5), # CO2
@@ -139,34 +172,12 @@ if __name__ == "__main__":
                   876:  (1e-4, 1e-3), # coenzyme F420 (ox)
                   1080: (1e-4, 1e-3), # coenzyme F420 (red)
                   }
-    co2_hydration = Reaction.FromFormula("C00011 + C00001 => C00288")
-    
-    I, T, pMg = 0.1, 298.15, 10
-    for pH in [7]:
-        co2_hydration_dG0_prime = estimators['alberty'].GetTransfromedKeggReactionEnergies([co2_hydration])[0, 0]
-        for co2_conc in [1e-5]:
-            carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*T))
-            cid2bounds[11] = (co2_conc, co2_conc)
-            cid2bounds[288] = (carbonate_conc, carbonate_conc)
-            
-            section_prefix = 'pH_%g_CO2_%g' % (pH, co2_conc*1000)
-            section_title = 'pH = %g, [CO2] = %g mM' % (pH, co2_conc*1000)
-            html_writer.write('<h1 id="%s_title">%s</h1>\n' %
-                              (section_prefix, section_title))
-            html_writer.write_ul(['<a href="#%s_tables">Individual result tables</a>' % section_prefix,
-                                  '<a href="#%s_summary">Summary table</a>' % section_prefix,
-                                  '<a href="#%s_figure">Summary figure</a>' % section_prefix])
+    #analyze('../data/thermodynamics/odb_vs_otg_reductive.txt',
+    #        '../res/odb_vs_otg_reductive.html',
+    #        estimators['alberty'],
+    #        cid2bounds)
 
-            pareto_fig = pareto(html_writer, estimators,
-                         pH=pH, I=I, T=T, pMg=pMg, cid2bounds=cid2bounds,
-                         section_prefix=section_prefix)
-            html_writer.write('<h2 id="%s_figure">Summary figure</h1>\n' % section_prefix)
-            plt.title(section_title, figure=pareto_fig)
-            html_writer.embed_matplotlib_figure(pareto_fig)
-
-            # set axes to hide infeasible pathways and focus on feasible ones
-            pareto_fig.axes[0].set_xlim(None, 0)
-            pareto_fig.axes[0].set_ylim(0, None)
-            html_writer.embed_matplotlib_figure(pareto_fig)
-    
-    html_writer.close()
+    analyze('../data/thermodynamics/odb_vs_otg_oxidative.txt',
+            '../res/odb_vs_otg_oxidative.html',
+            estimators,
+            cid2bounds)
