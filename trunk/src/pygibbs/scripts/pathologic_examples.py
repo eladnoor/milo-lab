@@ -156,7 +156,7 @@ def example_oxidative():
 
     #r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
     #r = Reaction.FromFormula("2 C00022 => C00092")
-    r = Reaction.FromFormula("C00092 => 3 C00011")
+    r = Reaction.FromFormula("C00022 => 3 C00011")
     #r.Balance()
     pl.find_path("oxidative", r)
 
