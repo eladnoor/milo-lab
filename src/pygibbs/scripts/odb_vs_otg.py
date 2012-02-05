@@ -181,3 +181,8 @@ if __name__ == "__main__":
             '../res/odb_vs_otg_oxidative.html',
             estimators,
             cid2bounds)
+
+    #analyze('../res/pathologic/GA3P => PYR/kegg_pathway.txt',
+    #        '../res/odb_vs_otg_gap2pyr.html',
+    #        estimators,
+    #        cid2bounds)

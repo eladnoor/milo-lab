@@ -1410,49 +1410,57 @@ class KeggPathologic(object):
         Nr = len(reactions)
         
         cids = []
-        for r in range(Nr):
+        for r in xrange(Nr):
             for cid in reactions[r].sparse.keys():
-                if (cid not in cids):
+                if cid not in cids:
                     cids.append(cid)
         
         Nc = len(cids)
         S = pylab.zeros((Nr, Nc))
-        for r in range(Nr):
-            for c in range(Nc):
+        for r in xrange(Nr):
+            for c in xrange(Nc):
                 S[r, c] = reactions[r].sparse.get(cids[c], 0)
         
         c_nodes = []
         for c in range(Nc):
             comp = self.get_compound(cids[c])
             node_map = {} # a mapping of all the reactions that this compounds is participating in
-            if (cids[c] in self.cofactors):
+            if cids[c] in self.cofactors:
                 for r in pylab.find(S[:,c] != 0): # since this is a co-factor, create new node for every reaction
-                    node_map[r] = self.create_compound_node(Gdot, comp, node_name="C%05d_%s" % (cids[c], reactions[r].name), is_cofactor=True)
+                    node_map[r] = self.create_compound_node(Gdot, comp,
+                        node_name="C%05d_%s" % (cids[c], reactions[r].name),
+                        is_cofactor=True)
             else:
-                node = self.create_compound_node(Gdot, comp, node_name="C%05d" % cids[c], is_cofactor=False)
+                node = self.create_compound_node(Gdot, comp,
+                    node_name="C%05d" % cids[c],
+                    is_cofactor=False)
                 for r in pylab.find(S[:,c] != 0): # point the node_map to the same node for every reaction
                     node_map[r] = node
             c_nodes.append(node_map)
        
         for r in range(Nr):
             reaction = reactions[r]
-            if (abs(fluxes[r]) < 1e-8): # this reaction should have been disabled
+            if abs(fluxes[r]) < 1e-8: # this reaction should have been disabled
                 continue
             s_indices = pylab.find(S[r,:] < 0)
             p_indices = pylab.find(S[r,:] > 0)
-            if (len(s_indices) == 1 and len(p_indices) == 1):
+            if len(s_indices) == 1 and len(p_indices) == 1:
                 c_s = s_indices[0]
                 c_p = p_indices[0]
                 if (S[r,c_s] == -1 and S[r,c_p] == 1):
-                    self.create_reaction_edge(Gdot, c_nodes[c_s][r], c_nodes[c_p][r], reaction=reaction, flux=fluxes[r], arrowhead="open", arrowtail="none")
+                    self.create_reaction_edge(Gdot, c_nodes[c_s][r],
+                        c_nodes[c_p][r], reaction=reaction, flux=fluxes[r],
+                        arrowhead="open", arrowtail="none")
                     continue
             
             # this is not a simple 1-to-1 reaction
-            (in_node, out_node) = self.create_reaction_nodes(Gdot, reaction, flux=fluxes[r])
+            in_node, out_node = self.create_reaction_nodes(Gdot, reaction, flux=fluxes[r])
             for c in s_indices:
-                self.create_small_edge(Gdot, c_nodes[c][r], in_node, coeff=-S[r,c], arrowhead="none")
+                self.create_small_edge(Gdot, c_nodes[c][r], in_node,
+                                       coeff=-S[r,c], arrowhead="none")
             for c in p_indices:
-                self.create_small_edge(Gdot, out_node, c_nodes[c][r], coeff=S[r,c], arrowhead="open")
+                self.create_small_edge(Gdot, out_node, c_nodes[c][r],
+                                       coeff=S[r,c], arrowhead="open")
         
         return Gdot
 

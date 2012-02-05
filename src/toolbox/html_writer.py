@@ -100,14 +100,14 @@ class BaseHtmlWriter:
     def table_end(self):
         self.write("</table>\n")
         
-    def insert_toggle(self, div_id=None, start_here=False):
+    def insert_toggle(self, div_id=None, start_here=False, label='Show'):
         if not div_id:
             div_id = "DIV%05d" % self.div_counter
             self.div_counter += 1
         elif type(div_id) != types.StringType:
             raise ValueError("HTML div ID must be a string")
-        self.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="Show">\n'
-                   % div_id)
+        self.write('<input type="button" class="button" onclick="return toggleMe(\'%s\')" value="%s">\n'
+                   % (div_id, label))
         if start_here:
             self.div_start(div_id)
         return div_id
