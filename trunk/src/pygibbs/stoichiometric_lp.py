@@ -170,17 +170,15 @@ class Stoichiometric_LP(object):
                     "C%05d_conc" % cid, np.log(thermodynamics.c_range[1]))
 
         for r in self.reactions:
+            dG0_r = thermodynamics.GetTransfromedKeggReactionEnergies([r])[0, 0]
+            if np.isnan(dG0_r): # no constraints on reactions with unknown dG0'
+                continue
+
             constraint_name = "%s_thermo" % r.name
-            dG0_r = 0
             self.cpl.linear_constraints.add(names=[constraint_name], senses='L')
+            
             for cid, coeff in r.sparse.iteritems():
                 self.cpl.linear_constraints.set_coefficients(constraint_name, "C%05d_conc" % cid, coeff)
-                try:
-                    dG0_r += coeff * thermodynamics.GetTransformedFormationEnergies(cid)
-                except MissingCompoundFormationEnergy:
-                    # if this CID is not in cid2dG0, it means its formation energy is 
-                    # part of its concentration variable, and therefore it doesn't contribute to dG0_r
-                    continue
             
             gamma_factor = 1e6
             self.cpl.linear_constraints.set_coefficients(constraint_name, r.name + "_gamma", gamma_factor)

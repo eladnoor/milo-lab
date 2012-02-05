@@ -8,7 +8,7 @@ from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
 # TODO: (flamholz): Not all these utilities are specific to KEGG.
 ##
 
-def write_kegg_pathway(html_writer, reactions, fluxes):
+def write_kegg_pathway_to_html(html_writer, reactions, fluxes):
 
     def write_reaction(prefix, reaction, flux=1):
         if (flux == 1):
@@ -32,6 +32,27 @@ def write_kegg_pathway(html_writer, reactions, fluxes):
         else:
             write_reaction('&nbsp;'*12, reactions[r], fluxes[r])
     html_writer.write('///<br></p>\n')
+
+def write_kegg_pathway(output_kegg_file, entry, reactions, fluxes):
+
+    def write_reaction(output_kegg_file, prefix, reaction, flux=1):
+        output_kegg_file.write('%sR%05d  %s' %
+            (prefix, reaction.rid, reaction.FullReactionString()))
+        
+        if flux == 1:
+            output_kegg_file.write('\n')
+        else:
+            output_kegg_file.write(' (x%g)\n' % flux)
+    
+    output_kegg_file.write('ENTRY' + ' '*7 + entry + '\n')
+    for r, reaction in enumerate(reactions):
+        if r == 0:
+            prefix = 'REACTION' + ' '*4
+        else:
+            prefix = ' '*12
+        write_reaction(output_kegg_file, prefix, reaction, fluxes[r])
+    output_kegg_file.write('///\n')
+    output_kegg_file.flush()
     
 def write_module_to_html(html_writer, S, rids, fluxes, cids):
     from pygibbs.kegg_reaction import Reaction

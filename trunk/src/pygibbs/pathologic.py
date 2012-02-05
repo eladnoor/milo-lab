@@ -9,18 +9,19 @@ from pygibbs.kegg import KeggPathologic
 from pygibbs.kegg_utils import write_kegg_pathway
 from toolbox.html_writer import HtmlWriter
 from toolbox import util
-from pygibbs.thermodynamic_estimators import LoadAllEstimators
 
 class Pathologic(object):
     
     ALLOWED_THERMODYNAMIC_METHODS = ['none', 'pCr', 'MTDF', 'global', 'localized'] 
     
     def __init__(self, db, public_db, html_writer,
+                 thermo=None,
                  thermodynamic_method='global',
                  max_reactions=None,
                  max_solutions=100,
                  maximal_dG=0.0,
-                 update_file=None):
+                 update_file=None,
+                 output_kegg_file=None):
         """Initialize the Pathologic object.
         
         Args:
@@ -48,7 +49,7 @@ class Pathologic(object):
         
         self.db_public = public_db
         self.db = db
-        self.thermo = LoadAllEstimators()['merged']
+        self.thermo = thermo
                 
         self.flux_relaxtion_factor = None
         self.kegg_patholotic = KeggPathologic()
@@ -76,10 +77,8 @@ class Pathologic(object):
         exp_html = HtmlWriter('../res/pathologic/' + experiment_name + '.html')
         exp_html.write("<p><h1>%s</h1>\n" % experiment_name)
 
-        exp_html.write('<input type="button" class="button" onclick="return toggleMe(\'__parameters__\')" value="Show Parameters">\n')
-        exp_html.write('<div id="__parameters__" style="display:none">')
-
-        exp_html.write('<h2>Conditions:</h2> pH = %g, I = %g, T = %g<br>\n' % (self.thermo.pH, self.thermo.I, self.thermo.T))
+        exp_html.insert_toggle(div_id="__parameters__", start_here=True,
+                               label='Show Parameters')
         exp_html.write('<h2>Thermodynamic constraints:</h2> ')
         if self.thermodynamic_method == "none":
             exp_html.write("ignore thermodynamics")
@@ -95,12 +94,21 @@ class Pathologic(object):
             raise Exception("thermodynamic_method must be one of %s" % self.ALLOWED_THERMODYNAMIC_METHODS)
         exp_html.write('<br>\n')
         
-        exp_html.write('<h2>Overall Reaction:</h2>\n')
-        exp_html.write(net_reaction.to_hypertext())
         f, S, compounds, reactions = self.kegg_patholotic.get_unique_cids_and_reactions()
-        exp_html.write('<h2>%d reactions with %d unique compounds</h2>\n' % (len(reactions), len(compounds)))
-        
-        exp_html.write('</div><br>\n')
+
+        exp_html.write('<h2>Conditions:</h2>\n')
+        exp_html.write_ul(['pH = %g' % self.thermo.pH,
+                           'I = %g' % self.thermo.I,
+                           'T = %g' % self.thermo.T,
+                           "Max &#x394;<sub>r</sub>G' = %.1f" % self.maximal_dG,
+                           'Max no. reactions: %d' % (self.max_reactions or -1),
+                           'Max no. solutions: %d' % (self.max_solutions or -1),
+                           'Overall Reaction: %s' % net_reaction.to_hypertext(),
+                           '%d reactions' % len(reactions),
+                           '%d unique compounds' % len(compounds)])
+
+        exp_html.div_end()
+        exp_html.write('</br>\n')
         
         logging.debug("All compounds:")
         for i, compound in enumerate(compounds):
@@ -109,6 +117,10 @@ class Pathologic(object):
         for i, reaction in enumerate(reactions):
             logging.debug("%05d) R%05d = %s" % (i, reaction.rid, str(reaction)))
 
+        output_kegg_file = open(dirname + '/kegg_pathway.txt', 'w')
+        exp_html.write('<a href="%s/kegg_pathway.txt">All solutions in KEGG format</a></br>\n'
+                       % experiment_name)
+        
         # Find a solution with a minimal total flux
         logging.info("Preparing the CPLEX object for solving the minimal flux problem")
         exp_html.write('<b>Minimum flux</b>')
@@ -158,12 +170,15 @@ class Pathologic(object):
                 logging.info("No more solutions. Quitting!")
                 break
             logging.info("writing solution")
-            self.write_current_solution(exp_html, milp, experiment_name)
+            self.write_current_solution(exp_html, milp, experiment_name,
+                                        output_kegg_file)
             milp.ban_current_solution()
         
+        output_kegg_file.close()
         exp_html.close()
 
-    def write_current_solution(self, exp_html, lp, experiment_name):
+    def write_current_solution(self, exp_html, lp, experiment_name,
+                               output_kegg_file=None):
         sol_reactions, sol_fluxes = lp.get_fluxes()
         solution_id = '%03d' % lp.solution_index
         
@@ -174,23 +189,24 @@ class Pathologic(object):
         svg_fname = '%s/%s_graph' % (experiment_name, solution_id)
         exp_html.embed_dot_inline(Gdot, width=240, height=320, name=svg_fname)
 
-        if False:
+        # write the solution for the concentrations in a table
+        if lp.use_dG_f:
             exp_html.insert_toggle(start_here=True)
-
-            # write the solution for the concentrations in a table
-            if lp.use_dG_f:
-                cids, concentrations = lp.get_conc()
-                exp_html.write('<p>Compound Concentrations<br>\n')
-                exp_html.write('<table border="1">\n')
-                exp_html.write('  ' + '<td>%s</td>'*2 % ("KEGG CID", "Concentration [M]") + '\n')
-                for c in xrange(len(cids)):
-                    exp_html.write('<tr><td>C%05d</td><td>%.2g</td></tr>\n' % (cids[c], concentrations[c]))
-                exp_html.write('</table></br>\n')
-            
-            # write the pathway in KEGG format
-            write_kegg_pathway(exp_html, sol_reactions, sol_fluxes)
-            
+            cids, concentrations = lp.get_conc()
+            exp_html.write('<p>Compound Concentrations<br>\n')
+            exp_html.write('<table border="1">\n')
+            exp_html.write('  ' + '<td>%s</td>'*2 % ("KEGG CID", "Concentration [M]") + '\n')
+            for c in xrange(len(cids)):
+                exp_html.write('<tr><td>C%05d</td><td>%.2g</td></tr>\n' % (cids[c], concentrations[c]))
+            exp_html.write('</table></br>\n')
             exp_html.div_end()
+
+        # write the pathway in KEGG format
+        if output_kegg_file is not None:
+            write_kegg_pathway(output_kegg_file,
+                               entry=experiment_name + ' ' + solution_id,
+                               reactions=sol_reactions, fluxes=sol_fluxes)
+            
         exp_html.write('<br>\n')
 
     def show_Gdot(self, Gdot):

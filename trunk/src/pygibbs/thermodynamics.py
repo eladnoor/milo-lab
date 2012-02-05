@@ -15,7 +15,6 @@ from toolbox.util import calc_r2
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 import types
-from pygibbs.thermodynamic_constants import transform
 from pygibbs.kegg_reaction import Reaction
 
 def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
@@ -104,37 +103,36 @@ class Thermodynamics(object):
             compounds has a non-trivial reference point (such as guanosine=0) but that
             reference point is not balanced throughout the reaction.
         """
-        missing_cids = reaction.get_cids().difference(set(self.get_all_cids()))
+        missing_cids = reaction.get_cids().difference(self.get_all_cids())
         if missing_cids:
             raise MissingReactionEnergy('Some compounds have no formation energy: ' + 
                                         ', '.join(['C%05d' % cid for cid in missing_cids]),
                                         reaction.sparse)
     
     def cid_to_bounds(self, cid, use_default=True):
-        curr_c_min, curr_c_max = self.bounds.get(cid, (None, None))
-        if not curr_c_min and use_default:
-            curr_c_min = self.c_range[0]
-        if not curr_c_max and use_default:
-            curr_c_max = self.c_range[1]
-        return (curr_c_min, curr_c_max)
-
+        curr_c_range = self.bounds.get(cid, (None, None))
+        if use_default:
+            curr_c_range[0] = curr_c_range[0] or self.c_range[0]
+            curr_c_range[1] = curr_c_range[1] or self.c_range[1]
+        return curr_c_range
+    
     def WriteDataToHtml(self, html_writer):
         kegg = Kegg.getInstance()
         dict_list = []
         for cid in self.get_all_cids():
             for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
-                dict = {}
-                dict['cid'] = 'C%05d' % cid
-                dict['name'] = kegg.cid2name(cid)
-                dict['nH'] = '%d' % nH
-                dict['z'] = '%d' % z
-                dict['nMg'] = '%d' % nMg
-                dict['dG0_f'] = '%.2f' % dG0
+                d = {}
+                d['cid'] = 'C%05d' % cid
+                d['name'] = kegg.cid2name(cid)
+                d['nH'] = '%d' % nH
+                d['z'] = '%d' % z
+                d['nMg'] = '%d' % nMg
+                d['dG0_f'] = '%.2f' % dG0
                 if cid in self.anchors:
-                    dict['anchor'] = 'yes'
+                    d['anchor'] = 'yes'
                 else:
-                    dict['anchor'] = 'no'
-                dict_list.append(dict)
+                    d['anchor'] = 'no'
+                dict_list.append(d)
         
         html_writer.write_table(dict_list, ['cid', 'name', 'nH', 'z', 
                                             'nMg', 'dG0_f', 'anchor'])
