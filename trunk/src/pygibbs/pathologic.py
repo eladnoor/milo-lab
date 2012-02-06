@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import cplex
 import logging
 import os.path
+import numpy as np
 
 from pygibbs.stoichiometric_lp import Stoichiometric_LP
 from pygibbs.kegg import KeggPathologic
@@ -38,7 +38,6 @@ class Pathologic(object):
         """
         assert thermodynamic_method in self.ALLOWED_THERMODYNAMIC_METHODS
         
-        cplex.Cplex() # causes CPLEX to print its initialization message
         util._mkdir('../res/pathologic')
         
         self.html_writer = html_writer
@@ -51,7 +50,6 @@ class Pathologic(object):
         self.db = db
         self.thermo = thermo
                 
-        self.flux_relaxtion_factor = None
         self.kegg_patholotic = KeggPathologic()
         if update_file is not None:
             self.kegg_patholotic.update_database(update_file, self.html_writer)
@@ -122,11 +120,10 @@ class Pathologic(object):
                        % experiment_name)
         
         # Find a solution with a minimal total flux
-        logging.info("Preparing the CPLEX object for solving the minimal flux problem")
+        logging.info("Preparing LP solver for the minimal total flux problem")
         exp_html.write('<b>Minimum flux</b>')
         slip = Stoichiometric_LP("Pathologic")
         slip.add_stoichiometric_constraints(f, S, compounds, reactions, net_reaction)
-        slip.set_objective()
         slip.export("../res/pathologic/%s/%03d_lp.txt" % (experiment_name, 0))
         exp_html.write(' (<a href="%s/%03d_lp.txt">LP file</a>): ' % (experiment_name, 0))
         logging.info("Solving")
@@ -135,19 +132,15 @@ class Pathologic(object):
             logging.warning("There are no solutions. Quitting!")
             return
         logging.info("writing solution")
-        best_flux = slip.get_total_flux()
         self.write_current_solution(exp_html, slip, experiment_name)
 
-        logging.info("Preparing the CPLEX object for solving the minimal reaction problem using MILP")
+        logging.info("Preparing MILP solver for the minimal no. reaction problem")
         milp = Stoichiometric_LP("Pathologic")
         milp.solution_index = 1
         milp.add_stoichiometric_constraints(f, S, compounds, reactions, net_reaction)
         milp.add_milp_variables()
-        if self.flux_relaxtion_factor is not None:
-            milp.add_flux_constraint(best_flux * self.flux_relaxtion_factor)
         if self.max_reactions is not None:
             milp.add_reaction_num_constraint(self.max_reactions)
-        
         if self.thermodynamic_method == "pCr":
             milp.add_dGr_constraints(self.thermo, pCr=True, MTDF=False, maximal_dG=0)
         elif self.thermodynamic_method == "MTDF":
@@ -162,7 +155,6 @@ class Pathologic(object):
             index += 1
             # create the MILP problem to constrain the previous solutions not to reappear again.
             logging.info("Round %03d, solving using MILP" % (milp.solution_index))
-            milp.set_objective()
             milp.export("../res/pathologic/%s/%03d_lp.txt" % (experiment_name, milp.solution_index))
             exp_html.write('<b>Solution #%d</b> (<a href="%s/%03d_lp.txt">LP file</a>): '  % (index, experiment_name, index))
             if not milp.solve():
@@ -179,7 +171,7 @@ class Pathologic(object):
 
     def write_current_solution(self, exp_html, lp, experiment_name,
                                output_kegg_file=None):
-        sol_reactions, sol_fluxes = lp.get_fluxes()
+        sol_reactions, sol_fluxes, sol_cids, sol_concentrations = lp.get_active_reaction_data()
         solution_id = '%03d' % lp.solution_index
         
         exp_html.write('%d reactions, flux = %g, \n' % (len(sol_reactions), lp.get_total_flux()))
@@ -190,14 +182,20 @@ class Pathologic(object):
         exp_html.embed_dot_inline(Gdot, width=240, height=320, name=svg_fname)
 
         # write the solution for the concentrations in a table
-        if lp.use_dG_f:
+        if sol_concentrations is not None:
             exp_html.insert_toggle(start_here=True)
-            cids, concentrations = lp.get_conc()
             exp_html.write('<p>Compound Concentrations<br>\n')
             exp_html.write('<table border="1">\n')
             exp_html.write('  ' + '<td>%s</td>'*2 % ("KEGG CID", "Concentration [M]") + '\n')
-            for c in xrange(len(cids)):
-                exp_html.write('<tr><td>C%05d</td><td>%.2g</td></tr>\n' % (cids[c], concentrations[c]))
+            for c, cid in enumerate(sol_cids):
+                conc = sol_concentrations[c, 0]
+                if not np.isnan(conc):
+                    exp_html.write('<tr><td>C%05d</td><td>%.2g</td></tr>\n' %
+                                   (cid, conc))
+                else:
+                    exp_html.write('<tr><td>C%05d</td><td>N/A</td></tr>\n' %
+                                   (cid))
+                    
             exp_html.write('</table></br>\n')
             exp_html.div_end()
 
@@ -208,16 +206,4 @@ class Pathologic(object):
                                reactions=sol_reactions, fluxes=sol_fluxes)
             
         exp_html.write('<br>\n')
-
-    def show_Gdot(self, Gdot):
-        import gtk
-        from toolbox import xdot
-    
-        win = xdot.DotWindow()
-        win.connect('destroy', gtk.main_quit)
-        win.set_filter('dot')
-        fname = '.dot'
-        Gdot.write(fname, format='dot')
-        win.open_file(fname)
-        gtk.main()
 

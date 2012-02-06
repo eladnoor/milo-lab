@@ -139,10 +139,14 @@ class Thermodynamics(object):
     
     def write_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
-        writer.writerow(['cid', 'nH', 'z', 'nMg', 'dG0'])
-        for cid in self.get_all_cids():
-            for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
-                writer.writerow([cid, nH, z, nMg, dG0])
+        writer.writerow(['name', 'cid', 'nH', 'z', 'nMg', 'dG0'])
+        for cid in sorted(self.get_all_cids()):
+            name = self.kegg.cid2name(cid)
+            try:
+                for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
+                    writer.writerow([name, cid, nH, z, nMg, '%.1f' % dG0])
+            except MissingCompoundFormationEnergy as e:
+                logging.warning(str(e))
 
     def GetJSONDictionary(self):
         """Returns a JSON formatted thermodynamic data."""
