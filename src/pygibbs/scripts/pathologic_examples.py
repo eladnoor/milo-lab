@@ -9,8 +9,8 @@ from pygibbs.thermodynamic_estimators import LoadAllEstimators
 
 def get_thermo(set_bounds=True):
     estimators = LoadAllEstimators()
-    thermo = estimators['merged']
-    thermo.c_range = (1e-10, 1e-2)
+    thermo = estimators['PGC']
+    thermo.c_range = (1e-6, 1e-2)
 
     if set_bounds:
         thermo.bounds[1]    = (1,    1)    # water
@@ -105,18 +105,21 @@ def example_oxidative():
                     maximal_dG=0.0,
                     thermodynamic_method='global',
                     update_file=None)
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> null", name='Free ATP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00003 <=> null", name='Free NAD+'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00004 <=> null", name='Free NADH'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00005 <=> null", name='Free NADPH'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00006 <=> null", name='Free NADP+'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> null", name='Free ADP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00013 <=> null", name='Free PPi'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00020 <=> null", name='Free AMP'))
     
     if False:
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> null", name='Free ATP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00003 <=> null", name='Free NAD+'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00004 <=> null", name='Free NADH'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00005 <=> null", name='Free NADPH'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00006 <=> null", name='Free NADP+'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> null", name='Free ADP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00013 <=> null", name='Free PPi'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00020 <=> null", name='Free AMP'))
+    
+    if True:
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00013 <=> null", name='Free PPi'))
     
@@ -132,6 +135,7 @@ def example_oxidative():
         pl.add_cofactor_reaction(Reaction.FromFormula("C05906 <=> C01617", name='leucocyanidin redox'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00343 <=> C00342", name='thioredoxin disulfide redox'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C03648 <=> C00974", name='cis-3,4-Leucopelargonidin redox'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C05684 <=> C01528", name='selenide redox'))
     
         # all Adenosine phosphorylations
         pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00008", name='ATP to ADP'))
