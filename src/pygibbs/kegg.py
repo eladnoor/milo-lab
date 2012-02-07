@@ -4,7 +4,6 @@ import pydot
 import pylab
 import re
 import sqlite3
-from copy import deepcopy
 
 from toolbox import util
 from toolbox.database import SqliteDatabase
@@ -1116,7 +1115,6 @@ class KeggPathologic(object):
 
         banned_reactions = set()
         banned_compounds = set()
-        added_reactions = []
         
         html_writer.write('<h2>Database updates:</h2>\n')
         html_writer.write('<ul>\n')
@@ -1150,9 +1148,9 @@ class KeggPathologic(object):
                 html_writer.write("<li><b>Ban Compound,</b> C%05d" % (cid))
             elif command == 'COFR': # cofactor
                 if len(line.split()) == 1:
-                    name = line.strip()
-                    self.cofactors.add(name)
-                    html_writer.write("<li><b>Cofactor,</b> %s" % name)
+                    cid = line.strip()
+                    self.add_cofactor(cid)
+                    html_writer.write("<li><b>Cofactor,</b> %s" % cid)
                 else:
                     try:
                         reaction = Reaction.FromFormula(line.strip())
@@ -1197,6 +1195,9 @@ class KeggPathologic(object):
             r_reverse.SetNames(["%s_R" % n for n in reaction.names])
             r_reverse.weight = weight
             self.reactions.append(r_reverse)
+
+    def add_cofactor(self, cid):
+        self.cofactors.add(cid)
 
     def add_cofactor_reaction(self, reaction):
         self.cofactor_reaction_list.append(reaction)
