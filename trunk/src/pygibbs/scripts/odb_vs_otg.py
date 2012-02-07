@@ -160,6 +160,8 @@ if __name__ == "__main__":
                   4:    (1e-4, 1e-3), # NAD (red)
                   6:    (1e-4, 1e-3), # NADP (ox)
                   5:    (1e-4, 1e-3), # NADP (red)
+                  16:   (1e-4, 1e-3), # FAD (ox)
+                  1352: (1e-4, 1e-3), # FADH2 (red)
                   399:  (1e-4, 1e-3), # ubiquinone (ox)
                   390:  (1e-4, 1e-3), # ubiquinol (red)
                   139:  (1e-4, 1e-3), # ferredoxin (ox)
@@ -172,10 +174,10 @@ if __name__ == "__main__":
                   876:  (1e-4, 1e-3), # coenzyme F420 (ox)
                   1080: (1e-4, 1e-3), # coenzyme F420 (red)
                   }
-    #analyze('../data/thermodynamics/odb_vs_otg_reductive.txt',
-    #        '../res/odb_vs_otg_reductive.html',
-    #        estimators['alberty'],
-    #        cid2bounds)
+    analyze('../data/thermodynamics/odb_vs_otg_reductive.txt',
+            '../res/odb_vs_otg_reductive.html',
+            estimators,
+            cid2bounds)
 
     analyze('../data/thermodynamics/odb_vs_otg_oxidative.txt',
             '../res/odb_vs_otg_oxidative.html',
