@@ -12,7 +12,15 @@ from toolbox import util
 
 class Pathologic(object):
     
-    ALLOWED_THERMODYNAMIC_METHODS = ['none', 'pCr', 'MTDF', 'global', 'localized'] 
+    THERMO_METHOD_NONE = 'none'
+    THERMO_METHOD_PCR = 'pcr'
+    THERMO_METHOD_MTDF = 'mtdf'
+    THERMO_METHOD_GLOBAL = 'global'
+    THERMO_METHOD_LOCALIZED = 'localized'
+    
+    ALLOWED_THERMODYNAMIC_METHODS = [THERMO_METHOD_NONE, THERMO_METHOD_PCR,
+                                     THERMO_METHOD_MTDF, THERMO_METHOD_GLOBAL,
+                                     THERMO_METHOD_LOCALIZED] 
     
     def __init__(self, db, public_db, html_writer,
                  thermo=None,
@@ -36,12 +44,12 @@ class Pathologic(object):
                 MTDF. When set to 0, it is the usual feasibility measure.
             update_file: the file to read for KEGG updates.
         """
-        assert thermodynamic_method in self.ALLOWED_THERMODYNAMIC_METHODS
+        assert thermodynamic_method.lower() in self.ALLOWED_THERMODYNAMIC_METHODS
         
         util._mkdir('../res/pathologic')
         
         self.html_writer = html_writer
-        self.thermodynamic_method = thermodynamic_method
+        self.thermodynamic_method = thermodynamic_method.lower()
         self.max_reactions = max_reactions
         self.max_solutions = max_solutions
         self.maximal_dG = maximal_dG
@@ -78,15 +86,16 @@ class Pathologic(object):
         exp_html.insert_toggle(div_id="__parameters__", start_here=True,
                                label='Show Parameters')
         exp_html.write('<h2>Thermodynamic constraints:</h2> ')
-        if self.thermodynamic_method == "none":
+        if self.thermodynamic_method == Pathologic.THERMO_METHOD_NONE:
             exp_html.write("ignore thermodynamics")
-        elif self.thermodynamic_method == "pCr":
+        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_PCR:
             exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.thermo.c_mid)
-        elif self.thermodynamic_method == "MTDF":
-            exp_html.write("Maximal Chemical Motive Force Analysis, %g M < C < %g M" % self.thermo.c_range)
-        elif self.thermodynamic_method == "global":
-            exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" % (self.thermo.c_range[0], self.thermo.c_range[1], self.maximal_dG))
-        elif self.thermodynamic_method == "localized":
+        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_MTDF:
+            exp_html.write("Optimized Distributed Bottleneck, %g M < C < %g M" % self.thermo.c_range)
+        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_GLOBAL:
+            exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" %
+                           (self.thermo.c_range[0], self.thermo.c_range[1], self.maximal_dG))
+        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_LOCALIZED:
             exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.thermo.c_range)
         else:
             raise Exception("thermodynamic_method must be one of %s" % self.ALLOWED_THERMODYNAMIC_METHODS)
@@ -141,13 +150,14 @@ class Pathologic(object):
         milp.add_milp_variables()
         if self.max_reactions is not None:
             milp.add_reaction_num_constraint(self.max_reactions)
-        if self.thermodynamic_method == "pCr":
+       
+        if self.thermodynamic_method == Pathologic.THERMO_METHOD_PCR:
             milp.add_dGr_constraints(self.thermo, pCr=True, MTDF=False, maximal_dG=0)
-        elif self.thermodynamic_method == "MTDF":
+        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_MTDF:
             milp.add_dGr_constraints(self.thermo, pCr=False, MTDF=True, maximal_dG=0)
-        elif self.thermodynamic_method == "global":
+        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_GLOBAL:
             milp.add_dGr_constraints(self.thermo, pCr=False, MTDF=False, maximal_dG=self.maximal_dG)
-        elif self.thermodynamic_method == "localized":
+        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_LOCALIZED:
             milp.add_localized_dGf_constraints(self.thermo)
         
         index = 0

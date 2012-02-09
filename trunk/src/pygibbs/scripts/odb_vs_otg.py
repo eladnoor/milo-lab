@@ -12,31 +12,18 @@ from pygibbs.kegg_reaction import Reaction
 
 RT = R * default_T
 
-
-def get_concentration_bounds(cids, cid2bounds, c_range):
-    ln_lbs = np.zeros((len(cids), 1))
-    ln_ubs = np.zeros((len(cids), 1))
-    for i, cid in enumerate(cids):
-        lb, ub = cid2bounds.get(cid, c_range)
-        ln_lbs[i, 0] = np.log(lb or c_range[0])
-        ln_ubs[i, 0] = np.log(ub or c_range[1])
-
-    return ln_lbs, ln_ubs
-    
-def pareto(html_writer, fname, estimators, pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
-           c_range=(1e-6, 1e-2), cid2bounds=None,
+def pareto(kegg_file, html_writer, thermo,
+           pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
            plot_profile=False, section_prefix=""):
     
-    entry2fields_map = ParsedKeggFile.FromKeggFile(fname)
-    cid2bounds = cid2bounds or {}
-    entries = entry2fields_map.entries()
+    entries = kegg_file.entries()
     plot_data = np.zeros((len(entries), 5)) # ODB, ODFE, min TG, max TG, sum(fluxes)
     
     html_writer.write('<h2 id="%s_tables">Individual result tables</h1>\n' % section_prefix)
     remarks = []
     good_entries = []
     for i, entry in enumerate(entries):
-        field_map = entry2fields_map[entry]
+        field_map = kegg_file[entry]
         p_data = PathwayData.FromFieldMap(field_map)
         
         if p_data.skip:
@@ -46,13 +33,12 @@ def pareto(html_writer, fname, estimators, pH=default_pH, I=default_I, T=default
 
         #html_writer.write('<a name="%s"></a>\n' % entry)
         html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, entry, entry))
-        thermo = estimators[field_map.get('THERMO', 'merged')]
         thermo.SetConditions(pH=pH, I=I, T=T, pMg=pMg)
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions()
         dG0_r_prime = thermo.GetTransfromedReactionEnergies(S, cids)
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
-                               cid2bounds=cid2bounds, c_range=c_range)
+                               cid2bounds=thermo.bounds, c_range=thermo.c_range)
 
         if np.any(np.isnan(dG0_r_prime)):
             remarks.append('NaN reaction energy')
@@ -93,32 +79,31 @@ def pareto(html_writer, fname, estimators, pH=default_pH, I=default_I, T=default
                  for i in xrange(len(entries))]
     html_writer.write_table(dict_list,
         headers=['Name', 'ODB [kJ/mol]', 'ODFE', 'Total dG\' [kJ/mol]', 'sum(flux)', 'remark'])
-            
-    fig = plt.figure(figsize=(6, 6), dpi=90)
-    plt.plot(plot_data[good_entries, 3], plot_data[good_entries, 0], '.', figure=fig)
-    for i in good_entries:
-        if plot_data[i, 0] < 0:
-            color = 'grey'
-        else:
-            color = 'black'
-        plt.text(plot_data[i, 3], plot_data[i, 0], entries[i],
-                 ha='center', va='bottom', fontsize=6, color=color)
-    plt.xlabel('Optimal Energetic Efficiency [kJ/mol]', figure=fig)
-    plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
-    return fig
     
-def analyze(input_fname, output_fname, estimators, cid2bounds):    
-    html_writer = HtmlWriter(output_fname)
+    data = plot_data[good_entries, :]
+    data = data[:, (3, 0)]
+    labels = [entries[i] for i in good_entries] 
+    return data, labels
+            
+def analyze(prefix, thermo):    
+    kegg_file = ParsedKeggFile.FromKeggFile('../data/thermodynamics/%s.txt' % prefix)
+    html_writer = HtmlWriter('../res/%s.html' % prefix)
+
     co2_hydration = Reaction.FromFormula("C00011 + C00001 => C00288")
-    default_thermo = estimators['alberty']
     
     I, T, pMg = 0.1, 298.15, 10
-    for pH in [7]:
-        co2_hydration_dG0_prime = default_thermo.GetTransfromedKeggReactionEnergies([co2_hydration])[0, 0]
-        for co2_conc in [1e-5]:
+    
+    #pH_vec = np.arange(5, 9.001, 0.5)
+    pH_vec = np.array([7])
+    co2_conc_vec = np.array([1e-5])
+    data_mat = []
+    
+    for pH in pH_vec:
+        co2_hydration_dG0_prime = thermo.GetTransfromedKeggReactionEnergies([co2_hydration])[0, 0]
+        for co2_conc in co2_conc_vec:
             carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*T))
-            cid2bounds[11] = (co2_conc, co2_conc)
-            cid2bounds[288] = (carbonate_conc, carbonate_conc)
+            thermo.bounds[11] = (co2_conc, co2_conc)
+            thermo.bounds[288] = (carbonate_conc, carbonate_conc)
             
             section_prefix = 'pH_%g_CO2_%g' % (pH, co2_conc*1000)
             section_title = 'pH = %g, [CO2] = %g mM' % (pH, co2_conc*1000)
@@ -128,63 +113,63 @@ def analyze(input_fname, output_fname, estimators, cid2bounds):
                                   '<a href="#%s_summary">Summary table</a>' % section_prefix,
                                   '<a href="#%s_figure">Summary figure</a>' % section_prefix])
 
-            pareto_fig = pareto(html_writer, input_fname, estimators,
-                pH=pH, I=I, T=T, pMg=pMg, cid2bounds=cid2bounds,
+            data, labels = pareto(kegg_file, html_writer, thermo,
+                pH=pH, I=I, T=T, pMg=pMg,
                 section_prefix=section_prefix)
-            html_writer.write('<h2 id="%s_figure">Summary figure</h1>\n' % section_prefix)
-            plt.title(section_title, figure=pareto_fig)
-            html_writer.embed_matplotlib_figure(pareto_fig)
+            data_mat.append(data)
+    
+    data_mat = np.array(data_mat)
+    if data_mat.shape[0] == 1:
+        pareto_fig = plt.figure(figsize=(6, 6), dpi=90)
+        plt.plot(data_mat[0, :, 0], data_mat[0, :, 1], '.', figure=pareto_fig)
+        for i in xrange(data_mat.shape[1]):
+            if data[i, 1] < 0:
+                color = 'grey'
+            else:
+                color = 'black'
+            plt.text(data_mat[0, i, 0], data_mat[0, i, 1], labels[i],
+                     ha='left', va='bottom',
+                     fontsize=8, color=color, figure=pareto_fig)
+        plt.title(section_title, figure=pareto_fig)
+    else:
+        pareto_fig = plt.figure(figsize=(10, 10), dpi=90)
+        for i in xrange(data_mat.shape[1]):
+            plt.plot(data_mat[:, i, 0], data_mat[:, i, 1], '-', figure=pareto_fig)
+            plt.text(data_mat[0, i, 0], data_mat[0, i, 1], '%g' % pH_vec[0],
+                     ha='center', fontsize=6, color='black', figure=pareto_fig)
+            plt.text(data_mat[-1, i, 0], data_mat[-1, i, 1], '%g' % pH_vec[-1],
+                     ha='center', fontsize=6, color='black', figure=pareto_fig)
+        plt.legend(labels, loc='upper right')
+        plt.title('Pareto', figure=pareto_fig)
+    
+    plt.xlabel('Optimal Energetic Efficiency [kJ/mol]', figure=pareto_fig)
+    plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=pareto_fig)
+    html_writer.write('<h2 id="%s_figure">Summary figure</h1>\n' % section_prefix)
 
-            # set axes to hide infeasible pathways and focus on feasible ones
-            pareto_fig.axes[0].set_xlim(None, 0)
-            pareto_fig.axes[0].set_ylim(0, None)
-            html_writer.embed_matplotlib_figure(pareto_fig)
+    # plot the Pareto figure showing all values (including infeasible)
+    html_writer.embed_matplotlib_figure(pareto_fig, name=prefix + '_0')
+
+    # set axes to hide infeasible pathways and focus on feasible ones
+    pareto_fig.axes[0].set_xlim(None, 0)
+    pareto_fig.axes[0].set_ylim(0, None)
+    html_writer.embed_matplotlib_figure(pareto_fig, name=prefix + '_1')
     
     html_writer.close()
 
 if __name__ == "__main__":
+    plt.rcParams['legend.fontsize'] = 6
     estimators = LoadAllEstimators()
     
-    cid2bounds = {
-                  1:    (1,    1),    # water
-                  #11:   (1e-5, 1e-5), # CO2
-                  #288:  (9e-5, 9e-5), # carbonate
-                  2:    (5e-3, 5e-3), # ATP (in order to keep ATP -> ADP at -55 kJ/mol)
-                  8:    (5e-4, 5e-4), # ADP (in order to keep ATP -> ADP at -55 kJ/mol)
-                  9:    (5e-3, 5e-3), # Pi  (in order to keep ATP -> ADP at -55 kJ/mol)
-                  20:   (1e-4, 1e-4), # AMP (in order to keep ATP -> AMP at -110 kJ/mol)
-                  13:   (3e-9, 3e-9), # PPi (in order to keep ATP -> AMP at -110 kJ/mol)
-                  #20:   (5e-3, 5e-3), # AMP (in order to keep ATP -> AMP at -55 kJ/mol)
-                  #13:   (5e-2, 5e-2), # PPi (in order to keep ATP -> AMP at -55 kJ/mol)
-                  3:    (1e-4, 1e-3), # NAD (ox)
-                  4:    (1e-4, 1e-3), # NAD (red)
-                  6:    (1e-4, 1e-3), # NADP (ox)
-                  5:    (1e-4, 1e-3), # NADP (red)
-                  16:   (1e-4, 1e-3), # FAD (ox)
-                  1352: (1e-4, 1e-3), # FADH2 (red)
-                  399:  (1e-4, 1e-3), # ubiquinone (ox)
-                  390:  (1e-4, 1e-3), # ubiquinol (red)
-                  139:  (1e-4, 1e-3), # ferredoxin (ox)
-                  138:  (1e-4, 1e-3), # ferredoxin (red)
-                  
-                  828:  (1e-4, 1e-3), # menaquinone (ox)
-                  5819: (1e-4, 1e-3), # menaquinone (red)
-                  343:  (1e-4, 1e-3), # thioredoxin (ox)
-                  342:  (1e-4, 1e-3), # thioredoxin (red)
-                  876:  (1e-4, 1e-3), # coenzyme F420 (ox)
-                  1080: (1e-4, 1e-3), # coenzyme F420 (red)
-                  }
-    analyze('../data/thermodynamics/odb_vs_otg_reductive.txt',
-            '../res/odb_vs_otg_reductive.html',
-            estimators,
-            cid2bounds)
+    experiments = [('odb_vs_otg_reductive_nature', 'merged'),
+                   ('odb_vs_otg_reductive_c1', 'merged_C1'),
+                   ('odb_vs_otg_oxidative', 'merged'),
+                   ('odb_vs_otg_reductive_all', 'merged')]
 
-    analyze('../data/thermodynamics/odb_vs_otg_oxidative.txt',
-            '../res/odb_vs_otg_oxidative.html',
-            estimators,
-            cid2bounds)
+    for prefix, thermo_name in experiments:
+        thermo = estimators[thermo_name]
+        analyze(prefix, thermo)
 
     #analyze('../res/pathologic/GA3P => PYR/kegg_pathway.txt',
+    #        '../data/thermodynamics/concentration_bounds.csv',
     #        '../res/odb_vs_otg_gap2pyr.html',
-    #        estimators,
-    #        cid2bounds)
+    #        estimators)

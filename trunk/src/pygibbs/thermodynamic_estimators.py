@@ -53,4 +53,7 @@ def LoadAllEstimators():
     estimators['merged_C1'] = BinaryThermodynamics(estimators['C1'],
                                                    estimators['PGC'])
 
+    for thermo in estimators.values():
+        thermo.load_bounds('../data/thermodynamics/concentration_bounds.csv')
+
     return estimators

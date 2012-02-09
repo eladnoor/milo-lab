@@ -122,10 +122,12 @@ class BaseHtmlWriter:
         self.write('<img src="' + fig_fname + '" atl="' + alternative_string + '" />')
     
     def embed_svg(self, fig_fname, width=320, height=240, name=''):
-        self.write('<object data="%s" type="image/svg+xml" width="%dpt" height="%dpt" name="%s" frameborder="0" marginwidth="0" marginheight="0"/></object>'
-                   % (fig_fname, width, height, name))
-        #self.write('<object data="%s" type="image/svg+xml" name="%s"/></object>'
-        #           % (fig_fname, name))
+        self.write('<a href="%s.svg">' % name)
+        self.extract_svg_from_file(fig_fname, width=width, height=height)
+        self.write('</a>')
+
+        #self.write('<object data="%s" type="image/svg+xml" width="%dpt" height="%dpt" name="%s" frameborder="0" marginwidth="0" marginheight="0"/></object>'
+        #           % (fig_fname, width, height, name))
     
     def embed_matplotlib_figure(self, fig, width=None, height=None, name=None):
         """
@@ -146,7 +148,7 @@ class BaseHtmlWriter:
         
         width = width or (fig.get_figwidth() * fig.get_dpi())
         height = height or (fig.get_figheight() * fig.get_dpi())
-
+        
         fig.savefig(svg_filename, format='svg')
         self.extract_svg_from_file(svg_filename, width=width, height=height)
         
