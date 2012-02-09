@@ -109,6 +109,16 @@ class Thermodynamics(object):
                                         ', '.join(['C%05d' % cid for cid in missing_cids]),
                                         reaction.sparse)
     
+    def load_bounds(self, csv_fname):
+        for row in csv.DictReader(open(csv_fname, 'r')):
+            cid = int(row['cid'])
+            min_c = float(row['min_c'])
+            max_c = float(row['max_c'])
+            if cid == 0:
+                self.c_range = (min_c, max_c)
+            else:
+                self.bounds[cid] = (min_c, max_c)
+    
     def cid_to_bounds(self, cid, use_default=True):
         curr_c_range = self.bounds.get(cid, (None, None))
         if use_default:

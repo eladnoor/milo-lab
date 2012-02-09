@@ -3,7 +3,7 @@ SKIP        FALSE
 NAME        ED (phosphorylating glucose)
 TYPE        MTDF
 PH          7
-I           0.25
+I           0.1
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
