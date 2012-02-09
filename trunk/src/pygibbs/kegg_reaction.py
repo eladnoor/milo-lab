@@ -228,7 +228,7 @@ class Reaction(object):
         pMg = pMg or thermodynamics.pMg
         I = I or thermodynamics.I
         T = T or thermodynamics.T
-        return thermodynamics.GetTransfromedKeggReactionEnergies([self], pH=pH, pMg=pMg, I=I, T=T)[0]
+        return thermodynamics.GetTransfromedKeggReactionEnergies([self], pH=pH, pMg=pMg, I=I, T=T)[0, 0]
     
     def HashableReactionString(self):
         """
@@ -260,26 +260,32 @@ class Reaction(object):
         return self.HashableReactionString() == other.HashableReactionString()
     
     @staticmethod
-    def write_compound_and_coeff(cid, coeff):
-        if (coeff == 1):
-            return "C%05d" % cid
+    def write_compound_and_coeff(cid, coeff, show_cids=True):
+        if show_cids:
+            comp = "C%05d" % cid
         else:
-            return "%g C%05d" % (coeff, cid)
+            from pygibbs.kegg import Kegg
+            kegg = Kegg.getInstance()
+            comp = kegg.cid2name(cid)
+        if coeff == 1:
+            return comp
+        else:
+            return "%g %s" % (coeff, comp)
 
     @staticmethod
-    def write_full_reaction(sparse, direction='=>'):
+    def write_full_reaction(sparse, direction='=>', show_cids=True):
         """String representation."""
         left = []
         right = []
         for cid, coeff in sorted(sparse.iteritems()):
-            if (coeff < 0):
-                left.append(Reaction.write_compound_and_coeff(cid, -coeff))
-            elif (coeff > 0):
-                right.append(Reaction.write_compound_and_coeff(cid, coeff))
+            if coeff < 0:
+                left.append(Reaction.write_compound_and_coeff(cid, -coeff, show_cids=show_cids))
+            elif coeff > 0:
+                right.append(Reaction.write_compound_and_coeff(cid, coeff, show_cids=show_cids))
         return "%s %s %s" % (' + '.join(left), direction, ' + '.join(right))
 
-    def FullReactionString(self):
-        return self.write_full_reaction(self.sparse, self.direction)
+    def FullReactionString(self, show_cids=True):
+        return self.write_full_reaction(self.sparse, self.direction, show_cids=show_cids)
 
     def __str__(self):
         return self.name + ': ' + self.FullReactionString()

@@ -957,7 +957,7 @@ class Kegg(Singleton):
             comp = self.cid2compound(cid)
             url = comp.get_link()
             name = comp.name
-            if (show_cids):
+            if show_cids:
                 show_string = "C%05d" % cid
                 title = name
             else:
@@ -970,7 +970,7 @@ class Kegg(Singleton):
                 else:
                     s_right.append('%g <a href="%s" title="%s">%s</a>' % (count, url, title, show_string))
             elif count < 0:
-                if (count == -1):
+                if count == -1:
                     s_left.append('<a href="%s" title="%s">%s</a>' % (url, title, show_string))
                 else:
                     s_left.append('%g <a href="%s" title="%s">%s</a>' % (-count, url, title, show_string))

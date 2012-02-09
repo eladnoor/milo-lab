@@ -72,6 +72,7 @@ def main():
     for db_name, reaction_list in reactions.iteritems():
         d[db_name + ' coverage'] = len(reaction_list)
     dict_list.append(d)
+    
     for thermo_name, thermodynamics in estimators.iteritems():
         logging.info('Writing the NIST report for %s' % thermodynamics.name)
         html_writer.write('<p><b>%s</b> ' % thermodynamics.name)
@@ -83,13 +84,14 @@ def main():
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
         logging.info('N = %d, RMSE = %.1f' % (num_estimations, rmse))
         
-        dict = {'Method':thermodynamics.name, 'RMSE (kJ/mol)':"%.1f (N=%d)" % (rmse, num_estimations)}
+        d = {'Method':thermodynamics.name,
+             'RMSE (kJ/mol)':"%.1f (N=%d)" % (rmse, num_estimations)}
         for db_name, reaction_list in reactions.iteritems():
             n_covered = thermodynamics.CalculateCoverage(reaction_list)
             percent = n_covered * 100.0 / len(reaction_list)
-            dict[db_name + " coverage"] = "%.1f%% (%d)" % (percent, n_covered)
+            d[db_name + " coverage"] = "%.1f%% (%d)" % (percent, n_covered)
             logging.info(db_name + " coverage = %.1f%%" % percent)
-        dict_list.append(dict)
+        dict_list.append(d)
     
     headers = ['Method', 'RMSE (kJ/mol)'] + \
         [db_name + ' coverage' for db_name in reactions.keys()]

@@ -1,5 +1,5 @@
-import csv, logging, sys
-from kegg import Kegg
+import csv, logging, sys, time, threading
+from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel,\
     default_pH
@@ -10,8 +10,6 @@ from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
 from toolbox.molecule import Molecule, OpenBabelError
 from optparse import OptionParser
-import time
-import threading
 
 class MissingDissociationConstantError(Exception):
     
@@ -300,7 +298,7 @@ class DissociationConstants(object):
             nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
             nist_row_data.T, cid2nH_nMg=cid2nH_nMg)
         return nist_row_data.dG0_r - ddG
-    
+
     def ReverseTransformReaction(self, reaction, pH, I, pMg, T, cid2nH_nMg=None):
         """
             Calculates the difference between dG0_prime and dG0
@@ -318,7 +316,7 @@ class DissociationConstants(object):
                 ddG0 += coeff * diss_table.GetDeltaDeltaG0(pH, I, pMg, T, nH=nH, nMg=nMg)
         
         return ddG0
-        
+    
     def GetPseudoisomerMap(self, cid):
         return self.GetDissociationTable(cid).GetPseudoisomerMap()
     

@@ -263,10 +263,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                                             dG0=est_dG0_f[i, 0], ref='PRC')
 
     def WriteUniqueReactionReport(self, unique_sparse_reactions, 
-                                  unique_data_mat, full_data_mat):
-        
-        fig1 = plt.figure(figsize=[6.0, 6.0], dpi=100)
-        plt.plot()
+                                  unique_data_mat, full_data_mat,
+                                  cid2nH_nMg=None):
         
         total_std = np.std(full_data_mat[:, 2:4], 0)
         
@@ -283,16 +281,25 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         _mkdir('../res/nist/reactions')
 
-        table_headers = ["Reaction", "#observations", "std(dG0)",
-                         "std(dG'0)", "analysis"]
-        dict_list = []
+        table_headers = ["Reaction", "#observations",
+                         "E(dG0)", "E(dG'0)", "E(dG0)'",
+                         "std(dG0)", "std(dG'0)",
+                         "analysis"]
+        rowdicts = []
         
         for i, reaction in enumerate(unique_sparse_reactions):
             logging.debug('Analyzing unique reaction: ' + 
                           str(unique_sparse_reactions[i]))
             data_row = unique_data_mat[i, :]
+            ddG0 = self.dissociation.ReverseTransformReaction(reaction,
+                pH=7, I=0.1, pMg=10, T=298.15, cid2nH_nMg=cid2nH_nMg)
+            
             d = {}
-            d["Reaction"] = reaction.to_hypertext()
+            d["Reaction"] = reaction.to_hypertext(show_cids=False)
+            d["reaction"] = reaction.FullReactionString(show_cids=False) # no hypertext for the CSV output
+            d["E(dG0)"] = "%.1f" % data_row[0]
+            d["E(dG'0)"] = "%.1f" % data_row[1]
+            d["E(dG0)'"] = "%.1f" % (data_row[0] + ddG0)
             d["std(dG0)"] = "%.1f" % data_row[2]
             d["std(dG'0)"] = "%.1f" % data_row[3]
             d["diff"] = data_row[2] - data_row[3]
@@ -306,10 +313,20 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                                            html_writer=reaction_html_writer)
             else:
                 d["analysis"] = ''
-            dict_list.append(d)
+            rowdicts.append(d)
         
-        dict_list.sort(key=lambda x:x["diff"], reverse=True)
-        self.html_writer.write_table(dict_list, table_headers)
+        rowdicts.sort(key=lambda x:x["diff"], reverse=True)
+        self.html_writer.write_table(rowdicts, ["Reaction", "#observations",
+                         "E(dG0)", "E(dG'0)", "E(dG0)'",
+                         "std(dG0)", "std(dG'0)",
+                         "analysis"])
+        csv_writer = csv.DictWriter(open('../res/nist_regression_unique.csv', 'w'),
+                                    ["reaction", "#observations",
+                                     "E(dG0)", "E(dG'0)", "E(dG0)'",
+                                     "std(dG0)", "std(dG'0)"],
+                                    extrasaction='ignore')
+        csv_writer.writeheader()
+        csv_writer.writerows(rowdicts)
 
     def AnalyzeSingleReaction(self, reaction, html_writer=None):
         plt.rcParams['text.usetex'] = False
