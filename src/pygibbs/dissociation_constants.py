@@ -255,7 +255,8 @@ class DissociationConstants(object):
         data['pMg'] = []
         data['T'] = []
         data['S'] = np.zeros((0, len(all_cids))) # stoichiometric matrix
-        data['nist_rows'] = [] # the index of the corresponding row in nist_rows
+        data['nist_rows'] = [] # The NIST rows that were used in S (since some might
+                               # be dropped in the process, e.g. missing pKa)
         
         for nist_row_data in nist_rows:
             # check that all participating compounds have a known pKa
@@ -263,8 +264,9 @@ class DissociationConstants(object):
             try:
                 dG0 = self.ReverseTransformNistRow(nist_row_data, cid2nH_nMg)
             except MissingDissociationConstantError as e:
-                logging.debug('A reaction contains compounds (C%05d) with missing pKa '
-                              'values: %s' % (e.cid, str(nist_row_data.reaction)))
+                logging.debug('Reaction %s involves compounds (C%05d) with missing pKa '
+                                'values: %s' % (nist_row_data.ref_id, 
+                                e.cid, str(nist_row_data.reaction)))
                 continue
             
             data['dG0_r_tag'].append(dG0_prime)

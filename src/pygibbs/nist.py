@@ -52,6 +52,7 @@ class NistRowData:
         self.evaluation = row_dict['evaluation']
         self.url = row_dict['url']
         self.ref_id = row_dict['reference_id']
+        self.ec = row_dict['ec']
         kegg_reaction = row_dict['kegg_reaction']
         if not kegg_reaction:
             raise NistMissingCrucialDataException(
@@ -72,6 +73,7 @@ class NistRowData:
         other.evaluation = self.evaluation
         other.url = self.url
         other.ref_id = self.ref_id
+        other.ec = self.ec
         other.reaction = self.reaction.clone()
         return other
 
@@ -176,7 +178,7 @@ class Nist(object):
     def FromDatabase(self):
         self.data = []
         self.cid2count = {}
-        logging.info('Reading NIST reaction data from database')
+        logging.info('Reading NIST reaction data from database ...')
         for i, row_dict in enumerate(self.db.DictReader('nist_equilibrium')):
             nist_row_data = NistRowData()
             try:
@@ -186,6 +188,7 @@ class Nist(object):
                     self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
             except NistMissingCrucialDataException:
                 continue
+        logging.info('Total of %d rows read from the NIST database' % len(self.data))
         
     def BalanceReactions(self, balance_water=True):
         for row in self.data:
@@ -603,7 +606,7 @@ class Nist(object):
             if checklist and nist_row_data.reaction not in checklist:
                 continue
             if self.override_pMg or self.override_I or self.override_T:
-                nist_row_copy = copy.deepcopy(nist_row_data)
+                nist_row_copy = nist_row_data.Clone()
                 if self.override_pMg:
                     nist_row_copy.pMg = self.override_pMg
                 if self.override_I:

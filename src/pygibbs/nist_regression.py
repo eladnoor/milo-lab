@@ -88,6 +88,9 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         """
         logging.info("Reverse transforming the NIST data")
         nist_rows = self.nist.SelectRowsFromNist()
+        logging.info("Selected %d NIST rows out of %d" %
+                     (len(nist_rows), len(self.nist.data)))
+        
         nist_rows_normalized = [row.Clone() for row in nist_rows]
         if anchors:
             # Use the known dG0 of the anchors as given, by subtracting their dG0 from
@@ -101,19 +104,21 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized,
                                                          cid2nH_nMg=cid2nH_nMg)
-        
+                
+        nist_rows_final = data['nist_rows']
         stoichiometric_matrix = data['S']
         cids_to_estimate = data['cids_to_estimate']
+        n_rows = stoichiometric_matrix.shape[0]        
         
         if anchors:
             logging.info("%d out of %d compounds are anchored" % 
                          (len(anchors.get_all_cids()), len(cids_to_estimate)))
-        logging.info("%d out of %d NIST measurements can be used" %
-                     (stoichiometric_matrix.shape[0], len(nist_rows_normalized)))
+        logging.info(Only %d out of %d NIST measurements can be used" %
+                     (n_rows, len(nist_rows_normalized)))
 
         # squeeze the regression matrix by leaving only unique rows
         unique_rows_S = np.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
-                                   in xrange(stoichiometric_matrix.shape[0])])
+                                   in xrange(n_rows)])
 
         logging.info("There are %d unique reactions" % unique_rows_S.shape[0])
         unique_rids = set([nist_row.reaction.rid for nist_row in nist_rows
@@ -123,7 +128,6 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         # for every unique row, calculate the average dG0_r of all the rows that
         # are the same reaction
-        n_rows = data['S'].shape[0]
         n_unique_rows = unique_rows_S.shape[0]
         
         # full_data_mat will contain these columns: dG0, dG0_tag, dG0 - E[dG0], 
@@ -142,6 +146,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         # no. rows holds the number of times this unique reaction appears in NIST
         unique_data_mat = np.zeros((n_unique_rows, 5))
         unique_sparse_reactions = []
+        unique_nist_row_representatives = []
         for i in xrange(n_unique_rows):
             row_vector = unique_rows_S[i:i+1,:]
             
@@ -155,6 +160,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             # find the list of indices which are equal to row i in unique_rows_S
             diff = abs(stoichiometric_matrix - np.repeat(row_vector, n_rows, 0))
             row_indices = np.where(np.sum(diff, 1) == 0)[0]
+            unique_nist_row_representatives.append(nist_rows_final[row_indices[0]])
             
             # take the mean and std of the dG0_r of these rows
             sub_data_mat  = full_data_mat[row_indices, 0:2]
@@ -169,7 +175,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                     
         # write a table that lists the variances of each unique reaction
         # before and after the reverse transform
-        self.WriteUniqueReactionReport(unique_sparse_reactions, 
+        self.WriteUniqueReactionReport(unique_sparse_reactions,
+                                       unique_nist_row_representatives,
                                        unique_data_mat, full_data_mat)
         
         # numpy arrays contains a unique data type for integers and that
@@ -262,7 +269,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                 self.cid2pmap_dict[cid] = PseudoisomerMap(nH=0, z=0, nMg=0,
                                             dG0=est_dG0_f[i, 0], ref='PRC')
 
-    def WriteUniqueReactionReport(self, unique_sparse_reactions, 
+    def WriteUniqueReactionReport(self, unique_sparse_reactions,
+                                  unique_nist_row_representatives,
                                   unique_data_mat, full_data_mat,
                                   cid2nH_nMg=None):
         
@@ -297,6 +305,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             d = {}
             d["Reaction"] = reaction.to_hypertext(show_cids=False)
             d["reaction"] = reaction.FullReactionString(show_cids=False) # no hypertext for the CSV output
+            d["Reference ID"] = unique_nist_row_representatives[i].ref_id
+            d["EC"] = unique_nist_row_representatives[i].ec
             d["E(dG0)"] = "%.1f" % data_row[0]
             d["E(dG'0)"] = "%.1f" % data_row[1]
             d["E(dG0)'"] = "%.1f" % (data_row[0] + ddG0)
@@ -316,12 +326,13 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             rowdicts.append(d)
         
         rowdicts.sort(key=lambda x:x["diff"], reverse=True)
-        self.html_writer.write_table(rowdicts, ["Reaction", "#observations",
+        self.html_writer.write_table(rowdicts, ["Reaction", "Reference ID", "EC",
+                         "#observations",
                          "E(dG0)", "E(dG'0)", "E(dG0)'",
                          "std(dG0)", "std(dG'0)",
                          "analysis"])
         csv_writer = csv.DictWriter(open('../res/nist_regression_unique.csv', 'w'),
-                                    ["reaction", "#observations",
+                                    ["reaction", "Reference ID", "EC", "#observations",
                                      "E(dG0)", "E(dG'0)", "E(dG0)'",
                                      "std(dG0)", "std(dG'0)"],
                                     extrasaction='ignore')
@@ -575,8 +586,9 @@ def main():
     
     html_writer = HtmlWriter(output_filename)
     db = SqliteDatabase(db_loc)
-    nist_regression = NistRegression(db, html_writer=html_writer)
-    nist_regression.std_diff_threshold = 2.0 # the threshold over which to print an analysis of a reaction
+    nist = Nist(T_range=None)
+    nist_regression = NistRegression(db, html_writer=html_writer, nist=nist)
+    nist_regression.std_diff_threshold = 20.0 # the threshold over which to print an analysis of a reaction
     #nist_regression.nist.T_range = None(273.15 + 24, 273.15 + 40)
     #nist_regression.nist.override_I = 0.25
     #nist_regression.nist.override_pMg = 14.0
