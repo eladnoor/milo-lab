@@ -242,7 +242,7 @@ def WriteDataToDB(db):
     compound_aliases = load_compound_aliases()
     titles2colnum = {}
     for new_row_dict in db.DictReader('nist_fields'):
-        titles2colnum[new_row_dict['name']] = new_row_dict['col_number']
+        titles2colnum[new_row_dict['name']] = int(new_row_dict['col_number'])
     
     salt_titles = { # values are lists of (charge, conc) pairs
         'm(KCl,mol.kg-3)':    [(1, 1), (-1, 1)], # K(+) Cl(-)
@@ -290,16 +290,16 @@ def WriteDataToDB(db):
     new_titles = text_titles + real_titles
     
     db.CreateTable('nist_equilibrium', [t + " TEXT" for t in text_titles] + [t + " REAL" for t in real_titles])
-    db.CreateTable('nist_errors', ['row_id INT', 'url TEXT', 'comment TEXT'])
+    db.CreateTable('nist_errors', ['row_id INT', 'url TEXT', 'missing_type TEXT', 'name TEXT'])
     
     for row in db.Execute('select * from nist_values'):
         skip_this_row = False
         row_comments = []
 
-        row_id = row[0]
+        row_id = row.pop(0) # the first column is the ID, then fields are counted starting from 0
         row_dict = {}
         for title, colnum in titles2colnum.iteritems():
-            row_dict[title] = row[int(colnum)+1] # +1 because the first column is the row ID
+            row_dict[title] = row[colnum]
     
         # specific corrections to NIST
         if row_dict['URL'].find('&') == -1:
@@ -363,10 +363,10 @@ def WriteDataToDB(db):
         new_row_dict['pMg'] = None
         
         if row_dict['cosolvent'] not in [None, 'none', '']:
-            row_comments += ['cosolvent => ' + row_dict['cosolvent']]
+            row_comments += [('cosolvent', row_dict['cosolvent'])]
             skip_this_row = True
         if row_dict['solvent'] not in [None, 'none', 'H2O', '']:
-            row_comments += ['solvent => ' + row_dict['solvent']]
+            row_comments += [('solvent', row_dict['solvent'])]
             skip_this_row = True
         
         # specific corrections to NIST
@@ -376,7 +376,8 @@ def WriteDataToDB(db):
             new_row_dict['kegg_reaction'] = parse_reaction(new_row_dict['reaction'],
                                                        compound_aliases)
         except MissingCompoundsFromKeggException as e:
-            row_comments += ['missing compounds: ' + str(e.names)]
+            for name in e.names:
+                row_comments += [('reactant', name)]
             skip_this_row = True
 
         for key in real_titles:
@@ -414,12 +415,12 @@ def WriteDataToDB(db):
                     charge_conc_pairs.append((charge, conc*coeff))
                     
         ### Buffers ###
-        buffer = choose_buffer(row_dict)
+        reaction_buffer = choose_buffer(row_dict)
         missing_buffers = {}
-        charge_conc_pairs += buffer_match(buffer, 
+        charge_conc_pairs += buffer_match(reaction_buffer, 
             buffer_dict, new_row_dict['pH'], missing_buffers)
         if missing_buffers:
-            row_comments += ['missing buffers: ' + str(missing_buffers)]
+            row_comments += [('buffers', str(missing_buffers))]
         
         if not new_row_dict['I']:
             new_row_dict['I'] = (0.5 * sum([(conc * ch**2) for (ch, conc) in charge_conc_pairs]))
@@ -428,7 +429,8 @@ def WriteDataToDB(db):
             new_row_dict['pMg'] = -log10(Mg_conc)
 
         if skip_this_row:
-            db.Insert('nist_errors', [row_id, new_row_dict['url'], ', '.join(row_comments)])
+            for missing_type, name in row_comments:
+                db.Insert('nist_errors', [row_id, new_row_dict['url'], missing_type, name])
         else:
             db.Insert('nist_equilibrium', [new_row_dict[k] for k in new_titles])
 
