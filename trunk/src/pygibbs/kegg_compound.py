@@ -210,11 +210,17 @@ class Compound(object):
         return atom_bag
     
     def get_atom_vector(self):
+        """
+            Returns a NumPy row array describing the number of atoms
+            from each element (the column index is the atomic number
+            of that element).
+            The first column (index=0) contains the number of electrons.
+        """
         atom_bag = self.get_atom_bag()
         if not atom_bag:
             return None
         
-        atom_vector = [0] * Molecule.GetNumberOfElements()
+        atom_vector = np.zeros((Molecule.GetNumberOfElements()+1), dtype='int')
         for elem, count in atom_bag.iteritems():
             if elem in ['R', 'X']:
                 return None # wildcard compound!
@@ -224,6 +230,8 @@ class Compound(object):
                                 (self.cid, elem))
                 return None
             atom_vector[an] = count
+            
+        atom_vector[0] = self.get_num_electrons()
         return atom_vector
     
     def get_inchi(self):
