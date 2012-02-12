@@ -2,6 +2,19 @@ import pulp
 import numpy as np
 from pygibbs.thermodynamic_constants import R
 
+class StoichiometricSolution(object):
+    
+    def __init__(self):
+        self.reactions = None
+        self.fluxes = None
+        self.dG_r = None
+        self.dG0_r = None
+        
+        self.compounds = None
+        self.concentrations = None
+        self.dG_f = None
+        self.dG0_f = None
+
 class Stoichiometric_LP(object):
     
     def __init__(self, name='Stoichiometric_LP', log_file=None):
@@ -23,6 +36,7 @@ class Stoichiometric_LP(object):
         self.cids = None
         self.dG0_f = None
         self.RT = None
+        
 
     def export(self, fname):
         self.prob.writeLP(fname)
@@ -36,10 +50,15 @@ class Stoichiometric_LP(object):
             compounds is the list of compounds from KEGG (NC long)
             reactions is a list of pairs of RID and direction (NR long)
         """
-        self.S = S
         self.weights = weights
+        self.S = S
         self.compounds = compounds
         self.reactions = reactions
+        
+        assert S.shape[0] == len(self.compounds)
+        assert S.shape[1] == len(self.reactions)
+
+        self.cids = [c.cid for c in self.compounds]
         
         # reaction fluxes are the continuous variables
         self.flux_vars = pulp.LpVariable.dicts("Flux",
@@ -50,7 +69,7 @@ class Stoichiometric_LP(object):
 
         # add a linear constraint on the fluxes for each compound (mass balance)
         for c, compound in enumerate(self.compounds):
-            reactions_with_c = np.nonzero(self.S[c,:])[0]
+            reactions_with_c = np.nonzero(self.S[c, :])[0]
             if len(reactions_with_c) == 0:
                 continue
             
@@ -63,7 +82,7 @@ class Stoichiometric_LP(object):
                 
             # Sum of all fluxes involving this compounds times the stoichiometry
             # of their reactions
-            cid_sum = pulp.lpSum([self.S[c,r] * self.flux_vars[self.reactions[r].name]
+            cid_sum = pulp.lpSum([self.S[c, r] * self.flux_vars[self.reactions[r].name]
                                   for r in reactions_with_c])
             
             self.prob.addConstraint(cid_sum == mass_balance,
@@ -121,22 +140,17 @@ class Stoichiometric_LP(object):
                                         cat=pulp.LpContinuous)
             self.prob.setObjective(self.mtdf)
         
-        self.cids = set()
-        for r in self.reactions:
-            self.cids.update(r.sparse.keys())
-        self.cids = sorted(self.cids)
-        
         self.formation_vars = pulp.LpVariable.dicts("Formation",
             ["C%05d" % cid for cid in self.cids],
             lowBound=1e-6,
             upBound=1e6,
             cat=pulp.LpContinuous) 
 
-        self.dG0_f = thermo.GetTransformedFormationEnergies(self.cids)
+        self.dG0_f = thermo.GetTransformedFormationEnergies(self.cids)[:, 0]
         self.RT = R * thermo.T
         
         for c, cid in enumerate(self.cids):
-            dG0 = self.dG0_f[c, 0]
+            dG0 = self.dG0_f[c]
             if np.isnan(dG0):
                 # If the standard formation energy of this compound cannot be
                 # determined, it's formation energy variable cannot be
@@ -206,12 +220,23 @@ class Stoichiometric_LP(object):
 
         self.concentrations = None
         if self.formation_vars is not None:
-            formations = np.array([self.formation_vars["C%05d" % cid].varValue or np.nan
-                                   for cid in self.cids], ndmin=2).T
-            
-            # if dG0_f is NaN for a compound, then so will the concentration be NaN
-            self.concentrations = np.exp((formations - self.dG0_f) / self.RT)
+            self.dG_f = np.array([self.formation_vars["C%05d" % cid].varValue or np.nan
+                                   for cid in self.cids])
 
+            # if dG0_f is NaN for a compound, then so will the concentration be NaN
+            self.concentrations = np.exp((self.dG_f - self.dG0_f) / self.RT)
+            
+            # multiply columns in S one-by-one, since there are NaN values
+            # in 'formations' which will otherwise cause the result to be
+            # all NaNs.
+            self.dG_r = np.zeros((len(self.reactions)))
+            self.dG0_r = np.zeros((len(self.reactions)))
+            for r, reaction in enumerate(self.reactions):
+                for cid, coeff in reaction.iteritems():
+                    c = self.cids.index(cid)
+                    self.dG0_r[r] += coeff * self.dG0_f[c]
+                    self.dG_r[r] += coeff * self.dG_f[c]
+        
         return True
 
     def ban_current_solution(self):
@@ -242,9 +267,6 @@ class Stoichiometric_LP(object):
                                 "solution_%03d" % self.solution_index)
         self.solution_index += 1
     
-    def get_total_flux(self):
-        return sum(self.fluxes)
-
     def get_margin(self):
         if self.pCr is None:
             return None
@@ -260,20 +282,24 @@ class Stoichiometric_LP(object):
             return self.mtdf.varValue
 
     def get_active_reaction_data(self):
+        solution = StoichiometricSolution()
+
         active_r = np.where(self.gammas)[0]
-        active_reactions = [self.reactions[r] for r in active_r]
-        active_fluxes = self.fluxes[active_r, :]
+        solution.reactions = [self.reactions[r] for r in active_r]
 
         active_cids = set()
-        for reaction in active_reactions:
+        for reaction in solution.reactions:
             active_cids.update(reaction.get_cids())
-                    
-        active_cids = np.array(sorted(active_cids), ndmin=2).T
-        if self.formation_vars is None:
-            active_concentrations = None
-        else:
-            active_c = [self.cids.index(cid) for cid in active_cids]
-            active_concentrations = self.concentrations[active_c, :]
+        active_c = [self.cids.index(cid) for cid in sorted(active_cids)]
+
+        solution.fluxes = self.fluxes[active_r, :]
+        solution.compounds = [self.compounds[c] for c in active_c]
+        if self.formation_vars is not None:
+            solution.dG0_f = self.dG0_f[active_c]
+            solution.dG_f = self.dG_f[active_c]
+            solution.concentrations = self.concentrations[active_c]
+            solution.dG0_r = self.dG0_r[active_r]
+            solution.dG_r = self.dG_r[active_r]
         
-        return active_reactions, active_fluxes, active_cids, active_concentrations
+        return solution
 

@@ -13,6 +13,11 @@ def MakeOpts(estimators):
                           dest="csv_input_filename",
                           default=None,
                           help="input CSV file with a column of KEGG IDs")
+    opt_parser.add_option("-l", "--cid_list",
+                          dest="cids",
+                          default=None,
+                          help="a comma separated list (no spaces) of "
+                               "KEGG compound IDs, e.g. C00001,C00002,C00003")
     opt_parser.add_option("-o", "--csv_output_filename",
                           dest="csv_output_filename",
                           default=None,
@@ -46,7 +51,7 @@ def CalculateThermo():
     estimators = LoadAllEstimators()
     parser = MakeOpts(estimators)
     options, _ = parser.parse_args(sys.argv)
-    if options.csv_input_filename is None:
+    if options.csv_input_filename is None and options.cids is None:
         sys.stderr.write(parser.get_usage())
         sys.exit(-1)
     
@@ -60,26 +65,30 @@ def CalculateThermo():
     else:
         out_fp = sys.stdout
     
-    csv_reader = csv.reader(open(options.csv_input_filename, 'r'))
-
-    headers = csv_reader.next()
-    cid_index = headers.index('kegg id')
-    csv_writer = csv.writer(out_fp)
-    if options.biochemical:
-        csv_writer.writerow(headers + ['dG0\'', 'pH', 'I', 'pMg', 'T'])
+    if options.csv_input_filename is not None:
+        csv_reader = csv.reader(open(options.csv_input_filename, 'r'))
+        headers = csv_reader.next()
+        cid_index = headers.index('kegg id')
+        csv_rows = list(csv_reader)
     else:
-        csv_writer.writerow(headers + ['dG0', 'nH', 'z', 'nMg'])
+        headers = ['kegg id']
+        cid_index = 0
+        csv_rows = [[c] for c in options.cids.split(',')]
 
-    csv_rows = list(csv_reader)
     cids = []
     for row in csv_rows:
         try:
             cids.append(int(row[cid_index][1:]))
         except ValueError:
-            csv_writer.writerow(row + ['NaN', 'cannot parse KEGG ID'])
             continue
         except IndexError:
             continue
+
+    csv_writer = csv.writer(out_fp)
+    if options.biochemical:
+        csv_writer.writerow(headers + ['dG0\'', 'pH', 'I', 'pMg', 'T'])
+    else:
+        csv_writer.writerow(headers + ['dG0', 'nH', 'z', 'nMg'])
         
     if options.biochemical:
         dG0_f_prime = estimator.GetTransformedFormationEnergies(cids)
