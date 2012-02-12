@@ -36,6 +36,7 @@ def DecomposeInputString(G, kegg):
                 (groupvec.Hydrogens(), groupvec.NetCharge(), groupvec.Magnesiums(), str(groupvec))
     except GroupDecompositionError as e:
         print "Cannot decompose compound to groups: " + str(e)
+        print e.GetDebugTable()
 
     mol.Draw()
 

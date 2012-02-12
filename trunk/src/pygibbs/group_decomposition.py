@@ -10,8 +10,16 @@ from toolbox.molecule import Molecule
 from pygibbs.group_vector import GroupVector
 
 class GroupDecompositionError(Exception):
-    pass
     
+    def __init__(self, msg, decomposition):
+        Exception.__init__(self, msg)
+        self.decomposition = decomposition
+        
+    def __str__(self):
+        return Exception.__str__(self)
+    
+    def GetDebugTable(self):
+        return self.decomposition.ToTableString()
 
 class GroupDecomposition(object):
     """Class representing the group decomposition of a molecule."""
@@ -43,15 +51,16 @@ class GroupDecomposition(object):
 
         if self.unassigned_nodes:
             l.append('\nUnassigned nodes: \n')
-            l.append('%10s | %10s | %10s | %10s\n' % ('index', 'atomicnum',
-                                                      'valence', 'charge'))
+            l.append('%10s | %3s | %2s | %10s | %10s\n' %
+                     ('index', 'an', 'el', 'valence', 'charge'))
             l.append(spacer)
             
             all_atoms = self.mol.GetAtoms()
             for i in self.unassigned_nodes:
                 a = all_atoms[i]
-                l.append('%10d | %10d | %10d | %10d\n' % (i, a.atomicnum,
-                                                          a.heavyvalence, a.formalcharge))
+                l.append('%10d | %3d | %2s | %10d | %10d\n' %
+                         (i, a.atomicnum, Molecule.GetSymbol(a.atomicnum),
+                          a.heavyvalence, a.formalcharge))
         return ''.join(l)
 
     def __str__(self):
@@ -425,7 +434,8 @@ class GroupDecomposer(object):
                                            groups, unassigned_nodes)
         
         if strict and decomposition.unassigned_nodes:
-            raise GroupDecompositionError('Unable to decompose %s into groups.' % mol.title)
+            raise GroupDecompositionError('Unable to decompose %s into groups.' % mol.title,
+                                          decomposition)
         
         return decomposition
 
