@@ -70,8 +70,8 @@ def example_oxidative(thermo):
                     thermo=thermo,
                     max_solutions=None,
                     max_reactions=20,
-                    maximal_dG=0.0,
-                    thermodynamic_method='mtdf',
+                    maximal_dG=-10.0,
+                    thermodynamic_method='global',
                     update_file=None)
     add_cofactor_reactions(pl)
     #r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
@@ -79,6 +79,22 @@ def example_oxidative(thermo):
     r = Reaction.FromFormula("C00022 => 3 C00011")
     #r.Balance()
     pl.find_path("oxidative", r)
+
+def example_reductive(thermo):
+    
+    pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
+                    public_db=SqliteDatabase('../data/public_data.sqlite'),
+                    html_writer=HtmlWriter('../res/pathologic.html'),
+                    thermo=thermo,
+                    max_solutions=None,
+                    max_reactions=15,
+                    maximal_dG=0.0,
+                    thermodynamic_method='global',
+                    update_file=None)
+    add_cofactor_reactions(pl)
+    r = Reaction.FromFormula("3 C00011 => C00022")
+    #r.Balance()
+    pl.find_path("reductive", r)
 
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)

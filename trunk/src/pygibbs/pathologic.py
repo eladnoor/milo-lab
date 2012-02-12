@@ -181,39 +181,67 @@ class Pathologic(object):
 
     def write_current_solution(self, exp_html, lp, experiment_name,
                                output_kegg_file=None):
-        sol_reactions, sol_fluxes, sol_cids, sol_concentrations = lp.get_active_reaction_data()
+        solution = lp.get_active_reaction_data()
         solution_id = '%03d' % lp.solution_index
         
-        exp_html.write('%d reactions, flux = %g, \n' % (len(sol_reactions), lp.get_total_flux()))
+        exp_html.write('%d reactions, flux = %g, \n' %
+                       (len(solution.reactions), sum(solution.fluxes)))
 
         # draw network as a graph and link to it
-        Gdot = self.kegg_patholotic.draw_pathway(sol_reactions, sol_fluxes)
+        Gdot = self.kegg_patholotic.draw_pathway(solution.reactions, solution.fluxes)
         svg_fname = '%s/%s_graph' % (experiment_name, solution_id)
         exp_html.embed_dot_inline(Gdot, width=240, height=320, name=svg_fname)
 
         # write the solution for the concentrations in a table
-        if sol_concentrations is not None:
+        if solution.concentrations is not None:
             exp_html.insert_toggle(start_here=True)
-            exp_html.write('<p>Compound Concentrations<br>\n')
-            exp_html.write('<table border="1">\n')
-            exp_html.write('  ' + '<td>%s</td>'*2 % ("KEGG CID", "Concentration [M]") + '\n')
-            for c, cid in enumerate(sol_cids):
-                conc = sol_concentrations[c, 0]
-                if not np.isnan(conc):
-                    exp_html.write('<tr><td>C%05d</td><td>%.2g</td></tr>\n' %
-                                   (cid, conc))
+            
+            exp_html.write('Compound Concentrations<br>\n')
+            rowdicts = []
+            for c, compound in enumerate(solution.compounds):
+                rowdict = {'KEGG ID':'<a href="%s">C%05d</a>' %
+                           (compound.get_link(), compound.cid),
+                           'Compound':compound.name}
+                if not np.isnan(solution.concentrations[c]):
+                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_f[c]
+                    rowdict['Conc. [M]'] = '%.2g' % solution.concentrations[c]
                 else:
-                    exp_html.write('<tr><td>C%05d</td><td>N/A</td></tr>\n' %
-                                   (cid))
-                    
-            exp_html.write('</table></br>\n')
+                    rowdict["dG'0 [kJ/mol]"] = 'N/A'
+                    rowdict['Conc. [M]'] = 'N/A'
+                rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_f[c]
+                rowdicts.append(rowdict)
+            exp_html.write_table(rowdicts,
+                headers=['KEGG ID', 'Compound', "dG'0 [kJ/mol]", "dG' [kJ/mol]",
+                         'Conc. [M]'])
+            
+            exp_html.write('Reaction Gibbs energies<br>\n')
+            rowdicts = []
+            for r, reaction in enumerate(solution.reactions):
+                rowdict = {'KEGG ID':'<a href="%s">R%05d</a>' %
+                           (reaction.get_link(), reaction.rid),
+                           'Reaction':reaction.to_hypertext(show_cids=False)}
+                if not np.isnan(solution.dG_r[r]):
+                    rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_r[r]
+                else:
+                    rowdict["dG' [kJ/mol]"] = 'N/A'
+
+                if not np.isnan(solution.dG0_r[r]):
+                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_r[r]
+                else:
+                    rowdict["dG'0 [kJ/mol]"] = 'N/A'
+
+                rowdicts.append(rowdict)
+            exp_html.write_table(rowdicts, 
+                headers=['KEGG ID', 'Reaction', "dG'0 [kJ/mol]", "dG' [kJ/mol]"])
+
             exp_html.div_end()
 
         # write the pathway in KEGG format
         if output_kegg_file is not None:
             write_kegg_pathway(output_kegg_file,
                                entry=experiment_name + ' ' + solution_id,
-                               reactions=sol_reactions, fluxes=sol_fluxes)
+                               reactions=solution.reactions,
+                               fluxes=solution.fluxes)
             
         exp_html.write('<br>\n')
 
