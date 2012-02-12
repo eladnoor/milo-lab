@@ -195,7 +195,7 @@ class Nist(object):
             try:
                 row.reaction.Balance(balance_water)
             except KeggReactionNotBalancedException as e:
-                raise Exception(str(e) + '\n' + str(row.reaction))
+                raise Exception(str(e) + '\n' + str(row.reaction) + '\n' + row.url)
 
     def GetAllCids(self):
         return sorted(self.cid2count.keys())
