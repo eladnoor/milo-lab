@@ -113,7 +113,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         if anchors:
             logging.info("%d out of %d compounds are anchored" % 
                          (len(anchors.get_all_cids()), len(cids_to_estimate)))
-        logging.info(Only %d out of %d NIST measurements can be used" %
+        logging.info("Only %d out of %d NIST measurements can be used" %
                      (n_rows, len(nist_rows_normalized)))
 
         # squeeze the regression matrix by leaving only unique rows
@@ -314,6 +314,21 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             d["std(dG'0)"] = "%.1f" % data_row[3]
             d["diff"] = data_row[2] - data_row[3]
             d["#observations"] = "%d" % data_row[4]
+            
+            flag = 0
+            c_nad = reaction.sparse.get(3, 0)
+            c_nadh = reaction.sparse.get(4, 0)
+            c_nadp = reaction.sparse.get(6, 0)
+            c_nadph = reaction.sparse.get(5, 0)
+            if  c_nad == 1 and c_nadh == -1:
+                flag = 1
+            elif c_nad == -1 and c_nadh == 1:
+                flag = -1
+            elif c_nadp == 1 and c_nadph == -1:
+                flag = 2
+            elif c_nadp == -1 and c_nadph == 1:
+                flag = -2
+            d["Arren Flag"] = flag
 
             if d["diff"] > self.std_diff_threshold:
                 link = "reactions/%s.html" % reaction.name
@@ -334,7 +349,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         csv_writer = csv.DictWriter(open('../res/nist_regression_unique.csv', 'w'),
                                     ["reaction", "Reference ID", "EC", "#observations",
                                      "E(dG0)", "E(dG'0)", "E(dG0)'",
-                                     "std(dG0)", "std(dG'0)"],
+                                     "std(dG0)", "std(dG'0)",'Arren Flag'],
                                     extrasaction='ignore')
         csv_writer.writeheader()
         csv_writer.writerows(rowdicts)

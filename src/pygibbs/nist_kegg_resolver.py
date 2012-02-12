@@ -296,10 +296,10 @@ def WriteDataToDB(db):
         skip_this_row = False
         row_comments = []
 
-        row_id = row.pop(0) # the first column is the ID, then fields are counted starting from 0
+        row_id = row[0] # the first column is the ID, then fields are counted starting from 0
         row_dict = {}
         for title, colnum in titles2colnum.iteritems():
-            row_dict[title] = row[colnum]
+            row_dict[title] = row[1+colnum]
     
         # specific corrections to NIST
         if row_dict['URL'].find('&') == -1:
@@ -349,6 +349,8 @@ def WriteDataToDB(db):
         if url_id == "T1=59MIL/LUK_1225":
             row_dict['Reaction'] = "1-(5'-Phosphoribosyl)-5-amino-4-(N-succinocarboxamide)-imidazole" + \
                 " = Fumarate + 1-(5'-Phosphoribosyl)-5-amino-4-imidazolecarboxamide"
+        if url_id == "T1=88BED/HAD_1430": # reaction is not electron balanced (missing redox carried)
+            continue
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
