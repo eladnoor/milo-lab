@@ -153,7 +153,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             # convert the rows of unique_rows_S to a list of sparse reactions
             sparse = {}
             for j in row_vector.nonzero()[1]: # 1 is the dimension of columns in S
-                sparse[int(cids_to_estimate[j])] = unique_rows_S[i, j]
+                sparse[cids_to_estimate[j]] = unique_rows_S[i, j]
             reaction = Reaction(names=['NIST%03d' % i], sparse_reaction=sparse)
             unique_sparse_reactions.append(reaction)
 
@@ -179,19 +179,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                                        unique_nist_row_representatives,
                                        unique_data_mat, full_data_mat)
         
-        # numpy arrays contains a unique data type for integers and that
-        # should be converted to the native type in python.
-        cids_to_estimate = map(int, cids_to_estimate)
         return unique_rows_S, unique_data_mat[:, 0:1], cids_to_estimate
-
-    @staticmethod
-    def ReactionVector2String(stoichiometric_vec, cids):
-        kegg = Kegg.getInstance()
-
-        nonzero_columns = np.where(abs(stoichiometric_vec) > 1e-10)[0]
-        gv = " + ".join(["%g %s (C%05d)" % (stoichiometric_vec[i], 
-            kegg.cid2name(int(cids[i])), cids[i]) for i in nonzero_columns])
-        return gv
 
     def FindKernel(self, S, cids, sparse=True):
         sparse_kernel = SparseKernel(S)
@@ -210,14 +198,15 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         if not sparse:
             K = LinearRegression.FindKernel(S)
             for i in xrange(K.shape[0]):
-                v_str = NistRegression.ReactionVector2String(K[i, :], cids)
-                dict_list.append({'dimension':i, 'kernel vector':v_str})
+                reaction = Reaction.FromStoichiometricVector(K[i, :], cids)
+                dict_list.append({'dimension':i,
+                                  'kernel vector':reaction.to_hypertext()})
         else:
             try:
                 for i, v in enumerate(sparse_kernel):
-                    v_str = NistRegression.ReactionVector2String(v, cids)
-                    print i, ':', v_str
-                    dict_list.append({'dimension':i, 'kernel vector':v_str})
+                    reaction = Reaction.FromStoichiometricVector(v, cids)
+                    dict_list.append({'dimension':i,
+                                      'kernel vector':reaction.to_hypertext()})
             except SparseKernel.LinearProgrammingException as e:
                 print "Error when trying to find a sparse kernel: " + str(e)
         self.html_writer.write_table(dict_list, ['dimension', 'kernel vector'])
@@ -287,14 +276,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         logging.info('std(dG0_r) = %.1f' % total_std[0])
         logging.info('std(dG\'0_r) = %.1f' % total_std[1])
         
-        _mkdir('../res/nist/reactions')
-
-        table_headers = ["Reaction", "#observations",
-                         "E(dG0)", "E(dG'0)", "E(dG0)'",
-                         "std(dG0)", "std(dG'0)",
-                         "analysis"]
         rowdicts = []
-        
         for i, reaction in enumerate(unique_sparse_reactions):
             logging.debug('Analyzing unique reaction: ' + 
                           str(unique_sparse_reactions[i]))
@@ -331,6 +313,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             d["Arren Flag"] = flag
 
             if d["diff"] > self.std_diff_threshold:
+                _mkdir('../res/nist/reactions')
                 link = "reactions/%s.html" % reaction.name
                 d["analysis"] = '<a href="%s">link</a>' % link
                 reaction_html_writer = HtmlWriter(os.path.join('../res/nist', link))
