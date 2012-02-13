@@ -351,7 +351,20 @@ def WriteDataToDB(db):
                 " = Fumarate + 1-(5'-Phosphoribosyl)-5-amino-4-imidazolecarboxamide"
         if url_id == "T1=88BED/HAD_1430": # reaction is not electron balanced (missing redox carried)
             continue
-        
+        if url_id == "T1=98LIA/QU_1582":
+            row_dict['Reaction'] = "2 O2- + 2 H+ = O2 + H2O2"
+        if url_id == "T1=61BER/BER_1431":
+            row_dict['Reaction'] = "ATP + L-valine + tRNA(Val)" + \
+                " = AMP + diphosphate + L-Valyl-tRNA(Val)"
+        if url_id == "T1=48KOR_676":
+            row_dict['Reaction'] = "ATP + beta-Nicotinamide mononucleotide = NAD + pyrophosphate"
+        if url_id == "T1=89AIR_1032":
+            row_dict['Reaction'] = "pantothenate + H2O = pantoic acid + beta-alanine"
+        if url_id == "T1=58CAB/LEL_432":
+            row_dict['Reaction'] = "UDP-glucose + D-glucose 6-phosphate = UDP + alpha,alpha'-trehalose 6-phosphate"
+        if url_id == "T1=62HAY/NIS_525":
+            row_dict['Reaction'] = "L-alanine + 3-oxopropanoate = beta-alanine + pyruvate" 
+            
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
             new_row_dict.setdefault(new_title, None)

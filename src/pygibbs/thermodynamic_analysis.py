@@ -182,14 +182,14 @@ class ThermodynamicAnalysis(object):
         for r in range(S.shape[0]):
             self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + 
                                    '>%s ' % self.kegg.rid2string(rids[r]) + '</a>')
-            self.html_writer.write("[x%g, &#x394;<sub>r</sub>G'<sup>0</sup> = %.1f] : " % (fluxes[r], dG0_r[r, 0]))
+            self.html_writer.write("[x%g, &Delta;<sub>r</sub>G'&deg; = %.1f] : " % (fluxes[r], dG0_r[r, 0]))
             self.html_writer.write(self.kegg.vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
             self.html_writer.write('</li>\n')
         
         v_total = np.dot(np.matrix(fluxes), S).flat
         dG0_total = np.dot(np.matrix(fluxes), dG0_r)[0,0]
         self.html_writer.write('<li><b>Total </b>')
-        self.html_writer.write('[&#x394;<sub>r</sub>G<sup>0</sup> = %.1f kJ/mol] : \n' % dG0_total)
+        self.html_writer.write('[&Delta;<sub>r</sub>G&deg; = %.1f kJ/mol] : \n' % dG0_total)
         self.html_writer.write(self.kegg.vector_to_hypertext(v_total, cids, show_cids=show_cids))
         self.html_writer.write("</li></ul></li>\n")
         
@@ -211,12 +211,12 @@ class ThermodynamicAnalysis(object):
             d['CID'] = '<a href="%s">C%05d</a>' % (self.kegg.cid2link(cid), cid)
             d['name'] = self.kegg.cid2name(cid)
             if np.isnan(dG0_f_prime[i, 0]):
-                d["&#x394;<sub>f</sub>G'<sup>0</sup>"] = 'N/A'
+                d["&Delta;<sub>f</sub>G'&deg;"] = 'N/A'
             else:
-                d["&#x394;<sub>f</sub>G'<sup>0</sup>"] = '%.1f' % dG0_f_prime[i, 0]
+                d["&Delta;<sub>f</sub>G'&deg;"] = '%.1f' % dG0_f_prime[i, 0]
             dict_list.append(d)
         self.html_writer.write_table(dict_list, 
-                headers=['CID', 'name', "&#x394;<sub>f</sub>G'<sup>0</sup>"])
+                headers=['CID', 'name', "&Delta;<sub>f</sub>G'&deg;"])
 
     def get_conditions(self, pathway_data):
         self.thermo.SetConditions(pH=pathway_data.pH,
@@ -274,7 +274,7 @@ class ThermodynamicAnalysis(object):
         
         #self.write_formation_energies_to_html(cids)
         #dG_r_prime = keggpath.CalculateReactionEnergiesUsingConcentrations(concentrations)
-        #return "ODFE = %.1f%%, Total &#x394;<sub>r</sub>G' = %.1f [min = %.1f, max = %.1f] kJ/mol" % \
+        #return "ODFE = %.1f%%, Total &Delta;<sub>r</sub>G' = %.1f [min = %.1f, max = %.1f] kJ/mol" % \
         #    (odfe, float(np.dot(dG_r_prime.T, fluxes)), 
         #     min_total_dG_prime, max_total_dG_prime)
         
@@ -284,7 +284,7 @@ class ThermodynamicAnalysis(object):
         print ','.join([key, '%.1f' % mtdf, '%.1f' % -average_dG_prime, 
                         '%.1f' % odfe, '%.1f' % average_dfe, 
                         '%.1f' % total_dG_prime, '%g' % np.sum(fluxes)])
-        return "MTDF = %.1f (avg. = %.1f) kJ/mol, ODFE = %.1f%% (avg. = %.1f%%), Total &#x394;<sub>r</sub>G' = %.1f kJ/mol, no. steps = %g" %\
+        return "MTDF = %.1f (avg. = %.1f) kJ/mol, ODFE = %.1f%% (avg. = %.1f%%), Total &Delta;<sub>r</sub>G' = %.1f kJ/mol, no. steps = %g" %\
             (mtdf, -average_dG_prime, odfe, average_dfe, total_dG_prime, np.sum(fluxes))
         
     def analyze_protonation(self, key, pathway_data):

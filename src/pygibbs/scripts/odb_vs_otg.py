@@ -64,8 +64,8 @@ def pareto(kegg_file, html_writer, thermo,
         logging.info('%20s: ODB = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' % (entry, odb, max_tg))
         html_writer.write_ul(["ODB = %.1f [kJ/mol]" % odb,
                               "ODFE = %.1f%%" % odfe,
-                              "Min Total &#x394;<sub>r</sub>G' = %.1f [kJ/mol]" % min_tg,
-                              "Max Total &#x394;<sub>r</sub>G' = %.1f [kJ/mol]" % max_tg])
+                              "Min Total &Delta;<sub>r</sub>G' = %.1f [kJ/mol]" % min_tg,
+                              "Max Total &Delta;<sub>r</sub>G' = %.1f [kJ/mol]" % max_tg])
         keggpath.WriteProfileToHtmlTable(html_writer, concentrations)
         keggpath.WriteConcentrationsToHtmlTable(html_writer, concentrations)
 

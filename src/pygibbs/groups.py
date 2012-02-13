@@ -157,7 +157,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                                    transformed=self.transformed)
         self.group_decomposer = GroupDecomposer(self.groups_data)
             
-    def Train(self, FromFiles=True):
+    def Train(self, FromFiles=True, assert_decomposition=True):
         self.obs_collection = GroupObervationCollection(
                                 db=self.db, 
                                 html_writer=self.html_writer, 
@@ -165,7 +165,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                 dissociation=self.GetDissociationConstants(),
                                 transformed=self.transformed)
         if FromFiles:
-            self.obs_collection.FromFiles()
+            self.obs_collection.FromFiles(assert_decomposition=assert_decomposition)
             self.obs_collection.ToDatabase()
             self.obs_collection.ToCSV('../res/gc_pseudoisomers.csv',
                                       '../res/gc_observations.csv')
@@ -257,7 +257,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.write('</br><table border="1">\n<tr>'
             '<td width="5%%">#</td>'
             '<td width="20%%">Name</td>'
-            '<td width="5%%">&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
+            '<td width="5%%">&Delta;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
             '<td width="70%%">Group Vector</td></tr>')
         for i in xrange(self.group_matrix.shape[0]):
             groupvec = GroupVector(self.groups_data, self.group_matrix[i, :])
@@ -280,7 +280,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             for k in self.group_matrix[:, j].nonzero()[0]:
                 obs_lists_dict[self.obs_types[k]].append(self.obs_names[k])
             d = {"#":"%d" % j, "Group Name":group_names[j], 
-                 "&#x394;<sub>gr</sub>G [kJ/mol]":"%8.2f" % dG0_gr,
+                 "&Delta;<sub>gr</sub>G [kJ/mol]":"%8.2f" % dG0_gr,
                  "dissociations":' | '.join(obs_lists_dict['acid-base']),
                  "formations":' | '.join(obs_lists_dict['formation']),
                  "reactions":' | '.join(obs_lists_dict['reaction'])}
@@ -292,11 +292,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             dict_list.append(d)
         if not self.transformed:
             self.html_writer.write_table(dict_list, headers=["#", "Group Name",
-                "nH", "charge", "nMg", "&#x394;<sub>gr</sub>G [kJ/mol]", 
+                "nH", "charge", "nMg", "&Delta;<sub>gr</sub>G [kJ/mol]", 
                 "dissociations", "formations", "reactions"])
         else:
             self.html_writer.write_table(dict_list, headers=["#", "Group Name",
-                "&#x394;<sub>gr</sub>G [kJ/mol]", 
+                "&Delta;<sub>gr</sub>G [kJ/mol]", 
                 "dissociations", "formations", "reactions"])
         self.html_writer.write('</font>\n')
         self.html_writer.div_end()
@@ -364,10 +364,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.write('<font size="1">\n')
         self.html_writer.table_start()
         headers = ['Observation Name',
-                   '&#x394;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
-                   '&#x394;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',
+                   '&Delta;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
+                   '&Delta;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',
                    'Residual [kJ/mol]',
-                   '&#x394;<sub>f</sub>G<sub>LOO</sub> [kJ/mol]',
+                   '&Delta;<sub>f</sub>G<sub>LOO</sub> [kJ/mol]',
                    'Leave-one-out Residual [kJ/mol]']
         self.html_writer.table_writerow(headers)
         deviations.sort(key=lambda(x):abs(x.get('loo_resid', 0)), reverse=True)
@@ -783,7 +783,7 @@ if __name__ == '__main__':
                               transformed=options.transformed)
         if not options.test_only:
             G.LoadGroupsFromFile()
-            G.Train()
+            G.Train(FromFiles=True, assert_decomposition=False)
             G.WriteRegressionReport()
             G.analyze_training_set()
         else:

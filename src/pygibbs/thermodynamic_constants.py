@@ -53,20 +53,20 @@ class RedoxCarrier(object):
     #    deltaH - change in H+
     #    pH - the conditions in which the E' was measured
     
-    def __init__(self, cid_ox, cid_red, nH_ox, nH_red, z_ox, z_red, E_prime, pH, ref):
+    def __init__(self, cid_ox, cid_red, nH_ox, nH_red, z_ox, z_red, E0_prime, pH, ref):
         self.cid_ox = cid_ox
         self.cid_red = cid_red
         self.nH_ox = nH_ox
         self.nH_red = nH_red
         self.z_ox = z_ox
         self.z_red = z_red
-        self.E_prime = E_prime
+        self.E0_prime = E0_prime
         self.pH = pH
         self.ref = ref
         self.delta_H = nH_red - nH_ox
         self.delta_e = (nH_red - nH_ox) - (z_red - z_ox) # difference in no. of electrons
-        self.ddG0 = -E_prime * F * self.delta_e - \
-                     R * default_T * np.log(10) * pH * self.delta_H
+        self.ddG0_prime = -E0_prime * F * self.delta_e
+        self.ddG0 = self.ddG0_prime - R * default_T * np.log(10) * pH * self.delta_H
 
 class RedoxCarriers(dict):
     
@@ -79,8 +79,8 @@ class RedoxCarriers(dict):
             z_ox = int(row['charge_ox'])
             nH_red = int(row['nH_red'])
             z_red = int(row['charge_red'])
-            E_prime = float(row['E_tag'])
+            E0_prime = float(row["E'0"])
             pH = float(row['pH'])
             ref = row['ref']
             self[name] = RedoxCarrier(cid_ox, cid_red, nH_ox, nH_red, 
-                                      z_ox, z_red, E_prime, pH, ref)
+                                      z_ox, z_red, E0_prime, pH, ref)
