@@ -123,8 +123,8 @@ class GroupObervationCollection(object):
             mol.RemoveHydrogens()
             decomposition = self.group_decomposer.Decompose(mol, ignore_protonations=False, strict=True)
         except GroupDecompositionError as _e:
-            logging.warning('Cannot decompose one of the compounds in the '
-                            'training set: %s, %s' % (id, str(mol)))
+            logging.warning('Cannot decompose %s which is in the '
+                            'training set: %s' % (pseudoisomer_id, str(mol)))
             self.html_writer.write('%s Could not be decomposed</br>\n' % str(mol))
             return False
         groupvec = decomposition.AsVector()
@@ -322,20 +322,18 @@ class GroupObervationCollection(object):
         """
         # collect the formation energies of the anchored compounds (i.e. 'testing')
         # in a dictionary according to CIDs.
-        cid2dG0 = {} # this is dG0' if self.transformed, or dG0 if not.
+        cid2dG0 = {} # this is dG'0 if self.transformed, or dG0 if not.
         if self.transformed:
             obs_fname = '../data/thermodynamics/formation_energies_transformed.csv'
         else:
             obs_fname = '../data/thermodynamics/formation_energies.csv'
             cid2nH_nMg = self.dissociation.GetCid2nH_nMg(pH=7, I=0, pMg=14, T=default_T)
 
-        for rc in RedoxCarriers().itervalues():
-            cid2dG0[rc.cid_ox] = 0.0
-            if self.transformed:
-                cid2dG0[rc.cid_red] = rc.ddG0_prime
-            else:
-                cid2dG0[rc.cid_red] = rc.ddG0
-                cid2nH_nMg[rc.cid_ox] = (rc.nH_ox, rc.z_ox)
+        redox_carriers = RedoxCarriers()
+        for rc in redox_carriers.itervalues():
+            if not self.transformed:
+                cid2nH_nMg[rc.cid_ox] = (rc.nH_ox, 0)
+                cid2nH_nMg[rc.cid_red] = (rc.nH_red, 0)
         
         for row in csv.DictReader(open(obs_fname, 'r')):
             cid = int(row['cid'])
@@ -362,7 +360,8 @@ class GroupObervationCollection(object):
         nist = Nist()
         
         # add all the non-anchored compounds to the dictionary of GroupVectors
-        for cid in set(nist.GetAllCids()).difference(cid2dG0.keys()):
+        unanchored_cids = sorted(set(nist.GetAllCids()).difference(cid2dG0.keys()))
+        for cid in unanchored_cids:
             name = self.kegg.cid2name(cid)
             if self.transformed:
                 mol = self.dissociation.GetAnyMol(cid)
@@ -408,28 +407,49 @@ class GroupObervationCollection(object):
             else:
                 dG0 = nist_row_data.dG0_r # we are using transformed energies
             
-            sparse = {}
-            total_gv = GroupVector(self.groups_data)
-            for cid, coeff in nist_row_data.reaction.iteritems():
-                if cid in cid2dG0:
-                    dG0 -= cid2dG0[cid] * coeff # subtract the effect of the anchored compounds
-                else:
-                    if self.transformed:
-                        pseudoisomer_id = "C%05d" % cid
+            sparse = dict(nist_row_data.reaction.sparse)
+            
+            # subtract the effect of anchored compounds and remove them from the reaction
+            for cid in cid2dG0.keys():
+                if cid in sparse:
+                    dG0 -= cid2dG0[cid] * sparse[cid]
+                    sparse[cid] = 0
+            
+            # subtract the effect of redox carriers and remove them from the reaction
+            for rc in redox_carriers.itervalues():
+                if rc.cid_ox in sparse and rc.cid_red in sparse:
+                    if sparse[rc.cid_red] == -sparse[rc.cid_ox]:
+                        dG0 -= rc.ddG0 * sparse[rc.cid_red]
+                        sparse[rc.cid_red] = 0
+                        sparse[rc.cid_ox] = 0
                     else:
-                        nH, nMg = cid2nH_nMg[cid]
-                        pseudoisomer_id = "C%05d_nH%d_nMg%d" % (cid, nH, nMg)
-                    sparse[pseudoisomer_id] = coeff
-                    total_gv += self.id2gv[pseudoisomer_id] * coeff
+                        # TODO: this is not the best way to handle redox reactions
+                        # but hopefully this will cover all NIST cases
+                        raise Exception(name + " has an unbalanced redox carrier situation")
+            
+            sparse_pseudo = {}
+            for cid, coeff in sparse.iteritems():
+                if coeff == 0:
+                    continue
+                if self.transformed:
+                    pseudoisomer_id = "C%05d" % cid
+                else:
+                    nH, nMg = cid2nH_nMg[cid]
+                    pseudoisomer_id = "C%05d_nH%d_nMg%d" % (cid, nH, nMg)
+                sparse_pseudo[pseudoisomer_id] = coeff
 
-            missing_pseudoisomers = set(sparse.keys()).difference(self.id2gv.keys())
+            missing_pseudoisomers = set(sparse_pseudo.keys()).difference(self.id2gv.keys())
             if len(missing_pseudoisomers) > 0:
-                logging.warning('Cannot reverse transform NIST%03d because it'
+                logging.warning('Cannot train using NIST%03d because it'
                                 ' involves implicit-formula reactants: %s' %
                                 (r, ', '.join(missing_pseudoisomers)))
                 continue
+
+            total_gv = GroupVector(self.groups_data)
+            for pseudoisomer_id, coeff in sparse_pseudo.iteritems():
+                total_gv += self.id2gv[pseudoisomer_id] * coeff
             
-            self.AddTrainingExample(sparse, dG0, name=name,
+            self.AddTrainingExample(sparse_pseudo, dG0, name=name,
                                     kegg_id="", obs_type="reaction")
             
             html_text = ""
@@ -439,17 +459,20 @@ class GroupObervationCollection(object):
                 symbol = "&Delta;<sub>r</sub>G'&deg;"
             else:
                 symbol = "&Delta;<sub>r</sub>G&deg;"
-            html_text += '%s = %.2f, pH = %g, I = %g, pMg = %g, T = %g</br>\n' % \
-                         (symbol, nist_row_data.dG0_r, nist_row_data.pH,
-                         nist_row_data.I, nist_row_data.pMg, nist_row_data.T)
-            html_text += "Original reaction = %s</br>\n" % \
-                         nist_row_data.reaction.to_hypertext(show_cids=False)
-            html_text += 'Reference ID = <a href="%s">%s</a></br>\n' % \
+            html_text += "NIST conditions: pH = %g, I = %g, pMg = %g, T = %g" % \
+                         (nist_row_data.pH, nist_row_data.I,
+                          nist_row_data.pMg, nist_row_data.T)
+            html_text += 'NIST reference: <a href="%s">%s</a></br>\n' % \
                          (nist_row_data.url, nist_row_data.ref_id)
             html_text += 'EC = %s</br>\n' % nist_row_data.ec
-            html_text += '%s (truncated) = %.2f</br>\n' % (symbol, dG0)
-            html_text += 'Stoichiometry = %s</br>\n' % str(sparse)
-            html_text += 'Group vector = %s</br>\n' % str(total_gv)
+            html_text += "Original reaction: %s</br>\n" % \
+                         nist_row_data.reaction.to_hypertext(show_cids=False)
+            html_text += 'Original %s: %.2f, </br>\n' % \
+                         (symbol, nist_row_data.dG0_r)
+            html_text += 'Truncated reaction: %s</br>\n' % \
+                         self.kegg.sparse_to_hypertext(sparse, show_cids=False)
+            html_text += 'Truncated %s: %.2f</br>\n' % (symbol, dG0)
+            html_text += 'Group vector: %s</br>\n' % str(total_gv)
             html_text += '</font>\n'
             self.html_writer.write(html_text)
 
