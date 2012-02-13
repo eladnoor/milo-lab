@@ -107,7 +107,7 @@ class Pathologic(object):
         exp_html.write_ul(['pH = %g' % self.thermo.pH,
                            'I = %g' % self.thermo.I,
                            'T = %g' % self.thermo.T,
-                           "Max &#x394;<sub>r</sub>G' = %.1f" % self.maximal_dG,
+                           "Max &Delta;<sub>r</sub>G' = %.1f" % self.maximal_dG,
                            'Max no. reactions: %d' % (self.max_reactions or -1),
                            'Max no. solutions: %d' % (self.max_solutions or -1),
                            'Overall Reaction: %s' % net_reaction.to_hypertext(),

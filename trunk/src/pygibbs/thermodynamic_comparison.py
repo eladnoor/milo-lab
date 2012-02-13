@@ -87,14 +87,14 @@ class PathwayComparison(object):
         
         for r in range(S.shape[0]):
             self.html_writer.write('<li><a href=' + self.kegg.rid2link(rids[r]) + '>%s ' % rids[r] + '</a>')
-            self.html_writer.write('[x%g, &#x394;G<sub>r</sub><sup>0</sup> = %.1f] : ' % (fluxes[r], dG0_r[r, 0]))
+            self.html_writer.write('[x%g, &Delta;G<sub>r</sub>&deg; = %.1f] : ' % (fluxes[r], dG0_r[r, 0]))
             self.html_writer.write(self.kegg.vector_to_hypertext(S[r, :].flat, cids, show_cids=show_cids))
             self.html_writer.write('</li>\n')
         
         v_total = pylab.dot(pylab.matrix(fluxes), S).flat
         dG0_total = pylab.dot(pylab.matrix(fluxes), dG0_r)[0,0]
         self.html_writer.write('<li><b>Total </b>')
-        self.html_writer.write('[&#x394;G<sub>r</sub><sup>0</sup> = %.1f kJ/mol] : \n' % dG0_total)
+        self.html_writer.write('[&Delta;G<sub>r</sub>&deg; = %.1f kJ/mol] : \n' % dG0_total)
         self.html_writer.write(self.kegg.vector_to_hypertext(v_total, cids, show_cids=show_cids))
         self.html_writer.write("</li></ul></li>\n")
         

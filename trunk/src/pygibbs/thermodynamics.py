@@ -553,7 +553,8 @@ class BinaryThermodynamics(Thermodynamics):
 
         raise MissingReactionEnergy('None of the Thermodynamic estimators can '
                                     'calculate the Gibbs free energy of this '
-                                    'reaction')
+                                    'reaction',
+                                    reaction.sparse)
 
     def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
         """

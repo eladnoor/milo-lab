@@ -1,4 +1,4 @@
-"name","CID_ox","nH_ox","charge_ox","CID_red","nH_red","charge_red","E_tag","pH","ref"
+"name","CID_ox","nH_ox","charge_ox","CID_red","nH_red","charge_red","E'0","pH","ref"
 "NAD",3,26,-1,4,27,-2,-0.32,7,"CRC biochemistry (2010)"
 "NADP",6,26,-1,5,27,-2,-0.324,7,"CRC biochemistry (2010)"
 "ferredoxin",139,0,1,138,0,0,-0.398,7,"Thauer (1977)"

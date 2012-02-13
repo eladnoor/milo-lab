@@ -629,10 +629,10 @@ class KeggPathway(Pathway):
         
         dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
         headers=["reaction", 'formula', 'flux', 
-                 "&#x394;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC] 
+                 "&Delta;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC] 
         if concentrations is not None:
             dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
-            headers.append("&#x394;<sub>r</sub>G' [kJ/mol]")
+            headers.append("&Delta;<sub>r</sub>G' [kJ/mol]")
         
         dict_list = []
         for r, rid in enumerate(self.rids):

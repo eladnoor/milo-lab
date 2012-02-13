@@ -5,7 +5,7 @@ from pygibbs.group_decomposition import GroupDecompositionError
 from pygibbs.group_vector import GroupVector
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_T,\
-    default_pMg
+    default_pMg, RedoxCarriers
 import csv
 from pygibbs.nist import Nist
 import json
@@ -91,7 +91,7 @@ class GroupObervationCollection(object):
         self.PSEUDOISOMER_GV_TABLE_NAME = prefix + '_pseudoisomer_groupvector'
         self.OBSERVATION_TABLE_NAME = prefix + '_observations'
             
-    def FromFiles(self):
+    def FromFiles(self, assert_decomposition=True):
         if self.use_pkas:
             self.html_writer.write('<br><b>List of pKa for training</b>')
             self.html_writer.insert_toggle(start_here=True)
@@ -100,7 +100,7 @@ class GroupObervationCollection(object):
 
         self.html_writer.write('</br><b>List of NIST reactions for training</b>')
         self.html_writer.insert_toggle(start_here=True)
-        self.AddNistDatabase()
+        self.AddNistDatabase(assert_decomposition=assert_decomposition)
         self.html_writer.div_end()
         
         self.html_writer.write('<br><b>List of compounds for training</b>')
@@ -174,7 +174,7 @@ class GroupObervationCollection(object):
                 logging.debug("\t" + s)
                 html_text = ""
                 html_text += '<font size="1">\n'
-                html_text += '&#x394;&#x394;G = %.2f, %s</br>\n' % (ddG0, s)
+                html_text += '&Delta;&Delta;G = %.2f, %s</br>\n' % (ddG0, s)
                 html_text += 'SMILES = %s >> %s</br>\n' % (mol_above.ToSmiles(), mol_below.ToSmiles())
                 html_text += '%s >> %s</br>\n' % (mol_above.ToSVG(), mol_below.ToSVG())
                 html_text += 'Stoichiometry = %s</br>\n' % str(sparse)
@@ -222,11 +222,12 @@ class GroupObervationCollection(object):
             html_text = ""
             html_text += "<b>%s (%s), %s</b></br>\n" % (name, kegg_id, ref)
             html_text += '<font size="1">\n'
-            html_text += '&#x394;<sub>f</sub> G\'<sup>0</sup> = %.2f, ' % dG0_prime
+            html_text += "&Delta;<sub>f</sub>G'&deg; = %.2f, " % dG0_prime
             html_text += 'pH = %g, I = %g, pMg = %g, T = %g</br>\n' % (pH, I, pMg, T)
             html_text += 'SMILES = %s</br>\n' % (mol.ToSmiles())
             html_text += '%s</br>\n' % (mol.ToSVG())
             html_text += 'Stoichiometry = %s</br>\n' % str(sparse)
+            html_text += 'Group vector = %s</br>\n' % str(self.id2gv[kegg_id])
             html_text += '</font>\n'
             self.html_writer.write(html_text)
     
@@ -277,15 +278,16 @@ class GroupObervationCollection(object):
                         (name, cid, train_species.cid2SourceString(cid))
             html_text += '<font size="1">\n'
             if self.transformed:
-                html_text += '&#x394;<sub>f</sub> G\'<sup>0</sup> = %.2f, ' % dG0_prime
+                html_text += "&Delta;<sub>f</sub>G'&deg; = %.2f, " % dG0_prime
                 html_text += 'pH = %g, I = %g, pMg = %g, T = %g</br>\n' % (pH, I, pMg, T)
             else:
-                html_text += '&#x394;<sub>f</sub> G<sup>0</sup> = %.2f, ' % dG0
+                html_text += '&Delta;<sub>f</sub>G&deg; = %.2f, ' % dG0
                 html_text += 'nH = %d, nMg = %d</br>\n' % (nH, nMg)
             html_text += 'SMILES = %s</br>\n' % (mol.ToSmiles())
             html_text += '%s</br>\n' % (mol.ToSVG())
             html_text += 'Stoichiometry = %s</br>\n' % str(sparse)
-    
+            html_text += 'Group vector = %s</br>\n' % str(self.id2gv[pseudoisomer_id])
+
             if self.transformed:
                 self.AddTrainingExample(sparse, dG0_prime, name, kegg_id="C%05d" % cid, obs_type='formation')
             else:
@@ -308,7 +310,7 @@ class GroupObervationCollection(object):
             html_text += '</font>\n'
             self.html_writer.write(html_text)
     
-    def AddNistDatabase(self):
+    def AddNistDatabase(self, assert_decomposition=True):
         """
             Add the observations based on equilibrium constants from the NIST database.
             If using non-transformed group contribution, it is required to reverse Legendre-
@@ -326,6 +328,14 @@ class GroupObervationCollection(object):
         else:
             obs_fname = '../data/thermodynamics/formation_energies.csv'
             cid2nH_nMg = self.dissociation.GetCid2nH_nMg(pH=7, I=0, pMg=14, T=default_T)
+
+        for rc in RedoxCarriers().itervalues():
+            cid2dG0[rc.cid_ox] = 0.0
+            if self.transformed:
+                cid2dG0[rc.cid_red] = rc.ddG0_prime
+            else:
+                cid2dG0[rc.cid_red] = rc.ddG0
+                cid2nH_nMg[rc.cid_ox] = (rc.nH_ox, rc.z_ox)
         
         for row in csv.DictReader(open(obs_fname, 'r')):
             cid = int(row['cid'])
@@ -367,8 +377,11 @@ class GroupObervationCollection(object):
                 continue
                 
             if not self.AddPseudoisomer(pseudoisomer_id, mol):
-                raise Exception('Cannot decompose %s from the training set: %s'
-                              % (pseudoisomer_id, mol.ToSmiles()))
+                if assert_decomposition:
+                    raise Exception('Cannot decompose %s from the training set: %s'
+                                    % (pseudoisomer_id, mol.ToSmiles()))
+                else:
+                    continue
             
             html_text = ""
             html_text += "<b>%s (%s)</b></br>\n" % (name, pseudoisomer_id)
@@ -376,6 +389,7 @@ class GroupObervationCollection(object):
             html_text += 'SMILES = %s</br>\n' % (mol.ToSmiles())
             html_text += '%s</br>\n' % (mol.ToSVG())
             html_text += 'Stoichiometry = %s</br>\n' % str({pseudoisomer_id:1})
+            html_text += 'Group vector = %s</br>\n' % str(self.id2gv[pseudoisomer_id])
             html_text += '</font>\n'
             self.html_writer.write(html_text)
 
@@ -395,6 +409,7 @@ class GroupObervationCollection(object):
                 dG0 = nist_row_data.dG0_r # we are using transformed energies
             
             sparse = {}
+            total_gv = GroupVector(self.groups_data)
             for cid, coeff in nist_row_data.reaction.iteritems():
                 if cid in cid2dG0:
                     dG0 -= cid2dG0[cid] * coeff # subtract the effect of the anchored compounds
@@ -405,6 +420,7 @@ class GroupObervationCollection(object):
                         nH, nMg = cid2nH_nMg[cid]
                         pseudoisomer_id = "C%05d_nH%d_nMg%d" % (cid, nH, nMg)
                     sparse[pseudoisomer_id] = coeff
+                    total_gv += self.id2gv[pseudoisomer_id] * coeff
 
             missing_pseudoisomers = set(sparse.keys()).difference(self.id2gv.keys())
             if len(missing_pseudoisomers) > 0:
@@ -417,18 +433,23 @@ class GroupObervationCollection(object):
                                     kegg_id="", obs_type="reaction")
             
             html_text = ""
-            html_text += "<b>%s</b></br>\n" % name
+            html_text += "<b id=%s>%s</b></br>\n" % (name, name)
             html_text += '<font size="1">\n'
             if self.transformed:
-                symbol = "&#x394;<sub>r</sub> G'<sup>0</sup>"
+                symbol = "&Delta;<sub>r</sub>G'&deg;"
             else:
-                symbol = "&#x394;<sub>r</sub> G<sup>0</sup>"
+                symbol = "&Delta;<sub>r</sub>G&deg;"
             html_text += '%s = %.2f, pH = %g, I = %g, pMg = %g, T = %g</br>\n' % \
                          (symbol, nist_row_data.dG0_r, nist_row_data.pH,
                          nist_row_data.I, nist_row_data.pMg, nist_row_data.T)
-            html_text += "Original reaction = %s</br>\n" + nist_row_data.reaction.to_hypertext()
+            html_text += "Original reaction = %s</br>\n" % \
+                         nist_row_data.reaction.to_hypertext(show_cids=False)
+            html_text += 'Reference ID = <a href="%s">%s</a></br>\n' % \
+                         (nist_row_data.url, nist_row_data.ref_id)
+            html_text += 'EC = %s</br>\n' % nist_row_data.ec
             html_text += '%s (truncated) = %.2f</br>\n' % (symbol, dG0)
             html_text += 'Stoichiometry = %s</br>\n' % str(sparse)
+            html_text += 'Group vector = %s</br>\n' % str(total_gv)
             html_text += '</font>\n'
             self.html_writer.write(html_text)
 
@@ -447,8 +468,9 @@ class GroupObervationCollection(object):
         self.db.CreateTable(self.PSEUDOISOMER_GV_TABLE_NAME,
                             'id TEXT, groupvec TEXT',
                             drop_if_exists=True)
-        for id, gv in self.id2gv.iteritems():
-            self.db.Insert(self.PSEUDOISOMER_GV_TABLE_NAME, [id, gv.ToJSONString()])
+        for pseudo_id, gv in self.id2gv.iteritems():
+            self.db.Insert(self.PSEUDOISOMER_GV_TABLE_NAME,
+                           [pseudo_id, gv.ToJSONString()])
 
         # the table 'group_observation' will contain all the observed data
         # that is used for training later
@@ -464,8 +486,8 @@ class GroupObervationCollection(object):
         # write the mapping from IDs to group vectors
         csv_writer = csv.writer(open(gv_fname, 'w'))
         csv_writer.writerow(['id', 'groupvec'])
-        for id, gv in self.id2gv.iteritems():
-            csv_writer.writerow([id, gv.ToJSONString()])
+        for pseudo_id, gv in self.id2gv.iteritems():
+            csv_writer.writerow([pseudo_id, gv.ToJSONString()])
 
         # write all observations
         csv_writer = csv.writer(open(obs_fname, 'w'))
@@ -530,8 +552,8 @@ class GroupObervationCollection(object):
         #    This method is the one which was used before making the change to
         #    store the S and G matrices separately.  
 
-        P_C1, P_L1 = LinearRegression.ColumnProjection(S)
-        P_C2, P_L2 = LinearRegression.ColumnProjection(np.dot(S, G))
+        _P_C1, P_L1 = LinearRegression.ColumnProjection(S)
+        _P_C2, P_L2 = LinearRegression.ColumnProjection(np.dot(S, G))
         
         r_obs = np.dot(P_L1, dG_vec)
         r_est = np.dot(P_L2 - P_L1, dG_vec)
