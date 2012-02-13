@@ -287,6 +287,7 @@ class DissociationConstants(object):
         # remove the columns that are all-zeros in S
         nonzero_columns = np.sum(abs(data['S']), 0).nonzero()[0]
         data['S'] = data['S'][:, nonzero_columns]
+
         data['cids_to_estimate'] = [all_cids[i] for i in nonzero_columns]
         
         return data
