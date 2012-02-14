@@ -180,8 +180,29 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                     transformed=self.transformed)
 
         logging.info("Calculating the linear regression data")
-        self.group_matrix, self.obs_values, self.obs_types, self.obs_names = \
+        G, S, self.obs_values, self.obs_types, self.obs_names = \
             self.obs_collection.GetRegressionData()
+        self.group_matrix = np.dot(G.T, S)
+
+        # Write the analysis of residuals:
+        # I am not sure if this analysis should be done before "uniquing"
+        # the rows of S or after. The observation residual is much smaller
+        # in the latter case, since intra-reaction noise is averaged.
+        _P_R1, P_N1 = LinearRegression.RowProjection(S)
+        _P_R2, P_N2 = LinearRegression.RowProjection(self.group_matrix)
+        
+        r_obs = np.dot(self.obs_values, P_N1)
+        r_est = np.dot(self.obs_values, P_N2 - P_N1)
+        r_tot = np.dot(self.obs_values, P_N2)
+        
+        self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
+        self.html_writer.insert_toggle(start_here=True)
+        residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_obs),
+                         'r<sub>estimation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_est),
+                         'r<sub>total</sub> = %.2f kJ/mol' % pylab.rms_flat(r_tot)]
+        self.html_writer.write_ul(residual_text)
+        self.html_writer.div_end()
+                
         self.SaveRegressionDataToDB()
 
         logging.info("Performing linear regression")
