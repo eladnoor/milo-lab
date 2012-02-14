@@ -576,52 +576,11 @@ class GroupObervationCollection(object):
                 S[i_pseudoisomer, i_observation] = coeff
             dG_vec[0, i_observation] = obs.dG0
 
-        G_times_S = np.dot(G.T, S)
+        # 'unique' the rows S. For each set of rows that is united,
+        # the Y-value for the new row is the average of the corresponding Y-values.
 
-        # Write the analysis of residuals
-        _P_R1, P_N1 = LinearRegression.RowProjection(S)
-        _P_R2, P_N2 = LinearRegression.RowProjection(G_times_S)
-        
-        r_obs = np.dot(dG_vec, P_N1)
-        r_est = np.dot(dG_vec, P_N2 - P_N1)
-        r_tot = np.dot(dG_vec, P_N2)
-        
-        self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
-        self.html_writer.insert_toggle(start_here=True)
-        residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_obs),
-                         'r<sub>estimation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_est),
-                         'r<sub>total</sub> = %.2f kJ/mol' % pylab.rms_flat(r_tot)]
-        self.html_writer.write_ul(residual_text)
-        self.html_writer.div_end()
-        
-        # Here, we are about to deal with repeating rows in the 
-        # regression matrix. Of course, for each set of rows that is
-        # united, the Y-value for the new row is the average of the
-        # corresponding Y-values.
-        # There are 3 options of how to do this:
-        # (1) To use the full S*G matrix for the linear regression, without
-        #     uniting rows.
-        # (2) To 'unique' the rows of S, so that recurring
-        #     reactions will not be used more than once. This is probably the
-        #     most logical step, since we also do this when evaluating the
-        #     accuracy of PGC later in the NIST benchmark.
-        #     Note that this option was not possible before the major code
-        #     change of storing S and G separately.
-        # (3) To 'unique' the rows of S*G, since we don't want to give some groupvec
-        #     samples more weight than others when performing linear regression.
-        #     This method is the one which was used before making the change to
-        #     store the S and G matrices separately.  
-
-        if False: # option (1)
-            regression_matrix = G_times_S
-            col_mapping = dict((i, [i]) for i in xrange(S.regression_matrix[0])) # a trivial mapping
-        elif True: # option (2)
-            S_unique, col_mapping = LinearRegression.ColumnUnique(S, remove_zero=True)
-            regression_matrix = np.dot(G.T, S_unique)
-        elif False: # option (3)
-            regression_matrix, col_mapping = LinearRegression.ColumnUnique(G_times_S, remove_zero=True)
-
-        y_values = np.zeros((1, regression_matrix.shape[1]))
+        S_unique, col_mapping = LinearRegression.ColumnUnique(S, remove_zero=True)
+        y_values = np.zeros((1, S_unique.shape[1]))
         obs_types = []
         names = []
         for i, old_indices in sorted(col_mapping.iteritems()):
@@ -629,4 +588,4 @@ class GroupObervationCollection(object):
             obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
             names.append(','.join([self.observations[i].name for i in old_indices]))            
 
-        return regression_matrix, y_values, obs_types, names
+        return G, S_unique, y_values, obs_types, names
