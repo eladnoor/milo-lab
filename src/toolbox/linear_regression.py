@@ -29,6 +29,18 @@ class LinearRegression(object):
     
     @staticmethod
     def LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
+        n, m = A.shape
+        l = np.prod(y.shape)
+        if l == n:
+            return LinearRegression._LeastSquares(A, y.reshape((n, 1)), reduced_row_echlon, eps)
+        elif l == m:
+            weights, kerA = LinearRegression._LeastSquares(A.T, y.reshape((m, 1)), reduced_row_echlon, eps)
+            return weights.T, kerA.T
+        raise Exception('The length of y (%d) does not match the number of '
+                        'rows or columns in A (%d)' % (y.shape[0], n))
+    
+    @staticmethod
+    def _LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
         """
             Performs a safe LeastSquares.
             
@@ -40,11 +52,6 @@ class LinearRegression(object):
                 If one wants to interpolate the y-value for a new data point, it must be orthogonal to K (i.e. K*x = 0).
         """
         n, m = A.shape
-        if len(y.shape) > 1 and y.shape[1] != 1:
-            raise Exception('y is not a column vector')
-        if y.shape[0] != n:
-            raise Exception('The length of y (%d) does not match the number of rows in A (%d)' % (y.shape[0], n))
-        
         zero_columns = np.nonzero([np.linalg.norm(A[:,i]) <= eps for i in xrange(m)])[0]
         nonzero_columns = np.nonzero([np.linalg.norm(A[:,i]) > eps for i in xrange(m)])[0]
         A_red = A[:, nonzero_columns]
@@ -287,6 +294,11 @@ class LinearRegression(object):
             row_mapping[i] = np.where(np.sum(diff, 1) == 0)[0].tolist()
         
         return A_unique, row_mapping
+    
+    @staticmethod
+    def ColumnUnique(A, remove_zero=False):
+        A_unique, column_mapping = LinearRegression.RowUnique(A.T, remove_zero)
+        return A_unique.T, column_mapping
     
 if __name__ == '__main__':
     eps = 1e-10
