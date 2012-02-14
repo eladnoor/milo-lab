@@ -12,6 +12,7 @@ import json
 from pygibbs.dissociation_constants import MissingDissociationConstantError
 from toolbox.linear_regression import LinearRegression
 import pylab
+from toolbox.html_writer import NullHtmlWriter
 
 class GroupObservation(object):
     
@@ -67,17 +68,16 @@ class GroupObservation(object):
         
 class GroupObervationCollection(object):
     
-    def __init__(self, db, html_writer, group_decomposer, dissociation,
-                 transformed=False):
+    def __init__(self, db, html_writer, group_decomposer, dissociation, transformed=False):
         self.kegg = Kegg.getInstance()
         self.db = db
         self.groups_data = group_decomposer.groups_data
         self.group_decomposer = group_decomposer
+        self.dissociation = dissociation
         self.observations = []
         self.id2gv = {}
         self.n_groups = len(self.groups_data.all_groups)
         self.groupvec_titles = ["g%d" % i for i in xrange(self.n_groups)]
-        self.dissociation = dissociation
         self.transformed = transformed
         self.use_pkas = False
         self.html_writer = html_writer
@@ -90,23 +90,31 @@ class GroupObervationCollection(object):
         self.TRAIN_GROUPS_TABLE_NAME = prefix + '_train_groups'
         self.PSEUDOISOMER_GV_TABLE_NAME = prefix + '_pseudoisomer_groupvector'
         self.OBSERVATION_TABLE_NAME = prefix + '_observations'
-            
-    def FromFiles(self, assert_decomposition=True):
-        if self.use_pkas:
-            self.html_writer.write('<br><b>List of pKa for training</b>')
-            self.html_writer.insert_toggle(start_here=True)
-            self.AddDissociationTable()
-            self.html_writer.div_end()
-
-        self.html_writer.write('</br><b>List of NIST reactions for training</b>')
-        self.html_writer.insert_toggle(start_here=True)
-        self.AddNistDatabase(assert_decomposition=assert_decomposition)
-        self.html_writer.div_end()
+    
+    @staticmethod
+    def FromFiles(db, html_writer, group_decomposer, dissociation,
+                  transformed=False, assert_decomposition=True):
         
-        self.html_writer.write('<br><b>List of compounds for training</b>')
-        self.html_writer.insert_toggle(start_here=True)
-        self.AddFormationEnergies()
-        self.html_writer.div_end()
+        obs_collections = GroupObervationCollection(db, html_writer,
+                                group_decomposer, dissociation, transformed)
+        
+        if obs_collections.use_pkas:
+            html_writer.write('<br><b>List of pKa for training</b>')
+            html_writer.insert_toggle(start_here=True)
+            obs_collections.AddDissociationTable()
+            html_writer.div_end()
+
+        html_writer.write('</br><b>List of NIST reactions for training</b>')
+        html_writer.insert_toggle(start_here=True)
+        obs_collections.AddNistDatabase(assert_decomposition=assert_decomposition)
+        html_writer.div_end()
+        
+        html_writer.write('<br><b>List of compounds for training</b>')
+        html_writer.insert_toggle(start_here=True)
+        obs_collections.AddFormationEnergies()
+        html_writer.div_end()
+        
+        return obs_collections
     
     def AddPseudoisomer(self, pseudoisomer_id, mol):
         """
@@ -517,17 +525,24 @@ class GroupObervationCollection(object):
         csv_writer.writerow(['name', 'kegg_id', 'obs_type', 'dG0', 'stoichiometry'])
         for obs in self.observations:
             csv_writer.writerow(obs.ToCsvRow())
-            
-    def FromDatabase(self):
-        self.id2gv = {}
-        for row in self.db.DictReader(self.PSEUDOISOMER_GV_TABLE_NAME):
-            gv = GroupVector.FromJSONString(self.groups_data, row['groupvec'])
-            self.id2gv[row['id']] = gv
         
-        self.observations = []
-        for row in self.db.DictReader(self.OBSERVATION_TABLE_NAME):
+    @staticmethod
+    def FromDatabase(db, group_decomposer, transformed=False):
+        html_writer = NullHtmlWriter()
+        dissociation = None
+        
+        obs_collections = GroupObervationCollection(db, html_writer,
+                                group_decomposer, dissociation, transformed)
+        obs_collections.id2gv = {}
+        for row in db.DictReader(obs_collections.PSEUDOISOMER_GV_TABLE_NAME):
+            gv = GroupVector.FromJSONString(obs_collections.groups_data, row['groupvec'])
+            obs_collections.id2gv[row['id']] = gv
+        
+        obs_collections.observations = []
+        for row in db.DictReader(obs_collections.OBSERVATION_TABLE_NAME):
             obs = GroupObservation.FromDatabaseRow(row)
-            self.observations.append(obs)
+            obs_collections.observations.append(obs)
+        return obs_collections
         
     def GetRegressionData(self):
         """ 
@@ -538,49 +553,38 @@ class GroupObervationCollection(object):
             Makes sure that there are no duplicates (two identical rows in A)
             by averaging the observed values.
         """
-
-        # first create the group matrix G (rows=pseudoisomer, cols=groups)
+        
         id_list = sorted(self.id2gv.keys())
         id2index = dict([(pid, i) for (i, pid) in enumerate(id_list)])
+        n = len(self.observations) # number of observations
+        m = len(id_list) # number of compounds
+        g = len(self.groups_data.GetGroupNames()) # number of groups
+
+        # first create the group matrix G (rows=pseudoisomer, cols=groups)
         
-        G = np.zeros((len(id_list), len(self.groups_data.GetGroupNames())))
+        G = np.zeros((m, g))
         for i_pseudoisomer, pid in enumerate(id_list):
             for i_group, coeff in enumerate(self.id2gv[pid].Flatten()):
                 G[i_pseudoisomer, i_group] = coeff
                 
         # then create the stoichiometric matrix S (rows=observation, cols=pseudoisomers)
-        S = np.zeros((len(self.observations), len(id_list)))
-        dG_vec = np.zeros((len(self.observations), 1))
+        S = np.zeros((m, n))
+        dG_vec = np.zeros((1, n))
         for i_observation, obs in enumerate(self.observations):
             for pid, coeff in obs.sparse.iteritems():
                 i_pseudoisomer = id2index[pid]
-                S[i_observation, i_pseudoisomer] = coeff
-            dG_vec[i_observation, 0] = obs.dG0
-        
-        # Here, we are about to deal with repeating rows in the 
-        # regression matrix. Of course, for each set of rows that is
-        # united, the Y-value for the new row is the average of the
-        # corresponding Y-values.
-        # There are 3 options of how to do this:
-        # 1) To use the full S*G matrix for the linear regression, without
-        #    uniting rows.
-        # 2) To 'unique' the rows of S, so that recurring
-        #    reactions will not be used more than once. This is probably the
-        #    most logical step, since we also do this when evaluating the
-        #    accuracy of PGC later in the NIST benchmark.
-        #    Note that this option was not possible before the major code
-        #    change of storing S and G separately.
-        # 3) To 'unique' the rows of S*G, since we don't want to give some groupvec
-        #    samples more weight than others when performing linear regression.
-        #    This method is the one which was used before making the change to
-        #    store the S and G matrices separately.  
+                S[i_pseudoisomer, i_observation] = coeff
+            dG_vec[0, i_observation] = obs.dG0
 
-        _P_C1, P_L1 = LinearRegression.ColumnProjection(S)
-        _P_C2, P_L2 = LinearRegression.ColumnProjection(np.dot(S, G))
+        G_times_S = np.dot(G.T, S)
+
+        # Write the analysis of residuals
+        _P_R1, P_N1 = LinearRegression.RowProjection(S)
+        _P_R2, P_N2 = LinearRegression.RowProjection(G_times_S)
         
-        r_obs = np.dot(P_L1, dG_vec)
-        r_est = np.dot(P_L2 - P_L1, dG_vec)
-        r_tot = np.dot(P_L2, dG_vec)
+        r_obs = np.dot(dG_vec, P_N1)
+        r_est = np.dot(dG_vec, P_N2 - P_N1)
+        r_tot = np.dot(dG_vec, P_N2)
         
         self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
         self.html_writer.insert_toggle(start_here=True)
@@ -590,22 +594,38 @@ class GroupObervationCollection(object):
         self.html_writer.write_ul(residual_text)
         self.html_writer.div_end()
         
-        if False: # option (1)
-            regression_matrix = np.dot(S, G)
-            row_mapping = dict([(i, [i]) for i in xrange(S.regression_matrix[0])]) # a trivial mapping
-        elif True: # option (2)
-            S_unique, row_mapping = LinearRegression.RowUnique(S, remove_zero=True)
-            regression_matrix = np.dot(S_unique, G)
-        elif False: # option (3)
-            SG = np.dot(S, G)
-            regression_matrix, row_mapping = LinearRegression.RowUnique(SG, remove_zero=True)
+        # Here, we are about to deal with repeating rows in the 
+        # regression matrix. Of course, for each set of rows that is
+        # united, the Y-value for the new row is the average of the
+        # corresponding Y-values.
+        # There are 3 options of how to do this:
+        # (1) To use the full S*G matrix for the linear regression, without
+        #     uniting rows.
+        # (2) To 'unique' the rows of S, so that recurring
+        #     reactions will not be used more than once. This is probably the
+        #     most logical step, since we also do this when evaluating the
+        #     accuracy of PGC later in the NIST benchmark.
+        #     Note that this option was not possible before the major code
+        #     change of storing S and G separately.
+        # (3) To 'unique' the rows of S*G, since we don't want to give some groupvec
+        #     samples more weight than others when performing linear regression.
+        #     This method is the one which was used before making the change to
+        #     store the S and G matrices separately.  
 
-        y_values = np.zeros((regression_matrix.shape[0], 1))
+        if False: # option (1)
+            regression_matrix = G_times_S
+            col_mapping = dict((i, [i]) for i in xrange(S.regression_matrix[0])) # a trivial mapping
+        elif True: # option (2)
+            S_unique, col_mapping = LinearRegression.ColumnUnique(S, remove_zero=True)
+            regression_matrix = np.dot(G.T, S_unique)
+        elif False: # option (3)
+            regression_matrix, col_mapping = LinearRegression.ColumnUnique(G_times_S, remove_zero=True)
+
+        y_values = np.zeros((1, regression_matrix.shape[1]))
         obs_types = []
         names = []
-        for i in xrange(len(row_mapping)):
-            old_indices = row_mapping[i]
-            y_values[i, 0] = np.mean(dG_vec[old_indices, 0])
+        for i, old_indices in sorted(col_mapping.iteritems()):
+            y_values[0, i] = np.mean(dG_vec[0, old_indices])
             obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
             names.append(','.join([self.observations[i].name for i in old_indices]))            
 
