@@ -92,6 +92,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.NULLSPACE_TABLE_NAME = prefix + '_nullspace'
         self.CONTRIBUTION_TABLE_NAME = prefix + '_contribution'
         self.REGRESSION_TABLE_NAME = prefix + '_regression'
+        self.OBSERVATION_TABLE_PREFIX = prefix + '_obs_'
         
     def GetDissociationConstants(self):
         """
@@ -180,29 +181,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                     transformed=self.transformed)
 
         logging.info("Calculating the linear regression data")
-        G, S, self.obs_values, self.obs_types, self.obs_names = \
-            self.obs_collection.GetRegressionData()
-        self.group_matrix = np.dot(G.T, S)
-
-        # Write the analysis of residuals:
-        # I am not sure if this analysis should be done before "uniquing"
-        # the rows of S or after. The observation residual is much smaller
-        # in the latter case, since intra-reaction noise is averaged.
-        _P_R1, P_N1 = LinearRegression.RowProjection(S)
-        _P_R2, P_N2 = LinearRegression.RowProjection(self.group_matrix)
+        self.group_matrix, self.obs_values, self.obs_types, self.obs_names = \
+            self.obs_collection.GetRegressionData(analyze_residuals=True,
+            db_prefix=self.OBSERVATION_TABLE_PREFIX)
         
-        r_obs = np.dot(self.obs_values, P_N1)
-        r_est = np.dot(self.obs_values, P_N2 - P_N1)
-        r_tot = np.dot(self.obs_values, P_N2)
-        
-        self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
-        self.html_writer.insert_toggle(start_here=True)
-        residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_obs),
-                         'r<sub>estimation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_est),
-                         'r<sub>total</sub> = %.2f kJ/mol' % pylab.rms_flat(r_tot)]
-        self.html_writer.write_ul(residual_text)
-        self.html_writer.div_end()
-                
         self.SaveRegressionDataToDB()
 
         logging.info("Performing linear regression")
@@ -227,10 +209,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         # write a table of the group contributions
         self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
                             'gid INT, name TEXT, protons INT, charge INT, '
-                            'nMg INT, dG0_gr REAL, nullspace TEXT')
+                            'nMg INT, dG0_gr REAL')
         for j, group_name in enumerate(self.groups_data.GetGroupNames()):
             dG0_gr = self.group_contributions[0, j]
-            nullspace_str = ','.join(["%.2f" % x for x in self.group_nullspace[j, :]])
             
             if self.transformed:
                 nH, z, nMg = None, None, None
@@ -239,15 +220,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 nH, z, nMg = group.hydrogens, group.charge, group.nMg
 
             self.db.Insert(self.CONTRIBUTION_TABLE_NAME,
-                [j, group_name, nH, z, nMg, dG0_gr, nullspace_str])
+                [j, group_name, nH, z, nMg, dG0_gr])
             
-        self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
-        for i in xrange(self.group_nullspace.shape[1]):
-            groupvec = GroupVector(self.groups_data, self.group_nullspace[:, i])
-            groupvec.RemoveEpsilonValues(epsilon=1e-10)
-            self.db.Insert(self.NULLSPACE_TABLE_NAME, 
-                           [i, groupvec.ToJSONString()])
-
+        self.db.SaveNumpyMatrix(self.NULLSPACE_TABLE_NAME, self.group_nullspace)
         self.db.Commit()
             
     def does_table_exist(self, table_name):
@@ -665,12 +640,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.group_contributions.append(row['dG0_gr'])
         self.group_contributions = pylab.array([self.group_contributions])
 
-        nullspace_mat = []
-        self.db.CreateTable(self.NULLSPACE_TABLE_NAME, 'dimension INT, group_vector TEXT')
-        for row in self.db.DictReader(self.NULLSPACE_TABLE_NAME):
-            groupvec = GroupVector.FromJSONString(self.groups_data, row['group_vector'])
-            nullspace_mat.append(groupvec.Flatten())
-        self.group_nullspace = pylab.array(nullspace_mat)
+        self.group_nullspace = self.db.LoadNumpyMatrix(self.NULLSPACE_TABLE_NAME)
                         
     def GetGroupContribution(self, name, nH, z, nMg=0):
         gr = Group(None, name, nH, z, nMg)

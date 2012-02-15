@@ -239,6 +239,12 @@ class GroupObervationCollection(object):
             html_text += '</font>\n'
             self.html_writer.write(html_text)
     
+    def CreatePseudoisomerID(self, cid, nH, nMg):
+        if self.transformed:
+            return "C%05d" % (cid)
+        else:
+            return "C%05d_nH%d_nMg%d" % (cid, nH, nMg)
+    
     def AddFormationEnergies(self,
             obs_fname="../data/thermodynamics/formation_energies.csv",
             pH=default_pH, I=default_I, pMg=default_pMg, T=default_T):
@@ -272,10 +278,7 @@ class GroupObervationCollection(object):
                                 "expression in the dissociation constant table" 
                                 % (name, cid, nH, nMg))
             mol.SetTitle(name)
-            if self.transformed:
-                pseudoisomer_id = "C%05d" % (cid)
-            else:
-                pseudoisomer_id = "C%05d_H%d_Mg%d" % (cid, nH, nMg)
+            pseudoisomer_id = self.CreatePseudoisomerID(cid, nH, nMg)
             if not self.AddPseudoisomer(pseudoisomer_id, mol):
                 raise Exception('Cannot decompose %s from the training set: %s'
                               % (pseudoisomer_id, mol.ToSmiles()))
@@ -331,6 +334,7 @@ class GroupObervationCollection(object):
         # collect the formation energies of the anchored compounds (i.e. 'testing')
         # in a dictionary according to CIDs.
         cid2dG0 = {} # this is dG'0 if self.transformed, or dG0 if not.
+        cid2nH_nMg = {}
         if self.transformed:
             obs_fname = '../data/thermodynamics/formation_energies_transformed.csv'
         else:
@@ -371,16 +375,15 @@ class GroupObervationCollection(object):
         unanchored_cids = sorted(set(nist.GetAllCids()).difference(cid2dG0.keys()))
         for cid in unanchored_cids:
             name = self.kegg.cid2name(cid)
+            nH, nMg = cid2nH_nMg.get(cid, (0, 0))
             if self.transformed:
                 mol = self.dissociation.GetAnyMol(cid)
-                pseudoisomer_id = "C%05d" % cid
             else:
-                nH, nMg = cid2nH_nMg.get(cid, (0,0))
                 mol = self.dissociation.GetMol(cid, nH, nMg)
-                pseudoisomer_id = "C%05d_nH%d_nMg%d" % (cid, nH, nMg)
             
+            pseudoisomer_id = self.CreatePseudoisomerID(cid, nH, nMg)
             if mol is None:
-                logging.warning('C%05d has no explicit formula' % cid)
+                logging.warning('%s has no explicit formula' % pseudoisomer_id)
                 continue
                 
             if not self.AddPseudoisomer(pseudoisomer_id, mol):
@@ -440,10 +443,10 @@ class GroupObervationCollection(object):
                 if coeff == 0:
                     continue
                 if self.transformed:
-                    pseudoisomer_id = "C%05d" % cid
+                    nH, nMg = 0
                 else:
                     nH, nMg = cid2nH_nMg[cid]
-                    pseudoisomer_id = "C%05d_nH%d_nMg%d" % (cid, nH, nMg)
+                pseudoisomer_id = self.CreatePseudoisomerID(cid, nH, nMg)
                 sparse_pseudo[pseudoisomer_id] = coeff
 
             missing_pseudoisomers = set(sparse_pseudo.keys()).difference(self.id2gv.keys())
@@ -544,7 +547,7 @@ class GroupObervationCollection(object):
             obs_collections.observations.append(obs)
         return obs_collections
         
-    def GetRegressionData(self):
+    def GetRegressionData(self, analyze_residuals=True, db_prefix=False):
         """ 
             Returns the regression matrix and corresponding observation data 
             and names as a tuple: (A, b, names)
@@ -554,16 +557,16 @@ class GroupObervationCollection(object):
             by averaging the observed values.
         """
         
-        id_list = sorted(self.id2gv.keys())
-        id2index = dict([(pid, i) for (i, pid) in enumerate(id_list)])
+        pid_list = sorted(self.id2gv.keys())
+        id2index = dict([(pid, i) for (i, pid) in enumerate(pid_list)])
         n = len(self.observations) # number of observations
-        m = len(id_list) # number of compounds
+        m = len(pid_list) # number of compounds
         g = len(self.groups_data.GetGroupNames()) # number of groups
 
         # first create the group matrix G (rows=pseudoisomer, cols=groups)
         
         G = np.zeros((m, g))
-        for i_pseudoisomer, pid in enumerate(id_list):
+        for i_pseudoisomer, pid in enumerate(pid_list):
             for i_group, coeff in enumerate(self.id2gv[pid].Flatten()):
                 G[i_pseudoisomer, i_group] = coeff
                 
@@ -579,8 +582,8 @@ class GroupObervationCollection(object):
         # 'unique' the rows S. For each set of rows that is united,
         # the Y-value for the new row is the average of the corresponding Y-values.
 
-        S_unique, col_mapping = LinearRegression.ColumnUnique(S, remove_zero=True)
-        y_values = np.zeros((1, S_unique.shape[1]))
+        S, col_mapping = LinearRegression.ColumnUnique(S, remove_zero=True)
+        y_values = np.zeros((1, S.shape[1]))
         obs_types = []
         names = []
         for i, old_indices in sorted(col_mapping.iteritems()):
@@ -588,4 +591,33 @@ class GroupObervationCollection(object):
             obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
             names.append(','.join([self.observations[i].name for i in old_indices]))            
 
-        return G, S_unique, y_values, obs_types, names
+        if analyze_residuals:
+            GS = np.dot(G.T, S)
+            # Write the analysis of residuals:
+            # I am not sure if this analysis should be done before "uniquing"
+            # the rows of S or after. The observation residual is much smaller
+            # in the latter case, since intra-reaction noise is averaged.
+            _P_R1, P_N1 = LinearRegression.RowProjection(S)
+            _P_R2, P_N2 = LinearRegression.RowProjection(GS)
+            
+            r_obs = np.dot(y_values, P_N1)
+            r_est = np.dot(y_values, P_N2 - P_N1)
+            r_tot = np.dot(y_values, P_N2)
+            
+            self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
+            self.html_writer.insert_toggle(start_here=True)
+            residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_obs),
+                             'r<sub>estimation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_est),
+                             'r<sub>total</sub> = %.2f kJ/mol' % pylab.rms_flat(r_tot)]
+            self.html_writer.write_ul(residual_text)
+            self.html_writer.div_end()
+
+        if db_prefix is not None:
+            self.db.SaveNumpyMatrix(db_prefix + "_G", G)
+            self.db.SaveNumpyMatrix(db_prefix + "_S", S)
+            self.db.SaveNumpyMatrix(db_prefix + "_b", y_values)
+            self.db.CreateTable(db_prefix + "_pids", "dimension INT, pid TEXT")
+            for i, pid in enumerate(pid_list):
+                self.db.Insert(db_prefix + "_pids", [i, pid])
+
+        return GS, y_values, obs_types, names

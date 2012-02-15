@@ -3,6 +3,7 @@ import os
 import types
 import logging
 import pymysql
+import numpy as np
 
 class Database(object):
     """Abstract base Database class."""
@@ -13,7 +14,7 @@ class Database(object):
     def CreateTable(self, table_name, columns, drop_if_exists=True):
         raise NotImplementedError("CreateTable not implemented")
             
-    def Insert(self, table_name, list):
+    def Insert(self, table_name, l):
         raise NotImplementedError("Insert not implemented")
     
     def DoesTableExist(self, table_name):
@@ -32,7 +33,7 @@ class SQLDatabase(Database):
     def Commit(self):
         raise NotImplementedError("Commit not implemented")
     
-    def Insert(self, table_name, list):
+    def Insert(self, table_name, l):
         raise NotImplementedError("Commit not implemented")
 
     def CreateTable(self, table_name, columns, drop_if_exists=True):
@@ -119,7 +120,32 @@ class SQLDatabase(Database):
                 row_dict[title] = row[i]
             table_data.append(row_dict)
         return table_data    
+    
+    def SaveNumpyMatrix(self, table_name, mat):
+        """
+            Creates a new table and saves a 2D array in the database.
+        """
+        if len(mat.shape) != 2:
+            raise ValueError("Can only save 2D arrays in a database")
         
+        if mat.dtype in ('int', 'int64', 'int32', 'int16'):
+            columns = ', '.join('col%d INT' % i for i in xrange(mat.shape[1]))
+        elif mat.dtype in ('float', 'float64', 'float32'):
+            columns = ', '.join('col%d REAL' % i for i in xrange(mat.shape[1]))
+        else:
+            raise ValueError("Can only save int or float matrices in a database")
+        self.CreateTable(table_name, columns)
+        for j in xrange(mat.shape[0]):
+            self.Insert(table_name, mat[j, :].tolist())
+            
+    def LoadNumpyMatrix(self, table_name):
+        """
+            Loads the values of a matrix stored in the database as a table.
+        """
+        mat = []
+        for row in self.Execute("SELECT * FROM %s" % table_name):
+            mat.append(row)
+        return np.array(mat)
         
 class SqliteDatabase(SQLDatabase):
     
@@ -158,9 +184,9 @@ class SqliteDatabase(SQLDatabase):
                               command)
                 raise e
         
-    def Insert(self, table_name, list):
-        sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, ','.join(["?"]*len(list)))
-        return self.Execute(sql_command, list)
+    def Insert(self, table_name, l):
+        sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, ','.join(["?"]*len(l)))
+        return self.Execute(sql_command, l)
     
     def DoesTableExist(self, table_name):
         for unused_row in self.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
@@ -201,9 +227,9 @@ class MySQLDatabase(SQLDatabase):
                               (command, str(arguments)))
             raise e
 
-    def Insert(self, table_name, list):
+    def Insert(self, table_name, l):
         sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, 
-                            ','.join(["'" + str(x) + "'" for x in list]))
+                            ','.join(["'" + str(x) + "'" for x in l]))
         return self.Execute(sql_command)
         
     def Commit(self):
