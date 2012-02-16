@@ -181,29 +181,16 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                     transformed=self.transformed)
 
         logging.info("Calculating the linear regression data")
-        self.group_matrix, self.obs_values, self.obs_types, self.obs_names = \
-            self.obs_collection.GetRegressionData(analyze_residuals=True,
-            db_prefix=self.OBSERVATION_TABLE_PREFIX)
-        
-        self.SaveRegressionDataToDB()
+        S, b, _, _ = self.obs_collection.GetUniqueStochiometricMatrix()
+        G = self.obs_collection.G
+        GS = np.dot(G.T, S)
 
         logging.info("Performing linear regression")
         self.group_contributions, self.group_nullspace = \
-            LinearRegression.LeastSquares(self.group_matrix,
-                                          self.obs_values,
-                                          reduced_row_echlon=False)
+            LinearRegression.LeastSquares(GS, b, reduced_row_echlon=False)
         
         logging.info("Storing the group contribution data in the database")
         self.SaveContributionsToDB()
-
-    def SaveRegressionDataToDB(self):
-        self.db.CreateTable(self.REGRESSION_TABLE_NAME,
-                            'name TEXT, type TEXT, groupvec TEXT, dG0 REAL')
-        for r in xrange(self.group_matrix.shape[1]):
-            groupvec = GroupVector(self.groups_data, self.group_matrix[:, r])
-            self.db.Insert(self.REGRESSION_TABLE_NAME,
-                           [self.obs_names[r], self.obs_types[r], 
-                            groupvec.ToJSONString(), self.obs_values[0, r]])
 
     def SaveContributionsToDB(self):
         # write a table of the group contributions

@@ -91,6 +91,11 @@ class GroupObervationCollection(object):
         self.PSEUDOISOMER_GV_TABLE_NAME = prefix + '_pseudoisomer_groupvector'
         self.OBSERVATION_TABLE_NAME = prefix + '_observations'
     
+        self.GROUP_MATRIX_TABLE_NAME = prefix + '_G'
+        self.STOICHIOMETRIC_MATRIX_TABLE_NAME = prefix + '_S'
+        self.GIBBS_ENERGY_TABLE_NAME = prefix + '_gibbs'
+        self.PSEUDOISOMER_ID_TABLE_NAME = prefix + '_ID'
+    
     @staticmethod
     def FromFiles(db, html_writer, group_decomposer, dissociation,
                   transformed=False, assert_decomposition=True):
@@ -113,6 +118,8 @@ class GroupObervationCollection(object):
         html_writer.insert_toggle(start_here=True)
         obs_collections.AddFormationEnergies()
         html_writer.div_end()
+        
+        obs_collections.CalculateMatrices()
         
         return obs_collections
     
@@ -514,6 +521,17 @@ class GroupObervationCollection(object):
 
         for obs in self.observations:
             obs.ToDatabase(self.db, table_name=self.OBSERVATION_TABLE_NAME)
+        
+        self.db.SaveNumpyMatrix(self.GROUP_MATRIX_TABLE_NAME, self.G)
+        # save S and gibbs_values as their transposed 
+        # because otherwise they will have too many columns
+        self.db.SaveNumpyMatrix(self.STOICHIOMETRIC_MATRIX_TABLE_NAME, self.S.T)
+        self.db.SaveNumpyMatrix(self.GIBBS_ENERGY_TABLE_NAME, self.gibbs_values.T)
+
+        self.db.CreateTable(self.PSEUDOISOMER_ID_TABLE_NAME, "dimension INT, pid TEXT")
+        for i, pid in enumerate(self.pid_list):
+            self.db.Insert(self.PSEUDOISOMER_ID_TABLE_NAME, [i, pid])
+        
         self.db.Commit()
         
     def ToCSV(self, gv_fname, obs_fname):
@@ -545,9 +563,17 @@ class GroupObervationCollection(object):
         for row in db.DictReader(obs_collections.OBSERVATION_TABLE_NAME):
             obs = GroupObservation.FromDatabaseRow(row)
             obs_collections.observations.append(obs)
+
+        obs_collections.G = db.LoadNumpyMatrix(obs_collections.GROUP_MATRIX_TABLE_NAME)
+        obs_collections.S = db.LoadNumpyMatrix(obs_collections.STOICHIOMETRIC_MATRIX_TABLE_NAME).T
+        obs_collections.gibbs_values = db.SaveNumpyMatrix(obs_collections.GIBBS_ENERGY_TABLE_NAME).T
+        obs_collections.pid_list = []
+        for row in db.DictReacder(obs_collections.PSEUDOISOMER_ID_TABLE_NAME):
+            obs_collections.pid_list.append(row['pid'])
+        
         return obs_collections
         
-    def GetRegressionData(self, analyze_residuals=True, db_prefix=False):
+    def CalculateMatrices(self, analyze_residuals=True, db_prefix=False):
         """ 
             Returns the regression matrix and corresponding observation data 
             and names as a tuple: (A, b, names)
@@ -557,67 +583,60 @@ class GroupObervationCollection(object):
             by averaging the observed values.
         """
         
-        pid_list = sorted(self.id2gv.keys())
-        id2index = dict([(pid, i) for (i, pid) in enumerate(pid_list)])
+        self.pid_list = sorted(self.id2gv.keys())
+        id2index = dict([(pid, i) for (i, pid) in enumerate(self.pid_list)])
         n = len(self.observations) # number of observations
-        m = len(pid_list) # number of compounds
+        m = len(self.pid_list) # number of compounds
         g = len(self.groups_data.GetGroupNames()) # number of groups
 
         # first create the group matrix G (rows=pseudoisomer, cols=groups)
         
-        G = np.zeros((m, g))
-        for i_pseudoisomer, pid in enumerate(pid_list):
+        self.G = np.zeros((m, g))
+        for i_pseudoisomer, pid in enumerate(self.pid_list):
             for i_group, coeff in enumerate(self.id2gv[pid].Flatten()):
-                G[i_pseudoisomer, i_group] = coeff
+                self.G[i_pseudoisomer, i_group] = coeff
                 
         # then create the stoichiometric matrix S (rows=observation, cols=pseudoisomers)
-        S = np.zeros((m, n))
-        dG_vec = np.zeros((1, n))
+        self.S = np.zeros((m, n))
+        self.gibbs_values = np.zeros((1, n))
         for i_observation, obs in enumerate(self.observations):
             for pid, coeff in obs.sparse.iteritems():
                 i_pseudoisomer = id2index[pid]
-                S[i_pseudoisomer, i_observation] = coeff
-            dG_vec[0, i_observation] = obs.dG0
+                self.S[i_pseudoisomer, i_observation] = coeff
+            self.gibbs_values[0, i_observation] = obs.dG0
 
+    def AnalyzeResiduals(self):
+        GS = np.dot(self.G.T, self.S)
+        # Write the analysis of residuals:
+        # I am not sure if this analysis should be done before "uniquing"
+        # the rows of S or after. The observation residual is much smaller
+        # in the latter case, since intra-reaction noise is averaged.
+        _P_R1, P_N1 = LinearRegression.RowProjection(self.S)
+        _P_R2, P_N2 = LinearRegression.RowProjection(GS)
+        
+        r_obs = np.dot(self.gibbs_values, P_N1)
+        r_est = np.dot(self.gibbs_values, P_N2 - P_N1)
+        r_tot = np.dot(self.gibbs_values, P_N2)
+        
+        self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
+        self.html_writer.insert_toggle(start_here=True)
+        residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_obs),
+                         'r<sub>estimation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_est),
+                         'r<sub>total</sub> = %.2f kJ/mol' % pylab.rms_flat(r_tot)]
+        self.html_writer.write_ul(residual_text)
+        self.html_writer.div_end()
+
+    def GetUniqueStochiometricMatrix(self):
         # 'unique' the rows S. For each set of rows that is united,
         # the Y-value for the new row is the average of the corresponding Y-values.
 
-        S, col_mapping = LinearRegression.ColumnUnique(S, remove_zero=True)
-        y_values = np.zeros((1, S.shape[1]))
-        obs_types = []
-        names = []
+        unique_S, col_mapping = LinearRegression.ColumnUnique(self.S, remove_zero=True)
+        unique_gibbs_values = np.zeros((1, self.S.shape[1]))
+        unique_obs_types = []
+        unique_names = []
         for i, old_indices in sorted(col_mapping.iteritems()):
-            y_values[0, i] = np.mean(dG_vec[0, old_indices])
-            obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
-            names.append(','.join([self.observations[i].name for i in old_indices]))            
-
-        if analyze_residuals:
-            GS = np.dot(G.T, S)
-            # Write the analysis of residuals:
-            # I am not sure if this analysis should be done before "uniquing"
-            # the rows of S or after. The observation residual is much smaller
-            # in the latter case, since intra-reaction noise is averaged.
-            _P_R1, P_N1 = LinearRegression.RowProjection(S)
-            _P_R2, P_N2 = LinearRegression.RowProjection(GS)
-            
-            r_obs = np.dot(y_values, P_N1)
-            r_est = np.dot(y_values, P_N2 - P_N1)
-            r_tot = np.dot(y_values, P_N2)
-            
-            self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
-            self.html_writer.insert_toggle(start_here=True)
-            residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_obs),
-                             'r<sub>estimation</sub> = %.2f kJ/mol' % pylab.rms_flat(r_est),
-                             'r<sub>total</sub> = %.2f kJ/mol' % pylab.rms_flat(r_tot)]
-            self.html_writer.write_ul(residual_text)
-            self.html_writer.div_end()
-
-        if db_prefix is not None:
-            self.db.SaveNumpyMatrix(db_prefix + "_G", G)
-            self.db.SaveNumpyMatrix(db_prefix + "_S", S)
-            self.db.SaveNumpyMatrix(db_prefix + "_b", y_values)
-            self.db.CreateTable(db_prefix + "_pids", "dimension INT, pid TEXT")
-            for i, pid in enumerate(pid_list):
-                self.db.Insert(db_prefix + "_pids", [i, pid])
-
-        return GS, y_values, obs_types, names
+            unique_gibbs_values[0, i] = np.mean(self.gibbs_values[0, old_indices])
+            unique_obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
+            unique_names.append(','.join([self.observations[i].name for i in old_indices]))            
+        
+        return unique_S, unique_gibbs_values, unique_obs_types, unique_names
