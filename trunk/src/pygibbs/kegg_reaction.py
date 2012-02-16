@@ -65,6 +65,15 @@ class Reaction(object):
             raise Exception('invalid direction: ' + self.direction)
         return reaction
     
+    def Normalize(self):
+        """
+            Set the coefficient of the reactant with the lowest ID to 1,
+            by multiplying all coefficients by its reciprocal
+        """
+        factor = 1.0 / self.sparse[min(self.sparse.keys())]
+        self.sparse = dict((k,v*factor) for (k,v) in self.sparse.iteritems())
+        return factor
+    
     @staticmethod
     def FromEntryDict(key, field_map):
         if not key.startswith('R'):
@@ -317,10 +326,43 @@ class Reaction(object):
         """Format the reaction as a JSON dictionary."""
         reaction = [(coeff, 'C%05d' % cid) for cid, coeff
                     in sorted(self.sparse.iteritems())]
-        return {'RID': 'R%05d' % self.rid,
-                'names': self.names,
-                'ECS': self.ec_list,
-                'reaction': reaction}
+        d = {'names': self.names, 'reaction': reaction}
+        d['RID'] = 'R%05d' % self.rid
+        if self.ec_list:
+            d['ECS'] = self.ec_list
+        if self.equation:
+            d['equation'] = self.equation
+        if self.weight:
+            d['weight'] = self.weight
+        if self.direction:
+            d['direction'] = self.direction
+        if self.definition:
+            d['definition'] = self.definition
+            
+        return d
+
+    def ToJSONString(self):
+        return json.dumps(self.ToJSONDict())
+    
+    @staticmethod
+    def FromJSONString(s):
+        d = json.loads(s)
+        sparse = {}
+        for coeff, cid in d['reaction']:
+            sparse[int(cid[1:])] = float(coeff)
+        rid = int(d['RID'][1:])
+        reaction = Reaction(d['names'], sparse, rid=rid)
+        if 'ECS' in d:
+            reaction.ec_list = d['ECS']
+        if 'equation' in d:
+            reaction.equation = d['equation']
+        if 'weight' in d:
+            reaction.weight = d['weight']
+        if 'direction' in d:
+            reaction.direction = d['direction']
+        if 'definition' in d:
+            reaction.definition = d['definition']
+        return reaction
 
 def GetAllReactionsFromDB(db):
     """Fetch all the compounds from the database."""
