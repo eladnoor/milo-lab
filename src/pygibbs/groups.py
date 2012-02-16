@@ -180,15 +180,16 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                     group_decomposer=self.group_decomposer,
                                     transformed=self.transformed)
 
+        self.obs_collection.ReportToHTML()
+        
         logging.info("Calculating the linear regression data")
-        S, self.obs_values, self.obs_ids, self.obs_types = \
-            self.obs_collection.GetUniqueStochiometricMatrix()
-        G = self.obs_collection.G
-        self.group_matrix = np.dot(G.T, S)
+        self.group_matrix, self.obs_values, self.obs_ids, self.obs_types = \
+            self.obs_collection.GetGroupMatrix()
 
         logging.info("Performing linear regression")
         self.group_contributions, self.group_nullspace = \
-            LinearRegression.LeastSquares(self.group_matrix, self.obs_values, reduced_row_echlon=False)
+            LinearRegression.LeastSquares(self.group_matrix, self.obs_values,
+                                          reduced_row_echlon=False)
         
         logging.info("Storing the group contribution data in the database")
         self.SaveContributionsToDB()
