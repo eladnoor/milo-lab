@@ -37,7 +37,7 @@ class LinearRegression(object):
             weights, kerA = LinearRegression._LeastSquares(A.T, y.reshape((m, 1)), reduced_row_echlon, eps)
             return weights.T, kerA.T
         raise Exception('The length of y (%d) does not match the number of '
-                        'rows or columns in A (%d)' % (y.shape[0], n))
+                        'rows or columns in A (%d)' % (l, n))
     
     @staticmethod
     def _LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):

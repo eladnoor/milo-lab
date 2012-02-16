@@ -9,7 +9,6 @@ from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import R
 from pygibbs.kegg_reaction import Reaction
 from toolbox.database import SqliteDatabase
-import copy
 import csv
 import pydot
 from toolbox.plotting import binned_plot

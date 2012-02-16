@@ -181,13 +181,14 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                     transformed=self.transformed)
 
         logging.info("Calculating the linear regression data")
-        S, b, _, _ = self.obs_collection.GetUniqueStochiometricMatrix()
+        S, self.obs_values, self.obs_ids, self.obs_types = \
+            self.obs_collection.GetUniqueStochiometricMatrix()
         G = self.obs_collection.G
-        GS = np.dot(G.T, S)
+        self.group_matrix = np.dot(G.T, S)
 
         logging.info("Performing linear regression")
         self.group_contributions, self.group_nullspace = \
-            LinearRegression.LeastSquares(GS, b, reduced_row_echlon=False)
+            LinearRegression.LeastSquares(self.group_matrix, self.obs_values, reduced_row_echlon=False)
         
         logging.info("Storing the group contribution data in the database")
         self.SaveContributionsToDB()
@@ -245,7 +246,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             groupvec = GroupVector(self.groups_data, self.group_matrix[:, i])
             self.html_writer.write('<tr>' +
                 '<td width="5%%">%d</td>' % i +
-                '<td width="20%%">%s</td>' % self.obs_names[i] + 
+                '<td width="20%%">%s</td>' % self.obs_ids[i] + 
                 '<td width="5%%">%8.2f</td>' % self.obs_values[0, i] +
                 '<td width="70%%">%s</td></tr>' % str(groupvec))
         self.html_writer.write('</table>')
@@ -260,7 +261,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         for j, dG0_gr in enumerate(self.group_contributions[0, :]):
             obs_lists_dict = {'acid-base':[], 'formation':[], 'reaction':[]}
             for k in self.group_matrix[j, :].nonzero()[0]:
-                obs_lists_dict[self.obs_types[k]].append(self.obs_names[k])
+                obs_lists_dict[self.obs_types[k]].append(self.obs_ids[k])
             d = {"#":"%d" % j, "Group Name":group_names[j], 
                  "&Delta;<sub>gr</sub>G [kJ/mol]":"%8.2f" % dG0_gr,
                  "dissociations":' | '.join(obs_lists_dict['acid-base']),
@@ -297,7 +298,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         loo_deviations = [] # a list of only the examples which are included in the LOO test
         
         for i in xrange(n_obs):
-            row = {'name':self.obs_names[i], 'obs':self.obs_values[0, i]}
+            row = {'name':self.obs_ids[i], 'obs':self.obs_values[0, i]}
             # skip the cross-validation of the pKa values since group
             # contribution is not meant to give any real prediction for pKas
             # except the mean of the class of pKas.
@@ -310,7 +311,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             logging.info('Fit Error = %.1f' % (row['fit_resid']))
 
             # leave out the row corresponding with observation 'i'
-            logging.info('Cross validation, leaving-one-out: ' + self.obs_names[i])
+            logging.info('Cross validation, leaving-one-out: ' + self.obs_ids[i])
             subset = range(n_obs)
             subset.pop(i)
             loo_group_contributions, loo_nullspace = LinearRegression.LeastSquares(
