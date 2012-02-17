@@ -88,8 +88,6 @@ class GroupObervationCollection(object):
         self.GIBBS_ENERGY_TABLE_NAME = prefix + '_gibbs'
         self.PSEUDOISOMER_ID_TABLE_NAME = prefix + '_ID'
     
-
-    
     @staticmethod
     def FromFiles(db, html_writer, group_decomposer, dissociation,
                   transformed=False, assert_decomposition=True):
@@ -110,12 +108,12 @@ class GroupObervationCollection(object):
         obs_collections.AddFormationEnergies()
         html_writer.div_end()
 
+        obs_collections.AddRedoxCarriers()
+
         html_writer.write('</br><b>List of NIST reactions for training</b>')
         html_writer.insert_toggle(start_here=True)
         obs_collections.AddNistDatabase(assert_decomposition=assert_decomposition)
         html_writer.div_end()
-        
-        obs_collections.AddRedoxCarriers()
         
         obs_collections.CalculateMatrices()
         
@@ -146,8 +144,11 @@ class GroupObervationCollection(object):
     def AddPseudoisomer(self, cid, nH, nMg):
         self.cid2nH_nMg[cid] = (nH, nMg)
         pid = self.CID2PID(cid)
-        diss_table = self.GetDissociationTable(cid)
-        mol = diss_table.GetMol(nH=nH, nMg=nMg)
+        diss_table = self.GetDissociationTable(cid, assert_existing=False)
+        if diss_table is not None:
+            mol = diss_table.GetMol(nH=nH, nMg=nMg)
+        else:
+            mol = None
         self.AddPseudoisomerFromMolecule(pid, mol)
         return pid
     
@@ -207,7 +208,7 @@ class GroupObervationCollection(object):
                 logging.debug("\t" + s)
                 html_text = ""
                 html_text += '<font size="1">\n'
-                html_text += '&Delta;&Delta;G = %.2f, %s</br>\n' % (ddG0, s)
+                html_text += '&Delta;&Delta;G = %.1f, %s</br>\n' % (ddG0, s)
                 html_text += 'SMILES = %s >> %s</br>\n' % (mol_above.ToSmiles(), mol_below.ToSmiles())
                 html_text += '%s >> %s</br>\n' % (mol_above.ToSVG(), mol_below.ToSVG())
                 html_text += 'Stoichiometry = %s</br>\n' % str(sparse)
@@ -281,10 +282,10 @@ class GroupObervationCollection(object):
             html_text += '<font size="1">\n'
             html_text += 'KEGG ID = C%05d</br>\n' % cid
             if self.transformed:
-                html_text += "&Delta;<sub>f</sub>G'&deg; = %.2f, " % dG0_prime
+                html_text += "%s = %.1f, " % (self.gibbs_symbol, dG0_prime)
                 html_text += 'pH = %g, I = %g, pMg = %g, T = %g</br>\n' % (pH, I, pMg, T)
             else:
-                html_text += '&Delta;<sub>f</sub>G&deg; = %.2f, ' % dG0
+                html_text += "%s = %.1f, " % (self.gibbs_symbol, dG0)
                 html_text += 'nH = %d, nMg = %d</br>\n' % (nH, nMg)
             if mol is not None:
                 html_text += 'SMILES = %s</br>\n' % (mol.ToSmiles())
@@ -396,7 +397,7 @@ class GroupObervationCollection(object):
             html_text += 'EC = %s</br>\n' % nist_row_data.ec
             html_text += "Reaction: %s</br>\n" % \
                          nist_row_data.reaction.to_hypertext(show_cids=False)
-            html_text += '%s: %.2f, </br>\n' % \
+            html_text += '%s: %.1f</br>\n' % \
                          (self.gibbs_symbol, dG0)
             html_text += 'Group vector: %s</br>\n' % str(total_gv)
             html_text += '</font>\n'
@@ -444,47 +445,12 @@ class GroupObervationCollection(object):
         # then create the stoichiometric matrix S (rows=observation, cols=pseudoisomers)
         self.S = np.zeros((m, n))
         self.gibbs_values = np.zeros((1, n))
-        anchored_obs = []
-        unanchored_obs = []
         for i_obs, obs in enumerate(self.observations):
             for pid, coeff in obs.sparse.iteritems():
                 i_pid = self.pid_list.index(pid)
                 self.S[i_pid, i_obs] = coeff
             self.gibbs_values[0, i_obs] = obs.dG0
-            if obs.anchored:
-                anchored_obs.append(i_obs)
-            else:
-                unanchored_obs.append(i_obs)
                 
-        # now remove anchored data from S and leave only the data which will be 
-        # used for calculating the group contributions
-        g, _ = LinearRegression.LeastSquares(self.S[:, anchored_obs],
-                                             self.gibbs_values[:, anchored_obs])
-        P_C, P_L = LinearRegression.ColumnProjection(self.S[:, anchored_obs])
-        anchored_gibbs_values = np.dot(np.dot(g, P_C), self.S)
-        self.gibbs_values -= anchored_gibbs_values
-        self.S = np.dot(P_L, self.S)
-        
-        # set epsilon-small values to absolute 0
-        self.S[np.where(abs(self.S) < 1e-10)] = 0
-        
-        # removed zero rows (compounds) from S
-        nonzero_rows = np.nonzero(np.sum(abs(self.S), 1))[0]
-        self.S = self.S[nonzero_rows, :]
-        self.G = self.G[nonzero_rows, :]
-        self.pid_list = [self.pid_list[i] for i in nonzero_rows]
-        
-        for pid in self.pid_list:
-            if self.pid2gv[pid] is None:
-                raise Exception("%s has no defined structure, "
-                                "but is still part of the final group matrix!")
-
-        # removed zero column (observations) from S
-        nonzero_cols = np.nonzero(np.sum(abs(self.S), 0))[0]
-        self.S = self.S[:, nonzero_cols]
-        self.gibbs_values = self.gibbs_values[:, nonzero_cols]
-        self.observations = [self.observations[i] for i in nonzero_cols]
-
     def AnalyzeResiduals(self):
         GS = np.dot(self.G.T, self.S)
         # Write the analysis of residuals:
@@ -507,20 +473,70 @@ class GroupObervationCollection(object):
         self.html_writer.div_end()
 
     def GetGroupMatrix(self):
+        b = self.gibbs_values
+        S = self.S
+        G = self.G
+        pid_list = self.pid_list
+        observations = self.observations
+
+        
+        anchored_obs = [i for (i, obs) in enumerate(observations)
+                        if obs.anchored]
+        
+        # now remove anchored data from S and leave only the data which will be 
+        # used for calculating the group contributions
+        g, _ = LinearRegression.LeastSquares(S[:, anchored_obs],
+                                             b[:, anchored_obs])
+        P_C, P_L = LinearRegression.ColumnProjection(S[:, anchored_obs])
+        b -= np.dot(np.dot(g, P_C), S)
+        S = np.dot(P_L, S)
+        
+        # set epsilon-small values to absolute 0
+        S[np.where(abs(S) < 1e-10)] = 0
+        
+        # removed zero rows (compounds) from S
+        set_of_obs_to_remove = set()
+        set_of_good_pids = set(np.nonzero(np.sum(abs(S), 1))[0])
+        for i_pid, pid in enumerate(pid_list):
+            if self.pid2gv[pid] is None:
+                set_of_good_pids.difference_update([i_pid])
+                obs_to_remove = np.nonzero(S[i_pid, :])[0]
+                if len(obs_to_remove) > 0:
+                    obs_str = ', '.join([observations[i_obs].obs_id
+                                         for i_obs in obs_to_remove])
+                    logging.warning("%s has no defined structure, "
+                                    "but is still part of the final group matrix "
+                                    "in the following observations: %s"
+                                    % (pid, obs_str))
+                    set_of_obs_to_remove.update(obs_to_remove)
+
+        set_of_good_pids = sorted(set_of_good_pids)
+        S = S[set_of_good_pids, :]
+        G = G[set_of_good_pids, :]
+        pid_list = [pid_list[i] for i in set_of_good_pids]
+
+        # removed zero column (observations) from S
+        nonzero_cols = np.nonzero(np.sum(abs(S), 0))[0]
+        nonzero_cols = set(nonzero_cols).difference(set_of_obs_to_remove)
+        nonzero_cols = sorted(nonzero_cols)
+        S = S[:, nonzero_cols]
+        b = b[:, nonzero_cols]
+        observations = [observations[i] for i in nonzero_cols]
+
         # 'unique' the rows S. For each set of rows that is united,
         # the Y-value for the new row is the average of the corresponding Y-values.
-        GS = np.dot(self.G.T, self.S)
+        GS = np.dot(G.T, S)
 
         unique_GS, col_mapping = LinearRegression.ColumnUnique(GS, remove_zero=True)
-        unique_gibbs_values = np.zeros((1, unique_GS.shape[1]))
+        unique_b = np.zeros((1, unique_GS.shape[1]))
         unique_obs_types = []
         unique_obs_ids = []
         for i, old_indices in sorted(col_mapping.iteritems()):
-            unique_gibbs_values[0, i] = np.mean(self.gibbs_values[0, old_indices])
-            unique_obs_types.append(self.observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
-            unique_obs_ids.append(', '.join([self.observations[i].obs_id for i in old_indices]))            
+            unique_b[0, i] = np.mean(b[0, old_indices])
+            unique_obs_types.append(observations[old_indices[0]].obs_type) # take the type of the first one (not perfect...)
+            unique_obs_ids.append(', '.join([observations[i].obs_id for i in old_indices]))            
         
-        return unique_GS, unique_gibbs_values, unique_obs_ids, unique_obs_types 
+        return unique_GS, unique_b, unique_obs_ids, unique_obs_types 
 
     def ToDatabase(self):
         # This table is used only as an output for checking results
@@ -611,22 +627,24 @@ class GroupObervationCollection(object):
         m = len(self.pid_list) # number of compounds
         g = len(self.groups_data.GetGroupNames()) # number of groups
 
-        self.html_writer.write('</br><b>Observation summary</b>')
-        self.html_writer.insert_toggle(start_here=True)
-        self.html_writer.write_ul(['observations: %d' % n,
-                                   'compounds: %d' % m,
-                                   'groups: %d' % g])
-        
         rowdicts = []
         for i in xrange(n):
             rowdict = {'#': i, 'ID': self.observations[i].obs_id}
-            rowdict[self.gibbs_symbol] = self.gibbs_values[0, i]
+            rowdict[self.gibbs_symbol] = '%.1f' % self.gibbs_values[0, i]
             
             rowdict['Reaction'] = {}
             for j in np.nonzero(self.S[:, i])[0]:
                 rowdict['Reaction'][self.pid_list[j]] = self.S[j, i]
             rowdicts.append(rowdict)
             
+
+        self.html_writer.write('</br><b>Observation summary</b>')
+        self.html_writer.insert_toggle(start_here=True)
+        self.html_writer.write_ul(['observations: %d' % n,
+                                   'compounds: %d' % m,
+                                   'groups: %d' % g])
+        self.html_writer.write('<font size="1">\n')
         self.html_writer.write_table(rowdicts, 
                         headers=['#', 'ID', 'Reaction', self.gibbs_symbol])
+        self.html_writer.write('</font>\n')
         self.html_writer.div_end()

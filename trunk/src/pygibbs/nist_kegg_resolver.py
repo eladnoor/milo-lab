@@ -364,7 +364,9 @@ def WriteDataToDB(db):
             row_dict['Reaction'] = "UDP-glucose + D-glucose 6-phosphate = UDP + alpha,alpha'-trehalose 6-phosphate"
         if url_id == "T1=62HAY/NIS_525":
             row_dict['Reaction'] = "L-alanine + 3-oxopropanoate = beta-alanine + pyruvate" 
-            
+        if url_id == "T1=76GRE/BRI_328": # cytochrome c oxidase with O2, probably a NIST typo
+            continue
+        
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
             new_row_dict.setdefault(new_title, None)
