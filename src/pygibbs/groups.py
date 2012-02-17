@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import logging, types, json, sys
+from collections import defaultdict
 
 from copy import deepcopy
 import pylab
@@ -92,7 +93,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.NULLSPACE_TABLE_NAME = prefix + '_nullspace'
         self.CONTRIBUTION_TABLE_NAME = prefix + '_contribution'
         self.REGRESSION_TABLE_NAME = prefix + '_regression'
-        self.OBSERVATION_TABLE_PREFIX = prefix + '_obs_'
         
     def GetDissociationConstants(self):
         """
@@ -233,64 +233,56 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         return val
     
     def WriteRegressionReport(self, T=default_T, pH=default_pH):        
+        rowdicts = []
+        for i in xrange(self.group_matrix.shape[1]):
+            groupvec = GroupVector(self.groups_data, self.group_matrix[:, i])
+            rowdict = {'#': i, 'ID': self.obs_ids[i]}
+            rowdict[self.obs_collection.gibbs_symbol] = '%.1f' % self.obs_values[0, i]
+            rowdict['Group Vector'] = str(groupvec)
+            rowdicts.append(rowdict)
+
         self.html_writer.write('</br><b>Regression report</b>')
         self.html_writer.insert_toggle(start_here=True)
+        self.html_writer.write('<font size="1">\n')
         self.html_writer.write_ul(['observations: %d' % self.group_matrix.shape[1],
            'groups: %d' % self.group_matrix.shape[0],
            'rank: %d' % LinearRegression.MatrixRank(self.group_matrix)])
-        self.html_writer.write('</br><table border="1">\n<tr>'
-            '<td width="5%%">#</td>'
-            '<td width="20%%">Name</td>'
-            '<td width="5%%">&Delta;<sub>f</sub>G<sub>obs</sub> [kJ/mol]</td>'
-            '<td width="70%%">Group Vector</td></tr>')
-        for i in xrange(self.group_matrix.shape[1]):
-            groupvec = GroupVector(self.groups_data, self.group_matrix[:, i])
-            self.html_writer.write('<tr>' +
-                '<td width="5%%">%d</td>' % i +
-                '<td width="20%%">%s</td>' % self.obs_ids[i] + 
-                '<td width="5%%">%8.2f</td>' % self.obs_values[0, i] +
-                '<td width="70%%">%s</td></tr>' % str(groupvec))
-        self.html_writer.write('</table>')
+        self.html_writer.write_table(rowdicts, 
+                        headers=['#', 'ID', 'Group Vector', self.obs_collection.gibbs_symbol])
+        self.html_writer.write('</font>\n')
         self.html_writer.div_end()
         
         self.html_writer.write('</br><b>Group Contributions</b>\n')
         div_id = self.html_writer.insert_toggle()
         self.html_writer.div_start(div_id)
         self.html_writer.write('</br><font size="1">\n')
-        dict_list = []
+        rowdicts = []
+        if self.transformed:
+            headers = ["#", "Group Name",
+                self.obs_collection.gibbs_symbol, 
+                "acid-base", "formation", "reaction"]
+        else:
+            headers = ["#", "Group Name",
+                       "nH", "charge", "nMg",
+                       self.obs_collection.gibbs_symbol, 
+                       "acid-base", "formation", "reaction"]
         group_names = self.groups_data.GetGroupNames()
         for j, dG0_gr in enumerate(self.group_contributions[0, :]):
-            obs_lists_dict = {'acid-base':[], 'formation':[], 'reaction':[]}
+            obs_lists_dict = defaultdict(list)
             for k in self.group_matrix[j, :].nonzero()[0]:
                 obs_lists_dict[self.obs_types[k]].append(self.obs_ids[k])
             d = {"#":"%d" % j, "Group Name":group_names[j], 
-                 "&Delta;<sub>gr</sub>G [kJ/mol]":"%8.2f" % dG0_gr,
-                 "dissociations":' | '.join(obs_lists_dict['acid-base']),
-                 "formations":' | '.join(obs_lists_dict['formation']),
-                 "reactions":' | '.join(obs_lists_dict['reaction'])}
+                 self.obs_collection.gibbs_symbol:"%.1f" % dG0_gr}
+            for k, v in obs_lists_dict.iteritems():
+                d[k] = ' | '.join(v)
             if not self.transformed:
                 group = self.groups_data.all_groups[j]
                 d["nH"] = group.hydrogens
                 d["charge"] = group.charge
                 d["nMg"] = group.nMg
-            dict_list.append(d)
-        if not self.transformed:
-            self.html_writer.write_table(dict_list, headers=["#", "Group Name",
-                "nH", "charge", "nMg", "&Delta;<sub>gr</sub>G [kJ/mol]", 
-                "dissociations", "formations", "reactions"])
-        else:
-            self.html_writer.write_table(dict_list, headers=["#", "Group Name",
-                "&Delta;<sub>gr</sub>G [kJ/mol]", 
-                "dissociations", "formations", "reactions"])
+            rowdicts.append(d)
+        self.html_writer.write_table(rowdicts, headers)
         self.html_writer.write('</font>\n')
-        self.html_writer.div_end()
-
-        # Null-space matrix
-        self.html_writer.write('</br><b>Nullspace of regression matrix</b>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.div_start(div_id)
-        self.html_writer.write('</br>')
-        self.db.Table2HTML(self.html_writer, self.NULLSPACE_TABLE_NAME)
         self.html_writer.div_end()
 
     def analyze_training_set(self):
