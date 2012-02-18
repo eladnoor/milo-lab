@@ -1,4 +1,7 @@
-import pylab, re, logging
+import re, logging
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.mlab import rms_flat
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException,\
     KeggReactionNotBalancedException
@@ -47,7 +50,7 @@ class NistRowData:
         # is effectively [Mg] = 0).
         self.I = NistRowData.none_float(row_dict['I']) or 0.0
         self.pMg = NistRowData.none_float(row_dict['pMg']) or 14.0 
-        self.dG0_r = -R*self.T*pylab.log(self.K_tag)
+        self.dG0_r = -R*self.T*np.log(self.K_tag)
         self.evaluation = row_dict['evaluation']
         self.url = row_dict['url']
         self.ref_id = row_dict['reference_id']
@@ -227,40 +230,40 @@ class Nist(object):
                 year_list.append(year)
         
         html_writer.write("<p><h2>NIST database statistics</h2>\n")
-        fig = pylab.figure()
-        pylab.title("Temperature histogram")
-        pylab.hist(T_list, pylab.arange(int(min(T_list)), int(max(T_list)+1), 2.5))
-        pylab.xlabel("Temperature (C)")
-        pylab.ylabel("No. of measurements")
+        fig = plt.figure()
+        plt.title("Temperature histogram")
+        plt.hist(T_list, np.arange(int(min(T_list)), int(max(T_list)+1), 2.5))
+        plt.xlabel("Temperature (C)")
+        plt.ylabel("No. of measurements")
         html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_T')
 
-        fig = pylab.figure()
-        pylab.hist(pMg_list, pylab.arange(0, 10.1, 0.1))
-        pylab.title("pMg histogram")
-        pylab.xlabel("pMg")
-        pylab.ylabel("No. of measurements")
+        fig = plt.figure()
+        plt.hist(pMg_list, np.arange(0, 10.1, 0.1))
+        plt.title("pMg histogram")
+        plt.xlabel("pMg")
+        plt.ylabel("No. of measurements")
         html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_pMg')
 
-        fig = pylab.figure()
-        pylab.hist(pH_list, pylab.arange(4, 11, 0.1))
-        pylab.title("pH histogram")
-        pylab.xlabel("pH")
-        pylab.ylabel("No. of measurements")
+        fig = plt.figure()
+        plt.hist(pH_list, np.arange(4, 11, 0.1))
+        plt.title("pH histogram")
+        plt.xlabel("pH")
+        plt.ylabel("No. of measurements")
         html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_pH')
 
-        fig = pylab.figure()
-        pylab.hist(I_list, pylab.arange(0, 1, 0.025))
-        pylab.title("Ionic Strength histogram")
-        pylab.xlabel("Ionic Strength [M]")
-        pylab.ylabel("No. of measurements")
+        fig = plt.figure()
+        plt.hist(I_list, np.arange(0, 1, 0.025))
+        plt.title("Ionic Strength histogram")
+        plt.xlabel("Ionic Strength [M]")
+        plt.ylabel("No. of measurements")
         html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_I')
 
         # histogram of publication years
-        fig = pylab.figure()
-        pylab.hist(year_list, pylab.arange(1930, 2010, 5))
-        pylab.title("Year of publication histogram")
-        pylab.xlabel("Year of publication")
-        pylab.ylabel("No. of measurements")
+        fig = plt.figure()
+        plt.hist(year_list, np.arange(1930, 2010, 5))
+        plt.title("Year of publication histogram")
+        plt.xlabel("Year of publication")
+        plt.ylabel("No. of measurements")
         html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='hist_year')
 
         db_public = SqliteDatabase('../data/public_data.sqlite')
@@ -274,8 +277,8 @@ class Nist(object):
         html_writer.write_ul(count_list)
         
         N = 60 # cutoff for the number of counts in the histogram
-        hist_a = pylab.zeros(N)
-        hist_b = pylab.zeros(N)
+        hist_a = np.zeros(N)
+        hist_b = np.zeros(N)
         for cid, cnt in self.cid2count.iteritems():
             if cnt >= N:
                 cnt = N-1
@@ -285,16 +288,16 @@ class Nist(object):
                 hist_b[cnt] += 1
         hist_a[0] = len(alberty_cids.difference(self.cid2count.keys()))
         
-        fig = pylab.figure()
-        pylab.rc('font', size=10)
-        pylab.hold(True)
-        p1 = pylab.bar(range(N), hist_a, color='b')
-        p2 = pylab.bar(range(N), hist_b, color='r', bottom=hist_a[0:N])
-        pylab.text(N-1, hist_a[N-1]+hist_b[N-1], '> %d' % (N-1), fontsize=10, horizontalalignment='right', verticalalignment='baseline')
-        pylab.title("Overlap with Alberty's database")
-        pylab.xlabel("N reactions")
-        pylab.ylabel("no. of compounds measured in N reactions")
-        pylab.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
+        fig = plt.figure()
+        plt.rc('font', size=10)
+        plt.hold(True)
+        p1 = plt.bar(range(N), hist_a, color='b')
+        p2 = plt.bar(range(N), hist_b, color='r', bottom=hist_a[0:N])
+        plt.text(N-1, hist_a[N-1]+hist_b[N-1], '> %d' % (N-1), fontsize=10, horizontalalignment='right', verticalalignment='baseline')
+        plt.title("Overlap with Alberty's database")
+        plt.xlabel("N reactions")
+        plt.ylabel("no. of compounds measured in N reactions")
+        plt.legend((p1[0], p2[0]), ("Exist in Alberty's database", "New compounds"))
 
         html_writer.embed_matplotlib_figure(fig, width=320, height=240, name='connectivity')
 
@@ -387,7 +390,11 @@ class Nist(object):
             except MissingReactionEnergy as e:
                 logging.debug("the reaction in (%s) cannot be estimated: %s" % (row_data.ref_id, str(e)))
                 continue
-                
+            if np.isnan(dG0_pred):
+                logging.debug("the reaction in (%s) cannot be estimated because "
+                              "one of the compounds' formation energy is unknown")
+                continue
+
             dG0_obs_vec.append(row_data.dG0_r)
             dG0_est_vec.append(dG0_pred)
             evaluation_map[label][0].append(row_data.dG0_r)
@@ -405,66 +412,66 @@ class Nist(object):
         unique_reaction_dict = {}
         for error, _dG0_obs, _dG0_est, reaction, _pH, _pMg, _I, _T, _eval, _url in total_list: 
             unique_reaction_dict.setdefault(reaction, []).append(error)
-        unique_rmse_list = [pylab.rms_flat(error_list) for error_list in unique_reaction_dict.values()]
-        unique_rmse = pylab.rms_flat(unique_rmse_list)
+        unique_rmse_list = [rms_flat(error_list) for error_list in unique_reaction_dict.values()]
+        unique_rmse = rms_flat(unique_rmse_list)
         
         rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
 
         # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['legend.fontsize'] = 10
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 12
-        pylab.rcParams['lines.linewidth'] = 1
-        pylab.rcParams['lines.markersize'] = 3
-        pylab.rcParams['figure.figsize'] = [6.0, 6.0]
-        pylab.rcParams['figure.dpi'] = 100
+        plt.rcParams['text.usetex'] = False
+        plt.rcParams['legend.fontsize'] = 10
+        plt.rcParams['font.family'] = 'sans-serif'
+        plt.rcParams['font.size'] = 12
+        plt.rcParams['lines.linewidth'] = 1
+        plt.rcParams['lines.markersize'] = 3
+        plt.rcParams['figure.figsize'] = [6.0, 6.0]
+        plt.rcParams['figure.dpi'] = 100
         
-        fig = pylab.figure()
-        pylab.hold(True)
+        fig = plt.figure()
+        plt.hold(True)
         
         colors = ['purple', 'orange']
         for i, label in enumerate(sorted(evaluation_map.keys())):
             measured, predicted = evaluation_map[label]
-            pylab.plot(measured, predicted, marker='.', linestyle='None', 
+            plt.plot(measured, predicted, marker='.', linestyle='None', 
                        markerfacecolor=colors[i], markeredgecolor=colors[i], 
                        markersize=5, label=label)
         
-        pylab.legend(loc='lower right')
+        plt.legend(loc='lower right')
         
-        pylab.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (unique_rmse), fontsize=14)
-        pylab.xlabel(r'observed $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
-        pylab.ylabel(r'estimated $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
+        plt.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (unique_rmse), fontsize=14)
+        plt.xlabel(r'observed $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
+        plt.ylabel(r'estimated $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
         #min_x = min(dG0_obs_vec)
         #max_x = max(dG0_obs_vec)
-        pylab.plot([-60, 60], [-60, 60], 'k--')
-        pylab.axis([-60, 60, -60, 60])
+        plt.plot([-60, 60], [-60, 60], 'k--')
+        plt.axis([-60, 60, -60, 60])
         if name:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_eval")
         else:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         
-        fig = pylab.figure()
+        fig = plt.figure()
         binned_plot(x=[row[4] for row in total_list], # pH
                     y=[row[0] for row in total_list],
                     bins=[6,8],
                     y_type='rmse',
                     figure=fig)
-        pylab.xlim((4, 11))
-        pylab.ylim((0, 12))
-        pylab.title(r'effect of pH', fontsize=14, figure=fig)
-        pylab.xlabel('pH', fontsize=14, figure=fig)
-        pylab.ylabel(r'RMS ($\Delta_{obs} G^\circ - \Delta_{est} G^\circ$) [kJ/mol]', fontsize=14, figure=fig)
+        plt.xlim((4, 11))
+        plt.ylim((0, 12))
+        plt.title(r'effect of pH', fontsize=14, figure=fig)
+        plt.xlabel('pH', fontsize=14, figure=fig)
+        plt.ylabel(r'RMS ($\Delta_{obs} G^\circ - \Delta_{est} G^\circ$) [kJ/mol]', fontsize=14, figure=fig)
         if name:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_pH")
         else:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300)
         
-        fig = pylab.figure()
-        pylab.hist([(row[1] - row[2]) for row in total_list], bins=pylab.arange(-50, 50, 0.5))
-        pylab.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
-        pylab.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
-        pylab.ylabel(r'no. of measurements', fontsize=14)
+        fig = plt.figure()
+        plt.hist([(row[1] - row[2]) for row in total_list], bins=np.arange(-50, 50, 0.5))
+        plt.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
+        plt.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
+        plt.ylabel(r'no. of measurements', fontsize=14)
         if name:
             html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_hist")
         else:
@@ -526,38 +533,38 @@ class Nist(object):
             return 0, 0
         
         # plot the profile graph
-        pylab.rcParams['text.usetex'] = False
-        pylab.rcParams['font.family'] = 'sans-serif'
-        pylab.rcParams['font.size'] = 8
-        pylab.rcParams['lines.linewidth'] = 2
-        pylab.rcParams['lines.markersize'] = 2
-        pylab.rcParams['figure.dpi'] = 100
+        plt.rcParams['text.usetex'] = False
+        plt.rcParams['font.family'] = 'sans-serif'
+        plt.rcParams['font.size'] = 8
+        plt.rcParams['lines.linewidth'] = 2
+        plt.rcParams['lines.markersize'] = 2
+        plt.rcParams['figure.dpi'] = 100
         
-        data_mat = pylab.array(total_list)
-        fig1 = pylab.figure(figsize=(4,4))
-        pylab.hold(True)
+        data_mat = np.array(total_list)
+        fig1 = plt.figure(figsize=(4,4))
+        plt.hold(True)
         error1 = data_mat[:,0]-data_mat[:,1]
         error2 = data_mat[:,0]-data_mat[:,2]
         
         max_err = max(error1.max(), error2.max())
         min_err = min(error1.min(), error2.min())
-        pylab.plot([min_err, max_err], [min_err, max_err], 'k--', figure=fig1)
-        pylab.plot(error1, error2, '.', figure=fig1)
-        pylab.title("Error Comparison per Reaction (in kJ/mol)")
-        pylab.xlabel(thermo1.name, figure=fig1)
-        pylab.ylabel(thermo2.name, figure=fig1)
+        plt.plot([min_err, max_err], [min_err, max_err], 'k--', figure=fig1)
+        plt.plot(error1, error2, '.', figure=fig1)
+        plt.title("Error Comparison per Reaction (in kJ/mol)")
+        plt.xlabel(thermo1.name, figure=fig1)
+        plt.ylabel(thermo2.name, figure=fig1)
         html_writer.embed_matplotlib_figure(fig1, name=name+"_corr")
         
-        fig2 = pylab.figure(figsize=(7,3))
+        fig2 = plt.figure(figsize=(7,3))
         for i, thermo in enumerate([thermo1, thermo2]):
             fig2.add_subplot(1,2,i+1)
-            pylab.plot(data_mat[:,0], data_mat[:,i+1], 'b.')
+            plt.plot(data_mat[:,0], data_mat[:,i+1], 'b.')
             rmse = calc_rmse(data_mat[:,0], data_mat[:,i+1])
-            pylab.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (rmse))
-            pylab.xlabel(r'observed $\Delta G_r^\circ$ from NIST [kJ/mol]')
-            pylab.ylabel(r'estimated $\Delta G_r^\circ$ using %s [kJ/mol]' % thermo.name)
-            pylab.plot([-60, 60], [-60, 60], 'k--')
-            pylab.axis([-60, 60, -60, 60])
+            plt.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (rmse))
+            plt.xlabel(r'observed $\Delta G_r^\circ$ from NIST [kJ/mol]')
+            plt.ylabel(r'estimated $\Delta G_r^\circ$ using %s [kJ/mol]' % thermo.name)
+            plt.plot([-60, 60], [-60, 60], 'k--')
+            plt.axis([-60, 60, -60, 60])
         
         html_writer.embed_matplotlib_figure(fig2, name=name+"_eval")
 

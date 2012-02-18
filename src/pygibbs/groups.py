@@ -87,12 +87,13 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         else:
             prefix = 'pgc'
         
-        self.PMAP_TABLE_NAME = prefix + '_pseudoisomers'
-        self.ERROR_TABLE_NAME = prefix + '_errors'
+        self.OBSERVATION_TABLE_NAME = prefix + '_observations'
         self.GROUPVEC_TABLE_NAME = prefix + '_groupvector'
         self.NULLSPACE_TABLE_NAME = prefix + '_nullspace'
         self.CONTRIBUTION_TABLE_NAME = prefix + '_contribution'
         self.REGRESSION_TABLE_NAME = prefix + '_regression'
+        
+        self.THERMODYNAMICS_TABLE_NAME = prefix + '_pseudoisomers'
         
     def GetDissociationConstants(self):
         """
@@ -107,12 +108,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         return self.GetDissociationConstants().GetDissociationTable(cid,
                                                     create_if_missing=False)
     
-    def init(self):
-        self.LoadGroupsFromDatabase()
-        self.LoadContributionsFromDB()
-        if self.db.DoesTableExist(self.PMAP_TABLE_NAME):
-            self.FromDatabase(self.db, table_name=self.PMAP_TABLE_NAME)
-        
     def WriteDataToJSON(self, json_fname, kegg):
         formations = []
         for row in self.db.DictReader('gc_cid2error'):
@@ -141,11 +136,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
         
-    def LoadGroups(self, FromFiles=True):
+    def LoadGroups(self, FromDatabase=False):
         #if self.transformed:
         #    fname = "../data/thermodynamics/groups_species_transformed.csv"
         #else:
-        if FromFiles:
+        if not FromDatabase:
             fname = "../data/thermodynamics/groups_species.csv"
             self.groups_data = GroupsData.FromGroupsFile(fname,
                                                          transformed=self.transformed)
@@ -156,35 +151,161 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                                        transformed=self.transformed)
             self.group_decomposer = GroupDecomposer(self.groups_data)
 
-    def LoadGroupsFromDatabase(self):
-        self.groups_data = GroupsData.FromDatabase(self.db,
-                                                   transformed=self.transformed)
-        self.group_decomposer = GroupDecomposer(self.groups_data)
-            
-    def Train(self, FromFiles=True, assert_decomposition=True):
-        if FromFiles:
+    def LoadObservations(self, FromDatabase=False):
+        if not FromDatabase:
             logging.info("Reading observations from files")
             dissociation = self.GetDissociationConstants()
             self.obs_collection = GroupObervationCollection.FromFiles(
-                                    db=self.db, 
                                     html_writer=self.html_writer, 
-                                    group_decomposer=self.group_decomposer, 
                                     dissociation=dissociation,
-                                    transformed=self.transformed,
-                                    assert_decomposition=assert_decomposition)
-            self.obs_collection.ToDatabase()
+                                    transformed=self.transformed)
+            self.obs_collection.ToDatabase(self.db, self.OBSERVATION_TABLE_NAME)
+            self.cid2nH_nMg = self.obs_collection.cid2nH_nMg
         else:
             logging.info("Reading observations from database")
             self.obs_collection = GroupObervationCollection.FromDatabase(
                                     db=self.db,
-                                    group_decomposer=self.group_decomposer,
+                                    table_name=self.OBSERVATION_TABLE_NAME,
                                     transformed=self.transformed)
-
-        self.obs_collection.ReportToHTML()
         
+        self.obs_collection.ReportToHTML()
+
+    def LoadGroupVectors(self, FromDatabase=False):
+        self.cid2groupvec = {}
+        self.cid2error = {}            
+
+        if not FromDatabase:
+            self.html_writer.write('</br><b>All Groupvectors</b>\n')
+            self.html_writer.insert_toggle(start_here=True)
+            # When using non-transformed energies, it is very important for
+            # the group vectors of each compound to represent the correct
+            # pseudoisomer (same nH and nMg used in the reverse transform and
+            # the list of formation energies). Here we use the dictionary 
+            # self.cid2nH_nMg that is copied from GroupObervationCollection
+            
+            dissociation = self.GetDissociationConstants()
+            for cid in sorted(self.kegg.get_all_cids()):
+                self.cid2groupvec[cid] = None
+                self.cid2error[cid] = None
+                if cid not in self.cid2nH_nMg:
+                    self.cid2error[cid] = "Does not have data about major pseudoisomer"
+                    continue
+                nH, nMg = self.cid2nH_nMg[cid]
+                diss_table = dissociation.GetDissociationTable(cid, False)
+                if diss_table is None:
+                    self.cid2error[cid] = "Does not have pKa data"
+                    continue
+                mol = diss_table.GetMol(nH=nH, nMg=nMg)
+                if mol is None:
+                    self.cid2error[cid] = "Does not have structural data"
+                    continue
+                try:
+                    mol.RemoveHydrogens()
+                    decomposition = self.group_decomposer.Decompose(mol, 
+                                        ignore_protonations=False, strict=True)
+                except GroupDecompositionError:
+                    self.cid2error[cid] = "Could not be decomposed"
+                    continue
+                groupvec = decomposition.AsVector()
+                if nH != groupvec.Hydrogens() or nMg != groupvec.Magnesiums():
+                    err_msg = "C%05d's most abundant pseudoisomer is [nH=%d, nMg=%d], " \
+                        "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
+                        "" % (cid, nH, nMg, groupvec.Hydrogens(), groupvec.Magnesiums())
+                    self.html_writer.write('</br>ERROR: %s\n' % err_msg)
+                    self.cid2error[cid] = err_msg
+                else:
+                    self.cid2groupvec[cid] = groupvec
+    
+            self.db.CreateTable(self.GROUPVEC_TABLE_NAME,
+                "cid INT, nH INT, nMg INT, groupvec TEXT, err TEXT")
+            for cid, gv in sorted(self.cid2groupvec.iteritems()):
+                nH, nMg = self.cid2nH_nMg.get(cid, (0, 0))
+                if gv is not None:
+                    gv_str = gv.ToJSONString()
+                else:
+                    gv_str = None
+                err = self.cid2error[cid]
+                self.db.Insert(self.GROUPVEC_TABLE_NAME,
+                               [cid, nH, nMg, gv_str, err])
+            self.db.Commit()
+            self.html_writer.div_end()
+        else:
+            # Read the group-vectors from the database
+            self.cid2nH_nMg = {}
+            for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
+                cid = row['cid']
+                gv_str = row['groupvec']
+                if gv_str is not None:
+                    groupvec = GroupVector.FromJSONString(self.groups_data,
+                                                          gv_str)
+                else:
+                    groupvec = None
+                self.cid2groupvec[cid] = groupvec
+                self.cid2error[cid] = row['err']
+                self.cid2nH_nMg[cid] = (row['nH'], row['nMg'])
+
+    def Train(self):
         logging.info("Calculating the linear regression data")
-        self.group_matrix, self.obs_values, self.obs_ids, self.obs_types = \
-            self.obs_collection.GetGroupMatrix()
+        cids, S, b, anchored = self.obs_collection.GetStoichiometry()
+        obs_ids = [obs.obs_id for obs in self.obs_collection.observations]
+        obs_types = [obs.obs_type for obs in self.obs_collection.observations]
+
+        anchored_cols = np.where(anchored==1)[1]
+        # now remove anchored data from S and leave only the data which will be 
+        # used for calculating the group contributions
+        g, _ = LinearRegression.LeastSquares(S[:, anchored_cols],
+                                             b[:, anchored_cols])
+        P_C, P_L = LinearRegression.ColumnProjection(S[:, anchored_cols])
+        b -= np.dot(np.dot(g, P_C), S)
+        S = np.dot(P_L, S)
+        
+        # set epsilon-small values to absolute 0
+        S[np.where(abs(S) < 1e-10)] = 0
+        
+        # removed zero rows (compounds) from S
+        used_cid_indices = set(np.nonzero(np.sum(abs(S), 1))[0])
+        for i_cid, cid in enumerate(cids):
+            if self.cid2groupvec[cid] is None:
+                used_cid_indices.difference_update([i_cid])
+                for i_obs in np.nonzero(S[i_cid, :])[0]:
+                    logging.warning("%s is removed because C%05d has no group vector, "
+                                    "but is still part of the final stoichiometric matrix"
+                                    % (obs_ids[i_obs], cid))
+                    S[:, i_obs] = 0
+
+        used_cid_indices = sorted(used_cid_indices)
+        S = S[used_cid_indices, :]
+
+        # removed zero column (observations) from S
+        #nonzero_cols = np.nonzero(np.sum(abs(S), 0))[0]
+        #nonzero_cols = set(nonzero_cols).difference(set_of_obs_to_remove)
+        #nonzero_cols = sorted(nonzero_cols)
+        #S = S[:, nonzero_cols]
+        #b = b[:, nonzero_cols]
+        #observations = [observations[i] for i in nonzero_cols]
+        
+        n_groups = len(self.groups_data.GetGroupNames()) # number of groups
+        G = np.zeros((len(used_cid_indices), n_groups))
+        for i, i_cid in enumerate(used_cid_indices):
+            G[i, :] = self.cid2groupvec[cids[i_cid]].Flatten()
+
+        # 'unique' the rows S. For each set of rows that is united,
+        # the Y-value for the new row is the average of the corresponding Y-values.
+        GS = np.dot(G.T, S)
+
+        unique_GS, col_mapping = LinearRegression.ColumnUnique(GS, remove_zero=True)
+        unique_b = np.zeros((1, unique_GS.shape[1]))
+        unique_obs_types = []
+        unique_obs_ids = []
+        for i, old_indices in sorted(col_mapping.iteritems()):
+            unique_b[0, i] = np.mean(b[0, old_indices])
+            unique_obs_types.append(obs_types[old_indices[0]]) # take the type of the first one (not perfect...)
+            unique_obs_ids.append(', '.join([obs_ids[i] for i in old_indices]))            
+        
+        self.group_matrix = unique_GS
+        self.obs_values = unique_b
+        self.obs_ids = unique_obs_ids
+        self.obs_types = unique_obs_types
 
         logging.info("Performing linear regression")
         self.group_contributions, self.group_nullspace = \
@@ -193,6 +314,27 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         
         logging.info("Storing the group contribution data in the database")
         self.SaveContributionsToDB()
+
+    def AnalyzeResiduals(self):
+        GS = np.dot(self.G.T, self.S)
+        # Write the analysis of residuals:
+        # I am not sure if this analysis should be done before "uniquing"
+        # the rows of S or after. The observation residual is much smaller
+        # in the latter case, since intra-reaction noise is averaged.
+        _P_R1, P_N1 = LinearRegression.RowProjection(self.S)
+        _P_R2, P_N2 = LinearRegression.RowProjection(GS)
+        
+        r_obs = np.linalg.norm(np.dot(self.gibbs_values, P_N1))
+        r_est = np.linalg.norm(np.dot(self.gibbs_values, P_N2 - P_N1))
+        r_tot = np.linalg.norm(np.dot(self.gibbs_values, P_N2))
+        
+        self.html_writer.write('</br><b>Analysis of residuals:<b>\n')
+        self.html_writer.insert_toggle(start_here=True)
+        residual_text = ['r<sub>observation</sub> = %.2f kJ/mol' % r_obs,
+                         'r<sub>estimation</sub> = %.2f kJ/mol' % r_est,
+                         'r<sub>total</sub> = %.2f kJ/mol' % r_tot]
+        self.html_writer.write_ul(residual_text)
+        self.html_writer.div_end()
 
     def SaveContributionsToDB(self):
         # write a table of the group contributions
@@ -229,7 +371,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         k_list = [i for i in np.where(v > 1e-10)[0]]
         if k_list:
             raise GroupMissingTrainDataError(val, "can't estimate because the input "
-                "is not orthogonal to the kernel", k_list)
+                "is not in the column-space of the group matrix", k_list)
         return val
     
     def WriteRegressionReport(self, T=default_T, pH=default_pH):        
@@ -285,7 +427,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.write('</font>\n')
         self.html_writer.div_end()
 
-    def analyze_training_set(self):
+    def AnalyzeTrainingSet(self):
         n_obs = self.group_matrix.shape[1]
         deviations = [] # a list of all the data about every example
         loo_deviations = [] # a list of only the examples which are included in the LOO test
@@ -396,10 +538,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                                strict=True)
 
     def get_all_cids(self):
-        all_cids = set(self.cid2pmap_dict.keys() + self.cid2error.keys())
-        return sorted(all_cids)
+        return sorted(self.cid2groupvec.keys())
     
-    def EstimateKeggCids(self, cid_list=None):
+    def EstimateKeggCids(self):
         """
             Uses the Group Contributions to estimate the entire set of compounds in KEGG,
             and then writes the results to the database as 'gc_pseudoisomers' table
@@ -408,7 +549,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 override_all_observed_compounds - If True, any observed formation energy is 
                     used instead of the GC estimation. If False, only 'test' compounds are used.
         """
-        logging.info("Estimating formation energies for all KEGG. Please be patient for a few minutes...")
+        logging.info("Estimating formation energies for all KEGG")
         
         observed_species = PsuedoisomerTableThermodynamics.FromCsvFile(
             '../data/thermodynamics/formation_energies.csv', label='testing')
@@ -423,21 +564,18 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             
         self.cid2pmap_dict = {}
         self.cid2source_string = {}
-        self.cid2error = {}
-        self.cid2groupvec = {}
 
         self.html_writer.write('</br><b>Estimated formation energies for KEGG compounds</b></br>\n')
         self.html_writer.insert_toggle(start_here=True)
-        for cid in sorted(cid_list or self.kegg.get_all_cids()):
-            self.html_writer.write('<b>C%05d - %s</b></br>\n' % (cid, self.kegg.cid2name(cid)))
+        for cid in sorted(self.kegg.get_all_cids()):
+            self.html_writer.write('<b>C%05d - %s</b></br>\n' %
+                                   (cid, self.kegg.cid2name(cid)))
 
             diss_table = self.GetDissociationTable(cid)
             pmap = None
             if cid in observed_species.get_all_cids():
                 pmap_obs = observed_species.cid2PseudoisomerMap(cid)
-                groupvector = GroupVector(self.groups_data) # use an empty group vector
-                source_string = observed_species.cid2SourceString(cid)
-
+                self.cid2source_string[cid] = observed_species.cid2SourceString(cid)
                 pmatrix = pmap_obs.ToMatrix() # returns a list of (nH, z, nMg, dG0)
                 if len(pmatrix) == 1 and diss_table is not None:
                     # assume that only the most abundant pseudoisomer is given
@@ -446,30 +584,22 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     nH, _z, nMg, dG0 = pmatrix[0]
                     diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
                     pmap = diss_table.GetPseudoisomerMap()
+                    self.SetPseudoisomerMap(cid, pmap)
                 else:
                     if diss_table is not None:
                         logging.warning("C%05d has multiple training species, "
                                         "overriding the dissociation table" % cid)
-                    pmap = pmap_obs
+                    self.SetPseudoisomerMap(cid, pmap_obs)
             elif diss_table is None:
                 self.html_writer.write('Warning: no dissociation table</br>\n')
                 continue
             else:
-                nH, nMg = diss_table.GetMostAbundantPseudoisomer(
-                    pH=default_pH, I=0, pMg=14, T=default_T)
-                mol = diss_table.GetMol(nH, nMg)
-                if mol is None:
+                nH, nMg = self.cid2nH_nMg[cid]
+                groupvector = self.cid2groupvec.get(cid, None)
+                if groupvector is None:
+                    self.html_writer.write('Warning: no group vector (%s)</br>\n'
+                                           % self.cid2error[cid])
                     continue
-                try:
-                    decomposition = self.Mol2Decomposition(mol,
-                                                           ignore_protonations=False)
-                except GroupDecompositionError as e:
-                    self.cid2error[cid] = str(e)
-                    self.html_writer.write('Error: %s</br>\n' % str(e))
-                    logging.debug("C%05d: %s" % (cid, str(e)))
-                    continue
-
-                groupvector = decomposition.AsVector()
                 try:
                     dG0 = self.groupvec2val(groupvector)
                 except GroupMissingTrainDataError as e:
@@ -479,82 +609,34 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     dG0 = e.value
                     self.html_writer.write('Warning: %s</br>\n' % str(e))
                     logging.debug("C%05d: %s" % (cid, str(e)))
-                    self.cid2error[cid] = str(e)
 
-                source_string = "Group Contribution"
+                self.cid2source_string[cid] = "Group Contribution"
                 
                 if self.transformed:
                     diss_table.SetTransformedFormationEnergy(dG0_tag=dG0, 
                         pH=default_pH, I=default_I, pMg=default_pMg, T=default_T)
                 else:
-                    if nH != groupvector.Hydrogens() or nMg != groupvector.Magnesiums():
-                        err_msg = "The most abundant pseudoisomer is [nH=%d, nMg=%d], " \
-                            "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
-                            "" % (nH, nMg, groupvector.Hydrogens(), groupvector.Magnesiums())
-                        self.html_writer.write('ERROR: %s</br>\n' % err_msg)
-                        self.cid2error[cid] = err_msg
-                        continue
-                    diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
+                    diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0,
+                                                                nH=nH, nMg=nMg)
                 pmap = diss_table.GetPseudoisomerMap()
+                self.SetPseudoisomerMap(cid, pmap)
+            self.cid2PseudoisomerMap(cid).WriteToHTML(self.html_writer)
 
-            #if diss_table is not None:
-            #    self.html_writer.write('<b>Dissociation table:</b></br>\n')
-            #    diss_table.WriteToHTML(self.html_writer)
-            
-            if groupvector:
-                self.html_writer.write('Group vector = %s</br>\n' % str(groupvector))
-                self.html_writer.write('nH = %d, charge = %d, nMg = %d</br>\n' % 
-                                       (groupvector.Hydrogens(),
-                                        groupvector.NetCharge(),
-                                        groupvector.Magnesiums()))
-
-            self.SetPseudoisomerMap(cid, pmap)
-            self.cid2groupvec[cid] = groupvector
-            self.cid2source_string[cid] = source_string
-            #self.html_writer.write('<b>Pseudoisomer table:</b></br>\n')
-            #pmap.WriteToHTML(self.html_writer)
-            
         self.html_writer.div_end()
         
         logging.info("Writing the results to the database")
-        G.ToDatabase(self.db, table_name=self.PMAP_TABLE_NAME, 
-                     error_table_name=self.ERROR_TABLE_NAME)
-        self.db.CreateTable(self.GROUPVEC_TABLE_NAME, 'cid TEXT, groupvec TEXT')
-        for cid, groupvec in self.cid2groupvec.iteritems():
-            self.db.Insert(self.GROUPVEC_TABLE_NAME, [cid, groupvec.ToJSONString()])
-        self.db.Commit()
-        self.KeggErrorReport()
+        self.ToDatabase(self.db, self.THERMODYNAMICS_TABLE_NAME)
 
-    def FromDatabase(self, db, table_name):
-        # Read the formation energies of all pseudoisomers from the database
-        reader = db.DictReader(table_name)
-        PsuedoisomerTableThermodynamics._FromDictReader(
-            reader, self, label=None, name="Group Contribution",
-            warn_for_conflicting_refs=False)
-        
-        # Read the error messages from the database
-        self.cid2error = {}            
-        for row in db.DictReader(self.ERROR_TABLE_NAME):
-            cid = int(row['cid'])
-            if not cid:
-                continue
-            self.cid2error[cid] = row['error']
-
-        # Read the group-vectors from the database
-        self.cid2groupvec = {}
-        for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
-            cid = int(row['cid'])
-            groupvec = GroupVector.FromJSONString(self.groups_data, row['groupvec'])
-            self.cid2groupvec[cid] = groupvec
-    
     def Reaction2GroupVector(self, sparse):
         total_groupvec = GroupVector(self.groups_data)
         for cid, coeff in sparse.iteritems():
-            if cid not in self.cid2groupvec: # one of the compounds has no observed or estimated formation energy
+            if cid not in self.cid2groupvec:
+                # one of the compounds has no observed or estimated formation energy
                 raise MissingReactionEnergy("%s (C%05d) has no GroupVector" % 
                     (self.kegg.cid2name(cid), cid), sparse)
             groupvec = self.cid2groupvec[cid]
-            total_groupvec += groupvec * coeff
+            if groupvec is not None:
+                total_groupvec += groupvec * coeff
         return total_groupvec
     
     def VerifyReaction(self, sparse):
@@ -620,7 +702,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         for row in self.db.DictReader(self.CONTRIBUTION_TABLE_NAME):
             self.group_contributions.append(row['dG0_gr'])
         self.group_contributions = pylab.array([self.group_contributions])
-
         self.group_nullspace = self.db.LoadNumpyMatrix(self.NULLSPACE_TABLE_NAME)
                         
     def GetGroupContribution(self, name, nH, z, nMg=0):
@@ -643,12 +724,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             return None
         pK_Mg = (dG0_gr_without_Mg + dG0_f_Mg - dG0_gr_with_Mg)/(R*default_T*pylab.log(10))
         return pK_Mg
-
-    def KeggErrorReport(self):
-        error_strings = ['kernel', 'decompose', 'explicit', 'provided', 'dissociation']
-        query = ' UNION '.join(["SELECT '%s', COUNT(*) FROM %s WHERE error LIKE '%%%s%%'" % 
-                                (e, self.ERROR_TABLE_NAME, e) for e in error_strings])
-        self.db.Query2HTML(self.html_writer, query, ['Error', 'Count'])
 
     def AnalyzeSingleKeggCompound(self, cid, ignore_protonations=False):
         print 'Analyzing C%05d (%s):' % (cid, self.kegg.cid2name(cid))
@@ -682,6 +757,17 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         print 'nMg = ', decomposition.Magnesiums()
         mol.Draw()
         
+    def init(self):
+        self.LoadGroups(True)
+        self.LoadObservations(True)
+        self.LoadGroupVectors(True)
+        self.LoadContributionsFromDB()
+        
+        reader = self.db.DictReader(self.THERMODYNAMICS_TABLE_NAME)
+        PsuedoisomerTableThermodynamics._FromDictReader(
+            reader, self, label=None, name="Group Contribution",
+            warn_for_conflicting_refs=False)
+
 #################################################################################################################
 #                                                   MAIN                                                        #
 #################################################################################################################
@@ -709,8 +795,8 @@ def MakeOpts():
     opt_parser.add_option("-e", "--test", action="store_true",
                           dest="test_only", default=False,
                           help="A flag for running the TEST only (without TRAIN)")
-    opt_parser.add_option("-f", "--from_files", action="store_false",
-                          dest="from_files", default=True,
+    opt_parser.add_option("-d", "--from_database", action="store_true",
+                          dest="from_database", default=False,
                           help="A flag for loading the data from the DB instead of "
                                "the CSV files (saves time but no debug information)")
     return opt_parser
@@ -759,14 +845,20 @@ if __name__ == '__main__':
             
         G = GroupContribution(db=db, html_writer=html_writer,
                               transformed=options.transformed)
+        
         if not options.test_only:
-            G.LoadGroups(FromFiles=options.from_files)
-            G.Train(FromFiles=options.from_files, assert_decomposition=False)
+            G.LoadGroups(options.from_database)
+            G.LoadObservations(options.from_database)
+            G.LoadGroupVectors(options.from_database)
+            G.Train()
             G.WriteRegressionReport()
-            G.analyze_training_set()
+            G.AnalyzeTrainingSet()
         else:
-            G.init()
-
+            G.LoadGroups(True)
+            G.LoadObservations(True)
+            G.LoadGroupVectors(True)
+            G.LoadContributionsFromDB()
+        
         if not options.train_only:
             G.EstimateKeggCids()
 
