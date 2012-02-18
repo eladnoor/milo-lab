@@ -10,6 +10,7 @@ from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
 from toolbox.molecule import Molecule, OpenBabelError
 from optparse import OptionParser
+import types
 
 class MissingDissociationConstantError(Exception):
     
@@ -369,8 +370,10 @@ class DissociationTable(object):
         # and the values are pairs of (ddG0, reference)
         self.ddGs = {}
         
-        # mol_dict is a dictionary from pairs of (nH, nMg) to Molecule objects
-        # describing the corresponding pseudoisomer
+        # mol_dict is a dictionary from pairs of (nH, nMg) to a pair
+        # (smiles, mol) where "smiles" is a string and "mol" is a Molecule object.
+        # the usage of "mol" is lazy, i.e. it will be created only if requested
+        # specifically, otherwise it will be None
         self.mol_dict = {}
         
         self.cid = cid
@@ -397,8 +400,9 @@ class DissociationTable(object):
                 s += "pKMg (nMg=%d -> nMg=%d) : %.1f\n" % \
                     (nMg_above, nMg_below, pKMg)
 
-        for (nH, nMg), mol in self.mol_dict.iteritems():
-            s += "Pseudoisomer nH=%d nMg=%d : %s\n" % (nH, nMg, mol.ToSmiles())
+        for nH, nMg in self.mol_dict.keys():
+            s += "Pseudoisomer nH=%d nMg=%d : %s\n" % \
+                 (nH, nMg, self.GetMolString(nH, nMg))
         
         return s
 
@@ -448,9 +452,15 @@ class DissociationTable(object):
         return self.ddGs.__iter__()
     
     def GetMol(self, nH=None, nMg=0):
-        if nH == None:
+        if nH is None:
             nH = self.min_nH
-        return self.mol_dict.get((nH, nMg), None)
+        if (nH, nMg) not in self.mol_dict:
+            return None
+        s, mol = self.mol_dict[nH, nMg]
+        if mol is None:
+            mol = Molecule.FromSmiles(s)
+        self.mol_dict[nH, nMg] = (s, mol)
+        return mol
     
     def GetSVG(self, nH=None, nMg=0):
         mol = self.GetMol(nH, nMg)
@@ -460,17 +470,18 @@ class DissociationTable(object):
             return ""
     
     def GetMolString(self, nH=None, nMg=0):
-        mol = self.GetMol(nH, nMg)
-        if mol is not None:
-            return mol.ToSmiles()
-        else:
+        if (nH, nMg) not in self.mol_dict:
             return None
-        
+        s, _ = self.GetMol(nH, nMg)
+        return s
+    
     def SetMolString(self, nH, nMg, s):
         self.UpdateMinNumHydrogens(nH)
         if s:
-            mol = Molecule.FromSmiles(str(s))
-            self.mol_dict[nH, nMg] = mol
+            self.mol_dict[nH, nMg] = (str(s), None)
+            
+    def SetMol(self, nH, nMg, mol):
+        self.mol_dict[nH, nMg] = (mol.ToSmiles(), mol)
     
     def ToDatabaseRow(self):
         """
@@ -518,9 +529,9 @@ class DissociationTable(object):
         key = (nH_above, nH_below, nMg, nMg)
         self.ddGs[key] = (-ddG0, ref) # adding H+ decreases dG0
         if mol_above is not None:
-            self.mol_dict[nH_above, nMg] = mol_above
+            self.SetMol(nH_above, nMg, mol_above)
         if mol_below is not None:
-            self.mol_dict[nH_below, nMg] = mol_below
+            self.SetMol(nH_below, nMg, mol_below)
         self.UpdateMinNumHydrogens(nH_above)
         
     def AddpKMg(self, pKMg, nMg_below, nMg_above, nH, ref="", T=default_T, 
@@ -533,9 +544,9 @@ class DissociationTable(object):
         key = (nH, nH, nMg_above, nMg_below)
         self.ddGs[key] = (-ddG0, ref) # adding Mg+2 decreases dG0
         if mol_above is not None:
-            self.mol_dict[nH, nMg_above] = mol_above
+            self.SetMol(nH, nMg_above, mol_above)
         if mol_below is not None:
-            self.mol_dict[nH, nMg_below] = mol_below
+            self.SetMol(nH, nMg_below, mol_below)
         self.UpdateMinNumHydrogens(nH)
     
     def SetOnlyPseudoisomer(self, mol, nMg=0):
@@ -546,7 +557,7 @@ class DissociationTable(object):
         if len(self.ddGs):
             raise ValueError("You tried to set the only-pseudoisomer of a compound that has pKas/pKMgs")
         nH, z = mol.GetHydrogensAndCharge()
-        self.mol_dict[nH, nMg] = mol
+        self.SetMol(nH, nMg, mol)
         self.min_nH = nH
         if z is not None:
             self.SetCharge(nH, z, nMg)
@@ -760,7 +771,8 @@ class DissociationTable(object):
         return self.GetMol(nH, nMg)
         
     def GetAnyMol(self):
-        for mol in self.mol_dict.values():
+        for nH, nMg in self.mol_dict.keys():
+            mol = self.GetMol(nH, nMg)
             if mol is not None:
                 return mol
         return None
