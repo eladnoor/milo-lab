@@ -121,9 +121,10 @@ class SQLDatabase(Database):
             table_data.append(row_dict)
         return table_data    
     
-    def SaveNumpyMatrix(self, table_name, mat):
+    def SaveSparseNumpyMatrix(self, table_name, mat):
         """
-            Creates a new table and saves a 2D array in the database.
+            Creates a new table and saves a 2D array in the database
+            in a sparse notation.
         """
         if len(mat.shape) != 2:
             raise ValueError("Can only save 2D arrays in a database")
@@ -134,9 +135,29 @@ class SQLDatabase(Database):
             columns = ', '.join('col%d REAL' % i for i in xrange(mat.shape[1]))
         else:
             raise ValueError("Can only save int or float matrices in a database")
-        self.CreateTable(table_name, columns)
-        for j in xrange(mat.shape[0]):
-            self.Insert(table_name, mat[j, :].tolist())
+        self.CreateTable(table_name, columns, drop_if_exists=True)
+        self.Insert(table_name, [mat.shape[0], mat.shape[1], 0])
+        r_nonzero, c_nonzero = np.nonzero(mat)
+        for r, c in zip(r_nonzero.tolist(), c_nonzero.tolist()):
+            self.Insert(table_name, [r, c, mat[r, c]])
+
+    def LoadSparseNumpyMatrix(self, table_name):
+        """
+            Loads the values of a matrix stored in the database as a table.
+        """
+        mat = None
+        for row in self.Execute("SELECT row, column, value FROM %s" % table_name):
+            r, c, v = row['row'], row['column'], row['value']
+            if mat is None:
+                if type(v) == types.IntType:
+                    mat = np.zeros((r, c), dtype='int')
+                elif type(v) == types.FloatType:
+                    mat = np.zeros((r, c), dtype='float')
+                else:
+                    raise ValueError('The values of a sparse matrix must be Int or Float')
+            else:
+                mat[r, c] = v
+        return np.array(mat)
             
     def LoadNumpyMatrix(self, table_name):
         """
@@ -146,6 +167,23 @@ class SQLDatabase(Database):
         for row in self.Execute("SELECT * FROM %s" % table_name):
             mat.append(row)
         return np.array(mat)
+
+    def SaveNumpyMatrix(self, table_name, mat):
+        """
+            Creates a new table and saves a 2D array in the database.
+        """
+        if len(mat.shape) != 2:
+            raise ValueError("Can only save 2D arrays in a database")
+        
+        if mat.dtype in ('int', 'int64', 'int32', 'int16'):
+            columns = "row INT, column INT, value INT"
+        elif mat.dtype in ('float', 'float64', 'float32'):
+            columns = "row INT, column INT, value FLOAT"
+        else:
+            raise ValueError("Can only save int or float matrices in a database")
+        self.CreateTable(table_name, columns)
+        for j in xrange(mat.shape[0]):
+            self.Insert(table_name, mat[j, :].tolist())
         
 class SqliteDatabase(SQLDatabase):
     
