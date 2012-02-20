@@ -94,6 +94,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.REGRESSION_TABLE_NAME = prefix + '_regression'
         
         self.THERMODYNAMICS_TABLE_NAME = prefix + '_pseudoisomers'
+        self.STOICHIOMETRIC_MATRIX_TABLE_NAME = prefix + '_stoichiometry'
+        self.STOICHIOMETRIC_MATRIX_TABLE_NAME = prefix + '_stoichiometry'
         
     def GetDissociationConstants(self):
         """
@@ -248,6 +250,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
     def Train(self):
         logging.info("Calculating the linear regression data")
         cids, S, b, anchored = self.obs_collection.GetStoichiometry()
+        
         obs_ids = [obs.obs_id for obs in self.obs_collection.observations]
         obs_types = [obs.obs_type for obs in self.obs_collection.observations]
 

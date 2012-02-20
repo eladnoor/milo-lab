@@ -20,10 +20,8 @@ from pygibbs.thermodynamic_errors import MissingReactionEnergy
 class NistMissingCrucialDataException(Exception):
     pass
 
-
 class NistReactionBalanceException(Exception):
     pass
-
 
 class NistRowData:
     def __init__(self):
