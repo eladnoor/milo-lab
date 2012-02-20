@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from pygibbs.group_vector import GroupVector
 from pygibbs.groups_data import GroupsData
 from pygibbs.group_observation import GroupObervationCollection
-from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs.kegg import Kegg
@@ -80,83 +79,77 @@ class UnifiedGroupContribution(object):
             Return:
                 The estimated Gibbs energy of 'r'
         """
-        bad_compounds = np.where(self.has_groupvec==0)[1]
-        
-        est_pgc = np.zeros((1, r.shape[1])) * np.nan
-        est_ugc = np.zeros((1, r.shape[1])) * np.nan
-
         # calculate the contributions of compounds
         g_S, PC_S, PL_S = UnifiedGroupContribution.regress(S, b)
+        r_C = np.dot(PC_S, r) # the part of 'r' which is in the column-space of S
+        r_L = np.dot(PL_S, r) # the part of 'r' which is in the left-null-space of S
         
+        est_prc = np.dot(g_S, r_C)
         for k in xrange(r.shape[1]):
-            if np.all(r[:, k] == 0):
-                est_pgc[0, k] = 0
-                est_ugc[0, k] = 0
+            if np.any(abs(r_L[:, k]) > 1e-10):
+                # this reaction is not in the column space of S 
+                est_prc[0, k] = np.nan
+
+        bad_compounds = np.where(self.has_groupvec==0)[1]
+        reactions_to_use = []
+        for i in xrange(S.shape[1]):
+            if np.all(S[bad_compounds, i] == 0):
+                reactions_to_use.append(i)
+        GS = np.dot(self.G.T, S[:, reactions_to_use])
+        g_GS, PC_GS, PL_GS = UnifiedGroupContribution.regress(GS, b)
+
+        est_pgc = np.zeros((1, r.shape[1]))
+        for k in xrange(r.shape[1]):
+            if np.any(abs(r[bad_compounds, k]) > 1e-10):
+                # this reaction involves compounds which don't have groupvectors
+                est_pgc[0, k] = np.nan
                 continue
 
-            if np.any(r[bad_compounds, k] != 0):
-                # cannot use group contribution for these reactions. Use only PRC
-                
-                if np.any(abs(np.dot(PL_S, r[:, k])) > 1e-10):
-                    continue
-                
-                est_ugc[0, k] = np.dot(g_S, r[:, k])[0]
-                
-                
-            if np.any(abs(np.dot(PL_S, r[:, k])) > 1e-10):
-                # this reaction is not in the space of S, but we might still
-                # be able to use group contribution
+            r_groupvec = np.dot(self.G.T, r[:, k])
+            if np.any(abs(np.dot(PL_GS, r_groupvec)) > 1e-10):
+                # this reaction's groupvector is not in the column space of GS
+                est_pgc[0, k] = np.nan
                 continue
-                
-        bad_cols = np.where(self.has_groupvec==0)[1]
-        if np.any(r[:, bad_cols] != 0):
-            # cannot use group contribution for these reactions. Use only PRC
+            est_pgc[0, k] = np.dot(g_GS, r_groupvec)[0]
+
+        est_ugc = np.zeros((1, r.shape[1]))
+        for k in xrange(r.shape[1]):
+            if np.any(abs(r_L[bad_compounds, k]) > 1e-10):
+                # this reaction involves compounds which don't have groupvectors
+                est_ugc[0, k] = np.nan
+                continue
+
+            r_groupvec_L = np.dot(self.G.T, r_L[:, k])
+            if np.any(abs(np.dot(PL_GS, r_groupvec_L)) > 1e-10):
+                # this reaction's groupvector is not in the column space of GS
+                est_ugc[0, k] = np.nan
+                continue
+
+            est_ugc[0, k] = np.dot(g_GS, r_groupvec_L)[0] + est_prc[0, k]
             
-            # calculate the contributions of compounds
-            g_S, P_C, P_L = UnifiedGroupContribution.regress(S, b)
-            
-            for i in np.where(np.sum(abs(np.dot(P_L, r)), 0) > 1e-10):
-                est_ugc[0, i] = np.nan
-        else:
-            cont_GS, P_C1, P_L1 = UnifiedGroupContribution.regress(np.dot(self.G.T, S), b)
-        
-            # we must check that r is in the column-space of GS,
-            # otherwise there is no way to estimate anything
-            r_in_groups = np.dot(self.G.T, r)
-            if np.any(abs(np.dot(P_L1, r_in_groups)) > 1e-10):
-                raise UnknownReactionEnergyError("The given reaction is not in the group space of observed reaction")
-            
-            # convert the group contributions to compound contributions
-            cont_G = np.dot(cont_GS, self.G.T)
-            est_pgc = np.dot(cont_G, r)   # the full Gibbs energy attributed to Groups
-            
-            # calculate the contributions of compounds back-calculated from the gruops
-            cont_S, P_C2, P_L2 = UnifiedGroupContribution.regress(S, b)
-            
-            r_C = np.dot(P_C2, r) # the part of 'r' which is in the column-space of S
-            r_L = np.dot(P_L2, r) # the part of 'r' which is in the left-null-space of S
-            
-            g_C = np.dot(cont_S, r_C) # the Gibbs energy attributed to NIST directly
-            g_L = np.dot(cont_G, r_L) # the residual Gibbs energy attributed to Groups
-            est_ugc = g_C + g_L
-        
-        return est_pgc, est_ugc
+        return np.vstack([est_prc, est_pgc, est_ugc])
     
-    def Report(self, b_pgc, b_ugc):
+    def Report(self, est):
         kegg = Kegg.getInstance()
-        used_reactions = np.where(np.isfinite(b_pgc))[1]
         
-        r_pgc = rms_flat(self.b[0, used_reactions] - b_pgc[0, used_reactions])
-        r_ugc = rms_flat(self.b[0, used_reactions] - b_ugc[0, used_reactions])
-        self.html_writer.write_ul(["RMSE(PGC) = %.1f" % r_pgc,
-                                   "RMSE(UGC) = %.1f" % r_ugc])
+        legend = ['PRC', 'PGC', 'UGC']
+        resid = est - np.repeat(self.b, est.shape[0], 0)
         
         fig = plt.figure(figsize=(6,6))
-        resid = np.vstack([self.b - b_pgc, self.b - b_ugc])
-        plt.plot(self.b[:, used_reactions].T, resid[:, used_reactions].T, '.', figure=fig)
+        rms = []
+        for j in xrange(est.shape[0]):
+            used_reactions = np.where(np.isfinite(resid[j, :]))[0]
+            rms.append(rms_flat(resid[j, used_reactions]))
+            plt.plot(self.b[0, used_reactions],
+                     resid[j, used_reactions],
+                     '.', figure=fig, label=legend[j])
+        
+        self.html_writer.write_ul(["RMSE(%s) = %.1f" % (legend[j], rms[j])
+                                   for j in xrange(est.shape[0])])
+        
         plt.xlabel(r"$\Delta_r G^{'\circ}$ observed [kJ/mol]")
         plt.ylabel(r"$\Delta_r G^{'\circ}$ residual [kJ/mol]")
-        plt.legend(['PGC', 'UGC'])
+        plt.legend()
         self.html_writer.embed_matplotlib_figure(fig)
         
         self.html_writer.insert_toggle(start_here=True, label="Show table")
@@ -169,42 +162,35 @@ class UnifiedGroupContribution(object):
             rowdict['ID'] = self.obs_ids[i]
             rowdict['type'] = self.obs_types[i]
             rowdict['observed'] = "%.1f" % (self.b[0, i] + self.b_anchored[0, i])
-            rowdict['r<sub>PGC</sub>'] = "%.1f" % resid[0, i]
-            rowdict['r<sub>UGC</sub>'] = "%.1f" % resid[1, i]
+            for j in xrange(est.shape[0]):
+                rowdict[legend[j]] = "%.1f" % resid[j, i]
             rowdict['key'] = abs(resid[1, i])
             rowdicts.append(rowdict)
         rowdicts.sort(key=lambda x:x['key'], reverse=True)
         self.html_writer.write_table(rowdicts,
-            headers=['#', 'ID', 'type', 'reaction', 'observed',
-                     'r<sub>PGC</sub>', 'r<sub>UGC</sub>'])
+            headers=['#', 'ID', 'type', 'reaction', 'observed'] + legend)
         self.html_writer.div_end()
         
     def Loo(self):
         self.html_writer.write('<h2>Linear Regression Leave-One-Out Analysis</h2>\n')
 
         n = self.S.shape[1]
-        b_pgc = np.zeros(self.b.shape)
-        b_ugc = np.zeros(self.b.shape)
+        est = np.zeros((3, n))
         for i in xrange(n):
             no_i = range(0, i) + range(i+1, n)
-            try:
-                est_pgc, est_ugc = self..Estimate(self.S[:, no_i], self.b[:, no_i], self.S[:, i])
-                b_pgc[0, i] = est_pgc[0]
-                b_ugc[0, i] = est_ugc[0]
-                print "%6.1f   %6.1f   %6.1f" % (self.b[0, i],
-                                                 abs(self.b[0, i] - b_pgc[0, i]),
-                                                 abs(self.b[0, i] - b_ugc[0, i]))
-            except UnknownReactionEnergyError as e:
-                print str(e)
-                b_pgc[0, i] = np.nan
-                b_ugc[0, i] = np.nan
+            e = self.Estimate(self.S[:, no_i], self.b[:, no_i], self.S[:, i:i+1])
+            est[:, i:i+1] = e
+            print 'obs = %.1f' % self.b[0, i]
+            print 'PGC =', self.b[0, i] - est[0, i]
+            print 'PRC =', self.b[0, i] - est[1, i]
+            print 'UGC =', self.b[0, i] - est[2, i]
         
-        self.Report(b_pgc, b_ugc)
+        self.Report(est)
         
     def Fit(self):
         self.html_writer.write('<h2>Linear Regression Fit Analysis</h2>\n')
-        b_pgc, b_ugc = self.Estimate(self.S, self.b, self.S)
-        self.Report(b_pgc, b_ugc)
+        est = self.Estimate(self.S, self.b, self.S)
+        self.Report(est)
     
     def NormalizeAnchors(self):
         # now remove anchored data from S and leave only the data which will be 
@@ -226,7 +212,7 @@ class UnifiedGroupContribution(object):
         
         # set epsilon-small values to absolute 0
         self.S[np.where(abs(self.S) < 1e-10)] = 0
-    
+        
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     html_writer = HtmlWriter('../res/ugc.html')
