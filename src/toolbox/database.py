@@ -130,13 +130,17 @@ class SQLDatabase(Database):
             raise ValueError("Can only save 2D arrays in a database")
         
         if mat.dtype in ('int', 'int64', 'int32', 'int16'):
-            columns = ', '.join('col%d INT' % i for i in xrange(mat.shape[1]))
+            columns = "row INT, column INT, value INT"
         elif mat.dtype in ('float', 'float64', 'float32'):
-            columns = ', '.join('col%d REAL' % i for i in xrange(mat.shape[1]))
+            columns = "row INT, column INT, value FLOAT"
         else:
             raise ValueError("Can only save int or float matrices in a database")
         self.CreateTable(table_name, columns, drop_if_exists=True)
+        
+        # insert the first entry which contains the dimensions of the matrix
         self.Insert(table_name, [mat.shape[0], mat.shape[1], 0])
+        
+        # insert all non-zero values
         r_nonzero, c_nonzero = np.nonzero(mat)
         for r, c in zip(r_nonzero.tolist(), c_nonzero.tolist()):
             self.Insert(table_name, [r, c, mat[r, c]])
@@ -176,12 +180,12 @@ class SQLDatabase(Database):
             raise ValueError("Can only save 2D arrays in a database")
         
         if mat.dtype in ('int', 'int64', 'int32', 'int16'):
-            columns = "row INT, column INT, value INT"
+            columns = ', '.join('col%d INT' % i for i in xrange(mat.shape[1]))
         elif mat.dtype in ('float', 'float64', 'float32'):
-            columns = "row INT, column INT, value FLOAT"
+            columns = ', '.join('col%d REAL' % i for i in xrange(mat.shape[1]))
         else:
             raise ValueError("Can only save int or float matrices in a database")
-        self.CreateTable(table_name, columns)
+        self.CreateTable(table_name, columns, drop_if_exists=True)
         for j in xrange(mat.shape[0]):
             self.Insert(table_name, mat[j, :].tolist())
         

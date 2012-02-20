@@ -175,6 +175,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.cid2error = {}            
 
         if not FromDatabase:
+            logging.info("Decomposing all compounds and calculating group vectors")
             self.html_writer.write('</br><b>All Groupvectors</b>\n')
             self.html_writer.insert_toggle(start_here=True)
             # When using non-transformed energies, it is very important for
@@ -230,7 +231,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.db.Commit()
             self.html_writer.div_end()
         else:
-            # Read the group-vectors from the database
+            logging.info("Reading group-vectors from database")
             self.cid2nH_nMg = {}
             for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
                 cid = row['cid']
@@ -289,10 +290,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         for i, i_cid in enumerate(used_cid_indices):
             G[i, :] = self.cid2groupvec[cids[i_cid]].Flatten()
 
-        # 'unique' the rows S. For each set of rows that is united,
-        # the Y-value for the new row is the average of the corresponding Y-values.
         GS = np.dot(G.T, S)
 
+        # 'unique' the rows GS. For each set of rows that is united,
+        # the Y-value for the new row is the average of the corresponding Y-values.
         unique_GS, col_mapping = LinearRegression.ColumnUnique(GS, remove_zero=True)
         unique_b = np.zeros((1, unique_GS.shape[1]))
         unique_obs_types = []
@@ -353,7 +354,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.db.Insert(self.CONTRIBUTION_TABLE_NAME,
                 [j, group_name, nH, z, nMg, dG0_gr])
             
-        self.db.SaveNumpyMatrix(self.NULLSPACE_TABLE_NAME, self.group_nullspace)
+        self.db.SaveSparseNumpyMatrix(self.NULLSPACE_TABLE_NAME,
+                                      self.group_nullspace)
         self.db.Commit()
             
     def does_table_exist(self, table_name):
@@ -702,7 +704,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         for row in self.db.DictReader(self.CONTRIBUTION_TABLE_NAME):
             self.group_contributions.append(row['dG0_gr'])
         self.group_contributions = pylab.array([self.group_contributions])
-        self.group_nullspace = self.db.LoadNumpyMatrix(self.NULLSPACE_TABLE_NAME)
+        self.group_nullspace = self.db.LoadSparseNumpyMatrix(self.NULLSPACE_TABLE_NAME)
                         
     def GetGroupContribution(self, name, nH, z, nMg=0):
         gr = Group(None, name, nH, z, nMg)
