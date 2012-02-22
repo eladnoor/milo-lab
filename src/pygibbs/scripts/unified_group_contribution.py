@@ -8,6 +8,9 @@ from pygibbs.group_observation import GroupObervationCollection
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 from pygibbs.kegg import Kegg
+from toolbox.linear_regression import LinearRegression
+import sys
+from pygibbs.kegg_reaction import Reaction
 
 class UnknownReactionEnergyError(Exception):
     pass
@@ -17,8 +20,34 @@ class UnifiedGroupContribution(object):
     def __init__(self, db, html_writer):
         self.db = db
         self.html_writer = html_writer
-        
-    def LoadData(self, db):
+    
+    @staticmethod
+    def regress(A, y):
+        """
+            Solves for x in the minimization of ||xA - y||
+            using linear regression.
+            
+            Returns:
+                x   - the regression result
+                P_C - a projection matrix onto the column-space of A
+                P_L - a projection matrix onto the left-null-space of A
+                
+            Note:
+                Using x * r for extrapolating the values of 'y' to a new 
+                column will only be valid if r is in the column-space of A.
+                To check that, one must see that P_L * r == 0.
+        """
+        U, s, V = np.linalg.svd(A, full_matrices=True)
+        r = len(np.where(s > 1e-10)[0]) # the rank of A
+        inv_S = np.zeros(A.shape).T
+        for i in xrange(r):
+            inv_S[i, i] = 1.0 / s[i]
+        x = np.dot(np.dot(np.dot(y, V.T), inv_S), U.T)
+        P_C = np.dot(U[:,:r], U[:,:r].T) # a projection matrix onto the row-space of A
+        P_L = np.dot(U[:,r:], U[:,r:].T) # a projection matrix onto the null-space of A
+        return x, P_C, P_L
+    
+    def LoadData(self):
         groups_data = GroupsData.FromDatabase(self.db, transformed=False)
     
         cid2nH_nMg = {}
@@ -36,39 +65,87 @@ class UnifiedGroupContribution(object):
             cid2error[cid] = row['err']
             cid2nH_nMg[cid] = (row['nH'], row['nMg'])
         
-        obs_collection = GroupObervationCollection.FromDatabase(db=db,
+        obs_collection = GroupObervationCollection.FromDatabase(db=self.db,
                                 table_name='pgc_observations', transformed=False)
-        self.cids, self.S, self.b, self.anchored = obs_collection.GetStoichiometry()
-        obs_ids = [obs.obs_id for obs in obs_collection.observations]
-        obs_types = [obs.obs_type for obs in obs_collection.observations]
+        self.cids, S, b, anchored = obs_collection.GetStoichiometry()
+        self.S, col_mapping = LinearRegression.ColumnUnique(S)
+        self.b = np.zeros((1, len(col_mapping)), dtype='float')
+        self.anchored = np.zeros((1, len(col_mapping)), dtype='int')
+        self.obs_ids = []
+        self.obs_types = []
+        for i, col_indices in col_mapping.iteritems():
+            self.b[0, i] = np.mean(b[0, col_indices])
+            self.anchored[0, i] = anchored[0, col_indices].max()
+            self.obs_ids.append(','.join([obs_collection.observations[j].obs_id for j in col_indices]))
+            self.obs_types.append(','.join(set(obs_collection.observations[j].obs_type for j in col_indices)))
     
         n_groups = len(groups_data.GetGroupNames()) # number of groups
-        G = np.zeros((len(self.cids), n_groups))
+        self.G = np.zeros((len(self.cids), n_groups))
         self.has_groupvec = np.zeros((len(self.cids), 1))
         for i, cid in enumerate(self.cids):
             if cid2groupvec[cid] is not None:
                 self.has_groupvec[i, 0] = 1
-                G[i, :] = cid2groupvec[cid].Flatten()
-        
-        self.G = G
-        self.obs_types = obs_types
-        self.obs_ids = obs_ids
-        
-        self.S_anchored = np.zeros(self.S.shape)
-        self.b_anchored = np.zeros(self.b.shape)
+                self.G[i, :] = cid2groupvec[cid].Flatten()
+
+    def ToDatabase(self):
+        kegg = Kegg.getInstance()
+        self.db.SaveSparseNumpyMatrix('ugc_S', self.S)
+        self.db.SaveSparseNumpyMatrix('ugc_G', self.G)
+        self.db.SaveNumpyMatrix('ugc_b', self.b.T)
+        self.db.SaveNumpyMatrix('ugc_anchored', self.anchored.T)
+        self.db.CreateTable('ugc_compounds', 'cid INT, name TEXT')
+        for cid in self.cids:
+            self.db.Insert('ugc_compounds', [cid, kegg.cid2name(cid)])
+        self.db.CreateTable('ugc_observations', 'row INT, id TEXT, type TEXT')
+        for i in xrange(len(self.obs_ids)):
+            self.db.Insert('ugc_observations', [i, self.obs_ids[i], self.obs_types[i]])
+        self.db.Commit()
+
+    def FromDatabase(self):
+        self.S = self.db.LoadSparseNumpyMatrix('ugc_S')
+        self.G = self.db.LoadSparseNumpyMatrix('ugc_G')
+        self.b = self.db.LoadNumpyMatrix('ugc_b').T
+        self.anchored = self.db.LoadNumpyMatrix('ugc_anchored').T
+        self.has_groupvec = np.sum(self.G, 1) > 0
+        self.cids = []
+        for rowdict in self.db.DictReader('ugc_compounds'):
+            self.cids.append(int(rowdict['cid']))
+        self.obs_ids = []
+        self.obs_types = []
+        for rowdict in self.db.DictReader('ugc_observations'):
+            self.obs_ids.append(rowdict['id'])
+            self.obs_types.append(rowdict['type'])
     
-    @staticmethod
-    def regress(A, y):
-        U, s, V = np.linalg.svd(A, full_matrices=True)
-        r = len(np.where(s > 1e-10)[0]) # the rank of A
-        inv_S = np.zeros(A.shape).T
-        for i in xrange(r):
-            inv_S[i, i] = 1.0 / s[i]
-        x = np.dot(np.dot(np.dot(y, V.T), inv_S), U.T)
-        P_C = np.dot(U[:,:r], U[:,:r].T) # a projection matrix onto the row-space of A
-        P_L = np.dot(U[:,r:], U[:,r:].T) # a projection matrix onto the null-space of A
-        return x, P_C, P_L
-    
+    def NormalizeAnchors(self):
+        # now remove anchored data from S and leave only the data which will be 
+        # used for calculating the group contributions
+        anchored_cols = np.where(self.anchored==1)[1]
+
+        g, P_C, P_L = UnifiedGroupContribution.regress(self.S[:, anchored_cols],
+                                                       self.b[:, anchored_cols])
+
+        # calculate the matrix and observations which are explained
+        # by the anchored reactions
+        self.S_anchored = np.dot(P_C, self.S)
+        self.b_anchored = np.dot(g, self.S_anchored)
+        self.cids_anchored = list(self.cids)
+        
+        # calculate the matrix and observations which are in the null-space
+        # of the anchored reactions. in other words, b_L are the residuals
+        # of the linear regression 
+        self.S -= self.S_anchored
+        self.b -= self.b_anchored
+        
+        # set epsilon-small values to absolute 0
+        self.S[np.where(abs(self.S) < 1e-10)] = 0
+        
+        # removed zero rows (compounds) from S
+        used_cid_indices = np.nonzero(np.sum(abs(self.S), 1))[0]
+        self.S = self.S[used_cid_indices, :]
+        self.G = self.G[used_cid_indices, :]
+        self.cids = [self.cids[i] for i in used_cid_indices]
+        self.has_groupvec = self.has_groupvec[used_cid_indices, :]
+
     def Estimate(self, S, b, r):
         """
             Given
@@ -79,59 +156,68 @@ class UnifiedGroupContribution(object):
             Return:
                 The estimated Gibbs energy of 'r'
         """
-        # calculate the contributions of compounds
-        g_S, PC_S, PL_S = UnifiedGroupContribution.regress(S, b)
-        r_C = np.dot(PC_S, r) # the part of 'r' which is in the column-space of S
-        r_L = np.dot(PL_S, r) # the part of 'r' which is in the left-null-space of S
+        est = np.zeros((3, r.shape[1])) * np.nan
         
-        est_prc = np.dot(g_S, r_C)
-        for k in xrange(r.shape[1]):
-            if np.any(abs(r_L[:, k]) > 1e-10):
-                # this reaction is not in the column space of S 
-                est_prc[0, k] = np.nan
+        try:
+            # calculate the contributions of compounds
+            g_S, PC_S, PL_S = UnifiedGroupContribution.regress(S, b)
+            r_C = np.dot(PC_S, r) # the part of 'r' which is in the column-space of S
+            r_L = np.dot(PL_S, r) # the part of 'r' which is in the left-null-space of S
+            est[0, :] = np.dot(g_S, r_C)
+        except np.linalg.linalg.LinAlgError:
+            return est
 
-        bad_compounds = np.where(self.has_groupvec==0)[1]
-        reactions_to_use = []
+        bad_compounds = np.where(self.has_groupvec == False)[0]
+        reactions_with_groupvec = []
         for i in xrange(S.shape[1]):
-            if np.all(S[bad_compounds, i] == 0):
-                reactions_to_use.append(i)
-        GS = np.dot(self.G.T, S[:, reactions_to_use])
-        g_GS, PC_GS, PL_GS = UnifiedGroupContribution.regress(GS, b)
+            if np.all(abs(S[bad_compounds, i]) < 1e-10):
+                reactions_with_groupvec.append(i)
 
-        est_pgc = np.zeros((1, r.shape[1]))
-        for k in xrange(r.shape[1]):
-            if np.any(abs(r[bad_compounds, k]) > 1e-10):
-                # this reaction involves compounds which don't have groupvectors
-                est_pgc[0, k] = np.nan
-                continue
+        try:
+            GS = np.dot(self.G.T, S[:, reactions_with_groupvec])
+            g_GS, PC_GS, PL_GS = UnifiedGroupContribution.regress(GS, b[:, reactions_with_groupvec])
+            r_groupvec = np.dot(self.G.T, r)
+            est[1, :] = np.dot(g_GS, r_groupvec)
+            for k in xrange(r.shape[1]):
+                if np.any(abs(r[bad_compounds, k]) > 1e-10):
+                    # this reaction involves compounds which don't have groupvectors
+                    est[1, k] = np.nan
+                elif np.any(abs(np.dot(PL_GS, r_groupvec[:, k])) > 1e-10):
+                    # this reaction's groupvector is not in the column space of GS
+                    est[1, k] = np.nan
+        
+        except np.linalg.linalg.LinAlgError:
+            return est
 
-            r_groupvec = np.dot(self.G.T, r[:, k])
-            if np.any(abs(np.dot(PL_GS, r_groupvec)) > 1e-10):
-                # this reaction's groupvector is not in the column space of GS
-                est_pgc[0, k] = np.nan
-                continue
-            est_pgc[0, k] = np.dot(g_GS, r_groupvec)[0]
-
-        est_ugc = np.zeros((1, r.shape[1]))
+        r_groupvec_L = np.dot(self.G.T, r_L)
+        est[2, :] = np.dot(g_GS, r_groupvec_L) + est[0, :]
         for k in xrange(r.shape[1]):
             if np.any(abs(r_L[bad_compounds, k]) > 1e-10):
                 # this reaction involves compounds which don't have groupvectors
-                est_ugc[0, k] = np.nan
-                continue
-
-            r_groupvec_L = np.dot(self.G.T, r_L[:, k])
-            if np.any(abs(np.dot(PL_GS, r_groupvec_L)) > 1e-10):
+                est[2, k] = np.nan
+            elif np.any(abs(np.dot(PL_GS, r_groupvec_L)) > 1e-10):
                 # this reaction's groupvector is not in the column space of GS
-                est_ugc[0, k] = np.nan
-                continue
+                est[2, k] = np.nan
 
-            est_ugc[0, k] = np.dot(g_GS, r_groupvec_L)[0] + est_prc[0, k]
-            
-        return np.vstack([est_prc, est_pgc, est_ugc])
-    
-    def Report(self, est):
-        kegg = Kegg.getInstance()
+            if np.any(abs(r_L[:, k]) > 1e-10):
+                # this reaction is not in the column space of S 
+                est[0, k] = np.nan
         
+        return est
+    
+    @staticmethod
+    def row2hypertext(S_row, cids):
+        kegg = Kegg.getInstance()
+        sparse = dict((cids[c], S_row[c]) for c in np.nonzero(S_row)[0])
+        return kegg.sparse_to_hypertext(sparse, show_cids=False)
+
+    @staticmethod
+    def row2string(id, S_row, cids):
+        sparse = dict((cids[c], S_row[c]) for c in np.nonzero(S_row)[0])
+        r = Reaction(id, sparse)
+        return r.FullReactionString(show_cids=False)
+
+    def Report(self, est):
         legend = ['PRC', 'PGC', 'UGC']
         resid = est - np.repeat(self.b, est.shape[0], 0)
         
@@ -156,19 +242,20 @@ class UnifiedGroupContribution(object):
         rowdicts = []
         for i in used_reactions:
             rowdict = {}
-            S_row = self.S[:, i] + self.S_anchored[:, i]
-            sparse = dict((self.cids[c], S_row[c]) for c in np.nonzero(S_row)[0])
-            rowdict['reaction'] = kegg.sparse_to_hypertext(sparse, show_cids=False)
-            rowdict['ID'] = self.obs_ids[i]
-            rowdict['type'] = self.obs_types[i]
-            rowdict['observed'] = "%.1f" % (self.b[0, i] + self.b_anchored[0, i])
+            #rowdict['ID'] = self.obs_ids[i]
+            #rowdict['type'] = self.obs_types[i]
+            rowdict['reaction (anch)'] = UnifiedGroupContribution.row2hypertext(self.S_anchored[:, i], self.cids_anchored)
+            rowdict['observed (anch)'] = "%.1f" % self.b_anchored[0, i]
+            rowdict['reaction'] = UnifiedGroupContribution.row2hypertext(self.S[:, i], self.cids)
+            rowdict['observed'] = "%.1f" % self.b[0, i]
             for j in xrange(est.shape[0]):
                 rowdict[legend[j]] = "%.1f" % resid[j, i]
             rowdict['key'] = abs(resid[1, i])
             rowdicts.append(rowdict)
         rowdicts.sort(key=lambda x:x['key'], reverse=True)
         self.html_writer.write_table(rowdicts,
-            headers=['#', 'ID', 'type', 'reaction', 'observed'] + legend)
+            #headers=['#', 'ID', 'type', 'reaction', 'observed'] + legend)
+            headers=['#', 'reaction (anch)', 'observed (anch)', 'reaction', 'observed'] + legend)
         self.html_writer.div_end()
         
     def Loo(self):
@@ -177,14 +264,19 @@ class UnifiedGroupContribution(object):
         n = self.S.shape[1]
         est = np.zeros((3, n))
         for i in xrange(n):
+            if self.obs_types[i] == 'formation':
+                continue
+            if np.all(abs(self.S[:, i]) < 1e-10): # empty reaction
+                continue
             no_i = range(0, i) + range(i+1, n)
             e = self.Estimate(self.S[:, no_i], self.b[:, no_i], self.S[:, i:i+1])
             est[:, i:i+1] = e
-            print 'obs = %.1f' % self.b[0, i]
-            print 'PGC =', self.b[0, i] - est[0, i]
-            print 'PRC =', self.b[0, i] - est[1, i]
-            print 'UGC =', self.b[0, i] - est[2, i]
-        
+            print 'dG0\' = %7.1f' % self.b[0, i],
+            print '| PRC = %5.1f' % abs(self.b[0, i] - est[0, i]),
+            print '| PGC = %5.1f' % abs(self.b[0, i] - est[1, i]),
+            print '| UGC = %5.1f' % abs(self.b[0, i] - est[2, i]),
+            print '| %s' % UnifiedGroupContribution.row2string(
+                                    self.obs_ids[i], self.S[:, i], self.cids)        
         self.Report(est)
         
     def Fit(self):
@@ -192,32 +284,16 @@ class UnifiedGroupContribution(object):
         est = self.Estimate(self.S, self.b, self.S)
         self.Report(est)
     
-    def NormalizeAnchors(self):
-        # now remove anchored data from S and leave only the data which will be 
-        # used for calculating the group contributions
-        anchored_cols = np.where(self.anchored==1)[1]
-        g, P_C, P_L = UnifiedGroupContribution.regress(self.S[:, anchored_cols],
-                                                       self.b[:, anchored_cols])
-
-        # calculate the matrix and observations which are explained
-        # by the anchored reactions
-        self.S_anchored = np.dot(P_C, self.S)
-        self.b_anchored = np.dot(g, self.S_anchored)
-        
-        # calculate the matrix and observations which are in the null-space
-        # of the anchored reactions. in other words, b_L are the residuals
-        # of the linear regression 
-        self.S -= self.S_anchored
-        self.b -= self.b_anchored
-        
-        # set epsilon-small values to absolute 0
-        self.S[np.where(abs(self.S) < 1e-10)] = 0
-        
 if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     html_writer = HtmlWriter('../res/ugc.html')
     ugc = UnifiedGroupContribution(db, html_writer)
-    ugc.LoadData(db)
+    if False:
+        ugc.LoadData()
+        ugc.ToDatabase()
+        sys.exit(0)
+    else:
+        ugc.FromDatabase()
     ugc.NormalizeAnchors()
     ugc.Fit()
     ugc.Loo()

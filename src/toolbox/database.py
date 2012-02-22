@@ -150,8 +150,7 @@ class SQLDatabase(Database):
             Loads the values of a matrix stored in the database as a table.
         """
         mat = None
-        for row in self.Execute("SELECT row, column, value FROM %s" % table_name):
-            r, c, v = row['row'], row['column'], row['value']
+        for r, c, v in self.Execute("SELECT row, column, value FROM %s" % table_name):
             if mat is None:
                 if type(v) == types.IntType:
                     mat = np.zeros((r, c), dtype='int')
