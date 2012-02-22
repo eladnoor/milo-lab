@@ -10,9 +10,10 @@ from toolbox.html_writer import NullHtmlWriter
 
 class GroupObservation(object):
     
-    def __init__(self, obs_id, obs_type, anchored, dG0, sparse):
+    def __init__(self, obs_id, obs_type, url, anchored, dG0, sparse):
         self.obs_id = obs_id
         self.obs_type = obs_type # can be 'formation', 'reaction', 'acid-base' or 'Mg'
+        self.url = url
         self.dG0 = dG0
         self.sparse = sparse
         self.anchored = anchored
@@ -35,11 +36,11 @@ class GroupObservation(object):
         for cid, coeff in json.loads(row['reaction']).iteritems():
             sparse[int(cid)] = float(coeff)
         
-        return GroupObservation(row['id'], row['type'], row['anchored'],
-                                row['dG0'], sparse)
+        return GroupObservation(row['id'], row['type'], row['url'],
+                                row['anchored'], row['dG0'], sparse)
         
     def ToCsvRow(self):
-        return [self.obs_id, self.obs_type, self.anchored, self.dG0, 
+        return [self.obs_id, self.obs_type, self.url, self.anchored, self.dG0, 
                 json.dumps(self.sparse)]
     
     def __hash__(self):
@@ -92,8 +93,8 @@ class GroupObervationCollection(object):
         
         return obs_collections
     
-    def AddObservation(self, obs_id, obs_type, anchored, dG0, sparse):
-        obs = GroupObservation(obs_id, obs_type, anchored, dG0, sparse)
+    def AddObservation(self, obs_id, obs_type, url, anchored, dG0, sparse):
+        obs = GroupObservation(obs_id, obs_type, url, anchored, dG0, sparse)
         obs.Normalize()
         self.observations.append(obs)
 
@@ -151,10 +152,12 @@ class GroupObervationCollection(object):
 
             if self.transformed:
                 self.AddObservation(obs_id=obs_id, obs_type='formation',
-                    anchored=(label=='testing'), dG0=dG0_prime, sparse=sparse)
+                    anchored=(label=='testing'), dG0=dG0_prime, sparse=sparse,
+                    url=self.kegg.cid2link(cid))
             else:
                 self.AddObservation(obs_id=obs_id, obs_type='formation',
-                    anchored=(label=='testing'), dG0=dG0, sparse=sparse)
+                    anchored=(label=='testing'), dG0=dG0, sparse=sparse,
+                    url=self.kegg.cid2link(cid))
             html_text += '</font>\n'
             self.html_writer.write(html_text)
 
@@ -186,8 +189,9 @@ class GroupObervationCollection(object):
                 dG0 = nist_row_data.dG0_r # we are using transformed energies
             
             self.AddObservation(obs_id=obs_id, obs_type='reaction',
-                                    anchored=False, dG0=dG0,
-                                    sparse=nist_row_data.reaction.sparse)
+                                anchored=False, dG0=dG0,
+                                sparse=nist_row_data.reaction.sparse,
+                                url=nist_row_data.url)
             
             html_text = ""
             html_text += "<b id=%s>%s</b></br>\n" % (obs_id, obs_id)
@@ -219,7 +223,7 @@ class GroupObervationCollection(object):
             else:
                 dG0 = rc.ddG0
             
-            self.AddObservation(obs_id=obs_id, obs_type='reaction',
+            self.AddObservation(obs_id=obs_id, obs_type='reaction', url="",
                                 anchored=True, dG0=dG0, sparse=sparse)
 
     def GetStoichiometry(self):
@@ -258,7 +262,7 @@ class GroupObervationCollection(object):
         # the table 'group_observation' will contain all the observed data
         # that is used for training later
         db.CreateTable(table_name,
-                      'id TEXT, type TEXT, anchored BOOL, dG0 REAL, reaction TEXT',
+                      'id TEXT, type TEXT, url TEXT, anchored BOOL, dG0 REAL, reaction TEXT',
                       drop_if_exists=True)
 
         for obs in self.observations:
@@ -269,7 +273,7 @@ class GroupObervationCollection(object):
     def ToCSV(self, obs_fname):
         # write all observations
         csv_writer = csv.writer(open(obs_fname, 'w'))
-        csv_writer.writerow(['id', 'type', 'anchored', 'dG0', 'reaction'])
+        csv_writer.writerow(['id', 'type', 'url', 'anchored', 'dG0', 'reaction'])
         for obs in self.observations:
             csv_writer.writerow(obs.ToCsvRow())
         
