@@ -39,12 +39,12 @@ class UnifiedGroupContribution(object):
         """
         U, s, V = np.linalg.svd(A, full_matrices=True)
         r = len(np.where(s > 1e-10)[0]) # the rank of A
-        inv_S = np.zeros(A.shape).T
+        inv_S = np.matrix(np.zeros(A.shape)).T
         for i in xrange(r):
             inv_S[i, i] = 1.0 / s[i]
-        x = np.dot(np.dot(np.dot(y, V.T), inv_S), U.T)
-        P_C = np.dot(U[:,:r], U[:,:r].T) # a projection matrix onto the row-space of A
-        P_L = np.dot(U[:,r:], U[:,r:].T) # a projection matrix onto the null-space of A
+        x = y * V.T * inv_S * U.T
+        P_C = U[:,:r] * U[:,:r].T # a projection matrix onto the row-space of A
+        P_L = U[:,r:] * U[:,r:].T # a projection matrix onto the null-space of A
         return x, P_C, P_L
     
     def LoadData(self):
@@ -69,8 +69,8 @@ class UnifiedGroupContribution(object):
                                 table_name='pgc_observations', transformed=False)
         self.cids, S, b, anchored = obs_collection.GetStoichiometry()
         self.S, col_mapping = LinearRegression.ColumnUnique(S)
-        self.b = np.zeros((1, len(col_mapping)), dtype='float')
-        self.anchored = np.zeros((1, len(col_mapping)), dtype='int')
+        self.b = np.matrix(np.zeros((1, len(col_mapping)), dtype='float'))
+        self.anchored = np.matrix(np.zeros((1, len(col_mapping)), dtype='int'))
         self.obs_ids = []
         self.obs_types = []
         for i, col_indices in col_mapping.iteritems():
@@ -80,8 +80,8 @@ class UnifiedGroupContribution(object):
             self.obs_types.append(','.join(set(obs_collection.observations[j].obs_type for j in col_indices)))
     
         n_groups = len(groups_data.GetGroupNames()) # number of groups
-        self.G = np.zeros((len(self.cids), n_groups))
-        self.has_groupvec = np.zeros((len(self.cids), 1))
+        self.G = np.matrix(np.zeros((len(self.cids), n_groups)))
+        self.has_groupvec = np.matrix(np.zeros((len(self.cids), 1)))
         for i, cid in enumerate(self.cids):
             if cid2groupvec[cid] is not None:
                 self.has_groupvec[i, 0] = 1
@@ -119,15 +119,15 @@ class UnifiedGroupContribution(object):
     def NormalizeAnchors(self):
         # now remove anchored data from S and leave only the data which will be 
         # used for calculating the group contributions
-        anchored_cols = np.where(self.anchored==1)[1]
+        anchored_cols = list(np.where(self.anchored==1)[1].flat)
 
         g, P_C, P_L = UnifiedGroupContribution.regress(self.S[:, anchored_cols],
                                                        self.b[:, anchored_cols])
 
         # calculate the matrix and observations which are explained
         # by the anchored reactions
-        self.S_anchored = np.dot(P_C, self.S)
-        self.b_anchored = np.dot(g, self.S_anchored)
+        self.S_anchored = P_C * self.S
+        self.b_anchored = g * self.S_anchored
         self.cids_anchored = list(self.cids)
         
         # calculate the matrix and observations which are in the null-space
@@ -140,7 +140,7 @@ class UnifiedGroupContribution(object):
         self.S[np.where(abs(self.S) < 1e-10)] = 0
         
         # removed zero rows (compounds) from S
-        used_cid_indices = np.nonzero(np.sum(abs(self.S), 1))[0]
+        used_cid_indices = list(np.nonzero(np.sum(abs(self.S), 1))[0].flat)
         self.S = self.S[used_cid_indices, :]
         self.G = self.G[used_cid_indices, :]
         self.cids = [self.cids[i] for i in used_cid_indices]
@@ -156,14 +156,14 @@ class UnifiedGroupContribution(object):
             Return:
                 The estimated Gibbs energy of 'r'
         """
-        est = np.zeros((3, r.shape[1])) * np.nan
+        est = np.matrix(np.zeros((3, r.shape[1]))) * np.nan
         
         try:
             # calculate the contributions of compounds
             g_S, PC_S, PL_S = UnifiedGroupContribution.regress(S, b)
-            r_C = np.dot(PC_S, r) # the part of 'r' which is in the column-space of S
-            r_L = np.dot(PL_S, r) # the part of 'r' which is in the left-null-space of S
-            est[0, :] = np.dot(g_S, r_C)
+            r_C = PC_S * r # the part of 'r' which is in the column-space of S
+            r_L = PL_S * r # the part of 'r' which is in the left-null-space of S
+            est[0, :] = g_S * r_C
         except np.linalg.linalg.LinAlgError:
             return est
 
@@ -174,28 +174,28 @@ class UnifiedGroupContribution(object):
                 reactions_with_groupvec.append(i)
 
         try:
-            GS = np.dot(self.G.T, S[:, reactions_with_groupvec])
+            GS = self.G.T * S[:, reactions_with_groupvec]
             g_GS, PC_GS, PL_GS = UnifiedGroupContribution.regress(GS, b[:, reactions_with_groupvec])
-            r_groupvec = np.dot(self.G.T, r)
-            est[1, :] = np.dot(g_GS, r_groupvec)
+            r_groupvec = self.G.T * r
+            est[1, :] = g_GS * r_groupvec
             for k in xrange(r.shape[1]):
-                if np.any(abs(r[bad_compounds, k]) > 1e-10):
+                if (abs(r[bad_compounds, k]) > 1e-10).any():
                     # this reaction involves compounds which don't have groupvectors
                     est[1, k] = np.nan
-                elif np.any(abs(np.dot(PL_GS, r_groupvec[:, k])) > 1e-10):
+                elif (abs(PL_GS * r_groupvec[:, k]) > 1e-10).any():
                     # this reaction's groupvector is not in the column space of GS
                     est[1, k] = np.nan
         
         except np.linalg.linalg.LinAlgError:
             return est
 
-        r_groupvec_L = np.dot(self.G.T, r_L)
-        est[2, :] = np.dot(g_GS, r_groupvec_L) + est[0, :]
+        r_groupvec_L = self.G.T * r_L
+        est[2, :] = g_GS * r_groupvec_L + est[0, :]
         for k in xrange(r.shape[1]):
             if np.any(abs(r_L[bad_compounds, k]) > 1e-10):
                 # this reaction involves compounds which don't have groupvectors
                 est[2, k] = np.nan
-            elif np.any(abs(np.dot(PL_GS, r_groupvec_L)) > 1e-10):
+            elif np.any(abs(PL_GS * r_groupvec_L) > 1e-10):
                 # this reaction's groupvector is not in the column space of GS
                 est[2, k] = np.nan
 
@@ -208,30 +208,32 @@ class UnifiedGroupContribution(object):
     @staticmethod
     def row2hypertext(S_row, cids):
         kegg = Kegg.getInstance()
-        sparse = dict((cids[c], S_row[c]) for c in np.nonzero(S_row)[0])
+        active_cids = list(np.nonzero(S_row)[0].flat)
+        sparse = dict((cids[c], S_row[c]) for c in active_cids)
         return kegg.sparse_to_hypertext(sparse, show_cids=False)
 
     @staticmethod
-    def row2string(id, S_row, cids):
-        sparse = dict((cids[c], S_row[c]) for c in np.nonzero(S_row)[0])
-        r = Reaction(id, sparse)
+    def row2string(S_row, cids):
+        active_cids = list(np.nonzero(S_row)[0].flat)
+        sparse = dict((cids[c], S_row[c]) for c in active_cids)
+        r = Reaction("", sparse)
         return r.FullReactionString(show_cids=False)
 
     def Report(self, est):
         legend = ['PRC', 'PGC', 'UGC']
-        resid = est - np.repeat(self.b, est.shape[0], 0)
+        resid = est - np.repeat(self.b.T, est.shape[0], 1).T
         
         fig = plt.figure(figsize=(6,6))
-        rms = []
-        for j in xrange(est.shape[0]):
-            used_reactions = np.where(np.isfinite(resid[j, :]))[0]
-            rms.append(rms_flat(resid[j, used_reactions]))
-            plt.plot(self.b[0, used_reactions],
-                     resid[j, used_reactions],
-                     '.', figure=fig, label=legend[j])
+        rms_list = []
+        for j, label in enumerate(legend):
+            used_reactions = list(np.where(np.isfinite(resid[j, :]))[1].flat)
+            x = list(self.b[0, used_reactions].flat)
+            y = list(resid[j, used_reactions].flat)
+            rms = rms_flat(y)
+            rms_list.append("RMSE(%s) = %.1f, N = %d" % (label, rms, len(x)))
+            plt.plot(x, y, '.', figure=fig, label=label)
         
-        self.html_writer.write_ul(["RMSE(%s) = %.1f" % (legend[j], rms[j])
-                                   for j in xrange(est.shape[0])])
+        self.html_writer.write_ul(rms_list)
         
         plt.xlabel(r"$\Delta_r G^{'\circ}$ observed [kJ/mol]")
         plt.ylabel(r"$\Delta_r G^{'\circ}$ residual [kJ/mol]")
@@ -262,7 +264,7 @@ class UnifiedGroupContribution(object):
         self.html_writer.write('<h2>Linear Regression Leave-One-Out Analysis</h2>\n')
 
         n = self.S.shape[1]
-        est = np.zeros((3, n))
+        est = np.matrix(np.zeros((3, n))) * np.nan
         for i in xrange(n):
             if self.obs_types[i] == 'formation':
                 continue
@@ -275,8 +277,7 @@ class UnifiedGroupContribution(object):
             print '| PRC = %5.1f' % abs(self.b[0, i] - est[0, i]),
             print '| PGC = %5.1f' % abs(self.b[0, i] - est[1, i]),
             print '| UGC = %5.1f' % abs(self.b[0, i] - est[2, i]),
-            print '| %s' % UnifiedGroupContribution.row2string(
-                                    self.obs_ids[i], self.S[:, i], self.cids)        
+            print '| %s' % UnifiedGroupContribution.row2string(self.S[:, i], self.cids)        
         self.Report(est)
         
     def Fit(self):

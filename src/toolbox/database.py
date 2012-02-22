@@ -160,7 +160,7 @@ class SQLDatabase(Database):
                     raise ValueError('The values of a sparse matrix must be Int or Float')
             else:
                 mat[r, c] = v
-        return np.array(mat)
+        return np.matrix(mat)
             
     def LoadNumpyMatrix(self, table_name):
         """
@@ -169,7 +169,7 @@ class SQLDatabase(Database):
         mat = []
         for row in self.Execute("SELECT * FROM %s" % table_name):
             mat.append(row)
-        return np.array(mat)
+        return np.matrix(mat)
 
     def SaveNumpyMatrix(self, table_name, mat):
         """
