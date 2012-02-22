@@ -121,7 +121,7 @@ class SQLDatabase(Database):
             table_data.append(row_dict)
         return table_data    
     
-    def SaveSparseNumpyMatrix(self, table_name, mat):
+    def SaveSparseNumpyMatrix(self, table_name, mat, dtype='REAL'):
         """
             Creates a new table and saves a 2D array in the database
             in a sparse notation.
@@ -130,11 +130,12 @@ class SQLDatabase(Database):
             raise ValueError("Can only save 2D arrays in a database")
         
         if mat.dtype in ('int', 'int64', 'int32', 'int16'):
-            columns = "row INT, column INT, value INT"
+            dtype = 'INT'
         elif mat.dtype in ('float', 'float64', 'float32'):
-            columns = "row INT, column INT, value FLOAT"
+            dtype = 'FLOAT'
         else:
             raise ValueError("Can only save int or float matrices in a database")
+        columns = "row INT, column INT, value %s" % dtype
         self.CreateTable(table_name, columns, drop_if_exists=True)
         
         # insert the first entry which contains the dimensions of the matrix
@@ -142,8 +143,11 @@ class SQLDatabase(Database):
         
         # insert all non-zero values
         r_nonzero, c_nonzero = np.nonzero(mat)
-        for r, c in zip(r_nonzero.tolist(), c_nonzero.tolist()):
-            self.Insert(table_name, [r, c, mat[r, c]])
+        for r, c in zip(r_nonzero.flat, c_nonzero.flat):
+            if dtype == 'INT':
+                self.Insert(table_name, [int(r), int(c), int(mat[r, c])])
+            else:
+                self.Insert(table_name, [int(r), int(c), float(mat[r, c])])
 
     def LoadSparseNumpyMatrix(self, table_name):
         """
@@ -171,7 +175,7 @@ class SQLDatabase(Database):
             mat.append(row)
         return np.matrix(mat)
 
-    def SaveNumpyMatrix(self, table_name, mat):
+    def SaveNumpyMatrix(self, table_name, mat, dtype='REAL'):
         """
             Creates a new table and saves a 2D array in the database.
         """
@@ -179,14 +183,19 @@ class SQLDatabase(Database):
             raise ValueError("Can only save 2D arrays in a database")
         
         if mat.dtype in ('int', 'int64', 'int32', 'int16'):
-            columns = ', '.join('col%d INT' % i for i in xrange(mat.shape[1]))
+            dtype = 'INT'
         elif mat.dtype in ('float', 'float64', 'float32'):
-            columns = ', '.join('col%d REAL' % i for i in xrange(mat.shape[1]))
+            dtype = 'REAL'
         else:
             raise ValueError("Can only save int or float matrices in a database")
+        columns = ', '.join('col%d %s' % (i, dtype)
+                            for i in xrange(mat.shape[1]))
         self.CreateTable(table_name, columns, drop_if_exists=True)
         for j in xrange(mat.shape[0]):
-            self.Insert(table_name, mat[j, :].tolist())
+            if dtype == 'INT':
+                self.Insert(table_name, [int(x) for x in mat[j, :].flat])
+            else:
+                self.Insert(table_name, [float(x) for x in mat[j, :].flat])
         
 class SqliteDatabase(SQLDatabase):
     
