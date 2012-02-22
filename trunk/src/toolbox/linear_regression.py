@@ -233,6 +233,20 @@ class LinearRegression(object):
         return P_R, P_N
 
     @staticmethod
+    def ColumnUniqueRegression(A, y):
+        n = A.shape[1]
+        assert np.prod(y.shape) == n
+        y = y.reshape((1, n))
+
+        A_unique, col_mapping = LinearRegression.ColumnUnique(A)
+        y_unique = np.zeros((1, len(col_mapping)))
+
+        for i, col_indices in enumerate(col_mapping):
+            y_unique[0, i] = np.mean(y[0, col_indices])
+        
+        return A_unique, y_unique
+
+    @staticmethod
     def RowUniqueRegression(A, y):
         """
             A procedure usually performed before linear regression (i.e. solving Ax = y).
@@ -246,17 +260,14 @@ class LinearRegression(object):
                 where A_unique has the same number of columns as A, but with
                 unique rows, and y_unique is shorter as well.
         """
-        if len(y.shape) > 1 and y.shape[1] != 1:
-            raise Exception('y is not a column vector')
-        if y.shape[0] != A.shape[0]:
-            raise Exception('The length of y (%d) does not match the number of rows in A (%d)' % (y.shape[0], n))
-        y = np.array(y.reshape(A.shape[0], 1))
+        n = A.shape[0]
+        assert np.prod(y.shape) == n
+        y = y.reshape((n, 1))
 
         A_unique, row_mapping = LinearRegression.RowUnique(A)
-        y_unique = np.zeros((A_unique.shape[0], 1))
+        y_unique = np.zeros((len(row_mapping), 1))
 
-        for i in xrange(A_unique.shape[0]):
-            row_indices = row_mapping[i]
+        for i, row_indices in enumerate(row_mapping):
             y_unique[i, 0] = np.mean(y[row_indices, 0])
         
         return A_unique, y_unique

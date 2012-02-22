@@ -581,17 +581,17 @@ class Kegg(Singleton):
         return self.rid_flux_list_to_matrix(rid_flux_list)
 
     def cid2compound(self, cid):
-        if type(cid) == int:
+        if type(cid) == types.IntType:
             return self.cid2compound_map[cid]
-        elif type(cid) == str:
+        elif type(cid) == types.StringTypes:
             return self.cid2compound_map[int(cid[1:])]
         else:
             raise KeyError("Compound ID must be integer (e.g. 22) or string (e.g. 'C00022'), not: " + str(cid))
 
     def rid2reaction(self, rid):
-        if (type(rid) == int):
+        if type(rid) == types.IntType:
             return self.rid2reaction_map[rid]
-        elif (type(rid) == str):
+        elif type(rid) == types.StringTypes:
             return self.rid2reaction_map[int(rid[1:])]
         else:
             raise KeyError("Reaction ID must be integer (e.g. 22) or string (e.g. 'R00022')")
