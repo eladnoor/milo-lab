@@ -16,6 +16,7 @@ import csv
 import pydot
 from toolbox.plotting import binned_plot
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
+from collections import defaultdict
 
 class NistMissingCrucialDataException(Exception):
     pass
@@ -39,11 +40,12 @@ class NistRowData:
         self.pH = NistRowData.none_float(row_dict['pH'])
         if not (self.K_tag and self.pH): # missing Keq or pH makes the data unusable
             raise NistMissingCrucialDataException(
-                "cannot use this NIST reaction because it is missing information about K', pH or I")
+                "%s cannot use this NIST reaction because it is missing information about K', pH or I"
+                % row_dict['reference_id'])
         
         self.T = NistRowData.none_float(row_dict['T']) or default_T
         
-        # if there is no imformation about Ionic strength of pMg, assume by
+        # if there is no information about Ionic strength of pMg, assume by
         # default that the concentration of ions is 0 (note that pMg = 14 
         # is effectively [Mg] = 0).
         self.I = NistRowData.none_float(row_dict['I']) or 0.0
@@ -56,11 +58,14 @@ class NistRowData:
         kegg_reaction = row_dict['kegg_reaction']
         if not kegg_reaction:
             raise NistMissingCrucialDataException(
-                "cannot use this NIST reaction because it couldn't be mapped to KEGG IDs")
+                "%s: cannot use this NIST reaction because it couldn't be mapped to KEGG IDs"
+                % row_dict['reference_id'])
         try:
             self.reaction = NistRowData.ParseReactionFormula(name, kegg_reaction) 
         except KeggParseException as e:
-            raise NistMissingCrucialDataException("cannot use reaction \"%s\", because: %s" % (kegg_reaction, str(e)))
+            raise NistMissingCrucialDataException(
+                "%s: cannot use reaction \"%s\", because: %s" %
+                (row_dict['reference_id'], kegg_reaction, str(e)))
 
     def Clone(self):
         other = NistRowData()
@@ -186,8 +191,8 @@ class Nist(object):
                 self.data.append(nist_row_data)
                 for cid in nist_row_data.GetAllCids():
                     self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
-            except NistMissingCrucialDataException:
-                continue
+            except NistMissingCrucialDataException as e:
+                logging.warning(str(e))
         logging.info('Total of %d rows read from the NIST database' % len(self.data))
         
     def BalanceReactions(self, balance_water=True):
@@ -360,57 +365,59 @@ class Nist(object):
             ignore_I: whether or not to ignore the ionic strength in NIST.
         """
         
-        known_cid_set = thermodynamics.get_all_cids()
         dG0_obs_vec = []
         dG0_est_vec = []
        
         # A mapping from each evaluation method (NIST calls separates them to
         # A, B, C and D) to the results of the relevant measurements
         evaluation_map = {}
-        total_list = []
+        rowdicts = []
         
         eval_to_label = {'A':'high quality', 'B':'low quality', 'C':'low quality', 'D':'low quality'}
         
         for row_data in self.SelectRowsFromNist():
-            row_cids = set(row_data.GetAllCids())
-            unknown_cids = row_cids.difference(known_cid_set)
-            if unknown_cids:
-                logging.debug("a compound in (%s) doesn't have a dG0_f" % row_data.ref_id)
-                continue
-            
+            rowdict = {}
             label = eval_to_label[row_data.evaluation]
-            
             if label not in evaluation_map:
                 evaluation_map[label] = ([], [])
-            
-            try:
-                dG0_pred = row_data.PredictReactionEnergy(thermodynamics)
-            except MissingReactionEnergy as e:
-                logging.debug("the reaction in (%s) cannot be estimated: %s" % (row_data.ref_id, str(e)))
-                continue
-            if np.isnan(dG0_pred):
-                logging.debug("the reaction in (%s) cannot be estimated because "
-                              "one of the compounds' formation energy is unknown")
+            dG0_est = row_data.PredictReactionEnergy(thermodynamics)
+            if np.isnan(dG0_est):
+                logging.warning("%s: the reaction energy cannot be calculated"
+                                % (row_data.ref_id))
                 continue
 
             dG0_obs_vec.append(row_data.dG0_r)
-            dG0_est_vec.append(dG0_pred)
+            dG0_est_vec.append(dG0_est)
             evaluation_map[label][0].append(row_data.dG0_r)
-            evaluation_map[label][1].append(dG0_pred)
-            error = abs(row_data.dG0_r - dG0_pred)
-
-            total_list.append([error, row_data.dG0_r, dG0_pred, 
-                               row_data.reaction, row_data.pH, row_data.pMg, 
-                               row_data.I, row_data.T, row_data.evaluation, 
-                               row_data.url])
+            evaluation_map[label][1].append(dG0_est)
+            rowdict['dG\'0 (obs)'] = np.round(row_data.dG0_r, 1)
+            rowdict['dG\'0 (est)'] = np.round(dG0_est, 1)
+            rowdict['|error|'] = np.round(abs(row_data.dG0_r - dG0_est), 3)
+            rowdict['_reaction'] = row_data.reaction
+            rowdict['reaction'] = row_data.reaction.to_hypertext(show_cids=False)
+            if row_data.reaction.rid is not None:
+                rowdict['rid'] = '<a href="%s">R%05d</a>' % (row_data.reaction.get_link(), row_data.reaction.rid)
+            else:
+                rowdict['rid'] = ''
+            rowdict['pH'] = row_data.pH
+            rowdict['pMg'] = row_data.pMg
+            rowdict['I'] = row_data.I
+            rowdict['T'] = row_data.T
+            rowdict['eval.'] = row_data.evaluation
+            rowdict['url'] = '<a href="%s">%s</a>' % (row_data.url, row_data.ref_id)
+            
+            rowdicts.append(rowdict)
+        
+        rowdicts.sort(key=lambda x:x['|error|'])
         
         if not dG0_obs_vec:
             return 0, 0
 
-        unique_reaction_dict = {}
-        for error, _dG0_obs, _dG0_est, reaction, _pH, _pMg, _I, _T, _eval, _url in total_list: 
-            unique_reaction_dict.setdefault(reaction, []).append(error)
-        unique_rmse_list = [rms_flat(error_list) for error_list in unique_reaction_dict.values()]
+        unique_reaction_dict = defaultdict(list)
+        for rowdict in rowdicts: 
+            unique_reaction_dict[rowdict['_reaction']].append(rowdict['|error|'])
+        unique_rmse_list = [rms_flat(error_list)
+                            for error_list in unique_reaction_dict.values()]
         unique_rmse = rms_flat(unique_rmse_list)
         
         rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
@@ -422,10 +429,8 @@ class Nist(object):
         plt.rcParams['font.size'] = 12
         plt.rcParams['lines.linewidth'] = 1
         plt.rcParams['lines.markersize'] = 3
-        plt.rcParams['figure.figsize'] = [6.0, 6.0]
-        plt.rcParams['figure.dpi'] = 100
         
-        fig = plt.figure()
+        fig1 = plt.figure(figsize=(6,6), dpi=90)
         plt.hold(True)
         
         colors = ['purple', 'orange']
@@ -433,71 +438,56 @@ class Nist(object):
             measured, predicted = evaluation_map[label]
             plt.plot(measured, predicted, marker='.', linestyle='None', 
                        markerfacecolor=colors[i], markeredgecolor=colors[i], 
-                       markersize=5, label=label)
+                       markersize=5, label=label, figure=fig1)
         
         plt.legend(loc='lower right')
         
-        plt.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (unique_rmse), fontsize=14)
-        plt.xlabel(r'observed $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
-        plt.ylabel(r'estimated $\Delta G_r^\circ$ [kJ/mol]', fontsize=14)
+        plt.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (unique_rmse), fontsize=14,
+                 figure=fig1)
+        plt.xlabel(r'observed $\Delta G_r^\circ$ [kJ/mol]', fontsize=14, figure=fig1)
+        plt.ylabel(r'estimated $\Delta G_r^\circ$ [kJ/mol]', fontsize=14, figure=fig1)
         #min_x = min(dG0_obs_vec)
         #max_x = max(dG0_obs_vec)
-        plt.plot([-60, 60], [-60, 60], 'k--')
+        plt.plot([-60, 60], [-60, 60], 'k--', figure=fig1)
         plt.axis([-60, 60, -60, 60])
         if name:
-            html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_eval")
+            html_writer.embed_matplotlib_figure(fig1, name=name+"_eval")
         else:
-            html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+            html_writer.embed_matplotlib_figure(fig1)
         
-        fig = plt.figure()
-        binned_plot(x=[row[4] for row in total_list], # pH
-                    y=[row[0] for row in total_list],
+        fig2 = plt.figure(figsize=(6,6), dpi=90)
+        binned_plot(x=[rowdict['pH'] for rowdict in rowdicts],
+                    y=[rowdict['|error|'] for rowdict in rowdicts],
                     bins=[6,8],
                     y_type='rmse',
-                    figure=fig)
+                    figure=fig2)
         plt.xlim((4, 11))
         plt.ylim((0, 12))
-        plt.title(r'effect of pH', fontsize=14, figure=fig)
-        plt.xlabel('pH', fontsize=14, figure=fig)
-        plt.ylabel(r'RMS ($\Delta_{obs} G^\circ - \Delta_{est} G^\circ$) [kJ/mol]', fontsize=14, figure=fig)
+        plt.title(r'effect of pH', fontsize=14, figure=fig2)
+        plt.xlabel('pH', fontsize=14, figure=fig2)
+        plt.ylabel(r'RMS ($\Delta_{obs} G^\circ - \Delta_{est} G^\circ$) [kJ/mol]', 
+                   fontsize=14, figure=fig2)
         if name:
-            html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_pH")
+            html_writer.embed_matplotlib_figure(fig2, name=name+"_pH")
         else:
-            html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+            html_writer.embed_matplotlib_figure(fig2)
         
-        fig = plt.figure()
-        plt.hist([(row[1] - row[2]) for row in total_list], bins=np.arange(-50, 50, 0.5))
-        plt.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
-        plt.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
-        plt.ylabel(r'no. of measurements', fontsize=14)
+        fig3 = plt.figure(figsize=(6,6), dpi=90)
+        plt.hist([(rowdict['dG\'0 (obs)'] - rowdict['dG\'0 (est)'])
+                  for rowdict in rowdicts],
+                 bins=np.arange(-50, 50, 0.5))
+        plt.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14, figure=fig3)
+        plt.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]',
+                   fontsize=14, figure=fig3)
+        plt.ylabel(r'no. of measurements', fontsize=14, figure=fig3)
         if name:
-            html_writer.embed_matplotlib_figure(fig, width=400, height=300, name=name+"_hist")
+            html_writer.embed_matplotlib_figure(fig3, name=name+"_hist")
         else:
-            html_writer.embed_matplotlib_figure(fig, width=400, height=300)
+            html_writer.embed_matplotlib_figure(fig3)
 
-        table_headers = ["|err|", "dG'0 (obs)", "dG'0 (est)", "reaction", "rid", "pH", "pMg", "I", "T", "eval.", "url"]
-        dict_list = []
-        for row in sorted(total_list, reverse=True):
-            d = {}
-            d['|err|'] = '%.1f' % row[0]
-            d['dG\'0 (obs)'] = '%.1f' % row[1]
-            d['dG\'0 (est)'] = '%.1f' % row[2]
-            d['reaction'] = row[3].to_hypertext(show_cids=False)
-            if row[3].rid is not None:
-                d['rid'] = '<a href="%s">R%05d</a>' % (row[3].get_link(), row[3].rid)
-            else:
-                d['rid'] = ''
-            d['pH'] = '%.1f' % row[4]
-            d['pMg'] = '%.1f' % row[5]
-            d['I'] = '%.2f' % row[6]
-            d['T'] = '%.1f' % row[7]
-            d['eval.'] = row[8]
-            if row[9]:
-                d['url'] = '<a href="%s">link</a>' % row[9]
-            else:
-                d['url'] = ''
-            dict_list.append(d)
-        html_writer.write_table(dict_list, table_headers)
+        table_headers = ["|error|", "dG'0 (obs)", "dG'0 (est)", "reaction",
+                         "rid", "pH", "pMg", "I", "T", "eval.", "url"]
+        html_writer.write_table(rowdicts, table_headers, decimal=1)
         
         return len(dG0_obs_vec), unique_rmse
     

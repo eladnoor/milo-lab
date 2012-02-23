@@ -46,7 +46,7 @@ class GroupMissingTrainDataError(Exception):
     def Explain(self, gc):
         missing_single_groups = []
         for i in self.kernel_rows:
-            nonzero_columns = np.where(abs(gc.group_nullspace[i, :]) > 1e-10)[0]
+            nonzero_columns = np.where(abs(gc.group_nullspace[i, :]) > 1e-10)[1]
             if len(nonzero_columns) == 1:
                 missing_single_groups.append(nonzero_columns[0])
             else:
