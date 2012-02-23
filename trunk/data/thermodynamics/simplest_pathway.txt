@@ -1,0 +1,21 @@
+ENTRY       P01-SIMPLE
+SKIP        FALSE
+NAME        Toy Pathway
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    gli  C00031 -> C00095 (x1)
+            fri  C00095 -> C00124 (x1)
+///
