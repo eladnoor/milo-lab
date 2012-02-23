@@ -243,9 +243,9 @@ class GroupObervationCollection(object):
         cids = sorted(cids)
         
         # create the stoichiometric matrix S (rows=pseudoisomers, cols=observations)
-        S = np.zeros((len(cids), n))
-        gibbs_values = np.zeros((1, n))
-        anchored = np.zeros((1, n))
+        S = np.matrix(np.zeros((len(cids), n)))
+        gibbs_values = np.matrix(np.zeros((1, n)))
+        anchored = np.matrix(np.zeros((1, n)))
         obs_ids = []
         for i_obs, obs in enumerate(self.observations):
             obs_ids.append(obs.obs_id)

@@ -72,7 +72,7 @@ def main():
         rowdict[db_name + ' coverage'] = len(reaction_list)
     rowdicts.append(rowdict)
     
-    for name in ['alberty', 'PGC', 'PRC', 'hatzi_gc', 'merged']:
+    for name in ['merged', 'alberty', 'PGC', 'PRC', 'hatzi_gc']:
         thermo = estimators[name]
         logging.info('Writing the NIST report for %s' % thermo.name)
         html_writer.write('<p><b>%s</b> ' % thermo.name)

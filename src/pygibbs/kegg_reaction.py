@@ -244,7 +244,7 @@ class Reaction(object):
         pMg = pMg or thermodynamics.pMg
         I = I or thermodynamics.I
         T = T or thermodynamics.T
-        return thermodynamics.GetTransfromedKeggReactionEnergies([self], pH=pH, pMg=pMg, I=I, T=T)[0, 0]
+        return float(thermodynamics.GetTransfromedKeggReactionEnergies([self], pH=pH, pMg=pMg, I=I, T=T))
     
     def HashableReactionString(self):
         """
