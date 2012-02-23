@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>MTDF Results</title>
+		<title>{{ analysis_type }} Results</title>
 		<style>
 			.pathwayResult {
 				margin: 0 0 10px 0;
@@ -31,11 +31,13 @@
 		</style>
 	</head>
 	<body>
-	{% for result in mtdf_results %}		
+	{% for result in results %}		
 		<div class="pathwayResult">
 			<div class="pathwayName">{{result.model.name}}</div>
-			<div class="resultValue">MTDF = {{result.mtdf|stringformat:".2g"}}</div>
+			<div class="resultValue">{{result.optimization_type}} = {{result.opt_val|stringformat:".2g"}} {{result.optimization_units}}</div>
+			{% if result.forward_fraction %}
 			<div class="resultValue">Total Forward Flux Fraction = {{result.forward_fraction|stringformat:".2g"}}</div>
+			{% endif %}
 			
 			<div class="resultTable">
 				<ul>
@@ -74,25 +76,27 @@
 						<td>Reaction ID</td>
 						<td>&Delta;<sub>r</sub>G'&deg;</td>
 						<td>&Delta;<sub>r</sub>G'</td>
+						<td>Thermodynamic Efficiency</td>
 					</tr>
 				{% for deets in result.reaction_details %}
 					<tr {% if deets.at_mtdf %}class="rxnAtMTDF"{% endif %}>
 						<td>{{deets.id}}</td>
 						<td>{{deets.dGr0_tag|stringformat:".4g"}}</td>
 						<td>{{deets.dGr_tag|stringformat:".4g"}}</td>
+						<td>{{deets.thermo_efficiency|stringformat:".3g"}}</td>
 					</tr>
 				{% endfor %}
 				</table>
 			</div>
 			
-			{% if result.mtdf_filename != None %}
+			{% if result.thermo_profile_filename != None %}
 			<div class="pathwayGraph">
-				<img src="pathway_graphs/{{ result.mtdf_filename }}" />
+				<img src="pathway_graphs/{{ result.thermo_profile_filename }}" />
 			</div>
 			{% endif %}
-			{% if result.graph_filename != None %}
+			{% if result.pathway_graph_filename != None %}
 			<div class="pathwayGraph">
-				<object data="pathway_graphs/{{result.graph_filename}}"
+				<object data="pathway_graphs/{{result.pathway_graph_filename}}"
 					    type="image/svg+xml" width=480 height=800
 					    name="{{result.model.name}}" frameborder="0"
 					    marginwidth="0" marginheight="0"/></object>

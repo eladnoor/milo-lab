@@ -7,6 +7,7 @@ import numpy as np
 from pygibbs.kegg import Kegg
 from pygibbs import kegg_reaction 
 from pygibbs.metabolic_modelling import bounds
+from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.thermodynamic_constants import default_T, R
 from toolbox import util
 from os import path
@@ -23,88 +24,10 @@ class UnsolvableConvexProblemException(Exception):
         self.problem = problem
 
 
-class MTDFResult(object):
-    """A class containing the result of an MTDF optimization."""
-    
-    def __init__(self, model, thermodynamic_data,
-                 bounds, normalization,
-                 mtdf_value, ln_concentrations):
-        self.model = model
-        self.thermo = thermodynamic_data
-        self.bounds = bounds
-        self.normalization = normalization
-        self.S = model.GetStoichiometricMatrix()
-        self.mtdf_value = mtdf_value
-        self.ln_concentrations = ln_concentrations
-        self.dGr0_tag = thermodynamic_data.GetDGrTagZero_ForModel(
-                self.model)
-
-        self.compound_ids = self.model.GetCompoundIDs()
-        self.reaction_ids = self.model.GetReactionIDs()
-        
-        self.concentrations = np.exp(self.ln_concentrations)
-        conc_correction = RT * np.dot(self.S, self.ln_concentrations)
-        self.dGr_tag = self.dGr0_tag + conc_correction
-        
-        bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)        
-        bio_correction = RT * np.dot(self.S, np.log(bio_concs))
-        self.dGr_bio = self.dGr0_tag + bio_correction
-
-        self.kegg = Kegg.getInstance()
-        
-        slug_name = util.slugify(model.name)
-        self.graph_filename = '%s_graph.svg' % slug_name 
-        self.mtdf_filename = '%s_mtdf.png' % slug_name
-        
-    def WriteMTDFGraph(self, dirname):
-        pylab.figure()
-        dg0_profile = np.cumsum([0] + list(self.dGr0_tag))
-        dgtag_profile = np.cumsum([0] + list(self.dGr_tag))
-        dgbio_profile = np.cumsum([0] + list(self.dGr_bio))
-        rxn_range = pylab.arange(len(self.reaction_ids) + 1)
-        pylab.plot(rxn_range, dg0_profile, 'b--',
-                   linewidth=2, label='Standard Conditions')
-        pylab.plot(rxn_range, dgbio_profile, 'c--',
-                   linewidth=2, label='Biological Conditions')
-        pylab.plot(rxn_range, dgtag_profile, 'g-',
-                   linewidth=2, label='MTDF-optimized')
-        pylab.xticks(rxn_range[:-1] + 0.5, self.reaction_ids)
-        pylab.xlabel('Reaction step')
-        pylab.ylabel('Cumulative dG (kJ/mol)')
-        pylab.legend(loc='upper right', prop=LEGEND_FONT)
-        
-        outfname = path.join(dirname, self.mtdf_filename)
-        pylab.savefig(outfname, format='png')
-        
-    def WritePathwayGraph(self, dirname):
-        outfname = path.join(dirname, self.graph_filename)
-        gdot = self.model.GetPathwayGraph()
-        gdot.write(outfname, prog='dot', format='svg')
-        
-    def WriteAllGraphs(self, dirname):
-        self.WriteMTDFGraph(dirname)
-        self.WritePathwayGraph(dirname)
-    
-    def GetReactionObjects(self):
-        for i, rid in enumerate(self.reaction_ids):
-            row = self.S[i,:].flatten()
-            sparse_reaction = {}
-            for j, stoich in enumerate(row):
-                if stoich == 0:
-                    continue
-                sparse_reaction[self.compound_ids[j]] = stoich            
-            yield kegg_reaction.Reaction(rid, sparse_reaction)
-    reaction_objects = property(GetReactionObjects)
-    
-    def GetConcentrations(self):
-        return self.concentrations
-    
-    def GetLnConcentrations(self):
-        return self.ln_concentrations
-    
-    def GetMTDF(self):
-        return self.mtdf_value
-    mtdf = property(GetMTDF)
+class MTDFOptimizedPathway(optimized_pathway.OptimizedPathway):
+    """Contains the result of a MTDF optimization."""
+    OPTIMIZATION_TYPE = "MTDF"
+    OPT_UNITS = "kJ / mol"
     
     def GetForwardFraction(self):
         """Computes the thermodynamic efficiency at the MTDF.
@@ -112,69 +35,15 @@ class MTDFResult(object):
         Efficiency = (J+ - J-) / (J- + J+)
         According to the formula of Beard and Qian
         """
-        term_1 = 1.0 / (1.0 + np.exp(-self.mtdf/RT))
-        term_2 = 1.0 / (1.0 + np.exp(self.mtdf/RT))
-        return term_1 - term_2
+        return self.CalcForwardFraction(-self.opt_val)
     forward_fraction = property(GetForwardFraction)
     
-    def GetDGrZeroTag(self):
-        """Returns the standard dGr values."""
-        return self.dGr0_tag
+    def GetNormalization(self):
+        return self._normalization
+    def SetNormalization(self, norm):
+        self._normalization = norm
+    normalization = property(GetNormalization, SetNormalization)
     
-    def GetDGrTag(self):
-        """Returns the transformed dGr values at the optimum."""
-        return self.dGr_tag
-    
-    def ConcentrationsList(self):
-        return list(self.concentrations.flatten())
-    
-    def CompoundNames(self):
-        """Presumes compound IDs are from KEGG."""
-        kegg_instance = Kegg.getInstance()
-        return map(kegg_instance.cid2name, self.compound_ids)
-    
-    def CompoundDetails(self):
-        names = self.CompoundNames()
-        concentrations = self.ConcentrationsList()
-        for i, id in enumerate(self.compound_ids):
-            ub = self.bounds.GetUpperBound(id)
-            lb = self.bounds.GetLowerBound(id)
-            conc = concentrations[i]
-            conc_class = None
-            if ub == lb:
-                conc_class = 'fixedConc'
-            elif abs(ub-conc) < 1e-9:
-                conc_class = 'concAtUB'
-            elif abs(conc-lb) < 1e-9:
-                conc_class = 'concAtLB'
-            d = {'id': id,
-                 'name': names[i],
-                 'concentration': conc,
-                 'class': conc_class,
-                 'ub': ub,
-                 'lb': lb}
-            yield d
-    compound_details = property(CompoundDetails)
-
-    def ReactionStandardEnergyList(self):
-        v = list(self.dGr0_tag.flatten())
-        return v
-    
-    def ReactionTransformedEnergyList(self):
-        v = list(self.dGr_tag.flatten())
-        return v
-
-    def ReactionDetails(self):
-        dGr0_tags = self.ReactionStandardEnergyList()
-        dGr_tags = self.ReactionTransformedEnergyList()
-        for i, id in enumerate(self.reaction_ids):
-            diff = abs(dGr_tags[i] + self.mtdf)
-            d = {'id': id,
-                 'dGr0_tag': dGr0_tags[i],
-                 'dGr_tag': dGr_tags[i],
-                 'at_mtdf': diff < 1e-6}
-            yield d
-    reaction_details = property(ReactionDetails)
         
 
 class MTDFOptimizer(object):
@@ -303,8 +172,10 @@ class MTDFOptimizer(object):
         
         mtdf = cvxmod.value(motive_force_lb)
         opt_ln_conc = np.array(cvxmod.value(ln_conc))
-        return MTDFResult(self._model, self._thermo,
-                          bounds, normalization,
-                          mtdf, opt_ln_conc)
+        result = MTDFOptimizedPathway(self._model, self._thermo,
+                                      bounds, mtdf, opt_ln_conc)
+        result.SetNormalization(normalization)
+        return result
+        
         
         

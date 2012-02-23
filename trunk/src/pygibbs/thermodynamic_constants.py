@@ -10,6 +10,7 @@ default_I = 0.25 # mM
 default_pH = 7.0
 default_c0 = 1 # M
 default_pMg = 10
+default_RT = R * default_T
 default_c_mid = 1e-3 # M
 default_c_range = (1e-6, 1e-2) # M
 dG0_f_Mg = -455.3 # kJ/mol, formation energy of Mg2+
