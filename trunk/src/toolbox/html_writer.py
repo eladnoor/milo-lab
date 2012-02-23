@@ -65,14 +65,21 @@ class BaseHtmlWriter:
             self.write("  <li>%s</li>\n" % str(mem))
         self.write("</ul>\n")
         
-    def write_table(self, dict_list, headers=None, border=1):
+    def write_table(self, dict_list, headers=None, border=1, decimal=None):
         """
             In order to print the row number, use the title '#' in headers and
             write_table() will automatically fill that column with the row numbers.
         """
-        def to_string(x):
+        def to_string(x, decimal=None):
             if type(x) == types.StringType:
                 return x
+            elif type(x) == types.FloatType:
+                if decimal is not None:
+                    return eval("'%%.%df' %% x" % decimal)
+                else:
+                    return "%g" % x
+            elif type(x) == types.IntType:
+                return '%d' % x
             else:
                 return str(x)
         
@@ -87,7 +94,7 @@ class BaseHtmlWriter:
         self.write('<tr><td><b>' + '</b></td><td><b>'.join(headers) + '</b></td></tr>\n')
         for i, d in enumerate(dict_list):
             d['#'] = '%d' % i
-            values = [to_string(d.get(key, "")) for key in headers]
+            values = [to_string(d.get(key, ""), decimal) for key in headers]
             self.write('<tr><td>' + '</td><td>'.join(values) + '</td></tr>\n')
         self.write("</table>\n")
         
