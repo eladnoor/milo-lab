@@ -47,7 +47,6 @@ def main():
     reactions['FEIST'] = Feist.FromFiles().reactions
     reactions['NIST'] = nist.GetUniqueReactionSet()
     
-    
     pairs = [] #[('hatzi_gc', 'PGC'), ('PGC', 'PRC')] # + [('alberty', 'PRC')]
     for t1, t2 in pairs:
         logging.info('Writing the NIST report for %s vs. %s' % 
@@ -67,35 +66,36 @@ def main():
                                               other=estimators['PRC'],
                                               fig_name='kegg_compare_alberty_vs_nist')
     
-    dict_list = []
-    d = {'Method': 'Total'}
+    rowdicts = []
+    rowdict = {'Method': 'Total'}
     for db_name, reaction_list in reactions.iteritems():
-        d[db_name + ' coverage'] = len(reaction_list)
-    dict_list.append(d)
+        rowdict[db_name + ' coverage'] = len(reaction_list)
+    rowdicts.append(rowdict)
     
-    for thermo_name, thermodynamics in estimators.iteritems():
-        logging.info('Writing the NIST report for %s' % thermodynamics.name)
-        html_writer.write('<p><b>%s</b> ' % thermodynamics.name)
+    for name in ['alberty', 'PGC', 'PRC', 'hatzi_gc', 'merged']:
+        thermo = estimators[name]
+        logging.info('Writing the NIST report for %s' % thermo.name)
+        html_writer.write('<p><b>%s</b> ' % thermo.name)
         html_writer.insert_toggle(start_here=True)
         num_estimations, rmse = nist.verify_results(html_writer=html_writer, 
-                                                    thermodynamics=thermodynamics,
-                                                    name=thermo_name)
+                                                    thermodynamics=thermo,
+                                                    name=name)
         html_writer.div_end()
         html_writer.write('N = %d, RMSE = %.1f</p>\n' % (num_estimations, rmse))
         logging.info('N = %d, RMSE = %.1f' % (num_estimations, rmse))
         
-        d = {'Method':thermodynamics.name,
-             'RMSE (kJ/mol)':"%.1f (N=%d)" % (rmse, num_estimations)}
+        rowdict = {'Method':thermo.name,
+            'RMSE (kJ/mol)':"%.1f (N=%d)" % (rmse, num_estimations)}
         for db_name, reaction_list in reactions.iteritems():
-            n_covered = thermodynamics.CalculateCoverage(reaction_list)
+            n_covered = thermo.CalculateCoverage(reaction_list)
             percent = n_covered * 100.0 / len(reaction_list)
-            d[db_name + " coverage"] = "%.1f%% (%d)" % (percent, n_covered)
+            rowdict[db_name + " coverage"] = "%.1f%% (%d)" % (percent, n_covered)
             logging.info(db_name + " coverage = %.1f%%" % percent)
-        dict_list.append(d)
+        rowdicts.append(rowdict)
     
     headers = ['Method', 'RMSE (kJ/mol)'] + \
         [db_name + ' coverage' for db_name in reactions.keys()]
-    html_writer.write_table(dict_list, headers=headers)
+    html_writer.write_table(rowdicts, headers=headers)
 
 if __name__ == '__main__':
     main()

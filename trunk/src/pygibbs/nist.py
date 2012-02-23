@@ -408,7 +408,7 @@ class Nist(object):
             
             rowdicts.append(rowdict)
         
-        rowdicts.sort(key=lambda x:x['|error|'])
+        rowdicts.sort(key=lambda x:x['|error|'], reverse=True)
         
         if not dG0_obs_vec:
             return 0, 0
