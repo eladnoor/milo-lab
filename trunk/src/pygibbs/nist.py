@@ -192,7 +192,7 @@ class Nist(object):
                 for cid in nist_row_data.GetAllCids():
                     self.cid2count[cid] = self.cid2count.setdefault(cid, 0) + 1
             except NistMissingCrucialDataException as e:
-                logging.warning(str(e))
+                logging.debug(str(e))
         logging.info('Total of %d rows read from the NIST database' % len(self.data))
         
     def BalanceReactions(self, balance_water=True):
@@ -382,8 +382,8 @@ class Nist(object):
                 evaluation_map[label] = ([], [])
             dG0_est = row_data.PredictReactionEnergy(thermodynamics)
             if np.isnan(dG0_est):
-                logging.warning("%s: the reaction energy cannot be calculated"
-                                % (row_data.ref_id))
+                logging.debug("%s: the reaction energy cannot be calculated"
+                              % (row_data.ref_id))
                 continue
 
             dG0_obs_vec.append(row_data.dG0_r)

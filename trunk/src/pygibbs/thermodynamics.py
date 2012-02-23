@@ -24,11 +24,10 @@ def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
         that the rows which are not affected by these NaNs are correctly
         calculated.
     """
-    dG0_r = np.zeros((S.shape[0], 1))
-    for r in xrange(S.shape[0]):
-        dG0_r[r, 0] = 0.0
-        for c in np.nonzero(S[r, :])[0]:
-            dG0_r[r, 0] += S[r, c] * dG0_f[c, 0]
+    dG0_r = np.zeros((1, S.shape[1]))
+    for r in xrange(S.shape[1]):
+        nonzero_c = S[:, r].nonzero()[0]
+        dG0_r[0, r] = dG0_f[0, nonzero_c] * S[nonzero_c, r].T
     return dG0_r
 
 class Thermodynamics(object):
@@ -256,13 +255,12 @@ class Thermodynamics(object):
         if type(cids) == types.IntType:
             return self.cid2PseudoisomerMap(cids).Transform(pH=pH, pMg=pMg, I=I, T=T)
         elif type(cids) == types.ListType:
-            dG0_f = np.zeros((len(cids), 1))
+            dG0_f = np.matrix(np.zeros((1, len(cids))))
             for c, cid in enumerate(cids):
                 try:
-                    dG0_f[c] = self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
+                    dG0_f[0, c] = self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
                 except MissingCompoundFormationEnergy:
-                    # this is okay, since it means this compound's dG_f will be unbound, but only if it doesn't appear in the total reaction
-                    dG0_f[c] = np.nan
+                    dG0_f[0, c] = np.nan
             return dG0_f
         else:
             raise ValueError("Input argument must be 'int' or 'list' of integers")
@@ -590,17 +588,17 @@ class BinaryThermodynamics(Thermodynamics):
         
         # if thermo[1] cannot estimate all reactions, just use thermo[0].
         dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
-        if np.any(np.isnan(dG0_r1)):
+        if np.isnan(dG0_r1).any():
             return dG0_r0
 
         dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
         
-        finite_cols = np.where(np.isfinite(dG0_f0))[0]
-        nan_cols = np.where(np.isnan(dG0_f0))[0]
-        fixed_dG0_r = np.dot(S[:, finite_cols], dG0_f0[finite_cols])
+        finite_cols = list(np.where(np.isfinite(dG0_f0))[1].flat)
+        nan_cols = list(np.where(np.isnan(dG0_f0))[1].flat)
+        fixed_dG0_r = dG0_f0[:, finite_cols] * S[finite_cols, :]
 
-        P_C, P_L = LinearRegression.ColumnProjection(S[:, nan_cols])
-        dG0_r = np.dot(P_C, dG0_r1) + np.dot(P_L, fixed_dG0_r)
+        P_R, P_N = LinearRegression.RowProjection(S[nan_cols, :])
+        dG0_r = dG0_r1 * P_R + fixed_dG0_r * P_N
         
         return dG0_r
 
@@ -617,7 +615,7 @@ class ReactionThermodynamics(Thermodynamics):
         self.formations = formation_thermo
         self.kegg = Kegg.getInstance()
         self.reactions = []
-        self.dG0_r_primes = np.zeros((0, 1), dtype='float')
+        self.dG0_r_primes = []
         self.cid2dG0_f = {}
         self.var_cids = []
         self.var_nullspace = None
@@ -646,7 +644,7 @@ class ReactionThermodynamics(Thermodynamics):
             raise ValueError('Reverse Legendre Transform not implemented yet. '
                              'All reaction conditions must be the same')
         self.reactions.append(kegg_reaction)
-        self.dG0_r_primes = np.vstack([self.dG0_r_primes, dG0_r_prime])
+        self.dG0_r_primes.append(dG0_r_prime)
          
     def AddPseudoisomer(self, cid, nH, z, nMg, dG0, ref=""):
         self.formations.AddPseudoisomer(cid, nH, z, nMg, dG0, ref)
@@ -654,22 +652,18 @@ class ReactionThermodynamics(Thermodynamics):
     def _Recalculate(self):
         S, cids = self.kegg.reaction_list_to_S(self.reactions)
         known_cids = self.formations.get_all_cids()
-        fix_cols = [i for i, cid in enumerate(cids) if cid in known_cids]
-        var_cols = [i for i, cid in enumerate(cids) if cid not in known_cids]
-        fix_cids = [cids[i] for i in fix_cols]
-        var_cids = [cids[i] for i in var_cols]
+        fix_rows = [i for i, cid in enumerate(cids) if cid in known_cids]
+        var_rows = [i for i, cid in enumerate(cids) if cid not in known_cids]
+        fix_cids = [cids[i] for i in fix_rows]
+        var_cids = [cids[i] for i in var_rows]
         
         # subtract the part of the dG0 which is fixed, and leave only the part
         # which is attributed to the NaN compounds.
-        fix_S = S[:, fix_cols]
-        var_S = S[:, var_cols]
-
-        U, s, V = np.linalg.svd(var_S, full_matrices=True)
-        r = len(np.where(s > 1e-10)[0]) # the rank of A
-        var_P_C = np.dot(U[:,:r], U[:,:r].T) # a projection matrix onto the column-space of A
-        #var_P_L = np.dot(U[:,r:], U[:,r:].T) # a projection matrix onto the column null-space of A
-        #var_P_R = np.dot(V[:r,:].T, V[:r,:]) # a projection matrix onto the row-space of A
-        var_P_N = np.dot(V[r:,:].T, V[r:,:]) # a projection matrix onto the row null-space of A
+        fix_S = S[fix_rows, :]
+        var_S = S[var_rows, :]
+        
+        var_P_C, var_P_L = LinearRegression.ColumnProjection(var_S)
+        var_P_R, var_P_N = LinearRegression.RowProjection(var_S)
 
         # take all the known dG0_primes from self.formations
         dG0_f_prime = self.formations.GetTransformedFormationEnergies(fix_cids, 
@@ -678,23 +672,16 @@ class ReactionThermodynamics(Thermodynamics):
         # project the dG0_r on the column-space of var_S to eliminate inconsistencies
         # between the dG0_r and the fixed formation energies.
         # then subtract the fixed part of the dG0_r.
-        var_dG0_r_prime = np.dot(var_P_C, self.dG0_r_primes) - np.dot(fix_S, dG0_f_prime)
-
-        inv_s = np.zeros(var_S.shape)
-        for i in xrange(r):
-            inv_s[i, i] = 1/s[i]
-
-        var_inv_S = np.dot(U, np.dot(inv_s, V)) # the pseudoinverse of var_S
-
-        # adjust dG0_r_primes, then perform linear regression to find the unknown dG0_f_primes
-        var_dG0_f_prime = np.dot(var_inv_S.T, var_dG0_r_prime)
+        var_dG0_r_prime = np.matrix(self.dG0_r_primes) * var_P_C - dG0_f_prime * fix_S
+        var_dG0_f_prime, _ = LinearRegression.LeastSquares(var_S, var_dG0_r_prime)
+        
         return var_cids, var_dG0_f_prime, var_P_N
 
     def get_all_cids(self):
         return sorted(self.formations.get_all_cids() + self.var_cids)
     
     def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
-        S = np.eye(len(cids))
+        S = np.matrix(np.eye(len(cids)))
         return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
 
     def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
@@ -717,12 +704,12 @@ class ReactionThermodynamics(Thermodynamics):
 
         # each row that is not orthogonal to the null-space is changed to NaN
         for i in xrange(S.shape[0]):
-            v = np.zeros((len(var_cids), 1))
+            v = np.matrix(np.zeros((len(var_cids), 1)))
             for j, cid in enumerate(var_cids):
                 if cid in cids:
-                    v[j, 0] = S[i, cids.index(cid)]
-            if np.any(abs(np.dot(var_P_N, v)) > 1e-10):
-                dG0_r_prime[i, 0] = np.NaN
+                    v[j, 0] = S[cids.index(cid), i]
+            if (abs(var_P_N * v) > 1e-10).any():
+                dG0_r_prime[0, i] = np.nan
         
         return dG0_r_prime
         
@@ -741,15 +728,15 @@ if __name__ == "__main__":
     
     merged = BinaryThermodynamics(alberty, pgc)
     
-    S = np.array([[-1,  1,  0,  0,  0,  0,  0,  0,  0], 
-                  [ 0, -1, -1,  1,  0,  0, -1,  1,  1], 
-                  [ 0,  0,  0, -1,  1,  1,  0,  0,  0], 
-                  [ 0, -1, -1,  0,  1,  1, -1,  1,  1]])
+    S = np.matrix([[-1,  1,  0,  0,  0,  0,  0,  0,  0], 
+                   [ 0, -1, -1,  1,  0,  0, -1,  1,  1], 
+                   [ 0,  0,  0, -1,  1,  1,  0,  0,  0], 
+                   [ 0, -1, -1,  0,  1,  1, -1,  1,  1]]).T
     cids = [311, 158, 10, 566, 24, 36, 2, 8, 9]
     
-    print alberty.GetTransformedFormationEnergies(cids).T
-    print alberty.GetTransfromedReactionEnergies(S, cids).T
-    print pgc.GetTransfromedReactionEnergies(S, cids).T
+    print alberty.GetTransformedFormationEnergies(cids)
+    print alberty.GetTransfromedReactionEnergies(S, cids)
+    print pgc.GetTransfromedReactionEnergies(S, cids)
     dG0_r_primes = merged.GetTransfromedReactionEnergies(S, cids)
-    print dG0_r_primes.T 
+    print dG0_r_primes
     

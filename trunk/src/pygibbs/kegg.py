@@ -1,9 +1,9 @@
 import csv
 import logging
 import pydot
-import pylab
 import re
 import sqlite3
+import numpy as np
 
 from toolbox import util
 from toolbox.database import SqliteDatabase
@@ -485,11 +485,11 @@ class Kegg(Singleton):
         
         Nr = len(reactions)
         Nc = len(cids)
-        S = pylab.zeros((Nr, Nc))
+        S = np.matrix(np.zeros((Nc, Nr)))
         for r, reaction in enumerate(reactions):
             spr = reaction.sparse
             for c, cid in enumerate(cids):
-                S[r,c] = spr.get(cid, 0)
+                S[c,r] = spr.get(cid, 0)
         return S, cids
 
     def parse_explicit_module(self, field_map, cid_mapping):
@@ -558,13 +558,13 @@ class Kegg(Singleton):
         
         Nr = len(rids)
         Nc = len(cids)
-        S = pylab.zeros((Nr, Nc))
+        S = np.matrix(np.zeros((Nc, Nr)))
         for r in range(Nr):
             reaction = self.rid2reaction_map[rids[r]]
             for c in range(Nc):
-                S[r,c] = reaction.sparse.get(cids[c], 0) * fluxes[r]
+                S[c,r] = reaction.sparse.get(cids[c], 0) * fluxes[r]
         
-        return (S, rids, fluxes, cids)
+        return S, rids, fluxes, cids
     
     def get_module(self, mid):               
         if mid not in self.mid2rid_map:

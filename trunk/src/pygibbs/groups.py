@@ -4,8 +4,9 @@ import logging, types, json, sys
 from collections import defaultdict
 
 from copy import deepcopy
-import pylab
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.mlab import rms_flat
 from pygibbs.thermodynamic_constants import R, default_pH, default_T,\
     dG0_f_Mg, default_I, default_pMg, RedoxCarriers
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
@@ -47,7 +48,7 @@ class GroupMissingTrainDataError(Exception):
         missing_single_groups = []
         ker = abs(gc.group_nullspace) > 1e-10
         for i in self.kernel_rows:
-            nonzero_columns = list(ker[i, :].nonzero()[1].flat)
+            nonzero_columns = list(ker[:, i].nonzero()[0].flat)
             if len(nonzero_columns) == 1:
                 missing_single_groups.append(nonzero_columns[0])
             else:
@@ -143,19 +144,25 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         #if self.transformed:
         #    fname = "../data/thermodynamics/groups_species_transformed.csv"
         #else:
-        if not FromDatabase:
+        if FromDatabase and self.db.DoesTableExist('groups'):
+            self.groups_data = GroupsData.FromDatabase(self.db,
+                                                       transformed=self.transformed)
+            self.group_decomposer = GroupDecomposer(self.groups_data)
+        else:
             fname = "../data/thermodynamics/groups_species.csv"
             self.groups_data = GroupsData.FromGroupsFile(fname,
                                                          transformed=self.transformed)
             self.groups_data.ToDatabase(self.db)
             self.group_decomposer = GroupDecomposer(self.groups_data)
-        else:
-            self.groups_data = GroupsData.FromDatabase(self.db,
-                                                       transformed=self.transformed)
-            self.group_decomposer = GroupDecomposer(self.groups_data)
 
     def LoadObservations(self, FromDatabase=False):
-        if not FromDatabase:
+        if FromDatabase and self.db.DoesTableExist(self.OBSERVATION_TABLE_NAME):
+            logging.info("Reading observations from database")
+            self.obs_collection = GroupObervationCollection.FromDatabase(
+                                    db=self.db,
+                                    table_name=self.OBSERVATION_TABLE_NAME,
+                                    transformed=self.transformed)
+        else:
             logging.info("Reading observations from files")
             dissociation = self.GetDissociationConstants()
             self.obs_collection = GroupObervationCollection.FromFiles(
@@ -163,13 +170,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                     dissociation=dissociation,
                                     transformed=self.transformed)
             self.obs_collection.ToDatabase(self.db, self.OBSERVATION_TABLE_NAME)
-            self.cid2nH_nMg = self.obs_collection.cid2nH_nMg
-        else:
-            logging.info("Reading observations from database")
-            self.obs_collection = GroupObervationCollection.FromDatabase(
-                                    db=self.db,
-                                    table_name=self.OBSERVATION_TABLE_NAME,
-                                    transformed=self.transformed)
         
         self.obs_collection.ReportToHTML()
 
@@ -177,17 +177,38 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.cid2groupvec = {}
         self.cid2error = {}            
 
-        if not FromDatabase:
+        if FromDatabase and self.db.DoesTableExist(self.GROUPVEC_TABLE_NAME):
+            logging.info("Reading group-vectors from database")
+            self.cid2nH_nMg = {}
+            for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
+                cid = row['cid']
+                gv_str = row['groupvec']
+                if gv_str is not None:
+                    groupvec = GroupVector.FromJSONString(self.groups_data,
+                                                          gv_str)
+                else:
+                    groupvec = None
+                self.cid2groupvec[cid] = groupvec
+                self.cid2error[cid] = row['err']
+                self.cid2nH_nMg[cid] = (row['nH'], row['nMg'])
+        else:
             logging.info("Decomposing all compounds and calculating group vectors")
             self.html_writer.write('</br><b>All Groupvectors</b>\n')
             self.html_writer.insert_toggle(start_here=True)
-            # When using non-transformed energies, it is very important for
-            # the group vectors of each compound to represent the correct
-            # pseudoisomer (same nH and nMg used in the reverse transform and
-            # the list of formation energies). Here we use the dictionary 
-            # self.cid2nH_nMg that is copied from GroupObervationCollection
             
             dissociation = self.GetDissociationConstants()
+
+            if not self.transformed:
+                self.cid2nH_nMg = dissociation.GetCid2nH_nMg(
+                                            self.pH, self.I, self.pMg, self.T)
+            else:
+                # When using non-transformed energies, it is very important for
+                # the group vectors of each compound to represent the correct
+                # pseudoisomer (same nH and nMg used in the reverse transform and
+                # the list of formation energies). Here we use the dictionary 
+                # self.cid2nH_nMg that is copied from GroupObervationCollection
+                self.cid2nH_nMg = self.obs_collection.cid2nH_nMg
+
             for cid in sorted(self.kegg.get_all_cids()):
                 self.cid2groupvec[cid] = None
                 self.cid2error[cid] = None
@@ -233,79 +254,57 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                [cid, nH, nMg, gv_str, err])
             self.db.Commit()
             self.html_writer.div_end()
-        else:
-            logging.info("Reading group-vectors from database")
-            self.cid2nH_nMg = {}
-            for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
-                cid = row['cid']
-                gv_str = row['groupvec']
-                if gv_str is not None:
-                    groupvec = GroupVector.FromJSONString(self.groups_data,
-                                                          gv_str)
-                else:
-                    groupvec = None
-                self.cid2groupvec[cid] = groupvec
-                self.cid2error[cid] = row['err']
-                self.cid2nH_nMg[cid] = (row['nH'], row['nMg'])
+
 
     def Train(self):
         logging.info("Calculating the linear regression data")
         cids, S, b, anchored = self.obs_collection.GetStoichiometry()
         
-        obs_ids = [obs.obs_id for obs in self.obs_collection.observations]
-        obs_types = [obs.obs_type for obs in self.obs_collection.observations]
-
-        anchored_cols = np.where(anchored==1)[1]
+        anchored_cols = list(np.where(anchored==1)[1].flat)
         # now remove anchored data from S and leave only the data which will be 
         # used for calculating the group contributions
         g, _ = LinearRegression.LeastSquares(S[:, anchored_cols],
                                              b[:, anchored_cols])
         P_C, P_L = LinearRegression.ColumnProjection(S[:, anchored_cols])
-        b -= np.dot(np.dot(g, P_C), S)
-        S = np.dot(P_L, S)
+        b -= g * P_C * S
+        S = P_L * S
         
         # set epsilon-small values to absolute 0
         S[np.where(abs(S) < 1e-10)] = 0
         
         # removed zero rows (compounds) from S
-        used_cid_indices = set(np.nonzero(np.sum(abs(S), 1))[0])
+        used_cid_indices = set(np.nonzero(np.sum(abs(S), 1))[0].flat)
         for i_cid, cid in enumerate(cids):
             if self.cid2groupvec[cid] is None:
                 used_cid_indices.difference_update([i_cid])
-                for i_obs in np.nonzero(S[i_cid, :])[0]:
+                for i_obs in np.nonzero(S[i_cid, :])[1].flat:
                     logging.warning("%s is removed because C%05d has no group vector, "
                                     "but is still part of the final stoichiometric matrix"
-                                    % (obs_ids[i_obs], cid))
+                                    % (self.obs_collection.observations[i_obs].obs_id,
+                                       cid))
                     S[:, i_obs] = 0
 
         used_cid_indices = sorted(used_cid_indices)
         S = S[used_cid_indices, :]
 
-        # removed zero column (observations) from S
-        #nonzero_cols = np.nonzero(np.sum(abs(S), 0))[0]
-        #nonzero_cols = set(nonzero_cols).difference(set_of_obs_to_remove)
-        #nonzero_cols = sorted(nonzero_cols)
-        #S = S[:, nonzero_cols]
-        #b = b[:, nonzero_cols]
-        #observations = [observations[i] for i in nonzero_cols]
-        
         n_groups = len(self.groups_data.GetGroupNames()) # number of groups
-        G = np.zeros((len(used_cid_indices), n_groups))
+        G = np.matrix(np.zeros((len(used_cid_indices), n_groups)))
         for i, i_cid in enumerate(used_cid_indices):
             G[i, :] = self.cid2groupvec[cids[i_cid]].Flatten()
 
-        GS = np.dot(G.T, S)
+        GS = G.T * S
 
         # 'unique' the rows GS. For each set of rows that is united,
         # the Y-value for the new row is the average of the corresponding Y-values.
         unique_GS, col_mapping = LinearRegression.ColumnUnique(GS, remove_zero=True)
-        unique_b = np.zeros((1, unique_GS.shape[1]))
+        unique_b = np.matrix(np.zeros((1, unique_GS.shape[1])))
         unique_obs_types = []
         unique_obs_ids = []
         for i, old_indices in sorted(col_mapping.iteritems()):
             unique_b[0, i] = np.mean(b[0, old_indices])
-            unique_obs_types.append(obs_types[old_indices[0]]) # take the type of the first one (not perfect...)
-            unique_obs_ids.append(', '.join([obs_ids[i] for i in old_indices]))            
+            obs_list = [self.obs_collection.observations[j] for j in old_indices]
+            unique_obs_types.append(obs_list[0].obs_type) # take the type of the first one (not perfect...)
+            unique_obs_ids.append(', '.join([obs.obs_id for obs in obs_list]))            
         
         self.group_matrix = unique_GS
         self.obs_values = unique_b
@@ -314,8 +313,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 
         logging.info("Performing linear regression")
         self.group_contributions, self.group_nullspace = \
-            LinearRegression.LeastSquares(self.group_matrix, self.obs_values,
-                                          reduced_row_echlon=False)
+            LinearRegression.LeastSquares(self.group_matrix, self.obs_values)
         
         logging.info("Storing the group contribution data in the database")
         self.SaveContributionsToDB()
@@ -371,10 +369,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         if self.group_contributions == None or self.group_nullspace == None:
             raise Exception("You need to first Train the system before using it to estimate values")
 
-        gv = np.array(groupvec.Flatten()).T
-        val = float(np.dot(self.group_contributions, gv))
-        v = abs(np.dot(self.group_nullspace.T, gv))
-        k_list = [i for i in np.where(v > 1e-10)[0]]
+        gv = np.matrix(groupvec.Flatten()).T
+        val = float(self.group_contributions * gv)
+        v = self.group_nullspace.T * gv
+        k_list = list(np.where(v > 1e-10)[0].flat)
         if k_list:
             raise GroupMissingTrainDataError(val, "can't estimate because the input "
                 "is not in the column-space of the group matrix", k_list)
@@ -415,7 +413,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                        self.obs_collection.gibbs_symbol, 
                        "acid-base", "formation", "reaction"]
         group_names = self.groups_data.GetGroupNames()
-        for j, dG0_gr in enumerate(self.group_contributions[0, :]):
+        for j, dG0_gr in enumerate(self.group_contributions.flat):
             obs_lists_dict = defaultdict(list)
             for k in self.group_matrix[j, :].nonzero()[0]:
                 obs_lists_dict[self.obs_types[k]].append(self.obs_ids[k])
@@ -475,10 +473,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         fit_vec = np.array([row['fit'] for row in deviations])
         
         resid_vec = np.array([row['fit_resid'] for row in deviations])
-        rmse = pylab.rms_flat(resid_vec)
+        rmse = rms_flat(resid_vec)
         
         loo_resid_vec = np.array([row['loo_resid'] for row in loo_deviations])
-        loo_rmse = pylab.rms_flat(loo_resid_vec)
+        loo_rmse = rms_flat(loo_resid_vec)
 
         self.html_writer.write_ul(['fit_rmse(pred) = %.2f kJ/mol' % rmse,
                                    'loo_rmse(pred) = %.2f kJ/mol' % loo_rmse])
@@ -511,31 +509,31 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.write('</br><b>Cross-validation figure 1</b>')
         self.html_writer.insert_toggle(start_here=True)
 
-        obs_vs_est_fig = pylab.figure(figsize=[6.0, 6.0], dpi=100)
-        pylab.plot(obs_vec, fit_vec, '.', figure=obs_vs_est_fig)
-        pylab.xlabel('Observation', figure=obs_vs_est_fig)
-        pylab.ylabel('Estimation (PGC)', figure=obs_vs_est_fig)
-        pylab.hold(True)
+        obs_vs_est_fig = plt.figure(figsize=[6.0, 6.0], dpi=100)
+        plt.plot(obs_vec, fit_vec, '.', figure=obs_vs_est_fig)
+        plt.xlabel('Observation', figure=obs_vs_est_fig)
+        plt.ylabel('Estimation (PGC)', figure=obs_vs_est_fig)
+        plt.hold(True)
         for row in deviations:
             if abs(row['fit_resid']) > 2*rmse:
-                pylab.text(row['obs'], row['fit'], row['name'], fontsize=4,
+                plt.text(row['obs'], row['fit'], row['name'], fontsize=4,
                            figure=obs_vs_est_fig)
-        pylab.title('Observed vs. Estimated (PGC)', figure=obs_vs_est_fig)
+        plt.title('Observed vs. Estimated (PGC)', figure=obs_vs_est_fig)
         self.html_writer.embed_matplotlib_figure(obs_vs_est_fig)
         self.html_writer.div_end()
 
         self.html_writer.write('</br><b>Cross-validation figure 2</b>')
         self.html_writer.insert_toggle(start_here=True)
         
-        obs_vs_err_fig = pylab.figure(figsize=[6.0, 6.0], dpi=100)
-        pylab.plot(obs_vec, resid_vec, '.')
-        pylab.xlabel('Observation')
-        pylab.ylabel('Estimated (PGC) Residuals')
-        pylab.hold(True)
+        obs_vs_err_fig = plt.figure(figsize=[6.0, 6.0], dpi=100)
+        plt.plot(obs_vec, resid_vec, '.')
+        plt.xlabel('Observation')
+        plt.ylabel('Estimated (PGC) Residuals')
+        plt.hold(True)
         for row in deviations:
             if abs(row['fit_resid']) > 2*rmse:
-                pylab.text(row['obs'], row['fit_resid'], row['name'], fontsize=4)
-        pylab.title('Observed vs. Estimated (PGC) Residuals', figure=obs_vs_est_fig)
+                plt.text(row['obs'], row['fit_resid'], row['name'], fontsize=4)
+        plt.title('Observed vs. Estimated (PGC) Residuals', figure=obs_vs_est_fig)
         self.html_writer.embed_matplotlib_figure(obs_vs_err_fig)
         self.html_writer.div_end()
 
@@ -698,16 +696,16 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             raise MissingCompoundFormationEnergy(self.cid2error.get(cid, ""), cid)
         
     def GroupMatrixRowToString(self, r):
-        nonzero_columns = np.where(abs(r) > 1e-10)[0]
+        nonzero_columns = list(np.where(abs(r) > 1e-10)[0].flat)
         return " | ".join(["%g : %s" % (r[j], self.groups_data.all_groups[j].name)
-                           for j in nonzero_columns])
+                           for j in nonzero_columns.flat])
             
     def LoadContributionsFromDB(self):
         logging.info("loading the group contribution data from the database")
         self.group_contributions = []
         for row in self.db.DictReader(self.CONTRIBUTION_TABLE_NAME):
             self.group_contributions.append(row['dG0_gr'])
-        self.group_contributions = pylab.array([self.group_contributions])
+        self.group_contributions = np.matrix([self.group_contributions])
         self.group_nullspace = self.db.LoadSparseNumpyMatrix(self.NULLSPACE_TABLE_NAME)
                         
     def GetGroupContribution(self, name, nH, z, nMg=0):
@@ -720,7 +718,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         dG0_gr_protonated = self.GetGroupContribution(name, nH, z, nMg)
         if not dG0_gr_deprotonated or not dG0_gr_protonated:
             return None
-        pKa = (dG0_gr_deprotonated - dG0_gr_protonated)/(R*default_T*pylab.log(10))
+        pKa = (dG0_gr_deprotonated - dG0_gr_protonated)/(R*default_T*np.log(10))
         return pKa
     
     def GetPkmgOfGroup(self, name, nH, z, nMg):
@@ -728,7 +726,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         dG0_gr_with_Mg = self.GetGroupContribution(name, nH, z, nMg)
         if not dG0_gr_without_Mg or not dG0_gr_with_Mg:
             return None
-        pK_Mg = (dG0_gr_without_Mg + dG0_f_Mg - dG0_gr_with_Mg)/(R*default_T*pylab.log(10))
+        pK_Mg = (dG0_gr_without_Mg + dG0_f_Mg - dG0_gr_with_Mg)/(R*default_T*np.log(10))
         return pK_Mg
 
     def AnalyzeSingleKeggCompound(self, cid, ignore_protonations=False):
@@ -767,7 +765,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.LoadGroups(True)
         self.LoadObservations(True)
         self.LoadGroupVectors(True)
-        self.LoadContributionsFromDB()
+        if self.db.DoesTableExist(self.CONTRIBUTION_TABLE_NAME):
+            self.LoadContributionsFromDB()
+        else:
+            self.Train()
+            self.EstimateKeggCids()
         
         reader = self.db.DictReader(self.THERMODYNAMICS_TABLE_NAME)
         PsuedoisomerTableThermodynamics._FromDictReader(
@@ -852,18 +854,16 @@ if __name__ == '__main__':
         G = GroupContribution(db=db, html_writer=html_writer,
                               transformed=options.transformed)
         
-        if not options.test_only:
-            G.LoadGroups(options.from_database)
-            G.LoadObservations(options.from_database)
-            G.LoadGroupVectors(options.from_database)
+        G.LoadGroups(options.from_database)
+        G.LoadObservations(options.from_database)
+        G.LoadGroupVectors(options.from_database)
+        
+        if options.test_only:
+            G.LoadContributionsFromDB()
+        else:
             G.Train()
             G.WriteRegressionReport()
             G.AnalyzeTrainingSet()
-        else:
-            G.LoadGroups(True)
-            G.LoadObservations(True)
-            G.LoadGroupVectors(True)
-            G.LoadContributionsFromDB()
         
         if not options.train_only:
             G.EstimateKeggCids()

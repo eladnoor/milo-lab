@@ -255,7 +255,7 @@ class DissociationConstants(object):
         data['I'] = []
         data['pMg'] = []
         data['T'] = []
-        data['S'] = np.zeros((0, len(all_cids))) # stoichiometric matrix
+        data['S'] = np.zeros((len(all_cids), 0)) # stoichiometric matrix
         data['nist_rows'] = [] # The NIST rows that were used in S (since some might
                                # be dropped in the process, e.g. missing pKa)
         
@@ -280,16 +280,15 @@ class DissociationConstants(object):
             data['dG0_r'].append(dG0)
             
             # convert the reaction's sparse representation to a row vector
-            stoichiometric_row = np.zeros((1, len(all_cids)))
+            stoichiometric_row = np.zeros((len(all_cids), 1))
             for cid, coeff in nist_row_data.reaction.iteritems():
-                stoichiometric_row[0, all_cids.index(cid)] = coeff
-            data['S'] = np.vstack([data['S'], stoichiometric_row])
+                stoichiometric_row[all_cids.index(cid), 0] = coeff
+            data['S'] = np.hstack([data['S'], stoichiometric_row])
         
-        # remove the columns that are all-zeros in S
-        nonzero_columns = np.sum(abs(data['S']), 0).nonzero()[0]
-        data['S'] = data['S'][:, nonzero_columns]
-
-        data['cids_to_estimate'] = [all_cids[i] for i in nonzero_columns]
+        # remove the compounds that are all-zeros in S
+        nonzero_rows = abs(data['S']).sum(1).nonzero()[0]
+        data['S'] = np.matrix(data['S'][nonzero_rows, :])
+        data['cids_to_estimate'] = [all_cids[i] for i in nonzero_rows]
         
         return data
     

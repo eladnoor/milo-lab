@@ -108,57 +108,56 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         nist_rows_final = data['nist_rows']
         stoichiometric_matrix = data['S']
         cids_to_estimate = data['cids_to_estimate']
-        n_rows = stoichiometric_matrix.shape[0]        
+        n_cols = stoichiometric_matrix.shape[1]        
         
         if anchors:
             logging.info("%d out of %d compounds are anchored" % 
                          (len(anchors.get_all_cids()), len(cids_to_estimate)))
         logging.info("Only %d out of %d NIST measurements can be used" %
-                     (n_rows, len(nist_rows_normalized)))
+                     (n_cols, len(nist_rows_normalized)))
 
         # squeeze the regression matrix by leaving only unique rows
-        unique_rows_S = np.unique([tuple(stoichiometric_matrix[i,:].flat) for i 
-                                   in xrange(n_rows)])
+        unique_cols_S = np.unique([tuple(stoichiometric_matrix[:,i].flat) for i 
+                                   in xrange(n_cols)])
+        n_unique_cols = unique_cols_S.shape[1]
 
-        logging.info("There are %d unique reactions" % unique_rows_S.shape[0])
+        logging.info("There are %d unique reactions" % n_unique_cols)
         unique_rids = set([nist_row.reaction.rid for nist_row in nist_rows
                             if nist_row.reaction.rid is not None])
         logging.info("Out of which %d have KEGG reaction IDs" % len(unique_rids))
-
         
-        # for every unique row, calculate the average dG0_r of all the rows that
+        # for every unique column, calculate the average dG0_r of all the columns that
         # are the same reaction
-        n_unique_rows = unique_rows_S.shape[0]
         
         # full_data_mat will contain these columns: dG0, dG0_tag, dG0 - E[dG0], 
         # dG0_tag - E[dG0_tag], N
         # the averages are over the equivalence set of each reaction (i.e. the 
         # average dG of all the rows in NIST with that same reaction).
         # 'N' is the unique row number (i.e. the ID of the equivalence set)
-        full_data_mat = np.zeros((n_rows, 5))
-        for r in xrange(n_rows):
-            full_data_mat[r, 0] = data['dG0_r'][r]
-            full_data_mat[r, 1] = data['dG0_r_tag'][r]
+        full_data_mat = np.matrix(np.zeros((5, n_cols)))
+        for r in xrange(n_cols):
+            full_data_mat[0, r] = data['dG0_r'][r]
+            full_data_mat[1, r] = data['dG0_r_tag'][r]
         
         # unique_data_mat will contain these columns: E[dG0], E[dG0_tag],
         # std(dG0), std(dG0_tag), no. rows
         # there is exactly one row for each equivalence set (i.e. unique reaction)
         # no. rows holds the number of times this unique reaction appears in NIST
-        unique_data_mat = np.zeros((n_unique_rows, 5))
+        unique_data_mat = np.matrix(np.zeros((5, n_unique_cols)))
         unique_sparse_reactions = []
         unique_nist_row_representatives = []
-        for i in xrange(n_unique_rows):
-            row_vector = unique_rows_S[i:i+1,:]
+        for i in xrange(n_unique_cols):
+            row_vector = unique_cols_S[:, i:i+1]
             
             # convert the rows of unique_rows_S to a list of sparse reactions
             sparse = {}
             for j in row_vector.nonzero()[1]: # 1 is the dimension of columns in S
-                sparse[cids_to_estimate[j]] = unique_rows_S[i, j]
+                sparse[cids_to_estimate[j]] = unique_cols_S[j, i]
             reaction = Reaction(names=['NIST%03d' % i], sparse_reaction=sparse)
             unique_sparse_reactions.append(reaction)
 
             # find the list of indices which are equal to row i in unique_rows_S
-            diff = abs(stoichiometric_matrix - np.repeat(row_vector, n_rows, 0))
+            diff = abs(stoichiometric_matrix - np.repeat(row_vector, n_cols, 0))
             row_indices = np.where(np.sum(diff, 1) == 0)[0]
             unique_nist_row_representatives.append(nist_rows_final[row_indices[0]])
             
@@ -547,7 +546,12 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         return self.nist.verify_results(html_writer=self.html_writer, 
                                         thermodynamics=self)
 
-
+    def Train(self):
+        # Train the formation energies using linear regression
+        S, dG0, cids = self.ReverseTransform()
+        self.LinearRegression(S, dG0, cids)
+        self.ToDatabase(self.db, 'prc_pseudoisomers')
+    
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
@@ -601,11 +605,7 @@ def main():
     #alberty = PsuedoisomerTableThermodynamics.FromDatabase(db_public, 'alberty_pseudoisomers')
 
     html_writer.write("<h2>NIST regression:</h2>")
-    
-    # Train the formation energies using linear regression
-    S, dG0, cids = nist_regression.ReverseTransform()
-    nist_regression.LinearRegression(S, dG0, cids)
-    nist_regression.ToDatabase(db, 'prc_pseudoisomers')
+    nist_regression.Train()
     
     html_writer.write('<h3>PRC results:</h3>\n')
     html_writer.insert_toggle('regression')

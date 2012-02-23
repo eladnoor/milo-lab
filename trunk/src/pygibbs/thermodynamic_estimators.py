@@ -10,6 +10,7 @@ from pygibbs.hatzimanikatis import Hatzi
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamics import BinaryThermodynamics
 from pygibbs.thermodynamics import ReactionThermodynamics
+from pygibbs.nist_regression import NistRegression
 
 ESTIMATOR_NAMES = ('hatzi_gc', 'BGC', 'PGC', 'merged')
 
@@ -20,11 +21,14 @@ def EstimatorNames():
 def LoadAllEstimators():
     db_public = SqliteDatabase('../data/public_data.sqlite')
     db_gibbs = SqliteDatabase('../res/gibbs.sqlite')
+    
+    if not db_gibbs.DoesTableExist('prc_pseudoisomers'):
+        nist_regression = NistRegression(db_gibbs)
+        nist_regression.Train()
+
     tables = {'alberty': (db_public, 'alberty_pseudoisomers', 'Alberty'),
               'PRC': (db_gibbs, 'prc_pseudoisomers', 'our method (PRC)')}
-
     estimators = {}
-
     for key, (db, table_name, thermo_name) in tables.iteritems():
         if db.DoesTableExist(table_name):
             estimators[key] = PsuedoisomerTableThermodynamics.FromDatabase(
@@ -35,6 +39,7 @@ def LoadAllEstimators():
     estimators['hatzi_gc'] = Hatzi(use_pKa=False)
     #estimators['hatzi_gc_pka'] = Hatzi(use_pKa=True)
     
+    #if db.DoesTableExist('bgc_pseudoisomers'):
     estimators['BGC'] = GroupContribution(db=db_gibbs, transformed=True)
     estimators['BGC'].init()
     estimators['BGC'].name = 'our method (BGC)'

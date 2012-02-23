@@ -29,58 +29,38 @@ class LinearRegression(object):
     
     @staticmethod
     def LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
-        n, m = A.shape
-        l = np.prod(y.shape)
-        if l == n:
-            return LinearRegression._LeastSquares(A, y.reshape((n, 1)), reduced_row_echlon, eps)
-        elif l == m:
-            weights, kerA = LinearRegression._LeastSquares(A.T, y.reshape((m, 1)), reduced_row_echlon, eps)
+        m, n = A.shape
+        l, k = y.shape
+        if l == 1 and k == n: # find a solution for x*A = y (x, y are row vectors)
+            return LinearRegression._LeastSquares(A, y, reduced_row_echlon, eps)
+        elif k == 1 and l == m: # find a solution for A*x = y (x, y are column vectors)
+            weights, kerA = LinearRegression._LeastSquares(A.T, y.T, reduced_row_echlon, eps)
             return weights.T, kerA.T
-        raise Exception('The length of y (%d) does not match the number of '
-                        'rows or columns in A (%d)' % (l, n))
+        raise Exception('The shape of y (%d x %d) does not match the number of '
+                        'rows or columns in A (%d x %d)' % (l, k, m, n))
     
     @staticmethod
     def _LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
         """
-            Performs a safe LeastSquares.
+            Performs a safe LeastSquares, by minimizing   || xA - y ||
             
             Returns (x, K):
-                If A is fully ranked, K = [] and x is the ordinary least squares solution for A*x = y.
+                If A is fully ranked, K = [] and x is the ordinary least squares solution for xA = y.
                 
-                If A is not fully ranked, LeastSquares returns the best solution for A*x = y, using the pseudoinverse of cov(A).
-                K is the kernel of A, its dimension is: m - rank(A).
-                If one wants to interpolate the y-value for a new data point, it must be orthogonal to K (i.e. K*x = 0).
+                If A is not fully ranked, LeastSquares returns the best solution for xA = y, using the pseudoinverse of cov(A).
+                K is the kernel of A, its dimension is: n - rank(A).
+                If one wants to interpolate the y-value for a new data point, it must be orthogonal to K (i.e. xK = 0).
         """
-        n, m = A.shape
-        zero_columns = np.nonzero([np.linalg.norm(A[:,i]) <= eps for i in xrange(m)])[0]
-        nonzero_columns = np.nonzero([np.linalg.norm(A[:,i]) > eps for i in xrange(m)])[0]
-        A_red = A[:, nonzero_columns]
-        m_red = len(nonzero_columns)
-        
-        U, s, V = np.linalg.svd(A_red, full_matrices=True)
-
-        r = len(np.where(s > eps)[0]) # the rank of A
-        if r < m:
-            logging.debug('The rank of A (%d) is lower than the number of columns'
-                          ' (%d), i.e. there is a deficiency of dimension %d' % (r, m, m - r))
-
-        inv_S = np.zeros((m_red, n))
-        for i in xrange(r):
-            inv_S[i, i] = 1/s[i]
-        
-        x = np.dot(V.T, np.dot(inv_S, np.dot(U.T, y)))
-        weights = np.zeros((m, 1))
-        weights[nonzero_columns, :] = x
-
-        kerA = np.zeros((m-r, m))
-        kerA[0:(m_red-r), nonzero_columns] = V[r:m_red,:]
-        for i, j in enumerate(zero_columns):
-            kerA[m_red-r+i, j] = 1
-
+        U, s, V = np.linalg.svd(A, full_matrices=True)
+        r = (s > eps).nonzero()[0].shape[0] # the rank of A
+        inv_S = np.matrix(np.diag([1.0/s[i] for i in xrange(r)]))
+        V_r = V[:r, :]
+        U_r = U[:, :r]
+        x = y * V_r.T * inv_S * U_r.T
+        kerA = U[:,r:]
         if reduced_row_echlon:
             LinearRegression.ToReducedRowEchelonForm(kerA)
-
-        return weights, kerA
+        return x, kerA
     
     @staticmethod
     def ToReducedRowEchelonForm(A, eps=1e-10, reduce_last_column=True):
@@ -143,9 +123,8 @@ class LinearRegression(object):
                             "truncated kernel matrix is not fully ranked and "
                             "thus not invertible.")
         
-        delta_x = np.array([v - x[i] for i,v in index2value.iteritems()])
-        a = np.dot(K_inv, delta_x)
-        x += np.dot(K.T, a)
+        delta_x = np.matrix([v - x[i, 0] for i,v in index2value.iteritems()]).T
+        x += K.T * K_inv * delta_x
         return x, K
  
     @staticmethod
@@ -228,8 +207,8 @@ class LinearRegression(object):
         """
         _U, s, V = np.linalg.svd(A, full_matrices=True)
         r = len(np.where(s > eps)[0]) # the rank of A
-        P_R = np.dot(V[:r,:].T, V[:r,:]) # a projection matrix onto the row-space of A
-        P_N = np.dot(V[r:,:].T, V[r:,:]) # a projection matrix onto the null-space of A
+        P_R = V[:r,:].T * V[:r,:] # a projection matrix onto the row-space of A
+        P_N = V[r:,:].T * V[r:,:] # a projection matrix onto the null-space of A
         return P_R, P_N
 
     @staticmethod
@@ -302,7 +281,7 @@ class LinearRegression(object):
             # find the indices of rows in A which correspond to this unique row in A_unique
             row_vector = A_unique[i:i+1,:]
             diff = abs(A - np.repeat(row_vector, A.shape[0], 0))
-            row_mapping[i] = np.where(np.sum(diff, 1) == 0)[0].tolist()
+            row_mapping[i] = list(np.where(np.sum(diff, 1) == 0)[0].flat)
         
         return A_unique, row_mapping
     
@@ -342,8 +321,8 @@ if __name__ == '__main__':
     #x, _ = LinearRegression.LeastSquares(A, b)
     #print "A*x - b:", (np.dot(A, x) - b).T.tolist()[0]
 
-    x_C, _ = LinearRegression.LeastSquares(np.dot(A, G), b_C)
-    print "A*x_C - b_C:\n", abs(np.dot(np.dot(A, G), x_C) - b_C).T.tolist()[0]
+    x_C, _ = LinearRegression.LeastSquares(A*G, b_C)
+    print "A*x_C - b_C:\n", abs(A * G * x_C - b_C).T.tolist()[0]
     print abs((P_C - P_C2) * b).T.tolist()[0]
     
     #x_N, _ = LinearRegression.LeastSquares(A, b_N)
@@ -353,7 +332,7 @@ if __name__ == '__main__':
     #print (P_R2 * b).T.tolist()[0]
     #print (P_R2 * P_R * b).T.tolist()[0]
     #print (P_R * P_R2 * b).T.tolist()[0]
-    sys.exit(0)
+    #sys.exit(0)
 
 #    A = np.matrix([[1, 0, 1, 1],[0, 1, 1, 1],[1, 1, 2, 2]])
 #    K = LinearRegression.FindKernel(A)
@@ -377,7 +356,7 @@ if __name__ == '__main__':
     S = np.matrix([[0,0,1,0,-1,1,0,0],[0,-1,0,-1,1,0,0,0],[-2,0,0,1,0,0,0,0],[0,0,0,0,0,0,-1,1]])
     
     b = np.matrix([[10],[20],[30],[15]])
-    f = {0:5, 1:-99, 2:1001, 6:0}
+    f = {0:5, 1:-99, 2:1021, 6:0}
     x, K = LinearRegression.LeastSquaresWithFixedPoints(S, b, f)
     print "solution = ", ', '.join(['%.1f' % i for i in x])
     print "%2s:  %7s  %7s" % ('#', 'fixed', 'sol')
