@@ -25,7 +25,7 @@ from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.util import _mkdir
 from toolbox.sparse_kernel import SparseKernel
 from pygibbs.kegg_reaction import Reaction
-
+from matplotlib.mlab import rms_flat
 
 class NistRegression(PsuedoisomerTableThermodynamics):
     
@@ -33,15 +33,20 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                  html_writer=None, nist=None):
         PsuedoisomerTableThermodynamics.__init__(self)
         self.db = db
-        self.dissociation = dissociation or DissociationConstants.FromPublicDB()
         self.html_writer = html_writer or NullHtmlWriter()
         self.nist = nist or Nist()
+        self.dissociation = None
         
         self.cid2pmap_dict = {}
         
         self.assume_no_pKa_by_default = False
         self.std_diff_threshold = np.inf
-        
+
+    def GetDissociation(self):
+        if self.dissociation is None:
+            self.dissociation = DissociationConstants.FromPublicDB()
+        return self.dissociation
+
     def cid2PseudoisomerMap(self, cid):
         if cid in self.cid2pmap_dict:
             return self.cid2pmap_dict[cid]
@@ -56,7 +61,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         logging.info("Reverse transforming the NIST data")
         nist_rows = self.nist.SelectRowsFromNist()
         nist_rows_normalized = [row.Clone() for row in nist_rows]               
-        data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized)
+        data = self.GetDissociation().ReverseTranformNistRows(nist_rows_normalized)
         stoichiometric_matrix = data['S']
         cids_to_estimate = data['cids_to_estimate']
         
@@ -74,7 +79,6 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         
         return stoich_and_temps, dG0_r, cids_to_estimate
         
-    
     def ReverseTransform(self, anchors=None, cid2nH_nMg=None):
         """
             Performs the reverse Legendre transform on all the data in NIST where
@@ -102,7 +106,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             self.override_data(anchors)
             self.anchors.update(anchors.get_all_cids())
         
-        data = self.dissociation.ReverseTranformNistRows(nist_rows_normalized,
+        data = self.GetDissociation().ReverseTranformNistRows(nist_rows_normalized,
                                                          cid2nH_nMg=cid2nH_nMg)
                 
         nist_rows_final = data['nist_rows']
@@ -117,11 +121,8 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                      (n_cols, len(nist_rows_normalized)))
 
         # squeeze the regression matrix by leaving only unique rows
-        unique_cols_S = np.unique([tuple(stoichiometric_matrix[:,i].flat) for i 
-                                   in xrange(n_cols)])
-        n_unique_cols = unique_cols_S.shape[1]
-
-        logging.info("There are %d unique reactions" % n_unique_cols)
+        unique_cols_S, col_mapping = LinearRegression.ColumnUnique(stoichiometric_matrix)
+        logging.info("There are %d unique reactions" % len(col_mapping))
         unique_rids = set([nist_row.reaction.rid for nist_row in nist_rows
                             if nist_row.reaction.rid is not None])
         logging.info("Out of which %d have KEGG reaction IDs" % len(unique_rids))
@@ -135,42 +136,39 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         # average dG of all the rows in NIST with that same reaction).
         # 'N' is the unique row number (i.e. the ID of the equivalence set)
         full_data_mat = np.matrix(np.zeros((5, n_cols)))
-        for r in xrange(n_cols):
-            full_data_mat[0, r] = data['dG0_r'][r]
-            full_data_mat[1, r] = data['dG0_r_tag'][r]
+        full_data_mat[0, :] = np.matrix(data['dG0_r'])
+        full_data_mat[1, :] = np.matrix(data['dG0_r_tag'])
         
         # unique_data_mat will contain these columns: E[dG0], E[dG0_tag],
         # std(dG0), std(dG0_tag), no. rows
         # there is exactly one row for each equivalence set (i.e. unique reaction)
         # no. rows holds the number of times this unique reaction appears in NIST
-        unique_data_mat = np.matrix(np.zeros((5, n_unique_cols)))
+        unique_data_mat = np.matrix(np.zeros((5, len(col_mapping))))
         unique_sparse_reactions = []
         unique_nist_row_representatives = []
-        for i in xrange(n_unique_cols):
-            row_vector = unique_cols_S[:, i:i+1]
+        for i, col_indices in col_mapping.iteritems():
+            col_vector = unique_cols_S[:, i]
             
             # convert the rows of unique_rows_S to a list of sparse reactions
             sparse = {}
-            for j in row_vector.nonzero()[1]: # 1 is the dimension of columns in S
+            for j in col_vector.nonzero()[0].flat:
                 sparse[cids_to_estimate[j]] = unique_cols_S[j, i]
             reaction = Reaction(names=['NIST%03d' % i], sparse_reaction=sparse)
             unique_sparse_reactions.append(reaction)
 
             # find the list of indices which are equal to row i in unique_rows_S
-            diff = abs(stoichiometric_matrix - np.repeat(row_vector, n_cols, 0))
-            row_indices = np.where(np.sum(diff, 1) == 0)[0]
-            unique_nist_row_representatives.append(nist_rows_final[row_indices[0]])
+            unique_nist_row_representatives.append(nist_rows_final[col_indices[0]])
             
             # take the mean and std of the dG0_r of these rows
-            sub_data_mat  = full_data_mat[row_indices, 0:2]
-            unique_data_mat[i, 0:2] = np.mean(sub_data_mat, 0)
-            unique_data_mat[i, 2:4] = np.std(sub_data_mat, 0)
-            unique_data_mat[i, 4]   = sub_data_mat.shape[0]
-            full_data_mat[row_indices, 4] = i
-            full_data_mat[row_indices, 2:4] = sub_data_mat
-            for k in row_indices:
+            sub_data_mat  = full_data_mat[0:2, col_indices]
+            unique_data_mat[0:2, i] = np.mean(sub_data_mat, 1)
+            unique_data_mat[2:4, i] = np.std(sub_data_mat, 1)
+            unique_data_mat[4, i]   = sub_data_mat.shape[1]
+            full_data_mat[4, col_indices] = i
+            full_data_mat[2:4, col_indices] = sub_data_mat
+            for k in col_indices:
                 # subtract the mean from each row with this reaction
-                full_data_mat[k, 2:4] -= unique_data_mat[i, 0:2]
+                full_data_mat[2:4, k] -= unique_data_mat[0:2, i]
                     
         # write a table that lists the variances of each unique reaction
         # before and after the reverse transform
@@ -178,7 +176,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                                        unique_nist_row_representatives,
                                        unique_data_mat, full_data_mat)
         
-        return unique_rows_S, unique_data_mat[:, 0:1], cids_to_estimate
+        return unique_cols_S, unique_data_mat[0:1, :], cids_to_estimate
 
     def FindKernel(self, S, cids, sparse=True):
         sparse_kernel = SparseKernel(S)
@@ -212,20 +210,20 @@ class NistRegression(PsuedoisomerTableThermodynamics):
     
     def LinearRegression(self, S, dG0, cids, prior_thermodynamics=None):
         rankS = LinearRegression.MatrixRank(S)
-        logging.info("Regression matrix is %d x %d, with a nullspace of rank %d" % \
-                     (S.shape[0], S.shape[1], S.shape[1]-rankS))
+        logging.info("Regression matrix is %d x %d, and rank %d" % \
+                     (S.shape[0], S.shape[1], rankS))
         est_dG0_f, kerA = LinearRegression.LeastSquares(S, dG0)
-        est_dG0_r = np.dot(S, est_dG0_f)
+        est_dG0_r = est_dG0_f * S
         residuals = est_dG0_r - dG0
-        rmse = np.sqrt(np.mean(residuals**2))
+        rmse = rms_flat(residuals.flat)
         logging.info("Regression results for reverse transformed data:")
-        logging.info("N = %d, RMSE = %.1f" % (S.shape[0], rmse))
-        logging.info("Kernel rank = %d" % (kerA.shape[0]))
+        logging.info("N = %d, RMSE = %.1f" % (S.shape[1], rmse))
+        logging.info("Kernel rank = %d" % (kerA.shape[1]))
 
         if prior_thermodynamics:
             # find the vector in the solution subspace which is closest to the 
             # prior formation energies
-            delta_dG0_f = np.zeros((0, 1))
+            delta_dG0_f = []
             indices_in_prior = []
             for i, cid in enumerate(cids):
                 try:
@@ -233,54 +231,55 @@ class NistRegression(PsuedoisomerTableThermodynamics):
                     for p_nH, unused_z, p_nMg, dG0 in sorted(pmap.ToMatrix()):
                         if p_nMg == 0:
                             dG0_base = self.ConvertPseudoisomer(cid, dG0, p_nH)
-                            difference = dG0_base - est_dG0_f[i, 0]
-                            delta_dG0_f = np.vstack([delta_dG0_f, difference])
+                            difference = dG0_base - est_dG0_f[0, i]
+                            delta_dG0_f.append(difference)
                             indices_in_prior.append(i)
                 except MissingCompoundFormationEnergy:
                     continue
                 except MissingDissociationConstantError as e:
                     raise Exception("C%05d has no data about its dissociation "
                                     "constants: " + str(e))
-            
-            v, _ = LinearRegression.LeastSquares(kerA.T[indices_in_prior,:], 
+
+            delta_dG0_f = np.matrix(delta_dG0_f)
+            v, _ = LinearRegression.LeastSquares(kerA.T[:, indices_in_prior], 
                         delta_dG0_f, reduced_row_echlon=False)
-            est_dG0_f += np.dot(kerA.T, v)
+            est_dG0_f += v * kerA.T
 
         # copy the solution into the diss_tables of all the compounds,
         # and then generate their PseudoisomerMaps.
         for i, cid in enumerate(cids):
-            diss_table = self.dissociation.GetDissociationTable(cid)
+            diss_table = self.GetDissociation().GetDissociationTable(cid)
             if diss_table is not None:
-                diss_table.min_dG0 = est_dG0_f[i, 0]
+                diss_table.min_dG0 = est_dG0_f[0, i]
                 self.cid2pmap_dict[cid] = diss_table.GetPseudoisomerMap()
             else:
                 self.cid2pmap_dict[cid] = PseudoisomerMap(nH=0, z=0, nMg=0,
-                                            dG0=est_dG0_f[i, 0], ref='PRC')
+                                            dG0=est_dG0_f[0, i], ref='PRC')
 
     def WriteUniqueReactionReport(self, unique_sparse_reactions,
                                   unique_nist_row_representatives,
                                   unique_data_mat, full_data_mat,
                                   cid2nH_nMg=None):
         
-        total_std = np.std(full_data_mat[:, 2:4], 0)
+        total_std = full_data_mat[2:4, :].std(0)
         
         fig = plt.figure()
-        plt.plot(unique_data_mat[:, 2], unique_data_mat[:, 3], '.')
+        plt.plot(unique_data_mat[2, :], unique_data_mat[3, :], '.')
         plt.xlabel("$\sigma(\Delta_r G^\circ)$")
         plt.ylabel("$\sigma(\Delta_r G^{\'\circ})$")
         plt.title('$\sigma_{total}(\Delta_r G^\circ) = %.1f$ kJ/mol, '
                     '$\sigma_{total}(\Delta_r G^{\'\circ}) = %.1f$ kJ/mol' % 
-                    (total_std[0], total_std[1]))
+                    (total_std[0, 0], total_std[0, 1]))
         self.html_writer.embed_matplotlib_figure(fig, width=640, height=480)
-        logging.info('std(dG0_r) = %.1f' % total_std[0])
-        logging.info('std(dG\'0_r) = %.1f' % total_std[1])
+        logging.info('std(dG0_r) = %.1f' % total_std[0, 0])
+        logging.info('std(dG\'0_r) = %.1f' % total_std[0, 1])
         
         rowdicts = []
         for i, reaction in enumerate(unique_sparse_reactions):
             logging.debug('Analyzing unique reaction: ' + 
                           str(unique_sparse_reactions[i]))
-            data_row = unique_data_mat[i, :]
-            ddG0 = self.dissociation.ReverseTransformReaction(reaction,
+            data_row = unique_data_mat[:, i]
+            ddG0 = self.GetDissociation().ReverseTransformReaction(reaction,
                 pH=7, I=0.1, pMg=10, T=298.15, cid2nH_nMg=cid2nH_nMg)
             
             d = {}
@@ -373,7 +372,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         html_writer.write('</p>\n')
 
         # reverse transform the data
-        data = self.dissociation.ReverseTranformNistRows(nist_rows)
+        data = self.GetDissociation().ReverseTranformNistRows(nist_rows)
         
         html_writer.write('Reaction: %s</br>\n' % \
                           reaction.to_hypertext(show_cids=False))
@@ -406,19 +405,19 @@ class NistRegression(PsuedoisomerTableThermodynamics):
 
         ddG_vs_pH = []
         for pH in pH_range:
-            ddG = self.dissociation.ReverseTransformReaction(reaction, pH=pH, I=default_I, 
+            ddG = self.GetDissociation().ReverseTransformReaction(reaction, pH=pH, I=default_I, 
                                                 pMg=default_pMg, T=default_T)
             ddG_vs_pH.append(ddG)
         
         ddG_vs_I = []
         for I in I_range:
-            ddG = self.dissociation.ReverseTransformReaction(reaction, pH=default_pH, I=I, 
+            ddG = self.GetDissociation().ReverseTransformReaction(reaction, pH=default_pH, I=I, 
                                                 pMg=default_pMg, T=default_T)
             ddG_vs_I.append(ddG)
 
         ddG_vs_pMg = []
         for pMg in pMg_range:
-            ddG = self.dissociation.ReverseTransformReaction(reaction, pH=default_pH, I=default_I, 
+            ddG = self.GetDissociation().ReverseTransformReaction(reaction, pH=default_pH, I=default_I, 
                                                 pMg=pMg, T=default_T)
             ddG_vs_pMg.append(ddG)
         
@@ -436,13 +435,13 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         html_writer.write('</br>\n')
         
     def ConvertPseudoisomer(self, cid, dG0, nH_from, nH_to=None):
-        return self.dissociation.ConvertPseudoisomer(cid, dG0, nH_from, nH_to)
+        return self.GetDissociation().ConvertPseudoisomer(cid, dG0, nH_from, nH_to)
     
     def Nist_pKas(self):
         kegg = Kegg.getInstance()
         group_decomposer = GroupDecomposer.FromDatabase(self.db)
         cids_in_nist = set(self.nist.cid2count.keys())
-        cids_with_pKa = self.dissociation.GetAllCids()
+        cids_with_pKa = self.GetDissociation().GetAllCids()
         
         self.html_writer.write('CIDs with pKa: %d<br>\n' % len(cids_with_pKa))
         self.html_writer.write('CIDs in NIST: %d<br>\n' % len(cids_in_nist))
@@ -546,9 +545,24 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         return self.nist.verify_results(html_writer=self.html_writer, 
                                         thermodynamics=self)
 
-    def Train(self):
+    def Train(self, FromDatabase=True):
+        if FromDatabase and self.db.DoesTableExist('prc_S'):
+            S = self.db.LoadSparseNumpyMatrix('prc_S')
+            dG0 = self.db.LoadNumpyMatrix('prc_b').T
+            cids = []
+            for rowdict in self.db.DictReader('prc_compounds'):
+                cids.append(int(rowdict['cid']))
+        else:
+            S, dG0, cids = self.ReverseTransform()
+            self.db.SaveSparseNumpyMatrix('prc_S', S)
+            self.db.SaveNumpyMatrix('prc_b', dG0.T)
+            self.db.CreateTable('prc_compounds', 'cid INT, name TEXT')
+            kegg = Kegg.getInstance()
+            for cid in cids:
+                self.db.Insert('prc_compounds', [cid, kegg.cid2name(cid)])
+            self.db.Commit()
+
         # Train the formation energies using linear regression
-        S, dG0, cids = self.ReverseTransform()
         self.LinearRegression(S, dG0, cids)
         self.ToDatabase(self.db, 'prc_pseudoisomers')
     
