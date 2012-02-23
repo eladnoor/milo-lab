@@ -6,17 +6,14 @@ import sys
 from optparse import OptionParser
 from os import path
 
-from metabolic_modelling import bounds
-from metabolic_modelling import mtdf_optimizer
-from metabolic_modelling import stoich_model
-from metabolic_modelling import thermodynamic_data
+from pygibbs.metabolic_modelling import mtdf_optimizer
+from pygibbs.metabolic_modelling import thermodynamic_data
 from pygibbs import kegg
 from pygibbs import thermodynamic_estimators
 from pygibbs import pathway
 from pygibbs import templates
 from toolbox import database
-
-import numpy as np
+from toolbox import util
 
 
 def MakeOpts():
@@ -40,11 +37,12 @@ def MakeOpts():
                           dest="input_filename",
                           default="../data/thermodynamics/pathways.txt",
                           help="The file to read for pathways to analyze.")
-    opt_parser.add_option("-o", "--output_filename",
-                          dest="output_filename",
-                          default='../res/thermo_analysis/report.html',
+    opt_parser.add_option("-o", "--output_dir",
+                          dest="output_dir",
+                          default='../res/mtdf_analysis/',
                           help="Where to write output to.")
     return opt_parser
+
 
 def Main():
     options, _ = MakeOpts().parse_args(sys.argv)
@@ -67,32 +65,41 @@ def Main():
     # Create a bounds instance
     kegg_instance = kegg.Kegg.getInstance()
 
+    # Create output directories
+    out_dir = options.output_dir
+    if not path.exists(out_dir):
+        util._mkdir(out_dir)
+    pathgraph_dir = path.join(out_dir, 'pathway_graphs/')
+    util._mkdir(pathgraph_dir)
     
     print 'Executing MTDF analysis'
     pathway_iterator = pathway.KeggPathwayIterator.FromFilename(input_filename)
-    mtdf_results = []
+    results = []
     for pathway_data in pathway_iterator:
         if pathway_data.skip:
             print 'Skipping pathway', pathway_data.name
             continue
         
-        
         print 'Analyzing pathway', pathway_data.name
-        
+                
         model = pathway_data.GetStoichiometricModel(kegg_instance)
         model_bounds = pathway_data.GetBounds()
         
         mtdf_opt = mtdf_optimizer.MTDFOptimizer(model, thermo_data)
-        mtdf_result = mtdf_opt.FindMTDF(model_bounds)
-        mtdf_results.append(mtdf_result)
+        result = mtdf_opt.FindMTDF(model_bounds)
         
-        mtdf = mtdf_result.mtdf
+        result.WriteAllGraphs(pathgraph_dir)
+        results.append(result)
+        
+        mtdf = result.opt_val
         print '\tMTDF for', pathway_data.name, '= %.2g' % mtdf
     
     
-    output_filename = path.abspath(options.output_filename)
-    template_data = {'mtdf_results':mtdf_results}
-    templates.render_to_file('mtdf_results.html',
+    output_filename = path.join(out_dir, 'results.html')
+    print 'Writing output to', output_filename
+    template_data = {'analysis_type': 'Protein Cost',
+                     'results':results}
+    templates.render_to_file('pathway_optimization_results.html',
                              template_data,
                              output_filename)
     
