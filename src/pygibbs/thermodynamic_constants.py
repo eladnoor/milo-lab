@@ -15,6 +15,21 @@ default_c_mid = 1e-3 # M
 default_c_range = (1e-6, 1e-2) # M
 dG0_f_Mg = -455.3 # kJ/mol, formation energy of Mg2+
 
+symbol_d_G = "&Delta;G"
+symbol_d_G0 = "&Delta;G&deg;"
+symbol_d_G_prime = "&Delta;G'"
+symbol_d_G0_prime = "&Delta;G'&deg;"
+
+symbol_dr_G = "&Delta;<sub>r</sub>G"
+symbol_dr_G0 = "&Delta;<sub>r</sub>G&deg;"
+symbol_dr_G_prime = "&Delta;<sub>r</sub>G'"
+symbol_dr_G0_prime = "&Delta;<sub>r</sub>G'&deg;"
+
+symbol_df_G = "&Delta;<sub>f</sub>G"
+symbol_df_G0 = "&Delta;<sub>f</sub>G&deg;"
+symbol_df_G_prime = "&Delta;<sub>f</sub>G'"
+symbol_df_G0_prime = "&Delta;<sub>f</sub>G'&deg;"
+
 def debye_huckel(I):
     return (2.91482 * np.sqrt(I)) / (1 + 1.6 * np.sqrt(I))
 

@@ -8,6 +8,7 @@ html_writer.py - Construct HTML pages
 import datetime
 import os
 import types
+import numpy as np
 import xml.dom.minidom
 from toolbox.util import _mkdir, get_current_svn_revision
 
@@ -39,8 +40,8 @@ class BaseHtmlWriter:
     def write_js(self, path):
         if (os.path.exists(path + '/expandCollapse.js')):
             return
-        file = open(path + '/expandCollapse.js', 'w')
-        file.write("""function toggleMe(a){
+        fp = open(path + '/expandCollapse.js', 'w')
+        fp.write("""function toggleMe(a){
   var e=document.getElementById(a);
   if(!e)return true;
   if(e.style.display=="none"){
@@ -65,7 +66,7 @@ class BaseHtmlWriter:
             self.write("  <li>%s</li>\n" % str(mem))
         self.write("</ul>\n")
         
-    def write_table(self, dict_list, headers=None, border=1, decimal=None):
+    def write_table(self, rowdicts, headers=None, border=1, decimal=None):
         """
             In order to print the row number, use the title '#' in headers and
             write_table() will automatically fill that column with the row numbers.
@@ -73,28 +74,31 @@ class BaseHtmlWriter:
         def to_string(x, decimal=None):
             if type(x) == types.StringType:
                 return x
-            elif type(x) == types.FloatType:
+
+            if type(x) in (types.IntType, np.int16, np.int32, np.int64):
+                return '%d' % x
+
+            if type(x) in (types.FloatType, np.float32, np.float64, np.float128):
+                if np.isnan(x):
+                    return 'N/A'
                 if decimal is not None:
                     return eval("'%%.%df' %% x" % decimal)
-                else:
-                    return "%g" % x
-            elif type(x) == types.IntType:
-                return '%d' % x
-            else:
-                return str(x)
+                return "%g" % x
+            
+            return str(x)
         
         if not headers:
             headers = set()
-            for dict in dict_list:
-                for key in dict.keys():
+            for rowdict in rowdicts:
+                for key in rowdict.keys():
                     headers.add(to_string(key))
             headers = sorted(headers)
         
         self.write('<table border=%d>\n' % border)
         self.write('<tr><td><b>' + '</b></td><td><b>'.join(headers) + '</b></td></tr>\n')
-        for i, d in enumerate(dict_list):
-            d['#'] = '%d' % i
-            values = [to_string(d.get(key, ""), decimal) for key in headers]
+        for i, rowdict in enumerate(rowdicts):
+            rowdict['#'] = '%d' % i
+            values = [to_string(rowdict.get(key, ""), decimal) for key in headers]
             self.write('<tr><td>' + '</td><td>'.join(values) + '</td></tr>\n')
         self.write("</table>\n")
         

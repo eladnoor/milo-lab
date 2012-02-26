@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import logging
 import json
 
-from pygibbs.thermodynamic_constants import default_T, default_pH, default_I, default_pMg
+from pygibbs.thermodynamic_constants import default_T, default_pH, default_I, default_pMg,\
+    symbol_df_G0
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException,\
@@ -127,24 +128,27 @@ class Thermodynamics(object):
     
     def WriteDataToHtml(self, html_writer):
         kegg = Kegg.getInstance()
-        dict_list = []
+        rowdicts = []
         for cid in self.get_all_cids():
-            for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
-                d = {}
-                d['cid'] = 'C%05d' % cid
-                d['name'] = kegg.cid2name(cid)
-                d['nH'] = '%d' % nH
-                d['z'] = '%d' % z
-                d['nMg'] = '%d' % nMg
-                d['dG0_f'] = '%.2f' % dG0
+            pdata = self.cid2PseudoisomerMap(cid)
+            for nH, z, nMg, dG0 in pdata.ToMatrix():
+                rowdict = {}
+                rowdict['KEGG ID'] = 'C%05d' % cid
+                rowdict['name'] = kegg.cid2name(cid)
+                rowdict['nH'] = nH
+                rowdict['z'] = z
+                rowdict['nMg'] = nMg
+                rowdict[symbol_df_G0] = dG0
+                rowdict['reference'] = pdata.GetRef(nH, z, nMg)
                 if cid in self.anchors:
-                    d['anchor'] = 'yes'
+                    rowdict['anchor'] = 'yes'
                 else:
-                    d['anchor'] = 'no'
-                dict_list.append(d)
+                    rowdict['anchor'] = 'no'
+                rowdicts.append(rowdict)
         
-        html_writer.write_table(dict_list, ['cid', 'name', 'nH', 'z', 
-                                            'nMg', 'dG0_f', 'anchor'])
+        headers = ['KEGG ID', 'name', 'nH', 'z', 'nMg', symbol_df_G0,
+                   'reference', 'anchor']
+        html_writer.write_table(rowdicts, headers, decimal=1)
     
     def write_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
@@ -152,7 +156,8 @@ class Thermodynamics(object):
         for cid in sorted(self.get_all_cids()):
             name = self.kegg.cid2name(cid)
             try:
-                for nH, z, nMg, dG0 in self.cid2PseudoisomerMap(cid).ToMatrix():
+                pdata = self.cid2PseudoisomerMap(cid)
+                for nH, z, nMg, dG0 in pdata.ToMatrix():
                     writer.writerow([name, cid, nH, z, nMg, '%.1f' % dG0])
             except MissingCompoundFormationEnergy as e:
                 logging.warning(str(e))

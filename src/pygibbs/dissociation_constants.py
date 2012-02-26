@@ -10,7 +10,6 @@ from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
 from toolbox.molecule import Molecule, OpenBabelError
 from optparse import OptionParser
-import types
 
 class MissingDissociationConstantError(Exception):
     
@@ -266,8 +265,8 @@ class DissociationConstants(object):
                 dG0 = self.ReverseTransformNistRow(nist_row_data, cid2nH_nMg)
             except MissingDissociationConstantError as e:
                 logging.debug('Reaction %s involves compounds (C%05d) with missing pKa '
-                                'values: %s' % (nist_row_data.ref_id, 
-                                e.cid, str(nist_row_data.reaction)))
+                              'values: %s' % (nist_row_data.ref_id, 
+                                              e.cid, str(nist_row_data.reaction)))
                 continue
             
             data['dG0_r_tag'].append(dG0_prime)
@@ -596,9 +595,8 @@ class DissociationTable(object):
                 ' change in only one hydrogen or magnesium')
     
     def ConvertPseudoisomer(self, dG0, nH_from, nH_to=None, nMg_from=0, nMg_to=0):
-        if not nH_to:
+        if nH_to is None:
             nH_to = self.min_nH
-        
         pdata = PseudoisomerEntry(net_charge=0, hydrogens=nH_from, 
             magnesiums=nMg_from, smiles="", dG0=dG0)
         comp = self.ConvertPseudoisomerEntry(pdata, nH_to, nMg_to)
@@ -725,7 +723,8 @@ class DissociationTable(object):
             Note:
                 Set the dG0 of one the pseudoisomer [nH, nMg] to 0.
         """
-        nH = nH or self.min_nH
+        if nH is None:
+            nH = self.min_nH
         pdata = PseudoisomerEntry(net_charge=(self.min_charge + nH - self.min_nH),
                                   hydrogens=nH, magnesiums=nMg, smiles="", dG0=0)
         
@@ -754,8 +753,9 @@ class DissociationTable(object):
                 assume that the dG0_f of one of the psuedoisomers
                 (according to the given nH) is 0
         """
-        nH = nH or self.min_nH
-        pseudoisomer_matrix = self.GetTransformedDeltaGs(pH, I, pMg, T, nH=nH)
+        if nH is None:
+            nH = self.min_nH
+        pseudoisomer_matrix = self.GetTransformedDeltaGs(pH, I, pMg, T, nH=nH, nMg=nMg)
         ddG0_f = -R * T * log_sum_exp([dG0_tag / (-R*T) for (_nH, _z, _nMg, dG0_tag) in pseudoisomer_matrix])
         return ddG0_f
     
@@ -779,9 +779,17 @@ class DissociationTable(object):
     def Transform(self, pH, I, pMg, T):    
         return self.min_dG0 + self.GetDeltaDeltaG0(pH, I, pMg, T, nH=self.min_nH)
     
-    def GetPseudoisomerMap(self):
+    def GetPseudoisomerMap(self, nH=None, nMg=0):
+        """
+            Generate all pseudoisomers around one specified pseudoisomer.
+        """
+        if nH is None:
+            nH = self.min_nH
+        pdata = PseudoisomerEntry(net_charge=self.min_charge, hydrogens=self.min_nH,
+            magnesiums=0, smiles="", dG0=self.min_dG0, cid=self.cid)
+        pdata = self.ConvertPseudoisomerEntry(pdata, nH_to=nH, nMg_to=nMg)
         pmap = PseudoisomerMap()
-        for pdata in self.GenerateAll():
+        for pdata in self.GenerateAllPseudoisomerEntries(pdata):
             pmap.Add(nH=pdata.hydrogens, z=pdata.net_charge, 
                      nMg=pdata.magnesiums, dG0=pdata.dG0,
                      ref=pdata.ref)

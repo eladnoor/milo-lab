@@ -13,10 +13,7 @@ class PseudoisomerMap(object):
         self.dgs = {}
         self.refs = {}
         
-        if (nH != None and
-            z != None and
-            nMg != None and
-            dG0 != None):
+        if None not in [nH, z, nMg, dG0]:
             self.Add(nH, z, nMg, dG0, ref)
     
     @staticmethod
@@ -214,6 +211,10 @@ class PseudoisomerMap(object):
     def GetRef(self, nH, z, nMg):
         key = self._MakeKey(nH, z, nMg)
         return self.refs.get(key, None)
+    
+    def SetRef(self, nH, z, nMg, ref):
+        key = self._MakeKey(nH, z, nMg)
+        self.refs[key] = ref
 
     def GetdG0(self, nH, z, nMg, T=default_T):
         key = self._MakeKey(nH, z, nMg)

@@ -8,7 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.mlab import rms_flat
 from pygibbs.thermodynamic_constants import R, default_pH, default_T,\
-    dG0_f_Mg, default_I, default_pMg, RedoxCarriers
+    dG0_f_Mg, default_I, default_pMg, RedoxCarriers,\
+    symbol_d_G0, symbol_d_G0_prime
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
@@ -433,21 +434,29 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 
     def AnalyzeTrainingSet(self):
         n_obs = self.group_matrix.shape[1]
-        deviations = [] # a list of all the data about every example
-        loo_deviations = [] # a list of only the examples which are included in the LOO test
+        rowdicts = []
+        fit_results = np.dot(self.group_contributions, self.group_matrix)
+        residuals = fit_results - self.obs_values
         
+        if self.transformed:
+            sym = symbol_d_G0_prime
+        else:
+            sym = symbol_d_G0
         for i in xrange(n_obs):
-            row = {'name':self.obs_ids[i], 'obs':self.obs_values[0, i]}
             # skip the cross-validation of the pKa values since group
             # contribution is not meant to give any real prediction for pKas
             # except the mean of the class of pKas.
             if self.obs_types[i] not in ['formation', 'reaction']:
                 continue
-            
-            row['fit'] = float(np.dot(self.group_contributions, self.group_matrix[:, i]))
-            row['fit_resid'] = row['fit']-row['obs'] 
-            deviations.append(row)
-            logging.info('Fit Error = %.1f' % (row['fit_resid']))
+
+            rowdict = {'Observation':self.obs_ids[i]}
+            rowdict[sym + ' (obs)'] = self.obs_values[0, i]
+            rowdict[sym + ' (fit)'] = fit_results[0, i]
+            rowdict[sym + ' (res)'] = residuals[0, i]
+            rowdict['LOO ' + sym + ' (fit)'] = np.nan
+            rowdict['LOO ' + sym + ' (res)'] = np.nan
+            rowdicts.append(rowdict)
+            logging.info('Fit Error = %.1f' % residuals[0, i])
 
             # leave out the row corresponding with observation 'i'
             logging.info('Cross validation, leaving-one-out: ' + self.obs_ids[i])
@@ -459,81 +468,55 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             if loo_nullspace.shape[1] > self.group_nullspace.shape[1]:
                 logging.warning('example %d is not linearly dependent in the other examples' % i)
                 continue
-            row['loo'] = float(np.dot(loo_group_contributions, self.group_matrix[:, i]))
-            row['loo_resid'] = row['loo'] - row['obs']
-            loo_deviations.append(row)
-            logging.info('LOO Error = %.1f' % row['loo_resid'])
+            rowdict['LOO ' + sym + ' (fit)'] = float(np.dot(loo_group_contributions, self.group_matrix[:, i]))
+            rowdict['LOO ' + sym + ' (res)'] = \
+                rowdict['LOO ' + sym + ' (fit)'] - self.obs_values[0, i]
+            logging.info('LOO Error = %.1f' % rowdict['LOO ' + symbol_df_G + ' (res)'])
         
         logging.info("writing the table of estimation errors for each compound")
         self.html_writer.write('</br><b>Cross-validation table</b>')
-        div_id = self.html_writer.insert_toggle()
-        self.html_writer.div_start(div_id)
-
-        obs_vec = np.array([row['obs'] for row in deviations])
-        fit_vec = np.array([row['fit'] for row in deviations])
-        
-        resid_vec = np.array([row['fit_resid'] for row in deviations])
-        rmse = rms_flat(resid_vec)
-        
-        loo_resid_vec = np.array([row['loo_resid'] for row in loo_deviations])
-        loo_rmse = rms_flat(loo_resid_vec)
-
-        self.html_writer.write_ul(['fit_rmse(pred) = %.2f kJ/mol' % rmse,
-                                   'loo_rmse(pred) = %.2f kJ/mol' % loo_rmse])
-        logging.info("Goodness of fit: RMSE = %.2f kJ/mol" % rmse)
-        logging.info("Leave-one-out test: RMSE = %.2f kJ/mol" % loo_rmse)
-
-        self.html_writer.write('<font size="1">\n')
-        self.html_writer.table_start()
-        headers = ['Observation Name',
-                   '&Delta;<sub>f</sub>G<sub>obs</sub> [kJ/mol]',
-                   '&Delta;<sub>f</sub>G<sub>fit</sub> [kJ/mol]',
-                   'Residual [kJ/mol]',
-                   '&Delta;<sub>f</sub>G<sub>LOO</sub> [kJ/mol]',
-                   'Leave-one-out Residual [kJ/mol]']
-        self.html_writer.table_writerow(headers)
-        deviations.sort(key=lambda(x):abs(x.get('loo_resid', 0)), reverse=True)
-        for row in deviations:
-            table_row = [row['name']]
-            table_row += ['%.1f' % row[key] for key in ['obs', 'fit', 'fit_resid']]
-            if 'loo' in row:
-                table_row += ['%.1f' % row[key] for key in ['loo', 'loo_resid']]
-            else:
-                table_row += ['N/A', 'N/A']
-            self.html_writer.table_writerow(table_row)
-        self.html_writer.table_end()
-        self.html_writer.write('</font>')
-        self.html_writer.div_end()
-        
-        logging.info("Plotting graphs for PGC vs. observed data")
-        self.html_writer.write('</br><b>Cross-validation figure 1</b>')
         self.html_writer.insert_toggle(start_here=True)
+        self.html_writer.write('<font size="1">\n')
+        obs_vec = np.matrix([row[sym + ' (obs)'] for row in rowdicts])
+        resid_vec = np.matrix([row[sym + ' (res)'] for row in rowdicts])
+        rmse = rms_flat(resid_vec.flat)
+        
+        loo_resid_vec = np.matrix([row['LOO ' + sym + ' (res)']
+                                  for row in rowdicts])
+        loo_rmse = rms_flat(loo_resid_vec[np.isfinite(loo_resid_vec)].flat)
 
-        obs_vs_est_fig = plt.figure(figsize=[6.0, 6.0], dpi=100)
-        plt.plot(obs_vec, fit_vec, '.', figure=obs_vs_est_fig)
-        plt.xlabel('Observation', figure=obs_vs_est_fig)
-        plt.ylabel('Estimation (PGC)', figure=obs_vs_est_fig)
-        plt.hold(True)
-        for row in deviations:
-            if abs(row['fit_resid']) > 2*rmse:
-                plt.text(row['obs'], row['fit'], row['name'], fontsize=4,
-                           figure=obs_vs_est_fig)
-        plt.title('Observed vs. Estimated (PGC)', figure=obs_vs_est_fig)
-        self.html_writer.embed_matplotlib_figure(obs_vs_est_fig)
+        self.html_writer.write_ul(['fit RMSE = %.1f [kJ/mol]' % rmse,
+                                   'leave-one-out RMSE = %.1f [kJ/mol]' % loo_rmse])
+        logging.info("Goodness of fit: RMSE = %.1f [kJ/mol]" % rmse)
+        logging.info("Leave-one-out test: RMSE = %.1f [kJ/mol]" % loo_rmse)
+
+        headers = ['Observation',
+                   sym + ' (obs)',
+                   sym + ' (fit)',
+                   sym + ' (res)',
+                   'LOO ' + sym + ' (fit)',
+                   'LOO ' + sym + ' (res)']
+        rowdicts.sort(key=lambda(x):abs(x.get('LOO ' + sym + ' (res.)', 0)),
+                      reverse=True)
+        self.html_writer.write_table(rowdicts, headers, decimal=1)
+        self.html_writer.write('</font>\n')
         self.html_writer.div_end()
-
-        self.html_writer.write('</br><b>Cross-validation figure 2</b>')
+        
+        self.html_writer.write('</br><b>Cross-validation figure</b>')
         self.html_writer.insert_toggle(start_here=True)
         
         obs_vs_err_fig = plt.figure(figsize=[6.0, 6.0], dpi=100)
-        plt.plot(obs_vec, resid_vec, '.')
+        plt.plot(obs_vec.T, resid_vec.T, '.')
         plt.xlabel('Observation')
         plt.ylabel('Estimated (PGC) Residuals')
         plt.hold(True)
-        for row in deviations:
-            if abs(row['fit_resid']) > 2*rmse:
-                plt.text(row['obs'], row['fit_resid'], row['name'], fontsize=4)
-        plt.title('Observed vs. Estimated (PGC) Residuals', figure=obs_vs_est_fig)
+        for row in rowdicts:
+            if abs(row[sym + ' (res)']) > 2*rmse:
+                plt.text(row[sym + ' (obs)'],
+                         row[sym + ' (res)'],
+                         row['Observation'], fontsize=4,
+                         figure=obs_vs_err_fig)
+        plt.title('Observed vs. Fitted (PGC) Residuals', figure=obs_vs_err_fig)
         self.html_writer.embed_matplotlib_figure(obs_vs_err_fig)
         self.html_writer.div_end()
 
@@ -569,7 +552,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.cid2pmap_dict = {}
         self.cid2source_string = {}
 
-        self.html_writer.write('</br><b>Estimated formation energies for KEGG compounds</b></br>\n')
+        self.html_writer.write('</br><b>Estimated formation energies for KEGG compounds</b>\n')
         self.html_writer.insert_toggle(start_here=True)
         for cid in sorted(self.kegg.get_all_cids()):
             self.html_writer.write('<b>C%05d - %s</b></br>\n' %
