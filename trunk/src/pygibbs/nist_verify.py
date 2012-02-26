@@ -21,8 +21,8 @@ from pygibbs.thermodynamic_estimators import LoadAllEstimators
 ################################################################################################################
 
 def main():
-    estimators = LoadAllEstimators()
     html_writer = HtmlWriter("../res/nist/report.html")
+    estimators = LoadAllEstimators()
     nist = Nist()
     nist.T_range = (273.15 + 24, 273.15 + 40)
     #nist.override_I = 0.25

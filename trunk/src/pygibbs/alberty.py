@@ -12,10 +12,10 @@ class Alberty(Thermodynamics):
             
             the order of values is: (dG0, dH0, z, nH)
         """
-        file = open(fname, 'r')
+        fp = open(fname, 'r')
         alberty_name_to_pmap = {}
         alberty_name_to_hmap = {} # same as pmap but for dH of formation
-        for line in file.readlines():
+        for line in fp.readlines():
             line.rstrip()
             if line.find('=') == -1:
                 continue

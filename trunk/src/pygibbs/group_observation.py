@@ -3,7 +3,7 @@ import numpy as np
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import default_I, default_pH, default_T,\
-    default_pMg, RedoxCarriers
+    default_pMg, RedoxCarriers, symbol_dr_G0_prime, symbol_dr_G0
 from pygibbs.nist import Nist
 from pygibbs.dissociation_constants import MissingDissociationConstantError
 from toolbox.html_writer import NullHtmlWriter
@@ -67,9 +67,9 @@ class GroupObervationCollection(object):
         self.transformed = transformed
         self.html_writer = html_writer
         if transformed:
-            self.gibbs_symbol = "&Delta;<sub>r</sub>G'&deg;"
+            self.gibbs_symbol = symbol_dr_G0_prime
         else:
-            self.gibbs_symbol = "&Delta;<sub>r</sub>G&deg;"
+            self.gibbs_symbol = symbol_dr_G0
 
     @staticmethod
     def FromFiles(html_writer, dissociation, transformed=False):

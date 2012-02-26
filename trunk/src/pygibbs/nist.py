@@ -9,7 +9,7 @@ from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
 from toolbox.util import _mkdir, calc_rmse
 from toolbox.html_writer import HtmlWriter
-from pygibbs.thermodynamic_constants import R
+from pygibbs.thermodynamic_constants import R, symbol_dr_G0_prime
 from pygibbs.kegg_reaction import Reaction
 from toolbox.database import SqliteDatabase
 import csv
@@ -390,9 +390,10 @@ class Nist(object):
             dG0_est_vec.append(dG0_est)
             evaluation_map[label][0].append(row_data.dG0_r)
             evaluation_map[label][1].append(dG0_est)
-            rowdict['dG\'0 (obs)'] = np.round(row_data.dG0_r, 1)
-            rowdict['dG\'0 (est)'] = np.round(dG0_est, 1)
-            rowdict['|error|'] = np.round(abs(row_data.dG0_r - dG0_est), 3)
+            rowdict[symbol_dr_G0_prime + ' (obs)'] = np.round(row_data.dG0_r, 1)
+            rowdict[symbol_dr_G0_prime + ' (est)'] = np.round(dG0_est, 1)
+            rowdict['residual'] = np.round(row_data.dG0_r - dG0_est, 3)
+            rowdict['|error|'] = abs(rowdict['residual'])
             rowdict['_reaction'] = row_data.reaction
             rowdict['reaction'] = row_data.reaction.to_hypertext(show_cids=False)
             if row_data.reaction.rid is not None:
@@ -444,8 +445,8 @@ class Nist(object):
         
         plt.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (unique_rmse), fontsize=14,
                  figure=fig1)
-        plt.xlabel(r'observed $\Delta G_r^\circ$ [kJ/mol]', fontsize=14, figure=fig1)
-        plt.ylabel(r'estimated $\Delta G_r^\circ$ [kJ/mol]', fontsize=14, figure=fig1)
+        plt.xlabel(r'observed $\Delta_r G^{\'\circ}$ [kJ/mol]', fontsize=14, figure=fig1)
+        plt.ylabel(r'estimated $\Delta_r G^{\'\circ}$ [kJ/mol]', fontsize=14, figure=fig1)
         #min_x = min(dG0_obs_vec)
         #max_x = max(dG0_obs_vec)
         plt.plot([-60, 60], [-60, 60], 'k--', figure=fig1)
@@ -458,14 +459,14 @@ class Nist(object):
         fig2 = plt.figure(figsize=(6,6), dpi=90)
         binned_plot(x=[rowdict['pH'] for rowdict in rowdicts],
                     y=[rowdict['|error|'] for rowdict in rowdicts],
-                    bins=[6,8],
+                    bins=[5,6,7,8,9],
                     y_type='rmse',
                     figure=fig2)
         plt.xlim((4, 11))
         plt.ylim((0, 12))
         plt.title(r'effect of pH', fontsize=14, figure=fig2)
         plt.xlabel('pH', fontsize=14, figure=fig2)
-        plt.ylabel(r'RMS ($\Delta_{obs} G^\circ - \Delta_{est} G^\circ$) [kJ/mol]', 
+        plt.ylabel(r'RMSE ($\Delta_r G^{\'\circ}$) [kJ/mol]', 
                    fontsize=14, figure=fig2)
         if name:
             html_writer.embed_matplotlib_figure(fig2, name=name+"_pH")
@@ -473,11 +474,10 @@ class Nist(object):
             html_writer.embed_matplotlib_figure(fig2)
         
         fig3 = plt.figure(figsize=(6,6), dpi=90)
-        plt.hist([(rowdict['dG\'0 (obs)'] - rowdict['dG\'0 (est)'])
-                  for rowdict in rowdicts],
+        plt.hist([rowdict['residual'] for rowdict in rowdicts],
                  bins=np.arange(-50, 50, 0.5))
         plt.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14, figure=fig3)
-        plt.xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]',
+        plt.xlabel(r'residual $\Delta_r G^{\'\circ}$ [kJ/mol]',
                    fontsize=14, figure=fig3)
         plt.ylabel(r'no. of measurements', fontsize=14, figure=fig3)
         if name:
@@ -485,8 +485,11 @@ class Nist(object):
         else:
             html_writer.embed_matplotlib_figure(fig3)
 
-        table_headers = ["|error|", "dG'0 (obs)", "dG'0 (est)", "reaction",
-                         "rid", "pH", "pMg", "I", "T", "eval.", "url"]
+        table_headers = ["|error|",
+                         symbol_dr_G0_prime + " (obs)",
+                         symbol_dr_G0_prime + " (est)",
+                         "reaction", "rid", "pH", "pMg", "I", "T",
+                         "eval.", "url"]
         html_writer.write_table(rowdicts, table_headers, decimal=1)
         
         return len(dG0_obs_vec), unique_rmse
