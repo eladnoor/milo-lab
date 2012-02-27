@@ -33,19 +33,19 @@ class OptimizedPathway(object):
         self.S = model.GetStoichiometricMatrix()
         self.opt_val = optimal_value
         self.ln_concentrations = optimal_ln_metabolite_concentrations
-        self.dGr0_tag = thermodynamic_data.GetDGrTagZero_ForModel(
-                self.model)
+        self.dGr0_tag = np.array(thermodynamic_data.GetDGrTagZero_ForModel(
+                self.model))
         
         self.compound_ids = self.model.GetCompoundIDs()
         self.reaction_ids = self.model.GetReactionIDs()
         
         self.concentrations = np.exp(self.ln_concentrations)
-        conc_correction = RT * np.dot(self.S, self.ln_concentrations)
-        self.dGr_tag = self.dGr0_tag + conc_correction
+        conc_correction = RT * np.dot(self.ln_concentrations, self.S)
+        self.dGr_tag = np.array(self.dGr0_tag + conc_correction)
         
         bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)        
-        bio_correction = RT * np.dot(self.S, np.log(bio_concs))
-        self.dGr_bio = self.dGr0_tag + bio_correction
+        bio_correction = RT * np.dot(np.log(bio_concs), self.S)
+        self.dGr_bio = np.array(self.dGr0_tag + bio_correction)
     
         self.kegg = Kegg.getInstance()
         
@@ -81,9 +81,15 @@ class OptimizedPathway(object):
             dirname: the name of the directory to write it to.
         """
         pylab.figure()
-        dg0_profile = np.cumsum([0] + list(self.dGr0_tag))
-        dgtag_profile = np.cumsum([0] + list(self.dGr_tag))
-        dgbio_profile = np.cumsum([0] + list(self.dGr_bio))
+        print self.dGr0_tag.shape
+        print self.dGr0_tag.flatten().tolist()
+        print 'aaaa'
+        dg0_profile = np.cumsum([0] + self.dGr0_tag.flatten().tolist())
+        print self.dGr_tag.shape
+        print self.dGr_tag.flatten().tolist()
+        print [0] + self.dGr_tag.flatten().tolist()
+        dgtag_profile = np.cumsum([0] + self.dGr_tag.flatten().tolist())
+        dgbio_profile = np.cumsum([0] + self.dGr_bio.flatten().tolist())
         rxn_range = pylab.arange(len(self.reaction_ids) + 1)
         pylab.plot(rxn_range, dg0_profile, 'b--',
                    linewidth=2, label='Standard Conditions')
@@ -127,9 +133,9 @@ class OptimizedPathway(object):
             kegg_reaction.Reaction objects in order defined.
         """
         for i, rid in enumerate(self.reaction_ids):
-            row = self.S[i,:].flatten()
+            col = np.array(self.S[:,i]).flatten()
             sparse_reaction = {}
-            for j, stoich in enumerate(row):
+            for j, stoich in enumerate(col):
                 if stoich == 0:
                     continue
                 sparse_reaction[self.compound_ids[j]] = stoich            

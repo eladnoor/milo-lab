@@ -3,6 +3,7 @@ import logging
 import pydot
 import re
 import sqlite3
+import pylab
 import numpy as np
 
 from toolbox import util
@@ -912,29 +913,29 @@ class Kegg(Singleton):
             
     def draw_pathway(self, S, rids, cids):
         Gdot = pydot.Dot()
-        (_, Nc) = S.shape
+        (Ncompounds, Nrxns) = S.shape
         
         c_nodes = []
-        for c in range(Nc):
+        for c in range(Ncompounds):
             node_map = {}
             if (cids[c] in self.cofactors2names):
-                for r in pylab.find(S[:,c] != 0): # this is a co-factor, create a new node for each reaction
+                for r in pylab.find(S[c,:] != 0): # this is a co-factor, create a new node for each reaction
                     node_map[r] = self.create_compound_node(Gdot, cids[c],
                         Kegg.cid2string(cids[c]) + '_' + Kegg.rid2string(rids[r]))
             else:
                 node = self.create_compound_node(Gdot, cids[c])
-                for r in pylab.find(S[:,c] != 0): # point the node_map to the same node for every reaction
+                for r in pylab.find(S[c,:] != 0): # point the node_map to the same node for every reaction
                     node_map[r] = node
             c_nodes.append(node_map)
        
-        for r in range(S.shape[0]):
+        for r in range(Nrxns):
             rid = rids[r]
-            s_indices = pylab.find(S[r,:] < 0)
-            p_indices = pylab.find(S[r,:] > 0)
+            s_indices = pylab.find(S[:,r] < 0)
+            p_indices = pylab.find(S[:,r] > 0)
             if (len(s_indices) == 1 and len(p_indices) == 1):
                 c_s = s_indices[0]
                 c_p = p_indices[0]
-                if (S[r,c_s] == -1 and S[r,c_p] == 1):
+                if (S[c_s,r] == -1 and S[c_p,r] == 1):
                     self.create_reaction_edge(Gdot, c_nodes[c_s][r], 
                         c_nodes[c_p][r], rid=rid, arrowhead="open", arrowtail="none")
                     continue
@@ -942,9 +943,9 @@ class Kegg(Singleton):
             # this is not a simple 1-to-1 reaction
             (in_node, out_node) = self.create_reaction_nodes(Gdot, rid)
             for c in s_indices:
-                self.create_small_edge(Gdot, c_nodes[c][r], in_node, coeff=-S[r,c], arrowhead="none")
+                self.create_small_edge(Gdot, c_nodes[c][r], in_node, coeff=-S[c,r], arrowhead="none")
             for c in p_indices:
-                self.create_small_edge(Gdot, out_node, c_nodes[c][r], coeff=S[r,c], arrowhead="open")
+                self.create_small_edge(Gdot, out_node, c_nodes[c][r], coeff=S[c,r], arrowhead="open")
         
         return Gdot
 

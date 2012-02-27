@@ -51,6 +51,45 @@ class EnzymeLevelFunc(object):
     def __init__(self, S, dG0, fluxes, kcat, km,
                  fixed_var_injector):
         self.S = S
+        self.m_plus = np.abs(np.clip(S, -1000, 0))
+        self.dG0 = dG0
+        self.fluxes = fluxes
+        self.kcat = kcat
+        self.km = km
+        self.injector = fixed_var_injector
+        self.scaled_fluxes = fluxes / kcat
+        self.Nr, self.Nc = self.S.shape
+    
+    def __call__(self, x):
+        my_x = self.injector(x)
+        x_col = my_x.reshape(self.Nc, 1)
+        x_exp = np.exp(my_x)
+        
+        dgtag = self.dG0 + RT * np.dot(self.S, x_col)
+        if (dgtag >= 0).any():
+            return 1e6
+        
+        linearized_denom = -dgtag / (2*RT)
+        over_i = np.where(linearized_denom > 1.0)[0]
+        linearized_denom[over_i] = 1.0
+        
+        scaled_kms = self.km / x_exp
+        exponentiated = np.power(scaled_kms, self.m_plus)
+        prods = np.prod(exponentiated, axis=1)
+        numer = 1 + prods
+        scaled_numers = self.scaled_fluxes * numer
+        
+        inverted_denom = 1 / linearized_denom
+        return np.dot(scaled_numers, inverted_denom)
+
+        
+class EnzymeLevelFunc2(object):
+    """A callable computing optimal enzyme levels."""
+    
+    def __init__(self, S, dG0, fluxes, kcat, km,
+                 fixed_var_injector):
+        self.S = S
+        self.m_plus = np.abs(np.clip(S, -1000, 0))
         self.dG0 = dG0
         self.fluxes = fluxes
         self.kcat = kcat
@@ -87,9 +126,8 @@ class EnzymeLevelFunc(object):
         for i in xrange(len(self.dG0)):
             level_i = enzyme_levels[i] * (numer[i] / linearized_denom[i])
             enzyme_levels[i] = level_i
-            
+        
         return np.sum(enzyme_levels)
-    
     
 class MinusDG(object):
     """A callable checking in thermodynamic requirements are met."""
@@ -192,7 +230,7 @@ class ProteinOptimizer(object):
         bounds = concentration_bounds or self.DefaultConcentrationBounds()
         
         lb, ub = self._GetLnConcentrationBounds(bounds)
-        kcat = np.ones((self.Nr, 1)) * 100        # All Kcat are 100 /s
+        kcat = np.ones(self.Nr) * 100             # All Kcat are 100 /s
         km = np.ones((self.Nr, self.Nc)) * 1e-4   # All Km are 100 uM
                 
         # Initial solution is are MTDF concentrations
@@ -233,12 +271,18 @@ class ProteinOptimizer(object):
         optimization_func = EnzymeLevelFunc(self.S, self.dG0_r_prime,
                                             self.fluxes, kcat, km,
                                             injector)
+        optimization_func2 = EnzymeLevelFunc2(self.S, self.dG0_r_prime,
+                                              self.fluxes, kcat, km,
+                                              injector)
         initial_func_value = optimization_func(initial_conds)
+        initial_func_value2 = optimization_func2(initial_conds)
+        
         print 'Initial optimization value: %.2g' % initial_func_value
+        print 'Initial optimization value2: %.2g' % initial_func_value2
         res = opt.fmin_slsqp(optimization_func, initial_conds, 
                              f_ieqcons=f_ieq,
                              full_output=1,
-                             iprint=2)
+                             iprint=0)
         
         ln_conc, optimum = res[:2]
         final_func_value = optimization_func(ln_conc)

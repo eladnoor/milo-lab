@@ -97,7 +97,7 @@ def Main():
     
     output_filename = path.join(out_dir, 'results.html')
     print 'Writing output to', output_filename
-    template_data = {'analysis_type': 'Protein Cost',
+    template_data = {'analysis_type': 'MTDF',
                      'results':results}
     templates.render_to_file('pathway_optimization_results.html',
                              template_data,
