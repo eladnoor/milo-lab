@@ -90,7 +90,7 @@ class MTDFOptimizer(object):
         self._model = pathway_model
         self._thermo = thermodynamic_data
         self.S = pathway_model.GetStoichiometricMatrix()
-        self.Nr, self.Nc = self.S.shape
+        self.Ncompounds, self.Nrxns = self.S.shape
         self.reactions = pathway_model.GetReactionIDs()
         self.compounds = pathway_model.GetCompoundIDs()
         self.fluxes = pathway_model.GetFluxes()
@@ -111,12 +111,12 @@ class MTDFOptimizer(object):
         Returns:
             A 2-tuple (lower bounds, upper bounds) as cvxmod.matrix objects.
         """
-        ln_conc_lb = []
-        ln_conc_ub = []
+        ln_conc_lb = np.matrix(np.zeros((1, self.Ncompounds)))
+        ln_conc_ub = np.matrix(np.zeros((1, self.Ncompounds)))
         
-        for c in self.compounds:
-            ln_conc_lb.append(bounds.GetLowerBound(c))
-            ln_conc_ub.append(bounds.GetUpperBound(c))
+        for i, c in enumerate(self.compounds):
+            ln_conc_lb[0, i] = bounds.GetLowerBound(c)
+            ln_conc_ub[0, i] = bounds.GetUpperBound(c)
         
         ln_conc_lb = np.log(ln_conc_lb)
         ln_conc_ub = np.log(ln_conc_ub)
@@ -134,29 +134,29 @@ class MTDFOptimizer(object):
         normalization = normalization or self.DeltaGNormalization.DEFAULT
         
         # Constrain concentrations
-        ln_conc = cvxmod.optvar('lnC', self.Nc)
+        ln_conc = cvxmod.optvar('lnC', rows=1, cols=self.Ncompounds)
         # TODO(flamholz): push this method into the bounds object.
-        ln_conc_lb, ln_conc_ub = bounds.GetLnBounds(self.compounds)
-        ln_conc_lb, ln_conc_ub = cvxmod.matrix(ln_conc_lb), cvxmod.matrix(ln_conc_ub) 
+        ln_conc_lb, ln_conc_ub = self._LnConcentrationBounds(bounds)
         problem.constr.append(ln_conc >= ln_conc_lb)
         problem.constr.append(ln_conc <= ln_conc_ub)
         
         # Make the objective
         motive_force_lb = cvxmod.optvar('B', 1)
+        my_dG0_r_primes = np.matrix(self.dG0_r_prime)
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr in the direction of the flux.
         # Reactions with a flux of 0 must be in equilibrium.
         S = cvxmod.matrix(self.S)
-        dg0r_primes = cvxmod.matrix(self.dG0_r_prime)
         
         for i, flux in enumerate(self.fluxes):
             
+            curr_dg0 = my_dG0_r_primes[0, i]
             # if the dG0 is unknown, this reaction imposes no new constraints
-            if np.isnan(self.dG0_r_prime[i, 0]):
+            if np.isnan(curr_dg0):
                 continue
             
-            curr_dgr = dg0r_primes[i, 0] + RT * S[i, :] * ln_conc
+            curr_dgr = curr_dg0 + RT * ln_conc * S[:, i]
             if flux == 0:
                 problem.constr.append(curr_dgr == 0)
             else:
@@ -164,6 +164,7 @@ class MTDFOptimizer(object):
                     curr_dgr, flux, normalization)
                 
                 problem.constr.append(motive_force >= motive_force_lb)
+
         
         problem.objective = cvxmod.maximize(motive_force_lb)
         status = problem.solve(quiet=True)
