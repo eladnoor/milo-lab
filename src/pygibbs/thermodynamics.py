@@ -19,11 +19,20 @@ import types
 from pygibbs.kegg_reaction import Reaction
 
 def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
-    """
-        Technically, this simply performs np.dot(S, dG0_f).
-        However, since some values in dG0_f might be NaN, this makes sure
-        that the rows which are not affected by these NaNs are correctly
-        calculated.
+    """Calculate reaction energies from the stoichiometric matrix
+       and formation energies.
+
+    Technically, this simply performs np.dot(S, dG0_f).
+    However, since some values in dG0_f might be NaN, this makes sure
+    that the rows which are not affected by these NaNs are correctly
+    calculated.
+
+    Args:
+        S: stoichiometric matrix. An MxN numpy.matrix.
+        dG0_f: formation energies. A 1xM numpy.matrix.
+        
+    Returns:
+        A 1xN numpy.matrix of reaction energies (dG0_r).    
     """
     assert type(S) == np.matrix
     
