@@ -210,8 +210,12 @@ class GroupDecomposer(object):
         return GroupDecomposer(gd)
 
     @staticmethod
+    def _RingedPChainSmarts(length):
+        return ''.join(['[C,S][O;R1]', '[P;R1](=O)([OH,O-])[O;R1]' * length, '[C,S]'])
+
+    @staticmethod
     def _InternalPChainSmarts(length):
-        return ''.join(['[C,S]O', 'P(=O)([OH,O-])O' * length, '[C,S]'])
+        return ''.join(['[C,S][O;R0]', '[P;R0](=O)([OH,O-])[O;R0]' * length, '[C,S]'])
     
     @staticmethod
     def _TerminalPChainSmarts(length):
@@ -240,7 +244,8 @@ class GroupDecomposer(object):
             chain_map[pmg_group].append(node_set)
         
         all_pmg_groups = (groups_data.GroupsData.FINAL_PHOSPHATES_TO_MGS +
-                          groups_data.GroupsData.MIDDLE_PHOSPHATES_TO_MGS)
+                          groups_data.GroupsData.MIDDLE_PHOSPHATES_TO_MGS + 
+                          groups_data.GroupsData.RING_PHOSPHATES_TO_MGS)
         for mg in mol.FindSmarts('[Mg+2]'):
             if mg[0] in assigned_mgs:
                 continue
@@ -307,12 +312,35 @@ class GroupDecomposer(object):
         # For each allowed length
         for length in xrange(1, max_length + 1):
             # Find internal phosphate chains (ones in the middle of the molecule).
+            smarts_str = GroupDecomposer._RingedPChainSmarts(length)
+            chain_map = dict((k, []) for (k, _) in group_map.iteritems())
+            for pchain in mol.FindSmarts(smarts_str):
+                working_pchain = list(pchain)
+                working_pchain.pop() # Lose the last carbon
+                working_pchain.pop(0) # Lose the first carbon
+                
+                if length % 2:
+                    atoms, charge = pop_phosphate(working_pchain, 5)
+                    add_group(chain_map, 'ring -OPO3-', charge, atoms)                    
+                else:
+                    atoms, charge = pop_phosphate(working_pchain, 9)
+                    add_group(chain_map, 'ring -OPO3-OPO2-', charge, atoms)
+                
+                while working_pchain:
+                    atoms, charge = pop_phosphate(working_pchain, 8)
+                    add_group(chain_map, 'ring -OPO2-OPO2-', charge, atoms)
+            
+            assigned_mgs = GroupDecomposer.AttachMgToPhosphateChain(mol, chain_map,
+                                                                    assigned_mgs)
+            GroupDecomposer.UpdateGroupMapFromChain(group_map, chain_map)
+
+            # Find internal phosphate chains (ones in the middle of the molecule).
             smarts_str = GroupDecomposer._InternalPChainSmarts(length)
             chain_map = dict((k, []) for (k, _) in group_map.iteritems())
             for pchain in mol.FindSmarts(smarts_str):
                 working_pchain = list(pchain)
-                working_pchain.pop() # Lose the carbons
-                working_pchain.pop(0)
+                working_pchain.pop() # Lose the last carbon
+                working_pchain.pop(0) # Lose the first carbon
                 
                 if length % 2:
                     atoms, charge = pop_phosphate(working_pchain, 5)

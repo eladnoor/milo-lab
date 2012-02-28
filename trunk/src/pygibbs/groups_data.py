@@ -178,38 +178,44 @@ class GroupsData(object):
     # Phosphate groups need special treatment, so they are defined in code...
     # TODO(flamholz): Define them in the groups file.
     
-    phosphate_groups = [('initial H0', '-OPO3-', 0, -1, 0),
-                        ('initial H1', '-OPO3-', 1, 0, 0),
-                        ('middle H0', '-OPO2-', 0, -1, 0),
-                        ('middle H1', '-OPO2-', 1, 0, 0),
-                        ('final H0', '-OPO3', 0, -2, 0),
-                        ('final H1', '-OPO3', 1, -1, 0),
-                        ('final H2', '-OPO3', 2,  0, 0),
-                        ('initial chain H0', '-OPO3-OPO2-', 0, -2, 0),
-                        ('initial chain H1', '-OPO3-OPO2-', 1, -1, 0),
-                        ('initial chain H2', '-OPO3-OPO2-', 2, 0, 0),
-                        ('middle chain H0', '-OPO2-OPO2-', 0, -2, 0),
-                        ('middle chain H1', '-OPO2-OPO2-', 1, -1, 0),
-                        ('middle chain H2', '-OPO2-OPO2-', 2, 0, 0),
-                        ('initial chain Mg1', '-OPO2-OPO2-', 0, 0, 1),
-                        ('middle chain Mg1', '-OPO3', 0, 0, 1)]
+    # each tuple contains: (name, description, nH, charge, nMg, is_default)
+    
+    phosphate_groups = [('initial H0', '-OPO3-', 0, -1, 0, True),
+                        ('initial H1', '-OPO3-', 1, 0, 0, False),
+                        ('middle H0', '-OPO2-', 0, -1, 0, True),
+                        ('middle H1', '-OPO2-', 1, 0, 0, False),
+                        ('final H0', '-OPO3', 0, -2, 0, True),
+                        ('final H1', '-OPO3', 1, -1, 0, False),
+                        ('final H2', '-OPO3', 2,  0, 0, False),
+                        ('initial chain H0', '-OPO3-OPO2-', 0, -2, 0, True),
+                        ('initial chain H1', '-OPO3-OPO2-', 1, -1, 0, False),
+                        ('initial chain H2', '-OPO3-OPO2-', 2, 0, 0, False),
+                        ('initial chain Mg1', '-OPO3-OPO2-', 0, 0, 1, False),
+                        ('middle chain H0', '-OPO2-OPO2-', 0, -2, 0, True),
+                        ('middle chain H1', '-OPO2-OPO2-', 1, -1, 0, False),
+                        ('middle chain H2', '-OPO2-OPO2-', 2, 0, 0, False),
+                        ('middle chain Mg1', '-OPO2-OPO2-', 0, 0, 1, False),
+                        ('ring initial H0', 'ring -OPO3-', 0, -1, 0, True),
+                        ('ring initial H1', 'ring -OPO3-', 1, 0, 0, False),
+                        ('ring initial chain H0', 'ring -OPO3-OPO2-', 0, -2, 0, True),
+                        ('ring initial chain H1', 'ring -OPO3-OPO2-', 1, -1, 0, False),
+                        ('ring initial chain H2', 'ring -OPO3-OPO2-', 2, 0, 0, False),
+                        ('ring middle chain H0', 'ring -OPO2-OPO2-', 0, -2, 0, True),
+                        ('ring middle chain H1', 'ring -OPO2-OPO2-', 1, -1, 0, False),
+                        ('ring middle chain H2', 'ring -OPO2-OPO2-', 2, 0, 0, False),
+                        ('ring initial chain Mg1', 'ring -OPO2-OPO2-', 0, 0, 1, False)]
     
     PHOSPHATE_GROUPS = []
     PHOSPHATE_DICT = {}
-    for name, desc, nH, z, nMg in phosphate_groups:
+    DEFAULTS = {}
+    for name, desc, nH, z, nMg, is_default in phosphate_groups:
         group = Group(name, desc, nH, z, nMg)
         PHOSPHATE_GROUPS.append(group)
         PHOSPHATE_DICT[name] = group
+        if is_default:
+            DEFAULTS[desc] = group
 
-    DEFAULT_INTERIOR_P = PHOSPHATE_DICT['middle H0']  # Ignoring protonation, interior chain
-    DEFAULT_EXTERIOR_P = PHOSPHATE_DICT['final H0']   # Ignoring protonation, exterior chain
-    
-    DEFAULTS = {'-OPO3-': PHOSPHATE_DICT['initial H0'],
-                '-OPO2-': PHOSPHATE_DICT['middle H0'],
-                '-OPO3': PHOSPHATE_DICT['final H0'],
-                '-OPO3-OPO2-': PHOSPHATE_DICT['initial chain H0'],
-                '-OPO2-OPO2-': PHOSPHATE_DICT['middle chain H0']}  
-    
+    RING_PHOSPHATES_TO_MGS = ((PHOSPHATE_DICT['ring initial chain H0'], PHOSPHATE_DICT['ring initial chain Mg1']),)    
     MIDDLE_PHOSPHATES_TO_MGS = ((PHOSPHATE_DICT['initial chain H0'], PHOSPHATE_DICT['initial chain Mg1']),)    
     FINAL_PHOSPHATES_TO_MGS = ((PHOSPHATE_DICT['middle chain H0'], PHOSPHATE_DICT['middle chain Mg1']),)
     
