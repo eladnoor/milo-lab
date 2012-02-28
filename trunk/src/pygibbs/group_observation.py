@@ -60,11 +60,20 @@ class GroupObservation(object):
         
 class GroupObervationCollection(object):
     
-    def __init__(self, html_writer, dissociation, transformed=False):
+    def __init__(self, html_writer, dissociation, transformed=False,
+                 pH=default_pH, I=0, pMg=14, T=default_T):
+        self.pH = pH
+        self.I = I
+        self.pMg = pMg
+        self.T = T
+
         self.kegg = Kegg.getInstance()
-        self.dissociation = dissociation
-        self.observations = []
         self.transformed = transformed
+        self.dissociation = dissociation
+        if self.dissociation is not None:
+            self.cid2nH_nMg = self.dissociation.GetCid2nH_nMg(
+                                    pH=self.pH, I=self.I, pMg=self.pMg, T=self.T)
+        self.observations = []
         self.html_writer = html_writer
         if transformed:
             self.gibbs_symbol = symbol_dr_G0_prime
@@ -72,10 +81,11 @@ class GroupObervationCollection(object):
             self.gibbs_symbol = symbol_dr_G0
 
     @staticmethod
-    def FromFiles(html_writer, dissociation, transformed=False):
+    def FromFiles(html_writer, dissociation, transformed=False,
+                  pH=default_pH, I=0, pMg=14, T=default_T):
         
         obs_collections = GroupObervationCollection(html_writer,
-                                                    dissociation, transformed)
+            dissociation, transformed, pH=pH, I=I, pMg=pMg, T=T)
         
         obs_collections.ReadFormationEnergies()
 
@@ -99,11 +109,14 @@ class GroupObervationCollection(object):
         self.observations.append(obs)
 
     def ReadFormationEnergies(self,
-                  obs_fname='../data/thermodynamics/formation_energies.csv',
-                  pH=default_pH, I=default_I, pMg=default_pMg, T=default_T):
+                  obs_fname='../data/thermodynamics/formation_energies.csv'):
+        """
+            Reads the entire table of formation energies which are to be used
+            later both to add them directly to the observed data table and to
+            be used for normalizing NIST data.
+        """
 
         self.formation_dict = {}
-        self.cid2nH_nMg = self.dissociation.GetCid2nH_nMg(pH=7, I=0, pMg=14, T=default_T)
         
         for label in ['training', 'testing']:
             ptable = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname,
@@ -113,19 +126,25 @@ class GroupObervationCollection(object):
                 if len(pmatrix) != 1:
                     raise Exception("multiple training species for C%05d" % cid)
                 nH, charge, nMg, dG0 = pmatrix[0]
-                self.cid2nH_nMg[cid] = (nH, nMg)
+                if cid in self.cid2nH_nMg:
+                    if (nH, nMg) != self.cid2nH_nMg[cid]:
+                        raise Exception("The pseudoisomer of C%05d "
+                                        "in the formation energy table (nH=%d) "
+                                        "is not consistent with the pKa table (nH=%d)."
+                                        % (cid, nH, self.cid2nH_nMg[cid][0]))
+                else:
+                    self.cid2nH_nMg[cid] = (nH, nMg) 
                 diss_table = self.dissociation.GetDissociationTable(cid, False)
                 if diss_table is None:
                     raise Exception("C%05d has no pKa data" % cid)
                 diss_table.SetFormationEnergyByNumHydrogens(dG0, nH, nMg)
-                dG0_prime = diss_table.Transform(pH, I, pMg, T)
+                dG0_prime = diss_table.Transform(pH=self.pH, I=self.I, pMg=self.pMg, T=self.T)
                 ref = ptable.cid2SourceString(cid)
                 self.formation_dict[cid] = (label, ref, dG0_prime,
                                             dG0, nH, charge, nMg)
     
     def AddFormationEnergies(self,
-            obs_fname="../data/thermodynamics/formation_energies.csv",
-            pH=default_pH, I=default_I, pMg=default_pMg, T=default_T):
+            obs_fname="../data/thermodynamics/formation_energies.csv"):
         """
             Add observations based on a table of derived chemical formation energies.
             If working in self.transformed mode, the dG0_f is Legendre-transformed
@@ -144,7 +163,8 @@ class GroupObervationCollection(object):
             html_text += 'KEGG ID = C%05d</br>\n' % cid
             if self.transformed:
                 html_text += "%s = %.1f, " % (self.gibbs_symbol, dG0_prime)
-                html_text += 'pH = %g, I = %g, pMg = %g, T = %g</br>\n' % (pH, I, pMg, T)
+                html_text += 'pH = %g, I = %g, pMg = %g, T = %g</br>\n' % \
+                    (self.pH, self.I, self.pMg, self.T)
             else:
                 html_text += "%s = %.1f, " % (self.gibbs_symbol, dG0)
                 html_text += 'nH = %d, nMg = %d</br>\n' % (nH, nMg)

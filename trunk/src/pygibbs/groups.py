@@ -19,7 +19,6 @@ from pygibbs.groups_data import Group, GroupsData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from toolbox.molecule import Molecule
 from pygibbs.group_observation import GroupObervationCollection
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
@@ -74,6 +73,8 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer = html_writer or NullHtmlWriter()
         self.dissociation = None
         self.transformed = transformed
+        
+        self.epsilon = 1e-10
 
         self.kegg = Kegg.getInstance()
         self.bounds = deepcopy(self.kegg.cid2bounds)
@@ -98,7 +99,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         
         self.THERMODYNAMICS_TABLE_NAME = prefix + '_pseudoisomers'
         self.STOICHIOMETRIC_MATRIX_TABLE_NAME = prefix + '_stoichiometry'
-        self.STOICHIOMETRIC_MATRIX_TABLE_NAME = prefix + '_stoichiometry'
+        self.ANCHORED_CONTRIBUTIONS_TALBE_NAME = prefix + '_anchored_g'
+        self.ANCHORED_CIDS_TABLE_NAME = prefix + '_anchored_cids'
+        self.ANCHORED_P_L_TALBE_NAME = prefix + '_anchored_P_L'
         
     def GetDissociationConstants(self):
         """
@@ -199,16 +202,20 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             
             dissociation = self.GetDissociationConstants()
 
-            if not self.transformed:
+            # When using non-transformed energies, it is very important for
+            # the group vectors of each compound to represent the correct
+            # pseudoisomer (same nH and nMg used in the reverse transform and
+            # the list of formation energies). Here we use the dictionary 
+            # self.cid2nH_nMg that is copied from GroupObervationCollection
+            self.cid2nH_nMg = self.obs_collection.cid2nH_nMg
+            if self.cid2nH_nMg is None:
+                # Use I = 0 mM and pMg = 14 since these are the conditions used
+                # to determine the most abundant pseudoisomer in DissociationConstants
+                # (that is the only option in ChemAxon).
+                # Since we rely on that table for the molecular structures,
+                # we must be consistent with it here.
                 self.cid2nH_nMg = dissociation.GetCid2nH_nMg(
-                                            self.pH, self.I, self.pMg, self.T)
-            else:
-                # When using non-transformed energies, it is very important for
-                # the group vectors of each compound to represent the correct
-                # pseudoisomer (same nH and nMg used in the reverse transform and
-                # the list of formation energies). Here we use the dictionary 
-                # self.cid2nH_nMg that is copied from GroupObervationCollection
-                self.cid2nH_nMg = self.obs_collection.cid2nH_nMg
+                                            pH=self.pH, I=0, pMg=14, T=self.T)
 
             for cid in sorted(self.kegg.get_all_cids()):
                 self.cid2groupvec[cid] = None
@@ -256,7 +263,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             self.db.Commit()
             self.html_writer.div_end()
 
-
     def Train(self):
         logging.info("Calculating the linear regression data")
         cids, S, b, anchored = self.obs_collection.GetStoichiometry()
@@ -264,14 +270,18 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         anchored_cols = list(np.where(anchored==1)[1].flat)
         # now remove anchored data from S and leave only the data which will be 
         # used for calculating the group contributions
-        g, _ = LinearRegression.LeastSquares(S[:, anchored_cols],
-                                             b[:, anchored_cols])
-        P_C, P_L = LinearRegression.ColumnProjection(S[:, anchored_cols])
-        b -= g * P_C * S
-        S = P_L * S
-        
+        g, P_C, P_L = LinearRegression.LeastSquaresProjection(S[:, anchored_cols],
+                                                              b[:, anchored_cols])
+        self.anchored_cids = cids
+        self.anchored_contributions = g * P_C
+        self.anchored_P_L = P_L
+        self.anchored_P_L[abs(self.anchored_P_L) <= self.epsilon] = 0
+
+        b -= self.anchored_contributions * S
+        S = self.anchored_P_L * S
+
         # set epsilon-small values to absolute 0
-        S[np.where(abs(S) < 1e-10)] = 0
+        S[np.where(abs(S) <= self.epsilon)] = 0
         
         # removed zero rows (compounds) from S
         used_cid_indices = set(np.nonzero(np.sum(abs(S), 1))[0].flat)
@@ -341,6 +351,14 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.div_end()
 
     def SaveContributionsToDB(self):
+        self.db.CreateTable(self.ANCHORED_CIDS_TABLE_NAME, 'cid INT')
+        for cid in self.anchored_cids:
+            self.db.Insert(self.ANCHORED_CIDS_TABLE_NAME, [cid])
+        self.db.SaveNumpyMatrix(self.ANCHORED_CONTRIBUTIONS_TALBE_NAME,
+                                self.anchored_contributions.T)
+        self.db.SaveSparseNumpyMatrix(self.ANCHORED_P_L_TALBE_NAME,
+                                      self.anchored_P_L)
+        
         # write a table of the group contributions
         self.db.CreateTable(self.CONTRIBUTION_TABLE_NAME,
                             'gid INT, name TEXT, protons INT, charge INT, '
@@ -361,6 +379,20 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                       self.group_nullspace)
         self.db.Commit()
             
+    def LoadContributionsFromDB(self):
+        logging.info("loading the group contribution data from the database")
+        self.anchored_cids = []
+        for row in self.db.DictReader(self.ANCHORED_CIDS_TABLE_NAME):
+            self.anchored_cids.append(row['cid'])
+        self.anchored_contributions = self.db.LoadNumpyMatrix(self.ANCHORED_CONTRIBUTIONS_TALBE_NAME).T
+        self.anchored_P_L = self.db.LoadSparseNumpyMatrix(self.ANCHORED_P_L_TALBE_NAME)
+
+        self.group_contributions = []
+        for row in self.db.DictReader(self.CONTRIBUTION_TABLE_NAME):
+            self.group_contributions.append(row['dG0_gr'])
+        self.group_contributions = np.matrix([self.group_contributions])
+        self.group_nullspace = self.db.LoadSparseNumpyMatrix(self.NULLSPACE_TABLE_NAME)
+                        
     def does_table_exist(self, table_name):
         for unused_ in self.db.Execute("SELECT name FROM sqlite_master WHERE name='%s'" % table_name):
             return True
@@ -373,7 +405,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         gv = np.matrix(groupvec.Flatten()).T
         val = float(self.group_contributions * gv)
         v = self.group_nullspace.T * gv
-        k_list = list(np.where(v > 1e-10)[0].flat)
+        k_list = list(np.where(abs(v) > self.epsilon)[0].flat)
         if k_list:
             raise GroupMissingTrainDataError(val, "can't estimate because the input "
                 "is not in the column-space of the group matrix", k_list)
@@ -471,7 +503,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             rowdict['LOO ' + sym + ' (fit)'] = float(np.dot(loo_group_contributions, self.group_matrix[:, i]))
             rowdict['LOO ' + sym + ' (res)'] = \
                 rowdict['LOO ' + sym + ' (fit)'] - self.obs_values[0, i]
-            logging.info('LOO Error = %.1f' % rowdict['LOO ' + symbol_df_G + ' (res)'])
+            logging.info('LOO Error = %.1f' % rowdict['LOO ' + sym + ' (res)'])
         
         logging.info("writing the table of estimation errors for each compound")
         self.html_writer.write('</br><b>Cross-validation table</b>')
@@ -524,6 +556,65 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         return self.group_decomposer.Decompose(mol, ignore_protonations, 
                                                strict=True)
 
+    def Reaction2GroupVector(self, sparse):
+        total_groupvec = GroupVector(self.groups_data)
+        for cid, coeff in sparse.iteritems():
+            groupvec = self.cid2groupvec.get(cid, None)
+            if groupvec is not None:
+                total_groupvec += groupvec * coeff
+            else:
+                raise MissingCompoundFormationEnergy("C%05d does not have a "
+                    "groupvector because - %s" % (cid, self.cid2error[cid]))
+        return total_groupvec
+
+    def GetTransfromedReactionEnergies(self, S, cids,
+                                       pH=None, I=None, pMg=None, T=None):
+        pH, I, pMg, T = self.GetConditions(pH=pH, I=I, pMg=pMg, T=T)
+
+        # copy the rows (corresponding to compounds) which are part of the 
+        # anchored stoichiometric matrix to a new S_anchored matrix which is
+        # in the right order of rows to fit the anchored_contributions vector
+        S_anchored = np.matrix(np.zeros((len(self.anchored_cids), S.shape[1])))
+        for c, cid in enumerate(cids):
+            if cid in self.anchored_cids:
+                S_anchored[self.anchored_cids.index(cid), :] = S[c, :]
+                
+        # calculate the contribution of anchored reaction to the dG0_r of the 
+        # desired reactions
+        dG0_r = self.anchored_contributions * S_anchored
+        
+        # normalize out the coefficients of the anchored reactions
+        S_anchored = self.anchored_P_L * S_anchored
+        S_anchored[np.where(abs(S_anchored) <= self.epsilon)] = 0
+        
+        # add back the rows of S which correspond to completely new CIDs
+        all_cids = list(self.anchored_cids)
+        for c, cid in enumerate(cids):
+            if cid not in self.anchored_cids:
+                all_cids.append(cid)
+                S_anchored = np.vstack([S_anchored, S[c, :]])
+        
+        for r in xrange(S.shape[1]):
+            sparse = dict((all_cids[c], S_anchored[c, r])
+                          for c in S_anchored[:, r].nonzero()[0].flat)
+            try:
+                groupvector = self.Reaction2GroupVector(sparse)
+                dG0_r[0, r] += self.groupvec2val(groupvector)
+            except (GroupMissingTrainDataError, MissingReactionEnergy, MissingCompoundFormationEnergy) as e:
+                logging.debug(str(e))
+                dG0_r[0, r] = np.nan
+        
+        ddG0_f = np.matrix(np.zeros((1, S.shape[0])))    
+        for c, cid in enumerate(cids):
+            diss_table = self.GetDissociationTable(cid)
+            if diss_table is not None:
+                nH, nMg = self.cid2nH_nMg[cid]
+                ddG0_f[0, c] = diss_table.GetDeltaDeltaG0(pH, I, pMg, T, nH=nH, nMg=nMg)
+            else:
+                ddG0_f[0, c] = np.nan                
+        
+        return dG0_r + ddG0_f * S
+
     def get_all_cids(self):
         return sorted(self.cid2groupvec.keys())
     
@@ -559,7 +650,6 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                    (cid, self.kegg.cid2name(cid)))
 
             diss_table = self.GetDissociationTable(cid)
-            pmap = None
             if cid in observed_species.get_all_cids():
                 pmap_obs = observed_species.cid2PseudoisomerMap(cid)
                 self.cid2source_string[cid] = observed_species.cid2SourceString(cid)
@@ -614,25 +704,17 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         logging.info("Writing the results to the database")
         self.ToDatabase(self.db, self.THERMODYNAMICS_TABLE_NAME)
 
-    def Reaction2GroupVector(self, sparse):
-        total_groupvec = GroupVector(self.groups_data)
-        for cid, coeff in sparse.iteritems():
-            if cid not in self.cid2groupvec:
-                # one of the compounds has no observed or estimated formation energy
-                raise MissingReactionEnergy("%s (C%05d) has no GroupVector" % 
-                    (self.kegg.cid2name(cid), cid), sparse)
-            groupvec = self.cid2groupvec[cid]
-            if groupvec is not None:
-                total_groupvec += groupvec * coeff
-        return total_groupvec
-    
     def VerifyReaction(self, sparse):
         """
             Inherited from Thermodynamics.
             In this case, should check that the total reaction groupvec is orthogonal to 
             the kernel.
         """
-        groupvec = self.Reaction2GroupVector(sparse)
+        try:
+            groupvec = self.Reaction2GroupVector(sparse)
+        except MissingCompoundFormationEnergy as e:
+            raise MissingReactionEnergy(str(e), sparse)
+
         try:
             # this will practically check that the overall
             # reaction groupvec is orthogonal to the kernel
@@ -679,18 +761,10 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             raise MissingCompoundFormationEnergy(self.cid2error.get(cid, ""), cid)
         
     def GroupMatrixRowToString(self, r):
-        nonzero_columns = list(np.where(abs(r) > 1e-10)[0].flat)
+        nonzero_columns = list(np.where(abs(r) > self.epsilon)[0].flat)
         return " | ".join(["%g : %s" % (r[j], self.groups_data.all_groups[j].name)
                            for j in nonzero_columns.flat])
             
-    def LoadContributionsFromDB(self):
-        logging.info("loading the group contribution data from the database")
-        self.group_contributions = []
-        for row in self.db.DictReader(self.CONTRIBUTION_TABLE_NAME):
-            self.group_contributions.append(row['dG0_gr'])
-        self.group_contributions = np.matrix([self.group_contributions])
-        self.group_nullspace = self.db.LoadSparseNumpyMatrix(self.NULLSPACE_TABLE_NAME)
-                        
     def GetGroupContribution(self, name, nH, z, nMg=0):
         gr = Group(None, name, nH, z, nMg)
         gid = self.groups_data.Index(gr)
@@ -768,18 +842,6 @@ def MakeOpts():
     opt_parser.add_option("-b", "--biochemical", action="store_true",
                           dest="transformed", default=False,
                           help="Use biochemical (transformed) Group Contributions")
-    opt_parser.add_option("-c", "--compound", action="store", type="int",
-                          dest="cid", default=None,
-                          help="The KEGG ID of a compound")
-    opt_parser.add_option("-r", "--reaction", action="store", type="int",
-                          dest="rid", default=None,
-                          help="The KEGG ID of a reaction")
-    opt_parser.add_option("-s", "--smiles", action="store", type="string",
-                          dest="smiles", default=None,
-                          help="A SMILES string of a compound")
-    opt_parser.add_option("-i", "--inchi", action="store", type="string",
-                          dest="inchi", default=None,
-                          help="An InChI string of a compound")
     opt_parser.add_option("-t", "--train", action="store_true",
                           dest="train_only", default=False,
                           help="A flag for running the TRAIN only (without TEST)")
@@ -797,57 +859,34 @@ if __name__ == '__main__':
     util._mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     
-    if options.smiles or options.inchi or options.cid or options.rid:
-        G = GroupContribution(db=db)
-        if options.smiles: # -s <SMILES>
-            print 'Analyzing SMILES %s:' % (options.smiles)
-            mol = Molecule._FromFormat(options.smiles, 'smiles')
-            G.LoadGroupsFromFile()
-            G.AnalyzeSingleCompound(mol)
-        elif options.inchi: #-i <INCHI>
-            print 'Analyzing InChI %s:' % (options.inchi)
-            mol = Molecule._FromFormat(options.inchi, 'inchi')
-            G.LoadGroupsFromFile()
-            G.AnalyzeSingleCompound(mol)
-        elif options.cid: # -c <CID>
-            print 'Analyzing Compound C%05d:' % (options.cid)
-            G.init()
-            G.AnalyzeSingleKeggCompound(options.cid, ignore_protonations=True)
-        elif options.rid: # -r <RID>
-            print 'Analyzing Reaction R%05d:' % (options.rid)
-            G.init()
-            reaction = G.kegg.rid2reaction(options.rid)
-            dG0_r = reaction.PredictReactionEnergy(G)
-            print "dG0_r = %.2f" % dG0_r
+    # use the flag -i or --train for train only
+    # use the flag -e or --test for test only
+    if options.transformed:
+        prefix = 'bgc'
     else:
-        # use the flag -i or --train for train only
-        # use the flag -e or --test for test only
-        if options.transformed:
-            prefix = 'bgc'
-        else:
-            prefix = 'pgc'
+        prefix = 'pgc'
+    
+    if options.test_only:
+        html_writer = HtmlWriter('../res/%s_test.html' % prefix)
+    elif options.train_only:
+        html_writer = HtmlWriter('../res/%s_train.html' % prefix)
+    else:
+        html_writer = HtmlWriter('../res/%s.html' % prefix)
         
-        if options.test_only:
-            html_writer = HtmlWriter('../res/%s_test.html' % prefix)
-        elif options.train_only:
-            html_writer = HtmlWriter('../res/%s_train.html' % prefix)
-        else:
-            html_writer = HtmlWriter('../res/%s.html' % prefix)
-            
-        G = GroupContribution(db=db, html_writer=html_writer,
-                              transformed=options.transformed)
-        
-        G.LoadGroups(options.from_database)
-        G.LoadObservations(options.from_database)
-        G.LoadGroupVectors(options.from_database)
-        
-        if options.test_only:
-            G.LoadContributionsFromDB()
-        else:
-            G.Train()
-            G.WriteRegressionReport()
-            G.AnalyzeTrainingSet()
-        
-        if not options.train_only:
-            G.EstimateKeggCids()
+    G = GroupContribution(db=db, html_writer=html_writer,
+                          transformed=options.transformed)
+    
+    G.LoadGroups(options.from_database)
+    G.LoadObservations(options.from_database)
+    G.LoadGroupVectors(options.from_database)
+    
+    if options.test_only:
+        G.LoadContributionsFromDB()
+    else:
+        G.Train()
+        G.WriteRegressionReport()
+        G.AnalyzeTrainingSet()
+    
+    if not options.train_only:
+        G.EstimateKeggCids()
 

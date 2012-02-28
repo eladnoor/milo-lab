@@ -12,124 +12,217 @@ from toolbox.linear_regression import LinearRegression
 import sys
 from pygibbs.kegg_reaction import Reaction
 from pygibbs.dissociation_constants import DissociationConstants
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from optparse import OptionParser
+from toolbox import util
+import logging
+from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 
 class UnknownReactionEnergyError(Exception):
     pass
 
-class UnifiedGroupContribution(object):
+class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
     
-    def __init__(self, db, html_writer):
+    def __init__(self, db, html_writer, dissociation=None):
+        PsuedoisomerTableThermodynamics.__init__(self, name="Unified Group Contribution")
         self.db = db
         self.html_writer = html_writer
+        self.dissociation = dissociation
+        self.transformed = False
         self.kegg = Kegg.getInstance()
-    
-    @staticmethod
-    def regress(A, y):
+        
+        self.STOICHIOMETRIC_TABLE_NAME = 'ugc_S'
+        self.GROUP_TABLE_NAME = 'ugc_G'
+        self.GIBBS_ENERGY_TABLE_NAME = 'ugc_b'
+        self.ANCHORED_TABLE_NAME = 'ugc_anchored'
+        self.COMPOUND_TABLE_NAME = 'ugc_compounds'
+        self.OBSERVATION_TABLE_NAME = 'ugc_observations'
+        self.GROUPVEC_TABLE_NAME = 'ugc_groupvectors'
+        self.UNIQUE_OBSERVATION_TABLE_NAME = 'ugc_unique_observations'
+
+    def GetDissociationConstants(self):
         """
-            Solves for x in the minimization of ||xA - y||
-            using linear regression.
+            Since loading the pKas takes time, this function is a lazy initialization
+            of self.dissociation.
+        """
+        if self.dissociation is None:
+            self.dissociation = DissociationConstants.FromPublicDB()
+        return self.dissociation
+
+    def LoadGroups(self, FromDatabase=False):
+        #if self.transformed:
+        #    fname = "../data/thermodynamics/groups_species_transformed.csv"
+        #else:
+        if FromDatabase and self.db.DoesTableExist('groups'):
+            self.groups_data = GroupsData.FromDatabase(self.db,
+                                                       transformed=self.transformed)
+            self.group_decomposer = GroupDecomposer(self.groups_data)
+        else:
+            fname = "../data/thermodynamics/groups_species.csv"
+            self.groups_data = GroupsData.FromGroupsFile(fname,
+                                                         transformed=self.transformed)
+            self.groups_data.ToDatabase(self.db)
+            self.group_decomposer = GroupDecomposer(self.groups_data)
+    
+    def LoadObservations(self, FromDatabase=False):
+        if FromDatabase and self.db.DoesTableExist(self.OBSERVATION_TABLE_NAME):
+            logging.info("Reading observations from database")
+            self.obs_collection = GroupObervationCollection.FromDatabase(
+                                    db=self.db,
+                                    table_name=self.OBSERVATION_TABLE_NAME,
+                                    transformed=self.transformed)
+        else:
+            logging.info("Reading observations from files")
+            dissociation = self.GetDissociationConstants()
+            self.obs_collection = GroupObervationCollection.FromFiles(
+                                    html_writer=self.html_writer, 
+                                    dissociation=dissociation,
+                                    transformed=self.transformed,
+                                    pH=self.pH, I=self.I, pMg=self.pMg, T=self.T)
+            self.obs_collection.ToDatabase(self.db, self.OBSERVATION_TABLE_NAME)
+        
+        self.obs_collection.ReportToHTML()
+
+    def LoadGroupVectors(self, FromDatabase=False):
+        self.cid2groupvec = {}
+        self.cid2error = {}            
+
+        if FromDatabase and self.db.DoesTableExist(self.GROUPVEC_TABLE_NAME):
+            logging.info("Reading group-vectors from database")
+            self.cid2nH_nMg = {}
+            for row in self.db.DictReader(self.GROUPVEC_TABLE_NAME):
+                cid = row['cid']
+                gv_str = row['groupvec']
+                if gv_str is not None:
+                    groupvec = GroupVector.FromJSONString(self.groups_data,
+                                                          gv_str)
+                else:
+                    groupvec = None
+                self.cid2groupvec[cid] = groupvec
+                self.cid2error[cid] = row['err']
+                self.cid2nH_nMg[cid] = (row['nH'], row['nMg'])
+        else:
+            logging.info("Decomposing all compounds and calculating group vectors")
+            self.html_writer.write('</br><b>All Groupvectors</b>\n')
+            self.html_writer.insert_toggle(start_here=True)
             
-            Returns:
-                x   - the regression result
-                P_C - a projection matrix onto the column-space of A
-                P_L - a projection matrix onto the left-null-space of A
-                
-            Note:
-                Using x * r for extrapolating the values of 'y' to a new 
-                column will only be valid if r is in the column-space of A.
-                To check that, one must see that P_L * r == 0.
-        """
-        U, s, V = np.linalg.svd(A, full_matrices=True)
-        r = len(np.where(s > 1e-10)[0]) # the rank of A
-        inv_S = np.matrix(np.zeros(A.shape)).T
-        for i in xrange(r):
-            inv_S[i, i] = 1.0 / s[i]
-        x = y * V.T * inv_S * U.T
-        P_C = U[:,:r] * U[:,:r].T # a projection matrix onto the row-space of A
-        P_L = U[:,r:] * U[:,r:].T # a projection matrix onto the null-space of A
-        return x, P_C, P_L
-    
-    def LoadData(self):
-        groups_data = GroupsData.FromDatabase(self.db, transformed=False)
-    
-        cid2nH_nMg = {}
-        cid2error = {}
-        cid2groupvec = {}
-        
-        for row in db.DictReader('pgc_groupvector'):
-            cid = row['cid']
-            gv_str = row['groupvec']
-            if gv_str is not None:
-                groupvec = GroupVector.FromJSONString(groups_data, gv_str)
-            else:
-                groupvec = None
-            cid2groupvec[cid] = groupvec
-            cid2error[cid] = row['err']
-            cid2nH_nMg[cid] = (row['nH'], row['nMg'])
-        
-        obs_collection = GroupObervationCollection.FromDatabase(db=self.db,
-                                table_name='pgc_observations', transformed=False)
-        self.cids, S, b, anchored = obs_collection.GetStoichiometry()
-        self.S, col_mapping = LinearRegression.ColumnUnique(S)
-        self.b = np.matrix(np.zeros((1, len(col_mapping)), dtype='float'))
-        self.anchored = np.matrix(np.zeros((1, len(col_mapping)), dtype='int'))
-        self.obs_ids = []
-        self.obs_types = []
-        self.obs_urls = []
-        for i, col_indices in col_mapping.iteritems():
-            self.b[0, i] = np.mean(b[0, col_indices])
-            self.anchored[0, i] = anchored[0, col_indices].max()
-            obs_list = [obs_collection.observations[j] for j in col_indices]
-            self.obs_ids.append(', '.join([obs.obs_id for obs in obs_list]))
-            self.obs_types.append(', '.join([obs.obs_type for obs in obs_list]))
-            self.obs_urls.append(', '.join([obs.url for obs in obs_list]))
-    
-        n_groups = len(groups_data.GetGroupNames()) # number of groups
-        self.G = np.matrix(np.zeros((len(self.cids), n_groups)))
-        self.has_groupvec = np.matrix(np.zeros((len(self.cids), 1)))
-        for i, cid in enumerate(self.cids):
-            if cid2groupvec[cid] is not None:
-                self.has_groupvec[i, 0] = 1
-                self.G[i, :] = cid2groupvec[cid].Flatten()
+            dissociation = self.GetDissociationConstants()
 
-    def ToDatabase(self):
-        self.db.SaveSparseNumpyMatrix('ugc_S', self.S)
-        self.db.SaveSparseNumpyMatrix('ugc_G', self.G)
-        self.db.SaveNumpyMatrix('ugc_b', self.b.T)
-        self.db.SaveNumpyMatrix('ugc_anchored', self.anchored.T)
-        self.db.CreateTable('ugc_compounds', 'cid INT, name TEXT')
-        for cid in self.cids:
-            self.db.Insert('ugc_compounds', [cid, self.kegg.cid2name(cid)])
-        self.db.CreateTable('ugc_observations', 'row INT, id TEXT, type TEXT, url TEXT')
-        for i in xrange(len(self.obs_ids)):
-            self.db.Insert('ugc_observations', [i, self.obs_ids[i], self.obs_types[i], self.obs_urls[i]])
-        self.db.Commit()
+            # The group vector's pseudoisomers must be consistent with the
+            # psuedoisomers used for the reverse transform.
+            # Here we simply use the dictionary self.cid2nH_nMg from GroupObervationCollection
+            self.cid2nH_nMg = self.obs_collection.cid2nH_nMg
 
-    def FromDatabase(self):
-        self.S = self.db.LoadSparseNumpyMatrix('ugc_S')
-        self.G = self.db.LoadSparseNumpyMatrix('ugc_G')
-        self.b = self.db.LoadNumpyMatrix('ugc_b').T
-        self.anchored = self.db.LoadNumpyMatrix('ugc_anchored').T
-        self.has_groupvec = np.sum(self.G, 1) > 0
-        self.cids = []
-        for rowdict in self.db.DictReader('ugc_compounds'):
-            self.cids.append(int(rowdict['cid']))
-        self.obs_ids = []
-        self.obs_types = []
-        self.obs_urls = []
-        for rowdict in self.db.DictReader('ugc_observations'):
-            self.obs_ids.append(rowdict['id'])
-            self.obs_types.append(rowdict['type'])
-            self.obs_urls.append(rowdict['url'])
+            for cid in sorted(self.kegg.get_all_cids()):
+                self.cid2groupvec[cid] = None
+                self.cid2error[cid] = None
+                if cid not in self.cid2nH_nMg:
+                    self.cid2error[cid] = "Does not have data about major pseudoisomer"
+                    continue
+                nH, nMg = self.cid2nH_nMg[cid]
+                diss_table = dissociation.GetDissociationTable(cid, False)
+                if diss_table is None:
+                    self.cid2error[cid] = "Does not have pKa data"
+                    continue
+                mol = diss_table.GetMol(nH=nH, nMg=nMg)
+                if mol is None:
+                    self.cid2error[cid] = "Does not have structural data"
+                    continue
+                try:
+                    mol.RemoveHydrogens()
+                    decomposition = self.group_decomposer.Decompose(mol, 
+                                        ignore_protonations=False, strict=True)
+                except GroupDecompositionError:
+                    self.cid2error[cid] = "Could not be decomposed"
+                    continue
+                groupvec = decomposition.AsVector()
+                if nH != groupvec.Hydrogens() or nMg != groupvec.Magnesiums():
+                    err_msg = "C%05d's most abundant pseudoisomer is [nH=%d, nMg=%d], " \
+                        "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
+                        "" % (cid, nH, nMg, groupvec.Hydrogens(), groupvec.Magnesiums())
+                    self.html_writer.write('</br>ERROR: %s\n' % err_msg)
+                    self.cid2error[cid] = err_msg
+                else:
+                    self.cid2groupvec[cid] = groupvec
     
+            self.db.CreateTable(self.GROUPVEC_TABLE_NAME,
+                "cid INT, nH INT, nMg INT, groupvec TEXT, err TEXT")
+            for cid, gv in sorted(self.cid2groupvec.iteritems()):
+                nH, nMg = self.cid2nH_nMg.get(cid, (0, 0))
+                if gv is not None:
+                    gv_str = gv.ToJSONString()
+                else:
+                    gv_str = None
+                err = self.cid2error[cid]
+                self.db.Insert(self.GROUPVEC_TABLE_NAME,
+                               [cid, nH, nMg, gv_str, err])
+            self.db.Commit()
+            self.html_writer.div_end()
+
+    def LoadData(self, FromDatabase=False):
+        if FromDatabase and self.db.DoesTableExist(self.STOICHIOMETRIC_TABLE_NAME):
+            self.S = self.db.LoadSparseNumpyMatrix(self.STOICHIOMETRIC_TABLE_NAME)
+            self.G = self.db.LoadSparseNumpyMatrix(self.GROUP_TABLE_NAME)
+            self.b = self.db.LoadNumpyMatrix(self.GIBBS_ENERGY_TABLE_NAME).T
+            self.anchored = self.db.LoadNumpyMatrix(self.ANCHORED_TABLE_NAME).T
+            self.has_groupvec = np.sum(self.G, 1) > 0
+            self.cids = []
+            for rowdict in self.db.DictReader(self.COMPOUND_TABLE_NAME):
+                self.cids.append(int(rowdict['cid']))
+            self.obs_ids = []
+            self.obs_types = []
+            self.obs_urls = []
+            for rowdict in self.db.DictReader(self.OBSERVATION_TABLE_NAME):
+                self.obs_ids.append(rowdict['id'])
+                self.obs_types.append(rowdict['type'])
+                self.obs_urls.append(rowdict['url'])
+        else:
+            self.cids, S, b, anchored = self.obs_collection.GetStoichiometry()
+            self.S, col_mapping = LinearRegression.ColumnUnique(S)
+            self.b = np.matrix(np.zeros((1, len(col_mapping)), dtype='float'))
+            self.anchored = np.matrix(np.zeros((1, len(col_mapping)), dtype='int'))
+            self.obs_ids = []
+            self.obs_types = []
+            self.obs_urls = []
+            for i, col_indices in col_mapping.iteritems():
+                self.b[0, i] = np.mean(b[0, col_indices])
+                self.anchored[0, i] = anchored[0, col_indices].max()
+                obs_list = [self.obs_collection.observations[j] for j in col_indices]
+                self.obs_ids.append(', '.join([obs.obs_id for obs in obs_list]))
+                self.obs_types.append(', '.join([obs.obs_type for obs in obs_list]))
+                self.obs_urls.append(', '.join([obs.url for obs in obs_list]))
+        
+            n_groups = len(self.groups_data.GetGroupNames()) # number of groups
+            self.G = np.matrix(np.zeros((len(self.cids), n_groups)))
+            self.has_groupvec = np.matrix(np.zeros((len(self.cids), 1)))
+            for i, cid in enumerate(self.cids):
+                if self.cid2groupvec[cid] is not None:
+                    self.has_groupvec[i, 0] = 1
+                    self.G[i, :] = self.cid2groupvec[cid].Flatten()
+            
+            # save everything to the database
+            self.db.SaveSparseNumpyMatrix(self.STOICHIOMETRIC_TABLE_NAME, self.S)
+            self.db.SaveSparseNumpyMatrix(self.GROUP_TABLE_NAME, self.G)
+            self.db.SaveNumpyMatrix(self.GIBBS_ENERGY_TABLE_NAME, self.b.T)
+            self.db.SaveNumpyMatrix(self.ANCHORED_TABLE_NAME, self.anchored.T)
+            self.db.CreateTable(self.COMPOUND_TABLE_NAME, 'cid INT, name TEXT')
+            for cid in self.cids:
+                self.db.Insert(self.COMPOUND_TABLE_NAME, [cid, self.kegg.cid2name(cid)])
+            self.db.CreateTable(self.UNIQUE_OBSERVATION_TABLE_NAME,
+                                'row INT, id TEXT, type TEXT, url TEXT')
+            for i in xrange(len(self.obs_ids)):
+                self.db.Insert(self.UNIQUE_OBSERVATION_TABLE_NAME,
+                               [i, self.obs_ids[i], self.obs_types[i], self.obs_urls[i]])
+            self.db.Commit()
+
     def SqueezeData(self, normalize_anchors=True):
         if normalize_anchors:
             # now remove anchored data from S and leave only the data which will be 
             # used for calculating the group contributions
             anchored_cols = list(np.where(self.anchored==1)[1].flat)
     
-            g, P_C, P_L = UnifiedGroupContribution.regress(self.S[:, anchored_cols],
-                                                           self.b[:, anchored_cols])
+            g, P_C, P_L = LinearRegression.LeastSquaresProjection(self.S[:, anchored_cols],
+                                                                  self.b[:, anchored_cols])
     
             # calculate the matrix and observations which are explained
             # by the anchored reactions
@@ -157,6 +250,10 @@ class UnifiedGroupContribution(object):
         self.cids = [self.cids[i] for i in used_cid_indices]
         self.has_groupvec = self.has_groupvec[used_cid_indices, :]
 
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
+        pH, I, pMg, T = self.GetConditions(pH, I, pMg, T)            
+        self.Estimate(self.S, self.b, S, verbose=False)
+
     def Estimate(self, S, b, r, verbose=False):
         """
             Given
@@ -178,8 +275,8 @@ class UnifiedGroupContribution(object):
 
         try:
             # calculate the contributions of compounds
-            g_S, PC_S, PL_S = UnifiedGroupContribution.regress(S, b)
-            g_GS, PC_GS, PL_GS = UnifiedGroupContribution.regress(GS, b[:, reactions_with_groupvec])
+            g_S, PC_S, PL_S = LinearRegression.LeastSquaresProjection(S, b)
+            g_GS, PC_GS, PL_GS = LinearRegression.LeastSquaresProjection(GS, b[:, reactions_with_groupvec])
         except np.linalg.linalg.LinAlgError:
             return est
 
@@ -304,40 +401,26 @@ class UnifiedGroupContribution(object):
         resid = est - np.repeat(self.b.T, est.shape[0], 1).T
         self.Report(resid)
     
-    def Temp(self):
-        n = self.S.shape[1]
-        i = 81
-        no_i = range(0, i) + range(i+1, n)
-        S = self.S[:, no_i]
-        b = self.b[:, no_i]
-        r = self.S[:, i:i+1]
-        g_S, PC_S, PL_S = UnifiedGroupContribution.regress(S, b)
-        r_C = PC_S * r
-        r_L = PL_S * r
-        print "r =", UnifiedGroupContribution.row2string(r, self.cids)
-        print "r_C =", UnifiedGroupContribution.row2string(r_C, self.cids)
-        print "r_L =", UnifiedGroupContribution.row2string(r_L, self.cids)
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-d", "--from_database", action="store_true",
+                          dest="from_database", default=False,
+                          help="A flag for loading the data from the DB instead of "
+                               "the CSV files (saves time but no debug information)")
+    return opt_parser
     
 if __name__ == "__main__":
+    options, _ = MakeOpts().parse_args(sys.argv)
+    util._mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     html_writer = HtmlWriter('../res/ugc.html')
     
-    if False: # reread observations from files
-        dissociation = DissociationConstants.FromPublicDB()
-        obs_collection = GroupObervationCollection.FromFiles(
-                            html_writer=html_writer, 
-                            dissociation=dissociation,
-                            transformed=False)
-        obs_collection.ToDatabase(db, 'pgc_observations')
-        sys.exit(0)
-
     ugc = UnifiedGroupContribution(db, html_writer)
-    if False:
-        ugc.LoadData()
-        ugc.ToDatabase()
-        sys.exit(0)
-    else:
-        ugc.FromDatabase()
+    ugc.LoadGroups(options.from_database)
+    ugc.LoadObservations(options.from_database)
+    ugc.LoadGroupVectors(options.from_database)
+    ugc.LoadData(options.from_database)
     ugc.SqueezeData(normalize_anchors=True)
     ugc.Fit()
     ugc.Loo()

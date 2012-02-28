@@ -58,14 +58,29 @@ class Thermodynamics(object):
         self.cid2source_string = {}
         self.anchors = set()
 
-    def SetConditions(self, pH=None, I=None, T=None, pMg=None):
-        self.pH = pH or self.pH
-        self.I = I or self.I
-        self.T = T or self.T
-        self.pMg = pMg or self.pMg
-        
+    def SetConditions(self, pH=None, I=None, pMg=None, T=None):
+        if pH is not None:
+            self.pH = pH
+        if I is not None:
+            self.I = I
+        if pMg is not None:
+            self.pMg = pMg
+        if T is not None:
+            self.T = T
+
     def SetConditionsToDefault(self):
         self.SetConditions(pH=default_pH, I=default_I, T=default_T, pMg=default_pMg)
+    
+    def GetConditions(self, pH=None, I=None, pMg=None, T=None):
+        if pH is None:
+            pH = self.pH
+        if I is None:
+            I = self.I
+        if pMg is None:
+            pMg = self.pMg
+        if T is None:
+            T = self.T
+        return pH, I, pMg, T
 
     def cid2SourceString(self, cid):
         return self.cid2source_string.get(cid, "")
@@ -262,39 +277,36 @@ class Thermodynamics(object):
         #    if row['anchor']:
         #        self.anchors.add(row['cid'])
     
-    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
+    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, pMg=None, T=None):
         """ calculate the dG0_f of each compound """
-        pH = pH or self.pH
-        I = I or self.I
-        T = T or self.T
-        pMg = pMg or self.pMg
+        pH, I, pMg, T = self.GetConditions(pH=pH, I=I, pMg=pMg, T=T)            
         
         if type(cids) == types.IntType:
-            return self.cid2PseudoisomerMap(cids).Transform(pH=pH, pMg=pMg, I=I, T=T)
+            return self.cid2PseudoisomerMap(cids).Transform(pH=pH, I=I, pMg=pMg, T=T)
         elif type(cids) == types.ListType:
             dG0_f = np.matrix(np.zeros((1, len(cids))))
             for c, cid in enumerate(cids):
                 try:
-                    dG0_f[0, c] = self.cid2PseudoisomerMap(cid).Transform(pH=pH, pMg=pMg, I=I, T=T)
+                    dG0_f[0, c] = self.cid2PseudoisomerMap(cid).Transform(pH=pH, I=I, pMg=pMg, T=T)
                 except MissingCompoundFormationEnergy:
                     dG0_f[0, c] = np.nan
             return dG0_f
         else:
             raise ValueError("Input argument must be 'int' or 'list' of integers")
     
-    def GetTransfromedKeggReactionEnergies(self, kegg_reactions, pH=None, I=None, T=None, pMg=None):
+    def GetTransfromedKeggReactionEnergies(self, kegg_reactions, pH=None, I=None, pMg=None, T=None):
         kegg = Kegg.getInstance()
         S, cids = kegg.reaction_list_to_S(kegg_reactions)
-        return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
+        return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
 
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
         """
             Returns:
                 A Numpy array (column matrix) of the transformed
                 formation energies of the reactions in the stiochimetric matrix
                 S. The list of cids must be the same order as the columns of S.
         """
-        dG0_f = self.GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
+        dG0_f = self.GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T)
         return GetReactionEnergiesFromFormationEnergies(S, dG0_f)
         
     def WriteFormationEnergiesToHTML(self, html_writer, cids):
@@ -540,9 +552,9 @@ class BinaryThermodynamics(Thermodynamics):
         cids = set(self.thermo[0].get_all_cids() + self.thermo[1].get_all_cids())
         return sorted(cids)
     
-    def SetConditions(self, pH=None, I=None, T=None, pMg=None):
-        self.thermo[0].SetConditions(pH=pH, I=I, T=T, pMg=pMg)
-        self.thermo[1].SetConditions(pH=pH, I=I, T=T, pMg=pMg)
+    def SetConditions(self, pH=None, I=None, pMg=None, T=None):
+        self.thermo[0].SetConditions(pH=pH, I=I, pMg=pMg, T=T)
+        self.thermo[1].SetConditions(pH=pH, I=I, pMg=pMg, T=T)
     
     def VerifyReaction(self, reaction):
         """
@@ -571,24 +583,24 @@ class BinaryThermodynamics(Thermodynamics):
                                     'reaction',
                                     reaction.sparse)
 
-    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
+    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, pMg=None, T=None):
         """
             Return the estimates of thermo[0] if all of them are known.
             Otherwise, use thermo[1] if all of them are known.
             If both have 'missing' estimates, use thermo[0] anyway.
         """
         
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T)
         if not np.any(np.isnan(dG0_f0)):
             return dG0_f0
 
-        dG0_f1 = self.thermo[1].GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
+        dG0_f1 = self.thermo[1].GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T)
         if not np.any(np.isnan(dG0_f1)):
             return dG0_f1
 
         return dG0_f0
         
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
         """
             Find the set of reaction Gibbs energies that are completely
             consistent with thermo[0], and also close to the energies provided
@@ -599,16 +611,16 @@ class BinaryThermodynamics(Thermodynamics):
             according to thermo[0]).
         """
 
-        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
+        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
         if np.all(np.isfinite(dG0_r0)):
             return dG0_r0
         
         # if thermo[1] cannot estimate all reactions, just use thermo[0].
-        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
+        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
         if np.isnan(dG0_r1).any():
             return dG0_r0
 
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, T=T, pMg=pMg)
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T)
         
         finite_cols = list(np.where(np.isfinite(dG0_f0))[1].flat)
         nan_cols = list(np.where(np.isnan(dG0_f0))[1].flat)
@@ -645,18 +657,20 @@ class ReactionThermodynamics(Thermodynamics):
             r.Balance(balance_water=False)
             r.SetNames(row['enzyme'])
             dG0_r_prime = float(row['dG0_r_prime'])
-            pH, I, T, pMg = float(row['pH']), float(row['I']), \
-                            float(row['T']), float(row.get('pMg', '10'))
-            data.append((r, dG0_r_prime, pH, I, T, pMg))
+            pH = float(row['pH'])
+            I = float(row['I'])
+            pMg = float(row.get('pMg', '10'))
+            T = float(row['T'])
+            data.append((r, dG0_r_prime, pH, I, pMg, T))
         
         reacthermo = ReactionThermodynamics(formation_thermo)
-        reacthermo.SetConditions(pH=pH, I=I, T=T, pMg=pMg)
-        for r, dG0, pH, I, T, pMg in data:
-            reacthermo.AddReaction(r, dG0, pH=pH, I=I, T=T, pMg=pMg)
+        reacthermo.SetConditions(pH=pH, I=I, pMg=pMg, T=T)
+        for r, dG0, pH, I, pMg, T in data:
+            reacthermo.AddReaction(r, dG0, pH=pH, I=I, pMg=pMg, T=T)
         reacthermo._Recalculate()
         return reacthermo
     
-    def AddReaction(self, kegg_reaction, dG0_r_prime, pH, I, T, pMg):
+    def AddReaction(self, kegg_reaction, dG0_r_prime, pH, I, pMg, T):
         if self.pH != pH or self.I != I or self.T != T or self.pMg != pMg:
             raise ValueError('Reverse Legendre Transform not implemented yet. '
                              'All reaction conditions must be the same')
@@ -697,11 +711,11 @@ class ReactionThermodynamics(Thermodynamics):
     def get_all_cids(self):
         return sorted(self.formations.get_all_cids() + self.var_cids)
     
-    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, T=None, pMg=None):
+    def GetTransformedFormationEnergies(self, cids, pH=None, I=None, pMg=None, T=None):
         S = np.matrix(np.eye(len(cids)))
-        return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, T=T, pMg=pMg)
+        return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
 
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, T=None, pMg=None):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
         if pH != None or I != None or T != None or pMg != None:
             raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics', None)
 
