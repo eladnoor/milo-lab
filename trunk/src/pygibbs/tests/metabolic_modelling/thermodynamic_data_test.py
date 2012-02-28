@@ -5,22 +5,7 @@ import numpy as np
 
 from pygibbs.metabolic_modelling import thermodynamic_data
 
-
-class FakeStoichModel(object):
-    
-    name = 'FakeStoichModel'
-    
-    def GetStoichiometricMatrix(self):
-        return np.matrix("-1,  0; 1, -1;  0, 1")
-    
-    def GetReactionIDs(self):
-        return ['R1', 'R2']
-    
-    def GetCompoundIDs(self):
-        return ['C1', 'C2', 'C3']
-    
-    def GetFluxes(self):
-        return np.array([1.0, 1.0])
+from pygibbs.tests.metabolic_modelling.fake_stoich_model import FakeStoichModel
     
 
 class TestFormationBasedThermoData(unittest.TestCase):
@@ -59,7 +44,6 @@ class TestFormationBasedThermoData(unittest.TestCase):
         S = model.GetStoichiometricMatrix()
         formation_energies = thermo_data.GetDGfTagZero_ForModel(model)
         expected_reaction_energies = np.dot(formation_energies, S)
-        print type(formation_energies)
         reaction_energies = thermo_data.GetDGrTagZero_ForModel(model)
 
         self.assertTrue((expected_reaction_energies == reaction_energies).all())
