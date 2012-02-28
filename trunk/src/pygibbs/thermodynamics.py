@@ -25,10 +25,12 @@ def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
         that the rows which are not affected by these NaNs are correctly
         calculated.
     """
-    dG0_r = np.zeros((1, S.shape[1]))
+    assert type(S) == np.matrix
+    
+    dG0_r = np.matrix(np.zeros((1, S.shape[1])))
     for r in xrange(S.shape[1]):
-        nonzero_c = S[:, r].nonzero()[0]
-        dG0_r[0, r] = dG0_f[0, nonzero_c] * S[nonzero_c, r].T
+        nonzero_c = list(S[:, r].nonzero()[0].flat)
+        dG0_r[0, r] = dG0_f[0, nonzero_c] * S[nonzero_c, r]
     return dG0_r
 
 class Thermodynamics(object):
