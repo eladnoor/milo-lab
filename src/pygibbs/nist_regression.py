@@ -159,6 +159,15 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         return unique_cols_S, unique_data_mat[0:1, :], cids_to_estimate
 
     @staticmethod
+    def row2string(S_row, cids):
+        active_cids = list(np.nonzero(S_row)[0].flat)
+        sparse = dict((cids[c], S_row[c]) 
+                      for c in active_cids 
+                      if abs(S_row[c]) > 1e-10)
+        r = Reaction("", sparse)
+        return r.FullReactionString(show_cids=False)
+
+    @staticmethod
     def row2hypertext(S_row, cids):
         kegg = Kegg.getInstance()
         active_cids = list(np.nonzero(S_row)[0].flat)
@@ -172,6 +181,10 @@ class NistRegression(PsuedoisomerTableThermodynamics):
 
         cid2ref = dict((cid, 'PRC') for cid in cids)
         if prior_thermodynamics:
+            # Normalize the contribution of compounds which have formation energies
+            # given in the prior. Perform the regression only on the residuals
+            # remaining after the normalization (note that the stoichiometric
+            # matrix must also be trimmed).
             cid_index_prior = []
             dG0_prior = []
             for i, cid in enumerate(cids):
@@ -193,8 +206,28 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             dG0_prior = np.matrix(dG0_prior)
             g, _ = LinearRegression.LeastSquares(S_prior, dG0_prior)
             P_C, P_L = LinearRegression.ColumnProjection(S_prior)
-            new_obs_dG0_r = obs_dG0_r - g * P_C * S
+            prior_dG0_r = g * P_C * S
+            new_obs_dG0_r = obs_dG0_r - prior_dG0_r
             new_S = P_L * S
+            
+            # Find all reactions in new_S which are completely zero. This means that
+            # they are completely determined by the prior.
+            zero_cols = (abs(new_S).sum(0) < 1e-10).nonzero()[1]
+            rowdicts = []
+            for j in zero_cols.flat:
+                rowdict = {}
+                rowdict['reaction'] = NistRegression.row2hypertext(S[:, j], cids)
+                rowdict['|error|'] = abs(new_obs_dG0_r[0, j])
+                rowdict['error'] = new_obs_dG0_r[0, j]
+                rowdict['NIST'] = obs_dG0_r[0, j]
+                rowdict['prior'] = prior_dG0_r[0, j]
+                rowdicts.append(rowdict)
+            rowdicts.sort(key=lambda x:x['|error|'], reverse=True)
+            self.html_writer.write('</br><b>Alberty Errors</b>\n')
+            self.html_writer.write_table(rowdicts,
+                                         headers=['reaction', 'error', 'NIST', 'prior'],
+                                         decimal=1)
+            
             est_dG0_f, _ = LinearRegression.LeastSquares(new_S, new_obs_dG0_r)
             for j, i in enumerate(cid_index_prior):
                 est_dG0_f[0, i] = dG0_prior[0, j]
@@ -206,33 +239,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         rmse = rms_flat(residuals.flat)
         logging.info("Regression results for reverse transformed data:")
         logging.info("N = %d, RMSE = %.1f" % (S.shape[1], rmse))
-        #logging.info("Kernel rank = %d" % (kerS.shape[1]))
-        
-        if prior_thermodynamics and False:
-            # find the vector in the solution subspace which is closest to the 
-            # prior formation energies
-            adjustment_dG0_f = np.matrix(np.zeros((1, len(cids))))
-            for i, cid in enumerate(cids):
-                try:
-                    nH, nMg = cid2nH_nMg[cid]
-                    prior_pmap = prior_thermodynamics.cid2PseudoisomerMap(cid)
-                    for p_nH, p_z, p_nMg, dG0 in prior_pmap.ToMatrix():
-                        if nH == p_nH and p_nMg == nMg:
-                            adjustment_dG0_f[0, i] = dG0 - est_dG0_f[0, i]
-                            cid2ref[cid] = prior_pmap.GetRef(p_nH, p_z, p_nMg)
-                except MissingCompoundFormationEnergy:
-                    continue
-
-            # TODO: this bit of code does work. The idea was to 'move' the vector
-            # of formation energies within the solution space to the place closest
-            # to where the formation energies in the Prior.
-            P_C, P_L = LinearRegression.ColumnProjection(S)
-            est_dG0_f += adjustment_dG0_f * P_L
-            est_dG0_r = est_dG0_f * S
-            residuals = est_dG0_r - obs_dG0_r
-            rmse = rms_flat(residuals.flat)
-            logging.info("After adding prior: RMSE = %.1f" % (rmse))
-        
+       
         self.html_writer.write('<p>RMSE = %.1f [kJ/mol]</p>\n' % rmse)
         rowdicts = []
         headers = ['#', 'Reaction',
@@ -485,7 +492,7 @@ def MakeOpts():
                           help="The name of the thermodynamics file to load.")
     opt_parser.add_option("-o", "--output_filename",
                           dest="output_filename",
-                          default='../res/nist/regression.html',
+                          default='../res/prc.html',
                           help="Where to write output to.")
     return opt_parser
 

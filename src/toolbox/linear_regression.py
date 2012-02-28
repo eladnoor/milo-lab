@@ -11,36 +11,7 @@ class LinearRegression(object):
         return r
     
     @staticmethod
-    def Kernel(A, reduced_row_echlon=False, eps=1e-10):
-        n, m = A.shape
-        if n > m:
-            return LinearRegression.Kernel(A.T).T
-        
-        _U, s, V = np.linalg.svd(A, full_matrices=True)
-        r = len(np.where(s > eps)[0]) # the rank of A
-        
-        kerA = np.zeros((m-r, m))
-        kerA[0:(m-r), :] = V[r:m,:]
-
-        if reduced_row_echlon:
-            LinearRegression.ToReducedRowEchelonForm(kerA)
-
-        return kerA
-    
-    @staticmethod
-    def LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
-        m, n = A.shape
-        l, k = y.shape
-        if l == 1 and k == n: # find a solution for x*A = y (x, y are row vectors)
-            return LinearRegression._LeastSquares(A, y, reduced_row_echlon, eps)
-        elif k == 1 and l == m: # find a solution for A*x = y (x, y are column vectors)
-            weights, kerA = LinearRegression._LeastSquares(A.T, y.T, reduced_row_echlon, eps)
-            return weights.T, kerA.T
-        raise Exception('The shape of y (%d x %d) does not match the number of '
-                        'rows or columns in A (%d x %d)' % (l, k, m, n))
-    
-    @staticmethod
-    def _LeastSquares(A, y, reduced_row_echlon=True, eps=1e-10):
+    def LeastSquares(A, y, eps=1e-10):
         """
             Performs a safe LeastSquares, by minimizing   || xA - y ||
             
@@ -51,57 +22,62 @@ class LinearRegression(object):
                 K is the kernel of A, its dimension is: n - rank(A).
                 If one wants to interpolate the y-value for a new data point, it must be orthogonal to K (i.e. xK = 0).
         """
+        m, n = A.shape
+        l, k = y.shape
+        if l == 1 and k == n: # find a solution for x*A = y (x, y are row vectors)
+            return LinearRegression._LeastSquares(A, y, eps)
+        elif k == 1 and l == m: # find a solution for A*x = y (x, y are column vectors)
+            weights, kerA = LinearRegression._LeastSquares(A.T, y.T, eps)
+            return weights.T, kerA.T
+        raise Exception('The shape of y (%d x %d) does not match the number of '
+                        'rows or columns in A (%d x %d)' % (l, k, m, n))
+    
+    @staticmethod
+    def _LeastSquares(A, y, eps=1e-10):
         U, s, V = np.linalg.svd(A, full_matrices=True)
         r = (s > eps).nonzero()[0].shape[0] # the rank of A
         inv_S = np.matrix(np.diag([1.0/s[i] for i in xrange(r)]))
-        V_r = V[:r, :]
-        U_r = U[:, :r]
-        x = y * V_r.T * inv_S * U_r.T
+        x = y * (V[:r, :].T) * inv_S * (U[:, :r].T)
         kerA = U[:,r:]
-        if reduced_row_echlon:
-            LinearRegression.ToReducedRowEchelonForm(kerA)
+        kerA[abs(kerA) <= eps] = 0
         return x, kerA
     
     @staticmethod
-    def ToReducedRowEchelonForm(A, eps=1e-10, reduce_last_column=True):
+    def LeastSquaresProjection(A, y, eps=1e-10):
         """
-            Copied from:
-            http://rosettacode.org/wiki/Reduced_row_echelon_form
+            Solves for x in the minimization of ||xA - y||
+            using linear regression.
             
-            Slightly changed to fit numpy arrays and an option not to
-            reduce the last column (used for solving linear systems)
+            Returns:
+                x   - the regression result
+                P_C - a projection matrix onto the column-space of A
+                P_L - a projection matrix onto the left-null-space of A
+                
+            Note:
+                Using x * r for extrapolating the values of 'y' to a new 
+                column will only be valid if r is in the column-space of A.
+                To check that, one must see that P_L * r == 0.
         """
-        lead = 0
-        rowCount = A.shape[0]
-        columnCount = A.shape[1]
-        if not reduce_last_column:
-            columnCount -= 1
-        
-        leads = []
-        non_leads = []
-        
-        for r in xrange(rowCount):
-            if lead >= columnCount:
-                return leads, non_leads
-            i = r
-            while abs(A[i, lead]) < eps:
-                i += 1
-                if i == rowCount:
-                    i = r
-                    non_leads.append(lead)
-                    lead += 1
-                    if columnCount == lead:
-                        return leads, non_leads
-            A[[i,r], :] = A[[r,i], :]  # Replace rows i and r
-            A[r, :] /= A[r, lead]      # Divide row r by A[r, lead]
-            leads.append(lead)
-            for i in xrange(rowCount):
-                if i != r and A[i, lead]:
-                    A[i, :] -= A[i, lead] * A[r, :] # Subtract for r from row i
-            lead += 1
-        
-        return leads, non_leads
- 
+        m, n = A.shape
+        l, k = y.shape
+        if l == 1 and k == n: # find a solution for x*A = y (x, y are row vectors)
+            return LinearRegression._LeastSquaresProjection(A, y, eps)
+        elif k == 1 and l == m: # find a solution for A*x = y (x, y are column vectors)
+            weights, kerA = LinearRegression._LeastSquaresProjection(A.T, y.T, eps)
+            return weights.T, kerA.T
+        raise Exception('The shape of y (%d x %d) does not match the number of '
+                        'rows or columns in A (%d x %d)' % (l, k, m, n))
+
+    @staticmethod
+    def _LeastSquaresProjection(A, y, eps=1e-10):
+        U, s, V = np.linalg.svd(A, full_matrices=True)
+        r = (s > eps).nonzero()[0].shape[0] # the rank of A
+        inv_S = np.matrix(np.diag([1.0/s[i] for i in xrange(r)]))
+        x = y * (V[:r, :].T) * inv_S * (U[:, :r].T)
+        P_C = U[:,:r] * (U[:,:r].T) # a projection matrix onto the row-space of A
+        P_L = U[:,r:] * (U[:,r:].T) # a projection matrix onto the null-space of A
+        return x, P_C, P_L
+
     @staticmethod
     def LeastSquaresWithFixedPoints(A, y, index2value):
         """
@@ -115,7 +91,7 @@ class LinearRegression(object):
             for each i in index2value: ker(A)*a[i] = index2value[i] - x[i]
             
         """
-        x, K = LinearRegression.LeastSquares(A, y, reduced_row_echlon=False)
+        x, K = LinearRegression.LeastSquares(A, y)
         K_trunc = K.T[index2value.keys(), :]
         K_inv = np.linalg.pinv(K_trunc)
         if LinearRegression.MatrixRank(K_inv) < len(index2value):
@@ -127,43 +103,6 @@ class LinearRegression(object):
         x += K.T * K_inv * delta_x
         return x, K
  
-    @staticmethod
-    def SolveLinearSystem(A, b):
-        x, _residues, _rank, _s = np.linalg.lstsq(A, b, rcond=1e-10)
-        x = x.reshape((A.shape[1], 1)) 
-        new_b = np.dot(A, x)
-        
-        M = np.hstack([A, new_b])
-        leads, nonleads = LinearRegression.ToReducedRowEchelonForm(M, reduce_last_column=False)
-        
-        # since we know the linear system is achievable, all the last rows should be filled with only zeros
-        # including the last column (observations).
-    
-        x = np.zeros((A.shape[1], 1))
-        for i, col in enumerate(leads):
-            x[col, 0] = M[i, -1]
-        
-        K = np.zeros((len(nonleads), A.shape[1]))
-        row = 0
-        for col in xrange(A.shape[1]):
-            if col in leads:
-                row += 1
-            else:
-                for i in xrange(row):
-                    K[col-row, leads[i]] = -M[i, col].T
-                K[col-row, col] = 1
-                
-        return x, K
-    
-    class LinearProgrammingException(Exception):
-        pass
-    
-    @staticmethod
-    def FindKernel(A):
-        b = np.zeros((A.shape[0], 1))
-        _x, K = LinearRegression.SolveLinearSystem(A, b)
-        return K
-    
     @staticmethod
     def ColumnProjection(A, eps=1e-10):
         """

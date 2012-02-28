@@ -39,10 +39,10 @@ def LoadAllEstimators():
     estimators['hatzi_gc'] = Hatzi(use_pKa=False)
     #estimators['hatzi_gc_pka'] = Hatzi(use_pKa=True)
     
-    #if db.DoesTableExist('bgc_pseudoisomers'):
-    estimators['BGC'] = GroupContribution(db=db_gibbs, transformed=True)
-    estimators['BGC'].init()
-    estimators['BGC'].name = 'our method (BGC)'
+    if db.DoesTableExist('bgc_pseudoisomers'):
+        estimators['BGC'] = GroupContribution(db=db_gibbs, transformed=True)
+        estimators['BGC'].init()
+        estimators['BGC'].name = 'our method (BGC)'
 
     estimators['PGC'] = GroupContribution(db=db_gibbs, transformed=False)
     estimators['PGC'].init()

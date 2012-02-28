@@ -443,38 +443,41 @@ class GroupDecomposer(object):
 def main():
     from pseudoisomers_data import PseudoisomersData
     decomposer = GroupDecomposer.FromGroupsFile('../data/thermodynamics/groups_species.csv')
-    pdata = PseudoisomersData.FromFile("../data/thermodynamics/dG0.csv")
     
-    for ps_isomer in pdata:
-        if ps_isomer.Skip():
-            continue
-
-        if not ps_isomer.Complete():
-            continue
+    if False:
+        pdata = PseudoisomersData.FromFile("../data/thermodynamics/dG0.csv")
         
-        try:
-            mol = ps_isomer.Mol()
-            mol.RemoveHydrogens()
-            mol.title = str(ps_isomer)
-            decomposition = decomposer.Decompose(mol, strict=True)
-        except GroupDecompositionError as e:
-            logging.error('Cannot decompose %s', mol.title)
-            continue
-        except (TypeError, AttributeError), e:
-            logging.error(e)
-            continue
+        for ps_isomer in pdata:
+            if ps_isomer.Skip():
+                continue
     
-    return
+            if not ps_isomer.Complete():
+                continue
+            
+            try:
+                mol = ps_isomer.Mol()
+                mol.RemoveHydrogens()
+                mol.title = str(ps_isomer)
+                decomposition = decomposer.Decompose(mol, strict=True)
+            except GroupDecompositionError as e:
+                logging.error('Cannot decompose %s', mol.title)
+                continue
+            except (TypeError, AttributeError), e:
+                logging.error(e)
+                continue
+        
+        return
     
     atp = 'C1=NC2=C(C(=N1)N)N=CN2C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O'
     coa = 'C1C=CN(C=C1C(=O)N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OCC3C(C(C(O3)N4C=NC5=C4N=CN=C5N)O)O)O)O'
     glucose = 'C(C1C(C(C(C(O1)O)O)O)O)O'
     mgatp = 'C([C@@H]1[C@H]([C@H]([C@H](n2cnc3c(N)[nH+]cnc23)O1)O)O)OP(=O)([O-])OP(=O)([O-])OP(=O)([O-])[O-].[Mg+2].[Mg+2]'
 
-    smiless = [
-               ('ATP', atp),
-               ('CoA', coa), ('Glucose', glucose), ('MgAtp', mgatp),
-               ]
+    #smiless = [
+    #           ('ATP', atp),
+    #           ('CoA', coa), ('Glucose', glucose), ('MgAtp', mgatp),
+    #           ]
+    smiless = [('ATP', atp)]
     mols = [(name, Molecule.FromSmiles(s)) for name, s in smiless]
 
     for name, mol in mols:

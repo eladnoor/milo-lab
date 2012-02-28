@@ -25,8 +25,8 @@ def GetC1Thermodynamics(html_writer, reaction_fname='../data/thermodynamics/c1_r
         r.Balance(balance_water=False)
         r.SetNames(row['enzyme'])
         dG0_r_prime = float(row['dG0_r_prime'])
-        pH, I, T, pMg = [float(row[k]) for k in ['pH', 'I', 'T', 'pMg']]
-        reacthermo.AddReaction(r, dG0_r_prime, pH=pH, I=I, T=T, pMg=pMg)
+        pH, I, pMg, T = [float(row[k]) for k in ['pH', 'I', 'pMg', 'T']]
+        reacthermo.AddReaction(r, dG0_r_prime, pH=pH, I=I, pMg=pMg, T=T)
         c1_reactions.append(r)
         
         row['formula'] = r.to_hypertext(show_cids=False)

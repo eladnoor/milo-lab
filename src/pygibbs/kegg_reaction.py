@@ -240,10 +240,6 @@ class Reaction(object):
         
     def PredictReactionEnergy(self, thermodynamics, 
                               pH=None, pMg=None, I=None ,T=None):
-        pH = pH or thermodynamics.pH
-        pMg = pMg or thermodynamics.pMg
-        I = I or thermodynamics.I
-        T = T or thermodynamics.T
         return float(thermodynamics.GetTransfromedKeggReactionEnergies([self], pH=pH, pMg=pMg, I=I, T=T))
     
     def HashableReactionString(self):

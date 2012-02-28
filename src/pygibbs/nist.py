@@ -354,6 +354,58 @@ class Nist(object):
         #win.open_file(dot_fname)
         #gtk.main()
 
+    def verify_formation(self, html_writer, thermodynamics, name=None):
+        cid2errors = defaultdict(list)
+        cid2refs = defaultdict(set)
+        reaction2errors = defaultdict(list)
+        reaction2refs = defaultdict(set)
+        for row_data in self.SelectRowsFromNist():
+            dG0_est = row_data.PredictReactionEnergy(thermodynamics)
+            if np.isnan(dG0_est):
+                continue
+            err = row_data.dG0_r - dG0_est
+            for cid in row_data.GetAllCids():
+                cid2errors[cid].append(err)
+                cid2refs[cid].add((row_data.ref_id, row_data.url))
+            reaction2errors[row_data.reaction].append(err)
+            reaction2refs[row_data.reaction].add((row_data.ref_id, row_data.url))
+        
+        rowdicts = []
+        for cid, err_list in cid2errors.iteritems():
+            refs = cid2refs[cid]
+            urls = ', '.join(['<a href="%s">%s</a>' % (url, ref_id)
+                              for ref_id, url in refs])
+            rowdict = {'cid':'C%05d' % cid,
+                       'name':self.kegg.cid2name(cid),
+                       'RMSE':rms_flat(err_list),
+                       'E[err]':np.mean(err_list),
+                       '#err':len(err_list),
+                       'std[err]':np.std(err_list),
+                       'URLs':urls}
+            rowdicts.append(rowdict)
+        
+        rowdicts.sort(key=lambda x:x['RMSE'], reverse=True)
+        html_writer.write_table(rowdicts, ['#', 'cid', 'name', 'RMSE',
+                                           '#err', 'E[err]', 'std[err]', 'URLs'], decimal=1)
+        
+        rowdicts = []
+        for reaction, err_list in reaction2errors.iteritems():
+            refs = reaction2refs[reaction]
+            urls = ', '.join(['<a href="%s">%s</a>' % (url, ref_id)
+                              for ref_id, url in refs])
+            rowdict = {'reaction':reaction.to_hypertext(show_cids=False),
+                       'RMSE':rms_flat(err_list),
+                       'E[err]':np.mean(err_list),
+                       '#err':len(err_list),
+                       'std[err]':np.std(err_list),
+                       'URLs':urls}
+            rowdicts.append(rowdict)
+        
+        rowdicts.sort(key=lambda x:x['RMSE'], reverse=True)
+        html_writer.write_table(rowdicts, ['#', 'reaction', 'RMSE',
+                                           '#err', 'E[err]', 'std[err]', 'URLs'], decimal=1)
+        
+        
     def verify_results(self, html_writer, thermodynamics, name=None):
         """Calculate all the dG0_r for the reaction from NIST and compare to
            the measured data.
@@ -485,7 +537,7 @@ class Nist(object):
         else:
             html_writer.embed_matplotlib_figure(fig3)
 
-        table_headers = ["|error|",
+        table_headers = ["#", "|error|",
                          symbol_dr_G0_prime + " (obs)",
                          symbol_dr_G0_prime + " (est)",
                          "reaction", "rid", "pH", "pMg", "I", "T",
