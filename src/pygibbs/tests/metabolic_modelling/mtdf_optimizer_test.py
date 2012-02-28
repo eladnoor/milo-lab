@@ -6,30 +6,8 @@ import numpy as np
 from pygibbs.metabolic_modelling import mtdf_optimizer
 from pygibbs.metabolic_modelling import bounds
 
-
-class FakeStoichModel(object):
-    
-    name = 'FakeStoichModel'
-    
-    def GetStoichiometricMatrix(self):
-        return np.array([[-1,  0],
-                         [ 1, -1],
-                         [ 0,  1]])
-    
-    def GetReactionIDs(self):
-        return ['R1', 'R2']
-    
-    def GetCompoundIDs(self):
-        return ['C1', 'C2', 'C3']
-    
-    def GetFluxes(self):
-        return np.array([1.0, 1.0])
-    
-
-class FakeThermoData(object):
-    
-    def GetDGrTagZero_ForModel(self, unused_model):
-        return np.array([11.1, -2.1])
+from pygibbs.tests.metabolic_modelling.fake_stoich_model import FakeStoichModel
+from pygibbs.tests.metabolic_modelling.fake_thermo_data import FakeThermoData
     
 
 class TestMTDFOptimizer(unittest.TestCase):
