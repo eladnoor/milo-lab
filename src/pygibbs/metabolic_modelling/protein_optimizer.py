@@ -57,15 +57,14 @@ class EnzymeLevelFunc(object):
         self.kcat = kcat
         self.km = km
         self.injector = fixed_var_injector
-        self.scaled_fluxes = fluxes / kcat
+        self.scaled_fluxes = np.matrix(fluxes / kcat)
         self.Nr, self.Nc = self.S.shape
     
     def __call__(self, x):
         my_x = self.injector(x)
-        x_col = my_x.reshape(self.Nc, 1)
-        x_exp = np.exp(my_x)
+        x_exp = np.matrix(np.exp(my_x))
         
-        dgtag = self.dG0 + RT * np.dot(self.S, x_col)
+        dgtag = self.dG0 + RT * my_x * self.S
         if (dgtag >= 0).any():
             return 1e6
         
@@ -73,61 +72,16 @@ class EnzymeLevelFunc(object):
         over_i = np.where(linearized_denom > 1.0)[0]
         linearized_denom[over_i] = 1.0
         
-        scaled_kms = self.km / x_exp
+        scaled_kms = self.km / x_exp.T
         exponentiated = np.power(scaled_kms, self.m_plus)
-        prods = np.prod(exponentiated, axis=1)
+        prods = np.prod(exponentiated, axis=0)
         numer = 1 + prods
-        scaled_numers = self.scaled_fluxes * numer
+        scaled_numers = np.multiply(self.scaled_fluxes, numer)
         
         inverted_denom = 1 / linearized_denom
-        return np.dot(scaled_numers, inverted_denom)
+        val = scaled_numers * inverted_denom.T
+        return val[0,0]
 
-        
-class EnzymeLevelFunc2(object):
-    """A callable computing optimal enzyme levels."""
-    
-    def __init__(self, S, dG0, fluxes, kcat, km,
-                 fixed_var_injector):
-        self.S = S
-        self.m_plus = np.abs(np.clip(S, -1000, 0))
-        self.dG0 = dG0
-        self.fluxes = fluxes
-        self.kcat = kcat
-        self.km = km
-        self.injector = fixed_var_injector
-        self.scaled_fluxes = fluxes / kcat
-        self.Nr, self.Nc = self.S.shape
-    
-    def __call__(self, x):
-        my_x = self.injector(x)
-        x_col = my_x.reshape(self.Nc, 1)
-        x_exp = np.exp(my_x)
-        
-        dgtag = self.dG0 + RT * np.dot(self.S, x_col)
-        if (dgtag >= 0).any():
-            return 1e6
-        
-        linearized_denom = -dgtag / (2*RT)
-        over_i = np.where(linearized_denom > 1.0)[0]
-        linearized_denom[over_i] = 1.0
-        
-        numer = np.ones(self.Nr)
-        for i in xrange(self.Nr):
-            for j, stoich in enumerate(self.S[i, :]):
-                if stoich >= 0:
-                    continue
-                
-                abs_stoich = np.abs(stoich)
-                scaled_km = self.km[i,j] / x_exp[j]
-                numer[i] = numer[i] * (scaled_km**abs_stoich)
-        
-        numer = 1 + numer
-        enzyme_levels = self.scaled_fluxes.copy()
-        for i in xrange(len(self.dG0)):
-            level_i = enzyme_levels[i] * (numer[i] / linearized_denom[i])
-            enzyme_levels[i] = level_i
-        
-        return np.sum(enzyme_levels)
     
 class MinusDG(object):
     """A callable checking in thermodynamic requirements are met."""
@@ -137,14 +91,13 @@ class MinusDG(object):
                  max_dG=0.0):
         self.S = S
         self.injector = fixed_var_injector
-        self.Nr, self.Nc = self.S.shape
+        self.Ncompounds, self.Nreactions = self.S.shape
         self.dG0 = dG0
         self.max_dG = max_dG
     
     def __call__(self, x):
         my_x = self.injector(x)
-        x_col = my_x.reshape((self.Nc, 1))
-        dgtag = self.dG0 + RT * np.dot(self.S, x_col)
+        dgtag = self.dG0 + RT * my_x * self.S
         minus_max = -(dgtag - self.max_dG)
         return minus_max.flatten()
     
@@ -152,13 +105,13 @@ class MinusDG(object):
 class BoundDiffs(object):
     
     def __init__(self, lb, ub):
-        self.lb = np.array(lb)
-        self.ub = np.array(ub)
+        self.lb = lb
+        self.ub = ub
     
     def __call__(self, x):
         lb_diff = x - self.lb
         ub_diff = self.ub - x
-        return np.hstack([lb_diff, ub_diff])  
+        return np.matrix(np.hstack([lb_diff, ub_diff]))  
         
 
 class MultiFunctionWrapper(object):
@@ -168,7 +121,8 @@ class MultiFunctionWrapper(object):
         
     def __call__(self, x):
         outs = [f(x) for f in self.functions]
-        return np.hstack(outs)
+        out_mat = np.hstack(outs)
+        return np.array(out_mat.flat)
 
 
 class ProteinOptimizer(object):
@@ -188,7 +142,7 @@ class ProteinOptimizer(object):
         self._thermo = thermodynamic_data
         self._kinetic_data = kinetic_data
         self.S = pathway_model.GetStoichiometricMatrix()
-        self.Nr, self.Nc = self.S.shape
+        self.Ncompounds, self.Nrxns = self.S.shape
         self.reactions = pathway_model.GetReactionIDs()
         self.compounds = pathway_model.GetCompoundIDs()
         self.fluxes = pathway_model.GetFluxes()
@@ -230,8 +184,10 @@ class ProteinOptimizer(object):
         bounds = concentration_bounds or self.DefaultConcentrationBounds()
         
         lb, ub = self._GetLnConcentrationBounds(bounds)
-        kcat = np.ones(self.Nr) * 100             # All Kcat are 100 /s
-        km = np.ones((self.Nr, self.Nc)) * 1e-4   # All Km are 100 uM
+        # All Kcat are 100 /s
+        kcat = np.ones(self.Nrxns) * 100
+        # All Km are 100 uM
+        km = np.matrix(np.ones((self.Ncompounds, self.Nrxns))) * 1e-4
                 
         # Initial solution is are MTDF concentrations
         mtdf_result = self.mtdf_opt.FindMTDF(concentration_bounds)
@@ -271,14 +227,9 @@ class ProteinOptimizer(object):
         optimization_func = EnzymeLevelFunc(self.S, self.dG0_r_prime,
                                             self.fluxes, kcat, km,
                                             injector)
-        optimization_func2 = EnzymeLevelFunc2(self.S, self.dG0_r_prime,
-                                              self.fluxes, kcat, km,
-                                              injector)
         initial_func_value = optimization_func(initial_conds)
-        initial_func_value2 = optimization_func2(initial_conds)
         
         print 'Initial optimization value: %.2g' % initial_func_value
-        print 'Initial optimization value2: %.2g' % initial_func_value2
         res = opt.fmin_slsqp(optimization_func, initial_conds, 
                              f_ieqcons=f_ieq,
                              full_output=1,
@@ -291,7 +242,7 @@ class ProteinOptimizer(object):
         print 'Final optimization value: %.2g' % final_func_value
         
         ln_conc = injector(ln_conc)
-        ln_conc = ln_conc.reshape((self.Nc, 1))
+        ln_conc = ln_conc.reshape((1, self.Ncompounds))
         return ProteinCostOptimizedPathway(
             self._model, self._thermo, bounds, optimum, ln_conc)
         

@@ -11,6 +11,7 @@ from pygibbs.tests import group_decomposition_test
 
 from pygibbs.tests.metabolic_modelling import bounds_test
 from pygibbs.tests.metabolic_modelling import mtdf_optimizer_test
+from pygibbs.tests.metabolic_modelling import protein_optimizer_test
 from pygibbs.tests.metabolic_modelling import stoich_model_test
 from pygibbs.tests.metabolic_modelling import thermodynamic_data_test
 
@@ -23,6 +24,7 @@ def main():
                     group_decomposition_test,
                     bounds_test,
                     mtdf_optimizer_test,
+                    protein_optimizer_test,
                     stoich_model_test,
                     thermodynamic_data_test)
     
