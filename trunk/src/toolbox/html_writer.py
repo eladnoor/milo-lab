@@ -78,7 +78,7 @@ class BaseHtmlWriter:
             if type(x) in (types.IntType, np.int16, np.int32, np.int64):
                 return '%d' % x
 
-            if type(x) in (types.FloatType, np.float32, np.float64, np.float128):
+            if type(x) in (types.FloatType, np.float32, np.float64):
                 if np.isnan(x):
                     return 'N/A'
                 if decimal is not None:
