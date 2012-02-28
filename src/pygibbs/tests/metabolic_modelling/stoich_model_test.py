@@ -8,7 +8,7 @@ from pygibbs.metabolic_modelling import stoich_model
 
 class TestStoichiometricModel(unittest.TestCase):
     
-    def testWrongNumberOfCompounds(self):
+    def testWrongNumberOfReactions(self):
         # Fake matrix with 5 reactions and 5 compounds 
         S = np.ones((5,5))
         compound_ids = range(8)
@@ -17,7 +17,7 @@ class TestStoichiometricModel(unittest.TestCase):
         self.assertRaises(ValueError, stoich_model.StoichiometricModel,
                           S, reaction_ids, compound_ids)
 
-    def testWrongNumberOfReactions(self):
+    def testWrongNumberOfCompounds(self):
         # Fake matrix with 5 reactions and 5 compounds 
         S = np.ones((5,5))
         compound_ids = range(5)
@@ -40,9 +40,9 @@ class TestStoichiometricModel(unittest.TestCase):
         self.assertEqual(reaction_ids, model.GetReactionIDs())
         
         fluxes = model.GetFluxes()
-        self.assertEqual(len(reaction_ids), len(fluxes))
-        expected_fluxes = [1.0]*len(reaction_ids)
-        self.assertEqual(expected_fluxes, list(fluxes))
+        self.assertEqual(len(reaction_ids), fluxes.size)
+        expected_fluxes = np.ones((1, len(reaction_ids)))
+        self.assertTrue((expected_fluxes == fluxes).all())
         
 
 def Suite():

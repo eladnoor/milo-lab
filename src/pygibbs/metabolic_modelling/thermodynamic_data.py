@@ -22,11 +22,14 @@ class BaseThermoData(object):
         
         Args:
             stoich_model: the stoichiometric model.
+            
+        Returns:
+            The formation energies as a 1xlen(compound_ids) row vector.
         """
-        formations = np.zeros((len(compound_ids),1))
+        formations = np.zeros((1, len(compound_ids)))
         
         for i, id in enumerate(compound_ids):
-            formations[i, 0] = self.GetDGfTagZero_ForID(id) 
+            formations[0, i] = self.GetDGfTagZero_ForID(id) 
         
         return formations
     

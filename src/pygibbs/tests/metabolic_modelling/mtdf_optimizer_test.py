@@ -9,8 +9,12 @@ from pygibbs.metabolic_modelling import bounds
 
 class FakeStoichModel(object):
     
+    name = 'FakeStoichModel'
+    
     def GetStoichiometricMatrix(self):
-        return np.array([[-1,1,0],[0,-1,1]])
+        return np.array([[-1,  0],
+                         [ 1, -1],
+                         [ 0,  1]])
     
     def GetReactionIDs(self):
         return ['R1', 'R2']
@@ -19,14 +23,13 @@ class FakeStoichModel(object):
         return ['C1', 'C2', 'C3']
     
     def GetFluxes(self):
-        return [1.0, 1.0]
+        return np.array([1.0, 1.0])
     
 
 class FakeThermoData(object):
     
     def GetDGrTagZero_ForModel(self, unused_model):
-        return np.array([[11.1],
-                         [-2.1]])
+        return np.array([11.1, -2.1])
     
 
 class TestMTDFOptimizer(unittest.TestCase):
@@ -40,14 +43,13 @@ class TestMTDFOptimizer(unittest.TestCase):
         stoich_model = FakeStoichModel()
         thermo = FakeThermoData()
         
-        S = stoich_model.GetStoichiometricMatrix()
-        dg0r_primes = thermo.GetDGrTagZero_ForModel(S)
-        
         opt = mtdf_optimizer.MTDFOptimizer(stoich_model, thermo)
-        conc, mtdf = opt.FindMTDF()
-        ln_conc = np.log(conc)
-        transformed_dgr = dg0r_primes + mtdf_optimizer.RT * np.dot(S, ln_conc)
+        res = opt.FindMTDF()
+        
+        transformed_dgr = res.dGr_tag
         expected_mtdf = -np.min(transformed_dgr)
+        mtdf = res.opt_val
+        
         self.assertAlmostEqual(6.90989, mtdf, 3)
         self.assertAlmostEqual(expected_mtdf, mtdf, 3)
     
@@ -55,15 +57,14 @@ class TestMTDFOptimizer(unittest.TestCase):
         stoich_model = FakeStoichModel()
         thermo = FakeThermoData()
         
-        S = stoich_model.GetStoichiometricMatrix()
-        dg0r_primes = thermo.GetDGrTagZero_ForModel(S)
-        
         b = self.MyBounds()        
         opt = mtdf_optimizer.MTDFOptimizer(stoich_model, thermo)
-        conc, mtdf = opt.FindMTDF(concentration_bounds=b)
-        ln_conc = np.log(conc)
-        transformed_dgr = dg0r_primes + mtdf_optimizer.RT * np.dot(S, ln_conc)
+        res = opt.FindMTDF(concentration_bounds=b)
+        
+        transformed_dgr = res.dGr_tag
         expected_mtdf = -np.min(transformed_dgr)
+        mtdf = res.opt_val
+        
         self.assertAlmostEqual(13.117132, mtdf, 3)
         self.assertAlmostEqual(expected_mtdf, mtdf, 3)
 

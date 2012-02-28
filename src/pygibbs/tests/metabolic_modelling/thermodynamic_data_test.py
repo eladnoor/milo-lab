@@ -8,8 +8,10 @@ from pygibbs.metabolic_modelling import thermodynamic_data
 
 class FakeStoichModel(object):
     
+    name = 'FakeStoichModel'
+    
     def GetStoichiometricMatrix(self):
-        return np.array([[-1,1,0],[0,-1,1]])
+        return np.matrix("-1,  0; 1, -1;  0, 1")
     
     def GetReactionIDs(self):
         return ['R1', 'R2']
@@ -18,7 +20,7 @@ class FakeStoichModel(object):
         return ['C1', 'C2', 'C3']
     
     def GetFluxes(self):
-        return [1.0, 1.0]
+        return np.array([1.0, 1.0])
     
 
 class TestFormationBasedThermoData(unittest.TestCase):
@@ -36,17 +38,17 @@ class TestFormationBasedThermoData(unittest.TestCase):
         
         # Fetch compounds that have data.
         compound_ids = formation_energies.keys()
-        expected_formation = [formation_energies[k] for k in compound_ids]
+        expected_formation = np.array(
+            [formation_energies[k] for k in compound_ids])
         actual_formation = thermo_data.GetDGfTagZero_ForIDs(compound_ids)
-        self.assertEqual(expected_formation, list(actual_formation))
+        self.assertTrue((expected_formation == actual_formation).all())
         
         # Fetch mixture of compounds, one that has no data.
         compound_ids.append('FAKE_ID')
-        actual_formation = list(thermo_data.GetDGfTagZero_ForIDs(compound_ids))
+        actual_formation = thermo_data.GetDGfTagZero_ForIDs(compound_ids)        
+        self.assertTrue((expected_formation == actual_formation[0,:-1]).all())
+        self.assertTrue(np.isnan(actual_formation[0,-1]))
         
-        self.assertEqual(expected_formation, actual_formation[:-1])
-        self.assertTrue(np.isnan(actual_formation[-1]))
-
         # Check that you can't get reaction energies by ID.
         self.assertRaises(NotImplementedError,
                           thermo_data.GetDGrTagZero_ForID, 
@@ -56,9 +58,11 @@ class TestFormationBasedThermoData(unittest.TestCase):
         model = FakeStoichModel()
         S = model.GetStoichiometricMatrix()
         formation_energies = thermo_data.GetDGfTagZero_ForModel(model)
-        expected_reaction_energies = list(np.dot(S, formation_energies))
-        reaction_energies = list(thermo_data.GetDGrTagZero_ForModel(model))
-        self.assertEqual(expected_reaction_energies, reaction_energies)
+        expected_reaction_energies = np.dot(formation_energies, S)
+        print type(formation_energies)
+        reaction_energies = thermo_data.GetDGrTagZero_ForModel(model)
+
+        self.assertTrue((expected_reaction_energies == reaction_energies).all())
 
 
 class TestReactionBasedThermoData(unittest.TestCase):

@@ -164,7 +164,6 @@ class MTDFOptimizer(object):
                     curr_dgr, flux, normalization)
                 
                 problem.constr.append(motive_force >= motive_force_lb)
-
         
         problem.objective = cvxmod.maximize(motive_force_lb)
         status = problem.solve(quiet=True)
