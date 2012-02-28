@@ -36,8 +36,6 @@
 "CO-OPO3",1,-2,0,"[C;H1;X3](=O)OP(=O)([O-])[O-]","All","formyl phosphate",
 "CO-OPO3",2,-1,0,"[C;H1;X3](=O)OP(=O)([O-])O","All","formyl phosphate",
 "CO-OPO3",3,0,0,"[C;H1;X3](=O)OP(=O)([O])O","All","formyl phosphate",
-"ring -OPO3-",0,-1,0,"O[P;R](=O)([O-])O","All","middle link in a phosphate chain (participating in a ring)",
-"ring -OPO3-",1,0,0,"O[P;R](=O)(O)O","All","middle link in a phosphate chain (participating in a ring)",
 "*PC",0,0,0,"P",0,"phosphate chains - (C)harge sensitive",
 "N-PO3",0,-2,0,"NP(=O)([O-])[O-]","1|2|3|4","terminal phosphate group attached to nitrogen",
 "N-PO3",1,-1,0,"NP(=O)([O-])O","1|2|3|4","terminal phosphate group attached to nitrogen",
@@ -137,16 +135,3 @@
 "-C-",2,0,0,"[C;H2;X4]","All","secondary carbon",
 "-C<",1,0,0,"[C;H1;X4]","All","tertiary carbon",
 ">C<",0,0,0,"[C;H0;X4]","All","quaternary carbon",
-"OCCC conjugation correction",0,0,0,"O=CC=C","None","OCCC conjugation correction","skip"
-"OCCO conjugation correction",0,0,0,"O=CC=O","None","OCCO conjugation correction","skip"
-"OCCN conjugation correction",0,0,0,"O=CC=N","None","OCCN conjugation correction (currently no examples)","skip"
-"CCCN conjugation correction",0,0,0,"C=CC=N","None","CCCN conjugation correction (currently no examples)","skip"
-"CCCC conjugation correction",0,0,0,"C=CC=C","None","CCCC conjugation correction (currently no examples)","skip"
-"NC(=N)N correction",0,0,0,"NC(=N)N","None","guanidine correction","skip"
-"vicinal Cl correction",0,0,0,"Cl~C~C~Cl","None","vicinal Cl correction (not 100% accurate, but currently no examples)","skip"
-"amide correction",0,0,0,"C(=O)[N;R0]C","None","amide bond correction","skip"
-"thioester correction",0,0,0,"CSC(=O)C","None","thioester correction (linearly dependent on CoA)","skip"
-"three member ring correction",0,0,0,"*1**1","None","three member ring correction (currently no examples)","skip"
-"*Hc",0,0,0,"[!C;!c]","None","hydrocarbon correction (expanded in code)","skip"
-"*Ar",0,0,0,"c1cccc1","None","aromatic ring correction (expanded in code)","skip"
-"*Har",0,0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)","skip"

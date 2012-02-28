@@ -7,8 +7,9 @@ from pygibbs.thermodynamic_constants import default_T
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.groups import GroupContribution
-from pygibbs.group_decomposition import GroupDecompositionError
+from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from toolbox.molecule import Molecule
+from pygibbs.groups_data import GroupsData
 
 def GetMolInput(kegg):
     mol = None
@@ -26,10 +27,11 @@ def GetMolInput(kegg):
     print "InChI:", mol.ToInChI()
     return mol
 
-def DecomposeInputString(G, kegg):
+def DecomposeInputString(group_decomposer):
+    kegg = Kegg.getInstance()
     mol = GetMolInput(kegg)
     try:
-        decomposition = G.Mol2Decomposition(mol, ignore_protonations=True)
+        decomposition = group_decomposer.Decompose(mol, ignore_protonations=True, strict=True)
         all_groupvecs = decomposition.PseudoisomerVectors()
         for groupvec in all_groupvecs:
             print ">>> nH = %2d, z = %2d, nMg = %d : %s" % \
@@ -41,23 +43,13 @@ def DecomposeInputString(G, kegg):
     mol.Draw()
 
 def main():
-    options, _ = flags.MakeOpts().parse_args(sys.argv)
-    kegg = Kegg.getInstance()
-    
-    db = SqliteDatabase("../res/gibbs.sqlite")
-    G = GroupContribution(db=db)
-    G.init()
-    G.c_mid = options.c_mid
-    G.pH = options.ph
-    G.pMg = options.pmg
-    G.I = options.i_s
-    G.T = default_T
-
-    print ('Parameters: T=%f K, pH=%.2g, pMg=%.2g, '
-           'I=%.2gmM, Median concentration=%.2gM' % (G.T, G.pH, G.pMg, G.I, G.c_mid))
+    #db = SqliteDatabase("../res/gibbs.sqlite")
+    fname = "../data/thermodynamics/groups_species.csv"
+    groups_data = GroupsData.FromGroupsFile(fname, transformed=False)
+    group_decomposer = GroupDecomposer(groups_data)
     
     while True:
-        DecomposeInputString(G, kegg)        
+        DecomposeInputString(group_decomposer)        
 
 if __name__ == '__main__':
     main()
