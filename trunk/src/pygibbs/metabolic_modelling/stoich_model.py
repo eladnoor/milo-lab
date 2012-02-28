@@ -29,10 +29,13 @@ class StoichiometricModel(object):
         self.S = S
         self.reaction_ids = reaction_ids
         self.compound_ids = compound_ids
-        self.fluxes = np.array(fluxes)
         self.Nr = len(self.reaction_ids)
         self.Nc = len(self.compound_ids)
         self.name = name
+        
+        self.fluxes = np.array(fluxes)
+        if fluxes is None:
+            self.fluxes = np.ones((1, self.Nr))
         
         expected_Nc, expected_Nr = self.S.shape
         if self.Nr != expected_Nr:

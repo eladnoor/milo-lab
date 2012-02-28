@@ -35,7 +35,8 @@ class BaseBounds(object):
             keys: an iterable of keys.
         
         Returns:
-            A two-tuple (lower_bounds, upper_bounds)
+            A two-tuple (lower_bounds, upper_bounds) where both
+            items are Numpy arrays of dimensions 1xlen(keys)
         """
         lower_bounds = np.array([self.GetLowerBound(key) for key in keys])
         upper_bounds = np.array([self.GetUpperBound(key) for key in keys])
@@ -46,7 +47,7 @@ class BaseBounds(object):
         """Returns the default value for each key unless it is invalid.
         
         Returns:
-            A column vector.
+            A row vector (Numpy array) with shape 1xlen(keys).
         """
         res = []
         for key in keys:
@@ -74,7 +75,8 @@ class BaseBounds(object):
             keys: an iterable of keys.
         
         Returns:
-            A two-tuple (lower_bounds, upper_bounds)
+            A two-tuple (lower_bounds, upper_bounds) where both
+            items are Numpy arrays of dimensions 1xlen(keys)
         """
         lb, ub = self.GetBounds(keys)
         return np.log(lb), np.log(ub)

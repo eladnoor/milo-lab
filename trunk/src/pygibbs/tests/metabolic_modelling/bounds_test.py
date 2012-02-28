@@ -66,16 +66,18 @@ class TestBounds(unittest.TestCase):
         
         lb, ub = b.GetBounds(keys)
         n = len(keys)
-        expected_lb = [default_lb] * n
-        expected_ub = [default_ub] * n
-        self.assertEqual(expected_lb, list(lb))
-        self.assertEqual(expected_ub, list(ub))
+        expected_lb = np.matrix(np.ones((n,1))) * default_lb
+        expected_ub = np.matrix(np.ones((n,1))) * default_ub
+        
+        self.assertTrue((lb == expected_lb).all())
+        self.assertTrue((ub == expected_ub).all())
         
         lb, ub = b.GetLnBounds(keys)
-        expected_lb = [np.log(default_lb)] * n
-        expected_ub = [np.log(default_ub)] * n
-        self.assertEqual(expected_lb, list(lb))
-        self.assertEqual(expected_ub, list(ub))
+        expected_lb = np.matrix(np.ones((n,1))) * np.log(default_lb)
+        expected_ub = np.matrix(np.ones((n,1))) * np.log(default_ub)
+        
+        self.assertTrue((lb == expected_lb).all())
+        self.assertTrue((ub == expected_ub).all())
         
 
     def testSpecifics(self):
@@ -104,16 +106,18 @@ class TestBounds(unittest.TestCase):
             
             self.assertEquals(lb, b.GetLowerBound(t))
             self.assertEquals(ub, b.GetUpperBound(t))
+        expected_lb = np.matrix(expected_lb)
+        expected_ub = np.matrix(expected_ub)
         
         lb, ub = b.GetBounds(keys)
-        self.assertEqual(expected_lb, list(lb))
-        self.assertEqual(expected_ub, list(ub))
+        self.assertTrue((lb == expected_lb).all())
+        self.assertTrue((ub == expected_ub).all())
         
         lb, ub = b.GetLnBounds(keys)
-        expected_lb = [np.log(l) for l in expected_lb]
-        expected_ub = [np.log(u) for u in expected_ub]
-        self.assertEqual(expected_lb, list(lb))
-        self.assertEqual(expected_ub, list(ub))
+        expected_lb = np.log(expected_lb)
+        expected_ub = np.log(expected_ub)
+        self.assertTrue((lb == expected_lb).all())
+        self.assertTrue((ub == expected_ub).all())        
         
 
 def Suite():

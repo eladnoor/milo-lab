@@ -81,13 +81,7 @@ class OptimizedPathway(object):
             dirname: the name of the directory to write it to.
         """
         pylab.figure()
-        print self.dGr0_tag.shape
-        print self.dGr0_tag.flatten().tolist()
-        print 'aaaa'
         dg0_profile = np.cumsum([0] + self.dGr0_tag.flatten().tolist())
-        print self.dGr_tag.shape
-        print self.dGr_tag.flatten().tolist()
-        print [0] + self.dGr_tag.flatten().tolist()
         dgtag_profile = np.cumsum([0] + self.dGr_tag.flatten().tolist())
         dgbio_profile = np.cumsum([0] + self.dGr_bio.flatten().tolist())
         rxn_range = pylab.arange(len(self.reaction_ids) + 1)

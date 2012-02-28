@@ -18,6 +18,7 @@ from toolbox.database import SqliteDatabase
 import types
 from pygibbs.kegg_reaction import Reaction
 
+
 def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
     """Calculate reaction energies from the stoichiometric matrix
        and formation energies.
