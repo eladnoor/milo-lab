@@ -40,7 +40,7 @@ class OptimizedPathway(object):
         self.reaction_ids = self.model.GetReactionIDs()
         
         self.concentrations = np.exp(self.ln_concentrations)
-        conc_correction = RT * np.dot(self.ln_concentrations, self.S)
+        conc_correction = RT * self.ln_concentrations * self.S
         self.dGr_tag = np.array(self.dGr0_tag + conc_correction)
         
         bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)        
