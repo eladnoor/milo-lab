@@ -241,6 +241,7 @@ class ThermodynamicAnalysis(object):
         #self.write_bounds_to_html(cid2bounds, self.thermo.c_range)
         S, rids, fluxes, cids = self.get_reactions(key, pathway_data)
         dG0_r = self.thermo.GetTransfromedReactionEnergies(S, cids)
+        fluxes = np.matrix(fluxes)
         
         keggpath = KeggPathway(S, rids, fluxes, cids, None, dG0_r,
                                cid2bounds=cid2bounds, c_range=self.thermo.c_range)
