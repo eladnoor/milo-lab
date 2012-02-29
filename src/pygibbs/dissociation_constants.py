@@ -34,7 +34,8 @@ class DissociationConstants(object):
         db.CreateTable(table_name, """
             cid INT, name TEXT, 
             nH_below INT, nH_above INT, 
-            nMg_below INT, nMg_above INT, 
+            nMg_below INT, nMg_above INT,
+            charge_below INT, charge_above INT,
             mol_below TEXT, mol_above TEXT, 
             ddG REAL, ref TEXT""")
         
@@ -163,7 +164,7 @@ class DissociationConstants(object):
                     raise Exception("Cannot read this row from the database: "
                                     + str(row) + '\n' + str(e))
                     
-        diss.CalculateAllCharges()
+        #diss.CalculateAllCharges()
         return diss
     
     @staticmethod
@@ -468,9 +469,11 @@ class DissociationTable(object):
             return ""
     
     def GetMolString(self, nH=None, nMg=0):
+        if nH is None:
+            nH = self.min_nH
         if (nH, nMg) not in self.mol_dict:
             return None
-        s, _ = self.GetMol(nH, nMg)
+        s, _ = self.mol_dict[nH, nMg]
         return s
     
     def SetMolString(self, nH, nMg, s):
@@ -489,19 +492,23 @@ class DissociationTable(object):
         res = []
         if not self.ddGs:
             nH = self.min_nH
+            z = self.min_charge
             nMg = 0
             mol_str = self.GetMolString(nH, nMg)
             ddG = 0.0
             ref = ""
-            res.append([nH, nH, nMg, nMg, mol_str, mol_str, ddG, ref])
+            res.append([nH, nH, nMg, nMg, z, z, mol_str, mol_str, ddG, ref])
         else:
             for key in sorted(self.ddGs.keys()):
                 nH_above, nH_below, nMg_above, nMg_below = key
                 mol_below = self.GetMolString(nH_below, nMg_below)
                 mol_above = self.GetMolString(nH_above, nMg_above)
                 ddG, ref = self.ddGs[key]
+                if self.min_charge is not None and self.min_nH is not None:
+                    z_below = self.min_charge + (nH_below - self.min_nH) + 2*nMg_below
+                    z_above = self.min_charge + (nH_above - self.min_nH) + 2*nMg_above
                 res.append([nH_below, nH_above, nMg_below, nMg_above, 
-                            mol_below, mol_above, ddG, ref])
+                            z_below, z_above, mol_below, mol_above, ddG, ref])
         return res
 
     def UpdateDatabaseRow(self, row):
@@ -509,6 +516,8 @@ class DissociationTable(object):
         (nH_above, nMg_above) = (row['nH_above'], row['nMg_above'])
         self.SetMolString(nH_above, nMg_above, row['mol_above'])
         self.SetMolString(nH_below, nMg_below, row['mol_below'])
+        if self.min_charge is None and row['charge_below'] is not None:
+            self.min_charge = row['charge_below'] - (nH_below - self.min_nH) - 2*nMg_below
 
         if (nH_below, nMg_below) == (nH_above, nMg_above):
             return
