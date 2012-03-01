@@ -14,6 +14,41 @@ from toolbox import util
 LEGEND_FONT = FontProperties(size=8)
 RT = default_RT
 
+class OptimizationStatus(object):
+    
+    SUCCESSFUL = 0
+    FAILURE    = 1 
+    INFEASIBLE = 2
+    
+    STATUS_STRS = {SUCCESSFUL: 'successful',
+                   FAILURE: 'failure',
+                   INFEASIBLE: 'infeasible'}
+    
+    def __init__(self, status,
+                 explanation=None):
+        self.status = status
+        self.explanation = explanation
+        
+    def __str__(self):
+        return '%s (%s)' % (OptimizationStatus.STATUS_STRS.get(self.status),
+                            self.explanation)
+        
+    @staticmethod
+    def Successful(explanation=None):
+        return OptimizationStatus(OptimizationStatus.SUCCESSFUL,
+                                  explanation=explanation)
+    
+    @staticmethod
+    def GeneralFailure(explanation=None):
+        return OptimizationStatus(OptimizationStatus.FAILURE,
+                                  explanation=explanation)
+    
+    @staticmethod
+    def Infeasible(explanation=None):
+        return OptimizationStatus(OptimizationStatus.INFEASIBLE,
+                                  explanation=explanation)
+    
+    
 
 class OptimizedPathway(object):
     """The result of a pathway optimization."""
@@ -25,19 +60,26 @@ class OptimizedPathway(object):
                  model,
                  thermodynamic_data,
                  metabolite_concentration_bounds,
-                 optimal_value,
-                 optimal_ln_metabolite_concentrations):
+                 optimization_status=OptimizationStatus.Successful(),
+                 optimal_value=None,
+                 optimal_ln_metabolite_concentrations=None):
         self.model = model
         self.thermo = thermodynamic_data
         self.bounds = metabolite_concentration_bounds
         self.S = model.GetStoichiometricMatrix()
+        self.status = optimization_status
         self.opt_val = optimal_value
         self.ln_concentrations = optimal_ln_metabolite_concentrations
+        
         self.dGr0_tag = np.array(thermodynamic_data.GetDGrTagZero_ForModel(
                 self.model))
-        
         self.compound_ids = self.model.GetCompoundIDs()
         self.reaction_ids = self.model.GetReactionIDs()
+        
+        # Don't proceed...
+        if (self.ln_concentrations is None or
+            self.opt_val is None):
+            return
         
         self.concentrations = np.exp(self.ln_concentrations)
         conc_correction = RT * self.ln_concentrations * self.S
@@ -51,7 +93,7 @@ class OptimizedPathway(object):
         
         slug_name = util.slugify(model.name)
         self.pathway_graph_filename = '%s_graph.svg' % slug_name 
-        self.thermo_profile_filename = '%s_mtdf.png' % slug_name
+        self.thermo_profile_filename = '%s_mtreturn optimizedf.png' % slug_name
 
     @staticmethod
     def CalcForwardFraction(dg_tag):
@@ -146,7 +188,7 @@ class OptimizedPathway(object):
     
     def ConcentrationsList(self):
         """Returns a list of optimum concentrations in order."""
-        return list(self.concentrations.flatten())
+        return list(self.concentrations.flat)
 
     def CompoundNames(self):
         """Presumes compound IDs are from KEGG."""
@@ -154,12 +196,13 @@ class OptimizedPathway(object):
         return map(kegg_instance.cid2name, self.compound_ids)
 
     def CompoundDetails(self):
-        """Yields dictionaries describing compounds in the model."""
+        """Yields dictionaries describing compounds in the model."""        
         names = self.CompoundNames()
         concentrations = self.ConcentrationsList()
         for i, id in enumerate(self.compound_ids):
             ub = self.bounds.GetUpperBound(id)
             lb = self.bounds.GetLowerBound(id)
+            
             conc = concentrations[i]
             conc_class = None
             if ub == lb:
@@ -186,7 +229,7 @@ class OptimizedPathway(object):
         return list(self.dGr_tag.flatten())
 
     def ReactionDetails(self):
-        """Yields dictionaries describing reactions in the model."""
+        """Yields dictionaries describing reactions in the model."""        
         dGr0_tags = self.ReactionStandardEnergyList()
         dGr_tags = self.ReactionTransformedEnergyList()
         for i, id in enumerate(self.reaction_ids):

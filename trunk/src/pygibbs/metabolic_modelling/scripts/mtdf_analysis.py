@@ -12,7 +12,6 @@ from pygibbs import kegg
 from pygibbs import thermodynamic_estimators
 from pygibbs import pathway
 from pygibbs import templates
-from toolbox import database
 from toolbox import util
 
 
@@ -31,7 +30,7 @@ def MakeOpts():
                           dest="thermodynamics_source",
                           type="choice",
                           choices=thermodynamic_estimators.EstimatorNames(),
-                          default="PGC",
+                          default="merged",
                           help="The thermodynamic data to use")
     opt_parser.add_option("-i", "--input_filename",
                           dest="input_filename",
@@ -54,10 +53,6 @@ def Main():
         
     print 'Will read pathway definitions from %s' % input_filename
     
-    db_loc = options.db_filename
-    print 'Reading from DB %s' % db_loc
-    db = database.SqliteDatabase(db_loc)
-
     thermo = estimators[options.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
     thermo_data = thermodynamic_data.WrapperThermoData(thermo)
