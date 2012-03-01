@@ -11,6 +11,7 @@ from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamics import BinaryThermodynamics
 from pygibbs.thermodynamics import ReactionThermodynamics
 from pygibbs.nist_regression import NistRegression
+from pygibbs.unified_group_contribution import UnifiedGroupContribution
 
 ESTIMATOR_NAMES = ('hatzi_gc', 'BGC', 'PGC', 'merged')
 
@@ -48,6 +49,10 @@ def LoadAllEstimators():
     estimators['PGC'].init()
     estimators['PGC'].name = 'our method (PGC)'
     
+    estimators['UGC'] = UnifiedGroupContribution(db=db_gibbs)
+    estimators['UGC'].init()
+    estimators['UGC'].name = 'our method (UGC)'
+
     estimators['merged'] = BinaryThermodynamics(estimators['alberty'],
                                                 estimators['PGC'])
     
