@@ -1,6 +1,29 @@
 import numpy as np
 import scipy.stats as st
 
+
+def MovingAverage(array_like, window_size=3):
+    """Calculates the moving average of the array.
+    
+    Args:
+        array_like: sliceable 1d sequence.
+        window_size: the size of the window to average over.
+            Must be an odd number.
+        
+    Returns:
+        A 1d numpy array of the same length with the averaged points.
+    """
+    assert (window_size % 2) == 1
+    side_size = (window_size - 1) / 2
+    
+    N = len(array_like)
+    averaged = array_like.copy()
+    for i in xrange(side_size, N - side_size):
+        averaged[i] = np.mean(array_like[i-side_size:i+side_size+1])
+        
+    return averaged
+
+
 def MeanWithConfidenceInterval(Y, confidence=0.95):
     """
     Use the fact that (mean(Y) - mu) / (std(Y)/sqrt(n))
