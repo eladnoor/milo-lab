@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patch
 from matplotlib.mlab import rms_flat
 
-def cdf(v, label, style='b', show_median=False, 
+def cdf(v, label=None, style='b', show_median=False, 
         std=None, y_offset=0, figure=None):
     if figure is None:
         figure = plt.figure()
@@ -26,7 +26,7 @@ def cdf(v, label, style='b', show_median=False,
             plt.plot([m, m], [0, 0.5], style, figure=figure)
             
 # Yaniv: Not used  
-def bootstrap(values_map,colors_map, func=np.median, reps=10000, sample_frac=1, name='Median'):
+def bootstrap(values_map, colors_map, func=np.median, reps=10000, sample_frac=1, name='Median'):
 
     for label,vals in values_map.iteritems():
         
