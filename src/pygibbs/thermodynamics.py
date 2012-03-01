@@ -23,7 +23,7 @@ def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
     """Calculate reaction energies from the stoichiometric matrix
        and formation energies.
 
-    Technically, this simply performs np.dot(S, dG0_f).
+    Technically, this simply performs np.dot(dG0_f, S).
     However, since some values in dG0_f might be NaN, this makes sure
     that the rows which are not affected by these NaNs are correctly
     calculated.
