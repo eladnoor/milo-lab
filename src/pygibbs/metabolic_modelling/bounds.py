@@ -40,8 +40,9 @@ class BaseBounds(object):
         """
         lower_bounds = np.array([self.GetLowerBound(key) for key in keys])
         upper_bounds = np.array([self.GetUpperBound(key) for key in keys])
-        return (lower_bounds.reshape(1, len(lower_bounds)),
-                upper_bounds.reshape(1, len(upper_bounds)))
+        lower_bounds = np.matrix(lower_bounds.reshape(1, len(lower_bounds)))
+        upper_bounds = np.matrix(upper_bounds.reshape(1, len(upper_bounds))) 
+        return lower_bounds, upper_bounds
     
     def GetBoundsWithDefault(self, keys, default):
         """Returns the default value for each key unless it is invalid.

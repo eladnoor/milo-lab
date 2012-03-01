@@ -7,12 +7,12 @@ from optparse import OptionParser
 from os import path
 
 from pygibbs.metabolic_modelling import protein_optimizer
+from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.metabolic_modelling import thermodynamic_data
 from pygibbs import kegg
 from pygibbs import thermodynamic_estimators
 from pygibbs import pathway
 from pygibbs import templates
-from toolbox import database
 from toolbox import util
 
 
@@ -53,10 +53,6 @@ def Main():
         logging.fatal('Input filename %s doesn\'t exist' % input_filename)
         
     print 'Will read pathway definitions from %s' % input_filename
-    
-    db_loc = options.db_filename
-    print 'Reading from DB %s' % db_loc
-    db = database.SqliteDatabase(db_loc)
 
     thermo = estimators[options.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
@@ -87,6 +83,15 @@ def Main():
         
         opt = protein_optimizer.ProteinOptimizer(model, thermo_data)
         result = opt.FindOptimum(model_bounds)
+        status = result.status
+        
+        if status.status == optimized_pathway.OptimizationStatus.FAILURE:            
+            print '\tFailed to optimize', pathway_data.name
+            continue
+        
+        if status.status == optimized_pathway.OptimizationStatus.INFEASIBLE:            
+            print '\t', pathway_data.name, 'is infeasible!'
+            continue
         
         result.WriteAllGraphs(pathgraph_dir)
         results.append(result)

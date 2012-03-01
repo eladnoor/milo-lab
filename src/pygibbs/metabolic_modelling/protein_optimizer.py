@@ -28,37 +28,78 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
     OPT_UNITS = "Protein Units / Pathway Flux Units"
     
 
-
 class FixedVariableInjector(object):
     
-    def __init__(self, variable_i, fixed_i, fixed_vals):
-        self.variable_i = np.array(variable_i)
-        self.fixed_i = np.array(fixed_i)
-        self.fixed_vals = np.array(fixed_vals)
-        self.n = len(self.fixed_i) + len(self.variable_i)
+    def __init__(self, lower_bounds, upper_bounds, initial_conds):
+        """Initialize the injector.
+        
+        All inputs should be Numpy matrices.
+        
+        Args:
+            lower_bounds: 1xN matrix of lower bounds on variables.
+            upper_bounds: 1xN matrix of upper bounds on variables.
+            initial_conds: 1xN matrix of initial conditions.
+        """
+        self.lb = lower_bounds
+        self.ub = upper_bounds
+        self.x0 = initial_conds
+        self.n  = self.x0.size
+        
+        lb_problem_i = np.where(self.x0 < self.lb)
+        ub_problem_i = np.where(self.x0 > self.ub)
+        self.x0[lb_problem_i] = self.lb[lb_problem_i]
+        self.x0[ub_problem_i] = self.ub[ub_problem_i]
+        
+        self.fixed_i = np.where(lower_bounds == upper_bounds)
+        self.variable_i = np.where(lower_bounds != upper_bounds)
+        self.fixed_vals = self.x0[self.fixed_i]
+        
+    def GetVariableLowerBounds(self):
+        return self.lb[self.variable_i]
+    
+    def GetVariableUpperBounds(self):
+        return self.ub[self.variable_i]
+    
+    def GetVariableInitialConds(self):
+        return self.x0[self.variable_i]
     
     def __call__(self, x):
-        out = np.zeros(self.n)
-        if self.fixed_i.any():
-            out[self.fixed_i] = self.fixed_vals
+        out = np.matrix(np.zeros((1, self.n)))
+        out[self.fixed_i] = self.fixed_vals
         out[self.variable_i] = x
         return out
-    
+
 
 class EnzymeLevelFunc(object):
     """A callable computing optimal enzyme levels."""
     
     def __init__(self, S, dG0, fluxes, kcat, km,
-                 fixed_var_injector):
+                 injector):
         self.S = S
         self.m_plus = np.abs(np.clip(S, -1000, 0))
         self.dG0 = dG0
         self.fluxes = fluxes
         self.kcat = kcat
         self.km = km
-        self.injector = fixed_var_injector
+        self.injector = injector
         self.scaled_fluxes = np.matrix(fluxes / kcat)
         self.Nr, self.Nc = self.S.shape
+    
+    @staticmethod
+    def ApproximateDenom(dGr_tag):
+        """Calculates the piecewise linear approximation of the
+           denominator of our rate law.
+           
+        Args:
+            dGr_tag: a 1xM Numpy matrix of transformed reaction energies.
+        
+        Returns:
+            A 1xM Numpy matrix of calculated denominator values.
+        """
+        linearized_denom = -dGr_tag / (2*RT)
+        over_i = np.where(linearized_denom >= 1.0)
+        linearized_denom[over_i] = 1.0
+        return linearized_denom
     
     def __call__(self, x):
         my_x = self.injector(x)
@@ -67,10 +108,8 @@ class EnzymeLevelFunc(object):
         dgtag = self.dG0 + RT * my_x * self.S
         if (dgtag >= 0).any():
             return 1e6
-        
-        linearized_denom = -dgtag / (2*RT)
-        over_i = np.where(linearized_denom > 1.0)[0]
-        linearized_denom[over_i] = 1.0
+                
+        linearized_denom = self.ApproximateDenom(dgtag)
         
         scaled_kms = self.km / x_exp.T
         exponentiated = np.power(scaled_kms, self.m_plus)
@@ -86,20 +125,28 @@ class EnzymeLevelFunc(object):
 class MinusDG(object):
     """A callable checking in thermodynamic requirements are met."""
     
-    def __init__(self, S, dG0,
-                 fixed_var_injector,
-                 max_dG=0.0):
+    def __init__(self, S, dG0r, injector,
+                 max_dGr=0.0):
+        """Initialize the MinusDG functor.
+        
+        Args:
+            S: MxN stoichiometric matrix (Numpy matrix).
+            dG0r: 1xN Numpy matrix of standard reaction energies.
+            injector: FixedVariableInjector instance.
+            max_dG: the maximum allowed dGr' value.
+        """
         self.S = S
-        self.injector = fixed_var_injector
+        self.injector = injector
         self.Ncompounds, self.Nreactions = self.S.shape
-        self.dG0 = dG0
-        self.max_dG = max_dG
+        self.dG0r = dG0r
+        self.max_dGr = max_dGr
     
     def __call__(self, x):
         my_x = self.injector(x)
-        dgtag = self.dG0 + RT * my_x * self.S
-        minus_max = -(dgtag - self.max_dG)
-        return minus_max.flatten()
+        
+        dgtag = self.dG0r + RT * my_x * self.S
+        minus_max = -(dgtag - self.max_dGr)
+        return minus_max
     
     
 class BoundDiffs(object):
@@ -117,11 +164,18 @@ class BoundDiffs(object):
 class MultiFunctionWrapper(object):
     
     def __init__(self, functions):
+        """Initialize the multi-functor.
+        
+        Args:
+            functions: a list of callables.
+        """
         self.functions = functions
         
     def __call__(self, x):
         outs = [f(x) for f in self.functions]
         out_mat = np.hstack(outs)
+        
+        # Required to return a 1-d ndarray.
         return np.array(out_mat.flat)
 
 
@@ -156,65 +210,47 @@ class ProteinOptimizer(object):
         """Default Bounds objects."""
         return bounds.Bounds(default_lb=self.DEFAULT_CONC_LB,
                              default_ub=self.DEFAULT_CONC_UB)
-
-    def _GetLnConcentrationBounds(self, bounds):
-        """Make bounds on concentrations from the Bounds object.
         
-        Args:
-            bounds: a Bounds objects for concentrations.
-        
-        Returns:
-            A 2-tuple (lower bounds, upper bounds) as objects.
-        """
-        conc_lb = []
-        conc_ub = []
-        
-        for c in self.compounds:
-            conc_lb.append(bounds.GetLowerBound(c))
-            conc_ub.append(bounds.GetUpperBound(c))
-        
-        return np.log(conc_lb), np.log(conc_ub)
-
     def FindOptimum(self, concentration_bounds=None):
         """Finds the Optimum.
         
         Args:
             concentration_bounds: the Bounds objects setting concentration bounds.
         """
+        # Concentration bounds
         bounds = concentration_bounds or self.DefaultConcentrationBounds()
+        lb, ub = bounds.GetLnBounds(self.compounds)
         
-        lb, ub = self._GetLnConcentrationBounds(bounds)
+        # Kinetic data
         # All Kcat are 100 /s
         kcat = np.ones(self.Nrxns) * 100
         # All Km are 100 uM
         km = np.matrix(np.ones((self.Ncompounds, self.Nrxns))) * 1e-4
-                
-        # Initial solution is are MTDF concentrations
-        mtdf_result = self.mtdf_opt.FindMTDF(concentration_bounds)
-        x0 = mtdf_result.ln_concentrations.flatten()
+        
+        # Use MTDF as the initial result
+        mtdf_result = self.mtdf_opt.FindMTDF(
+            concentration_bounds=bounds)
+        mtdf_value = mtdf_result.opt_val
+        if mtdf_value < 0:
+            print 'Pathway infeasible'
+            status = optimized_pathway.OptimizationStatus.Infeasible(
+                'MTDF could not be found.')
+            return ProteinCostOptimizedPathway(
+                self._model, self._thermo, bounds,
+                optimization_status=status)
+        
+        x0 = np.matrix(mtdf_result.ln_concentrations)
         
         # Separate out the fixed and non-fixed variables.
-        fixed_i = np.where(ub == lb)[0]
-        variable_i = np.where(ub != lb)[0]
-        fixed_x = ub[fixed_i]
-        initial_ln_concs = x0[variable_i]
-        lower_bounds = lb[variable_i]
-        upper_bounds = ub[variable_i]
-        
-        # Fix numeric issues near the bounds.
-        lb_problem_i = np.where(initial_ln_concs < lower_bounds)[0]
-        ub_problem_i = np.where(initial_ln_concs > upper_bounds)[0]
-        initial_ln_concs[lb_problem_i] = lower_bounds[lb_problem_i]
-        initial_ln_concs[ub_problem_i] = upper_bounds[ub_problem_i]
-        
-        # Class that injects fixed variable values
-        injector = FixedVariableInjector(variable_i, fixed_i, fixed_x)
-        initial_conds = np.array(initial_ln_concs)
+        injector = FixedVariableInjector(lb, ub, x0)
+        initial_conds = injector.GetVariableInitialConds()
+        lower_bounds  = injector.GetVariableLowerBounds()
+        upper_bounds  = injector.GetVariableUpperBounds()
         
         # Make constraint functions and check feasibility of 
         # initial point.        
         minus_dg_func = MinusDG(self.S, self.dG0_r_prime,
-                                injector, max_dG=0.0)
+                                injector, max_dGr=0.0)
         assert (minus_dg_func(initial_conds) >= 0).all()
         
         bounds_func = BoundDiffs(lower_bounds, upper_bounds)
@@ -234,7 +270,7 @@ class ProteinOptimizer(object):
                              f_ieqcons=f_ieq,
                              full_output=1,
                              iprint=0)
-        
+            
         ln_conc, optimum = res[:2]
         final_func_value = optimization_func(ln_conc)
         final_constraints = (f_ieq(ln_conc) >= 0).all()
@@ -242,8 +278,8 @@ class ProteinOptimizer(object):
         print 'Final optimization value: %.2g' % final_func_value
         
         ln_conc = injector(ln_conc)
-        ln_conc = ln_conc.reshape((1, self.Ncompounds))
         return ProteinCostOptimizedPathway(
-            self._model, self._thermo, bounds, optimum, ln_conc)
+            self._model, self._thermo, bounds,
+            optimal_value=optimum, optimal_ln_metabolite_concentrations=ln_conc)
         
         

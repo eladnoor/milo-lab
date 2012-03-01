@@ -1,16 +1,11 @@
 #!/usr/bin/python
 
 import cvxmod
-import pylab
 import numpy as np
 
-from pygibbs.kegg import Kegg
-from pygibbs import kegg_reaction 
 from pygibbs.metabolic_modelling import bounds
 from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.thermodynamic_constants import default_T, R
-from toolbox import util
-from os import path
 from matplotlib.font_manager import FontProperties
 
 RT = R * default_T
@@ -65,6 +60,9 @@ class MTDFOptimizer(object):
         
         # Default setting
         DEFAULT = SIGN_FLUX
+        
+        # All normalization settings
+        VALUES = [TIMES_FLUX, DIVIDE_BY_FLUX, SIGN_FLUX]
         
         @staticmethod
         def NormalizeDGByFlux(dG, flux, normalization):
@@ -172,8 +170,10 @@ class MTDFOptimizer(object):
         
         mtdf = cvxmod.value(motive_force_lb)
         opt_ln_conc = np.array(cvxmod.value(ln_conc))
-        result = MTDFOptimizedPathway(self._model, self._thermo,
-                                      bounds, mtdf, opt_ln_conc)
+        result = MTDFOptimizedPathway(
+            self._model, self._thermo,
+            bounds, optimal_value=mtdf,
+            optimal_ln_metabolite_concentrations=opt_ln_conc)
         result.SetNormalization(normalization)
         return result
         
