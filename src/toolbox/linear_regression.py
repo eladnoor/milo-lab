@@ -213,7 +213,7 @@ class LinearRegression(object):
         A_unique = np.unique([tuple(A[i,:].flat)
                               for i in xrange(A.shape[0])
                               if (not remove_zero or (A[i,:] != 0).any())])
-        A_unique = np.array(A_unique)
+        A_unique = np.matrix(np.array(A_unique))
 
         row_mapping = {}
         for i in xrange(A_unique.shape[0]):
