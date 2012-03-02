@@ -642,7 +642,10 @@ class DissociationTable(object):
         
         comp = pdata.Clone()
         comp.dG0 += total_ddG0
-        comp.ref += ';' + total_ref
+        if comp.ref is not None:
+            comp.ref += ';' + total_ref
+        else:
+            comp.ref = total_ref
         comp.smiles = ''
         comp.hydrogens = nH_to
         comp.magnesiums = nMg_to
@@ -797,6 +800,7 @@ class DissociationTable(object):
         pdata = PseudoisomerEntry(net_charge=self.min_charge, hydrogens=self.min_nH,
             magnesiums=0, smiles="", dG0=self.min_dG0, cid=self.cid)
         pdata = self.ConvertPseudoisomerEntry(pdata, nH_to=nH, nMg_to=nMg)
+        pdata.ref = ''
         pmap = PseudoisomerMap()
         for pdata in self.GenerateAllPseudoisomerEntries(pdata):
             pmap.Add(nH=pdata.hydrogens, z=pdata.net_charge, 

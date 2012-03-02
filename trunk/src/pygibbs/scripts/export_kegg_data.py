@@ -38,12 +38,12 @@ def MakeOpts(estimators):
     opt_parser.add_option("-p", "--priority",
                           dest="thermodynamics_csv",
                           default="../data/thermodynamics/formation_energy_priority_one.csv",
-                          help="Priority 1 table of pseudoisomers (a CSV file)")
+                          help="Priority 2 table of pseudoisomers (a CSV file)")
     opt_parser.add_option("-s", "--thermodynamics_source",
                           dest="thermodynamics_source",
                           type="choice",
                           choices=estimators.keys(),
-                          default="PGC",
+                          default="UGC",
                           help="The thermodynamic data to use")
     return opt_parser
 
@@ -59,8 +59,8 @@ def ExportJSONFiles():
     options, _ = MakeOpts(estimators).parse_args(sys.argv)
     
     thermo_list = []
-    thermo_list.append(PsuedoisomerTableThermodynamics.FromCsvFile(options.thermodynamics_csv))
     thermo_list.append(estimators[options.thermodynamics_source])
+    thermo_list.append(PsuedoisomerTableThermodynamics.FromCsvFile(options.thermodynamics_csv))
 
     # Make sure we have all the data.
     kegg = Kegg.getInstance()
@@ -69,11 +69,10 @@ def ExportJSONFiles():
         kegg.AddThermodynamicData(thermo, priority=(i+1))
     
     db = SqliteDatabase('../res/gibbs.sqlite')
-    kegg.AddGroupVectorData(db, table_name='pgc_groupvector')
 
     print 'Exporting Group Contribution Nullspace matrix as JSON.'
-    nullspace_vectors = [row['group_vector'] 
-                         for row in db.DictReader('pgc_nullspace')]
+    nullspace_vectors = [(row['msg'], json.loads(row['json']))
+                         for row in db.DictReader('ugc_conservations')]
     WriteJSONFile(nullspace_vectors, options.nullspace_out_filename)
         
     print 'Exporting KEGG compounds as JSON.'
