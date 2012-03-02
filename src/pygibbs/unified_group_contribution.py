@@ -45,6 +45,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         self.UNIQUE_OBSERVATION_TABLE_NAME = 'ugc_unique_observations'
         self.THERMODYNAMICS_TABLE_NAME = 'ugc_pseudoisomers'
         self.ERRORS_TABLE_NAME = 'ugc_errors'
+        self.CONSERVATIONS_TABLE_NAME = 'ugc_conservations'
 
     def GetDissociationConstants(self):
         """
@@ -572,105 +573,92 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             if cid in self.cids:
                 i = self.cids.index(cid)
                 dG0 = g_tot[0, i]
-                self.cid2source_string[cid] = "UGC"
+                self.cid2source_string[cid] = "Unified Group Contribution"
                 self.P_L_tot[0:n_bad, c] = P_L_bad[:, i] 
                 self.P_L_tot[n_bad:, c] = P_L_pgc * G_resid[:, i]
             elif self.cid2groupvec[cid] is not None:
                 gv = np.matrix(self.cid2groupvec[cid].Flatten())
                 dG0 = float(g_pgc * gv.T)
-                self.cid2source_string[cid] = "PGC"
+                self.cid2source_string[cid] = "Group Contribution"
                 self.P_L_tot[n_bad:, c] = P_L_pgc * gv.T
             else:
-                self.cid2error[cid] = "No groupvector"
+                self.cid2error[cid] = "no groupvector"
                 continue
             
             diss_table = diss.GetDissociationTable(cid)
             if diss_table is not None:
-                diss_table.SetFormationEnergyByNumHydrogens(dG0=dG0, nH=nH, nMg=nMg)
+                diss_table.SetFormationEnergyByNumHydrogens(
+                    dG0=dG0, nH=nH, nMg=nMg)
                 pmap = diss_table.GetPseudoisomerMap()
             else:
                 pmap = PseudoisomerMap()
-                pmap.Add(nH=nH, z=0, nMg=nMg, dG0=dG0, ref="UGC")
+                pmap.Add(nH=nH, z=0, nMg=nMg, dG0=dG0)
             self.SetPseudoisomerMap(cid, pmap)
         
-        self.P_L_tot = self.P_L_tot.round(10)
         conservation_rows = []        
         for i in xrange(self.P_L_tot.shape[0]):
-            c_active = list(self.P_L_tot[i, :].nonzero()[0].flat)
-            if len(c_active) > 0:
-                # normalize reaction such that the coefficient of the smallest CID is 1
-                self.P_L_tot[i, :] *= (1.0 / self.P_L_tot[i, c_active[0]])
-                sparse = dict((all_cids[c], self.P_L_tot[i, c]) for c in c_active)
+            row_i = self.P_L_tot[i, :]
+            c_active = sorted((abs(row_i) > self.epsilon).nonzero()[1].flat)
+            if len(c_active) == 0:
+                continue
+            row_i = row_i * (1.0 / row_i[0, c_active[0]])
+            row_i = row_i.round(10)
+            
+            # normalize reaction such that the coefficient of the smallest CID is 1
+            sparse = dict((all_cids[c], row_i[0, c]) for c in c_active)
+            if len(sparse) > 0:
                 json_str = json.dumps(sparse)
                 if i < n_bad:
                     conservation_rows.append(('missing structures and unknown reactant combination', json_str))
                 else:
                     conservation_rows.append(('unknown reactant and group combination', json_str))
         
-        self.db.CreateTable('ugc_conservations', 'msg TEXT, json TEXT')
+        self.db.CreateTable(self.CONSERVATIONS_TABLE_NAME, 'msg TEXT, json TEXT')
         conservation_rows = sorted(set(conservation_rows))
         for msg, json_str in conservation_rows:
-            self.db.Insert('ugc_conservations', [msg, json_str])
+            self.db.Insert(self.CONSERVATIONS_TABLE_NAME, [msg, json_str])
         self.ToDatabase(self.db, self.THERMODYNAMICS_TABLE_NAME,
                         self.ERRORS_TABLE_NAME)
         self.db.Commit()
     
     def init(self):
-        #self.LoadGroups(True)
-        #self.LoadObservations(True)
-        #self.LoadGroupVectors(True)
-        #self.LoadData(True)
-        
-        reader = self.db.DictReader(self.THERMODYNAMICS_TABLE_NAME)
-        PsuedoisomerTableThermodynamics._FromDictReader(
-            reader, self, label=None, name="Unified Group Contribution",
-            warn_for_conflicting_refs=False)
-
-        conservation_rows = []        
-        for row in self.db.DictReader('ugc_conservations'):
-            sparse = json.loads(row['json'])
-            msg = row['msg']
-            conservation_rows.append((msg, sparse))
-
-        all_cids = sorted(self.kegg.get_all_cids())
-        self.P_L_tot = np.matrix(np.zeros((len(conservation_rows), len(all_cids))))
-        for i, (msg, sparse) in enumerate(conservation_rows):
-            for cid, coeff in sparse.iteritems():
-                self.P_L_tot[i, all_cids.index(int(cid))] = float(coeff)
+        if self.db.DoesTableExist(self.THERMODYNAMICS_TABLE_NAME):
+            reader = self.db.DictReader(self.THERMODYNAMICS_TABLE_NAME)
+            PsuedoisomerTableThermodynamics._FromDictReader(
+                reader, self, label=None, name="Unified Group Contribution",
+                warn_for_conflicting_refs=False)
+    
+            conservation_rows = []        
+            for row in self.db.DictReader(self.CONSERVATIONS_TABLE_NAME):
+                sparse = json.loads(row['json'])
+                msg = row['msg']
+                conservation_rows.append((msg, sparse))
+    
+            all_cids = sorted(self.kegg.get_all_cids())
+            self.P_L_tot = np.matrix(np.zeros((len(conservation_rows), len(all_cids))))
+            for i, (msg, sparse) in enumerate(conservation_rows):
+                for cid, coeff in sparse.iteritems():
+                    self.P_L_tot[i, all_cids.index(int(cid))] = float(coeff)
+        else:
+            self.LoadGroups(True)
+            self.LoadObservations(True)
+            self.LoadGroupVectors(True)
+            self.LoadData(True)
+            self.EstimateKeggCids()
     
     def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
-        
-        dG0_r = PsuedoisomerTableThermodynamics.GetTransfromedReactionEnergies(self, S, cids, pH, I, pMg, T)
-        all_cids = sorted(self.kegg.get_all_cids())
+        dG0_r = PsuedoisomerTableThermodynamics.GetTransfromedReactionEnergies(
+                                                  self, S, cids, pH, I, pMg, T)
 
-        # An example of how to test that a column vector 'r' with 'cids' does not violate
-        # any conservation laws:
+        # test to see if any of the reactions in S violate any conservation laws
+        all_cids = sorted(self.kegg.get_all_cids())
         S_expanded = np.matrix(np.zeros((len(all_cids), S.shape[1])))
         for c, cid in enumerate(cids):
             i = all_cids.index(cid)
             S_expanded[i, :] = S[c, :]
 
         violations = abs(self.P_L_tot * S_expanded).sum(0) > self.epsilon
-        dG0_r[violations] = np.nan
-        
-        #ind = []
-        #S_ind = []
-        #for c, cid in enumerate(cids):
-        #    if cid in self.cids:
-        #        ind.append(self.cids.index(cid))
-        #        S_ind.append(c)
-
-        
-        #nog_violations = abs(self.P_L_bad[:, ind] * S[S_ind, :]).sum(0) > self.epsilon
-        #dG0_r[nog_violations] = np.nan
-
-        #reaction_gv = self.G_resid[:, ind] * S[S_ind, :]
-        #for c, cid in enumerate(cids):
-        #    if cid not in self.cids:
-        #        reaction_gv += np.matrix(self.cid2groupvec[cid]).T * S[c, :]        
-        #gvec_violations = abs(self.P_L_pgc * reaction_gv).sum(0) > self.epsilon
-        #dG0_r[gvec_violations] = np.nan
-        
+        dG0_r[violations] = np.nan        
         return dG0_r
 
 def MakeOpts():
@@ -686,8 +674,8 @@ def MakeOpts():
     return opt_parser
     
 if __name__ == "__main__":
-    logger = logging.getLogger('')
-    logger.setLevel(logging.DEBUG)
+    #logger = logging.getLogger('')
+    #logger.setLevel(logging.DEBUG)
 
     options, _ = MakeOpts().parse_args(sys.argv)
     util._mkdir('../res')
