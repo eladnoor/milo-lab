@@ -1,0 +1,65 @@
+ENTRY       P06-RPP
+SKIP        FALSE
+NAME        reductive Pentose Phosphate cycle
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    rbc    C01182 + C00011 + C00001 -> 2 C00197 (x3)
+            pgk    C00002 + C00197 -> C00008 + C00236 (x6)
+            gap    C00236 + C00005 -> C00118 + C00009 + C00006 (x6)
+            tpi    C00118 -> C00111 (x2)
+            fba1   C00111 + C00118 -> C00354 (x1)
+            fbp1   C00354 + C00001 -> C00085 + C00009 (x1)
+            tkt1   C00085 + C00118 -> C00279 + C00231 (x1)
+            fba2   C00111 + C00279 -> C00447 (x1)
+            fbp2   C00447 + C00001 -> C05382 + C00009 (x1)
+            tkt2   C05382 + C00118 -> C00117 + C00231 (x1)
+            rpi    C00117 -> C00199 (x1)
+            rpe    C00231 -> C00199 (x2)
+            prk    C00002 + C00199 -> C00008 + C01182 (x3)
+///
+ENTRY       P06-RPP
+SKIP        FALSE
+NAME        reductive Pentose Phosphate cycle
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+            
+REACTION    rbc    C01182 + C00011 + C00001 -> 2 C00197 (x3)
+            pgk    C00002 + C00197 -> C00008 + C00236 (x6)
+            gap    C00236 + C00005 -> C00118 + C00009 + C00006 (x6)
+            tpi    C00118 -> C00111 (x2)
+            fba1   C00111 + C00118 -> C00354 (x1)
+            fbp1   C00354 + C00001 -> C00085 + C00009 (x1)
+            tkt1   C00085 + C00118 -> C00279 + C00231 (x1)
+            fba2   C00111 + C00279 -> C00447 (x1)
+            fbp2   C00447 + C00001 -> C05382 + C00009 (x1)
+            tkt2   C05382 + C00118 -> C00117 + C00231 (x1)
+            rpi    C00117 -> C00199 (x1)
+            rpe    C00231 -> C00199 (x2)
+            prk    C00002 + C00199 -> C00008 + C01182 (x3)
+///

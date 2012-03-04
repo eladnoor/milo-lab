@@ -540,7 +540,7 @@ def MakeOpts(estimators):
                           dest="thermodynamics_source",
                           type="choice",
                           choices=estimators.keys(),
-                          default="merged",
+                          default="UGC",
                           help="The thermodynamic data to use")
     opt_parser.add_option("-i", "--input_filename",
                           dest="input_filename",
