@@ -47,6 +47,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         self.THERMODYNAMICS_TABLE_NAME = 'ugc_pseudoisomers'
         self.ERRORS_TABLE_NAME = 'ugc_errors'
         self.CONSERVATIONS_TABLE_NAME = 'ugc_conservations'
+        
+        self.FORMATION_ENERGY_FILENAME = '../data/thermodynamics/formation_energies_ugc.csv'
 
     def GetDissociationConstants(self):
         """
@@ -85,7 +87,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             self.obs_collection = GroupObervationCollection.FromFiles(
                                     html_writer=self.html_writer, 
                                     dissociation=dissociation,
-                                    transformed=self.transformed)
+                                    transformed=self.transformed,
+                                    formation_energy_fname=self.FORMATION_ENERGY_FILENAME)
             self.obs_collection.ToDatabase(self.db, self.OBSERVATION_TABLE_NAME)
         
         self.obs_collection.ReportToHTML()
@@ -721,7 +724,7 @@ if __name__ == "__main__":
     r_list = []
     r_list += [Reaction.FromFormula("C00002 + C00001 = C00008 + C00009")]
     r_list += [Reaction.FromFormula("C00036 + C00024 = C00022 + C00083")]
-    r_list += [Reaction.FromFormula("C00036 + C00100 = C00022 + C04348")]
+    r_list += [Reaction.FromFormula("C00036 + C00100 = C00022 + C00683")]
     r_list += [Reaction.FromFormula("C01013 + C00010 + C00002 = C05668 + C00020 + C00013")]
     r_list += [Reaction.FromFormula("C00091 + C00005 = C00232 + C00010 + C00006")]
     r_list += [Reaction.FromFormula("C00002 + C00493 = C00008 + C03175")]
@@ -737,12 +740,12 @@ if __name__ == "__main__":
     RT = R * default_T
     dGc_prime = dG0_prime + RT * ln_conc * S
     for i in xrange(len(r_list)):
+        r_list[i].Balance()
         dG0 = ugc.GetChemicalReactionEnergies(S[:, i], cids)
-        print "dG0 = %8.1f, dG0' = %8.1f,  dGc' = %8.1f,  %s" % \
-            (dG0.sum(0), dG0_prime[0, i], dGc_prime[0, i],
-             r_list[i].FullReactionString(show_cids=False))
-        
-        print ' + '.join('%.1f' % d for d in dG0.flat)
+        print r_list[i].FullReactionString(show_cids=False)
+        print ('dG0 = %.1f = ' % dG0.sum(0)) + ' + '.join('%.1f' % d for d in dG0.flat)
+        print "dG0' = %.1f, dGc' = %.1f" % \
+            (dG0_prime[0, i], dGc_prime[0, i])
         
     #ugc.Fit()
     #ugc.Loo()
