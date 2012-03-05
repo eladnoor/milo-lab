@@ -79,13 +79,19 @@ class GroupObervationCollection(object):
             self.gibbs_symbol = symbol_dr_G0_prime
         else:
             self.gibbs_symbol = symbol_dr_G0
+            
+        self.FormationEnergyFileName = "../data/thermodynamics/formation_energies.csv"
 
     @staticmethod
     def FromFiles(html_writer, dissociation, transformed=False,
-                  pH=default_pH, I=0, pMg=14, T=default_T):
+                  pH=default_pH, I=0, pMg=14, T=default_T,
+                  formation_energy_fname=None):
         
         obs_collections = GroupObervationCollection(html_writer,
             dissociation, transformed, pH=pH, I=I, pMg=pMg, T=T)
+        
+        if formation_energy_fname is not None:
+            obs_collections.FormationEnergyFileName = formation_energy_fname
         
         obs_collections.ReadFormationEnergies()
 
@@ -108,8 +114,7 @@ class GroupObervationCollection(object):
         obs.Normalize()
         self.observations.append(obs)
 
-    def ReadFormationEnergies(self,
-                  obs_fname='../data/thermodynamics/formation_energies.csv'):
+    def ReadFormationEnergies(self):
         """
             Reads the entire table of formation energies which are to be used
             later both to add them directly to the observed data table and to
@@ -119,7 +124,7 @@ class GroupObervationCollection(object):
         self.formation_dict = {}
         
         for label in ['training', 'testing']:
-            ptable = PsuedoisomerTableThermodynamics.FromCsvFile(obs_fname,
+            ptable = PsuedoisomerTableThermodynamics.FromCsvFile(self.FormationEnergyFileName,
                                                                  label=label)
             for cid in ptable.get_all_cids():
                 pmatrix = ptable.cid2PseudoisomerMap(cid).ToMatrix() 
@@ -143,8 +148,7 @@ class GroupObervationCollection(object):
                 self.formation_dict[cid] = (label, ref, dG0_prime,
                                             dG0, nH, charge, nMg)
     
-    def AddFormationEnergies(self,
-            obs_fname="../data/thermodynamics/formation_energies.csv"):
+    def AddFormationEnergies(self):
         """
             Add observations based on a table of derived chemical formation energies.
             If working in self.transformed mode, the dG0_f is Legendre-transformed
