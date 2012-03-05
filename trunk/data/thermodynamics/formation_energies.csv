@@ -131,7 +131,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 58,Formate,-351,-425.55,-1,1,0,testing,"Alberty (2006)","too small"
 59,Sulfate,-744.53,-909.27,-2,0,0,testing,"Alberty (2006)","too small"
 67,Formaldehyde,-130.54,,0,2,0,testing,"Thauer (1977)","too small"
-80,H+,0,0,1,1,0,testing,"Alberty (2006)","too small"
+80,H+,0,0,1,1,0,testing,"Element",
 86,Urea,-202.8,-317.65,0,4,0,testing,"Alberty (2006)","too small"
 88,Nitrite,-32.2,-104.6,-1,0,0,testing,"Alberty (2006)","too small"
 94,Sulfite,-527.78,-626.22,-1,1,0,testing,"Alberty (2006)","too small"
