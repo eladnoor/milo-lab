@@ -2,7 +2,7 @@ import sys, os
 import pylab
 from matplotlib import font_manager
 from matplotlib.backends.backend_pdf import PdfPages
-from pytecan.util import CollectData, FitGrowth, RowCol2String
+from toolbox.tecan import CollectData, FitGrowth, RowCol2String
 from toolbox.util import _mkdir
 
 def get_data(reading_label, plate_id, row, col, MES):

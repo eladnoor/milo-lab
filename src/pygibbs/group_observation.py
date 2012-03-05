@@ -201,21 +201,24 @@ class GroupObervationCollection(object):
         # and subtract from dG0' the formation energies of the anchored compounds
         for r, nist_row_data in enumerate(nist.SelectRowsFromNist()):
             obs_id = "NIST%03d" % r
-            if not self.transformed:
-                try:
+            msg = ""
+            try:
+                if not self.transformed:
                     dG0 = self.dissociation.ReverseTransformNistRow(
                                                 nist_row_data, self.cid2nH_nMg)
-                except MissingDissociationConstantError as e:
-                    logging.warning('Cannot reverse transform NIST%03d because of'
-                    ' of a missing dissociation constant for C%05d' % (r, e.cid))
-                    continue
-            else:
-                dG0 = nist_row_data.dG0_r # we are using transformed energies
-            
-            self.AddObservation(obs_id=obs_id, obs_type='reaction',
-                                anchored=False, dG0=dG0,
-                                sparse=nist_row_data.reaction.sparse,
-                                url=nist_row_data.url)
+                else:
+                    dG0 = nist_row_data.dG0_r # we are using transformed energies
+
+                self.AddObservation(obs_id=obs_id, obs_type='reaction',
+                                    anchored=False, dG0=dG0,
+                                    sparse=nist_row_data.reaction.sparse,
+                                    url=nist_row_data.url)
+
+            except MissingDissociationConstantError as e:
+                msg = 'Cannot reverse transform NIST%03d because of' \
+                      ' of a missing dissociation constant for C%05d' % (r, e.cid)
+                logging.warning(msg)
+                dG0 = None
             
             html_text = ""
             html_text += "<b id=%s>%s</b></br>\n" % (obs_id, obs_id)
@@ -228,8 +231,11 @@ class GroupObervationCollection(object):
             html_text += 'EC = %s</br>\n' % nist_row_data.ec
             html_text += "Reaction: %s</br>\n" % \
                          nist_row_data.reaction.to_hypertext(show_cids=False)
-            html_text += '%s: %.1f</br>\n' % \
-                         (self.gibbs_symbol, dG0)
+            if dG0 is None:
+                html_text += 'WARNING: %s</br>\n' % msg
+            else:
+                html_text += '%s: %.1f</br>\n' % \
+                             (self.gibbs_symbol, dG0)
             html_text += '</font>\n'
             self.html_writer.write(html_text)
 
