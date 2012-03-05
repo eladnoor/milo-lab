@@ -52,7 +52,10 @@ class CompoundWithCoeff(object):
              'KEGG_ID': self.compound.kegg_id,
              'concentration': self.concentration,
              'name': str(self.compound.first_name),
-             'source_used': str(self.compound._species_group.formation_energy_source)}
+             'source_used': None}
+        
+        if self.compound._species_group is not None:
+            d['source_used'] = str(self.compound._species_group.formation_energy_source)
         
         if include_species:
             d["species"] = self.compound.SpeciesJson()
@@ -242,14 +245,23 @@ class Reaction(object):
              'enzymes': enzdicts,
              'chemically_balanced': self.is_balanced,
              'redox_balanced': self.is_electron_balanced,
-             'dgzero': round(self.dg0, 1),
-             'dgzero_tag': {'value': round(self.dg0_tag, 1),
-                            'pH': self.ph,
-                            'ionic_strength': self.i_s},
-             'keq_tag': {'value': self.k_eq_tag,
-                         'pH': self.ph,
-                         'ionic_strength': self.i_s},
+             'dgzero': None,
+             'dgzero_tag': None,
+             'keq_tag': None,
              'KEGG_ID': None}
+        
+        if self.dg0 is not None:
+            d['dgzero'] = round(self.dg0, 1)
+        if self.dg0_tag is not None:
+            d['dgzero_tag'] = {
+                'value': round(self.dg0_tag, 1),
+                'pH': self.ph,
+                'ionic_strength': self.i_s}
+        if self.k_eq_tag is not None:
+            d['keq_tag'] = {
+                'value': self.k_eq_tag,
+                'pH': self.ph,
+                'ionic_strength': self.i_s}
         
         if self.stored_reaction:
             d['KEGG_ID'] = self.stored_reaction.kegg_id
@@ -874,6 +886,9 @@ class Reaction(object):
     def KeqTag(self):
         """Returns K'eq for this reaction."""
         dg0_tag = self.DeltaG0Tag()
+        if dg0_tag is None:
+            return None
+        
         rt = constants.R * constants.DEFAULT_TEMP
         keq = numpy.exp(-dg0_tag / rt)
         return keq
