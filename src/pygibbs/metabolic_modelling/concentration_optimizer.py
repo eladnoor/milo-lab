@@ -76,11 +76,11 @@ class ConcentrationOptimizer(object):
             concentration_bounds: the Bounds objects setting concentration bounds.
         """
         problem = cvxmod.problem()
-        bounds = concentration_bounds or self.DefaultConcentrationBounds()
+        my_bounds = concentration_bounds or self.DefaultConcentrationBounds()
         
         # Constrain concentrations
         ln_conc = cvxmod.optvar('lnC', rows=1, cols=self.Ncompounds)
-        ln_conc_lb, ln_conc_ub = bounds.GetLnBounds(self.compounds)
+        ln_conc_lb, ln_conc_ub = my_bounds.GetLnBounds(self.compounds)
         ln_conc_lb = cvxmod.matrix(ln_conc_lb)
         ln_conc_ub = cvxmod.matrix(ln_conc_ub)
         problem.constr.append(ln_conc >= ln_conc_lb)
@@ -109,13 +109,17 @@ class ConcentrationOptimizer(object):
         problem.objective = cvxmod.minimize(atoms.exp(my_conc))
         status = problem.solve(quiet=True)
         if status != 'optimal':
-            raise Exception('Failed to solve problem')
-        
+            status = optimized_pathway.OptimizationStatus.Infeasible(
+                'Pathway infeasible given bounds.')
+            return ConcentrationOptimizedPathway(
+                self._model, self._thermo,
+                my_bounds, optimization_status=status)
+                    
         optimum = cvxmod.value(problem)
         opt_ln_conc = np.array(cvxmod.value(ln_conc))
         result = ConcentrationOptimizedPathway(
             self._model, self._thermo,
-            bounds, optimal_value=optimum,
+            my_bounds, optimal_value=optimum,
             optimal_ln_metabolite_concentrations=opt_ln_conc)
         return result
         

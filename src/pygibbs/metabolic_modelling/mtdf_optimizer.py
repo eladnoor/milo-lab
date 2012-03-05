@@ -100,27 +100,6 @@ class MTDFOptimizer(object):
         return bounds.Bounds(default_lb=self.DEFAULT_CONC_LB,
                              default_ub=self.DEFAULT_CONC_UB)
 
-    def _LnConcentrationBounds(self, bounds):
-        """Make bounds on concentrations from the Bounds object.
-        
-        Args:
-            bounds: a Bounds objects for concentrations.
-        
-        Returns:
-            A 2-tuple (lower bounds, upper bounds) as cvxmod.matrix objects.
-        """
-        ln_conc_lb = np.matrix(np.zeros((1, self.Ncompounds)))
-        ln_conc_ub = np.matrix(np.zeros((1, self.Ncompounds)))
-        
-        for i, c in enumerate(self.compounds):
-            ln_conc_lb[0, i] = bounds.GetLowerBound(c)
-            ln_conc_ub[0, i] = bounds.GetUpperBound(c)
-        
-        ln_conc_lb = np.log(ln_conc_lb)
-        ln_conc_ub = np.log(ln_conc_ub)
-        
-        return cvxmod.matrix(ln_conc_lb), cvxmod.matrix(ln_conc_ub)
-
     def FindMTDF(self, concentration_bounds=None, normalization=None):
         """Finds the MTDF.
         
@@ -128,13 +107,14 @@ class MTDFOptimizer(object):
             bounds: the Bounds objects setting concentration bounds.
         """
         problem = cvxmod.problem()
-        bounds = concentration_bounds or self.DefaultConcentrationBounds()
+        my_bounds = concentration_bounds or self.DefaultConcentrationBounds()
         normalization = normalization or self.DeltaGNormalization.DEFAULT
-        
+                
         # Constrain concentrations
         ln_conc = cvxmod.optvar('lnC', rows=1, cols=self.Ncompounds)
-        # TODO(flamholz): push this method into the bounds object.
-        ln_conc_lb, ln_conc_ub = self._LnConcentrationBounds(bounds)
+        ln_conc_lb, ln_conc_ub = my_bounds.GetLnBounds(self.compounds)
+        ln_conc_lb = cvxmod.matrix(ln_conc_lb)
+        ln_conc_ub = cvxmod.matrix(ln_conc_ub)
         problem.constr.append(ln_conc >= ln_conc_lb)
         problem.constr.append(ln_conc <= ln_conc_ub)
         
@@ -166,13 +146,17 @@ class MTDFOptimizer(object):
         problem.objective = cvxmod.maximize(motive_force_lb)
         status = problem.solve(quiet=True)
         if status != 'optimal':
-            raise UnsolvableConvexProblemException(status, problem)
+            status = optimized_pathway.OptimizationStatus.Infeasible(
+                'Pathway infeasible given bounds.')
+            return MTDFOptimizedPathway(
+                self._model, self._thermo,
+                my_bounds, optimization_status=status)
         
         mtdf = cvxmod.value(motive_force_lb)
         opt_ln_conc = np.array(cvxmod.value(ln_conc))
         result = MTDFOptimizedPathway(
             self._model, self._thermo,
-            bounds, optimal_value=mtdf,
+            my_bounds, optimal_value=mtdf,
             optimal_ln_metabolite_concentrations=opt_ln_conc)
         result.SetNormalization(normalization)
         return result

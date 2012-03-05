@@ -35,7 +35,7 @@ class TestMTDFOptimizer(unittest.TestCase):
         stoich_model = FakeStoichModel()
         thermo = FakeThermoData()
         
-        b = self.MyBounds()        
+        b = self.MyBounds()
         opt = mtdf_optimizer.MTDFOptimizer(stoich_model, thermo)
         res = opt.FindMTDF(concentration_bounds=b)
         
