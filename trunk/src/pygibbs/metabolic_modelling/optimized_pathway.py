@@ -48,8 +48,16 @@ class OptimizationStatus(object):
         return OptimizationStatus(OptimizationStatus.INFEASIBLE,
                                   explanation=explanation)
     
+    def IsFailure(self):
+        return self.status == OptimizationStatus.FAILURE
     
-
+    def IsInfeasible(self):
+        return self.status == OptimizationStatus.INFEASIBLE
+    
+    def IsSuccessful(self):
+        return self.status == OptimizationStatus.SUCCESSFUL
+    
+    
 class OptimizedPathway(object):
     """The result of a pathway optimization."""
     # A string denoting the type of optimization.

@@ -6,6 +6,7 @@ import sys
 from optparse import OptionParser
 from os import path
 
+from pygibbs.metabolic_modelling import feasible_concentrations_iterator
 from pygibbs.metabolic_modelling import protein_optimizer
 from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.metabolic_modelling import thermodynamic_data
@@ -81,15 +82,29 @@ def Main():
         model = pathway_data.GetStoichiometricModel(kegg_instance)
         model_bounds = pathway_data.GetBounds()
         
+        feasible_iter = feasible_concentrations_iterator.FeasibleConcentrationsIterator(
+            model, thermo_data, model_bounds)
         opt = protein_optimizer.ProteinOptimizer(model, thermo_data)
+        
+        # Try a bunch of feasible solutions as starting points
+        for feasible_concs in feasible_iter:
+            result = opt.FindOptimum(
+                model_bounds, initial_concentrations=feasible_concs)
+            status = result.status
+            if status.IsSuccessful():
+                cost = result.opt_val
+                print '\tProtein Cost for', pathway_data.name, '= %.2g' % cost
+            else:
+                print 'Failed to optimize initial conditions', feasible_concs
+                
+        # Now solve with the default initial conditions.
         result = opt.FindOptimum(model_bounds)
         status = result.status
-        
-        if status.status == optimized_pathway.OptimizationStatus.FAILURE:            
+        if status.IsFailure():          
             print '\tFailed to optimize', pathway_data.name
             continue
         
-        if status.status == optimized_pathway.OptimizationStatus.INFEASIBLE:            
+        if status.IsInfeasible():            
             print '\t', pathway_data.name, 'is infeasible!'
             continue
         

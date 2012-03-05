@@ -210,37 +210,47 @@ class ProteinOptimizer(object):
         """Default Bounds objects."""
         return bounds.Bounds(default_lb=self.DEFAULT_CONC_LB,
                              default_ub=self.DEFAULT_CONC_UB)
+    
+    def GetInitialConditions(self, concentration_bounds):
+        """Solves the MTDF problem to get valid initial conditions.
         
-    def FindOptimum(self, concentration_bounds=None):
+        Returns:
+            A Numpy matrix of the initial concentrations to use.
+        """
+        mtdf_result = self.mtdf_opt.FindMTDF(
+            concentration_bounds=concentration_bounds)
+        mtdf_value = mtdf_result.opt_val
+        if mtdf_value < 0:
+            return None
+
+        return np.matrix(mtdf_result.ln_concentrations)
+    
+    def FindOptimum(self, concentration_bounds=None,
+                    initial_concentrations=None):
         """Finds the Optimum.
         
         Args:
             concentration_bounds: the Bounds objects setting concentration bounds.
+            initial_conditions: a starting point for the optimization. Must be feasible.
         """
         # Concentration bounds
-        bounds = concentration_bounds or self.DefaultConcentrationBounds()
-        lb, ub = bounds.GetLnBounds(self.compounds)
+        my_bounds = concentration_bounds or self.DefaultConcentrationBounds()
+        lb, ub = my_bounds.GetLnBounds(self.compounds)
+        
+        x0 = self.GetInitialConditions(my_bounds)
+        if x0 is None:
+            status = optimized_pathway.OptimizationStatus.Infeasible(
+                'MTDF could not be found.')
+            return ProteinCostOptimizedPathway(
+                self._model, self._thermo, my_bounds,
+                optimization_status=status)
         
         # Kinetic data
         # All Kcat are 100 /s
         kcat = np.ones(self.Nrxns) * 100
         # All Km are 100 uM
         km = np.matrix(np.ones((self.Ncompounds, self.Nrxns))) * 1e-4
-        
-        # Use MTDF as the initial result
-        mtdf_result = self.mtdf_opt.FindMTDF(
-            concentration_bounds=bounds)
-        mtdf_value = mtdf_result.opt_val
-        if mtdf_value < 0:
-            print 'Pathway infeasible'
-            status = optimized_pathway.OptimizationStatus.Infeasible(
-                'MTDF could not be found.')
-            return ProteinCostOptimizedPathway(
-                self._model, self._thermo, bounds,
-                optimization_status=status)
-        
-        x0 = np.matrix(mtdf_result.ln_concentrations)
-        
+                
         # Separate out the fixed and non-fixed variables.
         injector = FixedVariableInjector(lb, ub, x0)
         initial_conds = injector.GetVariableInitialConds()
@@ -279,7 +289,7 @@ class ProteinOptimizer(object):
         
         ln_conc = injector(ln_conc)
         return ProteinCostOptimizedPathway(
-            self._model, self._thermo, bounds,
+            self._model, self._thermo, my_bounds,
             optimal_value=optimum, optimal_ln_metabolite_concentrations=ln_conc)
         
         
