@@ -255,6 +255,14 @@ class GroupObervationCollection(object):
             
             self.AddObservation(obs_id=obs_id, obs_type='reaction', url="",
                                 anchored=True, dG0=dG0, sparse=sparse)
+            
+            # make sure all redox carriers have a pKa table.
+            # for some which don't (usually because their structure is not explicit)
+            # we assume that the table is empty (i.e. no pKas exist).
+            if self.dissociation.GetDissociationTable(rc.cid_ox) is None:
+                self.dissociation.SetOnlyPseudoisomer(rc.cid_ox, rc.nH_ox, rc.z_ox)
+            if self.dissociation.GetDissociationTable(rc.cid_red) is None:
+                self.dissociation.SetOnlyPseudoisomer(rc.cid_red, rc.nH_red, rc.z_red)
 
     def GetStoichiometry(self):
         """ 

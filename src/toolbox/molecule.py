@@ -411,7 +411,7 @@ class Molecule(object):
                 diss_table.SetMolString((nH+i+1), nMg=0, s=smiles_below)
         except chemaxon.ChemAxonError:
             mol = Molecule._FromFormat(molstring, format)
-            diss_table.SetOnlyPseudoisomer(mol)
+            diss_table.SetOnlyPseudoisomerMolecule(mol)
             
         return diss_table
 
