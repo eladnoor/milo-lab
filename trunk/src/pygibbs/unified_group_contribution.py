@@ -728,6 +728,7 @@ if __name__ == "__main__":
     r_list += [Reaction.FromFormula("C01013 + C00010 + C00002 = C05668 + C00020 + C00013")]
     r_list += [Reaction.FromFormula("C00091 + C00005 = C00232 + C00010 + C00006")]
     r_list += [Reaction.FromFormula("C00002 + C00493 = C00008 + C03175")]
+    r_list += [Reaction.FromFormula("C00243 + C00125 = C05403 + C00126")]
     
     kegg = Kegg.getInstance()
     S, cids = kegg.reaction_list_to_S(r_list)
