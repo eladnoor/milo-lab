@@ -184,9 +184,19 @@ class DissociationConstants(object):
         diss_table.AddpKMg(pKMg, nMg_below, nMg_above, nH, 
                           ref, T, mol_below, mol_above)
         
-    def SetOnlyPseudoisomer(self, cid, mol, nMg=0):
+    def SetOnlyPseudoisomerMolecule(self, cid, mol, nMg=0):
         diss_table = self.GetDissociationTable(cid)
-        diss_table.SetOnlyPseudoisomer(mol, nMg=nMg)
+        if diss_table is None:
+            diss_table = DissociationTable(cid)
+            self.cid2DissociationTable[cid] = diss_table
+        diss_table.SetOnlyPseudoisomerMolecule(mol, nMg=nMg)
+
+    def SetOnlyPseudoisomer(self, cid, nH, z, nMg=0):
+        diss_table = self.GetDissociationTable(cid)
+        if diss_table is None:
+            diss_table = DissociationTable(cid)
+            self.cid2DissociationTable[cid] = diss_table
+        diss_table.SetOnlyPseudoisomer(nH, z, nMg=nMg)
     
     def UpdateMinNumHydrogens(self, cid, min_nH):
         """
@@ -556,7 +566,7 @@ class DissociationTable(object):
             self.SetMol(nH, nMg_below, mol_below)
         self.UpdateMinNumHydrogens(nH)
     
-    def SetOnlyPseudoisomer(self, mol, nMg=0):
+    def SetOnlyPseudoisomerMolecule(self, mol, nMg=0):
         """
             For compound which have no known pKa or pKMg, this method can be used
             to set the parameters of the only pseudoisomer.
@@ -568,6 +578,16 @@ class DissociationTable(object):
         self.min_nH = nH
         if z is not None:
             self.SetCharge(nH, z, nMg)
+    
+    def SetOnlyPseudoisomer(self, nH, z, nMg=0):
+        """
+            For compound which have no known pKa or pKMg, this method can be used
+            to set the parameters of the only pseudoisomer.
+        """
+        if len(self.ddGs):
+            raise ValueError("You tried to set the only-pseudoisomer of a compound that has pKas/pKMgs")
+        self.min_nH = nH
+        self.SetCharge(nH, z, nMg)
     
     def UpdateMinNumHydrogens(self, min_nH):
         if not self.min_nH:
