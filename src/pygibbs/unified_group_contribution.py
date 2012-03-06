@@ -478,7 +478,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
     
     def Fit(self):
         self.html_writer.write('<h2>Linear Regression Fit - Report</h2>\n')
-        est, parts = self.GetChemicalReactionEnergies(self.S, self.cids)
+        est, _ = self.GetChemicalReactionEnergies(self.S, self.cids)
         self.Report(est)
 
     def Loo(self):
