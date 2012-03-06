@@ -42,8 +42,9 @@
 			<div class="resultTable">
 				<ul>
 				{% for rxn in result.reaction_objects %}
-					<li>{{ rxn.hypertext|safe }}</li>
+					<li>{{ rxn.hypertext_with_names|safe }}</li>
 				{% endfor %}
+					<li>Net Reaction: {{ result.net_reaction.hypertext_with_names|safe }}</li>
 				</ul>
 			</div>
 			
@@ -74,6 +75,7 @@
 				<table border="1">
 					<tr>
 						<td>Reaction ID</td>
+						<td>Relative Flux</td>
 						<td>&Delta;<sub>r</sub>G'&deg;</td>
 						<td>&Delta;<sub>r</sub>G'</td>
 						<td>Thermodynamic Efficiency</td>
@@ -81,6 +83,7 @@
 				{% for deets in result.reaction_details %}
 					<tr {% if deets.at_mtdf %}class="rxnAtMTDF"{% endif %}>
 						<td>{{deets.id}}</td>
+						<td>{{deets.flux}}</td>
 						<td>{{deets.dGr0_tag|stringformat:".4g"}}</td>
 						<td>{{deets.dGr_tag|stringformat:".4g"}}</td>
 						<td>{{deets.thermo_efficiency|stringformat:".3g"}}</td>

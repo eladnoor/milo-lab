@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 import json
+import logging
 import types
 import re
+import hashlib
 
 import kegg_utils
-import hashlib
+
 from pygibbs import kegg_errors, kegg_parser
-import logging
 
 
 class Reaction(object):
@@ -307,9 +308,12 @@ class Reaction(object):
     
     def to_hypertext(self, show_cids=True):
         from pygibbs.kegg import Kegg
-        kegg = Kegg.getInstance()
-        return kegg.sparse_to_hypertext(self.sparse, show_cids=show_cids)
+        my_kegg = Kegg.getInstance()
+        return my_kegg.sparse_to_hypertext(self.sparse, show_cids=show_cids)
+    def to_hypertext_with_names(self):
+        return self.to_hypertext(show_cids=False)
     hypertext = property(to_hypertext)
+    hypertext_with_names = property(to_hypertext_with_names)
     
     def is_not_futile(self):
         return max([abs(x) for x in self.sparse.values()]) > 0.01

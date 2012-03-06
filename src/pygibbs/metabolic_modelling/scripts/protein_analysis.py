@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import numpy as np
 
 from optparse import OptionParser
 from os import path
@@ -87,16 +88,23 @@ def Main():
         opt = protein_optimizer.ProteinOptimizer(model, thermo_data)
         
         # Try a bunch of feasible solutions as starting points
+        optima = []
         for feasible_concs in feasible_iter:
             result = opt.FindOptimum(
                 model_bounds, initial_concentrations=feasible_concs)
             status = result.status
             if status.IsSuccessful():
-                cost = result.opt_val
-                print '\tProtein Cost for', pathway_data.name, '= %.2g' % cost
-            else:
-                print 'Failed to optimize initial conditions', feasible_concs
+                optima.append(result.opt_val)
                 
+        # Check that the optima are really close to eachother
+        optima = np.array(optima)
+        residuals = np.abs(optima - np.mean(optima))
+        if (residuals > 1e-5).any():
+            print '\tOptima are not consistent:'
+            print optima
+        else:
+            print '\t', pathway_data.name, 'optima are consistent'
+
         # Now solve with the default initial conditions.
         result = opt.FindOptimum(model_bounds)
         status = result.status

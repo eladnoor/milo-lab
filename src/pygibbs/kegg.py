@@ -434,7 +434,12 @@ class Kegg(Singleton):
 
     def parse_kegg_reaction_line(self, line):
         rexp = '([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+(<?[-=]>?)\s+([C\s\+\d\.]+)(.*)'
-        rid, left_clause, dir_clause, right_clause, remainder = re.findall(rexp, line)[0]
+        try:
+            rid, left_clause, dir_clause, right_clause, remainder = re.findall(rexp, line)[0]
+        except Exception, e:
+            print e
+            print line
+        
         if dir_clause in ['=>', '->', '<=>', '<->', '=', '-']:
             reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
         elif dir_clause in ['<=', '<-']:
