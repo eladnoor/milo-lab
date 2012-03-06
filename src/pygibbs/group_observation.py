@@ -85,7 +85,8 @@ class GroupObervationCollection(object):
     @staticmethod
     def FromFiles(html_writer, dissociation, transformed=False,
                   pH=default_pH, I=0, pMg=14, T=default_T,
-                  formation_energy_fname=None):
+                  formation_energy_fname=None,
+                  anchored_redox=True):
         
         obs_collections = GroupObervationCollection(html_writer,
             dissociation, transformed, pH=pH, I=I, pMg=pMg, T=T)
@@ -100,7 +101,7 @@ class GroupObervationCollection(object):
         obs_collections.AddFormationEnergies()
         html_writer.div_end()
 
-        obs_collections.AddRedoxCarriers()
+        obs_collections.AddRedoxCarriers(anchored=anchored_redox)
 
         html_writer.write('</br><b>List of NIST reactions for training</b>')
         html_writer.insert_toggle(start_here=True)
@@ -239,7 +240,7 @@ class GroupObervationCollection(object):
             html_text += '</font>\n'
             self.html_writer.write(html_text)
 
-    def AddRedoxCarriers(self):
+    def AddRedoxCarriers(self, anchored=True):
         redox_carriers = RedoxCarriers()
         for name, rc in redox_carriers.iteritems():
             obs_id = name + " redox"
@@ -254,7 +255,7 @@ class GroupObervationCollection(object):
                 dG0 = rc.ddG0
             
             self.AddObservation(obs_id=obs_id, obs_type='reaction', url="",
-                                anchored=True, dG0=dG0, sparse=sparse)
+                                anchored=anchored, dG0=dG0, sparse=sparse)
             
             # make sure all redox carriers have a pKa table.
             # for some which don't (usually because their structure is not explicit)

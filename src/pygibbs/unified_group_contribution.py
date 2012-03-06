@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib.mlab import rms_flat
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 from pygibbs.group_vector import GroupVector
 from pygibbs.groups_data import GroupsData
@@ -48,7 +49,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         self.ERRORS_TABLE_NAME = 'ugc_errors'
         self.CONSERVATIONS_TABLE_NAME = 'ugc_conservations'
         
-        self.FORMATION_ENERGY_FILENAME = '../data/thermodynamics/formation_energies_ugc.csv'
+        self.FORMATION_ENERGY_FILENAME = '../data/thermodynamics/formation_energies.csv'
 
     def GetDissociationConstants(self):
         """
@@ -181,6 +182,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
 
     def LoadData(self, FromDatabase=False):
         if FromDatabase and self.db.DoesTableExist(self.STOICHIOMETRIC_TABLE_NAME):
+            logging.info("Reading group matrices from database")
             self.S = self.db.LoadSparseNumpyMatrix(self.STOICHIOMETRIC_TABLE_NAME)
             self.G = self.db.LoadSparseNumpyMatrix(self.GROUP_TABLE_NAME)
             self.b = self.db.LoadNumpyMatrix(self.GIBBS_ENERGY_TABLE_NAME).T
@@ -192,11 +194,12 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             self.obs_ids = []
             self.obs_types = []
             self.obs_urls = []
-            for rowdict in self.db.DictReader(self.OBSERVATION_TABLE_NAME):
+            for rowdict in self.db.DictReader(self.UNIQUE_OBSERVATION_TABLE_NAME):
                 self.obs_ids.append(rowdict['id'])
                 self.obs_types.append(rowdict['type'])
                 self.obs_urls.append(rowdict['url'])
         else:
+            logging.info("Calculating group matrices")
             self.cids, S, b, anchored = self.obs_collection.GetStoichiometry()
             self.S, col_mapping = LinearRegression.ColumnUnique(S)
             self.b = np.matrix(np.zeros((1, len(col_mapping)), dtype='float'))
@@ -209,7 +212,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                 self.anchored[0, i] = anchored[0, col_indices].max()
                 obs_list = [self.obs_collection.observations[j] for j in col_indices]
                 self.obs_ids.append(', '.join([obs.obs_id for obs in obs_list]))
-                self.obs_types.append(', '.join([obs.obs_type for obs in obs_list]))
+                self.obs_types.append(', '.join(set([obs.obs_type for obs in obs_list])))
                 self.obs_urls.append(', '.join([obs.url for obs in obs_list]))
                 
             self.G, self.has_groupvec = self._GenerateGroupMatrix(self.cids)
@@ -234,48 +237,6 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                                                  self.b.copy(), self.anchored,
                                                  S, cids)
 
-    def _GetChemicalReactionEnergies(self, obs_S, obs_cids, obs_b, obs_anchored,
-                                     est_S, est_cids):
-
-        assert obs_S.shape[0] == len(obs_cids)
-        assert obs_S.shape[1] == obs_b.shape[1]
-        assert obs_S.shape[1] == obs_anchored.shape[1]
-        assert est_S.shape[0] == len(est_cids)
-        
-        # Augment the observed stoichiometric matrix and the required S matrix
-        # so that they will have the same number of rows and in the same order
-        # of CIDs. Note that we must take the union of cids from both original
-        # matrices.
-        new_cids = list(set(est_cids).difference(obs_cids))
-        all_cids = self.cids + new_cids
-        obs_S = np.vstack([obs_S, np.matrix(np.zeros((len(new_cids), obs_S.shape[1])))])
-        contributions, g_pgc, P_L_bad, P_L_pgc, G_resid = self._GetContributionData(
-                                        obs_S, all_cids, obs_b, obs_anchored)
-        
-        new_est_S = np.matrix(np.zeros((len(all_cids), est_S.shape[1])))
-        for c in abs(est_S).sum(1).nonzero()[0].flat:
-            new_c = all_cids.index(est_cids[c])
-            new_est_S[new_c, :] = est_S[c, :]
-        est_S = new_est_S
-        
-        dG0_r = np.matrix(np.zeros((len(contributions), est_S.shape[1])))
-        # now calculate the estimated dG0:
-        for i, rowdict in enumerate(contributions):
-            S_part = rowdict['P'] * est_S
-            dG0_part = rowdict['g'] * S_part
-            dG0_r[i, :] = dG0_part
-            for j in xrange(est_S.shape[1]):
-                r_str = UnifiedGroupContribution.row2string(S_part[:, j].round(10), all_cids)
-                logging.debug("%s : %s, dG0 = %.1f" % (rowdict['name'], r_str, dG0_part))
-
-        resid_S = P_L_bad * est_S
-        resid_GS = P_L_pgc * G_resid * est_S
-
-        resid = abs(resid_S).sum(0) + abs(resid_GS).sum(0)
-        i_resid = list(np.where(resid > self.epsilon)[1].flat)
-        dG0_r[:, i_resid] = np.nan
-        return dG0_r
-
     def _GetContributionData(self, obs_S, obs_cids, obs_b, obs_anchored):
         assert obs_S.shape[0] == len(obs_cids)
         assert obs_S.shape[1] == obs_b.shape[1]
@@ -285,12 +246,15 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         # use the anchored reactions to directly estimate the part of est_S
         # which is in their column-span, and normalize that part out from all matrices.
         anchored_cols = list(obs_anchored.nonzero()[1].flat)
-        g_anch, P_C_anch, P_L_anch = LinearRegression.LeastSquaresProjection(
-                            obs_S[:, anchored_cols], obs_b[:, anchored_cols])
-        obs_b -= g_anch * P_C_anch * obs_S # subtract the contribution of anchored reactions to obs_b
-        obs_S = P_L_anch * obs_S # project obs_S on the residual space
-        obs_S[np.where(abs(obs_S) <= self.epsilon)] = 0
-
+        if anchored_cols:
+            g_anch, P_C_anch, P_L_anch = LinearRegression.LeastSquaresProjection(
+                                obs_S[:, anchored_cols], obs_b[:, anchored_cols])
+            obs_b -= g_anch * P_C_anch * obs_S # subtract the contribution of anchored reactions to obs_b
+            obs_S = P_L_anch * obs_S # project obs_S on the residual space
+        else:
+            g_anch = np.matrix(np.zeros((1, obs_S.shape[0])))
+            P_C_anch = np.matrix(np.zeros((obs_S.shape[0], obs_S.shape[0])))
+            P_L_anch = np.matrix(np.eye(obs_S.shape[0]))
         
         # (2)
         # calculate the reactant contributions from obs_S and obs_b, and use that
@@ -313,277 +277,95 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                                     obs_GS, obs_b[:, reactions_with_groupvec])
 
         # calculate the total contributions
-        contributions = []
-        contributions.append({'g':g_anch, 'P':P_C_anch, 'name':'anchors'})
-        contributions.append({'g':g_prc, 'P':P_C_prc * P_L_anch, 'name':'reactants'})
-        contributions.append({'g':g_pgc * P_C_pgc * G.T, 'P':P_L_prc * P_L_anch, 'name':'groups'})
+        result_dict = {}
+        result_dict['names'] = ['anchors', 'reactants', 'groups']
+        result_dict['contributions'] = [g_anch, g_prc, g_pgc * P_C_pgc * G.T]
+        result_dict['group_contributions'] = g_pgc
+        result_dict['projections'] = [P_C_anch,
+                                      P_C_prc * P_L_anch,
+                                      P_L_prc * P_L_anch]
         
-        #g_tot =  g_anch.copy()                              # anchored reaction contributions
-        #g_tot += g_prc * P_C_prc * P_L_anch                 # reactant contributions
-        #g_tot += g_pgc * P_C_pgc * G.T * P_L_prc * P_L_anch # group contributions
+        result_dict['total_contributions'] = np.matrix(np.zeros((1, len(obs_cids))))
+        for g, S in zip(result_dict['contributions'], result_dict['projections']):
+            result_dict['total_contributions'] += g * S
         
-        P_L_bad = (P_L_prc * P_L_anch)[bad_compounds, :]    # projection for checking of we rely on compounds that have no groupvector
-        G_resid = G.T * P_L_prc * P_L_anch                  # projection on the groupvector space
-
-        #return g_tot, g_pgc, P_L_bad, P_L_pgc, G_resid
-        return contributions, g_pgc, P_L_bad, P_L_pgc, G_resid
-    
-    @staticmethod
-    def row2hypertext(S_row, cids):
-        kegg = Kegg.getInstance()
-        active_cids = list(np.nonzero(S_row)[0].flat)
-        sparse = dict((cids[c], S_row[c]) for c in active_cids)
-        return kegg.sparse_to_hypertext(sparse, show_cids=False)
-
-    @staticmethod
-    def row2string(S_row, cids):
-        active_cids = list(np.nonzero(S_row)[0].flat)
-        sparse = dict((cids[c], S_row[c]) 
-                      for c in active_cids 
-                      if S_row[c])
-        r = Reaction("", sparse)
-        return r.FullReactionString(show_cids=False)
-
-#   def Estimate(self, S, b, r, cids, verbose=False):
-#        """
-#            Given
-#                - group matrix: G (m x g)
-#                - stoichiometric matrix: S (m x n)
-#                - Gibbs energies: b (1 x n) 
-#                - a new reaction: r (m x k)
-#            Return:
-#                The estimated Gibbs energy of 'r'
-#        """
-#        est = np.matrix(np.zeros((3, r.shape[1]))) * np.nan
-#        
-#        bad_compounds = np.where(self.has_groupvec == False)[0]
-#        reactions_with_groupvec = []
-#        for i in xrange(S.shape[1]):
-#            if np.all(abs(S[bad_compounds, i]) < self.epsilon):
-#                reactions_with_groupvec.append(i)
-#        GS = self.G_used.T * S[:, reactions_with_groupvec]
-#
-#        try:
-#            # calculate the contributions of compounds
-#            g_S, PC_S, PL_S = LinearRegression.LeastSquaresProjection(S, b)
-#            g_GS, PC_GS, PL_GS = LinearRegression.LeastSquaresProjection(GS, b[:, reactions_with_groupvec])
-#        except np.linalg.linalg.LinAlgError:
-#            return est
-#
-#        r_C = PC_S * r # the part of 'r' which is in the column-space of S
-#        r_L = PL_S * r # the part of 'r' which is in the left-null-space of S
-#
-#
-#        r_groupvec = self.G_used.T * r     # a group-vector representation of r
-#        r_groupvec_L = self.G_used.T * r_L # a group-vector representation of r_L
-#
-#        est[0, :] = g_S * r_C
-#        est[1, :] = g_GS * r_groupvec
-#        est[2, :] = g_GS * r_groupvec_L + est[0, :]
-#        
-#        for k in xrange(r.shape[1]):
-#            if verbose:
-#                print "r =", UnifiedGroupContribution.row2string(r[:, k], self.cids)
-#                print "r_C =", UnifiedGroupContribution.row2string(r_C[:, k], self.cids)
-#                print "r_L =", UnifiedGroupContribution.row2string(r_L[:, k], self.cids)
-#
-#            if np.any(abs(r_L[:, k]) > self.epsilon):
-#                # this reaction is not in the column space of S 
-#                est[0, k] = np.nan
-#
-#            if (abs(r[bad_compounds, k]) > self.epsilon).any():
-#                # this reaction involves compounds which don't have groupvectors
-#                est[1, k] = np.nan
-#            elif (abs(PL_GS * r_groupvec[:, k]) > self.epsilon).any():
-#                # this reaction's groupvector is not in the column space of GS
-#                est[1, k] = np.nan
-#
-#            if (abs(r_L[bad_compounds, k]) > self.epsilon).any():
-#                # this reaction involves compounds which don't have groupvectors
-#                est[2, k] = np.nan
-#            elif (abs(PL_GS * r_groupvec_L[:, k]) > self.epsilon).any():
-#                # this reaction's groupvector is not in the column space of GS
-#                est[2, k] = np.nan
-#        
-#        return est
-#    
-#    def SqueezeData(self, normalize_anchors=True):
-#        if normalize_anchors:
-#            # now remove anchored data from S and leave only the data which will be 
-#            # used for calculating the group contributions
-#            anchored_cols = list(np.where(self.anchored==1)[1].flat)
-#    
-#            g, P_C, P_L = LinearRegression.LeastSquaresProjection(self.S[:, anchored_cols],
-#                                                                  self.b[:, anchored_cols])
-#    
-#            # calculate the matrix and observations which are explained
-#            # by the anchored reactions
-#            self.S_anchored = P_C * self.S
-#            self.b_anchored = g * self.S_anchored
-#            self.cids_anchored = list(self.cids)
-#            
-#            # calculate the matrix and observations which are in the null-space
-#            # of the anchored reactions. in other words, b_L are the residuals
-#            # of the linear regression 
-#            self.S -= self.S_anchored
-#            self.b -= self.b_anchored
-#            
-#            # set epsilon-small values to absolute 0
-#            self.S[np.where(abs(self.S) < self.epsilon)] = 0
-#        else:
-#            self.S_anchored = np.matrix(np.zeros(self.S.shape))
-#            self.b_anchored = np.matrix(np.zeros(self.b.shape))
-#            self.cids_anchored = list(self.cids)
-#        
-#        # removed zero rows (compounds) from S
-#        used_cid_indices = list(np.nonzero(np.sum(abs(self.S), 1))[0].flat)
-#        self.S_used = self.S[used_cid_indices, :]
-#        self.G_used = self.G[used_cid_indices, :]
-#        self.cids_used = [self.cids[i] for i in used_cid_indices]
-#        self.has_groupvec_used = self.has_groupvec[used_cid_indices, :]
-#
-#    def Report(self, est):
-#        if est.shape[0] == 1:
-#            legend = ['UGC']
-#        elif est.shape[0] == 3:
-#            legend = ['PRC', 'PGC', 'UGC']
-#        else:
-#            raise ValueError()
-#
-#        resid = est - np.repeat(self.b.T, est.shape[0], 1).T
-#        
-#        fig = plt.figure(figsize=(6,6))
-#        rms_list = []
-#        for j, label in enumerate(legend):
-#            used_reactions = list(np.where(np.isfinite(resid[j, :]))[1].flat)
-#            x = list(self.b[0, used_reactions].flat)
-#            y = list(resid[j, used_reactions].flat)
-#            rms = rms_flat(y)
-#            rms_list.append("RMSE(%s) = %.1f, N = %d" % (label, rms, len(x)))
-#            plt.plot(x, y, '.', figure=fig, label=label)
-#        
-#        self.html_writer.write_ul(rms_list)
-#        
-#        plt.xlabel(r"$\Delta_r G^{'\circ}$ observed [kJ/mol]")
-#        plt.ylabel(r"$\Delta_r G^{'\circ}$ residual [kJ/mol]")
-#        plt.legend()
-#        self.html_writer.embed_matplotlib_figure(fig)
-#        
-#        self.html_writer.insert_toggle(start_here=True, label="Show table")
-#        rowdicts = []
-#        for i in xrange(est.shape[1]):
-#            rowdict = {}
-#            rowdict['ID'] = self.obs_ids[i]
-#            rowdict['type'] = self.obs_types[i]
-#            rowdict['link'] = self.obs_urls[i]
-#            #rowdict['reaction (anch)'] = UnifiedGroupContribution.row2hypertext(self.S_anchored[:, i], self.cids_anchored)
-#            #rowdict['observed (anch)'] = "%.1f" % self.b_anchored[0, i]
-#            rowdict['reaction'] = UnifiedGroupContribution.row2hypertext(self.S[:, i], self.cids)
-#            rowdict['observed'] = "%.1f" % self.b[0, i]
-#            for j, label in enumerate(legend):
-#                rowdict[label] = "%.1f" % est[j, i]
-#            rowdict['key'] = abs(resid[0, i])
-#            rowdicts.append(rowdict)
-#        #rowdicts.sort(key=lambda x:x['key'], reverse=True)
-#        self.html_writer.write_table(rowdicts,
-#            headers=['#', 'ID', 'type', 'reaction', 'observed'] + legend)
-#            #headers=['#', 'reaction (anch)', 'observed (anch)', 'reaction', 'observed'] + legend)
-#        self.html_writer.div_end()
-#        
-#    def Loo(self):
-#        self.html_writer.write('<h2>Linear Regression Leave-One-Out Analysis</h2>\n')
-#
-#        n = self.S.shape[1]
-#        resid = np.matrix(np.zeros((3, n))) * np.nan
-#        for i in xrange(n):
-#            if self.obs_types[i] == 'formation':
-#                continue
-#            if np.all(abs(self.S[:, i]) < self.epsilon): # empty reaction
-#                continue
-#            no_i = range(0, i) + range(i+1, n)
-#            est = self.Estimate(self.S[:, no_i], self.b[:, no_i], 
-#                                self.S[:, i:i+1], verbose=True)
-#            resid[:, i:i+1] = est - self.b[0, i]
-#            print 'dG0\' = %7.1f' % self.b[0, i],
-#            print '| PRC = %5.1f' % resid[0, i],
-#            print '| PGC = %5.1f' % resid[1, i],
-#            print '| UGC = %5.1f' % resid[2, i],
-#            print '| %s' % UnifiedGroupContribution.row2string(self.S[:, i], self.cids)        
-#        self.Report(resid)
-#        
-#    def Fit(self):
-#        self.html_writer.write('<h2>Linear Regression Fit Analysis</h2>\n')
-#        est = self.Estimate(self.S, self.b, self.S)
-#        resid = est - np.repeat(self.b.T, est.shape[0], 1).T
-#        self.Report(resid)
-    
-    def Report(self, est):
-        est = est.sum(0)
-        finite = np.isfinite(est)
-        resid = abs(self.b[finite] - est[finite])
-        fig = plt.figure(figsize=(5,5), dpi=90)
-        cdf(list(resid.flat), figure=fig)
-        #plt.plot(self.b[finite].T, est[finite].T, '.', figure=fig)
-        plt.title("RMSE = %.1f, N = %d" % (rms_flat(resid.flat), resid.shape[1]))
-        plt.xlabel(r"$|\Delta_r G^{'\circ} obs - \Delta_r G^{'\circ} est|$ [kJ/mol]")
-        plt.ylabel(r"CDF")
-        self.html_writer.embed_matplotlib_figure(fig)
-
-        rowdicts = []
-        for i in xrange(self.b.shape[1]):
-            rowdict = {}
-            rowdict['row'] = i
-            rowdict['reaction'] = UnifiedGroupContribution.row2hypertext(self.S[:, i], self.cids)
-            rowdict['anchored'] = self.anchored[0, i]
-            rowdict['obs'] = self.b[0, i]
-            rowdict['est'] = est[0, i]
-            if np.isfinite(est[0, i]):
-                rowdict['|err|'] = abs(self.b[0, i] - est[0, i])
-            else:
-                rowdict['|err|'] = 0 
-            rowdicts.append(rowdict)
-
-        rowdicts.sort(key=lambda x:x['|err|'], reverse=True)            
-        self.html_writer.insert_toggle(start_here=True, label="Show table")
-        self.html_writer.write_table(rowdicts,
-            headers=['row', 'reaction', 'anchored', 'obs', 'est', '|err|'], decimal=1)
-        self.html_writer.div_end()
-    
-    def Fit(self):
-        self.html_writer.write('<h2>Linear Regression Fit Analysis</h2>\n')
-        est = self.GetChemicalReactionEnergies(self.S, self.cids)
-        self.Report(est)
-
-    def Loo(self):
-        self.html_writer.write('<h2>Linear Regression Leave-One-Out Analysis</h2>\n')
-        n = self.S.shape[1]
-        est = np.matrix(np.zeros((3, n))) * np.nan
-        for i in xrange(n):
-            no_i = range(0, i) + range(i+1, n)
-            obs_S = self.S[:, no_i].copy()
-            obs_anchored = self.anchored[0, no_i]
-            obs_b = self.b[:, no_i].copy()
-            est_S = self.S[:, i].copy()
-            if np.all(abs(est_S) < self.epsilon): # empty reaction
-                continue
-            est[:, i] = self._GetChemicalReactionEnergies(obs_S, self.cids, obs_b, obs_anchored,
-                                                          est_S, self.cids)
-            logging.debug(UnifiedGroupContribution.row2string(self.S[:, i], self.cids))
-            est_str = ' + '.join(['%.1f' % est[j, i] for j in xrange(est.shape[0])])
-            logging.debug("obs = %.1f, est = %s" % (self.b[0, i], est_str))
+        # conservation laws that check if we rely on compounds that have no groupvector
+        P_L_bad = (P_L_prc * P_L_anch)[bad_compounds, :]
         
-        self.Report(est)
+        # projection of reactions to the residual groupvector space
+        G_resid = P_L_prc * P_L_anch * G
+
+        result_dict['bad_conservations'] = P_L_bad 
+        result_dict['pgc_conservations'] = P_L_pgc
+        result_dict['pgc_groupvectors'] = G_resid
+        result_dict['conservations'] = np.vstack([P_L_bad, (G_resid * P_L_pgc).T])
+
+        return result_dict
+    
+    def _GetChemicalReactionEnergies(self, obs_S, obs_cids, obs_b, obs_anchored,
+                                     est_S, est_cids):
+
+        assert obs_S.shape[0] == len(obs_cids)
+        assert obs_S.shape[1] == obs_b.shape[1]
+        assert obs_S.shape[1] == obs_anchored.shape[1]
+        assert est_S.shape[0] == len(est_cids)
+        
+        # Augment the observed stoichiometric matrix and the required S matrix
+        # so that they will have the same number of rows and in the same order
+        # of CIDs. Note that we must take the union of cids from both original
+        # matrices.
+        new_cids = list(set(est_cids).difference(obs_cids))
+        all_cids = self.cids + new_cids
+        obs_S = np.vstack([obs_S, np.matrix(np.zeros((len(new_cids), obs_S.shape[1])))])
+        result_dict = self._GetContributionData(obs_S, all_cids,
+                                                     obs_b, obs_anchored)
+        
+        new_est_S = np.matrix(np.zeros((len(all_cids), est_S.shape[1])))
+        for c in abs(est_S).sum(1).nonzero()[0].flat:
+            new_c = all_cids.index(est_cids[c])
+            new_est_S[new_c, :] = est_S[c, :]
+        est_S = new_est_S
+        
+        n_cont = len(result_dict['names'])
+        dG0_r = np.matrix(np.zeros((n_cont, est_S.shape[1])))
+        
+        # each value i, j in the matrix 'parts' is the norm2 of the
+        # projection of the reaction S[:, j] on the subspace corresponding
+        # to result_dict['projections'][i]
+        parts = np.matrix(np.zeros((n_cont+1, est_S.shape[1])))
+        
+        # now calculate the estimated dG0:
+        for i in xrange(n_cont):
+            S_part = result_dict['projections'][i] * est_S
+            parts[i, :] = np.sqrt(np.diag(S_part.T * S_part)) # the norm2 of each column in S_part
+            dG0_part = result_dict['contributions'][i] * S_part
+            dG0_r[i, :] = dG0_part
+
+            # only print the debug info if there is one target reaction
+            # otherwise, there is too much info to printout
+            for j in xrange(est_S.shape[1]):
+                r_str = UnifiedGroupContribution.row2string(S_part[:, j].round(10), all_cids)
+                logging.debug("%s : %s, dG0 = %.1f" %
+                              (result_dict['names'][i], r_str, dG0_r[i, j]))
+
+        parts[-1, :] = abs(result_dict['conservations'] * est_S).sum(0)
+        i_resid = list((parts[-1, :] > self.epsilon).nonzero()[1].flat)
+        dG0_r[:, i_resid] = np.nan
+        return dG0_r, parts
 
     def EstimateKeggCids(self):
-        contributions, g_pgc, P_L_bad, P_L_pgc, G_resid = self._GetContributionData(
-                        self.S.copy(), self.cids, self.b.copy(), self.anchored)
+        result_dict = self._GetContributionData(self.S.copy(), self.cids,
+                                                self.b.copy(), self.anchored)
         
-        g_tot = np.matrix(np.zeros((1, len(self.cids))))
-        for rowdict in contributions:
-            g_tot += rowdict['g'] * rowdict['P']
+        g_pgc = result_dict['group_contributions']
+        P_L_bad = result_dict['bad_conservations']
+        P_L_pgc = result_dict['pgc_conservations']
+        G_resid = result_dict['pgc_groupvectors']
+        g_tot = result_dict['total_contributions']
         
         diss = DissociationConstants.FromPublicDB()
         all_cids = sorted(self.kegg.get_all_cids())
+        
         n_bad = P_L_bad.shape[0]
         n_pgc = P_L_pgc.shape[0]
         self.P_L_tot = np.matrix(np.zeros((n_bad + n_pgc, len(all_cids))))
@@ -598,8 +380,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                 i = self.cids.index(cid)
                 dG0 = g_tot[0, i]
                 self.cid2source_string[cid] = "Unified Group Contribution"
-                self.P_L_tot[0:n_bad, c] = P_L_bad[:, i] 
-                self.P_L_tot[n_bad:, c] = P_L_pgc * G_resid[:, i]
+                self.P_L_tot[:n_bad, c] = P_L_bad[:, i] 
+                self.P_L_tot[n_bad:, c] = P_L_pgc * G_resid[i, :].T
             elif self.cid2groupvec[cid] is not None:
                 gv = np.matrix(self.cid2groupvec[cid].Flatten())
                 dG0 = float(g_pgc * gv.T)
@@ -645,8 +427,139 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                         self.ERRORS_TABLE_NAME)
         self.db.Commit()
     
+    @staticmethod
+    def row2hypertext(S_row, cids):
+        kegg = Kegg.getInstance()
+        active_cids = list(np.nonzero(S_row)[0].flat)
+        sparse = dict((cids[c], S_row[c]) for c in active_cids)
+        return kegg.sparse_to_hypertext(sparse, show_cids=False)
+
+    @staticmethod
+    def row2string(S_row, cids):
+        active_cids = list(np.nonzero(S_row)[0].flat)
+        sparse = dict((cids[c], S_row[c]) 
+                      for c in active_cids 
+                      if S_row[c])
+        r = Reaction("", sparse)
+        return r.FullReactionString(show_cids=False)
+
+    def Report(self, est):
+        est = est.sum(0)
+        finite = np.isfinite(est)
+        resid = abs(self.b[finite] - est[finite])
+        fig = plt.figure(figsize=(5,5), dpi=90)
+        cdf(list(resid.flat), figure=fig)
+        #plt.plot(self.b[finite].T, est[finite].T, '.', figure=fig)
+        plt.title("RMSE = %.1f, N = %d" % (rms_flat(resid.flat), resid.shape[1]))
+        plt.xlabel(r"$|\Delta_r G^{'\circ} obs - \Delta_r G^{'\circ} est|$ [kJ/mol]")
+        plt.ylabel(r"CDF")
+        self.html_writer.embed_matplotlib_figure(fig)
+
+        rowdicts = []
+        for i in xrange(self.b.shape[1]):
+            rowdict = {}
+            rowdict['row'] = i
+            rowdict['type'] = self.obs_types[i]
+            rowdict['reaction'] = UnifiedGroupContribution.row2hypertext(self.S[:, i], self.cids)
+            rowdict['anchored'] = self.anchored[0, i]
+            rowdict['obs'] = self.b[0, i]
+            rowdict['est'] = est[0, i]
+            if np.isfinite(est[0, i]):
+                rowdict['|err|'] = abs(self.b[0, i] - est[0, i])
+            else:
+                rowdict['|err|'] = 0 
+            rowdicts.append(rowdict)
+
+        rowdicts.sort(key=lambda x:x['|err|'], reverse=True)            
+        self.html_writer.insert_toggle(start_here=True, label="Show table")
+        self.html_writer.write_table(rowdicts,
+            headers=['row', 'type', 'reaction', 'anchored', 'obs', 'est', '|err|'], decimal=1)
+        self.html_writer.div_end()
+    
+    def Fit(self):
+        self.html_writer.write('<h2>Linear Regression Fit - Report</h2>\n')
+        est, parts = self.GetChemicalReactionEnergies(self.S, self.cids)
+        self.Report(est)
+
+    def Loo(self):
+        n = self.S.shape[1]
+        est = np.matrix(np.zeros((3, n))) * np.nan
+
+        rowdicts = []
+        class2err = defaultdict(list)
+        for i in xrange(n):
+            if self.obs_types[i] != 'reaction':
+                continue
+            if self.anchored[0, i]:
+                continue
+            if abs(self.S[:, i]).sum(0) < self.epsilon: # empty reaction
+                continue
+
+            no_i = range(0, i) + range(i+1, n)
+            obs_S = self.S[:, no_i].copy()
+            obs_anchored = self.anchored[0, no_i]
+            obs_b = self.b[:, no_i].copy()
+            est_S = self.S[:, i].copy()
+            est[:, i], parts = self._GetChemicalReactionEnergies(
+                obs_S, self.cids, obs_b, obs_anchored, est_S, self.cids)
+
+            if parts[3, 0] > self.epsilon:
+                classification = 'kernel'
+            elif parts[1, 0] > self.epsilon and parts[2, 0] > self.epsilon:
+                classification = 'PRC + PGC'
+            elif parts[1, 0] > self.epsilon:
+                classification = 'PRC'
+            elif parts[2, 0] > self.epsilon:
+                classification = 'PGC'
+            else:
+                classification = 'anchored'
+            
+            est_b = float(est[:, i].sum(0))
+            err = self.b[0, i] - est_b
+            class2err[classification].append(err)
+
+            rowdict = {}
+            rowdict['row'] = i
+            rowdict['type'] = self.obs_types[i]
+            rowdict['reaction'] = UnifiedGroupContribution.row2hypertext(self.S[:, i], self.cids)
+            rowdict['obs'] = self.b[0, i]
+            rowdict['est'] = est_b
+            if np.isfinite(err):
+                rowdict['|err|'] = abs(err)
+            else:
+                rowdict['|err|'] = 0
+            rowdict['est(ANCH)'] = est[0, i]
+            rowdict['est(PRC)'] = est[1, i]
+            rowdict['est(PGC)'] = est[2, i]
+            rowdict['part(ANCH)'] = parts[0, 0]
+            rowdict['part(PRC)'] = parts[1, 0]
+            rowdict['part(PGC)'] = parts[2, 0]
+            rowdict['part(NULL)'] = parts[3, 0]
+            rowdict['class'] = classification
+            rowdicts.append(rowdict)
+            
+        class_errors = []
+        for classification, err_list in class2err.iteritems():
+            class_errors.append('%s: N = %d, rmse = %.1f kJ/mol' % 
+                                (classification, len(err_list), rms_flat(err_list)))
+        
+        rowdicts.sort(key=lambda x:x['|err|'], reverse=True)            
+        self.html_writer.write('<h2>Linear Regression Leave-One-Out Analysis</h2>\n')
+        self.html_writer.insert_toggle(start_here=True, label="Show table")
+        self.html_writer.write_ul(class_errors)
+        self.html_writer.write_table(rowdicts,
+            headers=['row', 'type', 'reaction', 'class', 'obs', 'est', '|err|',
+                     'est(ANCH)', 'est(PRC)', 'est(PGC)',
+                     'part(ANCH)', 'part(PRC)', 'part(PGC)', 'part(NULL)'], decimal=1)
+        self.html_writer.div_end()
+        self.html_writer.div_end()
+
+        self.html_writer.write('<h2>Linear Regression Leave-One-Out - Report</h2>\n')
+        self.Report(est)
+
     def init(self):
         if self.db.DoesTableExist(self.THERMODYNAMICS_TABLE_NAME):
+            logging.info('Reading thermodynamic data from database')
             reader = self.db.DictReader(self.THERMODYNAMICS_TABLE_NAME)
             PsuedoisomerTableThermodynamics._FromDictReader(
                 reader, self, label=None, name="Unified Group Contribution",
@@ -654,15 +567,17 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
     
             conservation_rows = []        
             for row in self.db.DictReader(self.CONSERVATIONS_TABLE_NAME):
-                sparse = json.loads(row['json'])
+                sparse = dict((int(cid), coeff) for (cid, coeff) in json.loads(row['json']).iteritems())
                 msg = row['msg']
                 conservation_rows.append((msg, sparse))
     
+            logging.info('Reading conservation matrix data from database')
             all_cids = sorted(self.kegg.get_all_cids())
+            cid_dict = dict((cid, i) for (i, cid) in enumerate(all_cids))
             self.P_L_tot = np.matrix(np.zeros((len(conservation_rows), len(all_cids))))
             for i, (msg, sparse) in enumerate(conservation_rows):
                 for cid, coeff in sparse.iteritems():
-                    self.P_L_tot[i, all_cids.index(int(cid))] = float(coeff)
+                    self.P_L_tot[i, cid_dict[cid]] = float(coeff)
         else:
             self.LoadGroups(True)
             self.LoadObservations(True)
@@ -688,13 +603,31 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
-    opt_parser.add_option("-d", "--from_database", action="store_true",
-                          dest="from_database", default=False,
-                          help="A flag for loading the data from the DB instead of "
-                               "the CSV files (saves time but no debug information)")
+    opt_parser.add_option("-g", "--recalc_groups", action="store_true",
+                          dest="recalc_groups", default=False,
+                          help="A flag for loading the group definitions from the CSV"
+                               " instead of the DB")
+    opt_parser.add_option("-o", "--recalc_observations", action="store_true",
+                          dest="recalc_observations", default=False,
+                          help="A flag for loading the dG observations from the CSV"
+                               " instead of the DB")
+    opt_parser.add_option("-v", "--recalc_groupvectors", action="store_true",
+                          dest="recalc_groupvectors", default=False,
+                          help="A flag for recalculating the group vectors"
+                               " instead of loading them from the DB")
+    opt_parser.add_option("-m", "--recalc_matrices", action="store_true",
+                          dest="recalc_matrices", default=False,
+                          help="A flag for recalculating the group matrices"
+                               " instead of loading them from the DB")
     opt_parser.add_option("-t", "--train", action="store_true",
-                          dest="train_only", default=False,
-                          help="A flag for running the TRAIN only (without TEST)")
+                          dest="train", default=False,
+                          help="A flag for running the TRAIN")
+    opt_parser.add_option("-e", "--test", action="store_true",
+                          dest="test", default=False,
+                          help="A flag for running the TEST")
+    opt_parser.add_option("-l", "--leave_one_out", action="store_true",
+                          dest="loo", default=False,
+                          help="A flag for running the Leave One Out analysis")
     return opt_parser
     
 if __name__ == "__main__":
@@ -707,46 +640,45 @@ if __name__ == "__main__":
     html_writer = HtmlWriter('../res/ugc.html')
     
     ugc = UnifiedGroupContribution(db, html_writer)
-    if options.train_only:
-        ugc.LoadGroups(options.from_database)
-        ugc.LoadObservations(options.from_database)
-        ugc.LoadGroupVectors(options.from_database)
-        ugc.LoadData(options.from_database)
+    ugc.LoadGroups(FromDatabase=(not options.recalc_groups))
+    ugc.LoadObservations(FromDatabase=(not options.recalc_observations))
+    ugc.LoadGroupVectors(FromDatabase=(not options.recalc_groupvectors))
+    ugc.LoadData(FromDatabase=(not options.recalc_matrices))
+    if options.train:
         ugc.EstimateKeggCids()
         sys.exit(0)
+    else:
+        ugc.init()
 
-    ugc.LoadGroups(True)
-    ugc.LoadObservations(True)
-    ugc.LoadGroupVectors(True)
-    ugc.LoadData(True)
-    ugc.init()
-
-    r_list = []
-    r_list += [Reaction.FromFormula("C00002 + C00001 = C00008 + C00009")]
-    r_list += [Reaction.FromFormula("C00036 + C00024 = C00022 + C00083")]
-    r_list += [Reaction.FromFormula("C00036 + C00100 = C00022 + C00683")]
-    r_list += [Reaction.FromFormula("C01013 + C00010 + C00002 = C05668 + C00020 + C00013")]
-    r_list += [Reaction.FromFormula("C00091 + C00005 = C00232 + C00010 + C00006")]
-    r_list += [Reaction.FromFormula("C00002 + C00493 = C00008 + C03175")]
-    r_list += [Reaction.FromFormula("C00243 + C00125 = C05403 + C00126")]
-    
-    kegg = Kegg.getInstance()
-    S, cids = kegg.reaction_list_to_S(r_list)
-
-    dG0_prime = ugc.GetTransfromedReactionEnergies(S, cids, pH=7, I=0.1)
-    
-    ln_conc = np.matrix(np.ones((1, S.shape[0]))) * np.log(0.001)
-    if 1 in cids:
-        ln_conc[0, cids.index(1)] = 0 # H2O should have a concentration of 1
-    RT = R * default_T
-    dGc_prime = dG0_prime + RT * ln_conc * S
-    for i in xrange(len(r_list)):
-        r_list[i].Balance()
-        dG0 = ugc.GetChemicalReactionEnergies(S[:, i], cids)
-        print r_list[i].FullReactionString(show_cids=False)
-        print ('dG0 = %.1f = ' % dG0.sum(0)) + ' + '.join('%.1f' % d for d in dG0.flat)
-        print "dG0' = %.1f, dGc' = %.1f" % \
-            (dG0_prime[0, i], dGc_prime[0, i])
+    if options.test:
+        r_list = []
+        r_list += [Reaction.FromFormula("C00002 + C00001 = C00008 + C00009")]
+        r_list += [Reaction.FromFormula("C00036 + C00024 = C00022 + C00083")]
+        r_list += [Reaction.FromFormula("C00036 + C00100 = C00022 + C00683")]
+        r_list += [Reaction.FromFormula("C01013 + C00010 + C00002 = C05668 + C00020 + C00013")]
+        r_list += [Reaction.FromFormula("C00091 + C00005 = C00232 + C00010 + C00006")]
+        r_list += [Reaction.FromFormula("C00002 + C00493 = C00008 + C03175")]
+        r_list += [Reaction.FromFormula("C00243 + C00125 = C05403 + C00126")]
+        r_list += [Reaction.FromFormula("2 C00206 = C00360 + C00131")]
         
-    #ugc.Fit()
-    #ugc.Loo()
+        kegg = Kegg.getInstance()
+        S, cids = kegg.reaction_list_to_S(r_list)
+    
+        dG0_prime = ugc.GetTransfromedReactionEnergies(S, cids, pH=7, I=0.1)
+        
+        ln_conc = np.matrix(np.ones((1, S.shape[0]))) * np.log(0.001)
+        if 1 in cids:
+            ln_conc[0, cids.index(1)] = 0 # H2O should have a concentration of 1
+        RT = R * default_T
+        dGc_prime = dG0_prime + RT * ln_conc * S
+        for i in xrange(len(r_list)):
+            r_list[i].Balance()
+            dG0, parts = ugc.GetChemicalReactionEnergies(S[:, i], cids)
+            print r_list[i].FullReactionString(show_cids=False)
+            print ('dG0 = %.1f = ' % dG0.sum(0)) + ' + '.join('%.1f' % d for d in dG0.flat)
+            print "dG0' = %.1f, dGc' = %.1f" % \
+                (dG0_prime[0, i], dGc_prime[0, i])
+    
+    if options.loo:
+        ugc.Fit()
+        ugc.Loo()
