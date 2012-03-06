@@ -424,6 +424,7 @@ class Nist(object):
         # A, B, C and D) to the results of the relevant measurements
         evaluation_map = {}
         rowdicts = []
+        finite_rowdicts = []
         
         eval_to_label = {'A':'high quality', 'B':'low quality', 'C':'low quality', 'D':'low quality'}
         
@@ -432,20 +433,7 @@ class Nist(object):
             label = eval_to_label[row_data.evaluation]
             if label not in evaluation_map:
                 evaluation_map[label] = ([], [])
-            dG0_est = row_data.PredictReactionEnergy(thermodynamics)
-            if np.isnan(dG0_est):
-                logging.debug("%s: the reaction energy cannot be calculated"
-                              % (row_data.ref_id))
-                continue
-
-            dG0_obs_vec.append(row_data.dG0_r)
-            dG0_est_vec.append(dG0_est)
-            evaluation_map[label][0].append(row_data.dG0_r)
-            evaluation_map[label][1].append(dG0_est)
             rowdict[symbol_dr_G0_prime + ' (obs)'] = np.round(row_data.dG0_r, 1)
-            rowdict[symbol_dr_G0_prime + ' (est)'] = np.round(dG0_est, 1)
-            rowdict['residual'] = np.round(row_data.dG0_r - dG0_est, 3)
-            rowdict['|error|'] = abs(rowdict['residual'])
             rowdict['_reaction'] = row_data.reaction
             rowdict['reaction'] = row_data.reaction.to_hypertext(show_cids=False)
             if row_data.reaction.rid is not None:
@@ -458,16 +446,30 @@ class Nist(object):
             rowdict['T'] = row_data.T
             rowdict['eval.'] = row_data.evaluation
             rowdict['url'] = '<a href="%s">%s</a>' % (row_data.url, row_data.ref_id)
+
+            dG0_est = row_data.PredictReactionEnergy(thermodynamics)
+            if np.isfinite(dG0_est):
+                dG0_obs_vec.append(row_data.dG0_r)
+                dG0_est_vec.append(dG0_est)
+                evaluation_map[label][0].append(row_data.dG0_r)
+                evaluation_map[label][1].append(dG0_est)
+                rowdict[symbol_dr_G0_prime + ' (est)'] = np.round(dG0_est, 1)
+                rowdict['residual'] = np.round(row_data.dG0_r - dG0_est, 3)
+                rowdict['|error|'] = abs(rowdict['residual'])
+                rowdict['sort_key'] = -rowdict['|error|']
+                finite_rowdicts.append(rowdict)
+            else:
+                rowdict['sort_key'] = 1
             
             rowdicts.append(rowdict)
         
-        rowdicts.sort(key=lambda x:x['|error|'], reverse=True)
+        rowdicts.sort(key=lambda x:x['sort_key'])
         
         if not dG0_obs_vec:
             return 0, 0
 
         unique_reaction_dict = defaultdict(list)
-        for rowdict in rowdicts: 
+        for rowdict in finite_rowdicts:
             unique_reaction_dict[rowdict['_reaction']].append(rowdict['|error|'])
         unique_rmse_list = [rms_flat(error_list)
                             for error_list in unique_reaction_dict.values()]
@@ -509,8 +511,8 @@ class Nist(object):
             html_writer.embed_matplotlib_figure(fig1)
         
         fig2 = plt.figure(figsize=(6,6), dpi=90)
-        binned_plot(x=[rowdict['pH'] for rowdict in rowdicts],
-                    y=[rowdict['|error|'] for rowdict in rowdicts],
+        binned_plot(x=[rowdict['pH'] for rowdict in finite_rowdicts],
+                    y=[rowdict['|error|'] for rowdict in finite_rowdicts],
                     bins=[5,6,7,8,9],
                     y_type='rmse',
                     figure=fig2)
@@ -526,7 +528,7 @@ class Nist(object):
             html_writer.embed_matplotlib_figure(fig2)
         
         fig3 = plt.figure(figsize=(6,6), dpi=90)
-        plt.hist([rowdict['residual'] for rowdict in rowdicts],
+        plt.hist([rowdict['residual'] for rowdict in finite_rowdicts],
                  bins=np.arange(-50, 50, 0.5))
         plt.title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14, figure=fig3)
         plt.xlabel(r'residual $\Delta_r G^{\'\circ}$ [kJ/mol]',
