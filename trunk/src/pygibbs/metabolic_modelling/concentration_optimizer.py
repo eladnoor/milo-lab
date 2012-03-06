@@ -67,12 +67,14 @@ class ConcentrationOptimizer(object):
         
         return cvxmod.matrix(ln_conc_lb), cvxmod.matrix(ln_conc_ub)
 
-    def MinimizeConcentration(self, metabolite_index,
+    def MinimizeConcentration(self, metabolite_index=None,
                               concentration_bounds=None):
         """Finds feasible concentrations minimizing the concentration
            of metabolite i.
         
         Args:
+            metabolite_index: the index of the metabolite to minimize.
+                if == None, minimize the sum of all concentrations.
             concentration_bounds: the Bounds objects setting concentration bounds.
         """
         problem = cvxmod.problem()
@@ -105,8 +107,12 @@ class ConcentrationOptimizer(object):
             else:                
                 problem.constr.append(curr_dgr <= 0)
         
-        my_conc = ln_conc[0, metabolite_index]
-        problem.objective = cvxmod.minimize(atoms.exp(my_conc))
+        if metabolite_index is not None:
+            my_conc = ln_conc[0, metabolite_index]
+            problem.objective = cvxmod.minimize(atoms.exp(my_conc))
+        else:
+            problem.objective = cvxmod.minimize(
+                cvxmod.sum(atoms.exp(ln_conc)))
         status = problem.solve(quiet=True)
         if status != 'optimal':
             status = optimized_pathway.OptimizationStatus.Infeasible(

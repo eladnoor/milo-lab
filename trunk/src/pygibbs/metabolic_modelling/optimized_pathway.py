@@ -81,8 +81,10 @@ class OptimizedPathway(object):
         
         self.dGr0_tag = np.array(thermodynamic_data.GetDGrTagZero_ForModel(
                 self.model))
+        self.dGr0_tag_list = list(self.dGr0_tag.flatten())
         self.compound_ids = self.model.GetCompoundIDs()
         self.reaction_ids = self.model.GetReactionIDs()
+        self.fluxes = self.model.GetFluxes()
         
         # Don't proceed...
         if (self.ln_concentrations is None or
@@ -92,10 +94,12 @@ class OptimizedPathway(object):
         self.concentrations = np.exp(self.ln_concentrations)
         conc_correction = RT * self.ln_concentrations * self.S
         self.dGr_tag = np.array(self.dGr0_tag + conc_correction)
+        self.dGr_tag_list = list(self.dGr_tag.flatten())
         
         bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)        
         bio_correction = RT * np.dot(np.log(bio_concs), self.S)
         self.dGr_bio = np.array(self.dGr0_tag + bio_correction)
+        self.dGr_bio_list = list(self.dGr_bio.flatten())
     
         self.kegg = Kegg.getInstance()
         
@@ -169,7 +173,15 @@ class OptimizedPathway(object):
         """
         self.WriteThermoProfile(dirname)
         self.WritePathwayGraph(dirname)
-        
+    
+    def MakeReaction(self, rid, vec):
+        sparse_reaction = {}
+        for j, stoich in enumerate(vec):
+            if stoich == 0:
+                continue
+            sparse_reaction[self.compound_ids[j]] = stoich
+        return Reaction(rid, sparse_reaction)
+    
     def GetReactionObjects(self):
         """Generator for reactions objects in this pathways model.
         
@@ -177,13 +189,8 @@ class OptimizedPathway(object):
             kegg_reaction.Reaction objects in order defined.
         """
         for i, rid in enumerate(self.reaction_ids):
-            col = np.array(self.S[:,i]).flatten()
-            sparse_reaction = {}
-            for j, stoich in enumerate(col):
-                if stoich == 0:
-                    continue
-                sparse_reaction[self.compound_ids[j]] = stoich            
-            yield Reaction(rid, sparse_reaction)
+            col = np.array(self.S[:,i]).flat
+            yield self.MakeReaction(rid, col)
     reaction_objects = property(GetReactionObjects)
 
     def GetDGrZeroTag(self):
@@ -236,16 +243,31 @@ class OptimizedPathway(object):
         """Returns a list of reaction dG' values."""
         return list(self.dGr_tag.flatten())
 
+    def GetReactionDict(self, i, rid):
+        dg0_tag = self.dGr0_tag_list[i]
+        dg_tag = self.dGr_tag_list[i]
+        d = {'id': rid,
+             'dGr0_tag': dg0_tag,
+             'dGr_tag': dg_tag,
+             'flux': self.fluxes[i],
+             'thermo_efficiency': self.CalcForwardFraction(dg_tag)}
+        return d
+
     def ReactionDetails(self):
         """Yields dictionaries describing reactions in the model."""        
         dGr0_tags = self.ReactionStandardEnergyList()
         dGr_tags = self.ReactionTransformedEnergyList()
-        for i, id in enumerate(self.reaction_ids):
-            dg0_tag = dGr0_tags[i]
-            dg_tag = dGr_tags[i]
-            d = {'id': id,
-                 'dGr0_tag': dg0_tag,
-                 'dGr_tag': dg_tag,
-                 'thermo_efficiency': self.CalcForwardFraction(dg_tag)}
-            yield d
+        for i, rid in enumerate(self.reaction_ids):
+            yield self.GetReactionDict(i, rid)
     reaction_details = property(ReactionDetails)
+    
+    def NetReaction(self):
+        """Returns the net reaction as a reaction object."""
+        flux_mat = np.matrix(self.fluxes).T
+        v_total = np.dot(self.S, flux_mat).flat
+        #v_total = np.dot(np.matrix(self.fluxes), self.S).flat
+        rxn = self.MakeReaction('Net Reaction', v_total)
+        return rxn
+    net_reaction = property(NetReaction)
+        
+        

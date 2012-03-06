@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import pylab
+import logging
 import numpy as np
 
 import scipy.optimize as opt
@@ -86,6 +86,12 @@ class EnzymeLevelFunc(object):
         self.Nr, self.Nc = self.S.shape
     
     @staticmethod
+    def ExactDenom(dGr_tag):
+        """Calculates the exact denominator."""
+        denom = 1 - np.exp(dGr_tag/RT)
+        return denom
+    
+    @staticmethod
     def ApproximateDenom(dGr_tag):
         """Calculates the piecewise linear approximation of the
            denominator of our rate law.
@@ -101,7 +107,8 @@ class EnzymeLevelFunc(object):
         linearized_denom[over_i] = 1.0
         return linearized_denom
     
-    def __call__(self, x):
+    def GetEnzymeLevels(self, x):
+        """Get the modeled enzyme levels given concentrations."""
         my_x = self.injector(x)
         x_exp = np.matrix(np.exp(my_x))
         
@@ -109,7 +116,8 @@ class EnzymeLevelFunc(object):
         if (dgtag >= 0).any():
             return 1e6
                 
-        linearized_denom = self.ApproximateDenom(dgtag)
+        #linearized_denom = self.ApproximateDenom(dgtag)
+        linearized_denom = self.ExactDenom(dgtag)
         
         scaled_kms = self.km / x_exp.T
         exponentiated = np.power(scaled_kms, self.m_plus)
@@ -118,8 +126,12 @@ class EnzymeLevelFunc(object):
         scaled_numers = np.multiply(self.scaled_fluxes, numer)
         
         inverted_denom = 1 / linearized_denom
-        val = scaled_numers * inverted_denom.T
-        return val[0,0]
+        levels = np.multiply(scaled_numers, inverted_denom)
+        return levels
+    
+    def __call__(self, x):
+        levels = self.GetEnzymeLevels(x)
+        return np.sum(levels)
 
     
 class MinusDG(object):
@@ -275,7 +287,7 @@ class ProteinOptimizer(object):
                                             injector)
         initial_func_value = optimization_func(initial_conds)
         
-        print 'Initial optimization value: %.2g' % initial_func_value
+        logging.debug('Initial optimization value: %.2g', initial_func_value)
         res = opt.fmin_slsqp(optimization_func, initial_conds, 
                              f_ieqcons=f_ieq,
                              full_output=1,
@@ -284,8 +296,8 @@ class ProteinOptimizer(object):
         ln_conc, optimum = res[:2]
         final_func_value = optimization_func(ln_conc)
         final_constraints = (f_ieq(ln_conc) >= 0).all()
-        print 'Optimum meets constraints', final_constraints
-        print 'Final optimization value: %.2g' % final_func_value
+        logging.debug('Optimum meets constraints %s', final_constraints)
+        logging.debug('Final optimization value: %.2g', final_func_value)
         
         ln_conc = injector(ln_conc)
         return ProteinCostOptimizedPathway(

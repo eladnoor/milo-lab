@@ -25,13 +25,23 @@ class TestConcentrationOptimizer(unittest.TestCase):
         
         res = opt.MinimizeConcentration(0)
         val = res.opt_val
-        self.assertAlmostEqual(8.82430e-5, val, 3)
+        self.assertAlmostEqual(8.82430e-5, val, 8)
         
         res = opt.MinimizeConcentration(2)
         val = res.opt_val
         
         # Makes sense - last concentration can be as low as possible.
-        self.assertAlmostEqual(1.0e-6, val, 3)
+        self.assertAlmostEqual(1.0e-6, val, 8)
+    
+    def testDummyProblemMinimizeAllConcentrations(self):
+        stoich_model = FakeStoichModel()
+        thermo = FakeThermoData()
+        
+        opt = concentration_optimizer.ConcentrationOptimizer(stoich_model, thermo)
+        res = opt.MinimizeConcentration()
+    
+        val = res.opt_val
+        self.assertAlmostEqual(9.024899e-05, val, 8)
     
     def testDummyProblemDifferentBounds(self):
         stoich_model = FakeStoichModel()
@@ -42,13 +52,13 @@ class TestConcentrationOptimizer(unittest.TestCase):
         res = opt.MinimizeConcentration(0, concentration_bounds=b)
     
         val = res.opt_val
-        self.assertAlmostEqual(8.82478630613e-7, val, 3)
+        self.assertAlmostEqual(8.82478630613e-7, val, 8)
     
         res = opt.MinimizeConcentration(2)
         val = res.opt_val
         
         # Makes sense - last concentration can be as low as possible.
-        self.assertAlmostEqual(1.0e-8, val, 3)
+        self.assertAlmostEqual(1.0e-8, val, 4)
 
 def Suite():
     return unittest.makeSuite(TestConcentrationOptimizer,'test')

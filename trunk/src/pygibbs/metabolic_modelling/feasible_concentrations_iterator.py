@@ -24,6 +24,7 @@ class FeasibleConcentrationsIterator(object):
                 self._model)
     
     def __iter__(self):
+        # First feasible solution: MTDF
         mtdf_opt = mtdf_optimizer.MTDFOptimizer(
             self._model, self._thermo)
         res = mtdf_opt.FindMTDF(
@@ -37,8 +38,16 @@ class FeasibleConcentrationsIterator(object):
         if status.IsSuccessful():
             yield np.matrix(res.ln_concentrations)
         
+        # Second feasible solution: minimum sum of concentrations.
         conc_opt = concentration_optimizer.ConcentrationOptimizer(
             self._model, self._thermo)
+        res = conc_opt.MinimizeConcentration(
+                concentration_bounds=self._concentration_bounds)
+        status = res.status
+        if status.IsSuccessful():
+            yield np.matrix(res.ln_concentrations)
+        
+        # Minimize each concentration separately.
         for i in xrange(self.Ncompounds):
             res = conc_opt.MinimizeConcentration(
                 i, concentration_bounds=self._concentration_bounds)
