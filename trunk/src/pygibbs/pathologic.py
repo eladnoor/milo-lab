@@ -185,10 +185,12 @@ class Pathologic(object):
         solution_id = '%03d' % lp.solution_index
         
         exp_html.write('%d reactions, flux = %g, \n' %
-                       (len(solution.reactions), sum(solution.fluxes)))
+                       (len(solution.reactions),
+                        float(solution.fluxes.sum(1))))
 
         # draw network as a graph and link to it
-        Gdot = self.kegg_patholotic.draw_pathway(solution.reactions, solution.fluxes)
+        Gdot = self.kegg_patholotic.draw_pathway(solution.reactions,
+                                                 list(solution.fluxes.flat))
         svg_fname = '%s/%s_graph' % (experiment_name, solution_id)
         exp_html.embed_dot_inline(Gdot, width=240, height=320, name=svg_fname)
 
@@ -202,13 +204,13 @@ class Pathologic(object):
                 rowdict = {'KEGG ID':'<a href="%s">C%05d</a>' %
                            (compound.get_link(), compound.cid),
                            'Compound':compound.name}
-                if not np.isnan(solution.concentrations[c]):
-                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_f[c]
-                    rowdict['Conc. [M]'] = '%.2g' % solution.concentrations[c]
+                if np.isfinite(solution.concentrations[0, c]):
+                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_f[0, c]
+                    rowdict['Conc. [M]'] = '%.2g' % solution.concentrations[0, c]
                 else:
                     rowdict["dG'0 [kJ/mol]"] = 'N/A'
                     rowdict['Conc. [M]'] = 'N/A'
-                rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_f[c]
+                rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_f[0, c]
                 rowdicts.append(rowdict)
             exp_html.write_table(rowdicts,
                 headers=['KEGG ID', 'Compound', "dG'0 [kJ/mol]", "dG' [kJ/mol]",
@@ -220,13 +222,13 @@ class Pathologic(object):
                 rowdict = {'KEGG ID':'<a href="%s">R%05d</a>' %
                            (reaction.get_link(), reaction.rid),
                            'Reaction':reaction.to_hypertext(show_cids=False)}
-                if not np.isnan(solution.dG_r[r]):
-                    rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_r[r]
+                if np.isfinite(solution.dG_r[0, r]):
+                    rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_r[0, r]
                 else:
                     rowdict["dG' [kJ/mol]"] = 'N/A'
 
-                if not np.isnan(solution.dG0_r[r]):
-                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_r[r]
+                if np.isfinite(solution.dG0_r[0, r]):
+                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_r[0, r]
                 else:
                     rowdict["dG'0 [kJ/mol]"] = 'N/A'
 
@@ -241,7 +243,7 @@ class Pathologic(object):
             write_kegg_pathway(output_kegg_file,
                                entry=experiment_name + ' ' + solution_id,
                                reactions=solution.reactions,
-                               fluxes=solution.fluxes)
+                               fluxes=list(solution.fluxes.flat))
             
         exp_html.write('<br>\n')
 
