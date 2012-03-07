@@ -460,7 +460,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
 
         finite = np.isfinite(est)
         resid = abs(self.b[finite] - est[finite])
-        fig = plt.figure(figsize=(5,5), dpi=90)
+        fig = plt.figure(figsize=(5,5), dpi=60)
         cdf(list(resid.flat), figure=fig)
         #plt.plot(self.b[finite].T, est[finite].T, '.', figure=fig)
         plt.title("RMSE = %.1f, N = %d" % (rms_flat(resid.flat), resid.shape[1]))
@@ -500,7 +500,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         dG0_r_pgc = np.matrix(np.zeros((1, n))) * np.nan
 
         rowdicts = []
-        class2err = defaultdict(list)
+        class2ugc_err = defaultdict(list)
+        class2pgc_err = defaultdict(list)
         for i in xrange(n):
             if self.obs_types[i] != 'reaction':
                 continue
@@ -529,8 +530,11 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                 classification = 'anchored'
             
             est_b = float(dG0_r_ugc[:, i].sum(0))
-            err = self.b[0, i] - est_b
-            class2err[classification].append(err)
+            ugc_err = self.b[0, i] - est_b
+            class2ugc_err[classification].append(ugc_err)
+            
+            pgc_err = self.b[0, i] - dG0_r_pgc[0, i]
+            class2pgc_err[classification].append(pgc_err)
 
             rowdict = {}
             rowdict['row'] = i
@@ -539,8 +543,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             rowdict['obs'] = self.b[0, i]
             rowdict['est'] = est_b
             rowdict['est(PGC)'] = dG0_r_pgc[0, i]
-            if np.isfinite(err):
-                rowdict['|err|'] = abs(err)
+            if np.isfinite(ugc_err):
+                rowdict['|err|'] = abs(ugc_err)
             else:
                 rowdict['|err|'] = 0
             rowdict['est_ANCH'] = dG0_r_ugc[0, i]
@@ -554,9 +558,12 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             rowdicts.append(rowdict)
             
         class_errors = []
-        for classification, err_list in class2err.iteritems():
-            class_errors.append('%s: N = %d, rmse = %.1f kJ/mol' % 
-                                (classification, len(err_list), rms_flat(err_list)))
+        for classification in class2ugc_err.keys():
+            ugc_err_list = class2ugc_err[classification]
+            pgc_err_list = class2pgc_err[classification]
+            class_errors.append('%s: N = %d, rmse(UGC) = %.1f kJ/mol, rmse(PGC) = %.1f kJ/mol' % 
+                                (classification, len(ugc_err_list),
+                                 rms_flat(ugc_err_list), rms_flat(pgc_err_list)))
         
         self.Report(dG0_r_ugc.sum(0), 'UGC - Leave one out')
         self.Report(dG0_r_pgc, 'PGC - Leave one out')
