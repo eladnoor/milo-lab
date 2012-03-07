@@ -58,7 +58,8 @@ def example_lower_glycolysis(thermo):
                     thermodynamic_method='global',
                     update_file=None)
     add_cofactor_reactions(pl)
-    r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
+    #r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
+    r = Reaction.FromFormula("C00118 => C00022")
     #r.Balance()
     pl.find_path("GAP => PYR", r)
 
@@ -70,12 +71,10 @@ def example_oxidative(thermo):
                     thermo=thermo,
                     max_solutions=None,
                     max_reactions=20,
-                    maximal_dG=-10.0,
+                    maximal_dG=-5.0,
                     thermodynamic_method='global',
                     update_file=None)
     add_cofactor_reactions(pl)
-    #r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
-    #r = Reaction.FromFormula("2 C00022 => C00092")
     r = Reaction.FromFormula("C00022 => 3 C00011")
     #r.Balance()
     pl.find_path("oxidative", r)
@@ -99,7 +98,7 @@ def example_reductive(thermo):
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     estimators = LoadAllEstimators()
-    thermo = estimators['PGC']
+    thermo = estimators['UGC']
     #example_lower_glycolysis(thermo)
     example_oxidative(thermo)
 
