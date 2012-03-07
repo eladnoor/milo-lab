@@ -19,7 +19,7 @@ from pygibbs.groups_data import Group, GroupsData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from pygibbs.group_observation import GroupObervationCollection
+from pygibbs.kegg_observation import KeggObervationCollection
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.group_vector import GroupVector
@@ -162,14 +162,14 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
     def LoadObservations(self, FromDatabase=False):
         if FromDatabase and self.db.DoesTableExist(self.OBSERVATION_TABLE_NAME):
             logging.info("Reading observations from database")
-            self.obs_collection = GroupObervationCollection.FromDatabase(
+            self.obs_collection = KeggObervationCollection.FromDatabase(
                                     db=self.db,
                                     table_name=self.OBSERVATION_TABLE_NAME,
                                     transformed=self.transformed)
         else:
             logging.info("Reading observations from files")
             dissociation = self.GetDissociationConstants()
-            self.obs_collection = GroupObervationCollection.FromFiles(
+            self.obs_collection = KeggObervationCollection.FromFiles(
                                     html_writer=self.html_writer, 
                                     dissociation=dissociation,
                                     transformed=self.transformed)

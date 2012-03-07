@@ -123,13 +123,6 @@ class Reaction(object):
         return reaction
     
     @staticmethod
-    def FromStoichiometricVector(stoichiometric_vec, cids, name="reaction"):
-        sparse = dict((cids[i], stoichiometric_vec[i])
-                      for i in xrange(len(stoichiometric_vec))
-                      if abs(stoichiometric_vec[i]) > 1e-10)
-        return Reaction(name, sparse)
-    
-    @staticmethod
     def parse_reaction_formula_side(s):
         """ 
             Parses the side formula, e.g. '2 C00001 + C00002 + 3 C00003'

@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from pygibbs.group_vector import GroupVector
 from pygibbs.groups_data import GroupsData
-from pygibbs.group_observation import GroupObervationCollection
+from pygibbs.kegg_observation import KeggObervationCollection
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from pygibbs.kegg import Kegg
@@ -78,14 +78,14 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
     def LoadObservations(self, FromDatabase=False):
         if FromDatabase and self.db.DoesTableExist(self.OBSERVATION_TABLE_NAME):
             logging.info("Reading observations from database")
-            self.obs_collection = GroupObervationCollection.FromDatabase(
+            self.obs_collection = KeggObervationCollection.FromDatabase(
                                     db=self.db,
                                     table_name=self.OBSERVATION_TABLE_NAME,
                                     transformed=self.transformed)
         else:
             logging.info("Reading observations from files")
             dissociation = self.GetDissociationConstants()
-            self.obs_collection = GroupObervationCollection.FromFiles(
+            self.obs_collection = KeggObervationCollection.FromFiles(
                                     html_writer=self.html_writer, 
                                     dissociation=dissociation,
                                     transformed=self.transformed,
@@ -121,7 +121,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
 
             # The group vector's pseudoisomers must be consistent with the
             # psuedoisomers used for the reverse transform.
-            # Here we simply use the dictionary self.cid2nH_nMg from GroupObervationCollection
+            # Here we simply use the dictionary self.cid2nH_nMg from KeggObervationCollection
             self.cid2nH_nMg = self.obs_collection.cid2nH_nMg
 
             for cid in sorted(self.kegg.get_all_cids()):
@@ -281,6 +281,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         result_dict['names'] = ['anchors', 'reactants', 'groups']
         result_dict['contributions'] = [g_anch, g_prc, g_pgc * P_C_pgc * G.T]
         result_dict['group_contributions'] = g_pgc
+        result_dict['column_spaces'] = [P_C_anch, P_C_prc, P_C_pgc]
+        result_dict['null_spaces'] = [P_L_anch, P_L_prc, P_L_pgc]
         result_dict['projections'] = [P_C_anch,
                                       P_C_prc * P_L_anch,
                                       P_L_prc * P_L_anch]
@@ -301,7 +303,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         result_dict['conservations'] = np.vstack([P_L_bad, (G_resid * P_L_pgc).T])
 
         return result_dict
-    
+
     def _GetChemicalReactionEnergies(self, obs_S, obs_cids, obs_b, obs_anchored,
                                      est_S, est_cids):
 
@@ -351,8 +353,18 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         parts[-1, :] = abs(result_dict['conservations'] * est_S).sum(0)
         i_resid = list((parts[-1, :] > self.epsilon).nonzero()[1].flat)
         dG0_r[:, i_resid] = np.nan
-        return dG0_r, parts
-
+        
+        # calculate also dG0_r for the PGC method without using PRC (i.e.
+        # classic group contribution).
+        dG0_r_pgc = dG0_r[0, :].copy() # the anchored part is the same as before
+        S_part_pgc = result_dict['null_spaces'][0] * est_S
+        dG0_r_pgc += result_dict['contributions'][2] * S_part_pgc
+        resid_pgc = abs(result_dict['null_spaces'][2] * result_dict['pgc_groupvectors'].T * S_part_pgc).sum(0)
+        i_resid_pgc = list((resid_pgc > self.epsilon).nonzero()[1].flat)
+        dG0_r_pgc[0, i_resid_pgc] = np.nan
+        
+        return dG0_r, parts, dG0_r_pgc
+    
     def EstimateKeggCids(self):
         result_dict = self._GetContributionData(self.S.copy(), self.cids,
                                                 self.b.copy(), self.anchored)
@@ -443,8 +455,9 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         r = Reaction("", sparse)
         return r.FullReactionString(show_cids=False)
 
-    def Report(self, est):
-        est = est.sum(0)
+    def Report(self, est, title):
+        self.html_writer.write('</br><b>%s</b><br>\n' % title)
+
         finite = np.isfinite(est)
         resid = abs(self.b[finite] - est[finite])
         fig = plt.figure(figsize=(5,5), dpi=90)
@@ -477,13 +490,14 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.div_end()
     
     def Fit(self):
-        self.html_writer.write('<h2>Linear Regression Fit - Report</h2>\n')
-        est, _ = self.GetChemicalReactionEnergies(self.S, self.cids)
-        self.Report(est)
+        dG0_r_ugc, _, dG0_r_pgc = self.GetChemicalReactionEnergies(self.S, self.cids)
+        self.Report(dG0_r_ugc.sum(0), 'UGC - regression fit')
+        self.Report(dG0_r_pgc, 'PGC - regression fit')
 
     def Loo(self):
         n = self.S.shape[1]
-        est = np.matrix(np.zeros((3, n))) * np.nan
+        dG0_r_ugc = np.matrix(np.zeros((3, n))) * np.nan
+        dG0_r_pgc = np.matrix(np.zeros((1, n))) * np.nan
 
         rowdicts = []
         class2err = defaultdict(list)
@@ -500,7 +514,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             obs_anchored = self.anchored[0, no_i]
             obs_b = self.b[:, no_i].copy()
             est_S = self.S[:, i].copy()
-            est[:, i], parts = self._GetChemicalReactionEnergies(
+            dG0_r_ugc[:, i], parts, dG0_r_pgc[0, i] = self._GetChemicalReactionEnergies(
                 obs_S, self.cids, obs_b, obs_anchored, est_S, self.cids)
 
             if parts[3, 0] > self.epsilon:
@@ -514,7 +528,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             else:
                 classification = 'anchored'
             
-            est_b = float(est[:, i].sum(0))
+            est_b = float(dG0_r_ugc[:, i].sum(0))
             err = self.b[0, i] - est_b
             class2err[classification].append(err)
 
@@ -524,17 +538,18 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             rowdict['reaction'] = UnifiedGroupContribution.row2hypertext(self.S[:, i], self.cids)
             rowdict['obs'] = self.b[0, i]
             rowdict['est'] = est_b
+            rowdict['est(PGC)'] = dG0_r_pgc[0, i]
             if np.isfinite(err):
                 rowdict['|err|'] = abs(err)
             else:
                 rowdict['|err|'] = 0
-            rowdict['est(ANCH)'] = est[0, i]
-            rowdict['est(PRC)'] = est[1, i]
-            rowdict['est(PGC)'] = est[2, i]
-            rowdict['part(ANCH)'] = parts[0, 0]
-            rowdict['part(PRC)'] = parts[1, 0]
-            rowdict['part(PGC)'] = parts[2, 0]
-            rowdict['part(NULL)'] = parts[3, 0]
+            rowdict['est_ANCH'] = dG0_r_ugc[0, i]
+            rowdict['est_PRC'] = dG0_r_ugc[1, i]
+            rowdict['est_PGC'] = dG0_r_ugc[2, i]
+            rowdict['part_ANCH'] = parts[0, 0]
+            rowdict['part_PRC'] = parts[1, 0]
+            rowdict['part_PGC'] = parts[2, 0]
+            rowdict['part_NULL'] = parts[3, 0]
             rowdict['class'] = classification
             rowdicts.append(rowdict)
             
@@ -543,19 +558,18 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             class_errors.append('%s: N = %d, rmse = %.1f kJ/mol' % 
                                 (classification, len(err_list), rms_flat(err_list)))
         
+        self.Report(dG0_r_ugc.sum(0), 'UGC - Leave one out')
+        self.Report(dG0_r_pgc, 'PGC - Leave one out')
+
         rowdicts.sort(key=lambda x:x['|err|'], reverse=True)            
         self.html_writer.write('<h2>Linear Regression Leave-One-Out Analysis</h2>\n')
         self.html_writer.insert_toggle(start_here=True, label="Show table")
         self.html_writer.write_ul(class_errors)
         self.html_writer.write_table(rowdicts,
-            headers=['row', 'type', 'reaction', 'class', 'obs', 'est', '|err|',
-                     'est(ANCH)', 'est(PRC)', 'est(PGC)',
-                     'part(ANCH)', 'part(PRC)', 'part(PGC)', 'part(NULL)'], decimal=1)
+            headers=['row', 'type', 'reaction', 'class', 'obs', 'est',
+                     'est(PGC)', '|err|', 'est_ANCH', 'est_PRC', 'est_PGC',
+                     'part_ANCH', 'part_PRC', 'part_PGC', 'part_NULL'], decimal=1)
         self.html_writer.div_end()
-        self.html_writer.div_end()
-
-        self.html_writer.write('<h2>Linear Regression Leave-One-Out - Report</h2>\n')
-        self.Report(est)
 
     def init(self):
         if self.db.DoesTableExist(self.THERMODYNAMICS_TABLE_NAME):
