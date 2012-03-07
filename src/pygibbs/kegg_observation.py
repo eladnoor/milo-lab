@@ -2,13 +2,14 @@ import json, logging, csv
 import numpy as np
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
-from pygibbs.thermodynamic_constants import default_I, default_pH, default_T,\
-    default_pMg, RedoxCarriers, symbol_dr_G0_prime, symbol_dr_G0
+from pygibbs.thermodynamic_constants import default_pH, default_T,\
+    RedoxCarriers, symbol_dr_G0_prime, symbol_dr_G0, default_pMg
 from pygibbs.nist import Nist
 from pygibbs.dissociation_constants import MissingDissociationConstantError
 from toolbox.html_writer import NullHtmlWriter
+from pygibbs.kegg_reaction import Reaction
 
-class GroupObservation(object):
+class KeggObservation(object):
     
     def __init__(self, obs_id, obs_type, url, anchored, dG0, sparse):
         self.obs_id = obs_id
@@ -17,15 +18,6 @@ class GroupObservation(object):
         self.dG0 = dG0
         self.sparse = sparse
         self.anchored = anchored
-
-    def NetCharge(self):
-        return self.groupvec.NetCharge()
-
-    def Hydrogens(self):
-        return self.groupvec.Hydrogens()
-
-    def Magnesiums(self):
-        return self.groupvec.Magnesiums()
 
     def ToDatabase(self, db, table_name):
         db.Insert(table_name, self.ToCsvRow())
@@ -36,7 +28,7 @@ class GroupObservation(object):
         for cid, coeff in json.loads(row['reaction']).iteritems():
             sparse[int(cid)] = float(coeff)
         
-        return GroupObservation(row['id'], row['type'], row['url'],
+        return KeggObservation(row['id'], row['type'], row['url'],
                                 row['anchored'], row['dG0'], sparse)
         
     def ToCsvRow(self):
@@ -58,7 +50,7 @@ class GroupObservation(object):
         self.sparse = dict((k,v*factor) for (k,v) in self.sparse.iteritems())
         self.dG0 *= factor
         
-class GroupObervationCollection(object):
+class KeggObervationCollection(object):
     
     def __init__(self, html_writer, dissociation, transformed=False,
                  pH=default_pH, I=0, pMg=14, T=default_T):
@@ -88,7 +80,7 @@ class GroupObervationCollection(object):
                   formation_energy_fname=None,
                   anchored_redox=True):
         
-        obs_collections = GroupObervationCollection(html_writer,
+        obs_collections = KeggObervationCollection(html_writer,
             dissociation, transformed, pH=pH, I=I, pMg=pMg, T=T)
         
         if formation_energy_fname is not None:
@@ -111,7 +103,7 @@ class GroupObervationCollection(object):
         return obs_collections
     
     def AddObservation(self, obs_id, obs_type, url, anchored, dG0, sparse):
-        obs = GroupObservation(obs_id, obs_type, url, anchored, dG0, sparse)
+        obs = KeggObservation(obs_id, obs_type, url, anchored, dG0, sparse)
         obs.Normalize()
         self.observations.append(obs)
 
@@ -243,20 +235,6 @@ class GroupObervationCollection(object):
     def AddRedoxCarriers(self, anchored=True):
         redox_carriers = RedoxCarriers()
         for name, rc in redox_carriers.iteritems():
-            obs_id = name + " redox"
-            self.cid2nH_nMg[rc.cid_ox] = (rc.nH_ox, 0)
-            self.cid2nH_nMg[rc.cid_red] = (rc.nH_red, 0)
-            sparse = {rc.cid_ox:-1,
-                      rc.cid_red:1}
-
-            if self.transformed:
-                dG0 = rc.ddG0_prime
-            else:
-                dG0 = rc.ddG0
-            
-            self.AddObservation(obs_id=obs_id, obs_type='reaction', url="",
-                                anchored=anchored, dG0=dG0, sparse=sparse)
-            
             # make sure all redox carriers have a pKa table.
             # for some which don't (usually because their structure is not explicit)
             # we assume that the table is empty (i.e. no pKas exist).
@@ -265,6 +243,24 @@ class GroupObervationCollection(object):
             if self.dissociation.GetDissociationTable(rc.cid_red) is None:
                 self.dissociation.SetOnlyPseudoisomer(rc.cid_red, rc.nH_red, rc.z_red)
 
+            obs_id = name + " redox"
+            self.cid2nH_nMg[rc.cid_ox] = (rc.nH_ox, 0)
+            self.cid2nH_nMg[rc.cid_red] = (rc.nH_red, 0)
+            sparse = {rc.cid_ox:-1,
+                      rc.cid_red:1}
+
+            dG0 = rc.ddG0_prime
+            if not self.transformed:
+                reaction = Reaction(obs_id, sparse)
+                
+                ddG0 = self.dissociation.ReverseTransformReaction(
+                    reaction, pH=rc.pH, I=0, pMg=default_pMg, T=default_T,
+                    cid2nH_nMg=self.cid2nH_nMg)
+                dG0 -= ddG0
+            
+            self.AddObservation(obs_id=obs_id, obs_type='reaction', url="",
+                                anchored=anchored, dG0=dG0, sparse=sparse)
+            
     def GetStoichiometry(self):
         """ 
             Returns:
@@ -320,11 +316,11 @@ class GroupObervationCollection(object):
     def FromDatabase(db, table_name, transformed=False):
         html_writer = NullHtmlWriter()
         dissociation = None
-        obs_collections = GroupObervationCollection(html_writer, 
+        obs_collections = KeggObervationCollection(html_writer, 
                                                     dissociation, transformed)
         obs_collections.observations = []
         for row in db.DictReader(table_name):
-            obs = GroupObservation.FromDatabaseRow(row)
+            obs = KeggObservation.FromDatabaseRow(row)
             obs_collections.observations.append(obs)
         return obs_collections
         
