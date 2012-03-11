@@ -1,19 +1,25 @@
 import pulp
 import numpy as np
-from pygibbs.thermodynamic_constants import R
+from pygibbs.thermodynamic_constants import R, default_c_mid
 
 class StoichiometricSolution(object):
     
     def __init__(self):
         self.reactions = None
         self.fluxes = None
-        self.dG_r = None
         self.dG0_r = None
+        self.dGc_r = None
+        self.dG_r = None
         
         self.compounds = None
         self.concentrations = None
-        self.dG_f = None
         self.dG0_f = None
+        self.dG_f = None
+        
+        self.total_reaction = None
+        self.total_dG0_r = None
+        self.total_dGc_r = None
+        self.total_dG_r = None
 
 class Stoichiometric_LP(object):
     
@@ -35,8 +41,10 @@ class Stoichiometric_LP(object):
         
         self.cids = None
         self.dG0_f = None
+        self.dG_r = None
+        self.dG0_r = None
+        self.dGc_r = None
         self.RT = None
-        
 
     def export(self, fname):
         self.prob.writeLP(fname)
@@ -236,6 +244,11 @@ class Stoichiometric_LP(object):
                     c = self.cids.index(cid)
                     self.dG0_r[0, r] += coeff * self.dG0_f[0, c]
                     self.dG_r[0, r] += coeff * self.dG_f[0, c]
+                    
+            phys_conc = np.matrix(np.ones((1, len(self.compounds)))) * default_c_mid
+            if 1 in self.cids:
+                phys_conc[0, self.cids.index(1)] = 1 # [H2O] must be set to 1 in any case
+            self.dGc_r = self.dG0_r + self.RT * np.log(phys_conc) * self.S
         
         return True
 
@@ -300,6 +313,7 @@ class Stoichiometric_LP(object):
             solution.concentrations = self.concentrations[:, active_c]
             solution.dG0_r = self.dG0_r[:, active_r]
             solution.dG_r = self.dG_r[:, active_r]
+            solution.dGc_r = self.dGc_r[:, active_r]
         
         return solution
 

@@ -24,6 +24,7 @@ symbol_dr_G = "&Delta;<sub>r</sub>G"
 symbol_dr_G0 = "&Delta;<sub>r</sub>G&deg;"
 symbol_dr_G_prime = "&Delta;<sub>r</sub>G'"
 symbol_dr_G0_prime = "&Delta;<sub>r</sub>G'&deg;"
+symbol_dr_Gc_prime = "&Delta;<sub>r</sub>G'<sup>c</sup>"
 
 symbol_df_G = "&Delta;<sub>f</sub>G"
 symbol_df_G0 = "&Delta;<sub>f</sub>G&deg;"
