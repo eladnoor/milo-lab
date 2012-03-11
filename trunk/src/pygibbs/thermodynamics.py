@@ -729,18 +729,18 @@ class ReactionThermodynamics(Thermodynamics):
         # place the new values into the dG0_f vector at the right places (all should be NaN)
         for i, cid in enumerate(cids):
             if cid in var_cids:
-                dG0_f_prime[i, 0] = var_dG0_f_prime[var_cids.index(cid), 0]
+                dG0_f_prime[0, i] = var_dG0_f_prime[0, var_cids.index(cid)]
 
         dG0_r_prime = GetReactionEnergiesFromFormationEnergies(S, dG0_f_prime)
 
         # each row that is not orthogonal to the null-space is changed to NaN
-        for i in xrange(S.shape[0]):
-            v = np.matrix(np.zeros((len(var_cids), 1)))
-            for j, cid in enumerate(var_cids):
+        for j in xrange(S.shape[1]):
+            v = np.matrix(np.zeros((1, len(var_cids))))
+            for i, cid in enumerate(var_cids):
                 if cid in cids:
-                    v[j, 0] = S[cids.index(cid), i]
-            if (abs(var_P_N * v) > 1e-10).any():
-                dG0_r_prime[0, i] = np.nan
+                    v[0, i] = S[cids.index(cid), j]
+            if (abs(v * var_P_N) > 1e-10).any():
+                dG0_r_prime[0, j] = np.nan
         
         return dG0_r_prime
         

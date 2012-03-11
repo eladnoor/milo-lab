@@ -36,6 +36,7 @@ def pareto(kegg_file, html_writer, thermo,
         thermo.SetConditions(pH=pH, I=I, T=T, pMg=pMg)
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions()
+        fluxes = np.matrix(fluxes)
         dG0_r_prime = thermo.GetTransfromedReactionEnergies(S, cids)
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
                                cid2bounds=thermo.bounds, c_range=thermo.c_range)
@@ -160,10 +161,8 @@ if __name__ == "__main__":
     plt.rcParams['legend.fontsize'] = 6
     estimators = LoadAllEstimators()
     
-    experiments = [('odb_vs_otg_reductive_nature', 'merged'),
-                   ('odb_vs_otg_reductive_c1', 'merged_C1'),
-                   ('odb_vs_otg_oxidative', 'merged'),
-                   ('odb_vs_otg_reductive_all', 'merged')]
+    experiments = [('odb_vs_otg_oxidative', 'UGC'),
+                   ('odb_vs_otg_reductive', 'UGC')]
 
     for prefix, thermo_name in experiments:
         thermo = estimators[thermo_name]

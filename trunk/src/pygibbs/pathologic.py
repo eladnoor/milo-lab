@@ -9,6 +9,8 @@ from pygibbs.kegg import KeggPathologic
 from pygibbs.kegg_utils import write_kegg_pathway
 from toolbox.html_writer import HtmlWriter
 from toolbox import util
+from pygibbs.thermodynamic_constants import symbol_df_G0_prime,\
+    symbol_df_G_prime, symbol_dr_G_prime, symbol_dr_Gc_prime
 
 class Pathologic(object):
     
@@ -67,6 +69,10 @@ class Pathologic(object):
     
     def add_cofactor_reaction(self, reaction):
         self.kegg_patholotic.add_cofactor_reaction(reaction)
+        
+    def ban_compound(self, cid):
+        """Deletes all reactions which involve this compounds as a reactant"""
+        self.kegg_patholotic.banned_cids.add(cid)
 
     def find_path(self, experiment_name, net_reaction):
         """Find a pathway from the source to the target.
@@ -205,15 +211,17 @@ class Pathologic(object):
                            (compound.get_link(), compound.cid),
                            'Compound':compound.name}
                 if np.isfinite(solution.concentrations[0, c]):
-                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_f[0, c]
+                    rowdict[symbol_df_G0_prime + "[kJ/mol]"] = '%.1f' % solution.dG0_f[0, c]
                     rowdict['Conc. [M]'] = '%.2g' % solution.concentrations[0, c]
                 else:
-                    rowdict["dG'0 [kJ/mol]"] = 'N/A'
+                    rowdict[symbol_df_G0_prime + "[kJ/mol]"] = 'N/A'
                     rowdict['Conc. [M]'] = 'N/A'
-                rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_f[0, c]
+                rowdict[symbol_df_G_prime + "[kJ/mol]"] = '%.1f' % solution.dG_f[0, c]
                 rowdicts.append(rowdict)
             exp_html.write_table(rowdicts,
-                headers=['KEGG ID', 'Compound', "dG'0 [kJ/mol]", "dG' [kJ/mol]",
+                headers=['KEGG ID', 'Compound',
+                         symbol_df_G0_prime + "[kJ/mol]",
+                         symbol_df_G_prime + "[kJ/mol]",
                          'Conc. [M]'])
             
             exp_html.write('Reaction Gibbs energies<br>\n')
@@ -222,19 +230,28 @@ class Pathologic(object):
                 rowdict = {'KEGG ID':'<a href="%s">R%05d</a>' %
                            (reaction.get_link(), reaction.rid),
                            'Reaction':reaction.to_hypertext(show_cids=False)}
-                if np.isfinite(solution.dG_r[0, r]):
-                    rowdict["dG' [kJ/mol]"] = '%.1f' % solution.dG_r[0, r]
+                
+                if np.isfinite(solution.dGc_r[0, r]):
+                    rowdict[symbol_dr_Gc_prime + "[kJ/mol]"] = '%.1f' % solution.dGc_r[0, r]
                 else:
-                    rowdict["dG' [kJ/mol]"] = 'N/A'
+                    rowdict[symbol_dr_Gc_prime + "[kJ/mol]"] = 'N/A'
 
-                if np.isfinite(solution.dG0_r[0, r]):
-                    rowdict["dG'0 [kJ/mol]"] = '%.1f' % solution.dG0_r[0, r]
+                if np.isfinite(solution.dG_r[0, r]):
+                    rowdict[symbol_dr_G_prime + "[kJ/mol]"] = '%.1f' % solution.dG_r[0, r]
                 else:
-                    rowdict["dG'0 [kJ/mol]"] = 'N/A'
+                    rowdict[symbol_dr_G_prime + "[kJ/mol]"] = 'N/A'
 
                 rowdicts.append(rowdict)
+            
+            rowdict = {'KEGG ID': 'total',
+                       'Reaction': 'TODO',
+                       symbol_dr_Gc_prime + "[kJ/mol]": float(solution.dGc_r.sum(1)),
+                       symbol_dr_G_prime + "[kJ/mol]": float(solution.dG_r.sum(1))}
+            
             exp_html.write_table(rowdicts, 
-                headers=['KEGG ID', 'Reaction', "dG'0 [kJ/mol]", "dG' [kJ/mol]"])
+                headers=['KEGG ID', 'Reaction',
+                         symbol_dr_Gc_prime + "[kJ/mol]",
+                         symbol_dr_G_prime + "[kJ/mol]"])
 
             exp_html.div_end()
 

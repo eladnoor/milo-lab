@@ -635,16 +635,14 @@ class KeggPathway(Pathway):
             phys_concentrations[0, self.cids.index(1)] = 1
         
         dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
+        dG_r_prime_c_adj = np.multiply(dG_r_prime_c, np.sign(self.fluxes)) # adjust dG to flux directions
         headers=["reaction", 'formula', 'flux', 
                  "&Delta;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC] 
         if concentrations is not None:
             dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
+            dG_r_prime_adj = np.multiply(dG_r_prime, np.sign(self.fluxes)) # adjust dG to flux directions
             headers.append("&Delta;<sub>r</sub>G' [kJ/mol]")
         
-        # adjust dG to flux directions
-        dG_r_prime_c_adj = np.multiply(dG_r_prime_c, np.sign(self.fluxes))
-        dG_r_prime_adj = np.multiply(dG_r_prime, np.sign(self.fluxes))
-
         dict_list = []
         for r, rid in enumerate(self.rids):
             d = {}

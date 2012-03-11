@@ -1022,6 +1022,7 @@ class KeggPathologic(object):
         self.reactions = []
         self.cofactor_reaction_list = []
         self.cofactors = set()
+        self.banned_cids = set()
 
         kegg = Kegg.getInstance()
 
@@ -1120,7 +1121,6 @@ class KeggPathologic(object):
         update_file = open(fname, 'r')
 
         banned_reactions = set()
-        banned_compounds = set()
         
         html_writer.write('<h2>Database updates:</h2>\n')
         html_writer.write('<ul>\n')
@@ -1150,7 +1150,7 @@ class KeggPathologic(object):
                 banned_reactions.add(rid)
             elif command == 'DELC':
                 cid = int(line[1:])
-                banned_compounds.add(cid)
+                self.banned_cids.add(cid)
                 html_writer.write("<li><b>Ban Compound,</b> C%05d" % (cid))
             elif command == 'COFR': # cofactor
                 if len(line.split()) == 1:
@@ -1176,8 +1176,6 @@ class KeggPathologic(object):
         for r in self.reactions:
             if r.rid in banned_reactions:
                 logging.debug("This reaction has been banned by its RID (R%05d): %s" % (r.rid, r.name))
-            elif len(banned_compounds.intersection(r.get_cids())) > 0:
-                logging.debug("This reaction has been banned by at least one of its CIDs (%s): %s" % (str(banned_compounds.intersection(r.get_cids())), r.name))
             else:
                 temp_reactions.append(r)
                 
@@ -1267,6 +1265,10 @@ class KeggPathologic(object):
             and store them in 'unique_reaction_map'.
         """
         logging.info("creating the Stoichiometry Matrix")
+        
+        # cannonize the cids of the banned compounds
+        self.banned_cids = set(self.get_compound(cid).cid
+                               for cid in self.banned_cids)
 
         all_reactions = []
         all_cids = set()
@@ -1283,9 +1285,10 @@ class KeggPathologic(object):
                 logging.error(e)
                 continue
             
-            all_reactions.append(r)
+            if len(self.banned_cids.intersection(r.get_cids())) == 0:
+                all_reactions.append(r)
         
-        all_cids = list(sorted(all_cids))
+        all_cids = list(sorted(set(all_cids).difference(self.banned_cids)))
         Ncompounds = len(all_cids)
         cid2index = {}
         all_compounds = []
