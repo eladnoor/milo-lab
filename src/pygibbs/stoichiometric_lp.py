@@ -2,6 +2,16 @@ import pulp
 import numpy as np
 from pygibbs.thermodynamic_constants import R, default_c_mid
 
+class OptimizationMethods(object):
+    NONE = 'none'
+    PCR = 'pcr'
+    MTDF = 'mtdf'
+    MAX_TOTAL = 'max_total'
+    GLOBAL = 'global'
+    LOCALIZED = 'localized'
+    
+    ALLOWED_METHODS = [NONE, PCR, MTDF, MAX_TOTAL, GLOBAL, LOCALIZED] 
+
 class StoichiometricSolution(object):
     
     def __init__(self):
@@ -38,6 +48,7 @@ class Stoichiometric_LP(object):
         self.formation_vars = None
         self.pCr = None
         self.mtdf = None
+        self.total_dG = None
         
         self.cids = None
         self.dG0_f = None
@@ -114,7 +125,7 @@ class Stoichiometric_LP(object):
             self.prob.addConstraint(f - self.flux_upper_bound * g <= 0,
                                     r.name + "_bound")
         
-        obj = pulp.lpSum([self.flux_vars[self.reactions[r].name]*weight
+        obj = pulp.lpSum([self.gamma_vars[self.reactions[r].name]*weight
               for (r, weight) in self.weights])
         self.prob.setObjective(obj)
         
@@ -124,7 +135,7 @@ class Stoichiometric_LP(object):
         sum_gammas = pulp.lpSum(self.gamma_vars.values())
         self.prob.addConstraint(sum_gammas <= max_num_reactions, 'num_reactions')
     
-    def add_dGr_constraints(self, thermo, pCr=False, MTDF=False, maximal_dG=0.0):
+    def add_dGr_constraints(self, thermo, optimization=None, maximal_dG=0.0):
         """
             Create concentration variables for each CID in the database (at least in one reaction).
             If this compound doesn't have a dG0_f, its concentration will not be constrained.
@@ -136,17 +147,22 @@ class Stoichiometric_LP(object):
         if self.gamma_vars is None:
             raise Exception("Cannot add thermodynamic constraints without the MILP variables")
         
-        if pCr and MTDF:
-            raise Exception("Cannot optimize both the pCr and the MTDF")
-        
-        if pCr:
+        # override the default objective (which is to minimize the total flux or the number of steps
+        if optimization == OptimizationMethods.PCR:
             self.pCr = pulp.LpVariable("pCr", lowBound=0, upBound=1e6,
                                        cat=pulp.LpContinuous)
             self.prob.setObjective(self.pCr)
-        elif MTDF:
+        
+        if optimization == OptimizationMethods.MTDF:
             self.mtdf = pulp.LpVariable("mtdf", lowBound=-1e6, upBound=1e6,
                                         cat=pulp.LpContinuous)
             self.prob.setObjective(self.mtdf)
+            maximal_dG = self.mtdf
+        
+        if optimization == OptimizationMethods.MAX_TOTAL:
+            self.total_dG = pulp.LpVariable("total_dG", lowBound=-1e6, upBound=1e6,
+                                            cat=pulp.LpContinuous)
+            self.prob.setObjective(self.total_dG)
         
         self.formation_vars = pulp.LpVariable.dicts("Formation",
             ["C%05d" % cid for cid in self.cids],
@@ -182,16 +198,22 @@ class Stoichiometric_LP(object):
                 c_var.upBound = dG0 + self.RT * np.log(c_max or thermo.c_range[1])
 
         for r in self.reactions:
-            g = self.gamma_vars[r.name]
             dG_r = pulp.lpSum([self.formation_vars['C%05d' % cid]*coeff
                                for cid, coeff in r.sparse.iteritems()])
             
-            if self.mtdf is not None:
-                self.prob.addConstraint(dG_r <= self.mtdf + 1e6*(1 - g),
+            self.prob.addConstraint(dG_r <= maximal_dG + 1e6*(1 - self.gamma_vars[r.name]),
+                                    r.name + "_thermo")
+
+        if self.total_dG is not None:
+            dG_flux_list = []
+            for r in self.reactions:
+                dG_r = pulp.lpSum([self.formation_vars['C%05d' % cid]*coeff
+                                   for cid, coeff in r.sparse.iteritems()])
+                
+                self.prob.addConstraint(dG_r <= maximal_dG + 1e6*(1 - self.gamma_vars[r.name]),
                                         r.name + "_thermo")
-            else:
-                self.prob.addConstraint(dG_r <= maximal_dG + 1e6*(1 - g),
-                                        r.name + "_thermo")
+                dG_flux_list.append(dG_r * self.flux_vars[r.name])
+            self.prob.addConstraint(self.total_dG <= pulp.lpSum(dG_flux_list), 'total_dG')
             
     def add_localized_dGf_constraints(self, thermo):
         for r in self.reactions:
