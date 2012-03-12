@@ -197,12 +197,13 @@ class ProteinOptimizer(object):
     DEFAULT_CONC_LB = 1e-6
     DEFAULT_CONC_UB = 1e-2
 
-    def __init__(self, pathway_model, thermodynamic_data, kinetic_data=None):
+    def __init__(self, pathway_model, thermodynamic_data, kinetic_data):
         """Initialize the MTDFOptimizer class.
         
         Args:
             pathway_model: the PathwayModel object.
             thermodynamic_data: the ThermodynamicData object.
+            kinetic_data: the KineticData object.
         """
         self._model = pathway_model
         self._thermo = thermodynamic_data
@@ -257,11 +258,9 @@ class ProteinOptimizer(object):
                 self._model, self._thermo, my_bounds,
                 optimization_status=status)
         
-        # Kinetic data
-        # All Kcat are 100 /s
-        kcat = np.ones(self.Nrxns) * 100
-        # All Km are 100 uM
-        km = np.matrix(np.ones((self.Ncompounds, self.Nrxns))) * 1e-4
+        # Fetch kinetic data
+        kcat = self._kinetic_data.GetKcatsForModel(self._model)
+        km = self._kinetic_data.GetKmsForModel(self._model)
                 
         # Separate out the fixed and non-fixed variables.
         injector = FixedVariableInjector(lb, ub, x0)

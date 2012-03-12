@@ -8,6 +8,7 @@ from optparse import OptionParser
 from os import path
 
 from pygibbs.metabolic_modelling import feasible_concentrations_iterator
+from pygibbs.metabolic_modelling import kinetic_data
 from pygibbs.metabolic_modelling import protein_optimizer
 from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.metabolic_modelling import thermodynamic_data
@@ -56,11 +57,15 @@ def Main():
         
     print 'Will read pathway definitions from %s' % input_filename
 
+    # Make thermodynamic and kinetic data containers
     thermo = estimators[options.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
     thermo_data = thermodynamic_data.WrapperThermoData(thermo)
     
-    # Create a bounds instance
+    # Uniform kinetic data
+    kin_data = kinetic_data.UniformKineticData(kcat=100, km=1e-4)
+    
+    # Create a kegg instance
     kegg_instance = kegg.Kegg.getInstance()
 
     # Create output directories
@@ -85,7 +90,7 @@ def Main():
         
         feasible_iter = feasible_concentrations_iterator.FeasibleConcentrationsIterator(
             model, thermo_data, model_bounds)
-        opt = protein_optimizer.ProteinOptimizer(model, thermo_data)
+        opt = protein_optimizer.ProteinOptimizer(model, thermo_data, kin_data)
         
         # Try a bunch of feasible solutions as starting points
         optima = []
