@@ -6,7 +6,7 @@ from toolbox.html_writer import HtmlWriter
 import sys
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 
-def add_cofactor_reactions(pl, NAD_only=True):
+def add_cofactor_reactions(pl, NAD_only=False):
     pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
     pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
     pl.add_cofactor_reaction(Reaction.FromFormula("C00013 <=> null", name='Free PPi'))
@@ -95,7 +95,7 @@ def example_oxidative(thermo):
                     maximal_dG=0,
                     thermodynamic_method='global',
                     update_file=None)
-    add_cofactor_reactions(pl)
+    add_cofactor_reactions(pl, NAD_only=False)
     r = Reaction.FromFormula("C00022 => 3 C00011")
     #r.Balance()
     pl.find_path("oxidative", r)

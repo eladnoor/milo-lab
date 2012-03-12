@@ -4,7 +4,7 @@ import logging
 import os.path
 import numpy as np
 
-from pygibbs.stoichiometric_lp import Stoichiometric_LP
+from pygibbs.stoichiometric_lp import Stoichiometric_LP, OptimizationMethods
 from pygibbs.kegg import KeggPathologic
 from pygibbs.kegg_utils import write_kegg_pathway
 from toolbox.html_writer import HtmlWriter
@@ -13,16 +13,6 @@ from pygibbs.thermodynamic_constants import symbol_df_G0_prime,\
     symbol_df_G_prime, symbol_dr_G_prime, symbol_dr_Gc_prime
 
 class Pathologic(object):
-    
-    THERMO_METHOD_NONE = 'none'
-    THERMO_METHOD_PCR = 'pcr'
-    THERMO_METHOD_MTDF = 'mtdf'
-    THERMO_METHOD_GLOBAL = 'global'
-    THERMO_METHOD_LOCALIZED = 'localized'
-    
-    ALLOWED_THERMODYNAMIC_METHODS = [THERMO_METHOD_NONE, THERMO_METHOD_PCR,
-                                     THERMO_METHOD_MTDF, THERMO_METHOD_GLOBAL,
-                                     THERMO_METHOD_LOCALIZED] 
     
     def __init__(self, db, public_db, html_writer,
                  thermo=None,
@@ -46,7 +36,7 @@ class Pathologic(object):
                 MTDF. When set to 0, it is the usual feasibility measure.
             update_file: the file to read for KEGG updates.
         """
-        assert thermodynamic_method.lower() in self.ALLOWED_THERMODYNAMIC_METHODS
+        assert thermodynamic_method.lower() in OptimizationMethods.ALLOWED_METHODS
         
         util._mkdir('../res/pathologic')
         
@@ -92,19 +82,26 @@ class Pathologic(object):
         exp_html.insert_toggle(div_id="__parameters__", start_here=True,
                                label='Show Parameters')
         exp_html.write('<h2>Thermodynamic constraints:</h2> ')
-        if self.thermodynamic_method == Pathologic.THERMO_METHOD_NONE:
+        if self.thermodynamic_method == OptimizationMethods.NONE:
             exp_html.write("ignore thermodynamics")
-        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_PCR:
-            exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M" % self.thermo.c_mid)
-        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_MTDF:
-            exp_html.write("Optimized Distributed Bottleneck, %g M < C < %g M" % self.thermo.c_range)
-        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_GLOBAL:
+        elif self.thermodynamic_method == OptimizationMethods.PCR:
+            exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M"
+                           % self.thermo.c_mid)
+        elif self.thermodynamic_method == OptimizationMethods.MTDF:
+            exp_html.write("Optimized Distributed Bottleneck, %g M < C < %g M"
+                           % self.thermo.c_range)
+        elif self.thermodynamic_method == OptimizationMethods.MAX_TOTAL:
+            exp_html.write("Maximal Total Gibbs energy, %g M < C < %g M"
+                           % self.thermo.c_range)
+        elif self.thermodynamic_method == OptimizationMethods.GLOBAL:
             exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" %
                            (self.thermo.c_range[0], self.thermo.c_range[1], self.maximal_dG))
-        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_LOCALIZED:
-            exp_html.write("Localized bottlenecks, %g M < C < %g M" % self.thermo.c_range)
+        elif self.thermodynamic_method == OptimizationMethods.LOCALIZED:
+            exp_html.write("Localized bottlenecks, %g M < C < %g M"
+                           % self.thermo.c_range)
         else:
-            raise Exception("thermodynamic_method must be one of %s" % self.ALLOWED_THERMODYNAMIC_METHODS)
+            raise Exception("thermodynamic_method must be one of %s" %
+                            OptimizationMethods.ALLOWED_METHODS)
         exp_html.write('<br>\n')
         
         f, S, compounds, reactions = self.kegg_patholotic.get_unique_cids_and_reactions()
@@ -157,14 +154,12 @@ class Pathologic(object):
         if self.max_reactions is not None:
             milp.add_reaction_num_constraint(self.max_reactions)
        
-        if self.thermodynamic_method == Pathologic.THERMO_METHOD_PCR:
-            milp.add_dGr_constraints(self.thermo, pCr=True, MTDF=False, maximal_dG=0)
-        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_MTDF:
-            milp.add_dGr_constraints(self.thermo, pCr=False, MTDF=True, maximal_dG=0)
-        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_GLOBAL:
-            milp.add_dGr_constraints(self.thermo, pCr=False, MTDF=False, maximal_dG=self.maximal_dG)
-        elif self.thermodynamic_method == Pathologic.THERMO_METHOD_LOCALIZED:
+        if self.thermodynamic_method == OptimizationMethods.LOCALIZED:
             milp.add_localized_dGf_constraints(self.thermo)
+        else:
+            milp.add_dGr_constraints(self.thermo,
+                                     optimization=self.thermodynamic_method,
+                                     maximal_dG=self.maximal_dG)
         
         index = 0
         while (self.max_solutions is None) or (index < self.max_solutions):
