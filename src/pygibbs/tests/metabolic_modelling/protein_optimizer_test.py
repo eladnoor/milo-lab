@@ -3,6 +3,7 @@
 import unittest
 import numpy as np
 
+from pygibbs.metabolic_modelling import kinetic_data
 from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.metabolic_modelling import protein_optimizer
 from pygibbs.metabolic_modelling import bounds
@@ -174,36 +175,39 @@ class TestProteinOptimizer(unittest.TestCase):
     def testDummyProblem(self):
         stoich_model = FakeStoichModel()
         thermo = FakeThermoData()
+        kdata = kinetic_data.UniformKineticData()
         
-        opt = protein_optimizer.ProteinOptimizer(stoich_model,
-                                                 thermo)
+        opt = protein_optimizer.ProteinOptimizer(
+            stoich_model, thermo, kdata)
         res = opt.FindOptimum()
         self.assertEqual(optimized_pathway.OptimizationStatus.SUCCESSFUL,
                          res.status.status)
         
         result = res.opt_val
-        self.assertAlmostEqual(0.054078, result, 3)
+        self.assertAlmostEqual(0.048032, result, 3)
     
     def testDummyProblemDifferentBounds(self):
         stoich_model = FakeStoichModel()
         thermo = FakeThermoData()
+        kdata = kinetic_data.UniformKineticData()
         
         b = self.MyBounds()    
-        opt = protein_optimizer.ProteinOptimizer(stoich_model,
-                                                 thermo)
+        opt = protein_optimizer.ProteinOptimizer(
+            stoich_model, thermo, kdata)
         res = opt.FindOptimum(concentration_bounds=b)
         self.assertEqual(optimized_pathway.OptimizationStatus.SUCCESSFUL,
                          res.status.status)
         
         result = res.opt_val
-        self.assertAlmostEqual(0.04596, result, 3)
+        self.assertAlmostEqual(0.041342, result, 3)
         
     def testInfeasibleDummyProblem(self):
         stoich_model = FakeStoichModel()
         thermo = FakeInfeasibleThermoData()
-
-        opt = protein_optimizer.ProteinOptimizer(stoich_model,
-                                                 thermo)
+        kdata = kinetic_data.UniformKineticData()
+        
+        opt = protein_optimizer.ProteinOptimizer(
+            stoich_model, thermo, kdata)
         res = opt.FindOptimum()
         self.assertEqual(optimized_pathway.OptimizationStatus.INFEASIBLE,
                          res.status.status)

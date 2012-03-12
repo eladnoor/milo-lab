@@ -2,9 +2,11 @@
 
 import logging
 import numpy as np
+import pylab
 
 import scipy.optimize as opt
 
+from os import path
 from pygibbs.metabolic_modelling import bounds
 from pygibbs.metabolic_modelling import mtdf_optimizer
 from pygibbs.metabolic_modelling import optimized_pathway
@@ -27,6 +29,48 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
     OPTIMIZATION_TYPE = "Protein Cost"
     OPT_UNITS = "Protein Units / Pathway Flux Units"
     
+    def __init__(self, *args, **kwargs):
+        self.protein_levels = kwargs.get('protein_levels')
+        if 'protein_levels' in kwargs:
+            del kwargs['protein_levels']
+        
+        optimized_pathway.OptimizedPathway.__init__(self, *args,
+                                                    **kwargs)
+        
+        self.protein_level_filename = '%s_protein_levels.png' % self.slug_name 
+    
+    def WriteProteinProfile(self, dirname):
+        """Writes the thermodynamic profile graph.
+        
+        Writes to "dirname/self.thermo_profile_filename".
+        
+        Args:
+            dirname: the name of the directory to write it to.
+        """
+        pylab.figure()
+        
+        pylab.yscale('log')
+        rxn_range = pylab.arange(len(self.reaction_ids))
+        flat_levels = list(self.protein_levels.flat)
+                
+        pylab.bar(rxn_range, flat_levels, label='Protein levels')
+        pylab.xticks(rxn_range + 0.5, self.reaction_ids)
+        pylab.xlabel('Reaction Step')
+        pylab.ylabel('Protein Units')
+        
+        outfname = path.join(dirname, self.protein_level_filename)
+        pylab.savefig(outfname, format='png')
+     
+    
+    def WriteAllGraphs(self, dirname):
+        """Writes all graphs to the given directory.
+        
+        Args:
+            dirname: the name of the directory to write to.
+        """
+        optimized_pathway.OptimizedPathway.WriteAllGraphs(self, dirname)
+        self.WriteProteinProfile(dirname)
+
 
 class FixedVariableInjector(object):
     
@@ -95,7 +139,9 @@ class EnzymeLevelFunc(object):
     def ApproximateDenom(dGr_tag):
         """Calculates the piecewise linear approximation of the
            denominator of our rate law.
-           
+        
+        DEPRECATED
+        
         Args:
             dGr_tag: a 1xM Numpy matrix of transformed reaction energies.
         
@@ -298,9 +344,11 @@ class ProteinOptimizer(object):
         logging.debug('Optimum meets constraints %s', final_constraints)
         logging.debug('Final optimization value: %.2g', final_func_value)
         
+        enzyme_levels = optimization_func.GetEnzymeLevels(ln_conc)
         ln_conc = injector(ln_conc)
         return ProteinCostOptimizedPathway(
             self._model, self._thermo, my_bounds,
-            optimal_value=optimum, optimal_ln_metabolite_concentrations=ln_conc)
+            optimal_value=optimum, optimal_ln_metabolite_concentrations=ln_conc,
+            protein_levels=enzyme_levels)
         
         

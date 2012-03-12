@@ -92,6 +92,7 @@ def Main():
             model, thermo_data, model_bounds)
         opt = protein_optimizer.ProteinOptimizer(model, thermo_data, kin_data)
         
+        """
         # Try a bunch of feasible solutions as starting points
         optima = []
         for feasible_concs in feasible_iter:
@@ -101,7 +102,7 @@ def Main():
             if status.IsSuccessful():
                 optima.append(result.opt_val)
                 
-        # Check that the optima are really close to eachother
+        # Check that the optima are really close to each other
         optima = np.array(optima)
         residuals = np.abs(optima - np.mean(optima))
         if (residuals > 1e-5).any():
@@ -109,7 +110,8 @@ def Main():
             print optima
         else:
             print '\t', pathway_data.name, 'optima are consistent'
-
+        """
+        
         # Now solve with the default initial conditions.
         result = opt.FindOptimum(model_bounds)
         status = result.status
@@ -132,7 +134,7 @@ def Main():
     print 'Writing output to', output_filename
     template_data = {'analysis_type': 'Protein Cost',
                      'results':results}
-    templates.render_to_file('pathway_optimization_results.html',
+    templates.render_to_file('protein_optimization_results.html',
                              template_data,
                              output_filename)
     
