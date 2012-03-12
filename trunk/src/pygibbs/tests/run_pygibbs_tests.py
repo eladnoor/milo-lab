@@ -12,6 +12,7 @@ from pygibbs.tests import group_decomposition_test
 from pygibbs.tests.metabolic_modelling import bounds_test
 from pygibbs.tests.metabolic_modelling import concentration_optimizer_test
 from pygibbs.tests.metabolic_modelling import feasible_concentrations_iterator_test
+from pygibbs.tests.metabolic_modelling import kinetic_data_test
 from pygibbs.tests.metabolic_modelling import mtdf_optimizer_test
 from pygibbs.tests.metabolic_modelling import protein_optimizer_test
 from pygibbs.tests.metabolic_modelling import stoich_model_test
@@ -27,6 +28,7 @@ def main():
                     bounds_test,
                     concentration_optimizer_test,
                     feasible_concentrations_iterator_test,
+                    kinetic_data_test,
                     mtdf_optimizer_test,
                     protein_optimizer_test,
                     stoich_model_test,

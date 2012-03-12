@@ -14,6 +14,7 @@ from toolbox import util
 LEGEND_FONT = FontProperties(size=8)
 RT = default_RT
 
+
 class OptimizationStatus(object):
     
     SUCCESSFUL = 0
@@ -86,27 +87,29 @@ class OptimizedPathway(object):
         self.reaction_ids = self.model.GetReactionIDs()
         self.fluxes = self.model.GetFluxes()
         
-        # Don't proceed...
-        if (self.ln_concentrations is None or
-            self.opt_val is None):
-            return
-        
-        self.concentrations = np.exp(self.ln_concentrations)
-        conc_correction = RT * self.ln_concentrations * self.S
-        self.dGr_tag = np.array(self.dGr0_tag + conc_correction)
-        self.dGr_tag_list = list(self.dGr_tag.flatten())
-        
-        bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)        
-        bio_correction = RT * np.dot(np.log(bio_concs), self.S)
-        self.dGr_bio = np.array(self.dGr0_tag + bio_correction)
-        self.dGr_bio_list = list(self.dGr_bio.flatten())
-    
+        self.slug_name = util.slugify(model.name)
+        self.pathway_graph_filename = '%s_graph.svg' % self.slug_name 
+        self.thermo_profile_filename = '%s_thermo_profile.png' % self.slug_name
         self.kegg = Kegg.getInstance()
         
-        slug_name = util.slugify(model.name)
-        self.pathway_graph_filename = '%s_graph.svg' % slug_name 
-        self.thermo_profile_filename = '%s_mtreturn optimizedf.png' % slug_name
-
+        self.concentrations = None
+        self.dGr_tag = None
+        self.dGr_tag_list = None
+        self.dGr_bio = None
+        self.dGr_bio_list = None
+        
+        if (self.ln_concentrations is not None and
+            self.dGr0_tag is not None):
+            self.concentrations = np.exp(self.ln_concentrations)
+            conc_correction = RT * self.ln_concentrations * self.S
+            self.dGr_tag = np.array(self.dGr0_tag + conc_correction)
+            self.dGr_tag_list = list(self.dGr_tag.flatten())
+            
+            bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)        
+            bio_correction = RT * np.dot(np.log(bio_concs), self.S)
+            self.dGr_bio = np.array(self.dGr0_tag + bio_correction)
+            self.dGr_bio_list = list(self.dGr_bio.flatten())
+        
     @staticmethod
     def CalcForwardFraction(dg_tag):
         """Computes the thermodynamic efficiency at a particular dG.
