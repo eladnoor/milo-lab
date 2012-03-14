@@ -11,6 +11,7 @@ from toolbox.html_writer import HtmlWriter
 from toolbox import util
 from pygibbs.thermodynamic_constants import symbol_df_G0_prime,\
     symbol_df_G_prime, symbol_dr_G_prime, symbol_dr_Gc_prime
+from pygibbs.kegg_reaction import Reaction
 
 class Pathologic(object):
     
@@ -36,12 +37,12 @@ class Pathologic(object):
                 MTDF. When set to 0, it is the usual feasibility measure.
             update_file: the file to read for KEGG updates.
         """
-        assert thermodynamic_method.lower() in OptimizationMethods.ALLOWED_METHODS
+        assert thermodynamic_method in OptimizationMethods.ALLOWED_METHODS
         
         util._mkdir('../res/pathologic')
         
         self.html_writer = html_writer
-        self.thermodynamic_method = thermodynamic_method.lower()
+        self.thermodynamic_method = thermodynamic_method
         self.max_reactions = max_reactions
         self.max_solutions = max_solutions
         self.maximal_dG = maximal_dG
@@ -81,36 +82,16 @@ class Pathologic(object):
 
         exp_html.insert_toggle(div_id="__parameters__", start_here=True,
                                label='Show Parameters')
-        exp_html.write('<h2>Thermodynamic constraints:</h2> ')
-        if self.thermodynamic_method == OptimizationMethods.NONE:
-            exp_html.write("ignore thermodynamics")
-        elif self.thermodynamic_method == OptimizationMethods.PCR:
-            exp_html.write("Concentration Range Requirement Analysis, Cmid = %g M"
-                           % self.thermo.c_mid)
-        elif self.thermodynamic_method == OptimizationMethods.MTDF:
-            exp_html.write("Optimized Distributed Bottleneck, %g M < C < %g M"
-                           % self.thermo.c_range)
-        elif self.thermodynamic_method == OptimizationMethods.MAX_TOTAL:
-            exp_html.write("Maximal Total Gibbs energy, %g M < C < %g M"
-                           % self.thermo.c_range)
-        elif self.thermodynamic_method == OptimizationMethods.GLOBAL:
-            exp_html.write("Global constraints, %g M < C < %g M, dG < %.1f" %
-                           (self.thermo.c_range[0], self.thermo.c_range[1], self.maximal_dG))
-        elif self.thermodynamic_method == OptimizationMethods.LOCALIZED:
-            exp_html.write("Localized bottlenecks, %g M < C < %g M"
-                           % self.thermo.c_range)
-        else:
-            raise Exception("thermodynamic_method must be one of %s" %
-                            OptimizationMethods.ALLOWED_METHODS)
-        exp_html.write('<br>\n')
         
         f, S, compounds, reactions = self.kegg_patholotic.get_unique_cids_and_reactions()
 
         exp_html.write('<h2>Conditions:</h2>\n')
-        exp_html.write_ul(['pH = %g' % self.thermo.pH,
+        exp_html.write_ul(['Optimization method: %s' % self.thermodynamic_method,
+                           'Concentration range: %g M < C < %g M' % (self.thermo.c_range[0], self.thermo.c_range[1]),
+                           "Max &Delta;<sub>r</sub>G' = %.1f" % self.maximal_dG,
+                           'pH = %g' % self.thermo.pH,
                            'I = %g' % self.thermo.I,
                            'T = %g' % self.thermo.T,
-                           "Max &Delta;<sub>r</sub>G' = %.1f" % self.maximal_dG,
                            'Max no. reactions: %d' % (self.max_reactions or -1),
                            'Max no. solutions: %d' % (self.max_solutions or -1),
                            'Overall Reaction: %s' % net_reaction.to_hypertext(),
@@ -146,7 +127,7 @@ class Pathologic(object):
         logging.info("writing solution")
         self.write_current_solution(exp_html, slip, experiment_name)
 
-        logging.info("Preparing MILP solver for the minimal no. reaction problem")
+        logging.info("Preparing MILP solver")
         milp = Stoichiometric_LP("Pathologic")
         milp.solution_index = 1
         milp.add_stoichiometric_constraints(f, S, compounds, reactions, net_reaction)
@@ -199,54 +180,47 @@ class Pathologic(object):
         if solution.concentrations is not None:
             exp_html.insert_toggle(start_here=True)
             
-            exp_html.write('Compound Concentrations<br>\n')
             rowdicts = []
             for c, compound in enumerate(solution.compounds):
-                rowdict = {'KEGG ID':'<a href="%s">C%05d</a>' %
-                           (compound.get_link(), compound.cid),
-                           'Compound':compound.name}
+                rowdict = {}
+                rowdict['KEGG ID'] = '<a href="%s">C%05d</a>' % (compound.get_link(), compound.cid)
+                rowdict['Compound'] = compound.name
+                rowdict[symbol_df_G0_prime + "[kJ/mol]"] = solution.dG0_f[0, c]
+                rowdict[symbol_df_G_prime + "[kJ/mol]"] = solution.dG_f[0, c]
+
                 if np.isfinite(solution.concentrations[0, c]):
-                    rowdict[symbol_df_G0_prime + "[kJ/mol]"] = '%.1f' % solution.dG0_f[0, c]
-                    rowdict['Conc. [M]'] = '%.2g' % solution.concentrations[0, c]
+                    rowdict['Conc. [M]'] = '%.1e' % solution.concentrations[0, c]
                 else:
-                    rowdict[symbol_df_G0_prime + "[kJ/mol]"] = 'N/A'
                     rowdict['Conc. [M]'] = 'N/A'
-                rowdict[symbol_df_G_prime + "[kJ/mol]"] = '%.1f' % solution.dG_f[0, c]
                 rowdicts.append(rowdict)
-            exp_html.write_table(rowdicts,
-                headers=['KEGG ID', 'Compound',
-                         symbol_df_G0_prime + "[kJ/mol]",
-                         symbol_df_G_prime + "[kJ/mol]",
-                         'Conc. [M]'])
             
-            exp_html.write('Reaction Gibbs energies<br>\n')
+            headers=['KEGG ID', 'Compound', symbol_df_G0_prime + "[kJ/mol]",
+                     symbol_df_G_prime + "[kJ/mol]", 'Conc. [M]']
+            exp_html.write('Compound Concentrations<br>\n')
+            exp_html.write_table(rowdicts, headers, decimal=1)
+
+            total_reaction = Reaction('total', {})
             rowdicts = []
             for r, reaction in enumerate(solution.reactions):
-                rowdict = {'KEGG ID':'<a href="%s">R%05d</a>' %
-                           (reaction.get_link(), reaction.rid),
-                           'Reaction':reaction.to_hypertext(show_cids=False)}
-                
-                if np.isfinite(solution.dGc_r[0, r]):
-                    rowdict[symbol_dr_Gc_prime + "[kJ/mol]"] = '%.1f' % solution.dGc_r[0, r]
-                else:
-                    rowdict[symbol_dr_Gc_prime + "[kJ/mol]"] = 'N/A'
-
-                if np.isfinite(solution.dG_r[0, r]):
-                    rowdict[symbol_dr_G_prime + "[kJ/mol]"] = '%.1f' % solution.dG_r[0, r]
-                else:
-                    rowdict[symbol_dr_G_prime + "[kJ/mol]"] = 'N/A'
-
+                rowdict = {}
+                rowdict['KEGG ID'] = '<a href="%s">R%05d</a>' % (reaction.get_link(), reaction.rid)
+                rowdict['Reaction'] = reaction.to_hypertext(show_cids=False)
+                rowdict[symbol_dr_Gc_prime + "[kJ/mol]"] = solution.dGc_r[0, r]
+                rowdict[symbol_dr_G_prime + "[kJ/mol]"] = solution.dG_r[0, r]
                 rowdicts.append(rowdict)
+                total_reaction += reaction
             
-            rowdict = {'KEGG ID': 'total',
-                       'Reaction': 'TODO',
-                       symbol_dr_Gc_prime + "[kJ/mol]": float(solution.dGc_r.sum(1)),
-                       symbol_dr_G_prime + "[kJ/mol]": float(solution.dG_r.sum(1))}
+            rowdict = {}
+            rowdict['KEGG ID'] = 'total'
+            rowdict['Reaction'] = total_reaction.to_hypertext(show_cids=False)
+            rowdict[symbol_dr_Gc_prime + "[kJ/mol]"] = float(solution.dGc_r.sum(1))
+            rowdict[symbol_dr_G_prime + "[kJ/mol]"] = float(solution.dG_r.sum(1))
+            rowdicts.append(rowdict)
             
-            exp_html.write_table(rowdicts, 
-                headers=['KEGG ID', 'Reaction',
-                         symbol_dr_Gc_prime + "[kJ/mol]",
-                         symbol_dr_G_prime + "[kJ/mol]"])
+            headers=['KEGG ID', 'Reaction', symbol_dr_Gc_prime + "[kJ/mol]",
+                     symbol_dr_G_prime + "[kJ/mol]"]
+            exp_html.write('Reaction Gibbs energies<br>\n')
+            exp_html.write_table(rowdicts, headers, decimal=1)
 
             exp_html.div_end()
 

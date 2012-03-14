@@ -6,7 +6,7 @@ class OptimizationMethods(object):
     NONE = 'none'
     PCR = 'pcr'
     MTDF = 'mtdf'
-    MAX_TOTAL = 'max_total'
+    MAX_TOTAL = 'max_total_dGc'
     GLOBAL = 'global'
     LOCALIZED = 'localized'
     
@@ -26,11 +26,6 @@ class StoichiometricSolution(object):
         self.dG0_f = None
         self.dG_f = None
         
-        self.total_reaction = None
-        self.total_dG0_r = None
-        self.total_dGc_r = None
-        self.total_dG_r = None
-
 class Stoichiometric_LP(object):
     
     def __init__(self, name='Stoichiometric_LP', log_file=None):
@@ -48,9 +43,11 @@ class Stoichiometric_LP(object):
         self.formation_vars = None
         self.pCr = None
         self.mtdf = None
-        self.total_dG = None
+        self.total_dGc = None
         
         self.cids = None
+        self.physiological_conc = None
+
         self.dG0_f = None
         self.dG_r = None
         self.dG0_r = None
@@ -78,6 +75,10 @@ class Stoichiometric_LP(object):
         assert S.shape[1] == len(self.reactions)
 
         self.cids = [c.cid for c in self.compounds]
+
+        self.physiological_conc = np.matrix(np.ones((1, len(self.compounds)))) * default_c_mid
+        if 1 in self.cids:
+            self.physiological_conc[0, self.cids.index(1)] = 1 # [H2O] must be set to 1 in any case
         
         # reaction fluxes are the continuous variables
         self.flux_vars = pulp.LpVariable.dicts("Flux",
@@ -88,7 +89,7 @@ class Stoichiometric_LP(object):
 
         # add a linear constraint on the fluxes for each compound (mass balance)
         for c, compound in enumerate(self.compounds):
-            reactions_with_c = np.nonzero(self.S[c, :])[0]
+            reactions_with_c = list(np.nonzero(self.S[c, :])[1].flat)
             if len(reactions_with_c) == 0:
                 continue
             
@@ -159,11 +160,6 @@ class Stoichiometric_LP(object):
             self.prob.setObjective(self.mtdf)
             maximal_dG = self.mtdf
         
-        if optimization == OptimizationMethods.MAX_TOTAL:
-            self.total_dG = pulp.LpVariable("total_dG", lowBound=-1e6, upBound=1e6,
-                                            cat=pulp.LpContinuous)
-            self.prob.setObjective(self.total_dG)
-        
         self.formation_vars = pulp.LpVariable.dicts("Formation",
             ["C%05d" % cid for cid in self.cids],
             lowBound=1e-6,
@@ -185,13 +181,13 @@ class Stoichiometric_LP(object):
             c_min, c_max = thermo.cid_to_bounds(cid, use_default=False)
                 
             dG0_mid = dG0 + self.RT * np.log(thermo.c_mid)
-            if self.pCr is not None and c_min is None:
+            if optimization == OptimizationMethods.PCR and c_min is None:
                 self.prob.addConstraint(c_var >= dG0_mid - self.RT * self.pCr,
                                         "C%05d_conc_minimum" % cid)
             else:
                 c_var.lowBound = dG0 + self.RT * np.log(c_min or thermo.c_range[0])
                 
-            if self.pCr is not None and c_max is None:
+            if optimization == OptimizationMethods.PCR and c_max is None:
                 self.prob.addConstraint(c_var <= dG0_mid + self.RT * self.pCr,
                                         "C%05d_conc_maximum" % cid)
             else:
@@ -204,17 +200,15 @@ class Stoichiometric_LP(object):
             self.prob.addConstraint(dG_r <= maximal_dG + 1e6*(1 - self.gamma_vars[r.name]),
                                     r.name + "_thermo")
 
-        if self.total_dG is not None:
+        if optimization == OptimizationMethods.MAX_TOTAL:
+            dG0_r = thermo.GetTransfromedReactionEnergies(self.S, self.cids)
+            dG0_c = dG0_r + self.RT * np.log(self.physiological_conc) * self.S
             dG_flux_list = []
-            for r in self.reactions:
-                dG_r = pulp.lpSum([self.formation_vars['C%05d' % cid]*coeff
-                                   for cid, coeff in r.sparse.iteritems()])
-                
-                self.prob.addConstraint(dG_r <= maximal_dG + 1e6*(1 - self.gamma_vars[r.name]),
-                                        r.name + "_thermo")
-                dG_flux_list.append(dG_r * self.flux_vars[r.name])
-            self.prob.addConstraint(self.total_dG <= pulp.lpSum(dG_flux_list), 'total_dG')
-            
+            for r, reaction in enumerate(self.reactions):
+                if np.isfinite(dG0_c[0, r]):
+                    dG_flux_list.append(-dG0_c[0, r] * self.flux_vars[reaction.name])
+            self.prob.setObjective(pulp.lpSum(dG_flux_list))
+
     def add_localized_dGf_constraints(self, thermo):
         for r in self.reactions:
             dG0_r = thermo.GetTransfromedKeggReactionEnergies([r])[0, 0]
@@ -267,10 +261,7 @@ class Stoichiometric_LP(object):
                     self.dG0_r[0, r] += coeff * self.dG0_f[0, c]
                     self.dG_r[0, r] += coeff * self.dG_f[0, c]
                     
-            phys_conc = np.matrix(np.ones((1, len(self.compounds)))) * default_c_mid
-            if 1 in self.cids:
-                phys_conc[0, self.cids.index(1)] = 1 # [H2O] must be set to 1 in any case
-            self.dGc_r = self.dG0_r + self.RT * np.log(phys_conc) * self.S
+            self.dGc_r = self.dG0_r + self.RT * np.log(self.physiological_conc) * self.S
         
         return True
 
@@ -336,6 +327,6 @@ class Stoichiometric_LP(object):
             solution.dG0_r = self.dG0_r[:, active_r]
             solution.dG_r = self.dG_r[:, active_r]
             solution.dGc_r = self.dGc_r[:, active_r]
-        
+            
         return solution
 

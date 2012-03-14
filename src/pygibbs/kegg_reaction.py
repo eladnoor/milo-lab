@@ -30,6 +30,23 @@ class Reaction(object):
         self.definition = None
         self.equation = None
         self.ec_list = ['-.-.-.-']
+        
+    def __iadd__(self, other):
+        for cid in other.sparse.keys():
+            if cid in self.sparse:
+                self.sparse[cid] += other.sparse[cid]
+            else:
+                self.sparse[cid] = other.sparse[cid]
+        
+        zero_cids = [cid for cid in self.sparse.keys() if self.sparse[cid] == 0]
+        for cid in zero_cids:
+            del self.sparse[cid]
+        return self
+    
+    def __add__(self, r1, r2):
+        r = r1.clone()
+        r += r2
+        return r
 
     def SetNames(self, names):
         if type(names) == types.ListType:
