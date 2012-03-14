@@ -290,3 +290,5 @@ erythro-3-hydroxyaspartate,19838,yes,
 "h4pteglu4",1217,yes,
 "cytochrome c",125,yes,
 "reduced cytochrome c",126,yes,
+"oxidized Methyl viologen",225,yes,"InChI=1S/C12H16N2/c1-13-7-3-11(4-8-13)12-5-9-14(2)10-6-12/h3-5,7-10,12H,6H2,1-2H3/q+2"
+"reduced Methyl viologen",80067,no,

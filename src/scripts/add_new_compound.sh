@@ -8,8 +8,8 @@ read text
 if [ $text == 'Y' ]; then
     python pygibbs/kegg.py
     python pygibbs/dissociation_constants.py -k
-    python pygibbs/groups.py -e
-    python pygibbs/scripts/export_kegg_data.py
+    python pygibbs/unified_group_contribution.py -g -o -v -m -t
+    python pygibbs/scripts/export_kegg_data.py -s UGC
     pushd equilibrator
     cp -f ../../res/kegg_compounds.json.gz data/kegg_compounds.json.gz
     python manage.py flush --noinput
