@@ -28,7 +28,11 @@
         "name": "CRC Biochemistry (2010)"
     },
     {
-        "ref": "Noor E, Bar-even A, Flamholz AI, et al. An integrated open framework for thermodynamics of biochemical reactions that combines accuracy and coverage. 2011.",
+        "ref": "Noor E, Bar-Even A, Flamholz AI, et al. An integrated open framework for thermodynamics of biochemical reactions that combines accuracy and coverage. (unpublished)",
         "name": "Group Contribution"
+    },
+    {
+        "ref": "Noor E, Bar-Even A, Flamholz AI, et al. The Unified Group Contribution Method. (unpublished)",
+        "name": "Unified Group Contribution"
     }
 ]
