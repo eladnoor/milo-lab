@@ -1298,7 +1298,7 @@ class KeggPathologic(object):
 
         Nreactions = len(all_reactions)
         f = []
-        S = pylab.zeros((Ncompounds, Nreactions))
+        S = pylab.matrix(pylab.zeros((Ncompounds, Nreactions)))
 
         # Create the columns, name the reactions (RID) in the stoichiometric matrix
         for r, reaction in enumerate(all_reactions):

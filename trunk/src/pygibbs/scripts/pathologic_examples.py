@@ -5,6 +5,7 @@ from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
 import sys
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
+from pygibbs.stoichiometric_lp import OptimizationMethods
 
 def add_cofactor_reactions(pl, NAD_only=False):
     pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
@@ -77,7 +78,7 @@ def example_lower_glycolysis(thermo):
                     max_solutions=None,
                     max_reactions=8,
                     maximal_dG=0.0,
-                    thermodynamic_method='global',
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
                     update_file=None)
     add_cofactor_reactions(pl)
     #r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
@@ -91,9 +92,9 @@ def example_oxidative(thermo):
                     html_writer=HtmlWriter('../res/pathologic.html'),
                     thermo=thermo,
                     max_solutions=None,
-                    max_reactions=20,
+                    max_reactions=10,
                     maximal_dG=0,
-                    thermodynamic_method='global',
+                    thermodynamic_method=OptimizationMethods.MAX_TOTAL,
                     update_file=None)
     add_cofactor_reactions(pl, NAD_only=False)
     r = Reaction.FromFormula("C00022 => 3 C00011")
@@ -108,7 +109,7 @@ def example_reductive(thermo):
                     max_solutions=None,
                     max_reactions=15,
                     maximal_dG=0.0,
-                    thermodynamic_method='global',
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
                     update_file=None)
     add_cofactor_reactions(pl)
     r = Reaction.FromFormula("3 C00011 => C00022")
