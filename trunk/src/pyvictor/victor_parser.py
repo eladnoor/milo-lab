@@ -14,6 +14,8 @@ class VictorParser():
         self.data = []
         self.measurement_names = []
         self.plate = {}
+        
+        self.reading_label_map = {'Absorbance @ 600 (1.0s) (A)': 'OD600'}
     
     def parse_excel(self, fname):
         if (not os.path.exists(fname)):
@@ -32,8 +34,11 @@ class VictorParser():
         titles = sheet.row_values(0) # [Plate, Repeat, Well, Type] + [Time, Measurement] * n
         self.measurement_names = []
         for c in range(5, len(titles), 2):
-            if (titles[c] not in self.measurement_names):
-                self.measurement_names.append(str(titles[c]))
+            m_name = str(titles[c])
+            if m_name in self.reading_label_map:
+                m_name = self.reading_label_map[m_name]
+            if titles[c] not in self.measurement_names:
+                self.measurement_names.append(m_name)
         
         for m_name in self.measurement_names:
             self.plate[m_name] = {}
@@ -53,6 +58,8 @@ class VictorParser():
                     time = float(row[c]) * 24 # convert days to hours
                     value = float(row[c+1])
                     m_name = str(titles[c+1])
+                    if m_name in self.reading_label_map:
+                        m_name = self.reading_label_map[m_name]
                     self.plate[m_name][(well_row, well_col)].append((time, value))
                 except ValueError:
                     continue

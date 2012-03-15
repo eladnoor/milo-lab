@@ -76,10 +76,10 @@ def main():
     
     desc = "Imported from Victor on " + GetTimeString()
     db.Insert('tecan_experiments', [exp_id, desc])
-    db.Insert('tecan_plates', [exp_id, options.plate_id, desc, None, None])
+    db.Insert('tecan_plates', [exp_id, options.plate_id, "", None, None])
     vp.write_to_database(db, exp_id)
     db.Commit()
-    print "Done!"
+    print "Done, go check out the results at http://eladpc1/RoboSite/Exp/%s/0" % exp_id
     
 if __name__ == '__main__':
     main()
