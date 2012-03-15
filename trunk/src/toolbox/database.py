@@ -278,8 +278,15 @@ class MySQLDatabase(SQLDatabase):
             raise e
 
     def Insert(self, table_name, l):
-        sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, 
-                            ','.join(["'" + str(x) + "'" for x in l]))
+        str_l = []
+        for x in l:
+            if x is None:
+                str_l.append('NULL')
+            else:
+                str_l.append("'" + str(x) + "'")
+        values = ','.join(str_l)
+        
+        sql_command = "INSERT INTO %s VALUES(%s)" % (table_name, values)
         return self.Execute(sql_command)
         
     def Commit(self):
