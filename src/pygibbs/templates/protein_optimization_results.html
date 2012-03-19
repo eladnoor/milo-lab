@@ -92,24 +92,14 @@
 				</table>
 			</div>
 			
-			{% if result.thermo_profile_filename != None %}
-			<div class="pathwayGraph">
-				<img src="pathway_graphs/{{ result.thermo_profile_filename }}" />
-			</div>
-			{% endif %}
 			{% if result.protein_level_filename != None %}
 			<div class="pathwayGraph">
 				<img src="pathway_graphs/{{ result.protein_level_filename }}" />
 			</div>
 			{% endif %}
-			{% if result.pathway_graph_filename != None %}
-			<div class="pathwayGraph">
-				<object data="pathway_graphs/{{result.pathway_graph_filename}}"
-					    type="image/svg+xml" width=480 height=800
-					    name="{{result.model.name}}" frameborder="0"
-					    marginwidth="0" marginheight="0"/></object>
-			</div>
-			{% endif %}
+			{% include "default_pathway_figures.html" %}
+			
+			
 		</div>
 	{% endfor %}
 	</body>

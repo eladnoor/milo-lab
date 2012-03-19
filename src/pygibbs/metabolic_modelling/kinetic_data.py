@@ -116,4 +116,3 @@ class UniformKineticData(BaseKineticData):
         N = len(reaction_ids)
         return np.matrix(np.ones((M,N))) * self.km
     
-    

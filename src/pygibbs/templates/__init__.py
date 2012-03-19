@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
+from django.conf import settings
+
+settings.configure(TEMPLATE_DIRS=('pygibbs/templates',))
+
 import os.path
 
-from django import template
-from django.conf import settings
+from django.template import loader, Context
 from toolbox import util
 
-settings.configure()
+
 
 def render_to_string(template_name, data=None):
     """Renders a template of the given name to a string.
@@ -18,11 +21,9 @@ def render_to_string(template_name, data=None):
     Returns:
         The string of the rendered template.
     """
-    template_filename = os.path.abspath('pygibbs/templates/' + template_name)
     my_data = data or {}
-    
-    c = template.Context(my_data)
-    t = template.Template(open(template_filename).read())
+    c = Context(my_data)
+    t = loader.get_template(template_name)
     return t.render(c)
 
 def render_to_file(template_name, data, output_filename):
