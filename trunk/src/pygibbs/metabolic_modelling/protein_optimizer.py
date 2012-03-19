@@ -30,10 +30,11 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
     OPT_UNITS = "Protein Units / Pathway Flux Units"
     
     def __init__(self, *args, **kwargs):
-        self.protein_levels = kwargs.get('protein_levels')
-        if 'protein_levels' in kwargs:
-            del kwargs['protein_levels']
-        
+        self.protein_levels = kwargs.pop('protein_levels', None)
+        self.max_rate_factors = kwargs.pop('max_rate_factors', None)
+        self.kinetic_factors = kwargs.pop('kinetic_factors', None)
+        self.thermo_factors = kwargs.pop('thermo_factors', None)        
+
         optimized_pathway.OptimizedPathway.__init__(self, *args,
                                                     **kwargs)
         
@@ -47,16 +48,40 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
         Args:
             dirname: the name of the directory to write it to.
         """
+        if (self.protein_levels is None or
+            self.max_rate_factors is None or 
+            self.kinetic_factors is None or
+            self.thermo_factors is None):
+            self.protein_level_filename = None
+            return
+        
         pylab.figure()
         
         pylab.yscale('log')
         rxn_range = pylab.arange(len(self.reaction_ids))
-        flat_levels = list(self.protein_levels.flat)
-                
-        pylab.bar(rxn_range, flat_levels, label='Protein levels')
+        flat_max_rate = np.array(self.max_rate_factors.flat)
+        flat_kinetics = np.array(self.kinetic_factors.flat)
+        flat_thermo = np.array(self.thermo_factors.flat)
+        
+        first_height = flat_max_rate
+        second_height = flat_max_rate * flat_kinetics
+        third_height = flat_max_rate * flat_kinetics * flat_thermo        
+        
+        bottom_rung = first_height
+        second_rung = second_height - first_height
+        third_rung = third_height - second_height
+
+        pylab.bar(rxn_range, bottom_rung, color='b',
+                  label='Due to maximal rate')
+        pylab.bar(rxn_range, second_rung, bottom=first_height, color='g',
+                  label='Kinetic penalty')
+        pylab.bar(rxn_range, third_rung, bottom=second_height, color='c',
+                  label='Thermodynamic penalty')
+        
         pylab.xticks(rxn_range + 0.5, self.reaction_ids)
         pylab.xlabel('Reaction Step')
         pylab.ylabel('Protein Units')
+        pylab.legend(loc='upper left', prop=LEGEND_FONT)
         
         outfname = path.join(dirname, self.protein_level_filename)
         pylab.savefig(outfname, format='png')
@@ -130,11 +155,27 @@ class EnzymeLevelFunc(object):
         self.Nr, self.Nc = self.S.shape
     
     @staticmethod
-    def ExactDenom(dGr_tag):
+    def Denom(dGr_tag):
         """Calculates the exact denominator."""
         denom = 1 - np.exp(dGr_tag/RT)
         return denom
     
+    def MaximalRateFactor(self):
+        return self.scaled_fluxes
+    
+    def ThermoFactor(self, full_x):
+        dgtag = self.dG0 + RT * full_x * self.S
+        if (dgtag >= 0).any():
+            return np.matrix(np.ones(dgtag.shape) * 1e6) 
+        return 1.0 / self.Denom(dgtag)
+    
+    def KineticFactor(self, full_x):
+        x_exp = np.matrix(np.exp(full_x))
+        scaled_kms = self.km / x_exp.T
+        exponentiated = np.power(scaled_kms, self.m_plus)
+        prods = np.prod(exponentiated, axis=0)
+        return 1 + prods
+            
     @staticmethod
     def ApproximateDenom(dGr_tag):
         """Calculates the piecewise linear approximation of the
@@ -156,25 +197,16 @@ class EnzymeLevelFunc(object):
     def GetEnzymeLevels(self, x):
         """Get the modeled enzyme levels given concentrations."""
         my_x = self.injector(x)
-        x_exp = np.matrix(np.exp(my_x))
         
-        dgtag = self.dG0 + RT * my_x * self.S
-        if (dgtag >= 0).any():
-            return 1e6
-                
-        #linearized_denom = self.ApproximateDenom(dgtag)
-        linearized_denom = self.ExactDenom(dgtag)
+        maximal_rate_factor = self.MaximalRateFactor()
+        kinetic_factor = self.KineticFactor(my_x)
+        thermo_factor = self.ThermoFactor(my_x)
         
-        scaled_kms = self.km / x_exp.T
-        exponentiated = np.power(scaled_kms, self.m_plus)
-        prods = np.prod(exponentiated, axis=0)
-        numer = 1 + prods
-        scaled_numers = np.multiply(self.scaled_fluxes, numer)
-        
-        inverted_denom = 1 / linearized_denom
-        levels = np.multiply(scaled_numers, inverted_denom)
+        levels = np.multiply(
+            np.multiply(maximal_rate_factor, kinetic_factor),
+            thermo_factor)
         return levels
-    
+        
     def __call__(self, x):
         levels = self.GetEnzymeLevels(x)
         return np.sum(levels)
@@ -344,11 +376,20 @@ class ProteinOptimizer(object):
         logging.debug('Optimum meets constraints %s', final_constraints)
         logging.debug('Final optimization value: %.2g', final_func_value)
         
+        
         enzyme_levels = optimization_func.GetEnzymeLevels(ln_conc)
         ln_conc = injector(ln_conc)
+        max_rate_factors = optimization_func.MaximalRateFactor()
+        kinetic_factors = optimization_func.KineticFactor(ln_conc)
+        thermo_factors = optimization_func.ThermoFactor(ln_conc)
+        
         return ProteinCostOptimizedPathway(
             self._model, self._thermo, my_bounds,
-            optimal_value=optimum, optimal_ln_metabolite_concentrations=ln_conc,
-            protein_levels=enzyme_levels)
+            optimal_value=optimum,
+            optimal_ln_metabolite_concentrations=ln_conc,
+            protein_levels=enzyme_levels,
+            max_rate_factors=max_rate_factors,
+            kinetic_factors=kinetic_factors,
+            thermo_factors=thermo_factors)
         
         

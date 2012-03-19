@@ -12,6 +12,7 @@ from pygibbs.thermodynamic_constants import default_RT
 from toolbox import util
 
 LEGEND_FONT = FontProperties(size=8)
+TICK_FONT = FontProperties(size=8)
 RT = default_RT
 
 
@@ -76,6 +77,7 @@ class OptimizedPathway(object):
         self.thermo = thermodynamic_data
         self.bounds = metabolite_concentration_bounds
         self.S = model.GetStoichiometricMatrix()
+        self.Ncompounds, self.Nreactions = self.S.shape
         self.status = optimization_status
         self.opt_val = optimal_value
         self.ln_concentrations = optimal_ln_metabolite_concentrations
@@ -90,6 +92,7 @@ class OptimizedPathway(object):
         self.slug_name = util.slugify(model.name)
         self.pathway_graph_filename = '%s_graph.svg' % self.slug_name 
         self.thermo_profile_filename = '%s_thermo_profile.png' % self.slug_name
+        self.conc_profile_filename = '%s_conc_profile.png' % self.slug_name
         self.kegg = Kegg.getInstance()
         
         self.concentrations = None
@@ -128,6 +131,50 @@ class OptimizedPathway(object):
     def GetOptimizationUnits(self):
         return self.OPT_UNITS
     optimization_units = property(GetOptimizationUnits)
+
+    def WriteConcProfile(self, dirname):
+        """Writes the thermodynamic profile graph.
+        
+        Writes to "dirname/self.thermo_profile_filename".
+        
+        Args:
+            dirname: the name of the directory to write it to.
+        """
+        pylab.figure()
+        pylab.xscale('log')
+        pylab.ylabel('Compound KEGG ID')
+        pylab.xlabel('Concentration [M]')
+        pylab.yticks(range(self.Ncompounds, 0, -1),
+                     ["C%05d" % cid for cid in self.compound_ids],
+                     fontproperties=TICK_FONT)
+        flat_concs = np.array(self.concentrations.flat)
+        pylab.plot(flat_concs,
+                   range(self.Ncompounds, 0, -1), '*b')
+
+        x_min = self.concentrations.min() / 10
+        x_max = self.concentrations.max() * 10
+        y_min = 0
+        y_max = self.Ncompounds + 1
+        
+        for c, cid in enumerate(self.compound_ids):
+            y_val = self.Ncompounds - c
+            pylab.text(self.concentrations[0, c] * 1.1,
+                       y_val, self.kegg.cid2name(cid),
+                       fontsize=6, rotation=0)
+            
+            b_low = self.bounds.GetLowerBound(cid)
+            b_up = self.bounds.GetUpperBound(cid)
+            pylab.plot([b_low, b_up], [y_val, y_val],
+                       '-k', linewidth=0.4)
+
+        c_range = self.bounds.GetRange()
+        if c_range is not None:
+            pylab.axvspan(c_range[0], c_range[1],
+                          facecolor='r', alpha=0.3)
+        pylab.axis([x_min, x_max, y_min, y_max])
+        
+        outfname = path.join(dirname, self.conc_profile_filename)
+        pylab.savefig(outfname, format='png')
 
     def WriteThermoProfile(self, dirname):
         """Writes the thermodynamic profile graph.
@@ -176,6 +223,7 @@ class OptimizedPathway(object):
         """
         self.WriteThermoProfile(dirname)
         self.WritePathwayGraph(dirname)
+        self.WriteConcProfile(dirname)
     
     def MakeReaction(self, rid, vec):
         sparse_reaction = {}

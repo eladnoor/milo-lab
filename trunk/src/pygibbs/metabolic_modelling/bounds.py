@@ -12,6 +12,10 @@ class BaseBounds(object):
         """Returns a (deep) copy of self."""
         raise NotImplementedError
 
+    def GetRange(self):
+        """Returns a 2-tuple of the concentration range."""
+        return None
+
     def GetLowerBound(self, key):
         """Get the lower bound for this key.
         
@@ -68,7 +72,6 @@ class BaseBounds(object):
         a = np.array(res)
         return a.reshape(1, len(res))
         
-
     def GetLnBounds(self, keys):
         """Get the bounds for a set of keys in order.
         
@@ -127,11 +130,17 @@ class ExplicitBounds(BaseBounds):
         ub_keys = set(self.upper_bounds.keys())
         assert lb_keys == ub_keys
 
+        self.c_range = (np.min(self.lower_bounds), np.max(self.upper_bounds))
+
     def Copy(self):
         """Returns a deep copy of self."""
         new_lb = deepcopy(self.lower_bounds)
         new_ub = deepcopy(self.upper_bounds)
         return ExplicitBounds(new_lb, new_ub)
+
+    def GetRange(self):
+        """Returns a 2-tuple of the concentration range."""
+        return self.c_range
 
     def GetLowerBound(self, key):
         """Get the lower bound for this key.
@@ -178,6 +187,8 @@ class Bounds(BaseBounds):
         self.default_lb = default_lb
         self.default_ub = default_ub
         
+        self.c_range = (self.default_lb, self.default_ub)
+        
     def Copy(self):
         """Returns a deep copy of self."""
         new_lb = deepcopy(self.lower_bounds)
@@ -185,7 +196,11 @@ class Bounds(BaseBounds):
         return Bounds(new_lb, new_ub,
                       self.default_lb,
                       self.default_ub)
-    
+        
+    def GetRange(self):
+        """Returns a 2-tuple of the concentration range."""
+        return self.c_range
+
     def GetLowerBound(self, key):
         """Get the lower bound for this key.
         
