@@ -18,8 +18,8 @@ def ReactionGraph(request):
         mode = 'varyIs'
 
     rxn = reaction.Reaction.FromForm(form)
-    reactant_data = json.dumps([c.ToJson() for c in rxn.reactants])
-    product_data = json.dumps([c.ToJson() for c in rxn.products])
+    reactant_data = json.dumps([c.ToJson() for c in rxn.filtered_reactants])
+    product_data = json.dumps([c.ToJson() for c in rxn.filtered_products])
     template_data = {"reactant_data": reactant_data,
                      "product_data": product_data,
                      "mode": mode,

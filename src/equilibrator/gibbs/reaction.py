@@ -123,6 +123,8 @@ class Reaction(object):
         """
         self.reactants = self._FilterZeroes(reactants or [])
         self.products = self._FilterZeroes(products or [])
+        self.filtered_reactants = self._FilterHydrogen(self.reactants)
+        self.filtered_products = self._FilterHydrogen(self.products)
         self.ph = pH
         self.pmg = pMg
         self.i_s = ionic_strength
@@ -907,7 +909,7 @@ class Reaction(object):
         return None
 
     def AllCompoundsWithTransformedEnergies(self):
-        for c_w_coeff in self.reactants + self.products:
+        for c_w_coeff in self.filtered_reactants + self.filtered_products:
             dgt = c_w_coeff.compound.DeltaG(pH=self.ph,
                                             pMg=self.pmg,
                                             ionic_strength=self.i_s)

@@ -185,7 +185,7 @@ class Matcher(object):
         """
         # Filter matches without data or beneath the score limit. 
         f = lambda match: (match.score >= self._min_score and
-                           match.value and match.value.HasData())
+                           match.value)
         filtered = filter(f, matches)
         
         # Take only unique matches.
