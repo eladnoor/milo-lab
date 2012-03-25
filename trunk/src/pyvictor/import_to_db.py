@@ -6,7 +6,7 @@ from pyvictor.victor_parser import VictorParser
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
-    opt_parser = OptionParser(usage="usage: %prog [options] xls_fname")
+    opt_parser = OptionParser(usage="usage: %prog [options]")
     opt_parser.add_option("-o", "--host",
                           dest="host",
                           default="hldbv02",
