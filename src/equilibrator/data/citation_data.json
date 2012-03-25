@@ -34,5 +34,10 @@
     {
         "ref": "Noor E, Bar-Even A, Flamholz AI, et al. The Unified Group Contribution Method. (unpublished)",
         "name": "Unified Group Contribution"
+    },
+    {
+        "ref": "Saeki, K., T. Haruna, T. Kakuno, J. Yamashita, and T. Horio. 1986. A novel FAD-protein that allows effective reduction of methyl viologen by NADH (NADH-methyl viologen reductase) from photosynthetic bacterium, Rhodospirillum rubrum: purification and characterization. Journal of biochemistry. 99: 423-35.",
+        "name": "Saeki (1985)"
     }
+    
 ]

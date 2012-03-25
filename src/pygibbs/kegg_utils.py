@@ -11,7 +11,7 @@ from pygibbs.thermodynamic_constants import default_I, default_pH, default_T
 def write_kegg_pathway_to_html(html_writer, reactions, fluxes):
 
     def write_reaction(prefix, reaction, flux=1):
-        if (flux == 1):
+        if flux == 1:
             html_writer.write('%sR%05d&nbsp;&nbsp;%s<br>\n' % (prefix, reaction.rid,
                                                                reaction.FullReactionString()))
         else:
@@ -27,7 +27,7 @@ def write_kegg_pathway_to_html(html_writer, reactions, fluxes):
                       (default_pH, default_I, default_T))
     html_writer.write('C_MID' + '&nbsp;'*7 + '0.0001<br>\n')
     for r in range(len(reactions)):
-        if (r == 0):
+        if r == 0:
             write_reaction('REACTION' + '&nbsp;'*4, reactions[r], fluxes[r])
         else:
             write_reaction('&nbsp;'*12, reactions[r], fluxes[r])

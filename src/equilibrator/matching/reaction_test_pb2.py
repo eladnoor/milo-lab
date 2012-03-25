@@ -72,7 +72,7 @@ _TESTREACTION = descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     descriptor.FieldDescriptor(
-      name='reactants', full_name='matching.TestReaction.reactants', index=1,
+      name='substrates', full_name='matching.TestReaction.substrates', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,

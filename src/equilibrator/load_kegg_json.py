@@ -66,6 +66,7 @@ def GetCompounds(cids_list):
 COMPOUND_FILE = 'data/kegg_compounds.json.gz'
 REACTION_FILE = 'data/kegg_reactions.json.gz'
 ENZYME_FILE = 'data/kegg_enzymes.json.gz'
+GC_NULLSPACE_FILENAME = 'data/kegg_gc_nullspace.json.gz'
 
 def MakeSpeciesGroup(pmap, source, compound):
     logging.debug('Writing data from source %s', source.name)
@@ -127,7 +128,7 @@ def AddPmapToCompound(pmap, compound):
 def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
     parsed_json = json.load(gzip.open(kegg_json_filename, 'r'))
     
-    for i, cd in enumerate(parsed_json):
+    for cd in parsed_json:
         try:
             cid = cd['CID']
             logging.debug('Handling compound %s', cid)
@@ -141,7 +142,7 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             group_vector = cd.get('group_vector')
             name = models.CommonName.GetOrCreate(cd['name'])
         
-            
+            """
             if formula is None:
                 raise KeyError('Missing formula for CID %s' % cid)
             
@@ -150,7 +151,8 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
 
             if inchi is None:
                 raise KeyError('Missing inchi for CID %s' % cid)
-                
+            """
+             
             c = models.Compound(kegg_id=cid,
                                 formula=formula,
                                 inchi=inchi,
@@ -160,6 +162,8 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             
             if num_electrons is not None:
                 c.num_electrons = int(num_electrons)
+            c.WriteStructureThumbnail()
+            
             c.save()
 
             # Add the thermodynamic data.
@@ -189,12 +193,12 @@ def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
         try:
             rid = rd['RID']
             rxn = rd['reaction']
-            reactants = []
+            substrates = []
             products = []
             for coeff, cid in rxn:
                 reactant = models.Reactant.GetOrCreate(cid, abs(coeff))
                 if coeff < 0:
-                    reactants.append(reactant)
+                    substrates.append(reactant)
                 else:
                     products.append(reactant)
                 
@@ -202,8 +206,8 @@ def LoadKeggReactions(reactions_json_filename=REACTION_FILE):
             rxn = models.StoredReaction(kegg_id=rid)
             rxn.save()
             
-            for reactant in reactants:
-                rxn.reactants.add(reactant)
+            for reactant in substrates:
+                rxn.substrates.add(reactant)
             for product in products:
                 rxn.products.add(product)
             rxn.hash = rxn.GetHash()
@@ -256,6 +260,29 @@ def LoadKeggEnzymes(enzymes_json_filename=ENZYME_FILE):
             continue
 
 
+#def LoadKeggGCNullspace(gc_nullspace_filename=GC_NULLSPACE_FILENAME):
+#    parsed_json = json.load(gzip.open(gc_nullspace_filename))
+#    
+#    for rd in parsed_json:
+#        claw = models.ConservationLaw()
+#        claw.msg = rd['msg']
+#        claw.save()
+#        for coeff, cid in rd['reaction']:
+#            reactant = models.Reactant.GetOrCreate(cid, coeff)
+#            claw.reactants.add(reactant)
+#        claw.save()
+
+
+def LoadKeggGCNullspace(gc_nullspace_filename=GC_NULLSPACE_FILENAME):
+    parsed_json = json.load(gzip.open(gc_nullspace_filename))
+    
+    for rd in parsed_json:
+        claw = models.ConservationLaw()
+        claw.msg = rd['msg']
+        claw.reactants = json.dumps(rd['reaction'])
+        claw.save()
+
+
 def CheckData(filenames=(COMPOUND_FILE,
                          REACTION_FILE,
                          ENZYME_FILE)):
@@ -264,9 +291,10 @@ def CheckData(filenames=(COMPOUND_FILE,
 
 
 def LoadAllKeggData():
+    LoadKeggGCNullspace()
     LoadKeggCompounds()
     LoadKeggReactions()
-    LoadKeggEnzymes()    
+    LoadKeggEnzymes()
 
 
 if __name__ == '__main__':

@@ -5,13 +5,13 @@ from gibbs import constants
 
 class ReactionForm(form_utils.BaseForm):
     reactionId = forms.CharField(required=False)
-    reactantsId = form_utils.ListFormField(required=False)
+    substratesId = form_utils.ListFormField(required=False)
     productsId = form_utils.ListFormField(required=False)
-    reactantsCoeff = form_utils.ListFormField(required=False)
+    substratesCoeff = form_utils.ListFormField(required=False)
     productsCoeff = form_utils.ListFormField(required=False)
-    reactantsName = form_utils.ListFormField(required=False)
+    substratesName = form_utils.ListFormField(required=False)
     productsName = form_utils.ListFormField(required=False)
-    reactantsConcentration = form_utils.ListFormField(required=False)
+    substratesConcentration = form_utils.ListFormField(required=False)
     productsConcentration = form_utils.ListFormField(required=False)
 
     ph = forms.FloatField(required=False)
@@ -33,13 +33,13 @@ class ReactionForm(form_utils.BaseForm):
     
     # Convenience accessors for clean data with defaults.
     cleaned_reactionId = property(lambda self: self.cleaned_data['reactionId'])
-    cleaned_reactantIds = property(lambda self: self.cleaned_data['reactantsId'])
+    cleaned_substrateIds = property(lambda self: self.cleaned_data['substratesId'])
     cleaned_productIds = property(lambda self: self.cleaned_data['productsId'])
-    cleaned_reactantCoeffs = property(lambda self: [float(c) for c in self.cleaned_data['reactantsCoeff']])
+    cleaned_substrateCoeffs = property(lambda self: [float(c) for c in self.cleaned_data['substratesCoeff']])
     cleaned_productCoeffs = property(lambda self: [float(c) for c in self.cleaned_data['productsCoeff']])
-    cleaned_reactantNames = property(lambda self: self.cleaned_data['reactantsName'])
+    cleaned_substrateNames = property(lambda self: self.cleaned_data['substratesName'])
     cleaned_productNames = property(lambda self: self.cleaned_data['productsName'])
-    cleaned_reactantConcentrations = property(lambda self: [float(c) for c in self.cleaned_data['reactantsConcentration']])
+    cleaned_substrateConcentrations = property(lambda self: [float(c) for c in self.cleaned_data['substratesConcentration']])
     cleaned_productConcentrations = property(lambda self: [float(c) for c in self.cleaned_data['productsConcentration']])
     cleaned_ph = property(lambda self: self._GetWithDefault('ph', constants.DEFAULT_PH))
     cleaned_pmg = property(lambda self: self._GetWithDefault('pmg', constants.DEFAULT_PMG))

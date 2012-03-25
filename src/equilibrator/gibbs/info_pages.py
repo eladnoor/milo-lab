@@ -1,4 +1,6 @@
 from django.shortcuts import render_to_response
+from equilibrator.gibbs import constants
+from django.template.context import RequestContext
 
 
 def AboutPage(request):
@@ -24,9 +26,9 @@ def ClassicReactions(request):
 def DownloadPage(request):
     """Renders the download page."""
     
-    ph_values = [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0]
-    ph_values = map(lambda x: '%.1f' % x, ph_values)
-    return render_to_response('download.html', {'ph_values': ph_values})
+    ph_values = map(lambda x: '%.1f' % x, constants.PH_RANGE_VALUES)
+    return render_to_response('download.html', {'ph_values': ph_values},
+                              context_instance = RequestContext(request))
     
 
 def Robots(request):

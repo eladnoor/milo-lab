@@ -71,9 +71,16 @@ def ExportJSONFiles():
     db = SqliteDatabase('../res/gibbs.sqlite')
 
     print 'Exporting Group Contribution Nullspace matrix as JSON.'
-    nullspace_vectors = [(row['msg'], json.loads(row['json']))
-                         for row in db.DictReader('ugc_conservations')]
+    nullspace_vectors = []
+    for row in db.DictReader('ugc_conservations'):
+        d = {'msg': row['msg']}
+        sparse = json.loads(row['json'])
+        d['reaction'] = []
+        for cid, coeff in sparse.iteritems():
+            d['reaction'].append([coeff, "C%05d" % int(cid)])
+        nullspace_vectors.append(d)
     WriteJSONFile(nullspace_vectors, options.nullspace_out_filename)
+    sys.exit(0)
         
     print 'Exporting KEGG compounds as JSON.'
     WriteJSONFile(kegg.AllCompounds(), options.compounds_out_filename)

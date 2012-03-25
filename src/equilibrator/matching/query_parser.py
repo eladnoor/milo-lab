@@ -63,21 +63,21 @@ def _MakeReactionParser():
 class ParsedReactionQuery(object):
     """A parsed reaction query."""
     
-    def __init__(self, reactants=None, products=None):
+    def __init__(self, substrates=None, products=None):
         """Initialize the ParsedReaction object.
         
         Args:
             reactants: a list of tuples for the reactants.
             products: a list of tuples for the products.
         """
-        self.reactants = reactants or []
+        self.substrates = substrates or []
         self.products = products or []
     
     def __eq__(self, other):
         """Equality test."""
-        r = frozenset(self.reactants)
+        r = frozenset(self.substrates)
         p = frozenset(self.products)
-        o_r = frozenset(other.reactants)
+        o_r = frozenset(other.substrates)
         o_p = frozenset(other.products)
         
         reactants_diff = r.symmetric_difference(o_r)
@@ -89,7 +89,7 @@ class ParsedReactionQuery(object):
         return False
     
     def __str__(self):
-        joined_rs = ['%s %s' % (c,r) for c,r in self.reactants]
+        joined_rs = ['%s %s' % (c,r) for c,r in self.substrates]
         joined_ps = ['%s %s' % (c,p) for c,p in self.products]
         return '%s => %s' % (' + '.join(joined_rs), ' + '.join(joined_ps))
     
@@ -124,8 +124,8 @@ class QueryParser(object):
         """
         try:
             results = self._rparser.parseString(query)
-            reactants, products = results
-            return ParsedReactionQuery(reactants, products)
+            substrates, products = results
+            return ParsedReactionQuery(substrates, products)
         except pyparsing.ParseException,msg:
             logging.error('Failed to parse query %s', query)
             raise ParseError(msg)

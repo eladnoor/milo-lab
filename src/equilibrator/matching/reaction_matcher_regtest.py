@@ -83,7 +83,7 @@ class TestReactionParser(unittest.TestCase):
                 num_reactions_with_errors += 1
                 continue
                         
-            if len(rxn.reactants) != len(matches.reactants):
+            if len(rxn.substrates) != len(matches.substrates):
                 print 'Reactant list lengths are mismatched.'
                 num_reactions_with_errors += 1
                 continue
@@ -93,7 +93,7 @@ class TestReactionParser(unittest.TestCase):
                 num_reactions_with_errors += 1
                 continue
             
-            num_reactant_errors = self._CheckReactionSide(rxn.reactants, matches.reactants)
+            num_reactant_errors = self._CheckReactionSide(rxn.substrates, matches.substrates)
             num_product_errors = self._CheckReactionSide(rxn.products, matches.products)
             if num_reactant_errors:
                 print 'Found', num_reactant_errors, 'errors in the reactants list.'

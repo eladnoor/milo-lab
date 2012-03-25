@@ -56,9 +56,9 @@ def main(argv=None):
                 if not reaction_results:
                     print 'Failed to parse reaction'
                 else:     
-                    for reactant in reaction_results.reactants:
-                        print reactant.parsed_coeff, reactant.parsed_name,
-                        match_names = [m.value.name for m in reactant.matches]
+                    for substrate in reaction_results.substrates:
+                        print substrate.parsed_coeff, substrate.parsed_name,
+                        match_names = [m.value.name for m in substrate.matches]
                         print ', '.join(match_names)
                     
                     print '<=>'

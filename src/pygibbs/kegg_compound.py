@@ -130,6 +130,8 @@ class Compound(object):
         comp.name = row_dict['name']
         comp.all_names = list(set(json.loads(row_dict['all_names'])))
         comp.mass = row_dict['mass']
+        if not comp.mass: # fixing a bug where mass was sometimes ""
+            comp.mass = None
         comp.formula = row_dict['formula']
         
         inchi = row_dict['inchi']

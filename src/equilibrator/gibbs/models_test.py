@@ -85,9 +85,11 @@ class CompoundTest(unittest.TestCase):
                                  formation_energy=-12.1),
                    models.Specie(number_of_hydrogens=10, net_charge=-2,
                                  formation_energy=-13.4)]
+        species_group = models.SpeciesGroup()
+        species_group._all_species = species
 
         compound = models.Compound(kegg_id='fake compound')
-        compound._all_species = species
+        compound._species_group_to_use = species_group
         
         # Format: ph, ionic strength, dG.
         test_data = ((6.5, 0.1, 361.094),

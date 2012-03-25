@@ -16,7 +16,6 @@ def CheckData(filenames=(DEFAULT_CITATION_DATA_FILENAME,)):
     for json_fname in filenames:
         json.load(open(json_fname))
 
-
 def LoadCitationData(json_filename=DEFAULT_CITATION_DATA_FILENAME):
     parsed_json = json.load(open(json_filename))
 
@@ -32,7 +31,6 @@ def LoadCitationData(json_filename=DEFAULT_CITATION_DATA_FILENAME):
             logging.error('Error parsing reference %s', cd)
             logging.error(e)
             continue
-
 
 if __name__ == '__main__':
     LoadCitationData()

@@ -39,6 +39,8 @@ def ReactionPage(request):
         rxn.TryReplaceCO2()
         query = rxn.GetQueryString()
         
+    print rxn.CheckConservationLaws()
+        
     # Render the template.
     balance_with_water_link = rxn.GetBalanceWithWaterLink(query)
     balance_electrons_link = rxn.GetBalanceElectronsLink(query)

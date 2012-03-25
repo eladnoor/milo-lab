@@ -365,8 +365,6 @@ class Kegg(Singleton):
             self.cid2bounds[row_dict['cid']] = (row_dict['c_min'], 
                                                 row_dict['c_max'])
             
-        self.ReadAdditionsFile()
-
     def ReadAdditionsFile(self):
         logging.info("Adding compound data from %s" % self.COMPOUND_ADDITIONS_FILE)
         for row_dict in csv.DictReader(open(self.COMPOUND_ADDITIONS_FILE)):
@@ -1522,4 +1520,5 @@ if __name__ == '__main__':
 
     kegg.FetchMissingECs()
     #kegg.CompleteMissingInchies()
+    kegg.ReadAdditionsFile()
     kegg.ToDatabase()

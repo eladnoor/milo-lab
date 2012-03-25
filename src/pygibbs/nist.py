@@ -678,6 +678,10 @@ if __name__ == '__main__':
     _mkdir("../res/nist")
     html_writer = HtmlWriter("../res/nist/statistics.html")
     nist = Nist()
+    fp = open('../res/nist_kegg_ids.txt', 'w')
+    for cid in nist.GetAllCids():
+        fp.write("C%05d\n" % cid)
+    fp.close()
     nist.AnalyzeStats(html_writer)
     nist.AnalyzeConnectivity(html_writer)
     html_writer.close()

@@ -2,7 +2,7 @@ import csv, logging, sys, time, threading
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel,\
-    default_pH
+    default_pH, RedoxCarriers
 import numpy as np
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
@@ -617,7 +617,7 @@ class DissociationTable(object):
         except KeyError:
             raise MissingDissociationConstantError(
                 'The dissociation constant for C%05d: (nH=%d,nMg=%d) -> '
-                '(nH=%d,nMg=%d) is missing' % (self.cid, nH_from, nMg_from, nH_to, nMg_to),
+                '(nH=%d,nMg=%d) is missing' % (self.cid or 0, nH_from, nMg_from, nH_to, nMg_to),
                 self.cid)
 
         raise Exception('A dissociation constant can either represent a'
@@ -872,6 +872,9 @@ class DissociationThreads(threading.Thread):
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
+    opt_parser.add_option("-r", "--redox", action="store_true",
+                          dest="redox", default=False,
+                          help="Add rows for all redox carriers which are not already in the table")
     opt_parser.add_option("-k", "--kegg", action="store_true",
                           dest="kegg", default=False,
                           help="Calculate pKas all KEGG compounds (if False, calculates only for NIST compounds)")
@@ -933,6 +936,10 @@ def main():
         "nMg_below INT, nMg_above INT, mol_below TEXT, mol_above TEXT, " 
         "ddG REAL, ref TEXT", drop_if_exists=options.override_table)
 
+    cids_in_database = set()
+    for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
+        cids_in_database.add(row[0])
+
     cid2smiles_and_mw = {}
     for row in csv.DictReader(open(options.smiles_file, 'r')):
         cid, smiles = int(row['cid']), row['smiles']
@@ -944,13 +951,31 @@ def main():
         logging.info("Exporting data from database to " + options.export_csv)
         db.Table2CSV(options.export_csv, options.table_name)
         sys.exit(0)
+
+    if options.redox:
+        redox_carriers = RedoxCarriers()
+        rows = []
+        for name, rc in redox_carriers.iteritems():
+            if rc.cid_ox not in cids_in_database:
+                rows.append([rc.cid_ox, 'oxidized ' + name, rc.nH_ox, rc.nH_ox,
+                             0, 0, rc.z_ox, rc.z_ox, None, None, 0, rc.ref])
+            if rc.cid_red not in cids_in_database:
+                rows.append([rc.cid_red, 'reduced ' + name, rc.nH_red, rc.nH_red,
+                             0, 0, rc.z_red, rc.z_red, None, None, 0, rc.ref])
+        
+        for l in rows:
+            db.Insert(options.table_name, l)
+        db.Commit()
+        sys.exit(0)
+    
     if options.cid:
         if options.cid not in cid2smiles_and_mw:
             raise Exception("Cannot find the SMILES for C%05d" % options.cid)
         cids_to_calculate = set([options.cid])
     else:
         if options.kegg:
-            for cid in set(kegg.get_all_cids()).difference(cid2smiles_and_mw.keys()):
+            all_cids = set(kegg.get_all_cids())
+            for cid in all_cids.difference(cid2smiles_and_mw.keys()):
                 try:
                     comp = kegg.cid2compound(cid)
                     mol = comp.GetMolecule()
@@ -964,10 +989,7 @@ def main():
         cids_to_calculate = set(cid2smiles_and_mw.keys())
         
     # Do not recalculate pKas for CIDs that are already in the database
-    for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
-        if row[0] in cids_to_calculate:
-            cids_to_calculate.remove(row[0])
-    cids_to_calculate = list(cids_to_calculate)
+    cids_to_calculate = list(cids_to_calculate.difference(cids_in_database))
     cids_to_calculate.sort(key=lambda(cid):(cid2smiles_and_mw[cid][1], cid))
     
     db_lock = threading.Lock()
@@ -981,6 +1003,6 @@ def main():
         thread = DissociationThreads(group=None, target=None, name=None,
                                      args=(cid, smiles, semaphore, db_lock, options), kwargs={})
         thread.start()
-    
+        
 if __name__ == '__main__':
     main()
