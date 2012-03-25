@@ -8,7 +8,12 @@ import re
 from django.db import models
 from gibbs import constants
 from gibbs import formula_parser
-
+import indigo
+import indigo_renderer
+import openbabel
+#from django.core.files.base import ContentFile
+import base64
+import json
 
 class CommonName(models.Model):
     """A common name of a compound."""
@@ -93,21 +98,23 @@ class Specie(models.Model):
                   pMg=constants.DEFAULT_PMG,
                   ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
         """Transform this individual estimate to difference conditions."""
-        # Short names are nice!
-        _i_s = ionic_strength
-        _r = constants.R
-        _t = constants.DEFAULT_TEMP
-        _dgf_mg = constants.MG_FORMATION_ENERGY
-        _n_h = self.number_of_hydrogens
-        _n_mg = self.number_of_mgs
-        _n_c = self.net_charge
-        _dg = self.formation_energy
+
+        dG = self.formation_energy
         
-        chem_potential = _n_h * _r * _t * numpy.log(10) * pH
-        ionic_potential = (2.91482 * (_n_c ** 2 - _n_h) * numpy.sqrt(_i_s) /
-                           (1 + 1.6 * numpy.sqrt(_i_s)))
-        mg_potential = _n_mg * (_r * _t * numpy.log(10) * pMg - _dgf_mg)
-        return _dg + mg_potential + chem_potential - ionic_potential
+        # add the potential related to the pH
+        if self.number_of_hydrogens > 0:
+            dG += self.number_of_hydrogens * constants.RTlog10 * pH
+        
+        # add the potential related to the ionic strength
+        dG -= 2.91482 * (self.net_charge ** 2 - self.number_of_hydrogens) * \
+               numpy.sqrt(ionic_strength) / (1 + 1.6 * numpy.sqrt(ionic_strength))
+        
+        # add the potential related to the magnesium ions
+        if self.number_of_mgs > 0:
+            dG += self.number_of_mgs * \
+                   (constants.RTlog10 * pMg - constants.MG_FORMATION_ENERGY)
+
+        return dG
     
     def __unicode__(self):
         return self.kegg_id
@@ -174,7 +181,7 @@ class SpeciesGroup(models.Model):
 
         # Compute per-species transforms, scaled down by R*T.
         transform = lambda x: x.Transform(pH=pH, pMg=pMg, ionic_strength=_i_s)
-        scaled_transforms = [(-transform(s) / (_r * _t))
+        scaled_transforms = [(-transform(s) / constants.RT)
                              for s in self.all_species]
         
         # Numerical issues: taking a sum of exp(v) for |v| quite large.
@@ -183,16 +190,8 @@ class SpeciesGroup(models.Model):
         offset = min(scaled_transforms)
         scaled_offset_transforms = [(st - offset) for st in scaled_transforms]
         sum_exp = sum(numpy.exp(scaled_offset_transforms))
-        return - _r * _t * (offset + numpy.log(sum_exp))
+        return -constants.RT * (offset + numpy.log(sum_exp))
     
-    def DeltaGZero(self):
-        """Get a dG0 estimate for the species group.
-        
-        Returns:
-            The estimated delta G in standard conditions.
-        """
-        return self.DeltaG(pH=0.0, pMg=0.0, ionic_strength=0.0)
-
 
 class Compound(models.Model):
     """A single compound."""
@@ -239,6 +238,9 @@ class Compound(models.Model):
     no_dg_explanation = models.CharField(max_length=2048,
                                          blank=True,
                                          null=True)
+
+    # Thumbnail image for the structure of the compound
+    thumbnail = models.TextField(blank=True)
 
     # A single static parser
     FORMULA_PARSER = formula_parser.FormulaParser()
@@ -304,18 +306,43 @@ class Compound(models.Model):
         
         return sg.DeltaG(pH, pMg, ionic_strength)
 
-    def DeltaGZero(self):
-        """Get a dG0 estimate for the given compound.
-        
-        Returns:
-            The estimated delta G in standard conditions.
-        """
-        return self.DeltaG(pH=0.0, pMg=0.0, ionic_strength=0.0)
+    def WriteStructureThumbnail(self, output_format='png'):
+        if self.inchi is None:
+            return
+
+        _obConversion = openbabel.OBConversion()
+        _obConversion.SetInFormat("inchi")
+        _obConversion.SetOutFormat("smiles")
+        obmol = openbabel.OBMol()
+        _obConversion.ReadString(obmol, str(self.inchi))
+        smiles = _obConversion.WriteString(obmol)
+
+        _indigo = indigo.Indigo()
+        _renderer = indigo_renderer.IndigoRenderer(_indigo)
+        _indigo.setOption('render-output-format', output_format)
+        _indigo.setOption('render-image-size', 250, 200)
+        _indigo.setOption('render-margins', 10, 10)
+        _indigo.setOption('render-stereo-style', 'none')
+        _indigo.setOption('render-implicit-hydrogens-visible', False)
+        _indigo.setOption('render-coloring', True)
+        _indigo.setOption('render-bond-length', 20.0)
+        _indigo.setOption('render-label-mode', 'hetero')
+    
+        try:
+            indigo_mol = _indigo.loadMolecule(smiles)
+            indigo_mol.aromatize()
+            indigo_mol.layout()
+            
+            data = _renderer.renderToBuffer(indigo_mol).tostring()
+            self.thumbnail = base64.encodestring(data)
+        except indigo.IndigoException as e:
+            logging.warning("Cannot draw structure of %s: %s" % (self.kegg_id,
+                                                                 str(e)))
 
     def GetAtomBag(self):
         """Returns a dictionary of atoms and their counts for this compound."""
         if not self.formula:
-            logging.error('Formula is not defined for KEGG ID %s', self.kegg_id)
+            logging.warning('Formula is not defined for KEGG ID %s', self.kegg_id)
             return None
         
         atom_bag = self.FORMULA_PARSER.GetAtomBag(self.formula)
@@ -344,7 +371,7 @@ class Compound(models.Model):
         if not self.kegg_id:
             return None
         
-        return 'http://kegg.jp/Fig/compound_small/%s.gif' % self.kegg_id
+        return '/compound_image?compoundId=%s' % self.kegg_id
 
     def GetHtmlFormattedFormula(self):
         """Returns the chemical formula with HTML formatted subscripts."""
@@ -377,20 +404,22 @@ class Compound(models.Model):
         sg = species_group or self._species_group
         l = []
         d = {'source': str(sg.formation_energy_source),
-             'dgzero': round(sg.DeltaGZero(), 1),
              'dgzero_tag': {'value': round(sg.DeltaG(pH, pMg, ionic_strength), 1),
                             'pH': pH,
                             'ionic_strength': ionic_strength}}
         for s in sg.all_species:
             l.append({'nh': int(s.number_of_hydrogens),
-                      'nc': int(s.net_charge),
+                      'charge': int(s.net_charge),
                       'nmg': int(s.number_of_mgs),
                       'dgzero': float(s.formation_energy)})
         d['species'] = l
         return d
     
-    def AllSpeciesGroupsJson(self):
-        return [self.SpeciesJson(sg) for sg in self.all_species_groups]
+    def AllSpeciesGroupsJson(self, pH=constants.DEFAULT_PH,
+                             pMg=constants.DEFAULT_PMG,
+                             ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
+        return [self.SpeciesJson(sg, pH=pH, pMg=pMg, ionic_strength=ionic_strength)
+                for sg in self.all_species_groups]
     
     def ToJson(self, pH=constants.DEFAULT_PH,
                pMg=constants.DEFAULT_PMG,
@@ -401,11 +430,42 @@ class Compound(models.Model):
              'mass': self.mass,
              'formula': self.formula,
              'num_electrons': self.num_electrons,
-             'thermodynamic_data': self.AllSpeciesGroupsJson(),
+             'thermodynamic_data': self.AllSpeciesGroupsJson(
+                                pH=pH, pMg=pMg, ionic_strength=ionic_strength),
              'note': None}
         if self.note:
             d['note'] = self.note
         return d
+    
+    def ToCSVdG0Prime(self, priority=1,
+                      pH=constants.DEFAULT_PH,
+                      pMg=constants.DEFAULT_PMG,
+                      ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
+        """
+            returns a list of CSV rows with the following columns:
+            kegg ID, name, dG0_prime, pH, ionic_strength, T, Note
+        """
+        rows = []
+        for sg in self.species_groups.filter(priority=priority):
+            dG0_prime = round(sg.DeltaG(pH, pMg, ionic_strength), 1)
+            rows.append([self.kegg_id, self.name, dG0_prime, pH, ionic_strength,
+                         constants.DEFAULT_TEMP, None])
+        return rows
+            
+    def ToCSVdG0(self, priority=1):
+        """
+            returns a list of CSV rows with the following columns:
+            kegg ID, name, dG0, nH, charge, nMg, Note
+        """
+        rows = []
+        for sg in self.species_groups.filter(priority=priority):
+            for s in sg.all_species:
+                nH = int(s.number_of_hydrogens)
+                charge = int(s.net_charge)
+                nMg = int(s.number_of_mgs)
+                dG0 = round(float(s.formation_energy), 1)
+                rows.append([self.kegg_id, self.name, dG0, nH, charge, nMg, None])
+        return rows
 
     def GetSpeciesGroups(self):
         """Gets the list of SpeciesGroups."""
@@ -459,7 +519,6 @@ class Compound(models.Model):
     substrate_of = property(_GetSubstrateEnzymes)
     product_of = property(_GetProductEnzymes)
     cofactor_of = property(_GetCofactorEnzymes)
-    dgf_zero = property(DeltaGZero)
     dgf_zero_tag = property(DeltaG)
     dg_source = property(_GetDGSource)
     
@@ -496,7 +555,7 @@ class Reactant(models.Model):
     compound = models.ForeignKey(Compound)
     
     # The coeff.
-    coeff = models.IntegerField(default=1)
+    coeff = models.FloatField(default=1.0)
 
     @staticmethod
     def GetOrCreate(kegg_id, coeff):
@@ -524,13 +583,13 @@ class StoredReaction(models.Model):
     # The ID of this reaction in KEGG.
     kegg_id = models.CharField(max_length=10, null=True)
     
-    # The list of reactants.
-    reactants = models.ManyToManyField(Reactant, related_name='reactant_in')
+    # The list of substrates.
+    substrates = models.ManyToManyField(Reactant, related_name='substrate_in')
     
     # The list of products.
     products = models.ManyToManyField(Reactant, related_name='product_in')
-    
-    # TODO(flamholz): add some sort of hash identifier.
+
+    # a hash string for fast lookup of enzyme names by reaction    
     hash = models.CharField(max_length=2048)
     
     @staticmethod
@@ -551,11 +610,11 @@ class StoredReaction(models.Model):
 
     def ReactionString(self):
         """Get the string representation of this reaction."""
-        return '%s <=> %s' % (self._SideString(self.reactants.all()),
+        return '%s <=> %s' % (self._SideString(self.substrates.all()),
                               self._SideString(self.products.all()))
     
     @staticmethod
-    def HashableReactionString(reactants, products):
+    def HashableReactionString(substrates, products):
         """Return a hashable string for a biochemical reaction.
         
         The string fully identifies the biochemical reaction up to directionality.
@@ -563,17 +622,17 @@ class StoredReaction(models.Model):
         stoichiometry up to their directionality.
         
         Args:
-            reactants: the reactants; a list of Reactants or like objects.
+            substrates: the substrates; a list of Reactants or like objects.
             products: the products; a list of Reactants or like objects.
         """
         sort_key = lambda r: r.compound.kegg_id
-        make_str = lambda r: '%d %s' % (r.coeff, r.compound.kegg_id)
+        make_str = lambda r: '%g %s' % (r.coeff, r.compound.kegg_id)
         is_not_hydrogen = lambda r: r.compound.kegg_id != 'C00080'
         
-        reactants_strs = map(make_str,
-                             sorted(filter(is_not_hydrogen, reactants),
-                                    key=sort_key))
-        rside_str = ' + '.join(reactants_strs)
+        substrates_strs = map(make_str,
+                              sorted(filter(is_not_hydrogen, substrates),
+                                     key=sort_key))
+        rside_str = ' + '.join(substrates_strs)
         rside_hash = str(hash(rside_str))
         
         products_strs = map(make_str,
@@ -589,18 +648,18 @@ class StoredReaction(models.Model):
     
     def GetHashableReactionString(self):
         """Get a hashable string identifying this chemical reaction."""
-        return self.HashableReactionString(self.reactants.all(),
+        return self.HashableReactionString(self.substrates.all(),
                                            self.products.all())
     
     @staticmethod
-    def HashReaction(reactants, products):
+    def HashReaction(substrates, products):
         md5 = hashlib.md5()
-        md5.update(StoredReaction.HashableReactionString(reactants, products))
+        md5.update(StoredReaction.HashableReactionString(substrates, products))
         return md5.hexdigest()
     
     def GetHash(self):
         """Returns a string hash of this reaction for easy identification."""
-        return self.HashReaction(self.reactants.all(),
+        return self.HashReaction(self.substrates.all(),
                                  self.products.all())
     
     def __hash__(self):
@@ -614,11 +673,70 @@ class StoredReaction(models.Model):
     def Link(self):
         """Returns a link to this reaction's page."""
         return '/reaction?reactionId=%s' % self.kegg_id
-    
+
+    def ToCSVdG0Prime(self, priority=1,
+                      pH=constants.DEFAULT_PH,
+                      pMg=constants.DEFAULT_PMG,
+                      ionic_strength=constants.DEFAULT_IONIC_STRENGTH):
+        """
+            returns a list of CSV rows with the following columns:
+            kegg ID, dG0_prime, pH, ionic_strength, T, Note
+        """
+        coeff_compound_pairs = []
+        for reactant in self.substrates.all():
+            coeff_compound_pairs.append((-reactant.coeff, reactant.compound))
+        for reactant in self.products.all():
+            coeff_compound_pairs.append((reactant.coeff, reactant.compound))
+        
+        dG0_prime = 0
+        for coeff, compound in coeff_compound_pairs:
+            dG0_f_prime = compound.DeltaG(pH, pMg, ionic_strength)
+            if dG0_f_prime is not None:
+                dG0_prime += coeff * dG0_f_prime
+            else:
+                return [(self.kegg_id, None, pH, ionic_strength,
+                         constants.DEFAULT_TEMP,
+                         "One of the compounds has no formation energy")]
+        
+        dG0_prime = round(dG0_prime, 1)
+        return [(self.kegg_id, dG0_prime, pH, ionic_strength,
+                 constants.DEFAULT_TEMP, None)]
+        
     link = property(Link)
     reaction_string = property(ReactionString)
 
-
+class ConservationLaw(models.Model):
+    """ conservation laws which every reaction query must be checked against. """
+    # The list of products.
+    #reactants = models.ManyToManyField(Reactant, related_name='reactant_in')
+    reactants = models.TextField(null=True)
+    
+    msg = models.TextField(null=True)
+    
+    def GetSparseRepresentation(self):
+        sparse = {}
+        for coeff, kegg_id in json.loads(self.reactants):
+            sparse[kegg_id] = coeff
+        return sparse
+    
+#    def __str__(self):
+#        s_left = []
+#        s_right = []
+#        for reactant in self.reactants.all():
+#            if abs(reactant.coeff) < 0.01:
+#                continue
+#            if reactant.coeff > 0:
+#                if reactant.coeff == 1:
+#                    s_right.append(reactant.compound.kegg_id)
+#                else:
+#                    s_right.append('%g %s' % (reactant.coeff, reactant.compound.kegg_id))
+#            elif reactant.coeff < 0:
+#                if reactant.coeff == -1:
+#                    s_right.append(reactant.compound.kegg_id)
+#                else:
+#                    s_right.append('%g %s' % (-reactant.coeff, reactant.compound.kegg_id))
+#        return ' + '.join(s_left) + ' => ' + ' + '.join(s_right)
+    
 class Enzyme(models.Model):
     """A single enzyme."""
     # EC class enzyme.

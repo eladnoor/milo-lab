@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 from util import django_utils
+import export_database
+import logging
 
 django_utils.SetupDjango()
 
@@ -14,16 +16,17 @@ def main():
     load_kegg_json.CheckData()
     load_additional_data.CheckData()
 
-    print 'Loading citation data'
+    logging.info('Loading citation data')
     load_citation_data.LoadCitationData()
         
-    print 'Loading KEGG data'
+    logging.info('Loading KEGG data')
     load_kegg_json.LoadAllKeggData()
     
-    print 'Loading corrections/additions to KEGG'
+    logging.info('Loading corrections/additions to KEGG')
     load_additional_data.LoadAdditionalCompoundData()    
     
+    logging.info('Exporting database to JSON and CSV files')
+    export_database.export_database()
     
 if __name__ == '__main__':
     main()
- 

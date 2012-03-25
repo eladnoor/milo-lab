@@ -79,17 +79,17 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         if FromDatabase and self.db.DoesTableExist(self.OBSERVATION_TABLE_NAME):
             logging.info("Reading observations from database")
             self.obs_collection = KeggObervationCollection.FromDatabase(
-                                    db=self.db,
-                                    table_name=self.OBSERVATION_TABLE_NAME,
-                                    transformed=self.transformed)
+                db=self.db,
+                table_name=self.OBSERVATION_TABLE_NAME,
+                transformed=self.transformed)
         else:
             logging.info("Reading observations from files")
             dissociation = self.GetDissociationConstants()
             self.obs_collection = KeggObervationCollection.FromFiles(
-                                    html_writer=self.html_writer, 
-                                    dissociation=dissociation,
-                                    transformed=self.transformed,
-                                    formation_energy_fname=self.FORMATION_ENERGY_FILENAME)
+                html_writer=self.html_writer, 
+                dissociation=dissociation,
+                transformed=self.transformed,
+                formation_energy_fname=self.FORMATION_ENERGY_FILENAME)
             self.obs_collection.ToDatabase(self.db, self.OBSERVATION_TABLE_NAME)
         
         self.obs_collection.ReportToHTML()

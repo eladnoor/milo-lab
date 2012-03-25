@@ -30,14 +30,14 @@ class ReactionCompoundMatch(object):
 class ReactionMatches(object):
     """A reaction parsed from a query with all possible matches."""
     
-    def __init__(self, reactants=None, products=None):
+    def __init__(self, substrates=None, products=None):
         """Initialize the ParsedReaction object.
         
         Args:
             reactants: a list of ReactionCompoundMatches for the reactants.
             products: a list of ReactionCompoundMatches for the products.
         """
-        self.reactants = reactants or []
+        self.substrates = substrates or []
         self.products = products or []
     
     @staticmethod
@@ -55,7 +55,7 @@ class ReactionMatches(object):
         Each list is of 3 tuples (coeff, kegg_id, name).
         """
         reactants = []
-        for c in self.reactants:
+        for c in self.substrates:
             compound_match = self._FindFirstCompoundMatch(c.matches)
             if not compound_match:
                 return None
@@ -108,18 +108,18 @@ class ReactionMatcher(object):
         Returns:
             An initialized ReactionMatches object.
         """        
-        reactants = self._MakeReactionSide(parsed_query.reactants)
+        substrates = self._MakeReactionSide(parsed_query.substrates)
         products = self._MakeReactionSide(parsed_query.products)
         
-        if not reactants:
-            logging.error('Failed to parse reactants.')
+        if not substrates:
+            logging.error('Failed to parse substrates.')
             return None
         
         if not products:
             logging.error('Failed to parse products.')
             return None
         
-        return ReactionMatches(reactants, products)
+        return ReactionMatches(substrates, products)
         
         
 

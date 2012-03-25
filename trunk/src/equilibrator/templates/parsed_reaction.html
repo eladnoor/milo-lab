@@ -1,6 +1,6 @@
 		<div class="parsedRxn">
-			{% for compound in reaction.reactants %}
-				{% with "reactants" as reaction_side %}
+			{% for compound in reaction.substrates %}
+				{% with "substrates" as reaction_side %}
 					{% include "compound_in_reaction.html" %}
 				{% endwith %}
 				

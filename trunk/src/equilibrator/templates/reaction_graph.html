@@ -42,8 +42,9 @@
 					        "data-step='0.01' data-format='%.2f'>  mM</span>)");
 			}
 			      
-	        reactants = jQuery.parseJSON('{{ reactant_data|safe }}');
-	        products = jQuery.parseJSON('{{ product_data|safe }}');
+	        compounds = jQuery.parseJSON('{{ compound_data|safe }}');
+	        coeffs = jQuery.parseJSON('{{ coeff_data|safe }}');
+	        concentrations = jQuery.parseJSON('{{ concentration_list|safe }}');
 
             var tangle = new Tangle(element, {
                 initialize: function () {
@@ -52,15 +53,16 @@
                 	this.is = 0.1;				 // ionic strength
                 	this.rt = 8.31e-3 * 298.15;  // kJ/(mol K)
                 	this.dgf_mg = -455.3;		 // kJ/mol
-                	this.reactants = reactants;
-                	this.products = products;
+                	this.compounds = compounds;
+                	this.coeffs = coeffs;
+                	this.concentrations = concentrations;
                 	this.mode = mode;
                 },
 
-				getDgfSpecie: function (specie, ph, is) {
+				getDeltaGSpecie: function (specie, ph, is) {
 					var nh = specie.nh;
 					var nmg = specie.nmg;
-					var nc = specie.nc;
+					var nc = specie.charge;
 					var dgf = specie.dgzero;
 					var prot_pot = nh * this.rt * Math.log(10) * ph;
 					var ionic_pot = 2.91482 * (Math.pow(nc, 2) - nh) * Math.sqrt(is);
@@ -69,11 +71,11 @@
                     return dgf + mg_pot + prot_pot - ionic_pot;
 				},
                 
-                getDgfSpecies: function (species, ph, is) {
+                getDeltaGSpecies: function (species, ph, is) {
                 	var scaled_transforms = [];
                 	           
                 	for (var i = 0; i < species.length; ++i) {
-                		var species_dg = this.getDgfSpecie(species[i], ph, is);
+                		var species_dg = this.getDeltaGSpecie(species[i], ph, is);
                 		var st = -(species_dg / this.rt);
                 		scaled_transforms.push(st);
                 	}
@@ -87,39 +89,27 @@
                 	return -this.rt * (offset + Math.log(sum_exp));
                 },
                 
-                getSideEnergy: function (side, ph, is) {
-                	var sum = 0;
-                	for (var i = 0; i < side.length; ++i) {
-                		var compound = side[i];
-                		var coeff = compound.coeff;
-                		var species = compound.species.species;
+                getDeltaGPrime0: function (ph, is) {
+                	var DeltaGPrime0 = 0;
+                	for (var i = 0; i < this.compounds.length; ++i) {
+                		var species = this.compounds[i];
+                		var coeff = this.coeffs[i];
                 		
-                		sum += coeff * this.getDgfSpecies(species, ph, is);
+                		DeltaGPrime0 += coeff * this.getDeltaGSpecies(species, ph, is);
                 	}
                 	
-                	return sum;
+                	return DeltaGPrime0;
                 }, 
                 
-                getDgTagReaction: function (ph, is) {
-                	var reactants_sum = this.getSideEnergy(this.reactants, ph, is);
-                	var products_sum = this.getSideEnergy(this.products, ph, is);
+                getDeltaGPrime: function (ph, is) {
+                	var DeltaGPrime = this.getDeltaGPrime0(ph, is);
                 	
-                	var dg0 = products_sum - reactants_sum;
-                	
-                	// Corrent for concentrations.
-                	var reactant_correction = 0;
-                	var product_correction = 0;
-                	for (var i = 0; i < this.reactants.length; ++i) {
-						var c = this.reactants[i];
-                		reactant_correction += c.coeff * Math.log(c.concentration);
+                	// Correct for concentrations.
+                	for (var i = 0; i < this.compounds.length; ++i) {
+						var c = this.concentrations[i];
+                		DeltaGPrime += this.rt * this.coeffs[i] * Math.log(c);
                 	}
-                	for (var i = 0; i < this.products.length; ++i) {
-						var c = this.products[i];
-                		product_correction += c.coeff * Math.log(c.concentration);
-                	}
-                	var concentration_correction = this.rt * (product_correction - reactant_correction);
-                	
-                	return dg0 + concentration_correction;
+                	return DeltaGPrime;
                 },
                 
                 varyPh: function () {
@@ -127,8 +117,8 @@
                 	var points = [];
                 	
                 	while (curPh < 11.0) {
-                		var dg = this.getDgTagReaction(curPh, this.is).toFixed(2);
-                		points.push([curPh, dg]);
+                		var DeltaGPrime = this.getDeltaGPrime(curPh, this.is).toFixed(2);
+                		points.push([curPh, DeltaGPrime]);
                 		
                 		curPh += 0.1;
                 	}
@@ -145,8 +135,8 @@
                 	var points = [];
                 	
                 	while (curIs < 0.35) {
-                		var dg = this.getDgTagReaction(this.ph, curIs).toFixed(2);
-                		points.push([curIs, dg]);
+                		var DeltaGPrime = this.getDeltaGPrime(this.ph, curIs).toFixed(2);
+                		points.push([curIs, DeltaGPrime]);
                 		
                 		curIs += 0.0001;
                 	}
@@ -199,7 +189,7 @@
 	<body onload="setUp();">
 
 	<div class="centerize">
-		<img src="/media/images/equilibrator_logo_small.png" />
+		<a href="/"><img src="/media/images/equilibrator_logo_small.png" /></a>
 
 		{% include "parsed_reaction.html" %}
 

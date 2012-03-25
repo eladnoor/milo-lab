@@ -5,7 +5,7 @@
 	</head>
 	<body>
 		<div class="printable">
-			{% for compound in reaction.reactants %}
+			{% for compound in reaction.substrates %}
 				{% if compound.coeff > 1 %} {{ compound.coeff }} {% endif %}
 				{{ compound.name }} ({{ compound.human_concentration_w_units }})
 				
