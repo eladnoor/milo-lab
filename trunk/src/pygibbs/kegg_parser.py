@@ -99,8 +99,9 @@ def ParseOrganismToGeneMapping(genes_str):
         
         groups = match.groups()
         organism_id = groups[0]
-        parens_pattern = re.compile('\w+\((\w+)\)')
-        gene_ids = parens_pattern.findall(groups[1])
+
+        gene_ids_w_names = re.split('\s', groups[1])
+        gene_ids = [s.split('(')[0] for s in gene_ids_w_names]
         if gene_ids:
             d[organism_id] = gene_ids
     
