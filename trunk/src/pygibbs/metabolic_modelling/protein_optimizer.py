@@ -204,7 +204,7 @@ class EnzymeLevelFunc(object):
         
         levels = np.multiply(
             np.multiply(maximal_rate_factor, kinetic_factor),
-            thermo_factor)
+                thermo_factor)
         return levels
         
     def __call__(self, x):
