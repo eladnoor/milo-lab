@@ -231,7 +231,8 @@ class Enzyme(object):
         if self.names:
             l.append('Names: %s\n' % ', '.join(self.names))
         if self.reactions:
-            l.append('Reactions: %s\n' % ', '.join(self.reactions))
+            r_str = map(str, self.reactions)
+            l.append('Reactions: %s\n' % ', '.join(r_str))
         if self.substrates:
             l.append('Substrates: %s\n' % ', '.join(self.substrates))
         if self.products:
@@ -240,6 +241,8 @@ class Enzyme(object):
             l.append('Co-factor: %s\n' % ', '.join(self.cofactors))
         if self.organisms:
             l.append('Organism: %s\n' % self.organisms)
+        if self.genes:
+            l.append('Genes: %s\n' % ', '.join(self.genes))
         
         return ''.join(l)
     
