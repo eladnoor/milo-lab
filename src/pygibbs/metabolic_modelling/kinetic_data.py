@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
+import csv
 
 class BaseKineticData(object):
     """Base class for all kinetic data containers."""
@@ -115,4 +116,75 @@ class UniformKineticData(BaseKineticData):
         M = len(compound_ids)
         N = len(reaction_ids)
         return np.matrix(np.ones((M,N))) * self.km
+
+
+class KineticDataWithDefault(BaseKineticData):
+    
+    def __init__(self, default_kcat=100, default_km=1e-4):
+        """Initialize the UniformKineticData container.
+        
+        Args:
+            default_kcat: the global turnover number (1/s).
+            default_km: the global michaelis constant to use (Molar).
+        """
+        self.default_kcat = default_kcat
+        self.default_km = default_km
+        self.kcats = {}
+        self.kms = {}
+    
+    def SetKcat(self, reaction_id, kcat):
+        self.kcats[reaction_id] = kcat
+    
+    def SetKm(self, reaction_id, compound_id, km):
+        self.kms[(reaction_id, compound_id)] = km
+    
+    @staticmethod
+    def FromFiles(kcat_file, km_file,
+                  default_kcat=None, default_km=None):
+        ret = KineticDataWithDefault()
+        
+        f = open(kcat_file)
+        r = csv.DictReader(f)
+        for row in r:
+            rid = row['Short Name']
+            val = row['KCAT']
+            if val:
+                ret.SetKcat(rid, float(val))
+        f.close()
+        
+        f = open(km_file)
+        r = csv.DictReader(f)
+        r = csv.DictReader(f)
+        for row in r:
+            rid = row['Short Name']
+            cid = row['Substrate CID']
+            val = row['KM']
+            if val:
+                ret.SetKm(rid, cid, float(val))
+        f.close()
+        
+        my_kcat = default_kcat
+        my_km = default_km
+        if not my_kcat:
+            my_kcat = np.mean(ret.kcats.values())
+        if not my_km:
+            my_km = np.mean(ret.kms.values())
+        ret.default_kcat = my_kcat
+        ret.default_km = my_km
+    
+        return ret     
+        
+    def GetKcat(self, reaction_id):
+        if reaction_id in self.kcats:
+            return self.kcats[reaction_id]
+        return self.default_kcat
+    
+    def GetKm(self, reaction_id, compound_id):
+        key = (reaction_id, compound_id) 
+        if key in self.kms:
+            return self.kms[key]
+        return self.default_km
+    
+    
+        
     

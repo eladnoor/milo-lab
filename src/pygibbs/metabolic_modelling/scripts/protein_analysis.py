@@ -63,7 +63,10 @@ def Main():
     thermo_data = thermodynamic_data.WrapperThermoData(thermo)
     
     # Uniform kinetic data
-    kin_data = kinetic_data.UniformKineticData(kcat=100, km=1e-4)
+    #kin_data = kinetic_data.UniformKineticData(kcat=100, km=1e-4)
+    kin_data = kinetic_data.KineticDataWithDefault.FromFiles(
+        '../data/enzymatics/glycolytic_pathway_enzymes_kcat.csv',
+        '../data/enzymatics/glycolytic_pathway_enzymes_km.csv')
     
     # Create a kegg instance
     kegg_instance = kegg.Kegg.getInstance()
