@@ -7,31 +7,32 @@ import sys
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.stoichiometric_lp import OptimizationMethods
 
-def add_cofactor_reactions(pl):
+def add_cofactor_reactions(pl, free_ATP_hydrolysis=True):
     pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
     pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
     pl.add_cofactor_reaction(Reaction.FromFormula("C00013 <=> null", name='Free PPi'))
 
-    # all Adenosine phosphorylations
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00008", name='ATP to ADP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00020", name='ATP to AMP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> C00020", name='ATP to AMP'))
-
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00206", name='dATP to dADP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00360", name='dATP to dAMP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00206 <=> C00360", name='dATP to dAMP'))
-
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00104", name='ITP to IDP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00130", name='ITP to IMP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00104 <=> C00130", name='ITP to IMP'))
-
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00035", name='GTP to GDP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00144", name='GTP to GMP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00035 <=> C00144", name='GTP to GMP'))
-
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00112", name='CTP to CDP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00055", name='CTP to CMP'))
-    pl.add_cofactor_reaction(Reaction.FromFormula("C00112 <=> C00055", name='CTP to CMP'))
+    if free_ATP_hydrolysis:
+        # all Adenosine phosphorylations
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00008", name='ATP to ADP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00020", name='ATP to AMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> C00020", name='ATP to AMP'))
+    
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00206", name='dATP to dADP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00360", name='dATP to dAMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00206 <=> C00360", name='dATP to dAMP'))
+    
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00104", name='ITP to IDP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00130", name='ITP to IMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00104 <=> C00130", name='ITP to IMP'))
+    
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00035", name='GTP to GDP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00144", name='GTP to GMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00035 <=> C00144", name='GTP to GMP'))
+    
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00112", name='CTP to CDP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00055", name='CTP to CMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00112 <=> C00055", name='CTP to CMP'))
 
 def add_redox_reactions(pl, NAD_only=False):
     # all electron transfer reactions
@@ -82,9 +83,8 @@ def example_glycolysis(thermo):
                     maximal_dG=0.0,
                     thermodynamic_method=OptimizationMethods.GLOBAL,
                     update_file=None)
-    add_cofactor_reactions(pl)
-    #r = Reaction.FromFormula("C00003 + C00118 + C00001 => C00022 + C00004 + C00009")
-    r = Reaction.FromFormula("C00031 => 2 C00186")
+    add_cofactor_reactions(pl, free_ATP_hydrolysis=False)
+    r = Reaction.FromFormula("C00031 + 2 C00008 => 2 C00002 + 2 C00186")
     #r.Balance()
     pl.find_path("GLC => LAC", r)
 
@@ -144,8 +144,8 @@ def main():
     thermo = estimators['UGC']
     thermo.SetConditions(I=0.1)
     #example_lower_glycolysis(thermo)
-    example_oxidative(thermo)
-    #example_glycolysis(thermo)
+    #example_oxidative(thermo)
+    example_glycolysis(thermo)
 
 if __name__ == '__main__':
     main()
