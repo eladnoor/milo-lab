@@ -30,10 +30,10 @@ class Stoichiometric_LP(object):
     
     def __init__(self, name='Stoichiometric_LP', log_file=None):
         self.prob = pulp.LpProblem(name, pulp.LpMinimize)
-        #self.prob.solver = pulp.solvers.CPLEX(msg=False,
-        #                                      logfilename='../res/cplex.log')
+        self.prob.solver = pulp.solvers.CPLEX(msg=False,
+                                              logfilename='../res/cplex.log')
 
-        self.prob.solver = pulp.solvers.GUROBI(msg=False)
+        #self.prob.solver = pulp.solvers.GUROBI(msg=False)
         if not self.prob.solver.available():
             raise Exception("Gurobi not available")
         
