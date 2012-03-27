@@ -78,7 +78,7 @@ def example_glycolysis(thermo):
                     html_writer=HtmlWriter('../res/pathologic.html'),
                     thermo=thermo,
                     max_solutions=None,
-                    max_reactions=8,
+                    max_reactions=20,
                     maximal_dG=0.0,
                     thermodynamic_method=OptimizationMethods.GLOBAL,
                     update_file=None)
@@ -144,8 +144,8 @@ def main():
     thermo = estimators['UGC']
     thermo.SetConditions(I=0.1)
     #example_lower_glycolysis(thermo)
-    #example_oxidative(thermo)
-    example_glycolysis(thermo)
+    example_oxidative(thermo)
+    #example_glycolysis(thermo)
 
 if __name__ == '__main__':
     main()

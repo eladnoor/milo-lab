@@ -2,7 +2,7 @@ import sys
 import csv
 from optparse import OptionParser
 from toolbox.database import SqliteDatabase
-from toolbox.molecule import Molecule
+from toolbox.molecule import Molecule, OpenBabelError
 from pygibbs.group_decomposition import GroupDecompositionError
 import pybel
 from pygibbs.unified_group_contribution import UnifiedGroupContribution,\
@@ -15,11 +15,11 @@ def MakeOpts():
     opt_parser = OptionParser()
     opt_parser.add_option("-i", "--sdf_input_filename",
                           dest="sdf_input_filename",
-                          default="../data/metabolic_models/recon1.sdf",
+                          default="../data/metabolic_models/iAF1260.sdf",
                           help="input SDF file with MOL descriptions of multiple compounds")
     opt_parser.add_option("-o", "--csv_output_filename",
                           dest="csv_output_filename",
-                          default="../res/recon1.csv",
+                          default="../res/iAF1260.csv",
                           help="output CSV file with chemical dG0")
     return opt_parser
 
@@ -49,10 +49,17 @@ def CalculateThermo():
 
     sdfile = pybel.readfile("sdf", options.sdf_input_filename)
     for m in sdfile:
-        mol = Molecule.FromOBMol(m.OBMol)
-        mol.title = m.title
         try:
+            try:
+                mol = Molecule.FromOBMol(m.OBMol)
+            except OpenBabelError:
+                raise UnknownReactionEnergyError("Cannot convert to OBMol object")
+            
+            mol.title = m.title
             mol.RemoveHydrogens()
+            if mol.GetNumAtoms() > 200:
+                raise UnknownReactionEnergyError("Compound contains more than 200 atoms (n = %d)" % mol.GetNumAtoms())
+            
             try:
                 decomposition = ugc.group_decomposer.Decompose(mol, 
                                         ignore_protonations=False, strict=True)
@@ -75,10 +82,10 @@ def CalculateThermo():
                 raise UnknownReactionEnergyError("missing pKa data")
             pmap = diss_table.GetPseudoisomerMap()
             for p_nH, p_z, p_nMg, p_dG0 in pmap.ToMatrix():
-                csv_writer.writerow([mol.title, None, p_nH, p_z, p_nMg, round(p_dG0, 1)])
+                csv_writer.writerow([m.title, None, p_nH, p_z, p_nMg, round(p_dG0, 1)])
 
         except UnknownReactionEnergyError as e:
-            csv_writer.writerow([mol.title, str(e), None, None, None, None])
+            csv_writer.writerow([m.title, str(e), None, None, None, None])
         
         out_fp.flush()
 if __name__ == '__main__':

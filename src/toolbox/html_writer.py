@@ -38,7 +38,7 @@ class BaseHtmlWriter:
             self.write('<a href=https://code.google.com/p/milo-lab/source/browse/trunk/?r=%d>milo-lab SVN r%d</a></br>' % (r,r))
 
     def write_js(self, path):
-        if (os.path.exists(path + '/expandCollapse.js')):
+        if os.path.exists(path + '/expandCollapse.js'):
             return
         fp = open(path + '/expandCollapse.js', 'w')
         fp.write("""function toggleMe(a){
@@ -52,7 +52,7 @@ class BaseHtmlWriter:
   return true;
 }
 """)
-        file.close()
+        fp.close()
         
     def write_ol(self, l):
         self.write("<ol>\n")
