@@ -7,7 +7,7 @@ from pygibbs.kegg_errors import KeggParseException,\
     KeggReactionNotBalancedException
 from pygibbs.thermodynamics import default_T, MissingCompoundFormationEnergy,\
     PsuedoisomerTableThermodynamics
-from toolbox.util import _mkdir, calc_rmse
+from toolbox.util import _mkdir
 from toolbox.html_writer import HtmlWriter
 from pygibbs.thermodynamic_constants import R, symbol_dr_G0_prime
 from pygibbs.kegg_reaction import Reaction
@@ -475,7 +475,8 @@ class Nist(object):
                             for error_list in unique_reaction_dict.values()]
         unique_rmse = rms_flat(unique_rmse_list)
         
-        rmse = calc_rmse(dG0_obs_vec, dG0_est_vec)
+        resid = np.array(dG0_obs_vec) - np.array(dG0_est_vec)
+        rmse = rms_flat(resid.flat)
 
         # plot the profile graph
         plt.rcParams['text.usetex'] = False
@@ -604,7 +605,7 @@ class Nist(object):
         for i, thermo in enumerate([thermo1, thermo2]):
             fig2.add_subplot(1,2,i+1)
             plt.plot(data_mat[:,0], data_mat[:,i+1], 'b.')
-            rmse = calc_rmse(data_mat[:,0], data_mat[:,i+1])
+            rmse = rms_flat((data_mat[:,0] - data_mat[:,i+1]).flat)
             plt.text(-50, 40, r'RMSE = %.1f [kJ/mol]' % (rmse))
             plt.xlabel(r'observed $\Delta G_r^\circ$ from NIST [kJ/mol]')
             plt.ylabel(r'estimated $\Delta G_r^\circ$ using %s [kJ/mol]' % thermo.name)

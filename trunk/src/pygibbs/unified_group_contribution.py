@@ -347,8 +347,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             # otherwise, there is too much info to printout
             for j in xrange(est_S.shape[1]):
                 r_str = UnifiedGroupContribution.row2string(S_part[:, j].round(10), all_cids)
-                logging.debug("%s : %s, dG0 = %.1f" %
-                              (result_dict['names'][i], r_str, dG0_r[i, j]))
+                logging.debug("%s : %s, dG0 = %.1f (%.2g)" %
+                              (result_dict['names'][i], r_str, dG0_r[i, j], parts[i, j]))
 
         parts[-1, :] = abs(result_dict['conservations'] * est_S).sum(0)
         i_resid = list((parts[-1, :] > self.epsilon).nonzero()[1].flat)
@@ -620,7 +620,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         violations = abs(self.P_L_tot * S_expanded).sum(0) > self.epsilon
         dG0_r[violations] = np.nan        
         return dG0_r
-
+    
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
@@ -673,19 +673,21 @@ if __name__ == "__main__":
 
     if options.test:
         r_list = []
-        r_list += [Reaction.FromFormula("C00002 + C00001 = C00008 + C00009")]
-        r_list += [Reaction.FromFormula("C00036 + C00024 = C00022 + C00083")]
-        r_list += [Reaction.FromFormula("C00036 + C00100 = C00022 + C00683")]
-        r_list += [Reaction.FromFormula("C01013 + C00010 + C00002 = C05668 + C00020 + C00013")]
-        r_list += [Reaction.FromFormula("C00091 + C00005 = C00232 + C00010 + C00006")]
-        r_list += [Reaction.FromFormula("C00002 + C00493 = C00008 + C03175")]
-        r_list += [Reaction.FromFormula("C00243 + C00125 = C05403 + C00126")]
-        r_list += [Reaction.FromFormula("2 C00206 = C00360 + C00131")]
+#        r_list += [Reaction.FromFormula("C00002 + C00001 = C00008 + C00009")]
+#        r_list += [Reaction.FromFormula("C00036 + C00024 = C00022 + C00083")]
+#        r_list += [Reaction.FromFormula("C00036 + C00100 = C00022 + C00683")]
+#        r_list += [Reaction.FromFormula("C01013 + C00010 + C00002 = C05668 + C00020 + C00013")]
+#        r_list += [Reaction.FromFormula("C00091 + C00005 = C00232 + C00010 + C00006")]
+#        r_list += [Reaction.FromFormula("C00002 + C00493 = C00008 + C03175")]
+#        r_list += [Reaction.FromFormula("C00243 + C00125 = C05403 + C00126")]
+#        r_list += [Reaction.FromFormula("2 C00206 = C00360 + C00131")]
+        r_list += [Reaction.FromFormula("C04171 + C00003 = C00196 + C00080 + C00004")]
+        
         
         kegg = Kegg.getInstance()
         S, cids = kegg.reaction_list_to_S(r_list)
     
-        dG0_prime = ugc.GetTransfromedReactionEnergies(S, cids, pH=7, I=0.1)
+        dG0_prime = ugc.GetTransfromedReactionEnergies(S, cids, pH=7.0, I=0.15)
         
         ln_conc = np.matrix(np.ones((1, S.shape[0]))) * np.log(0.001)
         if 1 in cids:
@@ -694,9 +696,10 @@ if __name__ == "__main__":
         dGc_prime = dG0_prime + RT * ln_conc * S
         for i in xrange(len(r_list)):
             r_list[i].Balance()
-            dG0, parts = ugc.GetChemicalReactionEnergies(S[:, i], cids)
+            dG0_r, parts, dG0_r_pgc = ugc.GetChemicalReactionEnergies(S[:, i], cids)
             print r_list[i].FullReactionString(show_cids=False)
-            print ('dG0 = %.1f = ' % dG0.sum(0)) + ' + '.join('%.1f' % d for d in dG0.flat)
+            print ('UGC: dG0 = %.1f = ' % dG0_r.sum(0)) + ' + '.join('%.1f' % d for d in dG0_r.flat)
+            print ('PGC: dG0 = %.1f = ' % dG0_r_pgc.sum(0)) + ' + '.join('%.1f' % d for d in dG0_r_pgc.flat)
             print "dG0' = %.1f, dGc' = %.1f" % \
                 (dG0_prime[0, i], dGc_prime[0, i])
     

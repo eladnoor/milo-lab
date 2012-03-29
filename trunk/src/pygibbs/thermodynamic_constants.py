@@ -1,4 +1,3 @@
-from toolbox.util import log_sum_exp
 import csv
 import numpy as np
 
@@ -55,6 +54,7 @@ def array_transform(dG0, nH, z, nMg, pH, pMg, I, T):
         pH and I - are the conditions, must be scalars
         returns the transformed gibbs energy: dG0'
     """
+    from toolbox.util import log_sum_exp
     ddG0 = correction_function(nH, z, nMg, pH, pMg, I, T)
     dG0_tag = dG0 + ddG0
     return -R * T * log_sum_exp(dG0_tag / (-R*T))

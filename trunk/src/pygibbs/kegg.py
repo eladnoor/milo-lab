@@ -9,7 +9,6 @@ import numpy as np
 from toolbox import util
 from toolbox.database import SqliteDatabase
 from toolbox.singletonmixin import Singleton
-from toolbox.molecule import Molecule, OpenBabelError
 
 from pygibbs import kegg_compound, kegg_reaction
 from pygibbs import kegg_enzyme
@@ -698,6 +697,8 @@ class Kegg(Singleton):
         return None, None, None
 
     def add_smiles(self, name, smiles):
+        from toolbox.molecule import Molecule
+        
         comp = kegg_compound.Compound()
         comp.name = name
         comp.all_names = [name]
@@ -796,6 +797,8 @@ class Kegg(Singleton):
             Print a CSV file containing the mass of each compound in KEGG
             Print a CSV file containing the CIDs of compounds that have CoA and/or Pi
         """
+        from toolbox.molecule import Molecule
+
         csv_file = csv.writer(open('../res/compounds.csv', 'w'))
         element_list = Molecule.GetAllElements()
         csv_file.writerow(["cid", "EXACT MASS"] + element_list)
@@ -1001,6 +1004,7 @@ class Kegg(Singleton):
         
 class KeggPathologic(object):
     def __init__(self): # CO2, HCO3-
+        from toolbox.molecule import OpenBabelError
 
         self.edge_color = "cadetblue"
         self.edge_fontcolor = "indigo"

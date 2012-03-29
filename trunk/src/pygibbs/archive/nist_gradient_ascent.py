@@ -13,6 +13,7 @@ from pygibbs import pseudoisomer
 from toolbox import util, database
 import logging
 from copy import deepcopy
+from matplotlib.mlab import rms_flat
 
 class GradientAscent(Thermodynamics):
     def __init__(self, gc):
@@ -267,16 +268,17 @@ class GradientAscent(Thermodynamics):
         
         colors = ['purple', 'orange', 'lightgreen', 'red', 'cyan']
         for e in sorted(evaluation_map.keys()):
-            (measured, predicted) = evaluation_map[e]
-            label = '%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), util.calc_rmse(measured, predicted))
+            measured, predicted = evaluation_map[e]
+            resid = np.array(measured) - np.array(predicted)
+            label = '%s (N = %d, RMSE = %.2f [kJ/mol])' % (e, len(measured), rms_flat(resid.flat))
             c = colors.pop(0)
             plot(measured, predicted, marker='.', linestyle='None', markerfacecolor=c, markeredgecolor=c, markersize=5, label=label)
         
         legend(loc='upper left')
         
-        r2 = util.calc_r2(dG0_obs_vec, dG0_est_vec)
-        rmse = util.calc_rmse(dG0_obs_vec, dG0_est_vec)
-        title(r'N = %d, RMSE = %.1f [kJ/mol], r$^2$ = %.2f' % (len(dG0_obs_vec), rmse, r2), fontsize=14)
+        resid = np.array(dG0_obs_vec) - np.array(dG0_est_vec)
+        rmse = rms_flat(resid.flat)
+        title(r'N = %d, RMSE = %.1f [kJ/mol]' % (len(dG0_obs_vec), rmse), fontsize=14)
         xlabel(r'$\Delta_{obs} G^\circ$ [kJ/mol]', fontsize=14)
         ylabel(r'$\Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
         min_x = min(dG0_obs_vec)
@@ -286,7 +288,6 @@ class GradientAscent(Thermodynamics):
         
         fig2 = figure()
         hist([(row[1] - row[2]) for row in total_list], bins=arange(-50, 50, 0.5))
-        rmse = util.calc_rmse(dG0_obs_vec, dG0_est_vec)
         title(r'RMSE = %.1f [kJ/mol]' % rmse, fontsize=14)
         xlabel(r'$\Delta_{obs} G^\circ - \Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
         ylabel(r'no. of measurements', fontsize=14)

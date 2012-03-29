@@ -80,7 +80,6 @@ def ExportJSONFiles():
             d['reaction'].append([coeff, "C%05d" % int(cid)])
         nullspace_vectors.append(d)
     WriteJSONFile(nullspace_vectors, options.nullspace_out_filename)
-    sys.exit(0)
         
     print 'Exporting KEGG compounds as JSON.'
     WriteJSONFile(kegg.AllCompounds(), options.compounds_out_filename)

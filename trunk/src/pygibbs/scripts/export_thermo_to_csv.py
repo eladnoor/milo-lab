@@ -1,8 +1,5 @@
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
-from pygibbs.pseudoisomer import PseudoisomerMap
-from optparse import OptionParser
-from toolbox.database import SqliteDatabase
 import sys
+from optparse import OptionParser
 from pygibbs.nist_verify import LoadAllEstimators
 
 def MakeOpts(estimators):
@@ -12,7 +9,7 @@ def MakeOpts(estimators):
                           dest="thermodynamics_source",
                           type="choice",
                           choices=estimators.keys(),
-                          default="PGC",
+                          default="UGC",
                           help="The thermodynamic data to use")
     opt_parser.add_option("-c", "--csv_out_filename",
                           dest="csv_out_filename",

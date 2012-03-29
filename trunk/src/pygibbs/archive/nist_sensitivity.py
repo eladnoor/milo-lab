@@ -41,17 +41,6 @@ def sensitivity_analysis_for_gradient_ascent(gc, nist, cid2pmap, max_i=250, n_be
         res_file.flush()
         sys.stderr.write("E-after = %.2f\n" % abs(dG0_obs - dG0_est_after))
     
-    #plot(dG0_obs_vec, dG0_est_after_vec, '.')
-    #r2 = GradientAscent.calc_r2(dG0_obs_vec, dG0_est_after_vec)
-    #title(r'N = %d, r$^2$ = %.2f' % (len(dG0_obs_vec), r2), fontsize=14)
-    #xlabel(r'$\Delta_{obs} G^\circ$ [kJ/mol]', fontsize=14)
-    #ylabel(r'$\Delta_{est} G^\circ$ [kJ/mol]', fontsize=14)
-    #min_x = min(dG0_obs_vec)
-    #max_x = max(dG0_obs_vec)
-    #plot([min_x, max_x], [min_x, max_x], 'k--')
-    #axis([-60, 60, -60, 60])
-    #savefig("leave1out_meas_vs_obs.pdf", format='pdf')
-
 def evaluate(gc, nist, cid2pmap):
     # Run the gradient ascent algorithm, where the starting point is Alberty's table from (Mathematica 2006)
     # Use DETERMINISTIC gradient ascent

@@ -12,7 +12,6 @@ from pygibbs.kegg_errors import KeggParseException,\
     KeggReactionNotBalancedException
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy,\
     MissingReactionEnergy
-from toolbox.util import calc_r2
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 import types
@@ -185,7 +184,7 @@ class Thermodynamics(object):
             try:
                 pdata = self.cid2PseudoisomerMap(cid)
                 for nH, z, nMg, dG0 in pdata.ToMatrix():
-                    writer.writerow([name, cid, nH, z, nMg, '%.1f' % dG0])
+                    writer.writerow([name, "C%05d" % cid, nH, z, nMg, '%.1f' % dG0])
             except MissingCompoundFormationEnergy as e:
                 logging.warning(str(e))
 
@@ -389,12 +388,11 @@ class Thermodynamics(object):
         plt.plot(vec_dG0_self, vec_dG0_other, '.', figure=fig)
         for i, rid in enumerate(vec_rid):
             plt.text(vec_dG0_self[i], vec_dG0_other[i], '%d' % rid, fontsize=6)
-        r2 = calc_r2(vec_dG0_self, vec_dG0_other)
+        r2 = np.corrcoef(vec_dG0_self, vec_dG0_other)[1, 0]
         plt.title("$\Delta_r G^{'\circ}$ comparison per reaction, $r^2$ = %.2f" % r2)
         plt.xlabel(self.name + ' (in kJ/mol)', figure=fig)
         plt.ylabel(other.name + ' (in kJ/mol)', figure=fig)
         html_writer.embed_matplotlib_figure(fig, width=200, height=200, name=fig_name)
-        
    
 class PsuedoisomerTableThermodynamics(Thermodynamics):
     
