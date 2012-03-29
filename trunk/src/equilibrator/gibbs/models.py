@@ -325,7 +325,7 @@ class Compound(models.Model):
         _indigo.setOption('render-stereo-style', 'none')
         _indigo.setOption('render-implicit-hydrogens-visible', False)
         _indigo.setOption('render-coloring', True)
-        _indigo.setOption('render-bond-length', 20.0)
+        _indigo.setOption('render-bond-length', 50.0)
         _indigo.setOption('render-label-mode', 'hetero')
     
         try:

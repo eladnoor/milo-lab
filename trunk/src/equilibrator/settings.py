@@ -4,6 +4,7 @@ import os
 import sys
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.normcase(PROJECT_ROOT))
+sys.path.insert(0, os.path.join(PROJECT_ROOT, ".."))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
