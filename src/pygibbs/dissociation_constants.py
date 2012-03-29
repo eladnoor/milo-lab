@@ -8,8 +8,8 @@ from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
-from toolbox.molecule import Molecule, OpenBabelError
 from optparse import OptionParser
+from toolbox.molecule import OpenBabelError
 
 class MissingDissociationConstantError(Exception):
     
@@ -461,6 +461,8 @@ class DissociationTable(object):
         return self.ddGs.__iter__()
     
     def GetMol(self, nH=None, nMg=0):
+        from toolbox.molecule import Molecule
+        
         if nH is None:
             nH = self.min_nH
         if (nH, nMg) not in self.mol_dict:
@@ -840,6 +842,8 @@ class DissociationThreads(threading.Thread):
         self.cid, self.smiles, self.semaphore, self.db_lock, self.options = args
     
     def run(self):
+        from toolbox.molecule import Molecule
+        
         self.semaphore.acquire()
         
         start_time = time.time()

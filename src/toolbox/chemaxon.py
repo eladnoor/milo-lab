@@ -135,7 +135,13 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7,
     return diss_table, major_ms
 
 if __name__ == "__main__":
-    print "glycine", GetDissociationConstants('C(=O)(O)CN')
-    print "CO2", GetDissociationConstants('O=C=O')
-    print "ATP", GetDissociationConstants('Nc1ncnc2n(cnc12)C1OC(COP([O-])(=O)OP([O-])(=O)OP(O)([O-])=O)C(O)C1O')
-    print "3-Ketoarabinitol", GetDissociationConstants('OCC(O)C(C(O)CO)=O')
+    from toolbox.molecule import Molecule
+    compound_list = [('glycine', 'C(=O)(O)CN'),
+                     ('CO2', 'O=C=O'),
+                     ('ATP', 'Nc1ncnc2n(cnc12)C1OC(COP([O-])(=O)OP([O-])(=O)OP(O)([O-])=O)C(O)C1O'),
+                     ('3-Ketoarabinitol', 'OCC(O)C(C(O)CO)=O')]
+    
+    for name, smiles in compound_list:
+        diss_table, major_ms = GetDissociationConstants(smiles)
+        m = Molecule.FromSmiles(major_ms)
+        print name, m.ToInChI(), diss_table

@@ -10,7 +10,6 @@ import os
 import types
 import numpy as np
 import xml.dom.minidom
-from toolbox.util import _mkdir, get_current_svn_revision
 
 class BaseHtmlWriter:
     def __init__(self):
@@ -33,6 +32,7 @@ class BaseHtmlWriter:
         now = datetime.datetime.now()
         self.write('<div>Written at %s</div>' % now)
         
+        from toolbox.util import get_current_svn_revision
         r = get_current_svn_revision()
         if r:
             self.write('<a href=https://code.google.com/p/milo-lab/source/browse/trunk/?r=%d>milo-lab SVN r%d</a></br>' % (r,r))
@@ -231,7 +231,9 @@ class NullHtmlWriter(BaseHtmlWriter):
 
 
 class HtmlWriter(BaseHtmlWriter):
+    
     def __init__(self, filename, force_path_creation=True, flush_always=True):
+        from toolbox.util import _mkdir
         BaseHtmlWriter.__init__(self)
         self.filename = filename
         self.filepath = os.path.dirname(filename)
@@ -269,10 +271,6 @@ class HtmlWriter(BaseHtmlWriter):
 def test():
     html_write = HtmlWriter("../res/test.html")
     html_write.write("<h1>hello world</h1>\n")
-    import pylab
-    fig = pylab.figure()
-    pylab.plot([1, 2, 3, 4], [4, 3, 2, 1], 'g--')
-    html_write.embed_matplotlib_figure(fig, 320, 240, name='test')
 
 if __name__ == '__main__':
     test()

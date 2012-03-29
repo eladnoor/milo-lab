@@ -6,8 +6,6 @@ import types
 import re
 import glib
 from pygibbs.thermodynamic_constants import default_T, default_pH
-from toolbox.html_writer import HtmlWriter
-from toolbox import chemaxon
 
 class OpenBabelError(Exception):
     pass
@@ -387,6 +385,7 @@ class Molecule(object):
             relative to the most abundant one at pH 7.
         """
         from pygibbs.dissociation_constants import DissociationTable
+        from toolbox import chemaxon
 
         diss_table = DissociationTable()
         try:
@@ -426,6 +425,8 @@ class Molecule(object):
                                             mid_pH, min_pKa, max_pKa, T)
     
 if __name__ == "__main__":
+    from toolbox.html_writer import HtmlWriter
+
     Molecule.SetBondLength(50.0)
 
     #m = Molecule.FromInChI('InChI=1S/Fe') # Iron

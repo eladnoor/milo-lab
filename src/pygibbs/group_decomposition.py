@@ -2,11 +2,10 @@
 
 import sys
 import logging
+import itertools
 
-from toolbox import util
-from pygibbs import groups_data
-from pygibbs import group_vector
 from toolbox.molecule import Molecule
+from pygibbs.groups_data import GroupsData, Group, MalformedGroupDefinitionError
 from pygibbs.group_vector import GroupVector
 
 class GroupDecompositionError(Exception):
@@ -87,7 +86,7 @@ class GroupDecomposition(object):
         Note: self.groups contains an entry for *all possible* groups, which is
         why this function returns consistent values for all compounds.
         """
-        group_vec = group_vector.GroupVector(self.groups_data)
+        group_vec = GroupVector(self.groups_data)
         for i, (unused_group, node_sets) in enumerate(self.groups):
             group_vec[i] = len(node_sets)
         group_vec[-1] = 1 # The origin
@@ -128,6 +127,50 @@ class GroupDecomposition(object):
         return sum([len(gdata[-1]) for gdata in self.groups])
 
     def PseudoisomerVectors(self):
+        
+        def distribute(total, num_slots):
+            """
+                Returns:
+                    a list with all the distinct options of distributing 'total' balls
+                    in 'num_slots' slots.
+                
+                Example:
+                    distribute(3, 2) = [[0, 3], [1, 2], [2, 1], [3, 0]]
+            """
+            if num_slots == 1:
+                return [[total]]
+            
+            if total == 0:
+                return [[0] * num_slots]
+            
+            all_options = []
+            for i in xrange(total+1):
+                for opt in distribute(total-i, num_slots-1):
+                    all_options.append([i] + opt)
+                    
+            return all_options
+        
+        def multi_distribute(total_slots_pairs):
+            """
+                Returns:
+                    similar to distribute, but with more constraints on the sub-totals
+                    in each group of slots. Every pair in the input list represents
+                    the subtotal of the number of balls and the number of available balls for them.
+                    The total of the numbers in these slots will be equal to the subtotal.
+                
+                Example:
+                    multi_distribute([(1, 2), (2, 2)]) =
+                    [[0, 1, 0, 2], [0, 1, 1, 1], [0, 1, 2, 0], [1, 0, 0, 2], [1, 0, 1, 1], [1, 0, 2, 0]]
+                    
+                    in words, the subtotal of the two first slots must be 1, and the subtotal
+                    of the two last slots must be 2.
+            """
+            multilist_of_options = []
+            for (total, num_slots) in total_slots_pairs:
+                multilist_of_options.append(distribute(total, num_slots))
+        
+            return [sum(x) for x in itertools.product(*multilist_of_options)]
+        
         """Returns a list of group vectors, one per pseudo-isomer."""    
         if not self.CountGroups():
             logging.info('No groups in this decomposition, not calculating pseudoisomers.')
@@ -158,7 +201,7 @@ class GroupDecomposition(object):
         # generate all possible assignments of protonations. Each group can appear several times, and we
         # can assign a different protonation level to each of the instances.
         groupvec_list = []
-        for assignment in util.multi_distribute(total_slots_pairs):
+        for assignment in multi_distribute(total_slots_pairs):
             v = [0] * len(index_vector)
             for i in xrange(len(v)):
                 v[index_vector[i]] = assignment[i]
@@ -190,7 +233,7 @@ class GroupDecomposer(object):
     def FromGroupsFile(filename):
         """Factory that initializes a GroupDecomposer from a CSV file."""
         assert filename
-        gd = groups_data.GroupsData.FromGroupsFile(filename)
+        gd = GroupsData.FromGroupsFile(filename)
         return GroupDecomposer(gd)
     
     @staticmethod
@@ -206,7 +249,7 @@ class GroupDecomposer(object):
             An initialized GroupsData object.
         """
         assert db
-        gd = groups_data.GroupsData.FromDatabase(db, filename)
+        gd = GroupsData.FromDatabase(db, filename)
         return GroupDecomposer(gd)
 
     @staticmethod
@@ -243,9 +286,9 @@ class GroupDecomposer(object):
             assigned_mgs.add(mg_index)
             chain_map[pmg_group].append(node_set)
         
-        all_pmg_groups = (groups_data.GroupsData.FINAL_PHOSPHATES_TO_MGS +
-                          groups_data.GroupsData.MIDDLE_PHOSPHATES_TO_MGS + 
-                          groups_data.GroupsData.RING_PHOSPHATES_TO_MGS)
+        all_pmg_groups = (GroupsData.FINAL_PHOSPHATES_TO_MGS +
+                          GroupsData.MIDDLE_PHOSPHATES_TO_MGS + 
+                          GroupsData.RING_PHOSPHATES_TO_MGS)
         for mg in mol.FindSmarts('[Mg+2]'):
             if mg[0] in assigned_mgs:
                 continue
@@ -278,7 +321,7 @@ class GroupDecomposer(object):
         Returns:
             A list of 2-tuples (phosphate group, # occurrences).
         """
-        group_map = dict((pg, []) for pg in groups_data.GroupsData.PHOSPHATE_GROUPS)
+        group_map = dict((pg, []) for pg in GroupsData.PHOSPHATE_GROUPS)
         v_charge = [a.formalcharge for a in mol.GetAtoms()]
         assigned_mgs = set()
         
@@ -291,14 +334,14 @@ class GroupDecomposer(object):
             return set(phosphate), charge
             
         def add_group(chain_map, group_name, charge, atoms):
-            default = groups_data.GroupsData.DEFAULTS[group_name]
+            default = GroupsData.DEFAULTS[group_name]
             
             if ignore_protonations:
                 chain_map[default].append(atoms)
             else:
                 # NOTE(flamholz): We rely on the default number of magnesiums being 0 (which it is).
                 hydrogens = default.hydrogens + charge - default.charge
-                group = groups_data.Group(default.id, group_name, hydrogens,
+                group = Group(default.id, group_name, hydrogens,
                                           charge, default.nMg)
                 if group not in chain_map:
                     #logging.warning('This protonation (%d) level is not allowed for terminal phosphate groups.' % hydrogens)
@@ -379,7 +422,7 @@ class GroupDecomposer(object):
                                                                     assigned_mgs)
             GroupDecomposer.UpdateGroupMapFromChain(group_map, chain_map)
 
-        return [(pg, group_map[pg]) for pg in groups_data.GroupsData.PHOSPHATE_GROUPS]
+        return [(pg, group_map[pg]) for pg in GroupsData.PHOSPHATE_GROUPS]
 
     def CreateEmptyGroupDecomposition(self):
         emptymol = Molecule.FromSmiles("")
@@ -420,7 +463,7 @@ class GroupDecomposer(object):
                 elif group.ChargeSensitive():
                     pchain_groups = self.FindPhosphateChains(mol, ignore_protonations=False)
                 else:
-                    raise groups_data.MalformedGroupDefinitionError(
+                    raise MalformedGroupDefinitionError(
                         'Unrecognized phosphate wildcard: %s' % group.name)
                 
                 for phosphate_group, group_nodesets in pchain_groups:

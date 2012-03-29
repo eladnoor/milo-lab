@@ -32,7 +32,7 @@ def CalculateThermo():
     else:
         out_fp = sys.stdout
     csv_writer = csv.writer(out_fp)
-    csv_writer.writerow(['ID', 'error', 'nH', 'nMg', 'charge', 'dG0']) 
+    csv_writer.writerow(['ID', 'error', 'nH', 'nMg', 'charge', 'dG0', 'kernel']) 
 
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     ugc = UnifiedGroupContribution(db)
@@ -68,12 +68,10 @@ def CalculateThermo():
             
             groupvec = decomposition.AsVector()
             gv = np.matrix(groupvec.Flatten())
-            if (abs(P_L_pgc * gv.T) > 1e-10).any():
-                raise UnknownReactionEnergyError("missing training data")
-
             dG0 = float(g_pgc * gv.T)
             nH = decomposition.Hydrogens()
             nMg = decomposition.Magnesiums()
+            ker = list((P_L_pgc * gv.T).round(10).flat)
             try:
                 diss_table = mol.GetDissociationTable()
                 diss_table.SetFormationEnergyByNumHydrogens(
@@ -82,10 +80,10 @@ def CalculateThermo():
                 raise UnknownReactionEnergyError("missing pKa data")
             pmap = diss_table.GetPseudoisomerMap()
             for p_nH, p_z, p_nMg, p_dG0 in pmap.ToMatrix():
-                csv_writer.writerow([m.title, None, p_nH, p_z, p_nMg, round(p_dG0, 1)])
+                csv_writer.writerow([m.title, None, p_nH, p_z, p_nMg, round(p_dG0, 1), str(ker)])
 
         except UnknownReactionEnergyError as e:
-            csv_writer.writerow([m.title, str(e), None, None, None, None])
+            csv_writer.writerow([m.title, str(e), None, None, None, None, None])
         
         out_fp.flush()
 if __name__ == '__main__':

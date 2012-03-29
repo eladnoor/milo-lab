@@ -1,9 +1,5 @@
 import os, types, pylab, sys
-from pylab import svd, find, exp, log, pi, nan, sqrt, array, dot
-try:
-    from nltk.metrics import edit_distance
-except ImportError:
-    from Levenshtein import distance as edit_distance
+import numpy as np
 import re
 import itertools
 
@@ -16,16 +12,16 @@ def slugify(val):
     
 
 def read_simple_mapfile(filename, default_value=""):
-    map = {}
-    file = open(filename, 'r')
-    for line in file.readlines():
+    d = {}
+    fp = open(filename, 'r')
+    for line in fp.readlines():
         if (line.find('=') == -1):
-            map[line.strip()] = default_value
+            d[line.strip()] = default_value
         else:
             (key, value) = line.split('=')
-            map[key.strip()] = value.strip()
-    file.close()
-    return map
+            d[key.strip()] = value.strip()
+    fp.close()
+    return d
 
 def _mkdir(newdir):
     """works the way a good mkdir should :)
@@ -44,25 +40,6 @@ def _mkdir(newdir):
             _mkdir(head)
         if tail:
             os.mkdir(newdir)
-
-def calc_rmse(vec1, vec2):
-    """
-        Calculates the RMSE (Root Mean Squared Error) between two vectors.
-        Vectors can be given as lists.
-    """
-    diff = array(vec1) - array(vec2)
-    square_diff = diff*diff.T
-    return sqrt( square_diff.mean() )
-    #return sqrt( mean( (array(vec1) - array(vec2))**2 ) )
-
-def calc_r2(vec1, vec2):
-    """
-        Calculates the correlation coefficient (R^2) of two vectors.
-        Vectors can be given as lists.
-    """
-    v1 = array(vec1)
-    v2 = array(vec2)
-    return dot(v1, v2.T)**2 / (dot(v1, v1.T) * dot(v2, v2.T))
 
 def gcd(a,b=None):
     """ Return greatest common divisor using Euclid's Algorithm.
@@ -217,10 +194,6 @@ def tiedrank(v):
 
     return ranks
 
-def matrixrank(X):
-    (unused_U, M, unused_V) = svd(X)
-    return len(find(M > 1e-8))
-
 def lsum(l):
     """
         returns a concatenations of all the members in 'l' assuming they are lists
@@ -278,7 +251,7 @@ def multi_distribute(total_slots_pairs):
     for (total, num_slots) in total_slots_pairs:
         multilist_of_options.append(distribute(total, num_slots))
 
-    return [lsum(x) for x in itertools.product(*multilist_of_options)]
+    return [sum(x) for x in itertools.product(*multilist_of_options)]
 
 def log_sum_exp(v):
     if (len(v) == 0):
@@ -289,19 +262,19 @@ def log_sum_exp(v):
         max_v = max(v)
         s = 0
         for x in v:
-            s += exp(x - max_v)
-        return max_v + log(s)  
+            s += np.exp(x - max_v)
+        return max_v + np.log(s)  
 
 def log_subt_exp(x1, x2):
     """
         Assumes x1 > x2, otherwise throws an exception
     """
     if (x1 == x2):
-        return nan
+        return np.nan
     elif (x1 > x2):
-        return complex(x1 + log(1 - exp(x2-x1)), 0)
+        return complex(x1 + np.log(1 - np.exp(x2-x1)), 0)
     else:
-        return complex(x2 + log(1 - exp(x1-x2)), pi)
+        return complex(x2 + np.log(1 - np.exp(x1-x2)), np.pi)
 
 def plot_xy(cursor, query, prefix=None, color='b', marker='.', xlog=False, ylog=False, xlabel='', ylabel='', title=''):
     """
@@ -342,6 +315,10 @@ def get_close_matches(word, possibilities, n=3, cutoff=None, case_sensitive=Fals
         If cutoff is given, the returned list will contain only the string
         which are closer than the cutoff.
     """
+    try:
+        from nltk.metrics import edit_distance
+    except ImportError:
+        from Levenshtein import distance as edit_distance
     
     hits = []
     for possibility in possibilities:
@@ -379,6 +356,6 @@ def test():
     
     total_slots_pairs = [(1,2),(2,2),(1,2)]
     print multi_distribute(total_slots_pairs)
-      
+    
 if (__name__ == '__main__'):
     test()

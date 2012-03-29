@@ -14,7 +14,6 @@ from pygibbs.kegg_reaction import Reaction
 from toolbox import plotting
 from SOAPpy import WSDL 
 from pygibbs.metacyc import MetaCyc, MetaCycNonCompoundException
-from toolbox import util
 import logging
 import matplotlib
 import re
@@ -858,9 +857,8 @@ def cons_pairs_dot_plot(first, second, xlim=30):
         
     pylab.plot(first, second, marker='.', linestyle='None', markersize=5)
     
-    r2 = util.calc_r2(first,second)
     pearson = numpy.corrcoef(first, second)[0,1]
-    pylab.title('Consecutive reactions irreversibility (R^2=%.2f, Pearson=%.2f)' % (r2, pearson), fontsize=14)
+    pylab.title('Consecutive reactions irreversibility (Pearson=%.2f)' % (pearson), fontsize=14)
     
     pylab.xlabel('First reaction: irreversibility', fontsize=12)
     pylab.ylabel('Second reaction: irreversibility', fontsize=12)

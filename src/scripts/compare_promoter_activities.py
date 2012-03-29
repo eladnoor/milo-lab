@@ -4,11 +4,10 @@
 
 import pylab
 import sys
-import numpy
 import scipy.stats as st
+import numpy as np
 
 from toolbox.database import MySQLDatabase
-from toolbox import growth
 from toolbox import promoter_activity
 from toolbox import util
 from toolbox.stats import MeanWithConfidenceInterval
@@ -156,7 +155,7 @@ class PlateActivityRunner(object):
             levels.append(lev)
             labels.append(lab)
         
-        return numpy.vstack(times), numpy.vstack(levels), numpy.hstack(labels)
+        return np.vstack(times), np.vstack(levels), np.hstack(labels)
     
     def Run(self):
         """Runs the analysis. Stores all output in self."""
@@ -179,9 +178,9 @@ class PlateActivityRunner(object):
             self.raw_times, self.raw_labels)
         self.filtered_labels = self.raw_labels[self.indices_kept]
         kept_set = set(self.indices_kept)
-        self.indices_removed = numpy.array([i for i in xrange(len(self.raw_labels))
+        self.indices_removed = np.array([i for i in xrange(len(self.raw_labels))
                                             if i not in kept_set])
-        self.labels_removed = numpy.array([])
+        self.labels_removed = np.array([])
         if self.indices_removed.any():
             self.labels_removed = self.raw_labels[self.indices_removed]
         
@@ -265,7 +264,7 @@ class StrainData(object):
     def GetMeanMaxActivity(self, condition):
         activity_vals = self.conditions_to_activities.get(condition, None)
         if activity_vals is None:
-            return numpy.NAN
+            return np.NAN
         
         maxes = [v[1] for v in activity_vals]
         return MeanWithConfidenceInterval(maxes)
@@ -491,23 +490,23 @@ class StrainConditionsData(object):
             for plate in plates:
                 
                 labels = plate.filtered_labels
-                order = numpy.argsort(labels)
+                order = np.argsort(labels)
                 smooth_activity = plate.smooth_filtered_activities
                 max_activity = plate.filtered_max_activities
-                left_mat = numpy.diag(1/max_activity)
-                scaled_activity = numpy.dot(left_mat, smooth_activity)
+                left_mat = np.diag(1/max_activity)
+                scaled_activity = np.dot(left_mat, smooth_activity)
 
                 scaled_culture = plate.scaled_culture_levels
-                max_culture_idx = numpy.argmin(numpy.abs(scaled_culture - 1.0), 1)
+                max_culture_idx = np.argmin(np.abs(scaled_culture - 1.0), 1)
                 for i, j in enumerate(max_culture_idx):
                     scaled_culture[i,j+1:] = 100
                 
                 Nr, _ = scaled_activity.shape
-                od_fracs = numpy.arange(0.0, 1.0, 0.001)
-                activity_per_od_frac = numpy.zeros((Nr, len(od_fracs)))
+                od_fracs = np.arange(0.0, 1.0, 0.001)
+                activity_per_od_frac = np.zeros((Nr, len(od_fracs)))
                 for j, frac in enumerate(od_fracs):
-                    abs_min = numpy.abs(scaled_culture - frac)
-                    idxs = numpy.argmin(abs_min, 1)
+                    abs_min = np.abs(scaled_culture - frac)
+                    idxs = np.argmin(abs_min, 1)
                     for i in order:
                         idx = idxs[i]
                         activity_per_od_frac[i,j] = scaled_activity[i, idx]
@@ -536,8 +535,8 @@ class StrainConditionsData(object):
         pylab.figure()
         pylab.title('Expression Fold Change (%s / %s)' % (condition2, condition1))
         pylab.ylabel('Fold Change')
-        fold_change = numpy.array(condition2_maxes) / numpy.array(condition1_maxes)
-        sorted_idx = list(numpy.argsort(fold_change))
+        fold_change = np.array(condition2_maxes) / np.array(condition1_maxes)
+        sorted_idx = list(np.argsort(fold_change))
         sorted_idx.reverse()
         sorted_fold_change = [fold_change[i] for i in sorted_idx]
         sorted_labels = [labels[i] for i in sorted_idx]
@@ -558,19 +557,19 @@ class StrainConditionsData(object):
         pylab.errorbar(condition1_maxes, condition2_maxes, yerr=condition2_errs,
                        xerr=condition1_errs, fmt=None)
         
-        log_x = numpy.log2(condition1_maxes)
-        log_y = numpy.log2(condition2_maxes)
-        min_x, max_x = numpy.min(log_x), numpy.max(log_x)
-        log_x_range = numpy.arange(min_x, max_x, 0.5)
+        log_x = np.log2(condition1_maxes)
+        log_y = np.log2(condition2_maxes)
+        min_x, max_x = np.min(log_x), np.max(log_x)
+        log_x_range = np.arange(min_x, max_x, 0.5)
         y_int = st.nanmean(log_y) - st.nanmean(log_x)
         predicted_y = log_x + y_int
         diffs = log_y - predicted_y
         res = abs(diffs)
-        r2 = util.calc_r2(log_y, predicted_y)
-        pylab.loglog(numpy.exp2(log_x), numpy.exp2(log_x), 'k--',
+        r2 = np.corrcoef(log_y, predicted_y)[1, 0]
+        pylab.loglog(np.exp2(log_x), np.exp2(log_x), 'k--',
                      basey=2, basex=2,
                      label='y = x')
-        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range + y_int), 'b--',
+        pylab.loglog(np.exp2(log_x_range), np.exp2(log_x_range + y_int), 'b--',
                      basey=2, basex=2,
                      label='y = x + %.2g (r2 = %.2g)' % (y_int, r2))
         
@@ -599,32 +598,32 @@ class StrainConditionsData(object):
         above_line = pylab.find(big_diffs > 0)
         below_line = pylab.find(big_diffs < 0)
         
-        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range), 'k--',
+        pylab.loglog(np.exp2(log_x_range), np.exp2(log_x_range), 'k--',
                      label='y = x', basey=2, basex=2)
         
         # Plot points lying above the line
         above_line_logx = far_logx[above_line]
         above_line_logy = far_logy[above_line]
-        pylab.loglog(numpy.exp2(above_line_logx), numpy.exp2(above_line_logy),
+        pylab.loglog(np.exp2(above_line_logx), np.exp2(above_line_logy),
                      'g.', basey=2, basex=2)
         
         y_int = pylab.mean(above_line_logy) - pylab.mean(above_line_logx)
         predicted_y = above_line_logx + y_int
-        r2 = util.calc_r2(above_line_logy, predicted_y)
-        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range + y_int),
+        r2 = np.corrcoef(above_line_logy, predicted_y)[1, 0]
+        pylab.loglog(np.exp2(log_x_range), np.exp2(log_x_range + y_int),
                      'g--', basey=2, basex=2,
                      label='f=x + %.2g (r2=%.2f)' % (y_int, r2))
         
         # Plot points lying below the line.
         below_line_logx = far_logx[below_line]
         below_line_logy = far_logy[below_line]
-        pylab.loglog(numpy.exp2(below_line_logx), numpy.exp2(below_line_logy),
+        pylab.loglog(np.exp2(below_line_logx), np.exp2(below_line_logy),
                      'r.', basey=2, basex=2)
         
         y_int = pylab.mean(below_line_logy) - pylab.mean(below_line_logx)
         predicted_y = below_line_logx + y_int
-        r2 = util.calc_r2(below_line_logy, predicted_y)
-        pylab.loglog(numpy.exp2(log_x_range), numpy.exp2(log_x_range + y_int),
+        r2 = np.corrcoef(below_line_logy, predicted_y)[1, 0]
+        pylab.loglog(np.exp2(log_x_range), np.exp2(log_x_range + y_int),
                      'r--', basey=2, basex=2,
                      label='f=x + %.2g (r2=%.2f)' % (y_int, r2))
         
@@ -722,16 +721,16 @@ def Main():
         labels, 'Glucose')
     condition2_activities, condition2_errs = strains_data.GetMeanMaxActivities(
         labels, 'Gluconate')
-    log_1 = numpy.log2(condition1_activities)
-    log_2 = numpy.log2(condition2_activities)
+    log_1 = np.log2(condition1_activities)
+    log_2 = np.log2(condition2_activities)
     diffs = log_2 - log_1
-    sorted_diffs = list(numpy.argsort(diffs))
+    sorted_diffs = list(np.argsort(diffs))
     sorted_diffs.reverse()
     diffs_data = []
     for i in sorted_diffs:
         logfold = diffs[i]
-        fold = numpy.exp2(logfold)
-        if numpy.isnan(logfold):
+        fold = np.exp2(logfold)
+        if np.isnan(logfold):
             logfold = None
             fold = None
         
