@@ -10,7 +10,7 @@
 		<input type="hidden" name="query" value="{{ query }}" />
 		{% include "parsed_reaction.html" %}
 		
-		{% if reaction.is_balanced and reaction.is_electron_balanced %}
+		{% if reaction.is_balanced and reaction.is_electron_balanced and reaction.is_conserving %}
 			{% include "reaction_result_table.html" %}
 			
 			<div class="buttonSet">
@@ -22,7 +22,7 @@
 		
 	</form>
 
-	{% if reaction.all_compounds %}
+	{% if reaction.all_compounds and reaction.is_conserving %}
 	<table class="compoundInfo">
 		<tr>
 			<th colspan="3">Compound Formation Energies</td>		
