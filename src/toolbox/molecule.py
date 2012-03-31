@@ -141,30 +141,30 @@ class Molecule(object):
         return m
     
     @staticmethod
-    def _FromFormat(s, format='inchi'):
-        if format == 'smiles' or format == 'smi':
+    def _FromFormat(s, fmt='inchi'):
+        if fmt == 'smiles' or fmt == 'smi':
             return Molecule.FromSmiles(s)
-        if format == 'inchi':
+        if fmt == 'inchi':
             return Molecule.FromInChI(s)
-        if format == 'mol':
+        if fmt == 'mol':
             return Molecule.FromMol(s)
-        if format == 'obmol':
+        if fmt == 'obmol':
             return Molecule.FromOBMol(s)
     
     @staticmethod
-    def _ToFormat(obmol, format='inchi'):
+    def _ToFormat(obmol, fmt='inchi'):
         obConversion = openbabel.OBConversion()
-        obConversion.SetOutFormat(format)
+        obConversion.SetOutFormat(fmt)
         res = obConversion.WriteString(obmol)
         if not res:
-            raise OpenBabelError("Cannot convert OBMol to %s" % format)
-        if format == 'smiles' or format == 'smi':
+            raise OpenBabelError("Cannot convert OBMol to %s" % fmt)
+        if fmt == 'smiles' or fmt == 'smi':
             res = res.split()
             if res == []:
-                raise OpenBabelError("Cannot convert OBMol to %s" % format)
+                raise OpenBabelError("Cannot convert OBMol to %s" % fmt)
             else:
                 return res[0]
-        elif format == 'inchi':
+        elif fmt == 'inchi':
             return res.strip()
         else:
             return res
@@ -209,8 +209,8 @@ class Molecule(object):
     def ToPybelMol(self):
         return self.pybel_mol
 
-    def ToFormat(self, format='inchi'):
-        return Molecule._ToFormat(self.obmol, format=format)
+    def ToFormat(self, fmt='inchi'):
+        return Molecule._ToFormat(self.obmol, fmt=fmt)
     
     def ToMolfile(self):
         return self.ToFormat('mol')
@@ -378,7 +378,7 @@ class Molecule(object):
         return [atom.formalcharge for atom in self.pybel_mol.atoms]
 
     @staticmethod
-    def _GetDissociationTable(molstring, format='inchi', mid_pH=default_pH, 
+    def _GetDissociationTable(molstring, fmt='inchi', mid_pH=default_pH, 
                             min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
@@ -409,12 +409,12 @@ class Molecule(object):
                                   nMg=0, ref='ChemAxon', T=T)
                 diss_table.SetMolString((nH+i+1), nMg=0, s=smiles_below)
         except chemaxon.ChemAxonError:
-            mol = Molecule._FromFormat(molstring, format)
+            mol = Molecule._FromFormat(molstring, fmt)
             diss_table.SetOnlyPseudoisomerMolecule(mol)
             
         return diss_table
 
-    def GetDissociationTable(self, format='inchi', mid_pH=default_pH, 
+    def GetDissociationTable(self, fmt='inchi', mid_pH=default_pH, 
                            min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
@@ -447,7 +447,7 @@ if __name__ == "__main__":
     #print m.ToFormat('inchi')
     #print m.ToFormat('sdf')
 
-    diss_table = Molecule._GetDissociationTable('C(=O)(O)CN', format='smiles',
+    diss_table = Molecule._GetDissociationTable('C(=O)(O)CN', fmt='smiles',
                  mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
     print "glycine\n", diss_table
     

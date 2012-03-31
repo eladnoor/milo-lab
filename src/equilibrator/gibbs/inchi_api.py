@@ -53,23 +53,17 @@ def InChIAPI(request):
     db_out = SqliteDatabase('/home/eladn/workspace/milo-lab/src/equilibrator/data/ugc.sqlite', 'w')
     inchi2dg.FromDatabase(db_out)
 
-    for name, inchi, dissociation_constants in queue:
-        pseudoisomer_list = []
-        error_msg = ""
+    for name, inchi, pKas in queue:
+        d = {'name': name, 'InChI': inchi, 'pKas': pKas}
         try:
             dG0, nH, charge, nMg, ker = inchi2dg.EstimateInChI(inchi)
             ker = ker.round(10)
-            d = {'dG0': dG0, 'nH': nH, 'charge': charge, 'nMg': nMg,
-                 'kernel': list(ker.flat)}
-            pseudoisomer_list.append(d)
+            d['pseudoisomers'] = inchi2dg.GenerateAllPseudoisomers(dG0, nH,
+                                                            charge, nMg, pKas)
         except GroupDecompositionError:
-            error_msg = "Cannot decompose this compound into groups"
+            d['error'] = "Cannot decompose this compound into groups"
         
-        result.append({'pseudoisomers': pseudoisomer_list,
-                       'name': name,
-                       'InChI': inchi,
-                       'pKas': dissociation_constants,
-                       'error': error_msg})
+        result.append(d)
         
     json_data = json.dumps(result)
     return HttpResponse(json_data, mimetype='application/json')
