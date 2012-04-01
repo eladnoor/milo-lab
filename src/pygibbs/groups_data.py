@@ -2,7 +2,7 @@
 
 import csv
 import logging
-import pylab
+import numpy as np
 from toolbox.molecule import Molecule
 
 class GroupsDataError(Exception):
@@ -229,9 +229,9 @@ class GroupsData(object):
         self.groups = groups
         self.all_groups = self._GetAllGroups(self.groups)
         self.all_group_names = [str(g) for g in self.all_groups]
-        self.all_group_hydrogens = pylab.array([g.hydrogens or 0 for g in self.all_groups])
-        self.all_group_charges = pylab.array([g.charge or 0 for g in self.all_groups])
-        self.all_group_mgs = pylab.array([g.nMg or 0 for g in self.all_groups])
+        self.all_group_hydrogens = np.array([g.hydrogens or 0 for g in self.all_groups])
+        self.all_group_charges = np.array([g.charge or 0 for g in self.all_groups])
+        self.all_group_mgs = np.array([g.nMg or 0 for g in self.all_groups])
 
         if self.transformed:
             # find the unique group names (ignoring nH, z, nMg)

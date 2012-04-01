@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import pylab
+import numpy as np
 import json
 
 class GroupVector(list):
@@ -74,15 +74,15 @@ class GroupVector(list):
         
     def NetCharge(self):
         """Returns the net charge."""
-        return int(pylab.dot(self, self.groups_data.all_group_charges))
+        return int(np.dot(self, self.groups_data.all_group_charges))
     
     def Hydrogens(self):
         """Returns the number of protons."""
-        return int(pylab.dot(self, self.groups_data.all_group_hydrogens))
+        return int(np.dot(self, self.groups_data.all_group_hydrogens))
 
     def Magnesiums(self):
         """Returns the number of Mg2+ ions."""
-        return int(pylab.dot(self, self.groups_data.all_group_mgs))
+        return int(np.dot(self, self.groups_data.all_group_mgs))
     
     def RemoveEpsilonValues(self, epsilon=1e-10):
         for i in range(len(self)):

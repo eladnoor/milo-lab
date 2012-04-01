@@ -65,5 +65,5 @@ def InChIAPI(request):
         
         result.append(d)
         
-    json_data = json.dumps(result)
+    json_data = json.dumps(result, indent=4)
     return HttpResponse(json_data, mimetype='application/json')
