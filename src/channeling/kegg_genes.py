@@ -1,22 +1,27 @@
 from SOAPpy import WSDL
 from toolbox.database import SqliteDatabase
+from pygibbs.kegg import Kegg
 import sys
 
 class KeggGenes(object):
     
     def __init__(self):
+        self.kegg = Kegg.getInstance()
+    
         self.wsdl = 'http://soap.genome.jp/KEGG.wsdl'
         self.serv = WSDL.Proxy(self.wsdl)
 
-        self.db = SqliteDatabase('../res/channeling.sqlite', 'w')
+        self.db = SqliteDatabase('channeling/channeling.sqlite', 'w')
         
         self.GENE_TABLE_NAME = 'kegg_genes'
         self.ENZYME_TABLE_NAME = 'kegg_enzymes'
-        self.REACTION_TABLE_NAME = 'kegg_enzymes'
+        self.REACTION_TABLE_NAME = 'kegg_reactions'
+        self.EQUATION_TABLE_NAME = 'kegg_equations'
         
         self.db.CreateTable(self.GENE_TABLE_NAME, ['organism', 'gene'], drop_if_exists=False)
         self.db.CreateTable(self.ENZYME_TABLE_NAME, ['organism', 'gene', 'enzyme'], drop_if_exists=False)
         self.db.CreateTable(self.REACTION_TABLE_NAME, ['enzyme', 'reaction'], drop_if_exists=False)
+        self.db.CreateTable(self.EQUATION_TABLE_NAME, ['reaction', 'equation', 'dG0'], drop_if_exists=False)
     
     def GetAllGenes(self, organism='eco'):
         all_genes = []
@@ -61,15 +66,38 @@ class KeggGenes(object):
         self.db.Execute("DELETE FROM %s" % (self.REACTION_TABLE_NAME))
         
         for enzyme in all_enzymes:
-            sys.stderr.write('reading reaction for enzyme %s ...\n' % (enzyme))
+            sys.stderr.write('reading reactions for enzyme %s ...\n' % (enzyme))
             new_reactions = self.serv.get_reactions_by_enzyme(enzyme)
             for reaction in new_reactions:
                 self.db.Insert(self.REACTION_TABLE_NAME, [enzyme, reaction])
         self.db.Commit()
 
+    def GetAllEquations(self):
+        all_reactions = []
+        for row in self.db.Execute("SELECT distinct(reaction) FROM %s" % 
+                                   (self.REACTION_TABLE_NAME)):
+            all_reactions.append(str(row[0]))
+        
+        self.db.Execute("DELETE FROM %s" % (self.EQUATION_TABLE_NAME))
+        
+        for reaction in all_reactions:
+            sys.stderr.write('reading data for reaction %s ...\n' % (reaction))
+            rid = int(reaction[4:])
+            try:
+                kegg_reaction = self.kegg.rid2reaction(rid)
+                equation = kegg_reaction.equation
+                self.db.Insert(self.EQUATION_TABLE_NAME,
+                    [reaction, equation, None])
+            except KeyError:
+                sys.stderr.write("Cannot find this RID in local KEGG copy")
+        self.db.Commit()
+        
+
 if __name__ == "__main__":
-    kegg = KeggGenes()
-    #kegg.GetAllGenes('eco')
-    #kegg.GetAllEnzyme('eco')
-    kegg.GetAllReactions()
+    kegg_gene = KeggGenes()
+    #kegg_gene.GetAllGenes('eco')
+    #kegg_gene.GetAllEnzyme('eco')
+    #kegg_gene.GetAllReactions()
+    kegg_gene.GetAllEquations()
+    
     
