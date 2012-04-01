@@ -68,21 +68,22 @@ class InChI2FormationEnergy(object):
             Given the values of the most abundant species at pH 7 and a list
             of pKa values, generates the data of all other pseudoisomers
         """
-        pKa_higher = [x for x in pKas if 7 < x[0]]
-        pKa_lower = [x for x in pKas if 7 > x[0]]
+        pKa_higher = [x for x in pKas if 7 < x]
+        pKa_lower = [x for x in pKas if 7 > x]
         
-        pseudoisomer_list = [{'dG0': dG0, 'nH': nH, 'charge': charge, 'nMg': nMg}]
+        pseudoisomer_list = [{'dG0': round(dG0, 1), 'nH': nH,
+                              'charge': charge, 'nMg': nMg}]
         
         ddG0 = 0
         for i, pKa in enumerate(sorted(pKa_higher)):
             ddG0 += self.RT * np.log(10) * pKa
-            pseudoisomer_list.append({'dG0': dG0 + ddG0, 'nH': nH-1-i,
+            pseudoisomer_list.append({'dG0': round(dG0 + ddG0, 1), 'nH': nH-1-i,
                                       'charge': charge-1-i, 'nMg': nMg})
         
         ddG0 = 0
         for i, pKa in enumerate(sorted(pKa_lower, reverse=True)):
             ddG0 -= self.RT * np.log(10) * pKa
-            pseudoisomer_list.append({'dG0': dG0 + ddG0, 'nH': nH+1+i,
+            pseudoisomer_list.append({'dG0': round(dG0 + ddG0, 1), 'nH': nH+1+i,
                                       'charge': charge+1+i, 'nMg': nMg})
         
         return sorted(pseudoisomer_list, key=lambda x: x['nH'])
