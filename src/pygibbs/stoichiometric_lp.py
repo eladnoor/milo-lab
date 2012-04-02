@@ -166,7 +166,7 @@ class Stoichiometric_LP(object):
         
         self.formation_vars = pulp.LpVariable.dicts("Formation",
             ["C%05d" % cid for cid in self.cids],
-            lowBound=1e-6,
+            lowBound=-1e6,
             upBound=1e6,
             cat=pulp.LpContinuous) 
 
