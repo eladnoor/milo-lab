@@ -2,6 +2,8 @@ from SOAPpy import WSDL
 from toolbox.database import SqliteDatabase
 import sys
 from pygibbs import kegg_parser
+from pygibbs.kegg_reaction import Reaction
+from pygibbs.kegg_errors import KeggParseException, KeggNonCompoundException
 
 class KeggGenes(object):
     
@@ -15,13 +17,13 @@ class KeggGenes(object):
         self.ENZYME_TABLE_NAME = 'kegg_enzymes'
         self.REACTION_TABLE_NAME = 'kegg_reactions'
         self.EQUATION_TABLE_NAME = 'kegg_equations'
-        self.FORMATION_ENERGY_TABLE_NAME = 'kegg_formation_energies'
+        self.GIBBS_ENERGY_TABLE_NAME = 'kegg_gibbs_energies'
         
         self.db.CreateTable(self.GENE_TABLE_NAME, ['organism', 'gene'], drop_if_exists=False)
         self.db.CreateTable(self.ENZYME_TABLE_NAME, ['organism', 'gene', 'enzyme'], drop_if_exists=False)
         self.db.CreateTable(self.REACTION_TABLE_NAME, ['enzyme', 'reaction'], drop_if_exists=False)
         self.db.CreateTable(self.EQUATION_TABLE_NAME, ['reaction', 'equation'], drop_if_exists=False)
-        self.db.CreateTable(self.FORMATION_ENERGY_TABLE_NAME, ['compound', 'dG0'], drop_if_exists=False)
+        self.db.CreateTable(self.GIBBS_ENERGY_TABLE_NAME, ['equation', 'dG0'], drop_if_exists=False)
     
     def GetAllGenes(self, organism='eco'):
         all_genes = []
@@ -99,18 +101,33 @@ class KeggGenes(object):
         
         return equation_list
     
-    def GetForamtionEnergies(self):
-        all_compounds = []
+    def GetForamtionEnergies(self, thermo):
+        from pygibbs.kegg import Kegg
+        kegg = Kegg.getInstance()
+        all_kegg_cids = set(kegg.get_all_cids())
+    
+        all_kegg_reactions = []
+        all_equations = []
         for row in self.db.Execute("SELECT distinct(equation) FROM %s" % 
                                    (self.EQUATION_TABLE_NAME)):
-            all_compounds.append(str(row[0]))
+            try:
+                r = Reaction.FromFormula(str(row[0]))
+                if not r.get_cids().issubset(all_kegg_cids):
+                    continue
+                all_equations.append(str(row[0]))
+                all_kegg_reactions.append(r)
+            except (KeggParseException, KeggNonCompoundException):
+                pass
         
-        self.db.Execute("DELETE FROM %s" % (self.FORMATION_ENERGY_TABLE_NAME))
+        self.db.Execute("DELETE FROM %s" % (self.GIBBS_ENERGY_TABLE_NAME))
         
-    def _ParseEquation(self, equation):
-        
+        dG0 = thermo.GetTransfromedKeggReactionEnergies(all_kegg_reactions)
+        for i, equation in enumerate(all_equations):
+            sys.stderr.write('estimating energy for %s ...\n' % str(all_kegg_reactions[i]))
+            self.db.Insert(self.GIBBS_ENERGY_TABLE_NAME,
+                           [equation, dG0[0, i]])
     
-            
+        self.db.Commit()
 
 if __name__ == "__main__":
     kegg_gene = KeggGenes()
@@ -118,6 +135,9 @@ if __name__ == "__main__":
     #kegg_gene.GetAllEnzyme('eco')
     #kegg_gene.GetAllReactions()
     #kegg_gene.GetAllEquations()
-    kegg_gene.GetForamtionEnergies()
+    
+    from pygibbs.thermodynamic_estimators import LoadAllEstimators
+    estimators = LoadAllEstimators()
+    kegg_gene.GetForamtionEnergies(estimators['UGC'])
     
     
