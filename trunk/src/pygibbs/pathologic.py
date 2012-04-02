@@ -51,19 +51,19 @@ class Pathologic(object):
         self.db = db
         self.thermo = thermo
                 
-        self.kegg_patholotic = KeggPathologic()
+        self.kegg_pathologic = KeggPathologic()
         if update_file is not None:
-            self.kegg_patholotic.update_database(update_file, self.html_writer)
+            self.kegg_pathologic.update_database(update_file, self.html_writer)
             
     def add_reaction(self, reaction, weight=1.0):
-        self.kegg_patholotic.add_reaction(reaction, weight)
+        self.kegg_pathologic.add_reaction(reaction, weight)
     
     def add_cofactor_reaction(self, reaction):
-        self.kegg_patholotic.add_cofactor_reaction(reaction)
+        self.kegg_pathologic.add_cofactor_reaction(reaction)
         
     def ban_compound(self, cid):
         """Deletes all reactions which involve this compounds as a reactant"""
-        self.kegg_patholotic.banned_cids.add(cid)
+        self.kegg_pathologic.banned_cids.add(cid)
 
     def find_path(self, experiment_name, net_reaction):
         """Find a pathway from the source to the target.
@@ -83,7 +83,7 @@ class Pathologic(object):
         exp_html.insert_toggle(div_id="__parameters__", start_here=True,
                                label='Show Parameters')
         
-        f, S, compounds, reactions = self.kegg_patholotic.get_unique_cids_and_reactions()
+        f, S, compounds, reactions = self.kegg_pathologic.get_unique_cids_and_reactions()
 
         exp_html.write('<h2>Conditions:</h2>\n')
         exp_html.write_ul(['Optimization method: %s' % self.thermodynamic_method,
@@ -171,7 +171,7 @@ class Pathologic(object):
                         float(solution.fluxes.sum(1))))
 
         # draw network as a graph and link to it
-        Gdot = self.kegg_patholotic.draw_pathway(solution.reactions,
+        Gdot = self.kegg_pathologic.draw_pathway(solution.reactions,
                                                  list(solution.fluxes.flat))
         svg_fname = '%s/%s_graph' % (experiment_name, solution_id)
         exp_html.embed_dot_inline(Gdot, width=240, height=320, name=svg_fname)
