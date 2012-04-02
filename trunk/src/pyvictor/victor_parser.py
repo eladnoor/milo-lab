@@ -23,12 +23,21 @@ class VictorParser():
         wd = open_workbook(fname)
         
         protocol_sheet = wd.sheet_by_index(2)
-        measurement_cell = protocol_sheet.row_values(98)[0]
-        try:
-            measured_on = re.findall('\. ([0-9\/\ :]+)$', measurement_cell)[0]
-        except IndexError:
+        
+        self.measurement_time = None
+        for r in xrange(protocol_sheet.nrows):
+            measurement_cell = protocol_sheet.row_values(r)[0]
+            measured_on = re.findall('Measured on \.* ([0-9\s\-\/:]+)$', measurement_cell)
+            if len(measured_on) > 0:
+                self.measurement_time = strptime(measured_on[0], '%d/%m/%Y %H:%M:%S')
+                break
+            measured_on = re.findall('Measured on \.* ([0-9\s\-\/:]+ [A|P]M)$', measurement_cell)
+            if len(measured_on) > 0:
+                self.measurement_time = strptime(measured_on[0], '%m/%d/%Y %H:%M:%S %p')
+                break
+
+        if self.measurement_time is None:
             raise Exception("cannot get measurement date in XLS file: " + fname)
-        self.measurement_time = strptime(measured_on, '%d/%m/%Y %H:%M:%S')
         
         sheet = wd.sheet_by_index(0)
         titles = sheet.row_values(0) # [Plate, Repeat, Well, Type] + [Time, Measurement] * n

@@ -1,13 +1,11 @@
 from SOAPpy import WSDL
 from toolbox.database import SqliteDatabase
-from pygibbs.kegg import Kegg
 import sys
+from pygibbs import kegg_parser
 
 class KeggGenes(object):
     
     def __init__(self):
-        self.kegg = Kegg.getInstance()
-    
         self.wsdl = 'http://soap.genome.jp/KEGG.wsdl'
         self.serv = WSDL.Proxy(self.wsdl)
 
@@ -17,11 +15,13 @@ class KeggGenes(object):
         self.ENZYME_TABLE_NAME = 'kegg_enzymes'
         self.REACTION_TABLE_NAME = 'kegg_reactions'
         self.EQUATION_TABLE_NAME = 'kegg_equations'
+        self.FORMATION_ENERGY_TABLE_NAME = 'kegg_formation_energies'
         
         self.db.CreateTable(self.GENE_TABLE_NAME, ['organism', 'gene'], drop_if_exists=False)
         self.db.CreateTable(self.ENZYME_TABLE_NAME, ['organism', 'gene', 'enzyme'], drop_if_exists=False)
         self.db.CreateTable(self.REACTION_TABLE_NAME, ['enzyme', 'reaction'], drop_if_exists=False)
-        self.db.CreateTable(self.EQUATION_TABLE_NAME, ['reaction', 'equation', 'dG0'], drop_if_exists=False)
+        self.db.CreateTable(self.EQUATION_TABLE_NAME, ['reaction', 'equation'], drop_if_exists=False)
+        self.db.CreateTable(self.FORMATION_ENERGY_TABLE_NAME, ['compound', 'dG0'], drop_if_exists=False)
     
     def GetAllGenes(self, organism='eco'):
         all_genes = []
@@ -82,22 +82,42 @@ class KeggGenes(object):
         
         for reaction in all_reactions:
             sys.stderr.write('reading data for reaction %s ...\n' % (reaction))
-            rid = int(reaction[4:])
-            try:
-                kegg_reaction = self.kegg.rid2reaction(rid)
-                equation = kegg_reaction.equation
+            s = self.serv.bget(reaction)
+            for equation in self._ReadReactionEntries(s):
+                sys.stderr.write(equation + "\n")
                 self.db.Insert(self.EQUATION_TABLE_NAME,
-                    [reaction, equation, None])
-            except KeyError:
-                sys.stderr.write("Cannot find this RID in local KEGG copy")
+                    [reaction, equation])
         self.db.Commit()
+
+    def _ReadReactionEntries(self, s):
+        equation_list = []
+        entry2fields_map = kegg_parser.ParsedKeggFile.FromKeggAPI(s)
+        for key in sorted(entry2fields_map.keys()):
+            field_map = entry2fields_map[key]
+            if "EQUATION" in field_map:
+                equation_list.append(field_map["EQUATION"])
         
+        return equation_list
+    
+    def GetForamtionEnergies(self):
+        all_compounds = []
+        for row in self.db.Execute("SELECT distinct(equation) FROM %s" % 
+                                   (self.EQUATION_TABLE_NAME)):
+            all_compounds.append(str(row[0]))
+        
+        self.db.Execute("DELETE FROM %s" % (self.FORMATION_ENERGY_TABLE_NAME))
+        
+    def _ParseEquation(self, equation):
+        
+    
+            
 
 if __name__ == "__main__":
     kegg_gene = KeggGenes()
     #kegg_gene.GetAllGenes('eco')
     #kegg_gene.GetAllEnzyme('eco')
     #kegg_gene.GetAllReactions()
-    kegg_gene.GetAllEquations()
+    #kegg_gene.GetAllEquations()
+    kegg_gene.GetForamtionEnergies()
     
     
