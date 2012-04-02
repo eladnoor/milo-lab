@@ -88,6 +88,14 @@ class InChI2FormationEnergy(object):
         
         return sorted(pseudoisomer_list, key=lambda x: x['nH'])
 
+    def ArrayToSparseRep(self, a):
+        d = {'size': a.shape, "nonzero": []}
+        non_zero = a.nonzero()
+        for i in xrange(len(non_zero[0])):
+            index = tuple([p[i] for p in non_zero])
+            d["nonzero"].append(list(index) + [a[index]])
+        return d
+
 if __name__ == "__main__":
     
     from toolbox.database import SqliteDatabase

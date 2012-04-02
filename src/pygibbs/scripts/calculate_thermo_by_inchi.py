@@ -88,7 +88,7 @@ def CalculateThermo():
     for mol_dict in list_of_mols:
         mol_id = mol_dict['id']
         diss_table = Molecule._GetDissociationTable(mol_dict['mol'],
-                                                    format=mol_dict['format'])
+                                                    fmt=mol_dict['format'])
         try:
             mol = diss_table.GetMostAbundantMol(pH, I, pMg, T) or \
                   diss_table.GetAnyMol()

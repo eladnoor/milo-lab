@@ -379,7 +379,7 @@ class Molecule(object):
 
     @staticmethod
     def _GetDissociationTable(molstring, fmt='inchi', mid_pH=default_pH, 
-                            min_pKa=0, max_pKa=14, T=default_T):
+                              min_pKa=0, max_pKa=14, T=default_T):
         """
             Returns the relative potentials of pseudoisomers,
             relative to the most abundant one at pH 7.

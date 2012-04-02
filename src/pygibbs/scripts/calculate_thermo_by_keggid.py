@@ -24,7 +24,7 @@ def MakeOpts(estimators):
                           help="output CSV file with dGs")
     opt_parser.add_option("-b", "--biochemical",
                           dest="biochemical",
-                          default=True,
+                          default=False,
                           action="store_true",
                           help="calculate the biochemical (transformed) energy at standard conditions")
     opt_parser.add_option("-p", "--ph", action="store", type="float",
