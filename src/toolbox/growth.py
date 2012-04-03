@@ -124,7 +124,10 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
             maximum growth rate in the allowed range.
         """
         disallowed_vals = pylab.find(res_mat[:,4] > self.maximum_level)
-        upper_b = numpy.min(disallowed_vals)
+        upper_b = res_mat.shape[1]
+        if disallowed_vals.any():
+            upper_b = numpy.min(disallowed_vals)
+            
         max_i = res_mat[0:upper_b,0].argmax()
         return max_i
     
@@ -147,6 +150,7 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         if stationary_indices.any():
             stationary_level = res_mat[stationary_indices[0], 3]
         
+        
         pylab.hold(True)
         pylab.plot(times, norm_counts)
         pylab.plot(times, res_mat[:,0])
@@ -163,6 +167,7 @@ class SlidingWindowGrowthCalculator(GrowthCalculator):
         pylab.yscale('log')
         pylab.legend(['OD', 'growth rate', 'threshold', 'fit'])
         #, 'stationary'])
+        
         
         return res_mat[max_i, 0], stationary_level
 
