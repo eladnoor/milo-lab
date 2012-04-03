@@ -1,0 +1,22 @@
+"Enzyme Name","Short Name","EC","KEGG RID","KCAT"
+"Hexokinase","hxk","2.7.1.1",299,50
+"Glucokinase","glk","2.7.1.2",299,80
+"Glucose-6-phosphate dehydrogenase","zwf","1.1.1.49 ",835,400
+"6-phosphogluconolactonase","pgl","3.1.1.31",2035,
+"6-phosphogluconate dehydratase","edd","4.2.1.12",2036,
+"KDPG aldolase","eda","4.1.2.14 ",5605,50
+"Glucose-6-phosphate isomerase","pgi","5.3.1.9",771,500
+"6-phosphofructokinase","pfk","2.7.1.11",756,100
+"fructose-bisphosphate aldolase","fba","4.1.2.13",1068,12
+"Triose-phosphate isomerase","tpi","5.3.1.1",1015,650
+"Glyceraldehyde-3-phosphate dehydrogenase (phosphorylating)","gapdh","1.2.1.12",1061,40
+"Nonphosphorylating glyceraldehyde-3-phosphate dehydrogenase (NADP)","gapnp","1.2.1.9",1058,
+"Phosphoglycerate kinase","pgk","2.7.2.3",1512,2000
+"Phosphoglycerate mutase","gpm","5.4.2.1",1518,60
+"Enolase","eno","4.2.1.11",658,37
+"Pyruvate kinase","pyk","2.7.1.40",200,200
+"Lactate dehydrogenase","ldh","1.1.1.27",703,200
+"Glucose 1-dehydrogenase","glcdh","1.1.1.118",300,
+"Gluconolactonase","gntls","3.1.1.17",1519,200
+"D-gluconate dehydratase","gndhy","4.2.1.39",1538,300
+"KDG Kinase","kdgkn","2.7.1.45",1541,12

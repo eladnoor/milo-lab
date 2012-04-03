@@ -1,0 +1,34 @@
+"Enzyme Name","Short Name","EC","KEGG RID","Substrate","Substrate CID","KM"
+"Hexokinase","hxk","2.7.1.1",299,"D-glucose",31,7.00E-005
+"Hexokinase","hxk","2.7.1.1",299,"ATP",2,4.00E-004
+"Glucokinase","glk","2.7.1.2",299,"D-glucose",31,5.00E-004
+"Glucokinase","glk","2.7.1.2",299,"ATP",2,6.00E-004
+"Glucose-6-phosphate dehydrogenase","zwf","1.1.1.49 ",835,"D-Glucose 6-phosphate",92,7.00E-005
+"Glucose-6-phosphate dehydrogenase","zwf","1.1.1.49 ",835,"NADP+",6,1.00E-005
+"6-phosphogluconolactonase","pgl","3.1.1.31",2035,"6-Phospho-D-glucono-1,5-lactone",1236,3.00E-004
+"6-phosphogluconate dehydratase","edd","4.2.1.12",2036,"6-Phospho-D-gluconate",345,3.00E-004
+"KDPG aldolase","eda","4.1.2.14 ",5605,"KDPG",4442,1.00E-004
+"Glucose-6-phosphate isomerase","pgi","5.3.1.9",771,"D-Glucose 6-phosphate",92,2.00E-003
+"6-phosphofructokinase","pfk","2.7.1.11",756,"D-Fructose 6-phosphate",85,3.00E-004
+"6-phosphofructokinase","pfk","2.7.1.11",756,"ATP",2,4.00E-005
+"fructose-bisphosphate aldolase","fba","4.1.2.13",1068,"D-Fructose 1,6-bisphosphate",354,1.00E-005
+"Triose-phosphate isomerase","tpi","5.3.1.1",1015,"DHAP",111,1.00E-003
+"Glyceraldehyde-3-phosphate dehydrogenase (phosphorylating)","gapdh","1.2.1.12",1061,"G3P",118,2.00E-004
+"Glyceraldehyde-3-phosphate dehydrogenase (phosphorylating)","gapdh","1.2.1.12",1061,"NAD+",3,5.00E-005
+"Nonphosphorylating glyceraldehyde-3-phosphate dehydrogenase (NADP)","gapnp","1.2.1.9",1058,"G3P",118,2.50E-005
+"Nonphosphorylating glyceraldehyde-3-phosphate dehydrogenase (NADP)","gapnp","1.2.1.9",1058,"NADP+",6,2.50E-005
+"Phosphoglycerate kinase","pgk","2.7.2.3",1512,"BPG",236,1.00E-005
+"Phosphoglycerate kinase","pgk","2.7.2.3",1512,"ADP",8,2.00E-004
+"Phosphoglycerate mutase","gpm","5.4.2.1",1518,"3-phospho-D-glycerate",197,8.00E-004
+"Enolase","eno","4.2.1.11",658,"ADP",8,3.00E-004
+"Enolase","eno","4.2.1.11",658,"2-phospho-D-glycerate",631,2.00E-004
+"Pyruvate kinase","pyk","2.7.1.40",200,"PEP",74,2.00E-004
+"Pyruvate kinase","pyk","2.7.1.40",200,"ADP",8,3.00E-004
+"Lactate dehydrogenase","ldh","1.1.1.27",703,"Pyruvate",22,2.00E-004
+"Lactate dehydrogenase","ldh","1.1.1.27",703,"NADH",4,3.00E-005
+"Glucose 1-dehydrogenase","glcdh","1.1.1.118",300,"D-glucose",31,9.00E-004
+"Glucose 1-dehydrogenase","glcdh","1.1.1.118",300,"NAD+",3,5.00E-002
+"Gluconolactonase","gntls","3.1.1.17",1519,"D-glucono-1,5-lactone",198,9.00E-003
+"D-gluconate dehydratase","gndhy","4.2.1.39",1538,"D-gluconate",257,5.00E-003
+"KDG Kinase","kdgkn","2.7.1.45",1541,"KDG",204,1.00E-004
+"KDG Kinase","kdgkn","2.7.1.45",1541,"ATP",2,1.00E-005

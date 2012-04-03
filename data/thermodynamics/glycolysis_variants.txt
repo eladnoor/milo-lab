@@ -91,7 +91,7 @@ REACTION    zwf    C00092 + C00006 -> C01236 + C00005 (x2)
 ///
 ENTRY       P12-GLYC-NO-P
 SKIP        FALSE
-NAME        Glycolysis, No Phosphorylation Other Than Substrate Level
+NAME        Glycolysis, No P Other Than SLP
 TYPE        MTDF
 PH          7
 I           0.25
@@ -112,6 +112,31 @@ REACTION    gli  C00031 -> C00095 (x1)
             tri  C00184 -> C00577 (x1)
             gdh  C00577 + C00003 + C00009 -> C80066 + C00004 + C00080 (x2)
             gck  C80066 + C00008 -> C00258 + C00002 (x2)
+            gdhy  C00258 -> C00022 + C00001 (x2)
+            ldh  C00022 + C00004 -> C00003 + C00186 (x2)
+///
+ENTRY       P12-GLYC-NO-P-U
+SKIP        FALSE
+NAME        Glycolysis, No P Other Than SLP Merged SLP
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    gli  C00031 -> C00095 (x1)
+            fra  C00095 -> C00184 + C00577 (x1)
+            tri  C00184 -> C00577 (x1)
+            slp  C00577 + C00003 + C00009 + C00008 -> C00004 + C00080 + C00258 + C00002 (x2)
             gdhy  C00258 -> C00022 + C00001 (x2)
             ldh  C00022 + C00004 -> C00003 + C00186 (x2)
 ///
