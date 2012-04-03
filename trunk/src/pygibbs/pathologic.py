@@ -203,12 +203,14 @@ class Pathologic(object):
             rowdicts = []
             for r, reaction in enumerate(solution.reactions):
                 rowdict = {}
+                flux = solution.fluxes[0, r]
                 rowdict['KEGG ID'] = '<a href="%s">R%05d</a>' % (reaction.get_link(), reaction.rid)
                 rowdict['Reaction'] = reaction.to_hypertext(show_cids=False)
+                rowdict['Flux'] = flux
                 rowdict[symbol_dr_Gc_prime + "[kJ/mol]"] = solution.dGc_r[0, r]
                 rowdict[symbol_dr_G_prime + "[kJ/mol]"] = solution.dG_r[0, r]
                 rowdicts.append(rowdict)
-                total_reaction += reaction
+                total_reaction += (flux * reaction)
             
             rowdict = {}
             rowdict['KEGG ID'] = 'total'
@@ -218,7 +220,7 @@ class Pathologic(object):
             rowdicts.append(rowdict)
             
             headers=['KEGG ID', 'Reaction', symbol_dr_Gc_prime + "[kJ/mol]",
-                     symbol_dr_G_prime + "[kJ/mol]"]
+                     symbol_dr_G_prime + "[kJ/mol]", "Flux"]
             exp_html.write('Reaction Gibbs energies<br>\n')
             exp_html.write_table(rowdicts, headers, decimal=1)
 
