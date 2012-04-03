@@ -11,7 +11,7 @@ from pygibbs.thermodynamic_constants import R, default_pH, default_T,\
     dG0_f_Mg, default_I, default_pMg, RedoxCarriers,\
     symbol_d_G0, symbol_d_G0_prime
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy,\
-    PsuedoisomerTableThermodynamics
+    PsuedoisomerTableThermodynamics, AddConcentrationsToReactionEnergies
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggReactionNotBalancedException
@@ -568,7 +568,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         return total_groupvec
 
     def GetTransfromedReactionEnergies(self, S, cids,
-                                       pH=None, I=None, pMg=None, T=None):
+                                       pH=None, I=None, pMg=None, T=None, conc=1):
         pH, I, pMg, T = self.GetConditions(pH=pH, I=I, pMg=pMg, T=T)
 
         # copy the rows (corresponding to compounds) which are part of the 
@@ -611,9 +611,14 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                 nH, nMg = self.cid2nH_nMg[cid]
                 ddG0_f[0, c] = diss_table.GetDeltaDeltaG0(pH, I, pMg, T, nH=nH, nMg=nMg)
             else:
-                ddG0_f[0, c] = np.nan                
+                ddG0_f[0, c] = np.nan
         
-        return dG0_r + ddG0_f * S
+        dG0_r += ddG0_f * S
+        
+        if conc != 1:
+            dG0_r += AddConcentrationsToReactionEnergies(S, cids, T, conc)
+        
+        return dG0_r
 
     def get_all_cids(self):
         return sorted(self.cid2groupvec.keys())
