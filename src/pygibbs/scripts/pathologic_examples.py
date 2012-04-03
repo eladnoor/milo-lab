@@ -7,6 +7,41 @@ import sys
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.stoichiometric_lp import OptimizationMethods
 
+
+def ban_toxic_compounds(pl):
+    """Bans compounds known to be toxic"""
+    pl.ban_compound(546)  # Methylglyoxal
+    
+    
+def add_carbon_counts(pl):
+    """Add reactions counting carbons in various
+       plausible fermentation products.
+    """
+    reactions = [
+        #Reaction.FromFormula("C00246 => 4 C06265", name="Butyrate makeup"),
+        #Reaction.FromFormula("C02632 => 4 C06265", name="Isobutyrate makeup"),
+        Reaction.FromFormula("C00042 => 4 C06265", name="Succinate makeup"),
+        #Reaction.FromFormula("C00022 => 3 C06265", name="Pyruvate makeup"),
+        #Reaction.FromFormula("C00163 => 3 C06265", name="Propionate makeup"),
+        #Reaction.FromFormula("C01013 => 3 C06265", name="3-hydroxypropionate makeup"),
+        Reaction.FromFormula("C00186 => 3 C06265", name="Lactate makeup"),
+        Reaction.FromFormula("C00033 => 2 C06265", name="Acetate makeup"),
+        Reaction.FromFormula("C00469 => 2 C06265", name="Ethanol makeup"),
+        Reaction.FromFormula("C00058 => 1 C06265", name="Formate makeup"),
+        Reaction.FromFormula("C00011 => 1 C06265", name="CO2 makeup"),
+        ]
+    for rxn in reactions:
+        pl.add_reaction(rxn)
+    
+    """
+    cofactor_reactions = [
+        Reaction.FromFormula("C00282 => null", name="Free H2"),
+        ]
+    for rxn in cofactor_reactions:
+        pl.add_cofactor_reaction(rxn)
+    """
+        
+
 def add_cofactor_reactions(pl, free_ATP_hydrolysis=True):
     pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
     pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
@@ -79,14 +114,17 @@ def example_glycolysis(thermo):
                     html_writer=HtmlWriter('../res/pathologic.html'),
                     thermo=thermo,
                     max_solutions=None,
-                    max_reactions=20,
+                    max_reactions=15,
                     maximal_dG=0.0,
                     thermodynamic_method=OptimizationMethods.GLOBAL,
                     update_file=None)
     add_cofactor_reactions(pl, free_ATP_hydrolysis=False)
-    r = Reaction.FromFormula("C00031 + 2 C00008 => 2 C00002 + 2 C00186")
+    ban_toxic_compounds(pl)
+    #add_carbon_counts(pl)
+    #r = Reaction.FromFormula("C00031 => 6 C06265")
+    r = Reaction.FromFormula("C00031 + 3 C00008 => 2 C00186 + 3 C00002")
     #r.Balance()
-    pl.find_path("GLC => LAC", r)
+    pl.find_path("GLC => 2 LAC, 3 ATP, No methylglyoxal", r)
 
 def example_lower_glycolysis(thermo):
     
@@ -152,24 +190,30 @@ if __name__ == '__main__':
 
 # Handy reference
 #
-# name         =  CID
-# ---------------------
-# atp          = C00002
-# adp          = C00008
-# pi           = C00009
-# co2          = C00011
-# nad          = C00003
-# nadh         = C00004
-# glucose      = C00031
-# g6p          = C00092
-# fbp          = C00354
-# bpg          = C00236
-# g3p          = C00118
-# threepg      = C00197
-# pep          = C00074
-# pyruvate     = C00022
-# succinyl_coa = C00091
-# acetyl_coa   = C00024
-# lactate      = C00186
-# acetate      = C00033
-# carbon       = C19202
+# name          =  CID
+# ----------------------
+# atp           = C00002
+# adp           = C00008
+# pi            = C00009
+# co2           = C00011
+# nad           = C00003
+# nadh          = C00004
+# glucose       = C00031
+# g6p           = C00092
+# fbp           = C00354
+# bpg           = C00236
+# g3p           = C00118
+# threepg       = C00197
+# pep           = C00074
+# pyruvate      = C00022
+# succinyl_coa  = C00091
+# acetyl_coa    = C00024
+# lactate       = C00186
+# acetate       = C00033
+# methylglyoxal = C00546
+# ethanol       = C00469
+# formate       = C00058
+# carbon        = C06265
+# electron      = C05359
+
+

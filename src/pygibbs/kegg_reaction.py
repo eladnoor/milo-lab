@@ -30,7 +30,23 @@ class Reaction(object):
         self.definition = None
         self.equation = None
         self.ec_list = ['-.-.-.-']
-        
+    
+    def __imul__(self, const):
+        mult = float(const)
+        for cid in self.sparse.iterkeys():
+            self.sparse[cid] *= mult
+        return self
+
+    def __mul__(self, const):
+        r = self.clone()
+        r *= const
+        return r
+    
+    def __rmul__(self, const):
+        r = self.clone()
+        r *= const
+        return r
+    
     def __iadd__(self, other):
         for cid in other.sparse.keys():
             if cid in self.sparse:
