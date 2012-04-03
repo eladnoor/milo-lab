@@ -13,7 +13,8 @@ from toolbox.linear_regression import LinearRegression
 import sys
 from pygibbs.kegg_reaction import Reaction
 from pygibbs.dissociation_constants import DissociationConstants
-from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics,\
+    AddConcentrationsToReactionEnergies
 from optparse import OptionParser
 from toolbox import util
 import logging
@@ -606,9 +607,12 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             self.LoadData(True)
             self.EstimateKeggCids()
     
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None, conc=1):
         dG0_r = PsuedoisomerTableThermodynamics.GetTransfromedReactionEnergies(
                                                   self, S, cids, pH, I, pMg, T)
+        if conc != 1:
+            pH, I, pMg, T = self.GetConditions(pH, I, pMg, T)
+            dG0_r += AddConcentrationsToReactionEnergies(S, cids, T, conc)
 
         # test to see if any of the reactions in S violate any conservation laws
         all_cids = sorted(self.kegg.get_all_cids())

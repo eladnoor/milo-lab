@@ -5,7 +5,7 @@ import logging
 import json
 
 from pygibbs.thermodynamic_constants import default_T, default_pH, default_I, default_pMg,\
-    symbol_df_G0
+    symbol_df_G0, R
 from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.kegg import Kegg
 from pygibbs.kegg_errors import KeggParseException,\
@@ -28,11 +28,12 @@ def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
     calculated.
 
     Args:
-        S: stoichiometric matrix. An MxN numpy.matrix.
-        dG0_f: formation energies. A 1xM numpy.matrix.
+        S: stoichiometric matrix - An MxN numpy.matrix
+        dG0_f: formation energies - A 1xM numpy.matrix
+        conc: the concentration of all compounds except H2O (default=1)
         
     Returns:
-        A 1xN numpy.matrix of reaction energies (dG0_r).    
+        A 1xN numpy.matrix of reaction energies (dG0_r)  
     """
     assert type(S) == np.matrix
     
@@ -40,7 +41,15 @@ def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
     for r in xrange(S.shape[1]):
         nonzero_c = list(S[:, r].nonzero()[0].flat)
         dG0_r[0, r] = dG0_f[0, nonzero_c] * S[nonzero_c, r]
+        
     return dG0_r
+
+def AddConcentrationsToReactionEnergies(S, cids, T, conc):
+    logc = np.ones((1, S.shape[0])) * (R * T * np.log(conc))
+    if 1 in cids:
+        logc[0, cids.index(1)] = 0 # H2O concentration must not change
+    return logc * S
+
 
 class Thermodynamics(object):
     
@@ -278,7 +287,7 @@ class Thermodynamics(object):
     
     def GetTransformedFormationEnergies(self, cids, pH=None, I=None, pMg=None, T=None):
         """ calculate the dG0_f of each compound """
-        pH, I, pMg, T = self.GetConditions(pH=pH, I=I, pMg=pMg, T=T)            
+        pH, I, pMg, T = self.GetConditions(pH=pH, I=I, pMg=pMg, T=T)
         
         if type(cids) == types.IntType:
             return self.cid2PseudoisomerMap(cids).Transform(pH=pH, I=I, pMg=pMg, T=T)
@@ -293,12 +302,18 @@ class Thermodynamics(object):
         else:
             raise ValueError("Input argument must be 'int' or 'list' of integers")
     
-    def GetTransfromedKeggReactionEnergies(self, kegg_reactions, pH=None, I=None, pMg=None, T=None):
+    def GetTransfromedKeggReactionEnergies(self, kegg_reactions,
+                                           pH=None, I=None, pMg=None, T=None,
+                                           conc=1):
         kegg = Kegg.getInstance()
         S, cids = kegg.reaction_list_to_S(kegg_reactions)
-        return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
+        return self.GetTransfromedReactionEnergies(S, cids,
+                                                   pH=pH, I=I, pMg=pMg, T=T,
+                                                   conc=conc)
 
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
+    def GetTransfromedReactionEnergies(self, S, cids,
+                                       pH=None, I=None, pMg=None, T=None,
+                                       conc=1):
         """
             Returns:
                 A Numpy array (column matrix) of the transformed
@@ -306,7 +321,11 @@ class Thermodynamics(object):
                 S. The list of cids must be the same order as the columns of S.
         """
         dG0_f = self.GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T)
-        return GetReactionEnergiesFromFormationEnergies(S, dG0_f)
+        dG0_r = GetReactionEnergiesFromFormationEnergies(S, dG0_f)
+        if conc != 1:
+            dG0_r += AddConcentrationsToReactionEnergies(S, cids, T, conc)
+        
+        return dG0_r
         
     def WriteFormationEnergiesToHTML(self, html_writer, cids):
         """ calculate the dG0_f of each compound """
@@ -598,7 +617,7 @@ class BinaryThermodynamics(Thermodynamics):
 
         return dG0_f0
         
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None, conc=1):
         """
             Find the set of reaction Gibbs energies that are completely
             consistent with thermo[0], and also close to the energies provided
@@ -609,16 +628,16 @@ class BinaryThermodynamics(Thermodynamics):
             according to thermo[0]).
         """
 
-        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
+        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T, conc=conc)
         if np.all(np.isfinite(dG0_r0)):
             return dG0_r0
         
         # if thermo[1] cannot estimate all reactions, just use thermo[0].
-        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
+        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T, conc=conc)
         if np.isnan(dG0_r1).any():
             return dG0_r0
 
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T)
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T, conc=conc)
         
         finite_cols = list(np.where(np.isfinite(dG0_f0))[1].flat)
         nan_cols = list(np.where(np.isnan(dG0_f0))[1].flat)
@@ -713,7 +732,7 @@ class ReactionThermodynamics(Thermodynamics):
         S = np.matrix(np.eye(len(cids)))
         return self.GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
 
-    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None):
+    def GetTransfromedReactionEnergies(self, S, cids, pH=None, I=None, pMg=None, T=None, conc=1):
         if pH != None or I != None or T != None or pMg != None:
             raise MissingReactionEnergy('Cannot adjust the reaction conditions in ReactionThermodynamics', None)
 
@@ -730,6 +749,8 @@ class ReactionThermodynamics(Thermodynamics):
                 dG0_f_prime[0, i] = var_dG0_f_prime[0, var_cids.index(cid)]
 
         dG0_r_prime = GetReactionEnergiesFromFormationEnergies(S, dG0_f_prime)
+        if conc != 1:
+            dG0_r_prime += AddConcentrationsToReactionEnergies(S, cids, T, conc)
 
         # each row that is not orthogonal to the null-space is changed to NaN
         for j in xrange(S.shape[1]):

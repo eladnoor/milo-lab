@@ -8,11 +8,9 @@ from pygibbs.kegg_errors import KeggParseException, KeggNonCompoundException
 class KeggGenes(object):
     
     def __init__(self):
-        self.wsdl = 'http://soap.genome.jp/KEGG.wsdl'
-        self.serv = WSDL.Proxy(self.wsdl)
-
         self.db = SqliteDatabase('channeling/channeling.sqlite', 'w')
         
+        self.KEGG_WSDL = 'http://soap.genome.jp/KEGG.wsdl'
         self.GENE_TABLE_NAME = 'kegg_genes'
         self.ENZYME_TABLE_NAME = 'kegg_enzymes'
         self.REACTION_TABLE_NAME = 'kegg_reactions'
@@ -23,14 +21,19 @@ class KeggGenes(object):
         self.db.CreateTable(self.ENZYME_TABLE_NAME, ['organism', 'gene', 'enzyme'], drop_if_exists=False)
         self.db.CreateTable(self.REACTION_TABLE_NAME, ['enzyme', 'reaction'], drop_if_exists=False)
         self.db.CreateTable(self.EQUATION_TABLE_NAME, ['reaction', 'equation'], drop_if_exists=False)
-        self.db.CreateTable(self.GIBBS_ENERGY_TABLE_NAME, ['equation', 'dG0'], drop_if_exists=False)
+        self.db.CreateTable(self.GIBBS_ENERGY_TABLE_NAME, ['equation', 'dG0', 'dGc'], drop_if_exists=False)
     
+    def get_kegg_serv(self):
+        if self.serv is None:
+            self.serv = WSDL.Proxy(self.KEGG_WSDL)
+        return self.serv
+            
     def GetAllGenes(self, organism='eco'):
         all_genes = []
         i = 1
         while True:
             sys.stderr.write('reading genes %d-%d ...\n' % (i, i+100))
-            new_genes = self.serv.get_genes_by_organism('eco', i, 100)
+            new_genes = self.get_kegg_serv().get_genes_by_organism('eco', i, 100)
             if len(new_genes) == 0:
                 break
             i += 100
@@ -54,7 +57,7 @@ class KeggGenes(object):
         
         for gene in all_genes:
             sys.stderr.write('reading enzymes for gene %s ...\n' % (gene))
-            new_enzymes = self.serv.get_enzymes_by_gene(gene)
+            new_enzymes = self.get_kegg_serv().get_enzymes_by_gene(gene)
             for enzyme in new_enzymes:
                 self.db.Insert(self.ENZYME_TABLE_NAME, [organism, gene, enzyme])
         self.db.Commit()
@@ -69,7 +72,7 @@ class KeggGenes(object):
         
         for enzyme in all_enzymes:
             sys.stderr.write('reading reactions for enzyme %s ...\n' % (enzyme))
-            new_reactions = self.serv.get_reactions_by_enzyme(enzyme)
+            new_reactions = self.get_kegg_serv().get_reactions_by_enzyme(enzyme)
             for reaction in new_reactions:
                 self.db.Insert(self.REACTION_TABLE_NAME, [enzyme, reaction])
         self.db.Commit()
@@ -84,7 +87,7 @@ class KeggGenes(object):
         
         for reaction in all_reactions:
             sys.stderr.write('reading data for reaction %s ...\n' % (reaction))
-            s = self.serv.bget(reaction)
+            s = self.get_kegg_serv().bget(reaction)
             for equation in self._ReadReactionEntries(s):
                 sys.stderr.write(equation + "\n")
                 self.db.Insert(self.EQUATION_TABLE_NAME,
@@ -121,11 +124,12 @@ class KeggGenes(object):
         
         self.db.Execute("DELETE FROM %s" % (self.GIBBS_ENERGY_TABLE_NAME))
         
-        dG0 = thermo.GetTransfromedKeggReactionEnergies(all_kegg_reactions)
+        dG0 = thermo.GetTransfromedKeggReactionEnergies(all_kegg_reactions, conc=1)
+        dGc = thermo.GetTransfromedKeggReactionEnergies(all_kegg_reactions, conc=1e-3)
         for i, equation in enumerate(all_equations):
             sys.stderr.write('estimating energy for %s ...\n' % str(all_kegg_reactions[i]))
             self.db.Insert(self.GIBBS_ENERGY_TABLE_NAME,
-                           [equation, dG0[0, i]])
+                           [equation, dG0[0, i], dGc[0, i]])
     
         self.db.Commit()
 
