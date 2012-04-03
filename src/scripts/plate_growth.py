@@ -93,7 +93,7 @@ def Main():
     pylab.figure()
     pylab.bar(xpts, means)
     pylab.errorbar(ticks, means, yerr=errs, linestyle='None')
-    pylab.xticks(ticks, sorted_labels, rotation='vertical')
+    pylab.xticks(ticks, sorted_labels, rotation=45)
     pylab.show()
     
     

@@ -10,11 +10,11 @@ import sys
 
 from toolbox.database import MySQLDatabase
 from toolbox import growth
-from toolbox import stats
+from toolbox import smoothing
 from toolbox.stats import MeanWithConfidenceInterval
 from toolbox.color import ColorMap
 from toolbox.plate import Plate96
-from scipy.interpolate import Rbf, InterpolatedUnivariateSpline
+
 
 from optparse import OptionParser
 
@@ -131,10 +131,18 @@ def Main():
         my_means = my_means[order]
         my_errs = my_errs[order]
         
-        pylab.plot(my_pcts, my_means, color=color, linestyle='--',
-                   linewidth=2, marker='.', markersize=10, label=label)
+        pylab.plot(my_pcts, my_means, color=color, linestyle='None',
+                   linewidth=4, marker='.', markersize=15, label=label)
         pylab.errorbar(my_pcts, my_means, yerr=my_errs, ecolor=color,
                        fmt=None, linewidth=1)
+        
+        smoothed = smoothing.WeightedAverageSmoother(pylab.log(my_pcts), my_means,
+                                                     sigma=0.7)
+        log_xs = pylab.arange(pylab.log(1e-4), pylab.log(2.2), 1e-3)
+        xs = pylab.exp(log_xs)
+        ys = smoothed(log_xs)
+        pylab.plot(xs, ys, color=color, linewidth=3, linestyle='--')
+        
         
     
     """            
