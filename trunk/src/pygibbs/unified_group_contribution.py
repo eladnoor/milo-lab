@@ -625,6 +625,12 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         dG0_r[violations] = np.nan        
         return dG0_r
     
+    def SaveDataToMatfile(self):
+        np.savetxt(fname='../res/ugc_S.txt', X=self.S, fmt="%g", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/ugc_b.txt', X=self.b, fmt="%g", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/ugc_cids.txt', X=np.array(self.cids), fmt="%d", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/ugc_anchored.txt', X=self.anchored, fmt="%d", delimiter=',', newline='\n')
+    
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
@@ -669,6 +675,9 @@ if __name__ == "__main__":
     ugc.LoadObservations(FromDatabase=(not options.recalc_observations))
     ugc.LoadGroupVectors(FromDatabase=(not options.recalc_groupvectors))
     ugc.LoadData(FromDatabase=(not options.recalc_matrices))
+    ugc.SaveDataToMatfile()
+    sys.exit(0)
+    
     if options.train:
         ugc.EstimateKeggCids()
         sys.exit(0)
