@@ -626,10 +626,11 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         return dG0_r
     
     def SaveDataToMatfile(self):
-        np.savetxt(fname='../res/ugc_S.txt', X=self.S, fmt="%g", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/ugc_b.txt', X=self.b, fmt="%g", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/ugc_cids.txt', X=np.array(self.cids), fmt="%d", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/ugc_anchored.txt', X=self.anchored, fmt="%d", delimiter=',', newline='\n')
+        cids, S, gibbs_values, anchored = self.obs_collection.GetStoichiometry()
+        np.savetxt(fname='../res/ugc_S.txt', X=S, fmt="%g", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/ugc_b.txt', X=gibbs_values, fmt="%g", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/ugc_cids.txt', X=np.array(cids), fmt="%d", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/ugc_anchored.txt', X=anchored, fmt="%d", delimiter=',', newline='\n')
     
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
@@ -650,6 +651,9 @@ def MakeOpts():
                           dest="recalc_matrices", default=False,
                           help="A flag for recalculating the group matrices"
                                " instead of loading them from the DB")
+    opt_parser.add_option("-d", "--dump", action="store_true",
+                          dest="dump", default=False,
+                          help="Dump all training data to text files")
     opt_parser.add_option("-t", "--train", action="store_true",
                           dest="train", default=False,
                           help="A flag for running the TRAIN")
@@ -675,9 +679,10 @@ if __name__ == "__main__":
     ugc.LoadObservations(FromDatabase=(not options.recalc_observations))
     ugc.LoadGroupVectors(FromDatabase=(not options.recalc_groupvectors))
     ugc.LoadData(FromDatabase=(not options.recalc_matrices))
-    ugc.SaveDataToMatfile()
-    sys.exit(0)
     
+    if options.dump:
+        ugc.SaveDataToMatfile()
+        sys.exit(0)
     if options.train:
         ugc.EstimateKeggCids()
         sys.exit(0)
