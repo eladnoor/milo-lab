@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import cvxmod
+import cvxpy
 import numpy as np
 
 from pygibbs.metabolic_modelling import bounds
@@ -105,27 +105,25 @@ class MTDFOptimizer(object):
         
         Args:
             bounds: the Bounds objects setting concentration bounds.
-        """
-        problem = cvxmod.problem()
+        """        
         my_bounds = concentration_bounds or self.DefaultConcentrationBounds()
         normalization = normalization or self.DeltaGNormalization.DEFAULT
                 
         # Constrain concentrations
-        ln_conc = cvxmod.optvar('lnC', rows=1, cols=self.Ncompounds)
+        ln_conc = cvxpy.variable(m=1, n=self.Ncompounds, name='lnC')
         ln_conc_lb, ln_conc_ub = my_bounds.GetLnBounds(self.compounds)
-        ln_conc_lb = cvxmod.matrix(ln_conc_lb)
-        ln_conc_ub = cvxmod.matrix(ln_conc_ub)
-        problem.constr.append(ln_conc >= ln_conc_lb)
-        problem.constr.append(ln_conc <= ln_conc_ub)
+        constr = [cvxpy.geq(ln_conc, cvxpy.matrix(ln_conc_lb)),
+                  cvxpy.leq(ln_conc, cvxpy.matrix(ln_conc_ub))]
         
         # Make the objective
-        motive_force_lb = cvxmod.optvar('B', 1)
+        motive_force_lb = cvxpy.variable(name='B')
         my_dG0_r_primes = np.matrix(self.dG0_r_prime)
+
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr in the direction of the flux.
         # Reactions with a flux of 0 must be in equilibrium.
-        S = cvxmod.matrix(self.S)
+        S = np.matrix(self.S)
         
         for i, flux in enumerate(self.fluxes):
             
@@ -134,26 +132,31 @@ class MTDFOptimizer(object):
             if np.isnan(curr_dg0):
                 continue
             
-            curr_dgr = curr_dg0 + RT * ln_conc * S[:, i]
+            rcol = cvxpy.matrix(S[:, i])
+            curr_dgr = curr_dg0 + RT * ln_conc * rcol
             if flux == 0:
-                problem.constr.append(curr_dgr == 0)
+                constr.append(curr_dgr == 0)
             else:
                 motive_force = self.DeltaGNormalization.NormalizeDGByFlux(
                     curr_dgr, flux, normalization)
                 
-                problem.constr.append(motive_force >= motive_force_lb)
+                constr.append(cvxpy.geq(motive_force, motive_force_lb))
         
-        problem.objective = cvxmod.maximize(motive_force_lb)
-        status = problem.solve(quiet=True)
+        objective = cvxpy.maximize(motive_force_lb)
+        problem = cvxpy.program(objective, constr, name='MTDF_OPT')
+        
+        problem.solve(quiet=True)
+        """
         if status != 'optimal':
             status = optimized_pathway.OptimizationStatus.Infeasible(
                 'Pathway infeasible given bounds.')
             return MTDFOptimizedPathway(
                 self._model, self._thermo,
                 my_bounds, optimization_status=status)
+        """
         
-        mtdf = cvxmod.value(motive_force_lb)
-        opt_ln_conc = np.array(cvxmod.value(ln_conc))
+        mtdf = motive_force_lb.value
+        opt_ln_conc = ln_conc.value
         result = MTDFOptimizedPathway(
             self._model, self._thermo,
             my_bounds, optimal_value=mtdf,

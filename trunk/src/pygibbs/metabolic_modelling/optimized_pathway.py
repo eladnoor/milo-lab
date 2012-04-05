@@ -120,9 +120,7 @@ class OptimizedPathway(object):
         Efficiency = (J+ - J-) / (J- + J+)
         According to the formula of Beard and Qian
         """
-        term_1 = 1.0 / (1.0 + np.exp(dg_tag/RT))
-        term_2 = 1.0 / (1.0 + np.exp(-dg_tag/RT))
-        return term_1 - term_2
+        return np.tanh(-dg_tag / (2*RT))
 
     def GetOptimizationType(self):
         return self.OPTIMIZATION_TYPE
