@@ -13,7 +13,7 @@ from pygibbs.thermodynamics import ReactionThermodynamics
 from pygibbs.nist_regression import NistRegression
 from pygibbs.unified_group_contribution import UnifiedGroupContribution
 
-ESTIMATOR_NAMES = ('hatzi_gc', 'BGC', 'PGC', 'merged')
+ESTIMATOR_NAMES = ('hatzi_gc', 'BGC', 'PGC', 'UGC', 'merged', 'C1', 'merged_C1')
 
 def EstimatorNames():
     return ESTIMATOR_NAMES
