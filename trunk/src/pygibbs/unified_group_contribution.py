@@ -627,10 +627,14 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
     
     def SaveDataToMatfile(self):
         cids, S, gibbs_values, anchored = self.obs_collection.GetStoichiometry()
-        np.savetxt(fname='../res/ugc_S.txt', X=S, fmt="%g", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/ugc_b.txt', X=gibbs_values, fmt="%g", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/ugc_cids.txt', X=np.array(cids), fmt="%d", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/ugc_anchored.txt', X=anchored, fmt="%d", delimiter=',', newline='\n')
+        G, has_groupvec = self._GenerateGroupMatrix(cids)
+        
+        np.savetxt(fname='../res/gc_S.txt', X=S, fmt="%g", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/gc_b.txt', X=gibbs_values, fmt="%g", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/gc_cids.txt', X=np.array(cids), fmt="%d", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/gc_anchored.txt', X=anchored, fmt="%d", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/gc_G.txt', X=G, fmt="%d", delimiter=',', newline='\n')
+        np.savetxt(fname='../res/gc_has_gv.txt', X=has_groupvec, fmt="%d", delimiter=',', newline='\n')
     
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
