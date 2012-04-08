@@ -153,6 +153,7 @@ GROUP_CSV = StringIO(""""NAME","PROTONS","CHARGE","MAGNESIUMS","SMARTS","FOCAL_A
 "*Har",0,0,0,"*1****1","None","heteroaromatic ring correction (expanded in code)","skip"
 """)
 
+
 class GroupVector(list):
     """A vector of groups."""
     
@@ -1477,59 +1478,26 @@ class Molecule(object):
         return Molecule._GetDissociationTable(self.ToInChI(), 'inchi',
                                             mid_pH, min_pKa, max_pKa, T)
 
-class InChI2FormationEnergy(object):
+class InChI2GroupVector(object):
     
-    def __init__(self, group_csv, g_pgc_fname, P_L_pgc_fname):
+    def __init__(self, group_csv):
         self.RT = R * default_T
         self.groups_data = GroupsData.FromGroupsFile(group_csv, transformed=False)
         self.group_decomposer = GroupDecomposer(self.groups_data)
-        self.g_pgc = np.load(g_pgc_fname)
-        self.P_L_pgc = np.load(P_L_pgc_fname)
         
-    def EstimateGroupVector(self, groupvec):
-        gv = np.matrix(groupvec.Flatten())
-        dG0 = float(self.g_pgc * gv.T)
-        ker = self.P_L_pgc * gv.T
-        return dG0, ker
-    
     def EstimateInChI(self, inchi):
         mol = Molecule.FromInChI(inchi)
         mol.RemoveHydrogens()
         decomposition = self.group_decomposer.Decompose(mol, 
                             ignore_protonations=False, strict=True)
 
-        nH = decomposition.Hydrogens()
-        charge = decomposition.NetCharge()
-        nMg = decomposition.Magnesiums()
+        #nH = decomposition.Hydrogens()
+        #charge = decomposition.NetCharge()
+        #nMg = decomposition.Magnesiums()
         groupvec = decomposition.AsVector()
-        dG0, ker = self.EstimateGroupVector(groupvec)
-        return dG0, nH, charge, nMg, ker
+        gv = np.matrix(groupvec.Flatten())
+        return gv
     
-    def GenerateAllPseudoisomers(self, dG0, nH, charge, nMg, pKas):
-        """
-            Given the values of the most abundant species at pH 7 and a list
-            of pKa values, generates the data of all other pseudoisomers
-        """
-        pKa_higher = [x for x in pKas if 7 < x]
-        pKa_lower = [x for x in pKas if 7 > x]
-        
-        pseudoisomer_list = [{'dG0': round(dG0, 1), 'nH': nH,
-                              'charge': charge, 'nMg': nMg}]
-        
-        ddG0 = 0
-        for i, pKa in enumerate(sorted(pKa_higher)):
-            ddG0 += self.RT * np.log(10) * pKa
-            pseudoisomer_list.append({'dG0': round(dG0 + ddG0, 1), 'nH': nH-1-i,
-                                      'charge': charge-1-i, 'nMg': nMg})
-        
-        ddG0 = 0
-        for i, pKa in enumerate(sorted(pKa_lower, reverse=True)):
-            ddG0 -= self.RT * np.log(10) * pKa
-            pseudoisomer_list.append({'dG0': round(dG0 + ddG0, 1), 'nH': nH+1+i,
-                                      'charge': charge+1+i, 'nMg': nMg})
-        
-        return sorted(pseudoisomer_list, key=lambda x: x['nH'])
-
     def ArrayToSparseRep(self, a):
         d = {'size': a.shape, "nonzero": []}
         non_zero = a.nonzero()
@@ -1538,29 +1506,13 @@ class InChI2FormationEnergy(object):
             d["nonzero"].append(list(index) + [a[index]])
         return d
 
-
-def Init():
-    return InChI2FormationEnergy(GROUP_CSV, 'g_pgc.gz.npy', 'P_L_g_pgc.gz.npy')
-
-def Example():
-    inchi2dg = Init()
-    inchi_list = ['InChI=1S/C2H5NO2/c3-1-2(4)5/h1,3H2,(H,4,5)',
-                  'InChI=1S/C10H16N5O13P3/c11-8-5-9(13-2-12-8)15(3-14-5)10-7(17)6(16)4(26-10)1-25-30(21,22)28-31(23,24)27-29(18,19)20/h2-4,6-7,10,16-17H,1H2,(H,21,22)(H,23,24)(H2,11,12,13)(H2,18,19,20)/p-3']
-    for inchi in inchi_list:
-        print inchi2dg.EstimateInChI(inchi)
-
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Syntax: inchi2dg <InChI>\n")
+        sys.stderr.write("Syntax: inchi2gv <InChI>\n")
         sys.exit(-1)
     
     inchi = sys.argv[1]
-    inchi2dg = Init()
-    dG0, nH, charge, nMg, ker = inchi2dg.EstimateInChI(inchi)
+    inchi2gv = InChI2GroupVector(GROUP_CSV)
+    groupvec = inchi2gv.EstimateInChI(inchi)
     
-    print "dG0 = %.1f" % dG0
-    print "nH = %d" % nH
-    print "charge = %d" % charge
-    print "nMg = %d" % nMg
-    print "conservation = %s" % str(ker.round(10).T) 
+    sys.stdout.write(', '.join("%g" % i for i in groupvec.flat) + '\n')
