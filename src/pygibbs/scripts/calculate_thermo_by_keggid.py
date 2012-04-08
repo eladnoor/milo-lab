@@ -74,7 +74,7 @@ def CalculateThermo():
         headers = ['kegg id']
         cid_index = 0
         csv_rows = [[c] for c in options.cids.split(',')]
-
+        
     cids = []
     for row in csv_rows:
         try:
@@ -95,12 +95,12 @@ def CalculateThermo():
         for i, cid in enumerate(cids):
             csv_writer.writerow(csv_rows[i] + [str(dG0_f_prime[i, 0]), pH, I, pMg, T])
     else:
-        for cid in cids:
+        for i, cid in enumerate(cids):
             try:
                 for nH, z, nMg, dG0 in estimator.cid2PseudoisomerMap(cid).ToMatrix():
-                    csv_writer.writerow(row + [dG0, nH, z, nMg])
+                    csv_writer.writerow(csv_rows[i] + [dG0, nH, z, nMg])
             except MissingCompoundFormationEnergy as e:
-                csv_writer.writerow(row + ['nan', str(e)])
+                csv_writer.writerow(csv_rows[i] + ['nan', str(e)])
 
 if __name__ == '__main__':
     CalculateThermo()
