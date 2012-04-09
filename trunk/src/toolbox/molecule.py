@@ -1,3 +1,4 @@
+import unittest
 import pybel
 import indigo, indigo_renderer
 import uuid, rsvg, gtk #@UnresolvedImport
@@ -6,6 +7,8 @@ import types
 import re
 import glib
 from pygibbs.thermodynamic_constants import default_T, default_pH
+import sys
+import csv
 
 class OpenBabelError(Exception):
     pass
@@ -242,30 +245,34 @@ class Molecule(object):
     def UpdatePybelMol(self):
         self.pybel_mol = pybel.Molecule(self.obmol)
     
-    def GetFormula(self):
-        tokens = re.findall('InChI=1S?/([0-9A-Za-z\.]+)', self.ToInChI())
+    @staticmethod
+    def _GetFormulaFromInChI(inchi):
+        tokens = re.findall('/f([0-9A-Za-z\.]+/)', inchi)
+        if len(tokens) == 0:
+            tokens = re.findall('InChI=1S?/([0-9A-Za-z\.]+)', inchi)
+
         if len(tokens) == 1:
             return tokens[0]
         elif len(tokens) > 1:
-            raise ValueError('Bad InChI: ' + self.ToInChI())
+            raise ValueError('Bad InChI: ' + inchi)
         else:
             return ''
-    
-    def GetExactMass(self):
-        return self.obmol.GetExactMass()
-    
-    def GetAtomBagAndCharge(self):
-        inchi = self.ToInChI()
 
+    @staticmethod
+    def _GetAtomBagAndChargeFromInChI(inchi):
         fixed_charge = 0
-        for s in re.findall('/q([0-9\+\-]+)', inchi):
-            fixed_charge += int(s)
+        for q in re.findall('/q([0-9\+\-\;]+)', inchi):
+            for s in q.split(';'): 
+                if s:
+                    fixed_charge += int(s)
 
         fixed_protons = 0
-        for s in re.findall('/p([0-9\+\-]+)', inchi):
-            fixed_protons += int(s)
+        for p in re.findall('/p([0-9\+\-\;]+)', inchi):
+            for s in p.split(';'):
+                if s:
+                    fixed_protons += int(s)
         
-        formula = self.GetFormula()
+        formula = Molecule._GetFormulaFromInChI(inchi)
 
         atom_bag = {}
         for mol_formula_times in formula.split('.'):
@@ -285,18 +292,31 @@ class Molecule(object):
             atom_bag['H'] = atom_bag.get('H', 0) + fixed_protons
             fixed_charge += fixed_protons
         return atom_bag, fixed_charge
+
+    @staticmethod
+    def _GetNumElectronsFromInChI(inchi):
+        """Calculates the number of electrons in a given molecule."""
+        atom_bag, fixed_charge = Molecule._GetAtomBagAndChargeFromInChI(inchi)
+        n_protons = 0
+        for elem, count in atom_bag.iteritems():
+            n_protons += count * Molecule._obElements.GetAtomicNum(elem)
+        return n_protons - fixed_charge
+
+    def GetFormula(self):
+        return Molecule._GetFormulaFromInChI(self.ToInChI())
+    
+    def GetExactMass(self):
+        return self.obmol.GetExactMass()
+    
+    def GetAtomBagAndCharge(self):
+        return Molecule.__GetAtomBagAndChargeFromInChI(self.ToInChI())
         
     def GetHydrogensAndCharge(self):
         atom_bag, charge = self.GetAtomBagAndCharge()
         return atom_bag.get('H', 0), charge
         
     def GetNumElectrons(self):
-        """Calculates the number of electrons in a given molecule."""
-        atom_bag, fixed_charge = self.GetAtomBagAndCharge()
-        n_protons = 0
-        for elem, count in atom_bag.iteritems():
-            n_protons += count * self._obElements.GetAtomicNum(elem)
-        return n_protons - fixed_charge
+        return Molecule._GetNumElectronsFromInChI(self.ToInChI())
     
     def GetNumAtoms(self):
         return self.obmol.NumAtoms()
@@ -423,8 +443,49 @@ class Molecule(object):
         
         return Molecule._GetDissociationTable(self.ToInChI(), 'inchi',
                                             mid_pH, min_pKa, max_pKa, T)
+
+class MoleculeTest(unittest.TestCase):
     
+    def setUp(self):
+        # pairs of (inchi, number of electrons)
+        if False:
+            self.inchis = [
+                  {'inchi':"InChI=1S/C34H34N4O4.Fe/c1-7-21-17(3)25-13-26-19(5)23(9-11-33(39)40)31(37-26)16-32-24(10-12-34(41)42)20(6)28(38-32)15-30-22(8-2)18(4)27(36-30)14-29(21)35-25;/h7-8,13-16H,1-2,9-12H2,3-6H3,(H4,35,36,37,38,39,40,41,42);/q;+2/p-2/b25-13-,26-13-,27-14-,28-15-,29-14-,30-15-,31-16-,32-16-;", 'n_e':322},
+                  {'inchi':"InChI=1/Mn/q+2", 'n_e':23},
+                  {'inchi':"InChI=1S/Cu/q+2", 'n_e':27},
+                  {'inchi':"InChI=1S/C62H90N13O14P.C10H12N5O3.Co/c1-29-20-39-40(21-30(29)2)75(28-70-39)57-52(84)53(41(27-76)87-57)89-90(85,86)88-31(3)26-69-49(83)18-19-59(8)37(22-46(66)80)56-62(11)61(10,25-48(68)82)36(14-17-45(65)79)51(74-62)33(5)55-60(9,24-47(67)81)34(12-15-43(63)77)38(71-55)23-42-58(6,7)35(13-16-44(64)78)50(72-42)32(4)54(59)73-56;1-4-6(16)7(17)10(18-4)15-3-14-5-8(11)12-2-13-9(5)15;/h20-21,23,28,31,34-37,41,52-53,56-57,76,84H,12-19,22,24-27H2,1-11H3,(H15,63,64,65,66,67,68,69,71,72,73,74,77,78,79,80,81,82,83,85,86);2-4,6-7,10,16-17H,1H2,(H2,11,12,13);/q;;+2/p-2/t31-,34-,35-,36-,37+,41-,52?,53-,56?,57+,59-,60+,61+,62+;4-,6-,7-,10-;/m11./s1", 'n_e':836},
+                  {'inchi':"InChI=1S/Ni/q+2", 'n_e':26},
+                  {'inchi':"InChI=1S/C62H90N13O14P.Co/c1-29-20-39-40(21-30(29)2)75(28-70-39)57-52(84)53(41(27-76)87-57)89-90(85,86)88-31(3)26-69-49(83)18-19-59(8)37(22-46(66)80)56-62(11)61(10,25-48(68)82)36(14-17-45(65)79)51(74-62)33(5)55-60(9,24-47(67)81)34(12-15-43(63)77)38(71-55)23-42-58(6,7)35(13-16-44(64)78)50(72-42)32(4)54(59)73-56;/h20-21,23,28,31,34-37,41,52-53,56-57,76,84H,12-19,22,24-27H2,1-11H3,(H15,63,64,65,66,67,68,69,71,72,73,74,77,78,79,80,81,82,83,85,86);/q;+2/p-2/t31-,34-,35-,36-,37+,41-,52?,53-,56?,57+,59-,60+,61+,62+;/m1./s1", 'n_e':705},
+                  {'inchi':"InChI=1S/C42H46N4O16.Fe/c1-41(17-39(59)60)23(5-9-35(51)52)29-14-27-21(11-37(55)56)19(3-7-33(47)48)25(43-27)13-26-20(4-8-34(49)50)22(12-38(57)58)28(44-26)15-31-42(2,18-40(61)62)24(6-10-36(53)54)30(46-31)16-32(41)45-29;/h13-16,23-24H,3-12,17-18H2,1-2H3,(H10,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62);/q;+2/p-2/t23-,24-,41+,42+;/m1./s1", 'n_e':478},
+                  {'inchi':"InChI=1S/C62H90N13O14P.Co/c1-29-20-39-40(21-30(29)2)75(28-70-39)57-52(84)53(41(27-76)87-57)89-90(85,86)88-31(3)26-69-49(83)18-19-59(8)37(22-46(66)80)56-62(11)61(10,25-48(68)82)36(14-17-45(65)79)51(74-62)33(5)55-60(9,24-47(67)81)34(12-15-43(63)77)38(71-55)23-42-58(6,7)35(13-16-44(64)78)50(72-42)32(4)54(59)73-56;/h20-21,23,28,31,34-37,41,52-53,56-57,76,84H,12-19,22,24-27H2,1-11H3,(H15,63,64,65,66,67,68,69,71,72,73,74,77,78,79,80,81,82,83,85,86);/q;+1/p-1/t31-,34-,35-,36-,37+,41-,52?,53-,56?,57+,59-,60+,61+,62+;/m1./s1", 'n_e':706},
+                  {'inchi':"InChI=1S/Cd/q+2", 'n_e':46},
+                  {'inchi':"InChI=1S/C35H36N4O5.Mg/c1-8-19-15(3)22-12-24-17(5)21(10-11-28(40)41)32(38-24)30-31(35(43)44-7)34(42)29-18(6)25(39-33(29)30)14-27-20(9-2)16(4)23(37-27)13-26(19)36-22;/h8,12-14,17,21,31H,1,9-11H2,2-7H3,(H3,36,37,38,39,40,41,42);/q;+2/p-2/t17-,21-,31+;/m0./s1", 'n_e':324},
+                  {'inchi':"InChI=1S/C27H42N7O20P3S/c1-27(2,22(41)25(42)30-6-5-16(36)29-7-8-58-18(39)9-14(35)3-4-17(37)38)11-51-57(48,49)54-56(46,47)50-10-15-21(53-55(43,44)45)20(40)26(52-15)34-13-33-19-23(28)31-12-32-24(19)34/h12-13,15,20-22,26,40-41H,3-11H2,1-2H3,(H,29,36)(H,30,42)(H,37,38)(H,46,47)(H,48,49)(H2,28,31,32)(H2,43,44,45)/t15-,20-,21-,22+,26-/m1/s1", 'n_e':474},
+                  {'inchi':"InChI=1S/C35H34N4O5.Mg/c1-8-19-15(3)22-12-24-17(5)21(10-11-28(40)41)32(38-24)30-31(35(43)44-7)34(42)29-18(6)25(39-33(29)30)14-27-20(9-2)16(4)23(37-27)13-26(19)36-22;/h8,12-14,31H,1,9-11H2,2-7H3,(H3,36,37,38,39,40,41,42);/q;+2/p-2/b22-12-,23-13-,24-12-,25-14-,26-13-,27-14-,32-30-;/t31-;/m1./s1", 'n_e':322},
+                  {'inchi':"InChI=1S/C34H34N4O4.Mg/c1-7-21-17(3)25-13-26-19(5)23(9-11-33(39)40)31(37-26)16-32-24(10-12-34(41)42)20(6)28(38-32)15-30-22(8-2)18(4)27(36-30)14-29(21)35-25;/h7-8,13-16H,1-2,9-12H2,3-6H3,(H4,35,36,37,38,39,40,41,42);/q;+2/p-2/b25-13-,26-13-,27-14-,28-15-,29-14-,30-15-,31-16-,32-16-;", 'n_e':308},
+                  {'inchi':"InChI=1/C5H10O4/c1-3(7)5(9)4(8)2-6/h2-5,7-9H,1H3/t3-,4+,5-/m1/s1", 'n_e':72},
+                  {'inchi':"InChI=1S/C39H60O4/Dummy", "n_e":326},
+                  {'inchi':"InChI=1/C10H16N4O4/c11-6(9(15)16)1-2-8-13-4-5(14-8)3-7(12)10(17)18/h4,6-7H,1-3,11-12H2,(H,13,14)(H,15,16)(H,17,18)/t6?,7-/m0/s1/f/h13,15,17H", 'n_e':None}]
+        else:
+            self.inchis = csv.DictReader(open('../data/examples/inchi.csv'))
+
+    def testNumElectrons(self):    
+        for line_num, d in enumerate(self.inchis):
+            n_e_inchi = Molecule._GetNumElectronsFromInChI(d['inchi'])
+            try:
+                if d['n_e']:
+                    self.assertEquals(n_e_inchi, int(d['n_e']))
+            except AssertionError as e:
+                sys.stderr.write("mismatch in line %d: %s\n" % (line_num+2, d['inchi']))
+                raise e
+
+def Suite():
+    suites = (unittest.makeSuite(MoleculeTest, 'test'),)
+    return unittest.TestSuite(suites)
+
 if __name__ == "__main__":
+    unittest.main()
+    sys.exit(0)
     from toolbox.html_writer import HtmlWriter
 
     Molecule.SetBondLength(50.0)
