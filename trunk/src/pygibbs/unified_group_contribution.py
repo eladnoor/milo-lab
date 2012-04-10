@@ -23,6 +23,10 @@ from toolbox.plotting import cdf
 from pygibbs.pseudoisomer import PseudoisomerMap
 import json
 from pygibbs.thermodynamic_constants import default_T, R
+import tarfile
+import os
+import csv
+from pygibbs.kegg_errors import KeggParseException
 
 class UnknownReactionEnergyError(Exception):
     pass
@@ -626,16 +630,77 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         return dG0_r
     
     def SaveDataToMatfile(self):
+        dissociation = self.GetDissociationConstants()
         cids, S, gibbs_values, anchored = self.obs_collection.GetStoichiometry()
         G, has_groupvec = self._GenerateGroupMatrix(cids)
         
-        np.savetxt(fname='../res/gc_S.txt', X=S, fmt="%g", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/gc_b.txt', X=gibbs_values, fmt="%g", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/gc_cids.txt', X=np.array(cids), fmt="%d", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/gc_anchored.txt', X=anchored, fmt="%d", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/gc_G.txt', X=G, fmt="%d", delimiter=',', newline='\n')
-        np.savetxt(fname='../res/gc_has_gv.txt', X=has_groupvec, fmt="%d", delimiter=',', newline='\n')
-    
+        fp = open('gc_README.txt', 'w')
+        fp.write("gc_S.txt -            the full stoichiometrix matrix (each row is a compound and each column is a reaction)\n")
+        np.savetxt(fname='gc_S.txt', X=S, fmt="%g", delimiter=',', newline='\n')
+
+        fp.write("gc_b.txt -            the vector of measured dG0 (reverse transformed)\n")
+        np.savetxt(fname='gc_b.txt', X=gibbs_values, fmt="%g", delimiter=',', newline='\n')
+
+        fp.write("gc_anchored.txt -     a vector of indicators for anchored reactions\n")
+        np.savetxt(fname='gc_anchored.txt', X=anchored, fmt="%d", delimiter=',', newline='\n')
+        
+        fp.write("gc_G.txt -            the group incidence matrix (each row is a compound and each column is a group)\n")
+        np.savetxt(fname='gc_G.txt', X=G, fmt="%d", delimiter=',', newline='\n')
+
+        fp.write("gc_has_gv.txt -       a vector of indicators for anchored reactions\n")
+        np.savetxt(fname='gc_has_gv.txt', X=has_groupvec, fmt="%d", delimiter=',', newline='\n')
+        
+        diss_matrix = []
+        for cid in cids:
+            diss_table = dissociation.GetDissociationTable(cid, create_if_missing=False)
+            for [nH_below, nH_above, nMg_below, nMg_above, z_below, z_above, _, _, ddG, _] in diss_table.ToDatabaseRow():
+                diss_matrix.append([cid, nH_below, nH_above, nMg_below, nMg_above, z_below, z_above, round(ddG, 2)])
+        diss_matrix = np.matrix(diss_matrix)
+        fp.write("gc_dissociation.txt - dissociation constants for all compounds.\n")
+        fp.write("                      columns are: KEGG ID, nH below, nH above, nMg below, nMg above, charge below, charge above, ddG0\n")
+        np.savetxt(fname='gc_dissociation.txt', X=diss_matrix, fmt="%g", delimiter=',', newline='\n')
+
+        cid_fp = open('gc_compounds.txt', 'w')
+        fp.write("gc_compounds.txt -    CSV formatted list of compound KEGG IDs according to their order in S,\n")
+        fp.write("                      together with their name and elemental counts for the major elements.\n")
+        cid_csv = csv.writer(cid_fp)
+        elements = ['H', 'Mg', 'C', 'N', 'O', 'S', 'P', 'e-']
+        cid_csv.writerow(['CID', 'name'] + 
+                        ['n%s' % e for e in elements])
+        cid_matrix = []
+        for cid in cids:
+            atom_bag = self.kegg.cid2atom_bag(cid)
+            if atom_bag is None:
+                atom_bag = dict((e, np.nan) for e in elements)
+
+            nH, nMg = self.cid2nH_nMg[cid]
+            cid_matrix.append([cid, nH, nMg])
+            atom_bag['H'] = nH
+            atom_bag['Mg'] = nMg
+
+            try:
+                atom_bag['e-'] = self.kegg.cid2num_electrons(cid)
+            except KeggParseException:
+                atom_bag['e-'] = np.nan
+            
+            name = self.kegg.cid2name(cid)
+            cid_csv.writerow([cid, name] + 
+                            [atom_bag.get(e, 0) for e in elements])
+        cid_fp.close()
+        cid_matrix = np.matrix(cid_matrix)
+        np.savetxt(fname='gc_cids.txt', X=cid_matrix, fmt="%d", delimiter=',', newline='\n')
+        fp.write("gc_cids.txt -         list of compound KEGG IDs according to their order in S,\n")
+        fp.write("                      together with the pseudoisomer used in the reverse transform.\n")
+        fp.write("                      columns are: KEGG ID, compound name, nH, nMg, num_electrons, element counts\n")
+        fp.close()
+        
+        tar = tarfile.open('../res/gc_data.tar.gz', 'w:gz')
+        for name in ['S', 'b', 'anchored', 'G', 'has_gv', 'dissociation',
+                     'cids', 'compounds', 'README']:
+            path = 'gc_' + name + ".txt"
+            tar.add(path, recursive=False)
+            os.remove(path)
+        
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()

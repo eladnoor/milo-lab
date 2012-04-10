@@ -1,0 +1,617 @@
+CID,name,nH,nMg,nC,nN,nO,nS,nP,ne-
+1,H2O,2,0,0,0,1,0,0,10
+2,ATP,13,0,10,5,13,0,3,260
+3,NAD+,26,0,21,7,14,0,2,344
+4,NADH,27,0,21,7,14,0,2,346
+5,NADPH,26,0,21,7,17,0,3,386
+6,NADP+,25,0,21,7,17,0,3,384
+7,Oxygen,0,0,0,0,2,0,0,16
+8,ADP,13,0,10,5,10,0,2,220
+9,Orthophosphate,1,0,0,0,4,0,1,50
+10,CoA,32,0,21,7,16,1,3,400
+11,CO2,0,0,1,0,2,0,0,22
+13,Diphosphate,1,0,0,0,7,0,2,90
+14,NH3,4,0,0,1,0,0,0,10
+15,UDP,12,0,9,2,12,0,2,208
+16,FAD,33,0,27,9,15,0,2,408
+20,AMP,12,0,10,5,7,0,1,180
+21,S-Adenosyl-L-homocysteine,20,0,14,6,5,1,0,202
+22,Pyruvate,3,0,3,0,3,0,0,46
+23,Iron,0,0,0,0,0,0,0,26
+24,Acetyl-CoA,34,0,23,7,17,1,3,422
+25,L-Glutamate,8,0,5,1,4,0,0,78
+26,2-Oxoglutarate,4,0,5,0,5,0,0,76
+27,Hydrogen peroxide,2,0,0,0,2,0,0,18
+29,UDP-glucose,22,0,15,2,17,0,2,294
+31,D-Glucose,12,0,6,0,6,0,0,96
+33,Acetate,3,0,2,0,2,0,0,32
+34,Manganese,0,0,0,0,0,0,0,25
+35,GDP,13,0,10,5,11,0,2,228
+36,Oxaloacetate,2,0,4,0,5,0,0,68
+37,Glycine,5,0,2,1,2,0,0,40
+41,L-Alanine,7,0,3,1,2,0,0,48
+42,Succinate,4,0,4,0,4,0,0,62
+43,UDP-N-acetyl-D-glucosamine,25,0,17,3,17,0,2,316
+44,GTP,13,0,10,5,14,0,3,268
+47,L-Lysine,15,0,6,2,2,0,0,80
+48,Glyoxylate,1,0,2,0,3,0,0,38
+49,L-Aspartate,6,0,4,1,4,0,0,70
+51,Glutathione,16,0,10,3,6,1,0,162
+52,UDP-D-galactose,22,0,15,2,17,0,2,294
+55,CMP,12,0,9,3,8,0,1,168
+58,Formate,1,0,1,0,2,0,0,24
+59,Sulfate,0,0,0,0,4,1,0,50
+61,FMN,18,0,17,4,9,0,1,238
+62,L-Arginine,15,0,6,4,2,0,0,94
+63,CTP,13,0,9,3,14,0,3,248
+64,L-Glutamine,10,0,5,2,3,0,0,78
+65,L-Serine,7,0,3,1,3,0,0,56
+67,Formaldehyde,2,0,1,0,1,0,0,16
+73,L-Methionine,11,0,5,1,2,1,0,80
+74,Phosphoenolpyruvate,2,0,3,0,6,0,1,86
+75,UTP,12,0,9,2,15,0,3,248
+77,L-Ornithine,13,0,5,2,2,0,0,72
+78,L-Tryptophan,12,0,11,2,2,0,0,108
+79,L-Phenylalanine,11,0,9,1,2,0,0,88
+80,H+,1,0,0,0,0,0,0,0
+81,ITP,12,0,10,4,14,0,3,260
+82,L-Tyrosine,11,0,9,1,3,0,0,96
+84,Acetaldehyde,4,0,2,0,1,0,0,24
+85,D-Fructose 6-phosphate,11,0,6,0,9,0,1,136
+86,Urea,4,0,1,2,1,0,0,32
+88,Nitrite,0,0,0,1,2,0,0,24
+89,Sucrose,22,0,12,0,11,0,0,182
+91,Succinyl-CoA,35,0,25,7,19,1,3,452
+92,D-Glucose 6-phosphate,11,0,6,0,9,0,1,136
+93,sn-Glycerol 3-phosphate,7,0,3,0,6,0,1,90
+94,Sulfite,1,0,0,0,3,1,0,42
+95,D-Fructose,12,0,6,0,6,0,0,96
+96,GDP-mannose,23,0,16,5,16,0,2,314
+97,L-Cysteine,7,0,3,1,2,1,0,64
+99,beta-Alanine,7,0,3,1,2,0,0,48
+100,Propanoyl-CoA,36,0,24,7,17,1,3,430
+101,Tetrahydrofolate,21,0,19,7,6,0,0,234
+103,D-Glucose 1-phosphate,11,0,6,0,9,0,1,136
+104,IDP,12,0,10,4,11,0,2,220
+105,UMP,11,0,9,2,9,0,1,168
+106,Uracil,4,0,4,2,2,0,0,58
+109,2-Oxobutanoate,5,0,4,0,3,0,0,54
+111,Glycerone phosphate,5,0,3,0,6,0,1,88
+112,CDP,13,0,9,3,11,0,2,208
+114,Choline,14,0,5,1,1,0,0,58
+116,Glycerol,8,0,3,0,3,0,0,50
+117,D-Ribose 5-phosphate,9,0,5,0,8,0,1,120
+118,D-Glyceraldehyde 3-phosphate,5,0,3,0,6,0,1,88
+119,5-Phospho-alpha-D-ribose 1-diphosphate,9,0,5,0,14,0,3,200
+121,D-Ribose,10,0,5,0,5,0,0,80
+122,Fumarate,2,0,4,0,4,0,0,60
+123,L-Leucine,13,0,6,1,2,0,0,72
+124,D-Galactose,12,0,6,0,6,0,0,96
+125,Ferricytochrome c,0,0,nan,nan,nan,nan,nan,nan
+126,Ferrocytochrome c,0,0,nan,nan,nan,nan,nan,nan
+127,Glutathione disulfide,32,0,20,6,12,2,0,322
+129,Isopentenyl diphosphate,10,0,5,0,7,0,2,128
+130,IMP,11,0,10,4,8,0,1,180
+131,dATP,13,0,10,5,12,0,3,252
+132,Methanol,4,0,1,0,1,0,0,18
+133,D-Alanine,7,0,3,1,2,0,0,48
+135,L-Histidine,9,0,6,3,2,0,0,82
+137,myo-Inositol,12,0,6,0,6,0,0,96
+138,Reduced ferredoxin,0,0,0,0,0,0,0,24
+139,Oxidized ferredoxin,0,0,0,0,0,0,0,23
+140,N-Acetyl-D-glucosamine,15,0,8,1,6,0,0,118
+143,"5,10-Methylenetetrahydrofolate",21,0,20,7,6,0,0,240
+144,GMP,12,0,10,5,8,0,1,188
+147,Adenine,5,0,5,5,0,0,0,70
+148,L-Proline,9,0,5,1,2,0,0,62
+149,(S)-Malate,4,0,4,0,5,0,0,70
+152,L-Asparagine,8,0,4,2,3,0,0,70
+153,Nicotinamide,6,0,6,2,1,0,0,64
+154,Palmitoyl-CoA,62,0,37,7,17,1,3,534
+155,L-Homocysteine,9,0,4,1,2,1,0,72
+158,Citrate,5,0,6,0,7,0,0,100
+159,D-Mannose,12,0,6,0,6,0,0,96
+160,Glycolate,3,0,2,0,3,0,0,40
+163,Propanoate,5,0,3,0,2,0,0,40
+164,Acetoacetate,5,0,4,0,3,0,0,54
+166,Phenylpyruvate,7,0,9,0,3,0,0,86
+167,UDP-glucuronate,19,0,15,2,18,0,2,300
+168,Hydroxypyruvate,3,0,3,0,4,0,0,54
+169,Carbamoyl phosphate,2,0,1,1,5,0,1,72
+170,5'-Methylthioadenosine,15,0,11,5,3,1,0,156
+178,Thymine,6,0,5,2,2,0,0,66
+181,D-Xylose,10,0,5,0,5,0,0,80
+183,L-Valine,11,0,5,1,2,0,0,64
+184,Glycerone,6,0,3,0,3,0,0,48
+185,Cellobiose,22,0,12,0,11,0,0,182
+186,(S)-Lactate,5,0,3,0,3,0,0,48
+188,L-Threonine,9,0,4,1,3,0,0,64
+189,Ethanolamine,8,0,2,1,1,0,0,34
+190,UDP-D-xylose,20,0,14,2,16,0,2,278
+191,D-Glucuronate,9,0,6,0,7,0,0,102
+197,3-Phospho-D-glycerate,4,0,3,0,7,0,1,96
+198,"D-Glucono-1,5-lactone",10,0,6,0,6,0,0,94
+199,D-Ribulose 5-phosphate,9,0,5,0,8,0,1,120
+206,dADP,13,0,10,5,9,0,2,212
+207,Acetone,6,0,3,0,1,0,0,32
+208,Maltose,22,0,12,0,11,0,0,182
+209,Oxalate,0,0,2,0,4,0,0,46
+212,Adenosine,13,0,10,5,4,0,0,140
+214,Thymidine,14,0,10,2,5,0,0,128
+216,D-Arabinose,10,0,5,0,5,0,0,80
+217,D-Glutamate,8,0,5,1,4,0,0,78
+218,Methylamine,6,0,1,1,0,0,0,18
+219,"(5Z,8Z,11Z,14Z)-Icosatetraenoic acid",31,0,20,0,2,0,0,168
+222,3-Oxopropanoate,3,0,3,0,3,0,0,46
+224,Adenylyl sulfate,12,0,10,5,10,1,1,220
+225,Methyl viologen,14,0,12,2,0,0,0,100
+227,Acetyl phosphate,3,0,2,0,5,0,1,72
+231,D-Xylulose 5-phosphate,9,0,5,0,8,0,1,120
+232,Succinate semialdehyde,5,0,4,0,3,0,0,54
+233,4-Methyl-2-oxopentanoate,9,0,6,0,3,0,0,70
+234,10-Formyltetrahydrofolate,21,0,20,7,7,0,0,248
+235,Dimethylallyl diphosphate,10,0,5,0,7,0,2,128
+236,3-Phospho-D-glyceroyl phosphate,4,0,3,0,10,0,2,136
+237,CO,0,0,1,0,1,0,0,14
+239,dCMP,12,0,9,3,7,0,1,160
+242,Guanine,5,0,5,5,1,0,0,78
+243,Lactose,22,0,12,0,11,0,0,182
+244,Nitrate,0,0,0,1,3,0,0,32
+246,Butanoic acid,7,0,4,0,2,0,0,48
+247,L-Sorbose,12,0,6,0,6,0,0,96
+249,Hexadecanoic acid,31,0,16,0,2,0,0,144
+250,Pyridoxal,9,0,8,1,3,0,0,88
+251,Chorismate,8,0,10,0,6,0,0,118
+252,Isomaltose,22,0,12,0,11,0,0,182
+253,Nicotinate,4,0,6,1,2,0,0,64
+256,(R)-Lactate,5,0,3,0,3,0,0,48
+257,D-Gluconic acid,11,0,6,0,7,0,0,104
+258,D-Glycerate,5,0,3,0,4,0,0,56
+259,L-Arabinose,10,0,5,0,5,0,0,80
+261,Benzaldehyde,6,0,7,0,1,0,0,56
+262,Hypoxanthine,4,0,5,4,1,0,0,70
+263,L-Homoserine,9,0,4,1,3,0,0,64
+266,Glycolaldehyde,4,0,2,0,2,0,0,32
+270,N-Acetylneuraminate,18,0,11,1,9,0,0,164
+273,5-Dehydro-D-fructose,10,0,6,0,6,0,0,94
+275,D-Mannose 6-phosphate,11,0,6,0,9,0,1,136
+279,D-Erythrose 4-phosphate,7,0,4,0,7,0,1,104
+280,Androstenedione,26,0,19,0,2,0,0,156
+282,Hydrogen,2,0,0,0,0,0,0,2
+283,Hydrogen sulfide,1,0,0,0,0,1,0,18
+288,HCO3-,1,0,1,0,3,0,0,32
+294,Inosine,12,0,10,4,5,0,0,140
+295,Orotate,3,0,5,2,4,0,0,80
+296,Quinate,11,0,7,0,6,0,0,102
+299,Uridine,12,0,9,2,6,0,0,128
+300,Creatine,9,0,4,3,2,0,0,70
+305,Magnesium cation,0,0,0,0,0,0,0,10
+307,CDP-choline,25,0,14,4,11,0,2,256
+309,D-Ribulose,10,0,5,0,5,0,0,80
+310,D-Xylulose,10,0,5,0,5,0,0,80
+311,Isocitrate,5,0,6,0,7,0,0,100
+312,L-Xylulose,10,0,5,0,5,0,0,80
+313,Oxalyl-CoA,31,0,23,7,19,1,3,436
+314,Pyridoxine,11,0,8,1,3,0,0,90
+318,L-Carnitine,15,0,7,1,3,0,0,88
+322,2-Oxoadipate,6,0,6,0,5,0,0,84
+327,L-Citrulline,13,0,6,3,3,0,0,94
+331,Indolepyruvate,8,0,11,1,3,0,0,106
+332,Acetoacetyl-CoA,36,0,25,7,18,1,3,444
+333,D-Galacturonate,9,0,6,0,7,0,0,102
+334,4-Aminobutanoate,9,0,4,1,2,0,0,56
+337,(S)-Dihydroorotate,5,0,5,2,4,0,0,82
+342,Thioredoxin,14,0,nan,nan,nan,nan,nan,nan
+343,Thioredoxin disulfide,12,0,nan,nan,nan,nan,nan,nan
+345,6-Phospho-D-gluconate,10,0,6,0,10,0,1,144
+346,Ethanolamine phosphate,7,0,2,1,4,0,1,74
+349,2-Methyl-3-oxopropanoate,5,0,4,0,3,0,0,54
+352,D-Glucosamine 6-phosphate,13,0,6,1,8,0,1,136
+354,"D-Fructose 1,6-bisphosphate",10,0,6,0,12,0,2,176
+357,N-Acetyl-D-glucosamine 6-phosphate,14,0,8,1,9,0,1,158
+360,dAMP,12,0,10,5,6,0,1,172
+361,dGDP,13,0,10,5,10,0,2,220
+362,dGMP,12,0,10,5,7,0,1,180
+363,dTDP,14,0,10,2,11,0,2,208
+364,dTMP,13,0,10,2,8,0,1,168
+366,Urate,4,0,5,4,3,0,0,86
+376,Retinal,28,0,20,0,1,0,0,156
+379,Xylitol,12,0,5,0,5,0,0,82
+385,Xanthine,4,0,5,4,2,0,0,78
+387,Guanosine,13,0,10,5,5,0,0,148
+390,Ubiquinol,28,0,nan,nan,nan,nan,nan,174
+392,Mannitol,14,0,6,0,6,0,0,98
+394,GDP-glucose,23,0,16,5,16,0,2,314
+399,Ubiquinone,26,0,nan,nan,nan,nan,nan,172
+407,L-Isoleucine,13,0,6,1,2,0,0,72
+408,L-Pipecolate,11,0,6,1,2,0,0,70
+414,Cyclohexanone,10,0,6,0,1,0,0,54
+415,Dihydrofolate,19,0,19,7,6,0,0,232
+417,cis-Aconitate,3,0,6,0,6,0,0,90
+423,trans-Cinnamate,7,0,9,0,2,0,0,78
+424,(S)-Lactaldehyde,6,0,3,0,2,0,0,40
+429,"5,6-Dihydrouracil",6,0,4,2,2,0,0,60
+437,N-Acetylornithine,14,0,7,2,3,0,0,94
+438,N-Carbamoyl-L-aspartate,6,0,5,2,5,0,0,92
+439,N-Formimino-L-glutamate,9,0,6,2,4,0,0,92
+440,5-Methyltetrahydrofolate,23,0,20,7,6,0,0,242
+441,L-Aspartate 4-semialdehyde,7,0,4,1,3,0,0,62
+445,"5,10-Methenyltetrahydrofolate",20,0,20,7,6,0,0,238
+455,Nicotinamide D-ribonucleotide,14,0,11,2,8,0,1,174
+459,dTTP,14,0,10,2,14,0,3,248
+463,Indole,7,0,8,1,0,0,0,62
+468,Estrone,22,0,18,0,2,0,0,146
+469,Ethanol,6,0,2,0,1,0,0,26
+473,Retinol,30,0,20,0,1,0,0,158
+474,Ribitol,12,0,5,0,5,0,0,82
+475,Cytidine,13,0,9,3,5,0,0,128
+476,D-Lyxose,10,0,5,0,5,0,0,80
+482,Sinapate,11,0,11,0,5,0,0,118
+491,L-Cystine,12,0,6,2,4,2,0,126
+492,Raffinose,32,0,18,0,16,0,0,268
+493,Shikimate,9,0,7,0,5,0,0,92
+497,(R)-Malate,4,0,4,0,5,0,0,70
+498,ADP-glucose,23,0,16,5,15,0,2,306
+499,Allantoate,7,0,4,4,4,0,0,92
+501,CDP-glucose,23,0,15,3,16,0,2,294
+507,L-Rhamnose,12,0,6,0,5,0,0,88
+508,L-Ribulose,10,0,5,0,5,0,0,80
+515,D-Ornithine,13,0,5,2,2,0,0,72
+522,(R)-Pantoate,11,0,6,0,4,0,0,80
+534,Pyridoxamine,13,0,8,2,2,0,0,90
+535,Testosterone,28,0,19,0,2,0,0,158
+543,Dimethylamine,8,0,2,1,0,0,0,26
+546,Methylglyoxal,4,0,3,0,2,0,0,38
+552,meso-Tartaric acid,4,0,4,0,6,0,0,78
+556,Benzyl alcohol,8,0,7,0,1,0,0,58
+558,D-Tagaturonate,9,0,6,0,7,0,0,102
+559,Deoxyadenosine,13,0,10,5,3,0,0,132
+565,Trimethylamine,9,0,3,1,0,0,0,34
+570,CDP-ethanolamine,19,0,11,4,11,0,2,232
+575,"3',5'-Cyclic AMP",11,0,10,5,6,0,1,170
+577,D-Glyceraldehyde,6,0,3,0,3,0,0,48
+580,Dimethyl sulfide,6,0,2,0,0,1,0,34
+581,Guanidinoacetate,7,0,3,3,2,0,0,62
+583,"Propane-1,2-diol",8,0,3,0,2,0,0,42
+588,Choline phosphate,13,0,5,1,4,0,1,98
+590,Coniferyl alcohol,12,0,10,0,3,0,0,96
+603,(-)-Ureidoglycolate,5,0,3,2,4,0,0,70
+617,UDP-D-galacturonate,19,0,15,2,18,0,2,300
+620,alpha-D-Ribose 1-phosphate,9,0,5,0,8,0,1,120
+624,N-Acetyl-L-glutamate,9,0,7,1,5,0,0,100
+631,2-Phospho-D-glycerate,4,0,3,0,7,0,1,96
+636,D-Mannose 1-phosphate,11,0,6,0,9,0,1,136
+644,D-Mannitol 1-phosphate,13,0,6,0,9,0,1,138
+645,N-Acetyl-D-mannosamine,15,0,8,1,6,0,0,118
+660,"D-Glucose 1,6-bisphosphate",10,0,6,0,12,0,2,176
+664,5-Formiminotetrahydrofolate,22,0,20,8,6,0,0,248
+666,"LL-2,6-Diaminoheptanedioate",14,0,7,2,4,0,0,102
+668,alpha-D-Glucose 6-phosphate,11,0,6,0,9,0,1,136
+672,2-Deoxy-D-ribose 1-phosphate,9,0,5,0,7,0,1,112
+673,2-Deoxy-D-ribose 5-phosphate,9,0,5,0,7,0,1,112
+680,"meso-2,6-Diaminoheptanedioate",14,0,7,2,4,0,0,102
+683,(S)-Methylmalonyl-CoA,35,0,25,7,19,1,3,452
+684,2-Dehydro-3-deoxy-L-arabinonate,7,0,5,0,5,0,0,78
+689,"alpha,alpha'-Trehalose 6-phosphate",21,0,12,0,14,0,1,222
+697,Nitrogen,0,0,0,2,0,0,0,14
+705,dCDP,13,0,9,3,10,0,2,200
+725,Lipoate,13,0,8,0,2,2,0,110
+739,D-Lysine,15,0,6,2,2,0,0,80
+740,D-Serine,7,0,3,1,3,0,0,56
+756,1-Octanol,18,0,8,0,1,0,0,74
+785,Urocanate,5,0,6,2,2,0,0,72
+791,Creatinine,7,0,4,3,1,0,0,60
+794,D-Sorbitol,14,0,6,0,6,0,0,98
+795,D-Tagatose,12,0,6,0,6,0,0,96
+798,Formyl-CoA,32,0,22,7,17,1,3,414
+810,(R)-Acetoin,8,0,4,0,2,0,0,48
+828,Menaquinone,24,0,nan,nan,nan,nan,nan,166
+835,Sepiapterin,10,0,9,5,3,0,0,124
+842,dTDP-glucose,24,0,16,2,16,0,2,294
+849,Ethyl acetate,8,0,4,0,2,0,0,48
+854,Cyclohexanol,12,0,6,0,1,0,0,56
+861,L-Rhamnulose,12,0,6,0,5,0,0,88
+864,Pantothenate,16,0,9,1,5,0,0,118
+876,Coenzyme F420,36,0,29,5,18,0,1,404
+877,Crotonoyl-CoA,36,0,25,7,17,1,3,436
+882,Dephospho-CoA,33,0,21,7,13,1,2,360
+885,Isochorismate,8,0,10,0,6,0,0,118
+887,Nitrous oxide,0,0,0,2,1,0,0,22
+905,D-Fructuronate,9,0,6,0,7,0,0,102
+920,CoA-glutathione,46,0,31,10,22,2,3,560
+922,"2,3-Dimethylmaleate",6,0,6,0,4,0,0,76
+935,UDP-L-arabinose,20,0,14,2,16,0,2,278
+940,2-Oxoglutaramate,6,0,5,1,4,0,0,76
+944,3-Dehydroquinate,9,0,7,0,6,0,0,100
+951,Estradiol-17beta,24,0,18,0,2,0,0,148
+956,L-2-Aminoadipate,10,0,6,1,4,0,0,86
+966,2-Dehydropantoate,9,0,6,0,4,0,0,78
+975,Dihydroxyfumarate,2,0,4,0,6,0,0,76
+979,O-Acetyl-L-serine,9,0,5,1,4,0,0,78
+986,"1,3-Diaminopropane",12,0,3,2,0,0,0,42
+989,4-Hydroxybutanoic acid,7,0,4,0,3,0,0,56
+1005,O-Phospho-L-serine,6,0,3,1,6,0,1,96
+1013,3-Hydroxypropanoate,5,0,3,0,3,0,0,48
+1019,6-Deoxy-L-galactose,12,0,6,0,5,0,0,88
+1080,Reduced coenzyme F420,38,0,29,5,18,0,1,406
+1081,Thiamin monophosphate,16,0,12,4,4,1,1,180
+1083,"alpha,alpha-Trehalose",22,0,12,0,11,0,0,182
+1087,(R)-2-Hydroxyglutarate,6,0,5,0,5,0,0,78
+1089,(R)-3-Hydroxybutanoate,7,0,4,0,3,0,0,56
+1094,D-Fructose 1-phosphate,11,0,6,0,9,0,1,136
+1096,Sorbitol 6-phosphate,13,0,6,0,9,0,1,138
+1099,L-Fuculose 1-phosphate,11,0,6,0,8,0,1,128
+1100,L-Histidinol phosphate,11,0,6,3,4,0,1,116
+1101,L-Ribulose 5-phosphate,9,0,5,0,8,0,1,120
+1103,Orotidine 5'-phosphate,10,0,10,2,11,0,1,190
+1104,Trimethylamine N-oxide,9,0,3,1,1,0,0,42
+1107,(R)-5-Phosphomevalonate,10,0,6,0,7,0,1,120
+1112,D-Arabinose 5-phosphate,9,0,5,0,8,0,1,120
+1113,D-Galactose 6-phosphate,11,0,6,0,9,0,1,136
+1127,4-Hydroxy-2-oxoglutarate,4,0,5,0,6,0,0,84
+1131,L-Rhamnulose 1-phosphate,11,0,6,0,8,0,1,128
+1142,"(3S)-3,6-Diaminohexanoate",15,0,6,2,2,0,0,80
+1143,(R)-5-Diphosphomevalonate,11,0,6,0,10,0,2,160
+1144,(S)-3-Hydroxybutanoyl-CoA,38,0,25,7,18,1,3,446
+1146,2-Hydroxy-3-oxopropanoate,3,0,3,0,4,0,0,54
+1157,Hydroxyproline,9,0,5,1,3,0,0,70
+1172,beta-D-Glucose 6-phosphate,11,0,6,0,9,0,1,136
+1175,1-O-Sinapoyl-beta-D-glucose,22,0,17,0,10,0,0,204
+1179,3-(4-Hydroxyphenyl)pyruvate,7,0,9,0,4,0,0,94
+1185,Nicotinate D-ribonucleotide,12,0,11,1,9,0,1,174
+1186,"(3S,5S)-3,5-Diaminohexanoate",15,0,6,2,2,0,0,80
+1188,3-Hydroxy-2-methylpropanoate,7,0,4,0,3,0,0,56
+1213,(R)-Methylmalonyl-CoA,35,0,25,7,19,1,3,452
+1217,"5,6,7,8-Tetrahydromethanopterin",42,0,30,6,16,0,1,410
+1235,alpha-D-Galactosyl-(1->3)-1D-myo-inositol,22,0,12,0,11,0,0,182
+1236,"D-Glucono-1,5-lactone 6-phosphate",9,0,6,0,9,0,1,134
+1244,"3,5-Diiodo-4-hydroxyphenylpyruvate",5,0,9,0,4,0,0,198
+1267,3-(Imidazol-4-yl)-2-oxopropyl phosphate,7,0,6,2,5,0,1,114
+1286,2-Dehydro-3-deoxy-D-galactonate 6-phosphate,8,0,6,0,9,0,1,134
+1326,Hydrogen cyanide,1,0,1,1,0,0,0,14
+1342,NH4+,4,0,0,1,0,0,0,10
+1352,FADH2,35,0,27,9,15,0,2,410
+1384,Maleic acid,2,0,4,0,4,0,0,60
+1412,Butanal,8,0,4,0,1,0,0,40
+1417,Cyanate,0,0,1,1,1,0,0,22
+1438,Methane,4,0,1,0,0,0,0,10
+1507,L-Iditol,14,0,6,0,6,0,0,98
+1545,1-Octanal,16,0,8,0,1,0,0,72
+1563,Carbamate,2,0,1,1,2,0,0,32
+1570,D-Leucine,13,0,6,1,2,0,0,72
+1589,Imidazole,4,0,3,2,0,0,0,36
+1595,Linoleate,31,0,18,0,2,0,0,156
+1613,Stachyose,42,0,24,0,21,0,0,354
+1620,Threonate,7,0,4,0,5,0,0,72
+1697,Galactitol,14,0,6,0,6,0,0,98
+1721,L-Fuculose,12,0,6,0,5,0,0,88
+1732,Mesaconate,4,0,5,0,4,0,0,68
+1755,Thiocyanate,0,0,1,1,0,1,0,30
+1762,Xanthosine,12,0,10,4,6,0,0,148
+1796,D-Erythrose,8,0,4,0,4,0,0,64
+1845,Propan-2-ol,8,0,3,0,1,0,0,34
+1847,Reduced FMN,20,0,17,4,9,0,1,240
+1904,D-Arabitol,12,0,5,0,5,0,0,82
+1959,Taurocyamine,9,0,3,3,3,1,0,88
+1996,Acetylcholine,16,0,7,1,2,0,0,80
+2022,D-Erythrulose,8,0,4,0,4,0,0,64
+2037,Glycylglycine,8,0,4,2,3,0,0,70
+2043,Indolelactate,10,0,11,1,3,0,0,108
+2045,L-Erythrulose,8,0,4,0,4,0,0,64
+2048,Laminaribiose,22,0,12,0,11,0,0,182
+2110,11-cis-Retinal,28,0,20,0,1,0,0,156
+2115,2-Methylserine,9,0,4,1,3,0,0,64
+2147,Dihydrolipoate,15,0,8,0,2,2,0,112
+2226,2-Methylmaleate,4,0,5,0,4,0,0,68
+2237,5-Oxo-D-proline,6,0,5,1,3,0,0,68
+2271,Dichloromethane,2,0,1,0,0,0,0,42
+2280,GDP-L-galactose,23,0,16,5,16,0,2,314
+2295,Methylitaconate,6,0,6,0,4,0,0,76
+2305,Phosphocreatine,8,0,4,3,5,0,1,110
+2357,2-Chlorobenzoate,4,0,7,0,2,0,0,80
+2359,2-Fluorobenzoate,4,0,7,0,2,0,0,72
+2364,3-Fluorobenzoate,4,0,7,0,2,0,0,72
+2370,4-Chlorobenzoate,4,0,7,0,2,0,0,80
+2371,4-Fluorobenzoate,4,0,7,0,2,0,0,72
+2405,Formyl phosphate,1,0,1,0,5,0,1,64
+2480,"cis,cis-Muconate",4,0,6,0,4,0,0,74
+2557,Methylmalonyl-CoA,35,0,25,7,19,1,3,452
+2560,N-Acetylimidazole,6,0,5,2,1,0,0,58
+2571,O-Acetylcarnitine,17,0,9,1,4,0,0,110
+2588,Retinyl palmitate,60,0,36,0,2,0,0,292
+2595,Thien-2-ylacetate,5,0,6,0,2,1,0,74
+2612,(R)-2-Methylmalate,6,0,5,0,5,0,0,78
+2614,(S)-2-Methylmalate,6,0,5,0,5,0,0,78
+2636,3-Dehydrocarnitine,13,0,7,1,3,0,0,86
+2637,3-Dehydroshikimate,7,0,7,0,5,0,0,90
+2642,3-Ureidopropionate,7,0,4,2,3,0,0,70
+2652,5-Dehydroshikimate,7,0,7,0,5,0,0,90
+2666,Coniferyl aldehyde,10,0,10,0,3,0,0,94
+2712,N-Acetylmethionine,12,0,7,1,3,1,0,102
+2718,N-Formiminoglycine,6,0,3,2,2,0,0,54
+2763,2-Hydroxy-3-phenylpropenoate,7,0,9,0,3,0,0,86
+2780,"2,5-Didehydro-D-gluconate",7,0,6,0,7,0,0,100
+2782,2-Deoxy-D-gluconate,11,0,6,0,6,0,0,96
+2798,3-Phosphonopyruvate,3,0,3,0,6,0,1,86
+2930,2-Methyleneglutarate,6,0,6,0,4,0,0,76
+2953,"7,8-Dihydrobiopterin",13,0,9,5,3,0,0,126
+2954,6-Aminopenicillanate,12,0,8,2,3,1,0,114
+2990,L-Palmitoylcarnitine,45,0,23,1,4,0,0,222
+3017,O-Propanoylcarnitine,19,0,10,1,4,0,0,118
+3044,"(R,R)-Butane-2,3-diol",10,0,4,0,2,0,0,50
+3059,2-Hydroxymethylserine,9,0,4,1,4,0,0,72
+3064,3-Dehydro-L-threonate,5,0,4,0,5,0,0,70
+3067,3-Hydroxybenzaldehyde,6,0,7,0,2,0,0,64
+3082,4-Phospho-L-aspartate,6,0,4,1,7,0,1,110
+3149,N-Phosphotaurocyamine,8,0,3,3,6,1,1,128
+3150,Nicotinamide-beta-riboside,15,0,11,2,5,0,0,134
+3166,Phosphoguanidinoacetate,6,0,3,3,5,0,1,102
+3167,Phosphonoacetaldehyde,4,0,2,0,4,0,1,64
+3196,(S)-2-Hydroxyglutarate,6,0,5,0,5,0,0,78
+3210,Alanopine,10,0,6,1,4,0,0,86
+3232,3-Phosphonooxypyruvate,2,0,3,0,7,0,1,94
+3341,2-Amino-4-oxopentanoic acid,9,0,5,1,3,0,0,70
+3351,3-Hydroxybenzyl alcohol,8,0,7,0,2,0,0,66
+3383,"D-Galactono-1,4-lactone",10,0,6,0,6,0,0,94
+3384,D-Galactose 1-phosphate,11,0,6,0,9,0,1,136
+3394,Erythrulose 1-phosphate,7,0,4,0,7,0,1,104
+3406,N-(L-Arginino)succinate,17,0,10,4,6,0,0,154
+3410,N-Glycoloyl-neuraminate,18,0,11,1,10,0,0,172
+3440,cis-4-Hydroxy-D-proline,9,0,5,1,3,0,0,70
+3451,(R)-S-Lactoylglutathione,20,0,13,3,8,1,0,200
+3459,2-Hydroxy-3-oxosuccinate,2,0,4,0,6,0,0,76
+3483,Adenosine tetraphosphate,13,0,10,5,16,0,4,300
+3493,D-4-Hydroxyphenylglycine,9,0,8,1,3,0,0,88
+3506,Indoleglycerol phosphate,12,0,11,1,6,0,1,150
+3521,Glycolyl-D-mannosamine,15,0,8,1,7,0,0,126
+3557,2-Aminoethylphosphonate,8,0,2,1,3,0,1,66
+3561,(R)-3-Hydroxybutanoyl-CoA,38,0,25,7,18,1,3,446
+3564,1-Pyrroline-2-carboxylate,6,0,5,1,2,0,0,60
+3598,"CDP-3,6-dideoxy-D-glucose",23,0,15,3,14,0,2,278
+3599,"CDP-3,6-dideoxy-D-mannose",23,0,15,3,14,0,2,278
+3618,L-threo-3-Methylaspartate,8,0,5,1,4,0,0,78
+3652,"(2R,3S)-2,3-Dimethylmalate",8,0,6,0,5,0,0,86
+3656,(S)-5-Amino-3-oxohexanoic acid,11,0,6,1,3,0,0,78
+3680,4-Imidazolone-5-propanoate,7,0,6,2,3,0,0,82
+3703,L-5-Carboxymethylhydantoin,5,0,5,2,4,0,0,82
+3794,"N6-(1,2-Dicarboxyethyl)-AMP",14,0,14,5,11,0,1,240
+3912,(S)-1-Pyrroline-5-carboxylate,6,0,5,1,2,0,0,60
+3926,3-Dehydro-2-deoxy-D-gluconate,9,0,6,0,6,0,0,94
+3943,"(2R,4S)-2,4-Diaminopentanoate",13,0,5,2,2,0,0,72
+3981,2-Hydroxyethylenedicarboxylate,2,0,4,0,5,0,0,68
+4056,"9-cis,11-trans-Octadecadienoate",31,0,18,0,2,0,0,156
+4092,delta1-Piperideine-2-carboxylate,8,0,6,1,2,0,0,68
+4105,"2,5-Dihydro-5-oxofuran-2-acetate",5,0,6,0,4,0,0,74
+4114,4-(Trimethylammonio)but-2-enoate,13,0,7,1,2,0,0,78
+4137,D-Octopine,18,0,9,4,4,0,0,132
+4188,S-Methyl-5-thio-D-ribose 1-phosphate,11,0,6,0,7,1,1,136
+4256,N-Acetyl-D-glucosamine 1-phosphate,14,0,8,1,9,0,1,158
+4257,N-Acetyl-D-mannosamine 6-phosphate,14,0,8,1,9,0,1,158
+4268,"dTDP-4-amino-4,6-dideoxy-D-glucose",26,0,16,3,14,0,2,286
+4327,4-Methyl-5-(2-phosphoethyl)-thiazole,8,0,6,1,4,1,1,116
+4348,(3S)-3-Carboxy-3-hydroxypropanoyl-CoA,35,0,25,7,20,1,3,460
+4367,"3-(3,5-Diiodo-4-hydroxyphenyl)lactate",7,0,9,0,4,0,0,200
+4377,"5,10-Methylenetetrahydromethanopterin",42,0,31,6,16,0,1,416
+4421,"N-Succinyl-LL-2,6-diaminoheptanedioate",16,0,11,2,7,0,0,154
+4442,2-Dehydro-3-deoxy-6-phospho-D-gluconate,8,0,6,0,9,0,1,134
+4462,N-Succinyl-2-L-amino-6-oxoheptanedioate,12,0,11,1,8,0,0,152
+4654,"(13E)-11alpha-Hydroxy-9,15-dioxoprost-13-enoate",31,0,20,0,5,0,0,192
+4677,1-(5'-Phosphoribosyl)-5-amino-4-imidazolecarboxamide,13,0,9,4,8,0,1,176
+4741,Alprostadil,33,0,20,0,5,0,0,194
+4752,2-Methyl-4-amino-5-hydroxymethylpyrimidine diphosphate,9,0,6,3,7,0,2,154
+4823,1-(5'-Phosphoribosyl)-5-amino-4-(N-succinocarboxamide)-imidazole,15,0,13,4,12,0,1,236
+5268,(S)-Hydroxyhexanoyl-CoA,42,0,27,7,18,1,3,462
+5269,3-Oxohexanoyl-CoA,40,0,27,7,18,1,3,460
+5271,trans-Hex-2-enoyl-CoA,40,0,27,7,17,1,3,452
+5361,Hydrazine,4,0,0,2,0,0,0,18
+5382,Sedoheptulose 7-phosphate,13,0,7,0,10,0,1,152
+5385,D-Glucuronate 1-phosphate,8,0,6,0,10,0,1,142
+5402,Melibiose,22,0,12,0,11,0,0,182
+5403,3-Ketolactose,20,0,12,0,11,0,0,180
+5437,Zymosterol,44,0,27,0,1,0,0,214
+5439,"5alpha-Cholesta-7,24-dien-3beta-ol",44,0,27,0,1,0,0,214
+5512,Deoxyinosine,12,0,10,4,4,0,0,132
+5551,Penicillin G,17,0,16,2,4,1,0,176
+5572,4-Oxoglutaramate,6,0,5,1,4,0,0,76
+5598,Phenylacetylglycine,10,0,10,1,3,0,0,102
+5665,3-Aminopropanal,8,0,3,1,1,0,0,40
+5819,Menaquinol,26,0,nan,nan,nan,nan,nan,168
+5922,Formamidopyrimidine nucleoside triphosphate,15,0,10,5,15,0,3,278
+5945,L-Arginine phosphate,14,0,6,4,5,0,1,134
+5979,Propane-1-ol,8,0,3,0,1,0,0,34
+5984,2-Hydroxybutanoic acid,7,0,4,0,3,0,0,56
+6019,D-arabino-Hex-3-ulose 6-phosphate,11,0,6,0,9,0,1,136
+6142,1-Butanol,10,0,4,0,1,0,0,42
+6156,alpha-D-Glucosamine 1-phosphate,13,0,6,1,8,0,1,136
+6159,2-Dehydro-3-deoxy-D-fuconate,9,0,6,0,5,0,0,86
+6219,Cellotriose,32,0,18,0,16,0,0,268
+6255,2-Oxopentanoic acid,7,0,5,0,3,0,0,62
+6322,"S-1,5-Cyclohexadiene-1-carboxylate coenzymeA",38,0,28,7,17,1,3,456
+6463,D-Threose,8,0,4,0,4,0,0,64
+6547,Ethylene,4,0,2,0,0,0,0,16
+6670,"2,4-Dichlorobenzoate",3,0,7,0,2,0,0,96
+6749,6-Hydroxycyclohex-1-enecarbonyl-CoA,40,0,28,7,18,1,3,466
+6752,"1,2-Dichloroethane",4,0,2,0,0,0,0,50
+6789,Tetrachloroethene,0,0,2,0,0,0,0,80
+6790,Trichloroethene,1,0,2,0,0,0,0,64
+6791,"trans-1,2-Dichloroethene",2,0,2,0,0,0,0,48
+6792,"cis-1,2-Dichloroethene",2,0,2,0,0,0,0,48
+6793,Vinyl chloride,3,0,2,0,0,0,0,32
+6827,Amoxicillin,19,0,16,3,5,1,0,192
+7064,Lactulose,22,0,12,0,11,0,0,182
+7086,Phenylacetic acid,7,0,8,0,2,0,0,72
+7561,Carbon tetrachloride,0,0,1,0,0,0,0,74
+7756,7-Aminocephalosporanic acid,12,0,10,2,5,1,0,142
+7761,Cephalothin,15,0,16,2,6,2,0,206
+8240,Gentiobiose,22,0,12,0,11,0,0,182
+8492,3-Hexenol,12,0,6,0,1,0,0,56
+9306,Sulfur dioxide,0,0,0,0,2,1,0,32
+11143,Dimethyl sulfoxide,6,0,2,0,1,1,0,42
+11355,4-Amino-4-deoxychorismate,10,0,10,1,5,0,0,118
+11695,Anandamide,37,0,22,1,2,0,0,192
+11907,"4,6-Dideoxy-4-oxo-dTDP-D-glucose",22,0,16,2,15,0,2,284
+13827,Chloroform,1,0,1,0,0,0,0,58
+14039,"1,1-Dichloroethylene",2,0,2,0,0,0,0,48
+14177,Lombricine,15,0,6,4,6,0,1,142
+14178,N-Phospholombricine,14,0,6,4,9,0,2,182
+14400,"1,2,3-Trichloropropane",5,0,3,0,0,0,0,74
+14705,"1,1,1,2-Tetrachloroethane",2,0,2,0,0,0,0,82
+15673,2-Dehydro-L-idonate,9,0,6,0,7,0,0,102
+16310,3-Hexenal,10,0,6,0,1,0,0,54
+16512,Palmitoylethanolamide,37,0,18,1,2,0,0,168
+16688,Sucrose 6-phosphate,21,0,12,0,14,0,1,222
+18054,2-Amino-2-deoxyisochorismate,10,0,10,1,5,0,0,118
+18246,"1,1,1-Trichloroethane",3,0,2,0,0,0,0,66
+18247,"1,1-Dichloroethane",4,0,2,0,0,0,0,50
+18248,Chloroethane,5,0,2,0,0,0,0,34
+19034,"1,2-Dichloropropane",6,0,3,0,0,0,0,58
+19248,Hexachloroethane,0,0,2,0,0,0,0,114
+19496,Pentachloroethane,1,0,2,0,0,0,0,98
+19536,"1,1,2-Trichloroethane",3,0,2,0,0,0,0,66
+19838,D-erythro-3-Hydroxyaspartate,6,0,4,1,5,0,0,78
+80002,monochlorobenzene,5,0,6,0,0,0,0,58
+80003,"1,2-dichlorobenzene",4,0,6,0,0,0,0,74
+80004,"1,3-dichlorobenzene",4,0,6,0,0,0,0,74
+80005,"1,4-dichlorobenzene",4,0,6,0,0,0,0,74
+80006,"1,2,3-trichlorobenzene",3,0,6,0,0,0,0,90
+80007,"1,2,4-trichlorobenzene",3,0,6,0,0,0,0,90
+80008,"1,3,5-trichlorobenzene",3,0,6,0,0,0,0,90
+80009,"1,2,3,4-tetrachlorobenzene",2,0,6,0,0,0,0,106
+80010,"1,2,3,5-tetrachlorobenzene",2,0,6,0,0,0,0,106
+80011,"1,2,4,5-tetrachlorobenzene",2,0,6,0,0,0,0,106
+80012,pentachlorobenzene,1,0,6,0,0,0,0,122
+80013,hexachlorobenzene,0,0,6,0,0,0,0,138
+80014,3-chlorobenzoate,4,0,7,0,2,0,0,80
+80015,"2,3-dichlorobenzoate",3,0,7,0,2,0,0,96
+80016,"2,5-dichlorobenzoate",3,0,7,0,2,0,0,96
+80017,"2,6-dichlorobenzoate",3,0,7,0,2,0,0,96
+80018,"3,4-dichlorobenzoate",3,0,7,0,2,0,0,96
+80019,"3,5-dichlorobenzoate",3,0,7,0,2,0,0,96
+80020,"2,3,5-trichlorobenzoate",2,0,7,0,2,0,0,112
+80021,"3,4,5-trichlorobenzoate",2,0,7,0,2,0,0,112
+80022,2-bromobenzoate,4,0,7,0,2,0,0,98
+80023,3-bromobenzoate,4,0,7,0,2,0,0,98
+80024,4-bromobenzoate,4,0,7,0,2,0,0,98
+80025,2-iodobenzoate,4,0,7,0,2,0,0,116
+80026,3-iodobenzoate,4,0,7,0,2,0,0,116
+80027,4-iodobenzoate,4,0,7,0,2,0,0,116
+80028,2-amino-5-chlorobenzoate,5,0,7,1,2,0,0,88
+80029,2-hydroxy-5-chlorobenzoate,4,0,7,0,3,0,0,88
+80030,2-methyl-5-chlorobenzoate,6,0,8,0,2,0,0,88
+80043,chloromethane,3,0,1,0,0,0,0,26
+80045,ethane,6,0,2,0,0,0,0,18
+80046,"1,1,2,2-tetrachloroethane",2,0,2,0,0,0,0,82
+80047,propane,8,0,3,0,0,0,0,26
+80048,1-chloropropane,7,0,3,0,0,0,0,42
+80049,"1,3-dichloropropane",6,0,3,0,0,0,0,58
+80050,butane,10,0,4,0,0,0,0,34
+80051,1-chlorobutane,9,0,4,0,0,0,0,50
+80052,2-chlorobutane,9,0,4,0,0,0,0,50
+80053,pentane,12,0,5,0,0,0,0,42
+80054,1-chloropentane,11,0,5,0,0,0,0,58
+80055,CH3NHp,10,0,3,1,1,0,0,42
+80057,ap-nad,27,0,22,6,14,0,2,344
+80058,ap-nadh,28,0,22,6,14,0,2,346
+80059,FADenz(ox),33,0,nan,nan,nan,nan,nan,nan
+80060,FADenz(red),35,0,nan,nan,nan,nan,nan,nan
+80067,reduced Methyl viologen,14,0,0,0,0,0,0,nan
