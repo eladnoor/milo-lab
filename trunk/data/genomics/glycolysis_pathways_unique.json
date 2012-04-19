@@ -1,0 +1,42 @@
+[
+{
+    "NAME": "Upper EMP Unique",
+    "ENZYME_SETS": [
+        {
+        "NAME": "6-phosphofructokinase",
+        "ECO": "pfk",
+        "RID": "R00756",
+        "ECS": ["2.7.1.11","2.7.1.90","2.7.1.146"]
+        },
+        {
+        "NAME": "pyruvate kinase",
+        "ECO": "pyk",
+        "RID": "R00200",
+        "ECS": ["2.7.1.40"]
+        }
+        ]
+},
+{
+    "NAME": "Upper ED Unique",
+    "ENZYME_SETS": [
+        {
+        "NAME": "phosphogluconate dehydratase",
+        "ECO": "edd",
+        "RID": "R02036",
+        "ECS": ["4.2.1.12", "4.2.1.39" ]
+        },
+        {
+        "NAME": "kdpg aldolase",
+        "ECO": "eda",
+        "RID": "R05605",
+        "ECS": ["4.1.2.14"]
+        },
+        {
+        "NAME": "pyruvate kinase",
+        "ECO": "pyk",
+        "RID": "R00200",
+        "ECS": ["2.7.1.40"]
+        }
+        ]
+}
+]
