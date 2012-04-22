@@ -185,7 +185,7 @@ class Thermodynamics(object):
                    'reference', 'anchor']
         html_writer.write_table(rowdicts, headers, decimal=1)
     
-    def write_data_to_csv(self, csv_fname):
+    def write_chemical_data_to_csv(self, csv_fname):
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['name', 'cid', 'nH', 'z', 'nMg', 'dG0'])
         for cid in sorted(self.get_all_cids()):
@@ -196,6 +196,17 @@ class Thermodynamics(object):
                     writer.writerow([name, "C%05d" % cid, nH, z, nMg, '%.1f' % dG0])
             except MissingCompoundFormationEnergy as e:
                 logging.warning(str(e))
+
+    def write_biochemical_data_to_csv(self, csv_fname):
+        pH, I, pMg, T = self.GetConditions()
+        writer = csv.writer(open(csv_fname, 'w'))
+        writer.writerow(['name', 'cid', 'pH', 'I', 'pMg', 'T', 'dG0'])
+        cids = sorted(self.get_all_cids())
+        dG0_prime = self.GetTransformedFormationEnergies(cids)
+        for i, cid in enumerate(cids):
+            name = self.kegg.cid2name(cid)
+            writer.writerow([name, "C%05d" % cid, pH, I, pMg, T,
+                             '%.1f' % dG0_prime[0, i]])
 
     def GetJSONDictionary(self):
         """Returns a JSON formatted thermodynamic data."""
