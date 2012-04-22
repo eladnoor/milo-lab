@@ -26,8 +26,8 @@ class GroupVector(list):
         group_strs = []
         gv_flat = self.Flatten()
         for i, name in enumerate(self.groups_data.GetGroupNames()):
-            if gv_flat[i]:
-                group_strs.append('%s x %d' % (name, gv_flat[i]))
+            if round(gv_flat[i], 10) != 0:
+                group_strs.append('%s x %g' % (name, gv_flat[i]))
         return " | ".join(group_strs)
     
     def __iadd__(self, other):

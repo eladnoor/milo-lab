@@ -39,6 +39,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer = html_writer or NullHtmlWriter()
         self.dissociation = dissociation
         self.transformed = False
+        self.CollapseReactions = False
         self.epsilon = 1e-10
         self.kegg = Kegg.getInstance()
         
@@ -206,19 +207,27 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         else:
             logging.info("Calculating group matrices")
             self.cids, S, b, anchored = self.obs_collection.GetStoichiometry()
-            self.S, col_mapping = LinearRegression.ColumnUnique(S)
-            self.b = np.matrix(np.zeros((1, len(col_mapping)), dtype='float'))
-            self.anchored = np.matrix(np.zeros((1, len(col_mapping)), dtype='int'))
-            self.obs_ids = []
-            self.obs_types = []
-            self.obs_urls = []
-            for i, col_indices in col_mapping.iteritems():
-                self.b[0, i] = np.mean(b[0, col_indices])
-                self.anchored[0, i] = anchored[0, col_indices].max()
-                obs_list = [self.obs_collection.observations[j] for j in col_indices]
-                self.obs_ids.append(', '.join([obs.obs_id for obs in obs_list]))
-                self.obs_types.append(', '.join(set([obs.obs_type for obs in obs_list])))
-                self.obs_urls.append(', '.join([obs.url for obs in obs_list]))
+            if self.CollapseReactions:
+                self.S, col_mapping = LinearRegression.ColumnUnique(S)
+                self.b = np.matrix(np.zeros((1, len(col_mapping)), dtype='float'))
+                self.anchored = np.matrix(np.zeros((1, len(col_mapping)), dtype='int'))
+                self.obs_ids = []
+                self.obs_types = []
+                self.obs_urls = []
+                for i, col_indices in col_mapping.iteritems():
+                    self.b[0, i] = np.mean(b[0, col_indices])
+                    self.anchored[0, i] = anchored[0, col_indices].max()
+                    obs_list = [self.obs_collection.observations[j] for j in col_indices]
+                    self.obs_ids.append(', '.join([obs.obs_id for obs in obs_list]))
+                    self.obs_types.append(', '.join(set([obs.obs_type for obs in obs_list])))
+                    self.obs_urls.append(', '.join([obs.url for obs in obs_list]))
+            else:
+                self.S = S
+                self.b = b
+                self.anchored = anchored
+                self.obs_ids = [obs.obs_id for obs in self.obs_collection.observations]
+                self.obs_types = [obs.obs_type for obs in self.obs_collection.observations]
+                self.obs_urls = [obs.url for obs in self.obs_collection.observations]
                 
             self.G, self.has_groupvec = self._GenerateGroupMatrix(self.cids)
         
