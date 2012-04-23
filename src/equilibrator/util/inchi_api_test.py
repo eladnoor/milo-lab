@@ -23,8 +23,8 @@ def CreateJSON():
     return json.dumps(data)
 
 def Test():
-    #http = httplib.HTTPConnection('132.77.81.102', 80)
-    http = httplib.HTTPConnection('localhost', 8000)
+    http = httplib.HTTPConnection('132.77.81.102', 80)
+    #http = httplib.HTTPConnection('localhost', 8000)
 
     url = '/inchi'
     headers = {"Content-Type" : "application/json"}
