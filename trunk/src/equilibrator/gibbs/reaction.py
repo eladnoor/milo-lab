@@ -130,8 +130,6 @@ class Reaction(object):
         """
         self.substrates = self._FilterZeroes(substrates or [])
         self.products = self._FilterZeroes(products or [])
-        self.filtered_substrates = self._FilterHydrogen(self.substrates)
-        self.filtered_products = self._FilterHydrogen(self.products)
         self.ph = pH
         self.pmg = pMg
         self.i_s = ionic_strength
@@ -931,7 +929,7 @@ class Reaction(object):
         return None
 
     def AllCompoundsWithTransformedEnergies(self):
-        for c_w_coeff in self.filtered_substrates + self.filtered_products:
+        for c_w_coeff in self.filtered_reactants:
             dgt = c_w_coeff.compound.DeltaG(pH=self.ph,
                                             pMg=self.pmg,
                                             ionic_strength=self.i_s)
@@ -1008,6 +1006,7 @@ class Reaction(object):
     missing_atoms = property(MissingAtoms)
     extra_electrons = property(ExtraElectrons)
     missing_electrons = property(MissingElectrons)
+    filtered_reactants = property(lambda s: s._FilterHydrogen(s.substrates + s.products))
     all_compounds = property(AllCompoundsWithTransformedEnergies)
     dg0 = property(DeltaG0)
     dg0_tag = property(DeltaG0Tag)

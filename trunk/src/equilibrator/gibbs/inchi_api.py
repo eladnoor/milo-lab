@@ -58,6 +58,7 @@ def InChIAPI(request):
         try:
             dG0, nH, charge, nMg, ker = inchi2dg.EstimateInChI(inchi)
             ker = ker.round(10)
+            d['kernel'] = inchi2dg.ArrayToSparseRep(ker)
             d['pseudoisomers'] = inchi2dg.GenerateAllPseudoisomers(dG0, nH,
                                                             charge, nMg, pKas)
         except GroupDecompositionError:
