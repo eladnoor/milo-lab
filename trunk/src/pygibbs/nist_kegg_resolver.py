@@ -366,6 +366,8 @@ def WriteDataToDB(db):
             row_dict['Reaction'] = "L-alanine + 3-oxopropanoate = beta-alanine + pyruvate" 
         if url_id == "T1=76GRE/BRI_328": # cytochrome c oxidase with O2, probably a NIST typo
             continue
+        if url_id == "T1=66CAR/HUL_89" or url_id == "T1=66CAR/HUL_200": # the values for glycolate reductase conflict with 3 other papers
+            continue
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
