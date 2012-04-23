@@ -49,4 +49,7 @@ def LoadPathways(filename):
 
 
 if __name__ == '__main__':
-    LoadPathways('../data/genomics/glycolysis_pathways.json')
+    ps = LoadPathways('../data/genomics/glycolysis_pathways_unique.json')
+    for p in ps:
+        print p.name
+        print p.enzyme_sets
