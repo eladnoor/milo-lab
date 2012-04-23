@@ -20,13 +20,13 @@
     "NAME": "Upper ED Unique",
     "ENZYME_SETS": [
         {
-        "NAME": "phosphogluconate dehydratase",
+        "NAME": "(phospho)gluconate dehydratase",
         "ECO": "edd",
         "RID": "R02036",
         "ECS": ["4.2.1.12", "4.2.1.39" ]
         },
         {
-        "NAME": "kdpg aldolase",
+        "NAME": "kd(p)g aldolase",
         "ECO": "eda",
         "RID": "R05605",
         "ECS": ["4.1.2.14"]
