@@ -25,19 +25,23 @@ class DissociationConstants(object):
         self.cid2DissociationTable = {}
         self.kegg = Kegg.getInstance()
     
-    def ToDatabase(self, db, table_name):
-        """
-            Load the data regarding pKa values according to KEGG compound IDs.
-        """
-        kegg = Kegg.getInstance()
-        
+    @staticmethod
+    def _CreateDatabase(db, table_name, drop_if_exists=True):
         db.CreateTable(table_name, """
             cid INT, name TEXT, 
             nH_below INT, nH_above INT, 
             nMg_below INT, nMg_above INT,
             charge_below INT, charge_above INT,
             mol_below TEXT, mol_above TEXT, 
-            ddG REAL, ref TEXT""")
+            ddG REAL, ref TEXT""", drop_if_exists=drop_if_exists)
+        
+    
+    def ToDatabase(self, db, table_name):
+        """
+            Load the data regarding pKa values according to KEGG compound IDs.
+        """
+        kegg = Kegg.getInstance()
+        DissociationConstants._CreateDatabase(db, table_name)
         
         for cid in sorted(self.cid2DissociationTable.keys()):
             name = kegg.cid2name(cid)
@@ -63,12 +67,7 @@ class DissociationConstants(object):
         """
         
         kegg = Kegg.getInstance()
-        db.CreateTable(table_name, """
-            cid INT, name TEXT, 
-            nH_below INT, nH_above INT, 
-            nMg_below INT, nMg_above INT, 
-            mol_below TEXT, mol_above TEXT, 
-            ddG REAL, ref TEXT""")
+        DissociationConstants._CreateDatabase(db, table_name)
 
         for i, row in enumerate(csv.DictReader(open(file_name, 'r'))):
             if 'pK' not in row and 'ddG' not in row:
@@ -848,7 +847,7 @@ class DissociationThreads(threading.Thread):
         
         start_time = time.time()
 
-        diss_table = Molecule._GetDissociationTable(self.smiles, format='smiles',
+        diss_table = Molecule._GetDissociationTable(self.smiles, fmt='smiles',
             mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
         
         elapsed_time = time.time() - start_time
@@ -861,7 +860,7 @@ class DissociationThreads(threading.Thread):
             for row in diss_table.ToDatabaseRow():
                 db.Insert(self.options.table_name, [self.cid, name] + row)
         else:
-            db.Insert(self.options.table_name, [self.cid, name] + [None] * 8)
+            db.Insert(self.options.table_name, [self.cid, name] + [None] * 10)
         del db
         self.db_lock.release()
 
@@ -935,10 +934,7 @@ def main():
             db, options.table_name)
         sys.exit(0)
 
-    db.CreateTable(options.table_name,
-        "cid INT, name TEXT, nH_below INT, nH_above INT, " 
-        "nMg_below INT, nMg_above INT, mol_below TEXT, mol_above TEXT, " 
-        "ddG REAL, ref TEXT", drop_if_exists=options.override_table)
+    DissociationConstants._CreateDatabase(db, options.table_name, drop_if_exists=options.override_table)
 
     cids_in_database = set()
     for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):

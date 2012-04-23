@@ -309,7 +309,7 @@ class Molecule(object):
         return self.obmol.GetExactMass()
     
     def GetAtomBagAndCharge(self):
-        return Molecule.__GetAtomBagAndChargeFromInChI(self.ToInChI())
+        return Molecule._GetAtomBagAndChargeFromInChI(self.ToInChI())
         
     def GetHydrogensAndCharge(self):
         atom_bag, charge = self.GetAtomBagAndCharge()
