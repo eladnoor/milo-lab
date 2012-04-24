@@ -6,6 +6,8 @@ import logging
 import pylab
 import sys
 
+import numpy as np
+
 from collections import Counter
 from genomics import genome_db
 from genomics import pathway
@@ -41,6 +43,11 @@ def MakeOpts():
                           default=0.0,
                           dest="edge_length_threshold",
                           help="Edge length threshold.")
+    opt_parser.add_option("-r", "--only_heterotrophs",
+                          dest="only_heterotrophs",
+                          action="store_true",
+                          default=False,
+                          help="Whether to filter out non-heterotrophs.")
     return opt_parser
 
 
@@ -130,6 +137,20 @@ def Main():
     print len(intersect), 'pathway orgs found'
     print len(pathway_orgs) - len(intersect), 'pathway orgs not found'
     
+    # Find organisms that are heterotrophs
+    if options.only_heterotrophs:
+        print 'Pruning non-heterotrophs'
+        q = db.db.Execute('SELECT ncbi_taxon_id, energy_category from organisms')
+        ncbi_to_keep = set()
+        for row in q:
+            ncbi_id, energy_cat = row
+            if energy_cat and energy_cat.lower() == 'organic':
+                ncbi_to_keep.add(ncbi_id.strip())
+        tree.retain_taxa_with_labels(ncbi_to_keep)
+    
+        leaves = tree.leaf_nodes()
+        print 'Tree now contains', len(leaves), 'leaves'
+    
     lengths = []
     for e in tree.leaf_edge_iter():
         lengths.append(e.length)
@@ -212,13 +233,22 @@ def Main():
         cat = db.NCBI2EnergyCategory(label)
         color = colormap.get(cat, '#0000ff')
         w.writerow([label, color, cat])
-    f.close()        
+    f.close()
     
     nleaves = len(leaves)
     for name, count in name_2_count.iteritems():
         pct = 100.0 * float(count) / float(nleaves)
         print '%.2f%% (%d of %d) have pathway %s' % (pct, count, nleaves,
-                                                    str(name))        
+                                                    str(name))
+    
+    v_accumulator = pylab.zeros(nleaves)
+    for v in path_vectors.values():
+        v_accumulator = np.logical_or(v_accumulator, v)
+    total_w_any = pylab.where(v_accumulator == True)[0].size
+    any_pct = 100.0 * float(total_w_any) / float(nleaves)
+    print '%.2f%% (%d of %d) have some pathway' % (any_pct,
+                                                   total_w_any,
+                                                   nleaves)
     
     fname = 'Node_Counts.csv'
     f = open(fname, 'w')

@@ -43,19 +43,23 @@ def Main():
         orgs = [o for o,c in org_counts.iteritems()
                 if c == len(path.enzyme_sets)]
         broad_oxygen_reqs = []
+        energy_srcs = []
+        metabolism = []
         for org in orgs:
-            q = db.db.Execute("SELECT broad_oxygen_requirement FROM organisms WHERE kegg_id='%s'" % org)
-            q = list(q)
-            if not q:
-                broad_oxygen_reqs.append(None)
-            else:
-                broad_oxygen_reqs.append(q[0][0])
+            broad_oxygen_reqs.append(db.KEGG2BroadOxygenReq(org))
+            energy_srcs.append(db.KEGG2EnergySource(org))
+            metabolism.append(db.KEGG2Metabolism(org))
         req_counts = Counter(broad_oxygen_reqs)
+        energy_counts = Counter(energy_srcs)
+        metabolism_counts = Counter(metabolism)
         
         print len(orgs), 'organisms with pathway', path.name
         print 'Oxygen requirement distribution'
         print req_counts
-    
+        print 'Energy source distribution'
+        print energy_counts
+        print 'Metabolic category distribution'
+        print metabolism_counts
 
 if __name__ == '__main__':
     Main()
