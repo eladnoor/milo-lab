@@ -83,6 +83,9 @@ class RedoxCarrier(object):
         self.delta_H = nH_red - nH_ox
         self.delta_e = (nH_red - nH_ox) - (z_red - z_ox) # difference in no. of electrons
         self.ddG0_prime = -E0_prime * F * self.delta_e
+        
+        # this calculation is not correct, one must use the reverse Lagendre transform
+        # in order to convert G' to G.
         self.ddG0 = self.ddG0_prime - R * default_T * np.log(10) * pH * self.delta_H
 
 class RedoxCarriers(dict):
