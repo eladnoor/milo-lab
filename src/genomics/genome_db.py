@@ -54,6 +54,34 @@ class GenomeDB(object):
         if not q:
             return None
         return q[0][0]
+
+    def KEGG2BroadOxygenReq(self, kegg_id):
+        q = self.db.Execute("SELECT broad_oxygen_requirement FROM organisms WHERE kegg_id='%s'" % kegg_id)
+        q = list(q)
+        if not q:
+            return None
+        return q[0][0]
+
+    def KEGG2EnergyCategory(self, kegg_id):
+        q = self.db.Execute("SELECT energy_category FROM organisms WHERE kegg_id='%s'" % kegg_id)
+        q = list(q)
+        if not q:
+            return None
+        return q[0][0]
+    
+    def KEGG2EnergySource(self, kegg_id):
+        q = self.db.Execute("SELECT energy_source FROM organisms WHERE kegg_id='%s'" % kegg_id)
+        q = list(q)
+        if not q:
+            return None
+        return q[0][0]
+    
+    def KEGG2Metabolism(self, kegg_id):
+        q = self.db.Execute("SELECT metabolism FROM organisms WHERE kegg_id='%s'" % kegg_id)
+        q = list(q)
+        if not q:
+            return None
+        return q[0][0]
     
     @staticmethod
     def GetBroadyOxyReq(req_str):
