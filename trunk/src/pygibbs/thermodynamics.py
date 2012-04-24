@@ -638,17 +638,22 @@ class BinaryThermodynamics(Thermodynamics):
             of the stoichiometric matrix (where some of the values are fixed
             according to thermo[0]).
         """
-
-        dG0_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T, conc=conc)
-        if np.all(np.isfinite(dG0_r0)):
-            return dG0_r0
+        
+        # first try to use thermo[0] to estimate all reaction energies.
+        # note that this calculation already adds the effect of concentrations to dG_r.
+        dGc_r0 = self.thermo[0].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T, conc=conc)
+        if np.all(np.isfinite(dGc_r0)):
+            return dGc_r0
         
         # if thermo[1] cannot estimate all reactions, just use thermo[0].
-        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T, conc=conc)
+        # note that here we leave out the effect of the concentrations on dG_r,
+        # because we are going to use standard formation energies from thermo[0]
+        # and fill the gaps using thermo[1].
+        dG0_r1 = self.thermo[1].GetTransfromedReactionEnergies(S, cids, pH=pH, I=I, pMg=pMg, T=T)
         if np.isnan(dG0_r1).any():
-            return dG0_r0
+            return dGc_r0
 
-        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T, conc=conc)
+        dG0_f0 = self.thermo[0].GetTransformedFormationEnergies(cids, pH=pH, I=I, pMg=pMg, T=T)
         
         finite_cols = list(np.where(np.isfinite(dG0_f0))[1].flat)
         nan_cols = list(np.where(np.isnan(dG0_f0))[1].flat)
@@ -657,7 +662,11 @@ class BinaryThermodynamics(Thermodynamics):
         P_R, P_N = LinearRegression.RowProjection(S[nan_cols, :])
         dG0_r = dG0_r1 * P_R + fixed_dG0_r * P_N
         
-        return dG0_r
+        # now add the effect of the concentrations
+        if conc != 1:
+            return dG0_r + AddConcentrationsToReactionEnergies(S, cids, T, conc)
+        else:
+            return dG0_r
 
 class ReactionThermodynamics(Thermodynamics):
     

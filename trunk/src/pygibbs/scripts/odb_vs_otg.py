@@ -161,7 +161,8 @@ if __name__ == "__main__":
     plt.rcParams['legend.fontsize'] = 6
     estimators = LoadAllEstimators()
     
-    experiments = [('odb_vs_otg_oxidative', 'UGC'),
+    experiments = [('odb_vs_otg_formate', 'UGC'),
+                   ('odb_vs_otg_oxidative', 'UGC'),
                    ('odb_vs_otg_reductive', 'UGC')]
 
     for prefix, thermo_name in experiments:
