@@ -1,12 +1,6 @@
 #!/usr/bin/python
 
-import sys
-
-from pygibbs import flags
-from pygibbs.thermodynamic_constants import default_T
 from pygibbs.kegg import Kegg
-from toolbox.database import SqliteDatabase
-from pygibbs.groups import GroupContribution
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
 from toolbox.molecule import Molecule
 from pygibbs.groups_data import GroupsData

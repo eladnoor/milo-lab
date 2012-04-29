@@ -8,6 +8,57 @@ from toolbox.molecule import Molecule
 from pygibbs.groups_data import GroupsData, Group, MalformedGroupDefinitionError
 from pygibbs.group_vector import GroupVector
 
+def distribute(total, num_slots):
+    """
+        Returns:
+            a list with all the distinct options of distributing 'total' balls
+            in 'num_slots' slots, where we care only about the number of balls
+            in each slot, and the slots have a particular order.
+        
+        Example:
+            distribute(3, 2) = [[0, 3], [1, 2], [2, 1], [3, 0]]
+            distribute(2, 3) = [[0, 0, 2], [0, 1, 1], [0, 2, 0], [1, 0, 1], [1, 1, 0], [2, 0, 0]]
+    """
+    if num_slots == 1:
+        return [[total]]
+    
+    if total == 0:
+        return [[0] * num_slots]
+    
+    all_options = []
+    for i in xrange(total+1):
+        for opt in distribute(total-i, num_slots-1):
+            all_options.append([i] + opt)
+            
+    return all_options
+
+def multi_distribute(total_slots_pairs):
+    """
+        Returns:
+            similar to distribute, but with more constraints on the sub-totals
+            in each group of slots. Every pair in the input list represents
+            the subtotal of the number of balls and the number of available balls for them.
+            The total of the numbers in these slots will be equal to the subtotal.
+        
+        Example:
+            multi_distribute([(1, 2), (2, 2)]) =
+            [[0, 1, 0, 2], [0, 1, 1, 1], [0, 1, 2, 0], [1, 0, 0, 2], [1, 0, 1, 1], [1, 0, 2, 0]]
+            
+            in words, the subtotal of the two first slots must be 1, and the subtotal
+            of the two last slots must be 2.
+    """
+    multilist_of_options = []
+    for (total, num_slots) in total_slots_pairs:
+        multilist_of_options.append(distribute(total, num_slots))
+
+    return [lsum(x) for x in itertools.product(*multilist_of_options)]
+
+def lsum(list_of_lists):
+    total_l = []
+    for l in list_of_lists:
+        total_l += l
+    return total_l
+
 class GroupDecompositionError(Exception):
     
     def __init__(self, msg, decomposition):
@@ -127,50 +178,7 @@ class GroupDecomposition(object):
         return sum([len(gdata[-1]) for gdata in self.groups])
 
     def PseudoisomerVectors(self):
-        
-        def distribute(total, num_slots):
-            """
-                Returns:
-                    a list with all the distinct options of distributing 'total' balls
-                    in 'num_slots' slots.
-                
-                Example:
-                    distribute(3, 2) = [[0, 3], [1, 2], [2, 1], [3, 0]]
-            """
-            if num_slots == 1:
-                return [[total]]
-            
-            if total == 0:
-                return [[0] * num_slots]
-            
-            all_options = []
-            for i in xrange(total+1):
-                for opt in distribute(total-i, num_slots-1):
-                    all_options.append([i] + opt)
-                    
-            return all_options
-        
-        def multi_distribute(total_slots_pairs):
-            """
-                Returns:
-                    similar to distribute, but with more constraints on the sub-totals
-                    in each group of slots. Every pair in the input list represents
-                    the subtotal of the number of balls and the number of available balls for them.
-                    The total of the numbers in these slots will be equal to the subtotal.
-                
-                Example:
-                    multi_distribute([(1, 2), (2, 2)]) =
-                    [[0, 1, 0, 2], [0, 1, 1, 1], [0, 1, 2, 0], [1, 0, 0, 2], [1, 0, 1, 1], [1, 0, 2, 0]]
-                    
-                    in words, the subtotal of the two first slots must be 1, and the subtotal
-                    of the two last slots must be 2.
-            """
-            multilist_of_options = []
-            for (total, num_slots) in total_slots_pairs:
-                multilist_of_options.append(distribute(total, num_slots))
-        
-            return [sum(x) for x in itertools.product(*multilist_of_options)]
-        
+       
         """Returns a list of group vectors, one per pseudo-isomer."""    
         if not self.CountGroups():
             logging.info('No groups in this decomposition, not calculating pseudoisomers.')
@@ -569,4 +577,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()   
+    main()

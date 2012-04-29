@@ -115,7 +115,7 @@ GROUP_CSV = StringIO(""""NAME","PROTONS","CHARGE","MAGNESIUMS","SMARTS","FOCAL_A
 "[N]-O",1,0,0,"N[O;H1;X2]","1","hydroxamine",
 "[N]-O",0,-1,0,"N[O;H0;X1;-1]","1","hydroxamine",
 "-O-",0,0,0,"[O;H0;X2]","All","ether",
-"-C#C-",1,0,0,"[C;H0;X2]#[C;H0;X2]","All",,
+"-C#C-",0,0,0,"[C;H0;X2]#[C;H0;X2]","All",,
 "-C#C",1,0,0,"[C;H0;X2]#[C;H1;X2;+0]","All",,
 "-C#C",0,-1,0,"[C;H0;X2]#[C;H0;X1;-1]","All",,
 "N#C-",0,0,0,"N#[C;H0;X2]","All",,
