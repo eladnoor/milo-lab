@@ -2,6 +2,7 @@ import csv, logging, types, re, json, itertools, sys
 import numpy as np
 import openbabel
 from StringIO import StringIO
+from optparse import OptionParser
 
 R = 8.31e-3 # kJ/(K*mol)
 default_T = 298.15 # K
@@ -40,20 +41,20 @@ GROUP_CSV = StringIO(""""NAME","PROTONS","CHARGE","MAGNESIUMS","SMARTS","FOCAL_A
 "-S",0,-1,0,"[C,c,N,n,S][S;H0;X1;-1]","1","thiol",
 "-S-",0,0,0,"[C,c,N,n,S][S;H0;X2][C,c,N,n,S]","1","thioether",
 "-CO-OPO3",0,-2,0,"[C;H0;X3](=O)OP(=O)([O-])[O-]","All","phospho-carboxylic acid",
-"-CO-OPO3",1,-1,0,"[C;H0;X3](=O)OP(=O)([O-])O","All","phospho-carboxylic acid",
-"-CO-OPO3",2,0,0,"[C;H0;X3](=O)OP(=O)([O])O","All","phospho-carboxylic acid",
+"-CO-OPO3",1,-1,0,"[C;H0;X3](=O)OP(=O)([O-])[OH]","All","phospho-carboxylic acid",
+"-CO-OPO3",2,0,0,"[C;H0;X3](=O)OP(=O)([OH])[OH]","All","phospho-carboxylic acid",
 "CO-OPO3",1,-2,0,"[C;H1;X3](=O)OP(=O)([O-])[O-]","All","formyl phosphate",
-"CO-OPO3",2,-1,0,"[C;H1;X3](=O)OP(=O)([O-])O","All","formyl phosphate",
-"CO-OPO3",3,0,0,"[C;H1;X3](=O)OP(=O)([O])O","All","formyl phosphate",
-"ring -OPO3-",0,-1,0,"O[P;R](=O)([O-])O","All","middle link in a phosphate chain (participating in a ring)",
-"ring -OPO3-",1,0,0,"O[P;R](=O)(O)O","All","middle link in a phosphate chain (participating in a ring)",
+"CO-OPO3",2,-1,0,"[C;H1;X3](=O)OP(=O)([O-])[OH]","All","formyl phosphate",
+"CO-OPO3",3,0,0,"[C;H1;X3](=O)OP(=O)([OH])[OH]","All","formyl phosphate",
+"ring -OPO3-",0,-1,0,"O[P;R](=O)([O-])[OH]","All","middle link in a phosphate chain (participating in a ring)",
+"ring -OPO3-",1,0,0,"O[P;R](=O)([OH])[OH]","All","middle link in a phosphate chain (participating in a ring)",
 "*PC",0,0,0,"P",0,"phosphate chains - (C)harge sensitive",
 "N-PO3",0,-2,0,"NP(=O)([O-])[O-]","1|2|3|4","terminal phosphate group attached to nitrogen",
-"N-PO3",1,-1,0,"NP(=O)([O-])O","1|2|3|4","terminal phosphate group attached to nitrogen",
-"N-PO3",2,0,0,"NP(=O)(O)O","1|2|3|4","terminal phosphate group attached to nitrogen",
+"N-PO3",1,-1,0,"NP(=O)([O-])[OH]","1|2|3|4","terminal phosphate group attached to nitrogen",
+"N-PO3",2,0,0,"NP(=O)([OH])[OH]","1|2|3|4","terminal phosphate group attached to nitrogen",
 "C-PO3",0,-2,0,"CP(=O)([O-])[O-]","1|2|3|4","terminal phosphate group attached to carbon",
-"C-PO3",1,-1,0,"CP(=O)([O-])O","1|2|3|4","terminal phosphate group attached to carbon",
-"C-PO3",2,0,0,"CP(=O)(O)O","1|2|3|4","terminal phosphate group attached to carbon",
+"C-PO3",1,-1,0,"CP(=O)([O-])[OH]","1|2|3|4","terminal phosphate group attached to carbon",
+"C-PO3",2,0,0,"CP(=O)([OH])[OH]","1|2|3|4","terminal phosphate group attached to carbon",
 "-NO2",0,0,0,"[C,c,N,n]N(=O)=O","1|2|3","Nitro",
 "two fused rings =n<",0,0,0,"[nR2]","All","participating in two fused aromatic rings",
 "ring =n<",0,1,0,"[n;H0;X3;+1]","All","double bond and one single bond participating in a ring",
@@ -94,7 +95,7 @@ GROUP_CSV = StringIO(""""NAME","PROTONS","CHARGE","MAGNESIUMS","SMARTS","FOCAL_A
 "ring -o-cO-",0,0,0,"O=[c;H0;X3;R][o;H0;X2;R]","All","ester (participating in an aromatic ring)",
 "ring -O-CO-",0,0,0,"O=[C;H0;X3;R][O;H0;X2;R]","All","ester (participating in a nonaromatic ring)",
 "-O-CO-",0,0,0,"[C;H0;X3](=O)[O;H0;X2]","All","ester",
-"-O-C=O",0,0,0,"[C;H1;X3](=O)[O;H0;X2]","All","ester (terminal)",
+"-O-C=O",1,0,0,"[C;H1;X3](=O)[O;H0;X2]","All","ester (terminal)",
 "ring >c=O",0,0,0,"c=O","All","ketone (participating in an aromatic ring)",
 "ring >c-O",1,0,0,"c[OH]","All","hydroxyl (participating in an aromatic ring)",
 "ring >c-O",0,-1,0,"c[O-]","All","hydroxyl (participating in an aromatic ring)",
@@ -1480,10 +1481,9 @@ class Molecule(object):
 
 class InChI2GroupVector(object):
     
-    def __init__(self, group_csv):
+    def __init__(self, groups_data):
         self.RT = R * default_T
-        self.groups_data = GroupsData.FromGroupsFile(group_csv, transformed=False)
-        self.group_decomposer = GroupDecomposer(self.groups_data)
+        self.group_decomposer = GroupDecomposer(groups_data)
         
     def EstimateInChI(self, inchi):
         mol = Molecule.FromInChI(inchi)
@@ -1506,13 +1506,33 @@ class InChI2GroupVector(object):
             d["nonzero"].append(list(index) + [a[index]])
         return d
 
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-i", "--inchi",
+                          dest="inchi",
+                          default=None,
+                          help="input InChI string")
+    opt_parser.add_option("-l", "--list_groups",
+                          dest="list_groups",
+                          default=False,
+                          action="store_true",
+                          help="list all group names")
+    return opt_parser
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.stderr.write("Syntax: inchi2gv <InChI>\n")
+    parser = MakeOpts()
+    options, _ = parser.parse_args(sys.argv)
+    if options.inchi is None and not options.list_groups:
+        sys.stderr.write(parser.get_usage())
         sys.exit(-1)
     
-    inchi = sys.argv[1]
-    inchi2gv = InChI2GroupVector(GROUP_CSV)
-    groupvec = inchi2gv.EstimateInChI(inchi)
-    
-    sys.stdout.write(', '.join("%g" % i for i in groupvec.flat) + '\n')
+    groups_data = GroupsData.FromGroupsFile(GROUP_CSV, transformed=False)
+    if options.inchi:
+        inchi2gv = InChI2GroupVector(groups_data)
+        groupvec = inchi2gv.EstimateInChI(options.inchi)
+        if options.list_groups:
+            sys.stdout.write(', '.join(groups_data.GetGroupNames()) + '\n')
+        sys.stdout.write(', '.join("%g" % i for i in groupvec.flat) + '\n')
+    else:
+        sys.stdout.write('\n'.join(groups_data.GetGroupNames()))
