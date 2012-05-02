@@ -105,7 +105,7 @@ class Reaction(object):
             by multiplying all coefficients by its reciprocal
         """
         factor = 1.0 / self.sparse[min(self.sparse.keys())]
-        self.sparse = dict((k,v*factor) for (k,v) in self.sparse.iteritems())
+        self.sparse = dict((k,v*factor) for (k,v) in self.iteritems())
         return factor
     
     @staticmethod
@@ -351,7 +351,7 @@ class Reaction(object):
     def ToJSONDict(self):
         """Format the reaction as a JSON dictionary."""
         reaction = [(coeff, 'C%05d' % cid) for cid, coeff
-                    in sorted(self.sparse.iteritems())]
+                    in sorted(self.iteritems())]
         d = {'names': self.names, 'reaction': reaction}
         d['RID'] = 'R%05d' % self.rid
         if self.ec_list:

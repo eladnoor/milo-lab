@@ -448,7 +448,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         group_names = self.groups_data.GetGroupNames()
         for j, dG0_gr in enumerate(self.group_contributions.flat):
             obs_lists_dict = defaultdict(list)
-            for k in self.group_matrix[j, :].nonzero()[0].flat:
+            for k in self.group_matrix[j, :].nonzero()[1].flat:
                 obs_lists_dict[self.obs_types[k]].append(self.obs_ids[k])
             d = {"#":"%d" % j, "Group Name":group_names[j], 
                  self.obs_collection.gibbs_symbol:"%.1f" % dG0_gr}
