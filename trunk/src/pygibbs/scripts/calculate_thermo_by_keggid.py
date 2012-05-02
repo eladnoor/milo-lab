@@ -93,7 +93,7 @@ def CalculateThermo():
     if options.biochemical:
         dG0_f_prime = estimator.GetTransformedFormationEnergies(cids)
         for i, cid in enumerate(cids):
-            csv_writer.writerow(csv_rows[i] + [str(dG0_f_prime[i, 0]), pH, I, pMg, T])
+            csv_writer.writerow(csv_rows[i] + [str(dG0_f_prime[0, i]), pH, I, pMg, T])
     else:
         for i, cid in enumerate(cids):
             try:
