@@ -144,17 +144,14 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
         
-    def LoadGroups(self, FromDatabase=False):
-        #if self.transformed:
-        #    fname = "../data/thermodynamics/groups_species_transformed.csv"
-        #else:
+    def LoadGroups(self, FromDatabase=False,
+                   FromFile="../data/thermodynamics/groups_species.csv"):
         if FromDatabase and self.db.DoesTableExist('groups'):
             self.groups_data = GroupsData.FromDatabase(self.db,
                                                        transformed=self.transformed)
             self.group_decomposer = GroupDecomposer(self.groups_data)
         else:
-            fname = "../data/thermodynamics/groups_species.csv"
-            self.groups_data = GroupsData.FromGroupsFile(fname,
+            self.groups_data = GroupsData.FromGroupsFile(FromFile,
                                                          transformed=self.transformed)
             self.groups_data.ToDatabase(self.db)
             self.group_decomposer = GroupDecomposer(self.groups_data)
@@ -218,37 +215,37 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                                             pH=self.pH, I=0, pMg=14, T=self.T)
 
             for cid in sorted(self.kegg.get_all_cids()):
-                self.cid2groupvec[cid] = None
-                self.cid2error[cid] = None
-                if cid not in self.cid2nH_nMg:
-                    self.cid2error[cid] = "Does not have data about major pseudoisomer"
-                    continue
-                nH, nMg = self.cid2nH_nMg[cid]
-                diss_table = dissociation.GetDissociationTable(cid, False)
-                if diss_table is None:
-                    self.cid2error[cid] = "Does not have pKa data"
-                    continue
-                mol = diss_table.GetMol(nH=nH, nMg=nMg)
-                if mol is None:
-                    self.cid2error[cid] = "Does not have structural data"
-                    continue
                 try:
+                    self.cid2groupvec[cid] = None
+                    self.cid2error[cid] = None
+                    if cid not in self.cid2nH_nMg:
+                        raise GroupDecompositionError("Does not have data about major pseudoisomer")
+
+                    nH, nMg = self.cid2nH_nMg[cid]
+                    diss_table = dissociation.GetDissociationTable(cid, False)
+                    if diss_table is None:
+                        raise GroupDecompositionError("Does not have pKa data")
+
+                    mol = diss_table.GetMol(nH=nH, nMg=nMg)
+                    if mol is None:
+                        raise GroupDecompositionError("Does not have structural data")
+
                     mol.RemoveHydrogens()
                     decomposition = self.group_decomposer.Decompose(mol, 
                                         ignore_protonations=False, strict=True)
-                except GroupDecompositionError:
-                    self.cid2error[cid] = "Could not be decomposed"
-                    continue
-                groupvec = decomposition.AsVector()
-                if nH != groupvec.Hydrogens() or nMg != groupvec.Magnesiums():
-                    err_msg = "C%05d's most abundant pseudoisomer is [nH=%d, nMg=%d], " \
-                        "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
-                        "" % (cid, nH, nMg, groupvec.Hydrogens(), groupvec.Magnesiums())
-                    self.html_writer.write('</br>ERROR: %s\n' % err_msg)
-                    self.cid2error[cid] = err_msg
-                else:
+                    
+                    groupvec = decomposition.AsVector()
+                    if nH != groupvec.Hydrogens() or nMg != groupvec.Magnesiums():
+                        raise GroupDecompositionError("C%05d's most abundant pseudoisomer is [nH=%d, nMg=%d], " \
+                            "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
+                            "" % (cid, nH, nMg, groupvec.Hydrogens(), groupvec.Magnesiums()))
+
                     self.cid2groupvec[cid] = groupvec
-    
+                except GroupDecompositionError as e:
+                    msg = "C%05d (%s)" % (cid, self.kegg.cid2name(cid)) + " - " + str(e)
+                    self.html_writer.write('</br>ERROR: %s\n' % msg)
+                    self.cid2error[cid] = msg
+                    
             self.db.CreateTable(self.GROUPVEC_TABLE_NAME,
                 "cid INT, nH INT, nMg INT, groupvec TEXT, err TEXT")
             for cid, gv in sorted(self.cid2groupvec.iteritems()):
@@ -487,6 +484,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             rowdict[sym + ' (res)'] = residuals[0, i]
             rowdict['LOO ' + sym + ' (fit)'] = np.nan
             rowdict['LOO ' + sym + ' (res)'] = np.nan
+            rowdict['sortkey'] = 0
             rowdicts.append(rowdict)
             logging.info('Fit Error = %.1f' % residuals[0, i])
 
@@ -503,10 +501,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
             rowdict['LOO ' + sym + ' (fit)'] = float(np.dot(loo_group_contributions, self.group_matrix[:, i]))
             rowdict['LOO ' + sym + ' (res)'] = \
                 rowdict['LOO ' + sym + ' (fit)'] - self.obs_values[0, i]
+            rowdict['sortkey'] = abs(rowdict['LOO ' + sym + ' (res)'])
             logging.info('LOO Error = %.1f' % rowdict['LOO ' + sym + ' (res)'])
         
         logging.info("writing the table of estimation errors for each compound")
-        self.html_writer.write('</br><b>Cross-validation table</b>')
+        self.html_writer.write('</br><b>Cross validation table</b>')
         self.html_writer.insert_toggle(start_here=True)
         self.html_writer.write('<font size="1">\n')
         obs_vec = np.matrix([row[sym + ' (obs)'] for row in rowdicts])
@@ -528,8 +527,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                    sym + ' (res)',
                    'LOO ' + sym + ' (fit)',
                    'LOO ' + sym + ' (res)']
-        rowdicts.sort(key=lambda(x):abs(x.get('LOO ' + sym + ' (res.)', 0)),
-                      reverse=True)
+        rowdicts.sort(key=lambda(x):x['sortkey'], reverse=True)
         self.html_writer.write_table(rowdicts, headers, decimal=1)
         self.html_writer.write('</font>\n')
         self.html_writer.div_end()
@@ -844,6 +842,9 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
+    opt_parser.add_option("-g", "--groups",
+                          dest="groups_species", default=None,
+                          help="Use the provided groups_species definition file")
     opt_parser.add_option("-b", "--biochemical", action="store_true",
                           dest="transformed", default=False,
                           help="Use biochemical (transformed) Group Contributions")
@@ -881,7 +882,10 @@ if __name__ == '__main__':
     G = GroupContribution(db=db, html_writer=html_writer,
                           transformed=options.transformed)
     
-    G.LoadGroups(options.from_database)
+    if options.groups_species:
+        G.LoadGroups(FromFile=options.groups_species)
+    else:
+        G.LoadGroups(FromDatabase=options.from_database)
     G.LoadObservations(options.from_database)
     G.LoadGroupVectors(options.from_database)
     

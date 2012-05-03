@@ -61,7 +61,7 @@ def lsum(list_of_lists):
 
 class GroupDecompositionError(Exception):
     
-    def __init__(self, msg, decomposition):
+    def __init__(self, msg, decomposition=None):
         Exception.__init__(self, msg)
         self.decomposition = decomposition
         
