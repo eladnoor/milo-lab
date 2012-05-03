@@ -9,7 +9,7 @@ def cdf(v, label=None, style='b', show_median=False,
     if figure is None:
         figure = plt.figure()
         
-    new_v_nonan = sorted([x for x in v if x is not None])
+    new_v_nonan = sorted([x for x in v if (x is not None and np.isfinite(x))])
     l = len(new_v_nonan)
     if l < 2:
         plt.plot([0, 0], [0, 0], label=label, figure=figure)

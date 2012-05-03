@@ -6,6 +6,14 @@ from toolbox.molecule import Molecule
 from pygibbs.groups_data import GroupsData
 from pygibbs.group_vector import GroupVector
 from pygibbs.dissociation_constants import DissociationConstants
+from optparse import OptionParser
+import sys
+
+def GetMostAbundantMol(cid, dissociation):
+    mol = dissociation.GetMostAbundantMol(cid, pH=7, I=0.0, pMg=14, T=298.15)
+    if mol is None:
+        raise ValueError("This CID has no structure")
+    return mol
 
 def GetMolInput(dissociation):
     mols = [] # a list of pairs of Molecule objects and stoichiometric coefficients 
@@ -17,7 +25,7 @@ def GetMolInput(dissociation):
         elif s_input[0] == 'C':
             try:
                 cid = int(s_input[1:])
-                mols = [(dissociation.GetMostAbundantMol(cid, pH=7, I=0.25, pMg=14, T=298.15), 1)]
+                mols = [(GetMostAbundantMol(cid, dissociation), 1)]
                 print "Compound:", mols[0][0].ToInChI()
             except ValueError:
                 print 'syntax error: KEGG compound ID is bad (%s), please try again' % s_input
@@ -27,7 +35,7 @@ def GetMolInput(dissociation):
                 reaction = Kegg.getInstance().rid2reaction(rid)
                 print "Reaction:", str(reaction)
                 for cid, coeff in reaction.iteritems():
-                    mols += [(dissociation.GetMostAbundantMol(cid, pH=7, I=0.25, pMg=14, T=298.15), coeff)]
+                    mols += [(GetMostAbundantMol(cid, dissociation), coeff)]
             except ValueError:
                 print 'syntax error: KEGG reaction ID is bad (%s), please try again' % s_input
         else:
@@ -73,11 +81,18 @@ def DecomposeInputString(group_decomposer, dissociation, ignore_protonations=Fal
     
     return True
 
+def MakeOpts():
+    """Returns an OptionParser object with all the default options."""
+    opt_parser = OptionParser()
+    opt_parser.add_option("-g", "--groups",
+                          dest="groups_species", default="../data/thermodynamics/groups_species.csv",
+                          help="Use the provided groups_species definition file")
+    return opt_parser
+
 def main():
-    #db = SqliteDatabase("../res/gibbs.sqlite")
+    options, _ = MakeOpts().parse_args(sys.argv)
     dissociation = DissociationConstants.FromPublicDB()
-    fname = "../data/thermodynamics/groups_species.csv"
-    groups_data = GroupsData.FromGroupsFile(fname, transformed=False)
+    groups_data = GroupsData.FromGroupsFile(options.groups_species, transformed=False)
     group_decomposer = GroupDecomposer(groups_data)
     
     while DecomposeInputString(group_decomposer, dissociation):

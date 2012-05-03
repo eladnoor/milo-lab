@@ -3,7 +3,8 @@
 from scipy import stats
 from toolbox.database import SqliteDatabase
 from toolbox.html_writer import HtmlWriter
-from pygibbs import thermodynamics
+from pygibbs import thermodynamics, thermodynamic_comparison,\
+    thermodynamic_constants
 from pygibbs.thermodynamic_constants import R
 from pygibbs.groups import GroupContribution
 import pylab
@@ -17,7 +18,7 @@ from pygibbs.metacyc import MetaCyc, MetaCycNonCompoundException
 import logging
 import matplotlib
 import re
-import numpy
+import numpy as np
 import random
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
@@ -335,7 +336,7 @@ def plot_histogram(histogram, html_writer, title='', max_pathway_length=8, xmin=
 
 def plot_bars(pos_count, title='', max_pathway_length=8, legend_loc='upper right'):
     n_labels = len(pos_count)
-    ind = numpy.arange(max_pathway_length)
+    ind = np.arange(max_pathway_length)
     width = 0.2
     
     fig = pylab.figure()
@@ -370,7 +371,7 @@ def plot_bars(pos_count, title='', max_pathway_length=8, legend_loc='upper right
 
 def plot_stacked_bars(pos_count, title='', max_pathway_length=8, legend_loc='upper right'):
     
-    ind = numpy.arange(max_pathway_length)
+    ind = np.arange(max_pathway_length)
     width = 0.35
     
     fig = pylab.figure()
@@ -380,16 +381,16 @@ def plot_stacked_bars(pos_count, title='', max_pathway_length=8, legend_loc='upp
     colors = {'No known regulation':'grey', 'Activated':'green', 'Inhibited':'red', 'Mixed regulation':'blue'}
     plot_order = ['Inhibited', 'Mixed regulation', 'Activated', 'No known regulation']
     
-    total = numpy.array([0] * max_pathway_length)
+    total = np.array([0] * max_pathway_length)
     for label,vals in pos_count.iteritems():
-        total += numpy.array(vals[1:max_pathway_length+1])
+        total += np.array(vals[1:max_pathway_length+1])
 
-    so_far = numpy.array([0] * max_pathway_length)
+    so_far = np.array([0] * max_pathway_length)
     for label in plot_order:
         vals = pos_count[label]
-        curr_vals = numpy.array(vals[1:max_pathway_length+1]) * 1.0 / total
+        curr_vals = np.array(vals[1:max_pathway_length+1]) * 1.0 / total
         ax.bar(ind, tuple(curr_vals), width, color=colors[label], bottom=tuple(so_far), label=('%s (%d)' % (label, sum(vals[1:max_pathway_length+1]))))
-        so_far = so_far + numpy.array(curr_vals)
+        so_far = so_far + np.array(curr_vals)
     
     ax.set_ylabel('Perc. of type per position')
     ax.set_xlabel('Position in pathway')
@@ -815,7 +816,7 @@ def compare_annotations(reaction_list, thermo, html_writer, cmap, xlim=1e9):
                           "Reactions with unknown gamma: %d" % error_counts['no_gamma']])
     
     # plot the bar 
-    fig = pylab.figure()
+    fig = pylab.figure(figsize=(6,6), dpi=90)
     pylab.hold(True)
     plotting.cdf(histogram['<=>'], label='reversible (%d reactions)' % len(histogram['<=>']),
                  style='green', figure=fig)
@@ -857,7 +858,7 @@ def cons_pairs_dot_plot(first, second, xlim=30):
         
     pylab.plot(first, second, marker='.', linestyle='None', markersize=5)
     
-    pearson = numpy.corrcoef(first, second)[0,1]
+    pearson = np.corrcoef(first, second)[0,1]
     pylab.title('Consecutive reactions irreversibility (Pearson=%.2f)' % (pearson), fontsize=14)
     
     pylab.xlabel('First reaction: irreversibility', fontsize=12)
@@ -958,57 +959,60 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     
     debug_dict_list = []
     for reaction in reaction_list:
-        try:
-            dG0 = reaction.PredictReactionEnergy(thermo)
-        except (MissingCompoundFormationEnergy, MissingReactionEnergy) as e:
-            logging.warning(str(e))
-            continue
-        Keq = pylab.exp(-dG0/(R*thermo.T))
-
-        n_s = -sum([x for cid, x in reaction.sparse.iteritems() if (x < 0 and cid not in cmap)])
-        n_p = sum([x for cid, x in reaction.sparse.iteritems() if (x > 0 and cid not in cmap)])
-        if (n_p + n_s) == 0:
-            continue
-        stoich_counters.setdefault((n_s, n_p), 0)
-        stoich_counters[n_s, n_p] += 1
+        debug_dict = {'name':reaction.name, 
+                      'KEGG Reaction':reaction.to_hypertext()}
         
-        gamma = CalculateReversability(reaction, thermo, concentration_map=cmap)
-        
-        if Keq < 1.0/x_threshold:
-            Krev = -1
-        elif Keq < x_threshold:
-            Krev = 0
+        dG0 = reaction.PredictReactionEnergy(thermo)
+        if np.isnan(dG0):
+            debug_dict['sortkey'] = 0
+            debug_dict['error'] = "Cannot calculate Gibbs energy"
         else:
-            Krev = 1
+            Keq = pylab.exp(-dG0/(R*thermo.T))
+    
+            n_s = -sum([x for cid, x in reaction.sparse.iteritems() if (x < 0 and cid not in cmap)])
+            n_p = sum([x for cid, x in reaction.sparse.iteritems() if (x > 0 and cid not in cmap)])
+            if (n_p + n_s) == 0:
+                continue
+            stoich_counters.setdefault((n_s, n_p), 0)
+            stoich_counters[n_s, n_p] += 1
             
-        if gamma < 1.0/y_threshold:
-            Grev = -1
-        elif gamma < y_threshold:
-            Grev = 0
-        else:
-            Grev = 1
+            gamma = CalculateReversability(reaction, thermo, concentration_map=cmap)
             
-        regime_counters.setdefault((Krev, Grev), 0)
-        regime_counters[Krev, Grev] += 1
-        data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
+            if Keq < 1.0/x_threshold:
+                Krev = -1
+            elif Keq < x_threshold:
+                Krev = 0
+            else:
+                Krev = 1
+                
+            if gamma < 1.0/y_threshold:
+                Grev = -1
+            elif gamma < y_threshold:
+                Grev = 0
+            else:
+                Grev = 1
+                
+            regime_counters.setdefault((Krev, Grev), 0)
+            regime_counters[Krev, Grev] += 1
+            data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
+            debug_dict['sortkey'] = gamma
+            debug_dict['Rev. index'] = "%.1e" % gamma
+            debug_dict[thermodynamic_constants.symbol_dr_G0_prime] = dG0
         
-        debug_dict_list.append({'sortkey':gamma,
-                                'name':reaction.name,
-                                'KEGG Reaction':reaction.to_hypertext(),
-                                'Rev. index':"%.3g" % gamma,
-                                'dG0': "%.2f" % dG0})
+        debug_dict_list.append(debug_dict)
     
     debug_dict_list.sort(key=lambda(x):x['sortkey'])
     div_id = html_writer.insert_toggle()
     html_writer.div_start(div_id)
-    html_writer.write_table(debug_dict_list, headers=['Rev. index', 'dG0',
-        'name', 'KEGG Reaction'])
+    html_writer.write_table(debug_dict_list, headers=['Rev. index',
+        thermodynamic_constants.symbol_dr_G0_prime, 'name', 'KEGG Reaction',
+        'error'])
     html_writer.div_end()
     html_writer.write('</br>\n')
     
-    fig = pylab.figure(figsize=(5,5), dpi=100)
-    pylab.xlabel(r"$K^'$", figure=fig)
-    pylab.ylabel(r"$\hat{\gamma} = \left( K^' / Q^{''} \right)^{2/N}$", figure=fig)
+    fig = pylab.figure(figsize=(6,6), dpi=90)
+    pylab.xlabel("$K'$", figure=fig)
+    pylab.ylabel(r"$\hat{\gamma} = \left( K' / Q'' \right)^{2/N}$", figure=fig)
     
     shading_color = (1.0, 0.7, 0.7)
     #pylab.axvspan(x_range[0], 1.0/x_threshold, ymin=0, ymax=1, color=x_color, alpha=0.3)
@@ -1021,15 +1025,16 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     pylab.axhspan(y_threshold, y_range[1], xmin=1.0/3.0, xmax=2.0/3.0, color=shading_color)
 
     # draw the lines for the specific reaction stoichiometries
-    stoichiometries = [(1, 1, 'orange'), 
-                       (1 ,2, 'r--'), 
-                       (2, 1, 'g--'), 
-                       (2, 2, 'cyan')] 
+    stoichiometries = [(1, 1, '-', '#e49b1c'), 
+                       (1 ,2, '--', '#1ce463'), 
+                       (2, 1, '--', '#1d1de3'), 
+                       (2, 2, '-', '#e41c63')] 
     fig.hold(True)
-    for n_s, n_p, style in stoichiometries:
+    for n_s, n_p, style, color in stoichiometries:
         percent = 100.0 * stoich_counters.get((n_s, n_p), 0) / sum(stoich_counters.values())
         gamma = [(Keq / thermo.c_mid**(n_p - n_s)) ** (2.0/(n_p + n_s)) for Keq in x_range]
-        pylab.plot(x_range, gamma, style, figure=fig, label="%d:%d (%.1f%%)" % (n_s, n_p, percent))
+        pylab.plot(x_range, gamma, style, color=color, linewidth=3,
+                   figure=fig, label="%d:%d (%d%%)" % (n_s, n_p, np.round(percent)))
     pylab.legend(loc='upper left')
 
     for Krev, Grev in regime_counters.keys():
@@ -1041,20 +1046,26 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
 
     pylab.xscale('log', figure=fig)
     pylab.yscale('log', figure=fig)
-    pylab.ylim(y_range, figure=fig)
-    pylab.xlim(x_range, figure=fig)
+    pylab.ylim(y_range)
+    pylab.xlim(x_range)
+    pylab.xticks([1e-9, 1e-6, 1e-3, 1, 1e3, 1e6, 1e9])
+    pylab.yticks([1e-9, 1e-6, 1e-3, 1, 1e3, 1e6, 1e9])
     html_writer.embed_matplotlib_figure(fig, width=400, height=400, name="reversibility_vs_keq")
    
-    fig = pylab.figure(figsize=(2,2), dpi=100)
-    max_gamma = 1e9
-    abs_gamma = pylab.exp(abs(pylab.log(data_mat[:,1])))
+    fig = pylab.figure(figsize=(2,2), dpi=90)
+    abs_gamma = np.exp(abs(np.log(data_mat[:,1])))
     plotting.cdf(abs_gamma, label='gamma', figure=fig)
     pylab.plot([x_threshold, x_threshold], [0, 1], 'k--', figure=fig)
     pylab.xscale('log', figure=fig)
-    pylab.xlabel(r'$\hat{\gamma}$', figure=fig)
-    pylab.ylabel(r'CDF($\hat{\gamma}$)', figure=fig)
-    pylab.xlim((1, max_gamma), figure=fig)
-    html_writer.embed_matplotlib_figure(fig, width=400, height=400, name="reversibility_cdf")
+    #pylab.xlabel(r'$\hat{\gamma}$', figure=fig)
+    #pylab.ylabel(r'CDF($\hat{\gamma}$)', figure=fig)
+    pylab.text(1e6, 0.4, r'CDF($\hat{\gamma}$)', horizontalalignment='center',
+               verticalalignment='center')
+    pylab.xlim((1, 1e9))
+    pylab.xticks([1, 1e3, 1e6, 1e9])
+    pylab.yticks([0, 0.5, 1.0])
+    pylab.tight_layout()
+    html_writer.embed_matplotlib_figure(fig, width=125, height=125, name="reversibility_cdf")
 
 def main():
     html_fname = '../res/reversibility.html'
@@ -1069,7 +1080,7 @@ def main():
     pylab.rcParams['lines.linewidth'] = 2
     pylab.rcParams['lines.markersize'] = 6
     pylab.rcParams['figure.figsize'] = [6.0, 6.0]
-    pylab.rcParams['figure.dpi'] = 100
+    pylab.rcParams['figure.dpi'] = 90
     
     estimators = LoadAllEstimators()
     #analyse_reversibility(estimators['hatzi_gc'], 'HatziGC')
@@ -1085,9 +1096,8 @@ def main():
     thermo.I = DEFAULT_I
     thermo.pMg = DEFAULT_PMG
 
-    if True:
-        compare_reversibility_to_dG0(reaction_list, thermo=thermo,
-                                     html_writer=html_writer)
+    compare_reversibility_to_dG0(reaction_list, thermo=thermo,
+                                 html_writer=html_writer)
     
     #compare_reversibility_to_dG0(estimators['alberty'], 'Alberty')
     #metacyc_data('meta', 'zoom', estimators['PGC'], max_pathway_length_for_fig=6)
@@ -1096,8 +1106,8 @@ def main():
     #meta_regulated_rxns_cumul_plots('meta', '_abs', estimators['PGC'])
     #meta_regulated_rxns_cumul_plots('ecoli', '_abs', estimators['PGC'])
     
-    compare_annotations(reaction_list, thermo=thermo, html_writer=html_writer,
-                        cmap=GetEmptyConcentrationMap())
+    #compare_annotations(reaction_list, thermo=thermo, html_writer=html_writer,
+    #                    cmap=GetEmptyConcentrationMap())
     #calc_cons_rxns_corr(estimators['PGC'], 'MiloGC')
     
 if __name__ == "__main__":

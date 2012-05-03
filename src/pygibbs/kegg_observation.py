@@ -43,12 +43,12 @@ class KeggObservation(object):
     
     def Normalize(self):
         """
-            In self.sparse, the first non-zero coefficient must be 1,
+            In self.sparse, the first non-zero coefficient must be negative,
             where the order is defined alphabetically by the keys.
         """
-        factor = 1.0 / self.sparse[min(self.sparse.keys())]
-        self.sparse = dict((k,v*factor) for (k,v) in self.sparse.iteritems())
-        self.dG0 *= factor
+        if self.sparse[min(self.sparse.keys())] > 0:
+            self.sparse = dict((k,-v) for (k,v) in self.sparse.iteritems())
+            self.dG0 = -self.dG0
         
 class KeggObervationCollection(object):
     
