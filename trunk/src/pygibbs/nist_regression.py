@@ -13,7 +13,6 @@ from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.nist import Nist
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamics import MissingCompoundFormationEnergy, PsuedoisomerTableThermodynamics
-from pygibbs.pseudoisomer import PseudoisomerMap
 from pygibbs.thermodynamic_constants import default_I, default_pMg, default_T,\
     default_pH, symbol_dr_G0, symbol_dr_G0_prime
 from toolbox.linear_regression import LinearRegression
@@ -322,7 +321,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
 
             if d["diff"] > self.std_diff_threshold:
                 _mkdir('../res/nist/reactions')
-                link = "reactions/%s.html" % reaction.name
+                link = "nist/reactions/%s.html" % reaction.name
                 d["analysis"] = '<a href="%s">link</a>' % link
                 reaction_html_writer = HtmlWriter(os.path.join('../res/nist', link))
                 self.AnalyzeSingleReaction(reaction,

@@ -1,13 +1,13 @@
 import re
 import csv
-from math import log10
-import pylab
+import numpy as np
 from pygibbs.thermodynamic_constants import default_pH
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 import types
 
 BUFFERS_CSV_FNAME = '../data/thermodynamics/pKa_of_buffers.csv'
+NIST_ADDITIONS_FILE = '../data/thermodynamics/nist_additions.csv'
 
 class MissingCompoundsFromKeggException(Exception):
     def __init__(self, names):
@@ -129,7 +129,7 @@ def get_buffer_charges(base_charge, pKa_list, conc, pH):
     
     species_proportions = []
     for n in xrange(len(pKa_list) + 1):
-        p = pylab.prod([10**(pKa - pH) for pKa in pKa_list[:n]])
+        p = np.prod([10**(pKa - pH) for pKa in pKa_list[:n]])
         species_proportions.append(p)
     
     total = sum(species_proportions)
@@ -368,6 +368,16 @@ def WriteDataToDB(db):
             continue
         if url_id == "T1=66CAR/HUL_89" or url_id == "T1=66CAR/HUL_200": # the values for glycolate reductase conflict with 3 other papers
             continue
+        if url_id == "T1=00BYR/GOL_1519": # NIST mistakedly tagged this under K instead of K' due to PDF rendering errors
+            row_dict["K'"] = row_dict["K"]
+            row_dict["K"] = u""
+        if url_id == "T1=03RAN/VAN_1602": # In NIST, the reaction was written in the reverse direction, and mistakedly tagged this under K instead of K'
+            row_dict["K'"] = u"0.001"
+            row_dict["K"] = u""
+        if url_id == "T1=82NG/WON_1590": # the value in the original paper is very different, and given as K'
+            continue
+        if url_id == "T1=95KAM/JUR_626": # value conflicts with two other papers and common sense (it is 10^9, which noone can measure)
+            continue
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
@@ -441,17 +451,29 @@ def WriteDataToDB(db):
         if missing_buffers:
             row_comments += [('buffers', str(missing_buffers))]
         
-        if not new_row_dict['I']:
-            new_row_dict['I'] = (0.5 * sum([(conc * ch**2) for (ch, conc) in charge_conc_pairs]))
+        if new_row_dict['I'] is None and charge_conc_pairs:
+            # on 06/05/2012 Elad & Arren decided to stop using this calculation since 
+            # it ignores the charges of the reactants themselves, and thus 
+            # usually underestimates I by a large margin.
+            #
+            #new_row_dict['I'] = np.round(0.5 * sum([(conc * ch**2) for (ch, conc) in charge_conc_pairs]), 2)
+            pass
         
         if Mg_conc > 0:
-            new_row_dict['pMg'] = -log10(Mg_conc)
+            new_row_dict['pMg'] = -np.round(np.log10(Mg_conc), 2)
 
         if skip_this_row:
             for missing_type, name in row_comments:
                 db.Insert('nist_errors', [row_id, new_row_dict['url'], missing_type, name])
         else:
             db.Insert('nist_equilibrium', [new_row_dict[k] for k in new_titles])
+
+    for row in csv.DictReader(open(NIST_ADDITIONS_FILE, 'r')):
+        if row['I'] == '':
+            row['I'] = None
+        if row['pMg'] == '':
+            row['pMg'] = None
+        db.Insert('nist_equilibrium', [row[k] for k in new_titles])
 
     db.Commit()
 
