@@ -417,7 +417,7 @@ class DissociationTable(object):
     @staticmethod
     def FromMolecule(mol, cid=None, nMg=0):
         diss_table = DissociationTable(cid)
-        diss_table.SetOnlyPseudoisomer(mol, nMg=nMg)
+        diss_table.SetOnlyPseudoisomerMolecule(mol, nMg=nMg)
         return diss_table
 
     def WriteToHTML(self, html_writer, T=default_T, draw_svg=True):

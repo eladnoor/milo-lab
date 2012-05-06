@@ -8,6 +8,7 @@ from pygibbs.nist import Nist
 from pygibbs.dissociation_constants import MissingDissociationConstantError
 from toolbox.html_writer import NullHtmlWriter
 from pygibbs.kegg_reaction import Reaction
+from pygibbs import thermodynamic_constants
 
 class KeggObservation(object):
     
@@ -224,12 +225,16 @@ class KeggObervationCollection(object):
             html_text += 'EC = %s</br>\n' % nist_row_data.ec
             html_text += "Reaction: %s</br>\n" % \
                          nist_row_data.reaction.to_hypertext(show_cids=False)
+            html_text += "%s = %.1f</br>\n" % \
+                (thermodynamic_constants.symbol_dr_G0_prime,
+                 nist_row_data.dG0_r)
+            
             if dG0 is None:
                 html_text += 'WARNING: %s</br>\n' % msg
             else:
-                html_text += '%s: %.1f</br>\n' % \
+                html_text += '%s = %.1f</br>\n' % \
                              (self.gibbs_symbol, dG0)
-            html_text += '</font>\n'
+            html_text += '</font></br></br>\n'
             self.html_writer.write(html_text)
 
     def AddRedoxCarriers(self, anchored=True):

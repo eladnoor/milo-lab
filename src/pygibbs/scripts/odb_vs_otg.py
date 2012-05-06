@@ -14,7 +14,7 @@ RT = R * default_T
 
 def pareto(kegg_file, html_writer, thermo,
            pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
-           plot_profile=False, section_prefix=""):
+           plot_profile=False, section_prefix="", balance_water=True):
     
     entries = kegg_file.entries()
     plot_data = np.zeros((len(entries), 5)) # ODB, ODFE, min TG, max TG, sum(fluxes)
@@ -35,7 +35,7 @@ def pareto(kegg_file, html_writer, thermo,
         html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, entry, entry))
         thermo.SetConditions(pH=pH, I=I, T=T, pMg=pMg)
 
-        S, rids, fluxes, cids = p_data.get_explicit_reactions()
+        S, rids, fluxes, cids = p_data.get_explicit_reactions(balance_water=balance_water)
         fluxes = np.matrix(fluxes)
         dG0_r_prime = thermo.GetTransfromedReactionEnergies(S, cids)
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
@@ -116,7 +116,7 @@ def analyze(prefix, thermo):
 
             data, labels = pareto(kegg_file, html_writer, thermo,
                 pH=pH, I=I, T=T, pMg=pMg,
-                section_prefix=section_prefix)
+                section_prefix=section_prefix, balance_water=True)
             data_mat.append(data)
     
     data_mat = np.array(data_mat)

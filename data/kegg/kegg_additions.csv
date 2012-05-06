@@ -198,7 +198,6 @@ inosine 3':5'-(cyclic)phosphate,943,yes,
 dl-3-hydroxybutanoyl-coa,1144,yes,
 1-sinapoyl-d-glucose,1175,yes,
 1--d-galactosyl-myo-inositol,1235,yes,
-s-aminomethyldihydro--lipoate,1242,yes,
 "(3,5-diiodo-4-hydroxyphenyl)pyruvate",1244,yes,
 reduced flavin-adenine dinucleotide,1352,yes,
 adenosine 3'-monophosphate,1367,yes,
@@ -289,3 +288,4 @@ erythro-3-hydroxyaspartate,19838,yes,
 "oxidized Methyl viologen",225,yes,"InChI=1S/C12H14N2/c1-13-7-3-11(4-8-13)12-5-9-14(2)10-6-12/h3-10H,1-2H3/q+2"
 "reduced Methyl viologen",80067,no,
 "n-Octonic acid","80068","no","InChI=1S/C8H16O9/c9-1-2(10)3(11)4(12)5(13)6(14)7(15)8(16)17/h2-7,9-15H,1H2,(H,16,17)"
+"S-aminomethyldihydro--lipoate","80069","no","InChI=1S/C9H19NO2S2/c10-7-14-6-5-8(13)3-1-2-4-9(11)12/h8,13H,1-7,10H2,(H,11,12)"

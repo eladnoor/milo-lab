@@ -19,6 +19,7 @@ from pygibbs.kegg_reaction import Reaction
 from SOAPpy import WSDL
 import openbabel
 import types
+from pygibbs.kegg_errors import KeggReactionNotBalancedException
     
 class Kegg(Singleton):
 
@@ -495,12 +496,17 @@ class Kegg(Singleton):
                 S[c,r] = spr.get(cid, 0)
         return S, cids
 
-    def parse_explicit_module(self, field_map, cid_mapping):
+    def parse_explicit_module(self, field_map, cid_mapping, balance_water=True):
         """
             Unlike parse_module, this method doesn't use the RIDs of the reactions in the module to understand the reactions
             but rather uses the explicit reaction given on each line as the actual reaction
         """
         rids, fluxes, cids, reactions = self.parse_explicit_module_to_reactions(field_map, cid_mapping)
+        for reaction in reactions:
+            try:
+                reaction.Balance(balance_water)
+            except KeggReactionNotBalancedException as e:
+                raise Exception(str(e) + '\n' + str(reaction))
         S, _ = self.reaction_list_to_S(reactions, cids)
         return S, rids, fluxes, cids
             

@@ -229,9 +229,10 @@ class PathwayData(object):
         
         return p
     
-    def get_explicit_reactions(self):
+    def get_explicit_reactions(self, balance_water=True):
         kegg = Kegg.getInstance()
-        return kegg.parse_explicit_module(self.field_map, self.cid_mapping) 
+        return kegg.parse_explicit_module(self.field_map, self.cid_mapping,
+                                          balance_water=balance_water) 
 
 class KeggPathwayIterator(object):
     

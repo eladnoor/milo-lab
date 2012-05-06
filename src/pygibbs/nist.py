@@ -46,9 +46,9 @@ class NistRowData:
         self.T = NistRowData.none_float(row_dict['T']) or default_T
         
         # if there is no information about Ionic strength of pMg, assume by
-        # default that the concentration of ions is 0 (note that pMg = 14 
-        # is effectively [Mg] = 0).
-        self.I = NistRowData.none_float(row_dict['I']) or 0.0
+        # default that the concentration of ions is 0.25M (the average of all NIST reactions
+        # where it is provided is 0.29M). Note that pMg = 14 is effectively [Mg] = 0.
+        self.I = NistRowData.none_float(row_dict['I']) or 0.25
         self.pMg = NistRowData.none_float(row_dict['pMg']) or 14.0 
         self.dG0_r = -R*self.T*np.log(self.K_tag)
         self.evaluation = row_dict['evaluation']
@@ -426,7 +426,11 @@ class Nist(object):
         rowdicts = []
         finite_rowdicts = []
         
-        eval_to_label = {'A':'high quality', 'B':'low quality', 'C':'low quality', 'D':'low quality'}
+        eval_to_label = {'A':'high quality',
+                         'B':'low quality',
+                         'C':'low quality',
+                         'D':'low quality',
+                         'E':'low quality'}
         
         for row_data in self.SelectRowsFromNist():
             rowdict = {}
