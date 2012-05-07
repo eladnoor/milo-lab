@@ -202,13 +202,39 @@ class KineticDataWithDefault(BaseKineticData):
     
     @staticmethod
     def FromArrenFile(filename):
+        ret = KineticDataWithDefault()
+        
         f = open(filename)
         r = csv.DictReader(f)
     
         for row in r:
-            
-    
+            rid   = row['Short Name'].strip()
+            param = row['Parameter'].strip()
+            value = row['Value'].strip()
+            direc = row['Direction'].strip()
+            subst = row['Substrate CID'].strip()
+            if not value:
+                continue
+            value = float(value.replace(',', ''))
+            if param == 'MW':
+                ret.SetMass(rid, value)
+            if param == 'kcat' and direc == 'F':
+                ret.SetKcat(rid, value)
+            if param == 'KM' and subst:
+                # Convert KMs to M
+                ret.SetKm(rid, subst, value/1000.0)
+
+        my_kcat = np.exp(np.mean(np.log(ret.kcats.values())))
+        my_km = np.exp(np.mean(np.log(ret.kms.values())))
+        masses = np.array(ret.masses.values())
+        masses = masses[np.nonzero(masses)]
+        my_mass = np.exp(np.mean(np.log(masses)))
+        ret.default_kcat = my_kcat
+        ret.default_km   = my_km
+        ret.default_mass = my_mass
+
         f.close()
+        return ret
         
     @staticmethod
     def FromFiles(kcat_file, km_file,

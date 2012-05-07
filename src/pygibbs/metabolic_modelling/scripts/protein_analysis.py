@@ -33,6 +33,10 @@ def MakeOpts():
                           choices=thermodynamic_estimators.EstimatorNames(),
                           default="merged",
                           help="The thermodynamic data to use")
+    opt_parser.add_option("-n", "--kinetics_filename",
+                          dest="kinetics_filename",
+                          default=None,
+                          help="The kinetics data file to use or None.")
     opt_parser.add_option("-i", "--input_filename",
                           dest="input_filename",
                           default="../data/thermodynamics/pathways.txt",
@@ -59,14 +63,21 @@ def Main():
     print "Using the thermodynamic estimations of: " + thermo.name
     thermo_data = thermodynamic_data.WrapperThermoData(thermo)
     
-    # Uniform kinetic data
+    # Fetch kinetic data.
     kin_data = kinetic_data.UniformKineticData(kcat=200, km=2e-4, mass=40)
-    #kin_data = kinetic_data.KineticDataWithDefault.FromFiles(
-    #    '../data/enzymatics/glycolytic_pathway_enzymes_kcat.csv',
-    #    '../data/enzymatics/glycolytic_pathway_enzymes_km.csv')
-    #kin_data.SetDefaultKcat(100)
-    #kin_data.SetDefaultKM(1e-4)
-    #kin_data.SetDefaultMass(35)
+    if options.kinetics_filename is not None:
+        print 'Parsing kinetic data from', options.kinetics_filename
+        kin_data = kinetic_data.KineticDataWithDefault.FromArrenFile(
+            options.kinetics_filename)
+        
+    """
+    kin_data = kinetic_data.KineticDataWithDefault.FromFiles(
+        '../data/enzymatics/glycolytic_pathway_enzymes_kcat.csv',
+        '../data/enzymatics/glycolytic_pathway_enzymes_km.csv')
+    kin_data.SetDefaultKcat(100)
+    kin_data.SetDefaultKM(1e-4)
+    kin_data.SetDefaultMass(35)
+    """
     
     # Create a kegg instance
     kegg_instance = kegg.Kegg.getInstance()
@@ -96,19 +107,18 @@ def Main():
         # Now solve with the default initial conditions.
         result = opt.FindOptimum(model_bounds)
         status = result.status
-        if status.IsFailure():          
+        if status.failure:          
             print '\tFailed to optimize', pathway_data.name
-            continue
         
-        if status.IsInfeasible():            
+        if status.infeasible:            
             print '\t', pathway_data.name, 'is infeasible!'
-            continue
         
         result.WriteAllGraphs(pathgraph_dir)
         results.append(result)
         
         cost = result.opt_val
-        print '\tProtein Cost for', pathway_data.name, '= %.2g' % cost
+        if cost is not None:
+            print '\tProtein Cost for', pathway_data.name, '= %.2g' % cost
     
     
     output_filename = path.join(out_dir, 'results.html')

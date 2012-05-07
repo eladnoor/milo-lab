@@ -12,7 +12,7 @@ LEGEND_FONT = FontProperties(size=8)
 class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
     """Contains the result of a protein cost optimization."""
     OPTIMIZATION_TYPE = "Protein Cost"
-    OPT_UNITS = "Grams Protein / Pathway Flux Units"
+    OPT_UNITS = "g (protein) / (mol (substrate) s^-1)"
     
     def __init__(self, *args, **kwargs):
         self.protein_levels = kwargs.pop('protein_levels', None)
@@ -102,7 +102,7 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
         fourth_rung = fourth_height - third_height
 
         pylab.bar(rxn_range, bottom_rung,
-                  color='w', edgecolor='w',
+                  color='w', edgecolor='k',
                   label='Due to maximal rate')
         pylab.bar(rxn_range, second_rung, bottom=first_height,
                   color='#FF5D40', edgecolor='w',

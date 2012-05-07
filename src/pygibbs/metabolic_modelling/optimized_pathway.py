@@ -52,12 +52,15 @@ class OptimizationStatus(object):
     
     def IsFailure(self):
         return self.status == OptimizationStatus.FAILURE
+    failure = property(IsFailure)
     
     def IsInfeasible(self):
         return self.status == OptimizationStatus.INFEASIBLE
+    infeasible = property(IsInfeasible)
     
     def IsSuccessful(self):
         return self.status == OptimizationStatus.SUCCESSFUL
+    success = property(IsSuccessful)
     
     
 class OptimizedPathway(object):
@@ -198,7 +201,7 @@ class OptimizedPathway(object):
         pylab.xlabel('Reaction step')
         pylab.ylabel('Cumulative dG (kJ/mol)')
         pylab.legend(loc='upper right', prop=LEGEND_FONT)
-        pylab.ylim((-160, 10))
+        #pylab.ylim((-160, 10))
         pylab.xlim((0, len(self.reaction_ids)-1))
         pylab.grid(b=True)
         
@@ -224,6 +227,9 @@ class OptimizedPathway(object):
         Args:
             dirname: the name of the directory to write to.
         """
+        if not self.status.success:
+            return 
+        
         self.WriteThermoProfile(dirname)
         self.WritePathwayGraph(dirname)
         self.WriteConcProfile(dirname)
