@@ -12,7 +12,7 @@ from pygibbs.thermodynamic_constants import default_RT
 from toolbox import util
 
 LEGEND_FONT = FontProperties(size=8)
-TICK_FONT = FontProperties(size=8)
+TICK_FONT = FontProperties(size=12)
 RT = default_RT
 
 
@@ -183,22 +183,27 @@ class OptimizedPathway(object):
             dirname: the name of the directory to write it to.
         """
         pylab.figure()
-        dg0_profile = np.cumsum([0] + self.dGr0_tag.flatten().tolist())
-        dgtag_profile = np.cumsum([0] + self.dGr_tag.flatten().tolist())
-        dgbio_profile = np.cumsum([0] + self.dGr_bio.flatten().tolist())
+        dg0_profile = np.cumsum([0] + (self.dGr0_tag * self.fluxes).flatten().tolist())
+        dgtag_profile = np.cumsum([0] + (self.dGr_tag * self.fluxes).flatten().tolist())
+        dgbio_profile = np.cumsum([0] + (self.dGr_bio * self.fluxes).flatten().tolist())
         rxn_range = pylab.arange(len(self.reaction_ids) + 1)
-        pylab.plot(rxn_range, dg0_profile, 'b--',
-                   linewidth=2, label='Standard Conditions')
-        pylab.plot(rxn_range, dgbio_profile, 'c--',
-                   linewidth=2, label='Biological Conditions')
-        pylab.plot(rxn_range, dgtag_profile, 'g-',
-                   linewidth=2, label='Optimized')
-        pylab.xticks(rxn_range[:-1] + 0.5, self.reaction_ids)
+        pylab.plot(rxn_range, dg0_profile, 'k--',
+                   linewidth=3, label='Standard Conditions')
+        pylab.plot(rxn_range, dgbio_profile, 'k:',
+                   linewidth=3, label='Biological Conditions')
+        pylab.plot(rxn_range, dgtag_profile, 'k-',
+                   linewidth=3, label='Optimized')
+        pylab.xticks(rxn_range[:-1] + 0.5, self.reaction_ids,
+                     fontproperties=TICK_FONT)
         pylab.xlabel('Reaction step')
         pylab.ylabel('Cumulative dG (kJ/mol)')
         pylab.legend(loc='upper right', prop=LEGEND_FONT)
+        pylab.ylim((-160, 10))
+        pylab.xlim((0, len(self.reaction_ids)-1))
+        pylab.grid(b=True)
         
         outfname = path.join(dirname, self.thermo_profile_filename)
+        pylab.savefig(outfname.replace('png', 'svg'), format='svg')
         pylab.savefig(outfname, format='png')
     
     def WritePathwayGraph(self, dirname):
@@ -301,6 +306,10 @@ class OptimizedPathway(object):
              'flux': self.fluxes[i],
              'thermo_efficiency': self.CalcForwardFraction(dg_tag)}
         return d
+    
+    def GetNetDGrTag(self):
+        return np.sum(self.fluxes * self.dGr_tag)
+    net_dg_tag = property(GetNetDGrTag)
 
     def ReactionDetails(self):
         """Yields dictionaries describing reactions in the model."""        
