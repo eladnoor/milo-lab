@@ -123,7 +123,11 @@ class PathwayData(object):
         upper_bounds = {1: 1} # the default for H2O is 1
         
         bound_str = self.field_map.get("BOUND", "")
+        
         for line in bound_str.strip().split('\t'):
+            if not line:
+                continue
+            
             tokens = line.split(None)
             cid = int(tokens[0][1:])
             
