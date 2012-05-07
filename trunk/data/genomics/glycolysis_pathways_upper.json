@@ -2,12 +2,30 @@
 {
     "NAME": "Upper EMP Unique",
     "ENZYME_SETS": [
+		{
+		"NAME": "phosphoglucoisomerase",
+		"ECO": "pgi",
+		"RID": "R00771",
+		"ECS": ["5.3.1.9"]
+		},
         {
         "NAME": "6-phosphofructokinase",
         "ECO": "pfk",
         "RID": "R00756",
         "ECS": ["2.7.1.11","2.7.1.90","2.7.1.146"]
         },
+		{
+		"NAME": "fructose-bisphosphate aldolase",
+		"ECO": "fba",
+		"RID": "R01068",
+		"ECS": ["4.1.2.13"]
+		},
+		{
+		"NAME": "triose-phosphate isomerase",
+		"ECO": "tpi",
+		"RID": "R01015",
+		"ECS": ["5.3.1.1"]
+		},
         {
         "NAME": "pyruvate kinase",
         "ECO": "pyk",
@@ -19,11 +37,23 @@
 {
     "NAME": "Upper ED Unique",
     "ENZYME_SETS": [
+		{
+		"NAME": "glucose-6-phosphate dehydrogenase",
+		"ECO": "zwf",
+		"RID": "R00835",
+		"ECS": ["1.1.1.49"]
+		},
+		{
+		"NAME": "6-phosphogluconolactonase",
+		"ECO": "pgl",
+		"RID": "R02035",
+		"ECS": ["3.1.1.31"]
+		},
         {
-        "NAME": "(phospho)gluconate dehydratase",
+        "NAME": "phosphogluconate dehydratase",
         "ECO": "edd",
         "RID": "R02036",
-        "ECS": ["4.2.1.12", "4.2.1.39" ]
+        "ECS": ["4.2.1.12"]
         },
         {
         "NAME": "kdpg aldolase",
