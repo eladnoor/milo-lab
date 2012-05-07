@@ -2,15 +2,12 @@
 
 import logging
 import sys
-import numpy as np
 
 from optparse import OptionParser
 from os import path
 
-from pygibbs.metabolic_modelling import feasible_concentrations_iterator
 from pygibbs.metabolic_modelling import kinetic_data
 from pygibbs.metabolic_modelling import protein_optimizer
-from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.metabolic_modelling import thermodynamic_data
 from pygibbs import kegg
 from pygibbs import thermodynamic_estimators
@@ -63,10 +60,13 @@ def Main():
     thermo_data = thermodynamic_data.WrapperThermoData(thermo)
     
     # Uniform kinetic data
-    #kin_data = kinetic_data.UniformKineticData(kcat=100, km=1e-4)
-    kin_data = kinetic_data.KineticDataWithDefault.FromFiles(
-        '../data/enzymatics/glycolytic_pathway_enzymes_kcat.csv',
-        '../data/enzymatics/glycolytic_pathway_enzymes_km.csv')
+    kin_data = kinetic_data.UniformKineticData(kcat=200, km=2e-4, mass=40)
+    #kin_data = kinetic_data.KineticDataWithDefault.FromFiles(
+    #    '../data/enzymatics/glycolytic_pathway_enzymes_kcat.csv',
+    #    '../data/enzymatics/glycolytic_pathway_enzymes_km.csv')
+    #kin_data.SetDefaultKcat(100)
+    #kin_data.SetDefaultKM(1e-4)
+    #kin_data.SetDefaultMass(35)
     
     # Create a kegg instance
     kegg_instance = kegg.Kegg.getInstance()
@@ -90,30 +90,8 @@ def Main():
                 
         model = pathway_data.GetStoichiometricModel(kegg_instance)
         model_bounds = pathway_data.GetBounds()
-        
-        feasible_iter = feasible_concentrations_iterator.FeasibleConcentrationsIterator(
-            model, thermo_data, model_bounds)
+
         opt = protein_optimizer.ProteinOptimizer(model, thermo_data, kin_data)
-        
-        """
-        # Try a bunch of feasible solutions as starting points
-        optima = []
-        for feasible_concs in feasible_iter:
-            result = opt.FindOptimum(
-                model_bounds, initial_concentrations=feasible_concs)
-            status = result.status
-            if status.IsSuccessful():
-                optima.append(result.opt_val)
-                
-        # Check that the optima are really close to each other
-        optima = np.array(optima)
-        residuals = np.abs(optima - np.mean(optima))
-        if (residuals > 1e-5).any():
-            print '\tOptima are not consistent:'
-            print optima
-        else:
-            print '\t', pathway_data.name, 'optima are consistent'
-        """
         
         # Now solve with the default initial conditions.
         result = opt.FindOptimum(model_bounds)

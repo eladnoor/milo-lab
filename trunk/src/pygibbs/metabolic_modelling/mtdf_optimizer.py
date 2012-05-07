@@ -155,8 +155,8 @@ class MTDFOptimizer(object):
                 my_bounds, optimization_status=status)
         """
         
-        mtdf = motive_force_lb.value
-        opt_ln_conc = ln_conc.value
+        mtdf = float(motive_force_lb.value)
+        opt_ln_conc = np.matrix(np.array(ln_conc.value))
         result = MTDFOptimizedPathway(
             self._model, self._thermo,
             my_bounds, optimal_value=mtdf,
