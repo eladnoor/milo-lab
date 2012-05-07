@@ -38,6 +38,9 @@
 			{% if result.forward_fraction %}
 			<div class="resultValue">Total Forward Flux Fraction = {{result.forward_fraction|stringformat:".2g"}}</div>
 			{% endif %}
+			{% if result.net_dg_tag %}
+			<div class="resultValue">Net &Delta;G' = {{result.net_dg_tag|stringformat:".2f"}} kJ/mol</div>
+			{% endif %}
 			
 			<div class="resultTable">
 				<ul>
@@ -47,6 +50,11 @@
 					<li>Net Reaction: {{ result.net_reaction.hypertext_with_names|safe }}</li>
 				</ul>
 			</div>
+			
+			<div class="resultTable">
+				<p>{{result.protein_levels_list}}</p>
+			</div>
+			
 			
 			<div class="resultTable">
 				<div class="tableTitle">Compound Concentrations (M)</div>
@@ -76,17 +84,21 @@
 					<tr>
 						<td>Reaction ID</td>
 						<td>Relative Flux</td>
+						<td>k<sub>cat</sub> (/s)</td>
 						<td>&Delta;<sub>r</sub>G'&deg;</td>
 						<td>&Delta;<sub>r</sub>G'</td>
 						<td>Thermodynamic Efficiency</td>
+						<td>Protein Level (AA)</td>
 					</tr>
 				{% for deets in result.reaction_details %}
 					<tr {% if deets.at_mtdf %}class="rxnAtMTDF"{% endif %}>
 						<td>{{deets.id}}</td>
 						<td>{{deets.flux}}</td>
+						<td>{{deets.kcat}}</td>
 						<td>{{deets.dGr0_tag|stringformat:".4g"}}</td>
 						<td>{{deets.dGr_tag|stringformat:".4g"}}</td>
 						<td>{{deets.thermo_efficiency|stringformat:".3g"}}</td>
+						<td>{{deets.protein_level}}</td>
 					</tr>
 				{% endfor %}
 				</table>
@@ -95,6 +107,11 @@
 			{% if result.protein_level_filename != None %}
 			<div class="pathwayGraph">
 				<img src="pathway_graphs/{{ result.protein_level_filename }}" />
+			</div>
+			{% endif %}
+			{% if result.cumulative_levels_filename != None %}
+			<div class="pathwayGraph">
+				<img src="pathway_graphs/{{ result.cumulative_levels_filename }}" />
 			</div>
 			{% endif %}
 			{% include "default_pathway_figures.html" %}

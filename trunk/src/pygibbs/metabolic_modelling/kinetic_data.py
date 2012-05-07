@@ -199,6 +199,16 @@ class KineticDataWithDefault(BaseKineticData):
         
     def SetDefaultMass(self, default_mass):
         self.default_mass = default_mass
+    
+    @staticmethod
+    def FromArrenFile(filename):
+        f = open(filename)
+        r = csv.DictReader(f)
+    
+        for row in r:
+            
+    
+        f.close()
         
     @staticmethod
     def FromFiles(kcat_file, km_file,
