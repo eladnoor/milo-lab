@@ -16,6 +16,8 @@ from toolbox import util
 from optparse import OptionParser
 from scipy import stats
 
+import genomics.stats as mystats
+
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
@@ -51,6 +53,17 @@ def MakeOpts():
     return opt_parser
 
 
+def DictSum(ds):
+    if not ds:
+        return {}
+    out = {}
+    
+    for d in ds:
+        for key, val in d.iteritems():
+            cur_val = out.get(key, 0)
+            out[key] = cur_val + val
+    return out
+
 
 def AreLeaves(nodes):
     for n in nodes:
@@ -67,11 +80,13 @@ def MaybeMergeChildren(parent_node):
     
     # Make the new dictionaries and edge lengths
     child_pathways = [c.pathways for c in children]
+    child_oxy_reqs = [c.oxygen_req for c in children]
     child_lengths = [c.edge.length for c in children]
     virtual_count = sum(c.count for c in children)
     max_length_idx = pylab.argmax(child_lengths)
     label = children[max_length_idx].taxon.label
     merged_pathways = set.union(*child_pathways)
+    merged_oxygen = DictSum(child_oxy_reqs)
     
     logging.debug('Merging 2 children with edge lengths %s',
                   child_lengths)
@@ -82,6 +97,8 @@ def MaybeMergeChildren(parent_node):
     parent_node.pathways = merged_pathways
     parent_node.count = virtual_count
     parent_node.annotate('count')
+    parent_node.oxygen_req = merged_oxygen
+    parent_node.annotate('oxygen_req')
     for pname in parent_node.pathways:
         setattr(parent_node, pname, True)
         parent_node.annotate(pname)
@@ -130,6 +147,15 @@ def Main():
         for org in orgs_w_pathway:
             org_2_pathways.setdefault(org, set()).add(util.slugify(path.name))
 
+    print 'Finding oxygen requirements'
+    org_2_oxy_req = {}
+    for row in db.SelectOrganismFields(['ncbi_taxon_id', 'broad_oxygen_requirement']):
+        ncbi_id, oxy_req = row
+        org_2_oxy_req[ncbi_id] = oxy_req
+    observed_oxygen_reqs = set(org_2_oxy_req.values())
+    print 'Observed oxygen requirements', observed_oxygen_reqs
+    
+
     # Find the organisms that have pathway tags.         
     all_labels = set([l.taxon.label for l in leaves])
     pathway_orgs = set(org_2_pathways.keys())
@@ -170,6 +196,11 @@ def Main():
         for pname in pathways:
             setattr(l, pname, True)
             l.annotate(pname)
+        
+        oxy_req = org_2_oxy_req.get(label, None)
+        l.oxygen_req = {oxy_req: 1}
+        l.annotate('oxygen_req')
+        
         l.count = 1
         l.annotate('count')
 
@@ -195,6 +226,7 @@ def Main():
     
     name_2_count = {}
     path_vectors = {}
+    
     for name in pathway_names:
         fname = util.slugify(name) + '.csv'
         f = open(fname, 'w')
@@ -216,12 +248,145 @@ def Main():
         path_vectors[name] = pylab.array(v)    
         f.close()
     
-    r, p_val = stats.pearsonr(path_vectors['upper_emp_unique'],
-                              path_vectors['upper_ed_unique'])
+    ed_vector  = path_vectors['upper_ed_unique']
+    emp_vector = path_vectors['upper_emp_unique']
+    r, p_val = stats.pearsonr(ed_vector, emp_vector)
     print 'Pearson correlation coefficient (r)', r
     print 'R^2', r**2
     print 'p-value', p_val
 
+
+    mat_shape = (len(observed_oxygen_reqs), 4)
+    count_mat = np.matrix(np.zeros(mat_shape))
+    prob_mat  = np.matrix(np.zeros(mat_shape))
+    oxy_req_idx_map = dict((i, k) for i, k in enumerate(sorted(observed_oxygen_reqs)))
+    column_labels = {0: 'None',
+                     1: 'EMP Only',
+                     2: 'ED Only',
+                     3: 'Both'}
+    
+    for leaf_idx, leaf in enumerate(leaves):
+        d = leaf.annotations()
+        oxygen_reqs = d.get('oxygen_req', (None, None))[0]
+        total_count = float(sum(oxygen_reqs.values()))
+        
+        ed_presence  = ed_vector[leaf_idx]
+        emp_presence = emp_vector[leaf_idx]
+        for i, oxy_req in oxy_req_idx_map.iteritems():
+            oxy_frac = oxygen_reqs.get(oxy_req, 0) / total_count
+            if ed_presence and emp_presence:
+                count_mat[i, 3] += oxy_frac
+            elif ed_presence:
+                count_mat[i, 2] += oxy_frac
+            elif emp_presence:
+                count_mat[i, 1] += oxy_frac
+            else:
+                count_mat[i, 0] += oxy_frac
+    
+    total_samples = float(np.sum(count_mat))
+    ed_samples    = float(np.sum(ed_vector))
+    emp_samples   = float(np.sum(emp_vector))
+    ed_prob       = ed_samples / total_samples
+    emp_prob      = emp_samples / total_samples
+    for i, oxy_req in oxy_req_idx_map.iteritems():
+        oxy_req_count  = float(np.sum(count_mat[i,:]))
+        oxy_req_prob   = oxy_req_count / total_samples
+        # Probability of neither pathway
+        prob_mat[i, 0] = (1-ed_prob) * (1-emp_prob) * oxy_req_prob
+        # Probability of EMP only
+        prob_mat[i, 1] = (1-ed_prob) * (emp_prob) * oxy_req_prob
+        # Probability of ED only
+        prob_mat[i, 2] = (ed_prob) * (1-emp_prob) * oxy_req_prob
+        # Probability of both
+        prob_mat[i, 3] = (ed_prob) * (emp_prob) * oxy_req_prob
+    
+    p_vals = mystats.CalcPValues(count_mat, prob_mat)
+    print 'Counts'
+    print count_mat
+    print 'Probabilities assuming random sampling'
+    print prob_mat
+    print 'Mappings'
+    print oxy_req_idx_map
+    print column_labels
+    print 'P-values'
+    print p_vals
+    
+    # Plot the p-values
+    pylab.figure()
+    xs = sorted(column_labels.keys())
+    xticks = [column_labels[i] for i in xs]
+    ys = sorted(oxy_req_idx_map.keys())
+    yticks = [oxy_req_idx_map[j] for j in ys]
+    
+    sigs = p_vals < 0.05
+    super_sigs = p_vals < 0.001
+    rows, cols = sigs.shape
+    for i in xrange(rows):
+        for j in xrange(cols):
+            if super_sigs[i,j]:
+                print oxy_req_idx_map[i], 'x', column_labels[j],
+                print '**', p_vals[i,j]
+                pylab.text(j, i, '**', color='w')
+            elif sigs[i,j]:
+                print oxy_req_idx_map[i], 'x', column_labels[j],
+                print '*', p_vals[i,j]
+                pylab.text(j, i, '*', color='w')
+    
+    
+    pylab.imshow(p_vals, interpolation='nearest')
+    pylab.xticks(xs, xticks)
+    pylab.yticks(ys, yticks)
+    pylab.colorbar()
+    
+    
+    # Plot the bar plot breakdown.
+    
+    restricted_counts = np.matrix(np.zeros((3,3)))
+    allowed_genotypes = ['ED Only', 'Both', 'EMP Only']
+    allowed_phenotypes = ['anaerobe', 'facultative', 'aerobe']
+    
+    for j, genotype in column_labels.iteritems():
+        if genotype not in allowed_genotypes:
+            continue
+        
+        new_j = allowed_genotypes.index(genotype)
+        
+        for i, phenotype in oxy_req_idx_map.iteritems():
+            if phenotype not in allowed_phenotypes:
+                continue
+            
+            new_i = allowed_phenotypes.index(phenotype)
+            restricted_counts[new_i, new_j] = count_mat[i,j]
+    
+    pcts_matrix = restricted_counts / np.sum(restricted_counts, 1)
+    print 'Phenotypes (rows)'
+    print allowed_phenotypes
+    print 'Genotypes (cols)'
+    print allowed_genotypes
+    print 'Counts of interesting categories'
+    print restricted_counts
+    print 'PCTs including interesting categories'
+    print pcts_matrix * 100.0
+    print 'Effective number of organisms', np.sum(restricted_counts)
+    
+    colors = ['#37DD6F', '#FF5D40', '#4186D3']
+    pylab.figure()
+    current_bottom = pylab.zeros(3)
+    rows, cols = pcts_matrix.shape
+    for j in xrange(cols):
+        heights = np.array(pcts_matrix[:,j].flat)
+        xs = np.arange(heights.size)
+        pylab.bar(xs, heights, bottom=current_bottom,
+                  color=colors[j], edgecolor='w',
+                  label=allowed_genotypes[j],
+                  align='center')
+        current_bottom += heights
+    xs = pylab.arange(3) + 0.5
+    pylab.xticks(xs, allowed_phenotypes)
+    pylab.legend()
+    pylab.show()
+    
+    
     colormap = {'Organic': '#ff0000',
                 'Inorganic': '#00ff00',
                 None: '#0000ff'}
@@ -241,15 +406,21 @@ def Main():
         print '%.2f%% (%d of %d) have pathway %s' % (pct, count, nleaves,
                                                     str(name))
     
-    v_accumulator = pylab.zeros(nleaves)
+    v_or_accumulator  = pylab.zeros(nleaves)
+    v_and_accumulator = pylab.ones(nleaves)
     for v in path_vectors.values():
-        v_accumulator = np.logical_or(v_accumulator, v)
-    total_w_any = pylab.where(v_accumulator == True)[0].size
+        v_or_accumulator  = np.logical_or(v_or_accumulator, v)
+        v_and_accumulator = np.logical_and(v_and_accumulator, v)
+    total_w_any = pylab.where(v_or_accumulator == True)[0].size
+    total_w_all = pylab.where(v_and_accumulator == True)[0].size
     any_pct = 100.0 * float(total_w_any) / float(nleaves)
+    all_pct = 100.0 * float(total_w_all) / float(nleaves)
     print '%.2f%% (%d of %d) have some pathway' % (any_pct,
                                                    total_w_any,
                                                    nleaves)
-    
+    print '%.2f%% (%d of %d) have all pathways' % (all_pct,
+                                                   total_w_any,
+                                                   nleaves)
     fname = 'Node_Counts.csv'
     f = open(fname, 'w')
     w = csv.writer(f)

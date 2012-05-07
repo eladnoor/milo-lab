@@ -83,6 +83,10 @@ class GenomeDB(object):
             return None
         return q[0][0]
     
+    def SelectOrganismFields(self, fields):
+        query = 'SELECT %s FROM organisms' % ', '.join(fields)
+        return self.db.Execute(query)
+    
     @staticmethod
     def GetBroadyOxyReq(req_str):
         if not req_str:
