@@ -38,6 +38,9 @@
 			{% if result.forward_fraction %}
 			<div class="resultValue">Total Forward Flux Fraction = {{result.forward_fraction|stringformat:".2g"}}</div>
 			{% endif %}
+			{% if result.net_dg_tag %}
+			<div class="resultValue">Net &Delta;G' = {{result.net_dg_tag|stringformat:".2f"}} kJ/mol</div>
+			{% endif %}
 			
 			<div class="resultTable">
 				<ul>
@@ -92,19 +95,7 @@
 				</table>
 			</div>
 			
-			{% if result.thermo_profile_filename != None %}
-			<div class="pathwayGraph">
-				<img src="pathway_graphs/{{ result.thermo_profile_filename }}" />
-			</div>
-			{% endif %}
-			{% if result.pathway_graph_filename != None %}
-			<div class="pathwayGraph">
-				<object data="pathway_graphs/{{result.pathway_graph_filename}}"
-					    type="image/svg+xml" width=480 height=800
-					    name="{{result.model.name}}" frameborder="0"
-					    marginwidth="0" marginheight="0"/></object>
-			</div>
-			{% endif %}
+			{% include "default_pathway_figures.html" %}
 		</div>
 	{% endfor %}
 	</body>
