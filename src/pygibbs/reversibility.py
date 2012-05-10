@@ -25,6 +25,7 @@ from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.feist_ecoli import Feist
 from pygibbs.compound_abundance import CompoundAbundance
+from toolbox.molecule import OpenBabelError
 
 def try_kegg_api():
     db = SqliteDatabase('../res/gibbs.sqlite')
@@ -113,7 +114,7 @@ def ConcentrationFactor(reaction,
         factor += pylab.log(concentration) * stoic
     return factor
 
-def CalculateReversability(reaction, thermo, concentration_map=None):
+def CalculateReversability(reaction, thermo, concentration_map=None, logscale=False):
     cmap = concentration_map or GetEmptyConcentrationMap()
     dG0 = reaction.PredictReactionEnergy(thermo)
     ln_Gamma = ConcentrationFactor(reaction, cmap, thermo.c_mid)
@@ -122,7 +123,10 @@ def CalculateReversability(reaction, thermo, concentration_map=None):
     if sum_abs_s == 0:
         return None
     else:
-        return pylab.exp(-dG0/(R*thermo.T) - ln_Gamma) ** (2.0 / sum_abs_s)
+        if logscale: # 2/N * (log K' - log Q'')
+            return 2.0 / sum_abs_s * (-dG0/(R*thermo.T) - ln_Gamma) 
+        else:        # (K' / Q'') ^ (2/N)
+            return np.exp(-dG0/(R*thermo.T) - ln_Gamma) ** (2.0 / sum_abs_s)
 
 def CalculateReversabilityV2(reaction, thermo, concentration_map=None):
     cmap = concentration_map or GetEmptyConcentrationMap()
@@ -962,6 +966,11 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
         debug_dict = {'name':reaction.name, 
                       'KEGG Reaction':reaction.to_hypertext()}
         
+        try:
+            reaction.Balance(balance_water=True, exception_if_unknown=True)
+        except (KeggReactionNotBalancedException, OpenBabelError):
+            continue
+        
         dG0 = reaction.PredictReactionEnergy(thermo)
         if np.isnan(dG0):
             debug_dict['sortkey'] = 0
@@ -976,7 +985,9 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
             stoich_counters.setdefault((n_s, n_p), 0)
             stoich_counters[n_s, n_p] += 1
             
-            gamma = CalculateReversability(reaction, thermo, concentration_map=cmap)
+            log_gamma = CalculateReversability(reaction, thermo,
+                                               concentration_map=cmap,
+                                               logscale=True)
             
             if Keq < 1.0/x_threshold:
                 Krev = -1
@@ -985,18 +996,18 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
             else:
                 Krev = 1
                 
-            if gamma < 1.0/y_threshold:
+            if log_gamma < -np.log(y_threshold):
                 Grev = -1
-            elif gamma < y_threshold:
+            elif log_gamma < np.log(y_threshold):
                 Grev = 0
             else:
                 Grev = 1
                 
             regime_counters.setdefault((Krev, Grev), 0)
             regime_counters[Krev, Grev] += 1
-            data_mat = pylab.vstack([data_mat, [Keq, gamma, Krev, Grev]])
-            debug_dict['sortkey'] = gamma
-            debug_dict['Rev. index'] = "%.1e" % gamma
+            data_mat = pylab.vstack([data_mat, [Keq, log_gamma, Krev, Grev]])
+            debug_dict['sortkey'] = log_gamma
+            debug_dict['log(&gamma;)'] = "%.2e" % log_gamma
             debug_dict[thermodynamic_constants.symbol_dr_G0_prime] = dG0
         
         debug_dict_list.append(debug_dict)
@@ -1004,7 +1015,7 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     debug_dict_list.sort(key=lambda(x):x['sortkey'])
     div_id = html_writer.insert_toggle()
     html_writer.div_start(div_id)
-    html_writer.write_table(debug_dict_list, headers=['Rev. index',
+    html_writer.write_table(debug_dict_list, headers=['log(&gamma;)',
         thermodynamic_constants.symbol_dr_G0_prime, 'name', 'KEGG Reaction',
         'error'])
     html_writer.div_end()
@@ -1053,7 +1064,7 @@ def compare_reversibility_to_dG0(reaction_list, thermo, html_writer, cmap=None):
     html_writer.embed_matplotlib_figure(fig, width=400, height=400, name="reversibility_vs_keq")
    
     fig = pylab.figure(figsize=(2,2), dpi=90)
-    abs_gamma = np.exp(abs(np.log(data_mat[:,1])))
+    abs_gamma = np.exp(abs(data_mat[:,1]))
     plotting.cdf(abs_gamma, label='gamma', figure=fig)
     pylab.plot([x_threshold, x_threshold], [0, 1], 'k--', figure=fig)
     pylab.xscale('log', figure=fig)
@@ -1086,8 +1097,8 @@ def main():
     #analyse_reversibility(estimators['hatzi_gc'], 'HatziGC')
     #analyse_reversibility(estimators['PGC'], 'MiloGC_zoom')
     
-    #reaction_list = kegg.AllReactions()
-    reaction_list = Feist.FromFiles().reactions
+    reaction_list = Kegg.getInstance().AllReactions()
+    #reaction_list = Feist.FromFiles().reactions
     thermo = estimators['PGC']
     
     thermo.c_mid = DEFAULT_CMID
