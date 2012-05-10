@@ -8,6 +8,7 @@ import types
 
 BUFFERS_CSV_FNAME = '../data/thermodynamics/pKa_of_buffers.csv'
 NIST_ADDITIONS_FILE = '../data/thermodynamics/nist_additions.csv'
+missing_set = set()
 
 class MissingCompoundsFromKeggException(Exception):
     def __init__(self, names):
@@ -17,9 +18,7 @@ class MissingCompoundsFromKeggException(Exception):
             ', '.join(self.names)
 
 def remove_superfluous_chars(s):
-    to_remove = ['(g)', '(l)', '(aq)', '(liq)', '(s)', '(sln)', '"']
-    for substr in to_remove:
-        s = s.replace(substr, '')
+    s = s.replace('"', '')
     s = s.strip()
     if s[0] == '-':
         s = s[1:]
@@ -28,20 +27,30 @@ def remove_superfluous_chars(s):
 def parse_single_reactant(s, compound_aliases):
     s = remove_superfluous_chars(s)
 
-    if s == "carbon dioxide": # change carbon dioxide changed to carbonate
-        return "C00288"
-    elif s == "1/2 o2": # special case that confuses the regular expression
+    # Water is the only compound allowed to be in liquid phase
+    if s[-6:] == 'h2o(l)':
+        s = s[:-3]
+
+    # cannot use compounds in gas phase or non-aqueous solvents
+    if s[-3:] in ['(g)', '(l)', '(s)'] or s[-5:] == '(sln)':
+        raise MissingCompoundsFromKeggException([s])
+
+    if s[-4:] == '(aq)':
+        s = s[:-4]
+    
+    if s == "1/2 o2": # special case that confuses the regular expression
         return "0.5 C00007"
-    elif s in compound_aliases:
+    if s in compound_aliases:
         return compound_aliases[s]
 
     tmp = re.findall('^(\d+) (.*)', s)
     if tmp:
         count, name = tmp[0]
-        if name == 'H+':
-            return None
         if name in compound_aliases:
-            return count + " " + compound_aliases[name]
+            if compound_aliases[name] is None:
+                return None
+            else:
+                return count + " " + compound_aliases[name]
     
     raise MissingCompoundsFromKeggException([s])                
 
@@ -228,6 +237,9 @@ def load_compound_aliases():
             alias = remove_superfluous_chars(alias)
             compound_aliases.setdefault(alias, "C%05d" % cid)
     
+    compound_aliases['carbon dioxide'] = 'C00288'
+    compound_aliases['h2o'] = 'C00001'
+    compound_aliases['H+'] = None
     return compound_aliases
 
 ################################################################################
@@ -368,9 +380,6 @@ def WriteDataToDB(db):
             continue
         if url_id == "T1=66CAR/HUL_89" or url_id == "T1=66CAR/HUL_200": # the values for glycolate reductase conflict with 3 other papers
             continue
-        if url_id == "T1=00BYR/GOL_1519": # NIST mistakedly tagged this under K instead of K' due to PDF rendering errors
-            row_dict["K'"] = row_dict["K"]
-            row_dict["K"] = u""
         if url_id == "T1=03RAN/VAN_1602": # In NIST, the reaction was written in the reverse direction, and mistakedly tagged this under K instead of K'
             row_dict["K'"] = u"0.001"
             row_dict["K"] = u""
@@ -378,6 +387,28 @@ def WriteDataToDB(db):
             continue
         if url_id == "T1=95KAM/JUR_626": # value conflicts with two other papers and common sense (it is 10^9, which noone can measure)
             continue
+        
+        # NIST mistakedly tagged this under K instead of K' due to PDF rendering errors
+        if url_id in ["T1=00BYR/GOL_1519", "T1=06XU/WES_1713",
+                      "T1=07LIN/ALG_1584", "T1=00ROD/BAR_1603",
+                      "T1=91PAR/HOR_1594", "T1=83HAA/KAR_1015",
+                      "T1=83HAA/KAR_1013", "T1=79VAN_1688", "T1=99ELS_1527",
+                      "T1=02TEW/HAW_1641"]:
+            row_dict["K'"] = row_dict["K"]
+            row_dict["K"] = u""
+        
+        # pH is missing
+        if url_id == "T1=83HAA/KAR_1013":
+            row_dict['pH'] = u"6.5"
+            
+        if url_id == "T1=06TAN/SUR_1609":
+            # NIST made several mistakes here. First, they used K instead of K'.
+            # Second, they miscalculated the value of K' by a factor of 10^12, since
+            # it was given in uM^-1 and to convert it to M they divided by 10^6.
+            # Third, they used the less reliable value of K' (0.05uM) instead of
+            # 0.02 uM.
+            row_dict["K'"] = u"5E-5"
+            row_dict["K"] = u""
         
         new_row_dict = {}
         for old_title, new_title in title_mapping.iteritems():
