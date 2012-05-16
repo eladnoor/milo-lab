@@ -1,7 +1,7 @@
 "name","CID_ox","nH_ox","charge_ox","CID_red","nH_red","charge_red","E'0","pH","ref"
 "NAD",3,26,-1,4,27,-2,-0.32,7,"CRC biochemistry (2010)"
 "NADP",6,25,-2,5,26,-3,-0.324,7,"CRC biochemistry (2010)"
-"ferredoxin",139,0,1,138,0,0,-0.398,7,"Thauer (1977)"
+"ferredoxin",139,0,1,138,0,0,-0.412,7,"Prince (1987)"
 "ubiquinone (n=1)",399,26,0,390,28,0,0.113,7,"Thauer (1977)"
 "menaquinone (n=1)",828,24,0,5819,26,0,-0.074,7,"Thauer (1977)"
 "FAD",16,33,0,1352,35,0,-0.219,7,"CRC biochemistry (2010)"

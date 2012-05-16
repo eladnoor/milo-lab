@@ -107,8 +107,13 @@ class BaseBounds(object):
             lb, ub = bounds
             self.lower_bounds[key] = lb
             self.upper_bounds[key] = ub
-            
-
+    
+    def GetOldStyleBounds(self, keys):
+        lower_bounds, upper_bounds = self.GetBounds(keys)
+        cid2bounds = {}
+        for i, cid in enumerate(keys):
+            cid2bounds[cid] = (lower_bounds[0, i], upper_bounds[0, i])
+        return cid2bounds
 
 class ExplicitBounds(BaseBounds):
     """Contains upper and lower bounds for various keys."""
