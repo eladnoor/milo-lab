@@ -111,7 +111,7 @@ class OptimizedPathway(object):
             self.dGr_tag = np.array(self.dGr0_tag + conc_correction)
             self.dGr_tag_list = list(self.dGr_tag.flatten())
             
-            bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)        
+            bio_concs = self.bounds.GetBoundsWithDefault(self.compound_ids, default=1e-3)
             bio_correction = RT * np.dot(np.log(bio_concs), self.S)
             self.dGr_bio = np.array(self.dGr0_tag + bio_correction)
             self.dGr_bio_list = list(self.dGr_bio.flatten())

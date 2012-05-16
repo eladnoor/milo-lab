@@ -6,14 +6,10 @@ from pygibbs.pathway import PathwayData
 from toolbox.html_writer import HtmlWriter
 from pygibbs.pathway_modelling import KeggPathway, DeltaGNormalization
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
-from pygibbs.thermodynamic_constants import R, default_I, default_pH,\
-    default_pMg, default_T, symbol_dr_G_prime
+from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime, default_T
 from pygibbs.kegg_reaction import Reaction
 
-RT = R * default_T
-
-def pareto(kegg_file, html_writer, thermo,
-           pH=default_pH, I=default_I, T=default_T, pMg=default_pMg,
+def pareto(kegg_file, html_writer, thermo, pH=None,
            plot_profile=False, section_prefix="", balance_water=True):
     
     entries = kegg_file.entries()
@@ -30,12 +26,17 @@ def pareto(kegg_file, html_writer, thermo,
             logging.info("Skipping pathway: %s", entry)
             remarks.append('skipping')
             continue
+        
+        if pH is None:
+            pH = p_data.pH
+        thermo.SetConditions(pH=pH, I=p_data.I, T=p_data.T, pMg=p_data.pMg)
+        thermo.c_range = p_data.c_range
 
         #html_writer.write('<a name="%s"></a>\n' % entry)
         html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, entry, entry))
-        thermo.SetConditions(pH=pH, I=I, T=T, pMg=pMg)
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions(balance_water=balance_water)
+        thermo.bounds = p_data.GetBounds().GetOldStyleBounds(cids)
         fluxes = np.matrix(fluxes)
         dG0_r_prime = thermo.GetTransfromedReactionEnergies(S, cids)
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
@@ -63,7 +64,8 @@ def pareto(kegg_file, html_writer, thermo,
         plot_data[i, :] = [odb, odfe, min_tg, max_tg, np.sum(fluxes)]
 
         logging.info('%20s: ODB = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' % (entry, odb, max_tg))
-        html_writer.write_ul(["ODB = %.1f [kJ/mol]" % odb,
+        html_writer.write_ul(["pH = %.1f, I = %.2fM, T = %.2f K" % (thermo.pH, thermo.I, thermo.T),
+                              "ODB = %.1f [kJ/mol]" % odb,
                               "ODFE = %.1f%%" % odfe,
                               "Min Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, min_tg),
                               "Max Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, max_tg)])
@@ -92,17 +94,18 @@ def analyze(prefix, thermo):
 
     co2_hydration = Reaction.FromFormula("C00011 + C00001 => C00288")
     
-    I, T, pMg = 0.1, 298.15, 10
-    
     #pH_vec = np.arange(5, 9.001, 0.5)
+    #pH_vec = np.array([6, 7, 8])
     pH_vec = np.array([7])
+    #co2_conc_vec = np.array([1e-5, 1e-3])
     co2_conc_vec = np.array([1e-5])
     data_mat = []
     
-    for pH in pH_vec:
-        co2_hydration_dG0_prime = thermo.GetTransfromedKeggReactionEnergies([co2_hydration])[0, 0]
-        for co2_conc in co2_conc_vec:
-            carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*T))
+    for pH in pH_vec.flat:
+        co2_hydration_dG0_prime = float(thermo.GetTransfromedKeggReactionEnergies([co2_hydration], pH=pH))
+        for co2_conc in co2_conc_vec.flat:
+            carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*default_T))
+            #print "[CO2] = %g, [carbonate] = %g, pH = %.1f, I = %.2fM" % (co2_conc, carbonate_conc, pH, I)
             thermo.bounds[11] = (co2_conc, co2_conc)
             thermo.bounds[288] = (carbonate_conc, carbonate_conc)
             
@@ -115,8 +118,7 @@ def analyze(prefix, thermo):
                                   '<a href="#%s_figure">Summary figure</a>' % section_prefix])
 
             data, labels = pareto(kegg_file, html_writer, thermo,
-                pH=pH, I=I, T=T, pMg=pMg,
-                section_prefix=section_prefix, balance_water=True)
+                pH=pH, section_prefix=section_prefix, balance_water=True)
             data_mat.append(data)
     
     data_mat = np.array(data_mat)
@@ -161,9 +163,10 @@ if __name__ == "__main__":
     plt.rcParams['legend.fontsize'] = 6
     estimators = LoadAllEstimators()
     
-    experiments = [('odb_vs_otg_formate', 'UGC'),
-                   ('odb_vs_otg_oxidative', 'UGC'),
-                   ('odb_vs_otg_reductive', 'UGC')]
+#    experiments = [('odb_vs_otg_formate', 'UGC'),
+#                   ('odb_vs_otg_oxidative', 'UGC'),
+#                   ('odb_vs_otg_reductive', 'UGC')]
+    experiments = [('odb_vs_otg_formate', 'UGC')]
 
     for prefix, thermo_name in experiments:
         thermo = estimators[thermo_name]
