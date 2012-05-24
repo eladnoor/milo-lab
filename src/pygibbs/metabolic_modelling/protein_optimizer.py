@@ -13,7 +13,6 @@ from pygibbs.metabolic_modelling import protein_optimized_pathway
 from pygibbs.metabolic_modelling import protein_cost_functors
 
 
-
 class UnsolvableConvexProblemException(Exception):
     def __init__(self, msg, problem):
         Exception.__init__(self, msg)
@@ -26,13 +25,16 @@ class ProteinOptimizer(object):
     DEFAULT_CONC_LB = 1e-6
     DEFAULT_CONC_UB = 1e-2
 
-    def __init__(self, pathway_model, thermodynamic_data, kinetic_data):
+    def __init__(self, pathway_model, thermodynamic_data, kinetic_data,
+                 protein_cost_type=protein_cost_functors.ProteinCostFunc):
         """Initialize the MTDFOptimizer class.
         
         Args:
             pathway_model: the PathwayModel object.
             thermodynamic_data: the ThermodynamicData object.
             kinetic_data: the KineticData object.
+            protein_cost_type: the functor type for calculating
+              protein cost.
         """
         self._model = pathway_model
         self._thermo = thermodynamic_data
@@ -44,6 +46,7 @@ class ProteinOptimizer(object):
         self.fluxes = pathway_model.GetFluxes()
         self.dG0_r_prime = thermodynamic_data.GetDGrTagZero_ForModel(
                 self._model)
+        self.protein_cost_type = protein_cost_type
         
         self.mtdf_opt = mtdf_optimizer.MTDFOptimizer(pathway_model,
                                                      thermodynamic_data)
@@ -66,7 +69,7 @@ class ProteinOptimizer(object):
             return None
 
         return np.matrix(mtdf_result.ln_concentrations)
-    
+     
     def FindOptimum(self, concentration_bounds=None,
                     initial_concentrations=None):
         """Finds the Optimum.
@@ -79,12 +82,15 @@ class ProteinOptimizer(object):
         my_bounds = concentration_bounds or self.DefaultConcentrationBounds()
         lb, ub = my_bounds.GetLnBounds(self.compounds)
         
-        x0 = self.GetInitialConditions(my_bounds)
+        x0 = initial_concentrations
+        if x0 is None:
+            x0 = self.GetInitialConditions(my_bounds)
         if x0 is None:
             status = optimized_pathway.OptimizationStatus.Infeasible(
                 'MTDF could not be found.')
             return protein_optimized_pathway.ProteinCostOptimizedPathway(
                 self._model, self._thermo, my_bounds,
+                kinetic_data=self._kinetic_data,
                 optimization_status=status)
         
         # Fetch kinetic data
@@ -113,15 +119,36 @@ class ProteinOptimizer(object):
         assert (f_ieq(initial_conds) >= 0).all()
         
         # Make the goal function and optimize
-        optimization_func = protein_cost_functors.ProteinCostFunc(
-            self.S, self.dG0_r_prime, self.fluxes, kcat, km, masses, injector)
+        optimization_func = self.protein_cost_type(
+            self.S, self.dG0_r_prime, self.fluxes, kcat,
+            km, masses, injector)
+        initial_conds = np.array(initial_conds.flat)
         initial_func_value = optimization_func(initial_conds)
+        initial_deriv = optimization_func.Derivatives(initial_conds)
+        approx_deriv = opt.approx_fprime(initial_conds, optimization_func, 1e-8)
+        initial_dg = optimization_func.GetDGTag(injector(initial_conds))        
         
+        logging.debug('Initial dG %s', initial_dg)
+        logging.debug('Initial derivative %s', initial_deriv)
+        logging.debug('Approx derivative %s', approx_deriv)
+        logging.debug('Diff %s', np.array(initial_deriv) - np.array(approx_deriv))
         logging.debug('Initial optimization value: %.2g', initial_func_value)
         res = opt.fmin_slsqp(optimization_func, initial_conds, 
                              f_ieqcons=f_ieq,
                              full_output=1,
-                             iprint=0)
+                             fprime=optimization_func.Derivatives,
+                             iprint=0,
+                             acc=1e-2,
+                             iter=1000)
+        
+        # Failed to optimize.
+        status, status_str = res[3:]
+        if status != 0:
+            status = optimized_pathway.OptimizationStatus.GeneralFailure(status_str)
+            return protein_optimized_pathway.ProteinCostOptimizedPathway(
+                self._model, self._thermo, my_bounds,
+                kinetic_data=self._kinetic_data,
+                optimization_status=status)
             
         ln_conc, optimum = res[:2]
         final_func_value = optimization_func(ln_conc)
@@ -134,7 +161,8 @@ class ProteinOptimizer(object):
         stoich_factors = optimization_func.StoichFactor()
         max_rate_factors = optimization_func.MaximalRateFactor()
         kinetic_factors = optimization_func.KineticFactor(ln_conc)
-        thermo_factors = optimization_func.ThermoFactor(ln_conc)
+        thermo_factors = optimization_func.ThermoFactor(
+            optimization_func.GetDGTag(ln_conc))
         
         return protein_optimized_pathway.ProteinCostOptimizedPathway(
             self._model, self._thermo, my_bounds,

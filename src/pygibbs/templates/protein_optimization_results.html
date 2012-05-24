@@ -5,7 +5,7 @@
 			.pathwayResult {
 				margin: 0 0 10px 0;
 			}
-			.pathwayName {
+			.sectionName {
 				font-weight: bold;
 				font-size: 20px;
 			}
@@ -28,36 +28,106 @@
 			.rxnAtMTDF {
 				background-color: #00CCFF;
 			}
+			.details {
+				display: None;
+			}
 		</style>
 	</head>
 	<body>
-	{% for result in results %}		
-		<div class="pathwayResult">
-			<div class="pathwayName">{{result.model.name}}</div>
-			<div class="resultValue">{{result.optimization_type}} = {{result.opt_val|stringformat:".2g"}} {{result.optimization_units}}</div>
+	<div class="resultTable">
+		<p class="sectionName">Kinetic Data</p>
+		<p>Defaults</p>
+		<ul>
+			<li>KM    = {{ kinetic_data.default_km|stringformat:".3g" }} M</li>
+			<li>kcat+ = {{ kinetic_data.default_kcat|stringformat:".3g" }} /s</li>
+			<li>mass  = {{ kinetic_data.default_mass|stringformat:".2f" }} kDa</li>
+		</ul>
+		
+		<input type="submit"
+		       name="show_kin"
+		       value="Show Kinetics"
+		       onclick="document.getElementById('kinetic_data').style.display='block';this.style.display='none'" />
+		<div class="details" id="kinetic_data">
+			<table border="1">
+				<th colspan=3>Enzyme kcats and Masses</th>
+				<tr>
+					<td>Enzyme</td>
+					<td>kcat+ (/s)</td>
+					<td>mass (kDa)</td>
+				</tr>
+				{% for rid, kcat, mass in kinetic_data.all_kcats_and_masses %}
+					<tr>
+						<td>{{ rid }}</td>
+						<td>{{ kcat }}</td>
+						<td>{{ mass }}</td>
+					</tr>
+				{% endfor %}
+			</table>
 			
+			<table border="1">
+				<th colspan=3>Enzyme K<sub>M</sub>s</th>
+				<tr>
+					<td>Enzyme</td>
+					<td>Compound</td>
+					<td>KM (M)</td>
+				</tr>
+				{% for rid, cid, km in kinetic_data.all_kms %}
+					<tr>
+						<td>{{ rid }}</td>
+						<td>{{ cid }}</td>
+						<td>{{ km }}</td>
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+	</div>
+	
+	{% for r in results %}
+	{% with result=r.result %}
+		<div class="pathwayResult" id="{{result.model.slug_name}}">
+			<div class="sectionName">{{result.model.name}}</div>
+			<div class="resultValue">{{r.num_optima}} optima, mean: {{r.mean_opt|stringformat:".2g"}} &plusmn; {{r.error|stringformat:".2g"}}</div>
 			{% if result.status.success %}
+				<div class="resultValue">{{result.optimization_type}} = {{result.opt_val|stringformat:".2g"}} {{result.optimization_units}}</div>
 				{% if result.forward_fraction %}
 				<div class="resultValue">Total Forward Flux Fraction = {{result.forward_fraction|stringformat:".2g"}}</div>
 				{% endif %}
 				{% if result.net_dg_tag %}
 				<div class="resultValue">Net &Delta;G' = {{result.net_dg_tag|stringformat:".2f"}} kJ/mol</div>
 				{% endif %}
-				
+			{% endif %}
+			{% if result.status.failure %}
+			    <div class="resultValue">Failed to optimize pathway</div>
+			{% endif %}
+			{% if result.status.infeasible %}
+			    <div class="resultValue">Pathway infeasible given constraints</div>
+			{% endif %}
+			
+			<input type="submit"
+		       name="show_deets_{{result.model.slug_name}}"
+		       value="Show Details"
+		       onclick="document.getElementById('{{result.model.slug_name}}_details').style.display='block';this.style.display='none'" />
+			<div class="details" id="{{result.model.slug_name}}_details">
 				<div class="resultTable">
 					<ul>
-					{% for rxn in result.reaction_objects %}
-						<li>{{ rxn.hypertext_with_names|safe }}</li>
+					{% for rxn, flux in result.reaction_objects %}
+						<li>{{ rxn.hypertext_with_names|safe }} ({{flux}}x)</li>
 					{% endfor %}
 						<li>Net Reaction: {{ result.net_reaction.hypertext_with_names|safe }}</li>
 					</ul>
 				</div>
 				
-				<div class="resultTable">
-				    <p>Protein Levels List</p>
-					<p>{{result.protein_levels_list}}</p>
+				{% include "default_pathway_figures.html" %}
+				{% if result.protein_level_filename != None %}
+				<div class="pathwayGraph">
+					<img src="pathway_graphs/{{ result.protein_level_filename }}" />
 				</div>
-				
+				{% endif %}
+				{% if result.cumulative_levels_filename != None %}
+				<div class="pathwayGraph">
+					<img src="pathway_graphs/{{ result.cumulative_levels_filename }}" />
+				</div>
+				{% endif %}
 				
 				<div class="resultTable">
 					<div class="tableTitle">Compound Concentrations (M)</div>
@@ -106,30 +176,16 @@
 					{% endfor %}
 					</table>
 				</div>
-				
-				{% if result.protein_level_filename != None %}
-				<div class="pathwayGraph">
-					<img src="pathway_graphs/{{ result.protein_level_filename }}" />
+
+				<div class="resultTable">
+				    <p>Protein Levels List</p>
+					<p>{{result.protein_levels_list}}</p>
 				</div>
-				{% endif %}
-				{% if result.cumulative_levels_filename != None %}
-				<div class="pathwayGraph">
-					<img src="pathway_graphs/{{ result.cumulative_levels_filename }}" />
-				</div>
-				{% endif %}
-				{% include "default_pathway_figures.html" %}
-			{% else %}
-			    {% if result.status.failure %}
-			    <div class="resultValue">Failed to optimize pathway</div>
-			    {% else %}
-			        {% if result.status.infeasible %}
-			            <div class="resultValue">Pathway infeasible given constraints</div>
-			        {% endif %}
-			    {% endif %}
-			{% endif %}
+			</div>
 			
 			
 		</div>
+	{% endwith %}
 	{% endfor %}
 	</body>
 </html>

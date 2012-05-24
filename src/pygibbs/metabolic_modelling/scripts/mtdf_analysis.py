@@ -83,6 +83,8 @@ def Main():
         mtdf_opt = mtdf_optimizer.MTDFOptimizer(model, thermo_data)
         result = mtdf_opt.FindMTDF(model_bounds)
         
+        print 'Optimization status', result.status
+        
         result.WriteAllGraphs(pathgraph_dir)
         results.append(result)
         

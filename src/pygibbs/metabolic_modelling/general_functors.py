@@ -50,6 +50,9 @@ class FixedVariableInjector(object):
         out[self.variable_i] = x
         return out
     
+    def Deject(self, injected):
+        return np.array(injected[self.variable_i].flat)
+    
 
 class ConstraintChecker(object):
     """Base class for functions that check constraints.

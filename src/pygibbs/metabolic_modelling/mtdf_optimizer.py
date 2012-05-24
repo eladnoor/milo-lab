@@ -135,7 +135,7 @@ class MTDFOptimizer(object):
             rcol = cvxpy.matrix(S[:, i])
             curr_dgr = curr_dg0 + RT * ln_conc * rcol
             if flux == 0:
-                constr.append(curr_dgr == 0)
+                constr.append(cvxpy.eq(curr_dgr, 0))
             else:
                 motive_force = self.DeltaGNormalization.NormalizeDGByFlux(
                     curr_dgr, flux, normalization)

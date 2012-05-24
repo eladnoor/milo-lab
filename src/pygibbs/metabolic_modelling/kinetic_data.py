@@ -6,6 +6,56 @@ import csv
 class BaseKineticData(object):
     """Base class for all kinetic data containers."""
     
+    def SetDefaultKM(self, default_km):
+        self._default_km = default_km
+        
+    def SetDefaultKCat(self, default_kcat):
+        self._default_kcat = default_kcat
+    
+    def SetDefaultMass(self, default_mass):
+        self._default_mass = default_mass
+    
+    def DefaultKM(self):
+        """Returns the default KM."""
+        return self._default_km
+    default_km = property(DefaultKM, SetDefaultKM)
+    
+    def DefaultKcat(self):
+        """Returns the default kcat."""
+        return self._default_kcat
+    default_kcat = property(DefaultKcat, SetDefaultKCat)
+    
+    def DefaultMass(self):
+        """Returns the default mass per active site."""
+        return self._default_mass
+    default_mass = property(DefaultMass, SetDefaultMass)
+    
+    def AllKMs(self):
+        """Returns an iterable of (enz, substrate, km)."""
+        raise NotImplementedError
+    all_kms = property(lambda slf: slf.AllKMs)
+    
+    def AllKCats(self):
+        """Returns an iterable of (enz, kcat)."""
+        raise NotImplementedError
+    all_kcats = property(lambda slf: slf.AllKcats)
+    
+    def AllMasses(self):
+        """Returns an iterable of (enz, mass)."""
+        raise NotImplementedError
+    all_masses = property(lambda slf: slf.AllMasses)
+    
+    def AllKcatsAndMasses(self):
+        """Returns an iterable of (enz, kcat, mass)."""
+        masses = dict(self.AllMasses())
+        kcats = dict(self.AllKCats())
+        enzs = set(masses.keys())
+        enzs = enzs.union(kcats.keys())
+        enzs = sorted(enzs)
+        for e in enzs:
+            yield e, kcats.get(e), masses.get(e)
+    all_kcats_and_masses = property(AllKcatsAndMasses)
+        
     def GetKcat(self, reaction_id):
         """Returns the Kcat for this reaction.
         
@@ -138,31 +188,40 @@ class UniformKineticData(BaseKineticData):
             km: the global michaelis constant to use (Molar).
             mass_per_active_site: the enzyme mass per active site.
         """
-        self.kcat = kcat
-        self.km = km
-        self.mass = mass
+        self._default_kcat = kcat
+        self._default_km = km
+        self._default_mass = mass
+
+    def AllKMs(self):
+        return []
     
+    def AllKCats(self):
+        return []
+    
+    def AllMasses(self):
+        return []
+
     def GetKcat(self, reaction_id):
-        return self.kcat
+        return self._default_kcat
     
     def GetKm(self, reaction_id, compound_id):
-        return self.km
+        return self._default_km
     
     def GetMassPerActiveSite(self, reaction_id):
-        return self.mass
+        return self._default_mass
     
     def GetKcats(self, reaction_ids):
         N = len(reaction_ids)
-        return np.matrix(np.ones((1, N))) * self.kcat
+        return np.matrix(np.ones((1, N))) * self._default_kcat
     
     def GetKms(self, reaction_ids, compound_ids):
         M = len(compound_ids)
         N = len(reaction_ids)
-        return np.matrix(np.ones((M,N))) * self.km
+        return np.matrix(np.ones((M,N))) * self._default_km
     
     def GetMassesPerActiveSite(self, reaction_ids):
         N = len(reaction_ids)
-        return np.matrix(np.ones((1, N))) * self.mass
+        return np.matrix(np.ones((1, N))) * self._default_mass
 
 
 class KineticDataWithDefault(BaseKineticData):
@@ -175,12 +234,23 @@ class KineticDataWithDefault(BaseKineticData):
             default_km: the global michaelis constant to use (Molar).
             default_mass: the default enzyme mass per active site.
         """
-        self.default_kcat = default_kcat
-        self.default_km = default_km
-        self.default_mass = default_mass
+        self._default_kcat = default_kcat
+        self._default_km = default_km
+        self._default_mass = default_mass
         self.kcats = {}
         self.kms = {}
         self.masses = {}
+
+    def AllKMs(self):
+        for key, km in self.kms.iteritems():
+            rid, cid = key
+            yield rid, cid, km
+    
+    def AllKCats(self):
+        return self.kcats.iteritems()
+    
+    def AllMasses(self):
+        return self.masses.iteritems()
     
     def SetKcat(self, reaction_id, kcat):
         self.kcats[reaction_id] = kcat
@@ -190,15 +260,6 @@ class KineticDataWithDefault(BaseKineticData):
     
     def SetMass(self, reaction_id, mass):
         self.masses[reaction_id] = mass
-        
-    def SetDefaultKcat(self, default_kcat):
-        self.default_kcat = default_kcat
-    
-    def SetDefaultKM(self, default_km):
-        self.default_km = default_km
-        
-    def SetDefaultMass(self, default_mass):
-        self.default_mass = default_mass
     
     @staticmethod
     def FromArrenFile(filename):

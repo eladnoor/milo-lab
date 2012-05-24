@@ -1,9 +1,8 @@
 #!/usr/bin/python
 
-import cvxmod
+import cvxpy
 import numpy as np
 
-from cvxmod import atoms
 from pygibbs.metabolic_modelling import bounds
 from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.thermodynamic_constants import default_T, R
@@ -46,27 +45,6 @@ class ConcentrationOptimizer(object):
         return bounds.Bounds(default_lb=self.DEFAULT_CONC_LB,
                              default_ub=self.DEFAULT_CONC_UB)
 
-    def _LnConcentrationBounds(self, bounds):
-        """Make bounds on concentrations from the Bounds object.
-        
-        Args:
-            bounds: a Bounds objects for concentrations.
-        
-        Returns:
-            A 2-tuple (lower bounds, upper bounds) as cvxmod.matrix objects.
-        """
-        ln_conc_lb = np.matrix(np.zeros((1, self.Ncompounds)))
-        ln_conc_ub = np.matrix(np.zeros((1, self.Ncompounds)))
-        
-        for i, c in enumerate(self.compounds):
-            ln_conc_lb[0, i] = bounds.GetLowerBound(c)
-            ln_conc_ub[0, i] = bounds.GetUpperBound(c)
-        
-        ln_conc_lb = np.log(ln_conc_lb)
-        ln_conc_ub = np.log(ln_conc_ub)
-        
-        return cvxmod.matrix(ln_conc_lb), cvxmod.matrix(ln_conc_ub)
-
     def MinimizeConcentration(self, metabolite_index=None,
                               concentration_bounds=None):
         """Finds feasible concentrations minimizing the concentration
@@ -77,42 +55,49 @@ class ConcentrationOptimizer(object):
                 if == None, minimize the sum of all concentrations.
             concentration_bounds: the Bounds objects setting concentration bounds.
         """
-        problem = cvxmod.problem()
         my_bounds = concentration_bounds or self.DefaultConcentrationBounds()
-        
-        # Constrain concentrations
-        ln_conc = cvxmod.optvar('lnC', rows=1, cols=self.Ncompounds)
+
+        ln_conc = cvxpy.variable(m=1, n=self.Ncompounds, name='lnC')
         ln_conc_lb, ln_conc_ub = my_bounds.GetLnBounds(self.compounds)
-        ln_conc_lb = cvxmod.matrix(ln_conc_lb)
-        ln_conc_ub = cvxmod.matrix(ln_conc_ub)
-        problem.constr.append(ln_conc >= ln_conc_lb)
-        problem.constr.append(ln_conc <= ln_conc_ub)
+        constr = [cvxpy.geq(ln_conc, cvxpy.matrix(ln_conc_lb)),
+                  cvxpy.leq(ln_conc, cvxpy.matrix(ln_conc_ub))]
         
-        # Make the objective
+        my_dG0_r_primes = np.matrix(self.dG0_r_prime)
         
         # Make flux-based constraints on reaction free energies.
         # All reactions must have negative dGr in the direction of the flux.
         # Reactions with a flux of 0 must be in equilibrium.
-        S = cvxmod.matrix(self.S)
+        S = np.matrix(self.S)
         
         for i, flux in enumerate(self.fluxes):
-            curr_dg0 = self.dG0_r_prime[0, i]
+            
+            curr_dg0 = my_dG0_r_primes[0, i]
             # if the dG0 is unknown, this reaction imposes no new constraints
             if np.isnan(curr_dg0):
                 continue
             
-            curr_dgr = curr_dg0 + RT * ln_conc * S[:, i]
+            rcol = cvxpy.matrix(S[:, i])
+            curr_dgr = curr_dg0 + RT * ln_conc * rcol
             if flux == 0:
-                problem.constr.append(curr_dgr == 0)
-            else:                
-                problem.constr.append(curr_dgr <= 0)
+                constr.append(cvxpy.eq(curr_dgr, 0.0))
+            else:
+                constr.append(cvxpy.leq(curr_dgr, 0.0))        
         
+        objective = None
         if metabolite_index is not None:
             my_conc = ln_conc[0, metabolite_index]
-            problem.objective = cvxmod.minimize(atoms.exp(my_conc))
+            objective = cvxpy.minimize(cvxpy.exp(my_conc))
         else:
-            problem.objective = cvxmod.minimize(
-                cvxmod.sum(atoms.exp(ln_conc)))
+            objective = cvxpy.minimize(
+                cvxpy.sum(cvxpy.exp(ln_conc)))
+        
+        name = 'CONC_OPT'
+        if metabolite_index:
+            name = 'CONC_%d_OPT' % metabolite_index
+        problem = cvxpy.program(objective, constr, name=name)
+        optimum = problem.solve(quiet=True)        
+
+        """
         status = problem.solve(quiet=True)
         if status != 'optimal':
             status = optimized_pathway.OptimizationStatus.Infeasible(
@@ -120,9 +105,8 @@ class ConcentrationOptimizer(object):
             return ConcentrationOptimizedPathway(
                 self._model, self._thermo,
                 my_bounds, optimization_status=status)
-                    
-        optimum = cvxmod.value(problem)
-        opt_ln_conc = np.array(cvxmod.value(ln_conc))
+        """
+        opt_ln_conc = np.matrix(np.array(ln_conc.value))
         result = ConcentrationOptimizedPathway(
             self._model, self._thermo,
             my_bounds, optimal_value=optimum,
