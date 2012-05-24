@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
 import logging
+import numpy as np
 import sys
 
 from optparse import OptionParser
 from os import path
 
 from pygibbs.metabolic_modelling import kinetic_data
+from pygibbs.metabolic_modelling import feasible_concentrations_iterator
 from pygibbs.metabolic_modelling import protein_optimizer
 from pygibbs.metabolic_modelling import thermodynamic_data
 from pygibbs import kegg
@@ -14,6 +16,7 @@ from pygibbs import thermodynamic_estimators
 from pygibbs import pathway
 from pygibbs import templates
 from toolbox import util
+from toolbox import stats
 
 
 def MakeOpts():
@@ -49,6 +52,7 @@ def MakeOpts():
 
 
 def Main():
+    np.seterr('raise')
     options, _ = MakeOpts().parse_args(sys.argv)
     estimators = thermodynamic_estimators.LoadAllEstimators()
     
@@ -103,27 +107,69 @@ def Main():
         model_bounds = pathway_data.GetBounds()
 
         opt = protein_optimizer.ProteinOptimizer(model, thermo_data, kin_data)
+        it = feasible_concentrations_iterator.FeasibleConcentrationsIterator(
+            model, thermo_data, model_bounds)
         
         # Now solve with the default initial conditions.
-        result = opt.FindOptimum(model_bounds)
-        status = result.status
-        if status.failure:          
-            print '\tFailed to optimize', pathway_data.name
+        success = None
+        result = None
+        optima = []
+        for i, x0 in enumerate(it):
+            result = opt.FindOptimum(model_bounds, initial_concentrations=x0)
+            status = result.status
+            print '\t%s optimization %d' % (pathway_data.name, i)
+            if status.failure:          
+                print '\tFailed to optimize', pathway_data.name
+                print '\t%s' % status
+            elif status.infeasible:      
+                print '\t', pathway_data.name, 'is infeasible!'
+                print '\t%s' % status
+            else:
+                print '\t*Optimization successful'
+                optima.append(result.opt_val)
+                if not success:
+                    success = result
+                elif result.opt_val < success.opt_val:
+                    success = result
         
-        if status.infeasible:            
-            print '\t', pathway_data.name, 'is infeasible!'
+        mean, error = None, None
+        if optima:
+            try:
+                mean, error = stats.MeanWithConfidenceInterval(optima)
+            except Exception, e:
+                mean, error = None, None
+                print optima
+        result_dict = {'result': None,
+                       'num_optima': len(optima),
+                       'mean_opt': mean,
+                       'error': error}
         
-        result.WriteAllGraphs(pathgraph_dir)
-        results.append(result)
+        if success is not None:
+            success.WriteAllGraphs(pathgraph_dir)
+            result_dict['result'] = success
         
-        cost = result.opt_val
-        if cost is not None:
-            print '\tProtein Cost for', pathway_data.name, '= %.2g' % cost
-    
+            cost = success.opt_val
+            if cost is not None:
+                print '\t*Protein Cost for', pathway_data.name, '= %.2g' % cost
+            if optima:
+                print 'Found', len(optima), 'near-optima for', pathway_data.name 
+                optima = np.array(optima)
+                mean_opt = np.mean(optima)
+                mean_diff = np.mean(np.abs(optima - mean_opt))
+                print 'Mean optimum', mean_opt
+                print 'Mean diff from mean', mean_diff
+                print 'Percent diff %s%%' % (100*mean_diff / mean_opt)
+                print 'StdDev opt', np.std(optima)
+        else:
+            # Use default conditions to show the failure
+            res = opt.FindOptimum(model_bounds)
+            result_dict['result'] = res            
+        results.append(result_dict)
     
     output_filename = path.join(out_dir, 'results.html')
     print 'Writing output to', output_filename
     template_data = {'analysis_type': 'Protein Cost',
+                     'kinetic_data': kin_data,
                      'results':results}
     templates.render_to_file('protein_optimization_results.html',
                              template_data,

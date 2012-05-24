@@ -3,6 +3,7 @@
 import numpy as np
 
 from pygibbs.kegg import Kegg
+from toolbox import util
 
 
 class StoichiometricModel(object):
@@ -32,6 +33,7 @@ class StoichiometricModel(object):
         self.Nr = len(self.reaction_ids)
         self.Nc = len(self.compound_ids)
         self.name = name
+        self.slug_name = util.slugify(self.name)
         
         self.fluxes = np.array(fluxes)
         if fluxes is None:

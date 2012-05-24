@@ -4,7 +4,6 @@ import numpy as np
 
 from pygibbs.metabolic_modelling import concentration_optimizer
 from pygibbs.metabolic_modelling import mtdf_optimizer
-from pygibbs.metabolic_modelling import optimized_pathway
 from pygibbs.thermodynamic_constants import default_T, R
 
 RT = R * default_T
@@ -32,8 +31,9 @@ class FeasibleConcentrationsIterator(object):
         
         # Bail entirely if the pathway is infeasible.
         status = res.status
-        if status.IsInfeasible():
+        if status.IsInfeasible() or not res.ThermoFeasible():
             return
+        
         # Only return data on successful optimization
         if status.IsSuccessful():
             yield np.matrix(res.ln_concentrations)

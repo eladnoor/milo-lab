@@ -31,7 +31,9 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
     def GetReactionDict(self, i, rid):
         d = optimized_pathway.OptimizedPathway.GetReactionDict(self, i, rid)
         d['kcat'] = self.kinetic_data.GetKcat(rid)
-        d['protein_level'] = self.protein_levels[0, i]
+        d['protein_level'] = None
+        if self.protein_levels is not None:
+            d['protein_level'] = self.protein_levels[0, i]
         return d
     
     def ProteinLevelsList(self):
@@ -51,10 +53,8 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
             return
         
         pylab.figure()
-        
-        pylab.yscale('log')
-        cum_levels = list(np.cumsum(self.protein_levels).flat)
-        rxn_range = pylab.arange(len(self.reaction_ids))
+        cum_levels = [0] + list(np.cumsum(self.protein_levels).flat)
+        rxn_range = pylab.arange(len(self.reaction_ids) + 1)
         pylab.plot(rxn_range, cum_levels, 'b-')
         pylab.xticks(rxn_range + 0.5, self.reaction_ids)
         pylab.ylabel('Cumulative Grams Protein / Pathway Flux Unit')
@@ -102,7 +102,8 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
         fourth_rung = fourth_height - third_height
 
         pylab.bar(rxn_range, bottom_rung,
-                  color='w', edgecolor='k',
+                  fill=False, edgecolor='w',
+                  #hatch='/',
                   label='Due to maximal rate')
         pylab.bar(rxn_range, second_rung, bottom=first_height,
                   color='#FF5D40', edgecolor='w',
@@ -118,7 +119,8 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
                      fontproperties=optimized_pathway.TICK_FONT)
         pylab.xlabel('Reaction Step')
         pylab.ylabel('Grams Protein / Flux Unit (total %.2g, mean %.2g)' % (total, mean))
-        #pylab.ylim((100, 1e4))
+        pylab.ylim((100, 1e4))
+        pylab.xlim((0, len(self.reaction_ids)-0.01))
         pylab.legend(loc='upper left', prop=LEGEND_FONT)
         
         outfname = path.join(dirname, self.protein_level_filename)

@@ -123,7 +123,12 @@ class OptimizedPathway(object):
         Efficiency = (J+ - J-) / (J- + J+)
         According to the formula of Beard and Qian
         """
+        if dg_tag is None:
+            return None
         return np.tanh(-dg_tag / (2*RT))
+
+    def ThermoFeasible(self):
+        return (self.dGr_tag < 0).all()
 
     def GetOptimizationType(self):
         return self.OPTIMIZATION_TYPE
@@ -140,7 +145,7 @@ class OptimizedPathway(object):
         
         Args:
             dirname: the name of the directory to write it to.
-        """
+        """    
         pylab.figure()
         pylab.xscale('log')
         pylab.ylabel('Compound KEGG ID')
@@ -169,9 +174,9 @@ class OptimizedPathway(object):
                        '-k', linewidth=0.4)
 
         c_range = self.bounds.GetRange()
-        if c_range is not None:
-            pylab.axvspan(c_range[0], c_range[1],
-                          facecolor='r', alpha=0.3)
+        #if c_range is not None:
+        #    pylab.axvspan(c_range[0], c_range[1],
+        #                  facecolor='r', alpha=0.3)
         pylab.axis([x_min, x_max, y_min, y_max])
         
         outfname = path.join(dirname, self.conc_profile_filename)
@@ -202,7 +207,7 @@ class OptimizedPathway(object):
         pylab.ylabel('Cumulative dG (kJ/mol)')
         pylab.legend(loc='upper right', prop=LEGEND_FONT)
         #pylab.ylim((-160, 10))
-        pylab.xlim((0, len(self.reaction_ids)-1))
+        #pylab.xlim((0, len(self.reaction_ids)-1))
         pylab.grid(b=True)
         
         outfname = path.join(dirname, self.thermo_profile_filename)
@@ -246,11 +251,11 @@ class OptimizedPathway(object):
         """Generator for reactions objects in this pathways model.
         
         Yields:
-            kegg_reaction.Reaction objects in order defined.
+            Tuple (kegg_reaction.Reaction, flux) in order defined.
         """
         for i, rid in enumerate(self.reaction_ids):
             col = np.array(self.S[:,i]).flat
-            yield self.MakeReaction(rid, col)
+            yield self.MakeReaction(rid, col), self.fluxes[i]
     reaction_objects = property(GetReactionObjects)
 
     def GetDGrZeroTag(self):
@@ -263,6 +268,8 @@ class OptimizedPathway(object):
     
     def ConcentrationsList(self):
         """Returns a list of optimum concentrations in order."""
+        if self.concentrations is None:
+            return None
         return list(self.concentrations.flat)
 
     def CompoundNames(self):
@@ -274,19 +281,21 @@ class OptimizedPathway(object):
         """Yields dictionaries describing compounds in the model."""        
         names = self.CompoundNames()
         concentrations = self.ConcentrationsList()
-        for i, id in enumerate(self.compound_ids):
-            ub = self.bounds.GetUpperBound(id)
-            lb = self.bounds.GetLowerBound(id)
+        for i, cid in enumerate(self.compound_ids):
+            ub = self.bounds.GetUpperBound(cid)
+            lb = self.bounds.GetLowerBound(cid)
             
-            conc = concentrations[i]
+            conc = None
             conc_class = None
-            if ub == lb:
-                conc_class = 'fixedConc'
-            elif abs(ub-conc) < 1e-9:
-                conc_class = 'concAtUB'
-            elif abs(conc-lb) < 1e-9:
-                conc_class = 'concAtLB'
-            d = {'id': id,
+            if concentrations:
+                conc = concentrations[i]
+                if ub == lb:
+                    conc_class = 'fixedConc'
+                elif abs(ub-conc) < 1e-9:
+                    conc_class = 'concAtUB'
+                elif abs(conc-lb) < 1e-9:
+                    conc_class = 'concAtLB'
+            d = {'id': cid,
                  'name': names[i],
                  'concentration': conc,
                  'class': conc_class,
@@ -304,8 +313,12 @@ class OptimizedPathway(object):
         return list(self.dGr_tag.flatten())
 
     def GetReactionDict(self, i, rid):
-        dg0_tag = self.dGr0_tag_list[i]
-        dg_tag = self.dGr_tag_list[i]
+        dg0_tag = None
+        dg_tag  = None
+        if self.dGr0_tag is not None:
+            dg0_tag = self.dGr0_tag_list[i]
+        if self.dGr_tag_list is not None:
+            dg_tag = self.dGr_tag_list[i]
         d = {'id': rid,
              'dGr0_tag': dg0_tag,
              'dGr_tag': dg_tag,
@@ -319,8 +332,6 @@ class OptimizedPathway(object):
 
     def ReactionDetails(self):
         """Yields dictionaries describing reactions in the model."""        
-        dGr0_tags = self.ReactionStandardEnergyList()
-        dGr_tags = self.ReactionTransformedEnergyList()
         for i, rid in enumerate(self.reaction_ids):
             yield self.GetReactionDict(i, rid)
     reaction_details = property(ReactionDetails)
