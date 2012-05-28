@@ -104,3 +104,8 @@ class RedoxCarriers(dict):
             ref = row['ref']
             self[name] = RedoxCarrier(cid_ox, cid_red, nH_ox, nH_red, 
                                       z_ox, z_red, E0_prime, pH, ref)
+
+    def GetAllCids(self):
+        cids_ox = [val.cid_ox for val in self.values()]
+        cids_red = [val.cid_red for val in self.values()]
+        return set(cids_ox + cids_red)
