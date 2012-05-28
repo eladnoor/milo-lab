@@ -2,7 +2,7 @@ import csv, logging, sys, time, threading
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel,\
-    default_pH, RedoxCarriers
+    default_pH
 import numpy as np
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
@@ -870,7 +870,6 @@ class DissociationThreads(threading.Thread):
 
         self.semaphore.release()
 
-        
 ###############################################################################
 
 def MakeOpts():
@@ -889,27 +888,34 @@ def MakeOpts():
                           dest="n_threads",
                           default=1,
                           help="Number of threads to use in parallel for calculating pKas")
+    opt_parser.add_option("-d", "--database", action="store",
+                          dest="db_file",
+                          default="../data/public_data.sqlite",
+                          help="The SQLite database to write to")
+    opt_parser.add_option("-t", "--table_name", action="store",
+                          dest="table_name",
+                          default="dissociation_constants",
+                          help="The name of the DB table for the results")
     return opt_parser
 
 
 def main():
     options, _ = MakeOpts().parse_args(sys.argv)
-    db = SqliteDatabase('../data/public.sqlite')
+    db = SqliteDatabase(options.db_file)
     kegg = Kegg.getInstance()
-    nist = Nist()
-    table_name = "dissociation_constants"
     
     if options.override_table:
-        db.Execute("DROP TABLE IF EXISTS " + table_name)
+        db.Execute("DROP TABLE IF EXISTS " + options.table_name)
     
-    DissociationConstants._CreateDatabase(db, table_name, drop_if_exists=options.override_table)
+    DissociationConstants._CreateDatabase(db, options.table_name, drop_if_exists=options.override_table)
 
     if options.nist:
+        nist = Nist()
         cids_to_calculate = set(nist.GetAllCids())
     else:
         cids_to_calculate = set(kegg.get_all_cids())
 
-    for row in db.Execute("SELECT distinct(cid) FROM %s" % table_name):
+    for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
         cids_to_calculate.remove(row[0])
     
     cid2smiles_and_mw = {}
@@ -926,6 +932,7 @@ def main():
                           (kegg.cid2name(cid), cid))
         
     # Do not recalculate pKas for CIDs that are already in the database
+    cids_to_calculate = cid2smiles_and_mw.keys()
     cids_to_calculate.sort(key=lambda(cid):(cid2smiles_and_mw[cid][1], cid))
     
     db_lock = threading.Lock()
