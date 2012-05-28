@@ -2,7 +2,7 @@ import csv, logging, sys, time, threading
 from pygibbs.kegg import Kegg
 from toolbox.database import SqliteDatabase
 from pygibbs.thermodynamic_constants import R, default_T, dG0_f_Mg, debye_huckel,\
-    default_pH
+    default_pH, RedoxCarriers
 import numpy as np
 from toolbox.util import log_sum_exp
 from pygibbs.pseudoisomer import PseudoisomerMap
@@ -11,6 +11,7 @@ from pygibbs.kegg_errors import KeggParseException
 from optparse import OptionParser
 from toolbox.molecule import OpenBabelError
 from pygibbs.nist import Nist
+from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 
 class MissingDissociationConstantError(Exception):
     
@@ -909,17 +910,27 @@ def main():
     
     DissociationConstants._CreateDatabase(db, options.table_name, drop_if_exists=options.override_table)
 
+    cids_to_calculate = set()
     if options.nist:
-        nist = Nist()
-        cids_to_calculate = set(nist.GetAllCids())
+        cids_to_calculate.update(Nist().GetAllCids())
+        cids_to_calculate.update(RedoxCarriers().GetAllCids())
+        
+        ptable = PsuedoisomerTableThermodynamics.FromCsvFile("../data/thermodynamics/formation_energies.csv")
+        cids_to_calculate.update(ptable.get_all_cids())
     else:
-        cids_to_calculate = set(kegg.get_all_cids())
+        cids_to_calculate.update(kegg.get_all_cids())
 
     for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
         cids_to_calculate.remove(row[0])
     
     cid2smiles_and_mw = {}
     for cid in cids_to_calculate:
+        # the compound CO is a special case where the conversion from InChI
+        # to SMILES fails, so we add a specific override for it only
+        if cid == 237:
+            cid2smiles_and_mw[cid] = ("[C-]#[O+]", 28)
+            continue
+        
         try:
             comp = kegg.cid2compound(cid)
             mol = comp.GetMolecule()
@@ -948,4 +959,5 @@ def main():
         thread.start()
         
 if __name__ == '__main__':
+    logging.getLogger('').setLevel(logging.DEBUG)
     main()
