@@ -1,6 +1,5 @@
-import logging
-import subprocess
-import os
+import logging, itertools, subprocess, os
+import numpy as np
 
 CXCALC_BIN = "/usr/bin/cxcalc"
 
@@ -91,7 +90,7 @@ def _GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH_list=None):
     return sorted(all_pKas), smiles_list
 
 def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7,
-                             calculate_all_ms=False):
+                             calculate_all_ms=False, transform_multiples=True):
     """
         Arguments:
             molstring - a text description of the molecule (SMILES or InChI)
@@ -132,9 +131,57 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7,
     diss_table = []
     for i, pKa in enumerate(all_pKas):
         diss_table.append((pKa, smiles_list[i], smiles_list[i+1]))
+    
+    if transform_multiples:
+        diss_table= _TransformMultiples(diss_table)
     return diss_table, major_ms
 
+def _TransformMultiples(diss_table):
+    """
+        There are two ways to interpret the pKa values coming from ChemAxon.
+        One way is to say each one corresponds to a specific protonation site,
+        and represents the equilibrium constant for that site (regardless of the
+        environment).
+        The other way is to say each pKa is the equilibrium between the family 
+        of species with some nH and the family of species with nH+1.
+        
+        This method will take ChemAxon results, and recalculate the pKas assuming
+        the first interpretation is correct. The return value will look exactly 
+        the same as the input (i.e. a diss_table) but the pKas will
+        now represent the sum of all pseudoisomers in the relevant charge groups.
+    """
+    # sort in descending order of pKa, i.e. ascending dG0 (which corresponds to
+    # ascending nH). The first value in this vector will be the difference in 
+    # dG0 between the species with the smallest nH and nH+1. 
+    diss_table = sorted(diss_table, key=lambda x: -x[0])
+    
+    # Ka[i] = [i][H+]/[i+1]
+    Ka_list = [10**(-pKa) for (pKa, _, _) in diss_table]
+
+    relative_conc = [1]
+    # In this case, we must calculate the ddG0 for all pseudoisomers with the
+    # same nH (i.e. combinatorically using all protonations states which sum
+    # up to a specific value). The product of the Ka values is the ratio between
+    # that species and the fully deprotonated one.
+    for i in xrange(len(Ka_list)):
+        sum_conc = 0
+        for Ka_subset in itertools.combinations(Ka_list, i+1): # all choices of i values from the Ka list
+            sum_conc += np.prod(Ka_subset)
+        relative_conc.append(sum_conc)
+        Ka_i = relative_conc[i+1] / relative_conc[i]
+        (_, smiles1, smiles2) = diss_table[i]
+        diss_table[i] = (-np.log10(Ka_i), smiles1, smiles2)
+    
+    return diss_table
+
 if __name__ == "__main__":
+    
+    diss_table_example = [(4.0,None,None), (4.01, None, None), (9, None, None)]
+    new_diss_table = _TransformMultiples(diss_table_example)
+    
+    print diss_table_example
+    print new_diss_table
+    
     from toolbox.molecule import Molecule
     compound_list = [('glycine', 'C(=O)(O)CN'),
                      ('CO2', 'O=C=O'),
@@ -142,6 +189,9 @@ if __name__ == "__main__":
                      ('3-Ketoarabinitol', 'OCC(O)C(C(O)CO)=O')]
     
     for name, smiles in compound_list:
-        diss_table, major_ms = GetDissociationConstants(smiles)
+        diss_table, major_ms = GetDissociationConstants(smiles, transform_multiples=False)
+        diss_table2 = _TransformMultiples(diss_table)
         m = Molecule.FromSmiles(major_ms)
-        print name, m.ToInChI(), diss_table
+        print name, m.ToInChI()
+        for i in xrange(len(diss_table)):
+            print diss_table[i][0], diss_table2[i][0]
