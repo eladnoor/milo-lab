@@ -10,6 +10,7 @@ from pygibbs.pseudoisomers_data import PseudoisomerEntry
 from pygibbs.kegg_errors import KeggParseException
 from optparse import OptionParser
 from toolbox.molecule import OpenBabelError
+from pygibbs.nist import Nist
 
 class MissingDissociationConstantError(Exception):
     
@@ -875,40 +876,15 @@ class DissociationThreads(threading.Thread):
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
-    opt_parser.add_option("-r", "--redox", action="store_true",
-                          dest="redox", default=False,
-                          help="Add rows for all redox carriers which are not already in the table")
-    opt_parser.add_option("-k", "--kegg", action="store_true",
-                          dest="kegg", default=False,
-                          help="Calculate pKas all KEGG compounds (if False, calculates only for NIST compounds)")
-    opt_parser.add_option("-s", "--smiles_file", action="store",
-                          dest="smiles_file",
-                          default="../data/kegg/smiles.csv",
-                          help="CSV file containing CIDs and SMILES strings")
-    opt_parser.add_option("-f", "--dissociation_file", action="store",
-                          dest="dissociation_file",
-                          default=None,
-                          help="Copy all pKas from an input CSV file (overrides using ChemAxon)")
-    opt_parser.add_option("-d", "--database", action="store",
-                          dest="db_file",
-                          default="../data/public_data.sqlite",
-                          help="The SQLite database to write to")
-    opt_parser.add_option("-t", "--table_name", action="store",
-                          dest="table_name",
-                          default="dissociation_constants",
-                          help="The name of the DB table for the results")
+    opt_parser.add_option("-n", "--nist", action="store_true",
+                          dest="nist",
+                          default=False,
+                          help="Calculate pKas only for the compounds in NIST"
+                               " (otherwise use entire KEGG database)")
     opt_parser.add_option("-o", "--override", action="store_true",
                           dest="override_table",
                           default=False,
                           help="Drop the DB table and start from scratch")
-    opt_parser.add_option("-c", "--cid", action="store", type="int",
-                          dest="cid",
-                          default=None,
-                          help="Calculate the dissociation table for a single KEGG compound")
-    opt_parser.add_option("-e", "--export_csv", action="store",
-                          dest="export_csv",
-                          default=None,
-                          help="Export all data from the database to CSV file")
     opt_parser.add_option("-p", "--threads", action="store", type="int",
                           dest="n_threads",
                           default=1,
@@ -918,78 +894,38 @@ def MakeOpts():
 
 def main():
     options, _ = MakeOpts().parse_args(sys.argv)
-    db = SqliteDatabase(options.db_file)
+    db = SqliteDatabase('../data/public.sqlite')
     kegg = Kegg.getInstance()
+    nist = Nist()
+    table_name = "dissociation_constants"
     
-    logging.info("Using SQLite database: " + options.db_file)
-    logging.info("Writing to table: " + options.table_name)
-
     if options.override_table:
-        db.Execute("DROP TABLE IF EXISTS " + options.table_name)
+        db.Execute("DROP TABLE IF EXISTS " + table_name)
     
-    if options.dissociation_file:
-        logging.info("Copying the data from %s to the database, table %s" % 
-                     (options.dissociation_file, options.table_name))
-        DissociationConstants.FromFileToDB(options.dissociation_file, 
-            db, options.table_name)
-        sys.exit(0)
+    DissociationConstants._CreateDatabase(db, table_name, drop_if_exists=options.override_table)
 
-    DissociationConstants._CreateDatabase(db, options.table_name, drop_if_exists=options.override_table)
-
-    cids_in_database = set()
-    for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
-        cids_in_database.add(row[0])
-
-    cid2smiles_and_mw = {}
-    for row in csv.DictReader(open(options.smiles_file, 'r')):
-        cid, smiles = int(row['cid']), row['smiles']
-        logging.debug("Overriding the SMILES of C%05d with: %s" % (cid, smiles))
-        # always start with the compounds in the CSV file, no matter what their MW is
-        cid2smiles_and_mw[cid] = (smiles, -1)
-        
-    if options.export_csv is not None:
-        logging.info("Exporting data from database to " + options.export_csv)
-        db.Table2CSV(options.export_csv, options.table_name)
-        sys.exit(0)
-
-    if options.redox:
-        redox_carriers = RedoxCarriers()
-        rows = []
-        for name, rc in redox_carriers.iteritems():
-            if rc.cid_ox not in cids_in_database:
-                rows.append([rc.cid_ox, 'oxidized ' + name, rc.nH_ox, rc.nH_ox,
-                             0, 0, rc.z_ox, rc.z_ox, None, None, 0, rc.ref])
-            if rc.cid_red not in cids_in_database:
-                rows.append([rc.cid_red, 'reduced ' + name, rc.nH_red, rc.nH_red,
-                             0, 0, rc.z_red, rc.z_red, None, None, 0, rc.ref])
-        
-        for l in rows:
-            db.Insert(options.table_name, l)
-        db.Commit()
-        sys.exit(0)
-    
-    if options.cid:
-        if options.cid not in cid2smiles_and_mw:
-            raise Exception("Cannot find the SMILES for C%05d" % options.cid)
-        cids_to_calculate = set([options.cid])
+    if options.nist:
+        cids_to_calculate = set(nist.GetAllCids())
     else:
-        if options.kegg:
-            all_cids = set(kegg.get_all_cids())
-            for cid in all_cids.difference(cid2smiles_and_mw.keys()):
-                try:
-                    comp = kegg.cid2compound(cid)
-                    mol = comp.GetMolecule()
-                    cid2smiles_and_mw[cid] = (mol.ToSmiles(), mol.GetExactMass())
-                except KeggParseException:
-                    logging.debug("%s (C%05d) has no SMILES, skipping..." %
-                                  (kegg.cid2name(cid), cid))
-                except OpenBabelError:
-                    logging.debug("%s (C%05d) cannot be converted to SMILES, skipping..." %
-                                  (kegg.cid2name(cid), cid))
-        cids_to_calculate = set(cid2smiles_and_mw.keys())
+        cids_to_calculate = set(kegg.get_all_cids())
+
+    for row in db.Execute("SELECT distinct(cid) FROM %s" % table_name):
+        cids_to_calculate.remove(row[0])
+    
+    cid2smiles_and_mw = {}
+    for cid in cids_to_calculate:
+        try:
+            comp = kegg.cid2compound(cid)
+            mol = comp.GetMolecule()
+            cid2smiles_and_mw[cid] = (mol.ToSmiles(), mol.GetExactMass())
+        except KeggParseException:
+            logging.debug("%s (C%05d) has no SMILES, skipping..." %
+                          (kegg.cid2name(cid), cid))
+        except OpenBabelError:
+            logging.debug("%s (C%05d) cannot be converted to SMILES, skipping..." %
+                          (kegg.cid2name(cid), cid))
         
     # Do not recalculate pKas for CIDs that are already in the database
-    cids_to_calculate = list(cids_to_calculate.difference(cids_in_database))
     cids_to_calculate.sort(key=lambda(cid):(cid2smiles_and_mw[cid][1], cid))
     
     db_lock = threading.Lock()
