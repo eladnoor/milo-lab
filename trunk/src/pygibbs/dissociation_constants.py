@@ -921,7 +921,8 @@ def main():
         cids_to_calculate.update(kegg.get_all_cids())
 
     for row in db.Execute("SELECT distinct(cid) FROM %s" % options.table_name):
-        cids_to_calculate.remove(row[0])
+        if row[0] in cids_to_calculate:
+            cids_to_calculate.remove(row[0])
     
     cid2smiles_and_mw = {}
     for cid in cids_to_calculate:

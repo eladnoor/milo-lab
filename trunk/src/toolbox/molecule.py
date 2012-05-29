@@ -399,7 +399,8 @@ class Molecule(object):
 
     @staticmethod
     def _GetDissociationTable(molstring, fmt='inchi', mid_pH=default_pH, 
-                              min_pKa=0, max_pKa=14, T=default_T):
+                              min_pKa=0, max_pKa=14, T=default_T,
+                              transform_multiples=False):
         """
             Returns the relative potentials of pseudoisomers,
             relative to the most abundant one at pH 7.
@@ -410,7 +411,7 @@ class Molecule(object):
         diss_table = DissociationTable()
         try:
             pKa_table, major_ms = chemaxon.GetDissociationConstants(molstring, 
-                                                                    mid_pH=mid_pH)
+                mid_pH=mid_pH, transform_multiples=transform_multiples)
 
             mol = Molecule.FromSmiles(major_ms)
             nH, z = mol.GetHydrogensAndCharge()
