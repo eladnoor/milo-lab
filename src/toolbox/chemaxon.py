@@ -62,7 +62,8 @@ def ParsePkaOutput(s, n_acidic, n_basic, pH_list):
     smiles_list = splitline
     return atom2pKa, smiles_list
 
-def _GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH_list=None):
+def _GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH_list=None,
+                              transform_multiples=False):
     """
         Returns:
             A pair of (pKa list, major pseudoisomer)
@@ -87,10 +88,13 @@ def _GetDissociationConstants(molstring, n_acidic=10, n_basic=10, pH_list=None):
     for pKa_list in atom2pKa.values():
         all_pKas += [pKa for pKa, _ in pKa_list]
     
+    if transform_multiples:
+        all_pKas = _TransformMultiples(all_pKas)
+        
     return sorted(all_pKas), smiles_list
 
 def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7,
-                             calculate_all_ms=False, transform_multiples=True):
+                             calculate_all_ms=False, transform_multiples=False):
     """
         Arguments:
             molstring - a text description of the molecule (SMILES or InChI)
@@ -108,7 +112,7 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7,
         - major_ms is a SMILES string of the major pseudoisomer at pH_mid 
     """
     all_pKas, smiles_list = _GetDissociationConstants(molstring, n_acidic, 
-                                                    n_basic, [mid_pH])
+        n_basic, [mid_pH], transform_multiples=transform_multiples)
     major_ms = smiles_list[0]
     if all_pKas == []:
         return [], major_ms
@@ -132,11 +136,9 @@ def GetDissociationConstants(molstring, n_acidic=10, n_basic=10, mid_pH=7,
     for i, pKa in enumerate(all_pKas):
         diss_table.append((pKa, smiles_list[i], smiles_list[i+1]))
     
-    if transform_multiples:
-        diss_table= _TransformMultiples(diss_table)
     return diss_table, major_ms
 
-def _TransformMultiples(diss_table):
+def _TransformMultiples(all_pKas):
     """
         There are two ways to interpret the pKa values coming from ChemAxon.
         One way is to say each one corresponds to a specific protonation site,
@@ -149,16 +151,26 @@ def _TransformMultiples(diss_table):
         the first interpretation is correct. The return value will look exactly 
         the same as the input (i.e. a diss_table) but the pKas will
         now represent the sum of all pseudoisomers in the relevant charge groups.
+        
+        Update 29/5/12:
+        It is now quite certain that this transformation is unnecessary. cxcalc
+        itself already does the transformation and the pKa list in the results
+        are for that transformed transitions. The most compelling evidence to this
+        is that when one runs: cxcalc "NCCCCCCCCCCCCCCCCCCCCN" pka
+        Since this is a symmetric and long molecule, the two protonation sites 
+        should have the same specific pKa (no interaction between them).
+        The resulting pKas are 9.90 and 10.51, i.e. there is a difference of 0.6 = log10(4)
+        which is exactly what you get if you transform two identical pKa values.
     """
     # sort in descending order of pKa, i.e. ascending dG0 (which corresponds to
     # ascending nH). The first value in this vector will be the difference in 
     # dG0 between the species with the smallest nH and nH+1. 
-    diss_table = sorted(diss_table, key=lambda x: -x[0])
     
     # Ka[i] = [i][H+]/[i+1]
-    Ka_list = [10**(-pKa) for (pKa, _, _) in diss_table]
+    Ka_list = sorted([10**(-pKa) for pKa in all_pKas])
 
     relative_conc = [1]
+    transformed_pKas = []
     # In this case, we must calculate the ddG0 for all pseudoisomers with the
     # same nH (i.e. combinatorically using all protonations states which sum
     # up to a specific value). The product of the Ka values is the ratio between
@@ -169,14 +181,13 @@ def _TransformMultiples(diss_table):
             sum_conc += np.prod(Ka_subset)
         relative_conc.append(sum_conc)
         Ka_i = relative_conc[i+1] / relative_conc[i]
-        (_, smiles1, smiles2) = diss_table[i]
-        diss_table[i] = (-np.log10(Ka_i), smiles1, smiles2)
+        transformed_pKas.append(-np.log10(Ka_i))
     
-    return diss_table
+    return transformed_pKas
 
 if __name__ == "__main__":
     
-    diss_table_example = [(4.0,None,None), (4.01, None, None), (9, None, None)]
+    diss_table_example = [4.0, 4.0, 4.0]
     new_diss_table = _TransformMultiples(diss_table_example)
     
     print diss_table_example
@@ -189,9 +200,9 @@ if __name__ == "__main__":
                      ('3-Ketoarabinitol', 'OCC(O)C(C(O)CO)=O')]
     
     for name, smiles in compound_list:
-        diss_table, major_ms = GetDissociationConstants(smiles, transform_multiples=False)
-        diss_table2 = _TransformMultiples(diss_table)
+        diss_table1, major_ms = GetDissociationConstants(smiles, transform_multiples=False)
+        diss_table2, major_ms = GetDissociationConstants(smiles, transform_multiples=True)
         m = Molecule.FromSmiles(major_ms)
         print name, m.ToInChI()
-        for i in xrange(len(diss_table)):
-            print diss_table[i][0], diss_table2[i][0]
+        for i in xrange(len(diss_table1)):
+            print "%.2f %.2f" % (diss_table1[i][0], diss_table2[i][0])
