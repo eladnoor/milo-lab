@@ -119,7 +119,8 @@ def main():
     reactions['FEIST'] = Feist.FromFiles().reactions
     reactions['NIST'] = nist.GetUniqueReactionSet()
     
-    pairs = [('hatzi_gc', 'UGC')]#, ('PGC', 'PRC')] # + [('alberty', 'PRC')]
+    pairs = []
+    #pairs += [('hatzi_gc', 'UGC')], ('PGC', 'PRC'), ('alberty', 'PRC')]
     for t1, t2 in pairs:
         logging.info('Writing the NIST report for %s vs. %s' % 
                      (estimators[t1].name, estimators[t2].name))
