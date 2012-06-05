@@ -320,10 +320,10 @@ class NistRegression(PsuedoisomerTableThermodynamics):
             d["Arren Flag"] = flag
 
             if d["diff"] > self.std_diff_threshold:
-                _mkdir('../res/nist/reactions')
-                link = "nist/reactions/%s.html" % reaction.name
+                _mkdir('../res/prc_reactions')
+                link = "prc_reactions/%s.html" % reaction.name
                 d["analysis"] = '<a href="%s">link</a>' % link
-                reaction_html_writer = HtmlWriter(os.path.join('../res/nist', link))
+                reaction_html_writer = HtmlWriter(os.path.join('../res', link))
                 self.AnalyzeSingleReaction(reaction,
                                            html_writer=reaction_html_writer)
             rowdicts.append(d)
@@ -507,7 +507,7 @@ def main():
     html_writer = HtmlWriter(output_filename)
     nist = Nist(T_range=None)
     nist_regression = NistRegression(db, html_writer=html_writer, nist=nist)
-    nist_regression.std_diff_threshold = 20.0 # the threshold over which to print an analysis of a reaction
+    nist_regression.std_diff_threshold = 5 # the threshold over which to print an analysis of a reaction
     #nist_regression.nist.T_range = None(273.15 + 24, 273.15 + 40)
     #nist_regression.nist.override_I = 0.25
     #nist_regression.nist.override_pMg = 14.0

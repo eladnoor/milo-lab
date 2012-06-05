@@ -119,6 +119,8 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 5979,n-propanol,-175.81,,0,8,0,testing,"Alberty (2006)",
 5984,"2-Hydroxybutanoic acid",-506.3,,-1,7,0,testing,"Thauer (1977)",
 6142,n-Butanol,-171.84,,0,10,0,testing,"Alberty (2006)",
+14818,Fe+2,-78.87,,+2,0,0,testing,"Thauer (1977)","inorganic"
+14819,Fe+3,-4.6,,+3,0,0,testing,"Thauer (1977)","inorganic"
 1,H2O,-237.19,-285.83,0,2,0,testing,"Alberty (2006)","too small"
 7,O2(aq),16.4,-11.7,0,0,0,testing,"Alberty (2006)","too small"
 9,Orthophosphate,-1096.1,-1299,-2,1,0,testing,"Alberty (2006)","too small"

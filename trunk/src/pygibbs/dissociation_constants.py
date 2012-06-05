@@ -593,7 +593,7 @@ class DissociationTable(object):
         self.SetCharge(nH, z, nMg)
     
     def UpdateMinNumHydrogens(self, min_nH):
-        if not self.min_nH:
+        if self.min_nH is None:
             self.min_nH = min_nH
         elif self.min_nH > min_nH: 
             self.min_charge -= (self.min_nH - min_nH)
@@ -849,8 +849,11 @@ class DissociationThreads(threading.Thread):
         
         start_time = time.time()
 
+        logging.debug("SMILES: " + self.smiles)
         diss_table = Molecule._GetDissociationTable(self.smiles, fmt='smiles',
             mid_pH=default_pH, min_pKa=0, max_pKa=14, T=default_T)
+        logging.debug("Min charge: %d" % diss_table.min_charge)
+        logging.debug("Min nH: %d" % diss_table.min_nH)
         
         elapsed_time = time.time() - start_time
         self.db_lock.acquire()

@@ -186,10 +186,11 @@ class Thermodynamics(object):
         html_writer.write_table(rowdicts, headers, decimal=1)
     
     def write_chemical_data_to_csv(self, csv_fname):
+        kegg = Kegg.getInstance()
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['name', 'cid', 'nH', 'z', 'nMg', 'dG0'])
         for cid in sorted(self.get_all_cids()):
-            name = self.kegg.cid2name(cid)
+            name = kegg.cid2name(cid)
             try:
                 pdata = self.cid2PseudoisomerMap(cid)
                 for nH, z, nMg, dG0 in pdata.ToMatrix():
@@ -198,13 +199,14 @@ class Thermodynamics(object):
                 logging.warning(str(e))
 
     def write_biochemical_data_to_csv(self, csv_fname):
+        kegg = Kegg.getInstance()
         pH, I, pMg, T = self.GetConditions()
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['name', 'cid', 'pH', 'I', 'pMg', 'T', 'dG0'])
         cids = sorted(self.get_all_cids())
         dG0_prime = self.GetTransformedFormationEnergies(cids)
         for i, cid in enumerate(cids):
-            name = self.kegg.cid2name(cid)
+            name = kegg.cid2name(cid)
             writer.writerow([name, "C%05d" % cid, pH, I, pMg, T,
                              '%.1f' % dG0_prime[0, i]])
 
@@ -362,7 +364,7 @@ class Thermodynamics(object):
             try:
                 self.VerifyReaction(reaction)
                 covered_counter += 1
-            except MissingReactionEnergy:
+            except (MissingReactionEnergy, KeyError):
                 pass
         return covered_counter
     
