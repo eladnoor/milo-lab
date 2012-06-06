@@ -55,6 +55,13 @@ class GenomeDB(object):
             return None
         return q[0][0]
 
+    def NCBI2BroadOxygenReq(self, ncbi_taxon):
+        q = self.db.Execute("SELECT broad_oxygen_requirement FROM organisms WHERE ncbi_taxon_id='%s'" % ncbi_taxon)
+        q = list(q)
+        if not q:
+            return None
+        return q[0][0]
+
     def KEGG2BroadOxygenReq(self, kegg_id):
         q = self.db.Execute("SELECT broad_oxygen_requirement FROM organisms WHERE kegg_id='%s'" % kegg_id)
         q = list(q)

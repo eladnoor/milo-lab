@@ -390,14 +390,26 @@ def Main():
     
     colormap = {'Organic': '#ff0000',
                 'Inorganic': '#00ff00',
-                None: '#0000ff'}
+                'aerobe': '#2861e4',
+                'anaerobe': '#e44228',
+                'facultative': '#e4c328'}
     fname = 'trophism.csv'
     f = open(fname, 'w')
     w = csv.writer(f)
     for l in leaves:
         label = l.taxon.label
         cat = db.NCBI2EnergyCategory(label)
-        color = colormap.get(cat, '#0000ff')
+        color = colormap.get(cat, default_color)
+        w.writerow([label, color, cat])
+    f.close()
+
+    fname = 'oxy_req.csv'
+    f = open(fname, 'w')
+    w = csv.writer(f)
+    for l in leaves:
+        label = l.taxon.label
+        cat = db.NCBI2BroadOxygenReq(label)
+        color = colormap.get(cat, default_color)
         w.writerow([label, color, cat])
     f.close()
     
