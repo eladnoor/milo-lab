@@ -3,7 +3,7 @@ SKIP        FALSE
 NAME        ED (phosphorylating glucose)
 TYPE        MTDF
 PH          7
-I           0.1
+I           0.25
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -28,6 +28,96 @@ REACTION    hxk  C00002 + C00031 -> C00008 + C00092 (x1)
             pyk  C00008 + C00074 -> C00002 + C00022 (x1)
             ldh  C00022 + C00004 -> C00003 + C00186 (x2)
 ///
+ENTRY       P01-ED-PTS
+SKIP        FALSE
+NAME        ED PTS (phosphorylating glucose)
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    pts  C00074 + C00031 -> C00022 + C00092 (x1)
+            zwf  C00092 + C00006 -> C01236 + C00005 (x1)
+            pgl  C00001 + C01236 -> C00345 (x1)
+            edd  C00345 -> C00001 + C04442 (x1)
+            eda  C04442 -> C00022 + C00118 (x1)
+            gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x1)
+            pgk  C00008 + C00236 -> C00002 + C00197 (x1)
+            gpm  C00197 -> C00631 (x1)
+            eno  C00631 -> C00001 + C00074 (x1)
+            ldh  C00022 + C00004 -> C00003 + C00186 (x2)
+///
+ENTRY       P01-ED-ETHANOL
+SKIP        FALSE
+NAME        ED Ethanol (phosphorylating glucose)
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    hxk  C00002 + C00031 -> C00008 + C00092 (x1)
+            zwf  C00092 + C00006 -> C01236 + C00005 (x1)
+            pgl  C00001 + C01236 -> C00345 (x1)
+            edd  C00345 -> C00001 + C04442 (x1)
+            eda  C04442 -> C00022 + C00118 (x1)
+            gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x1)
+            pgk  C00008 + C00236 -> C00002 + C00197 (x1)
+            gpm  C00197 -> C00631 (x1)
+            eno  C00631 -> C00001 + C00074 (x1)
+            pyk  C00008 + C00074 -> C00002 + C00022 (x1)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
+///
+ENTRY       P01-ED-PTS-ETHANOL
+SKIP        FALSE
+NAME        ED PTS Ethanol (phosphorylating glucose)
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    pts  C00074 + C00031 -> C00022 + C00092 (x1)
+            zwf  C00092 + C00006 -> C01236 + C00005 (x1)
+            pgl  C00001 + C01236 -> C00345 (x1)
+            edd  C00345 -> C00001 + C04442 (x1)
+            eda  C04442 -> C00022 + C00118 (x1)
+            gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x1)
+            pgk  C00008 + C00236 -> C00002 + C00197 (x1)
+            gpm  C00197 -> C00631 (x1)
+            eno  C00631 -> C00001 + C00074 (x1)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
+///
 ENTRY       P02-EMP
 SKIP        FALSE
 NAME        EMP
@@ -50,13 +140,44 @@ REACTION    hxk  C00002 + C00031 -> C00008 + C00092 (x1)
             pgi  C00092 -> C00085 (x1)
             pfk  C00002 + C00085 -> C00008 + C00354 (x1)
             fba  C00354 -> C00111 + C00118 (x1)
-            tpi  C00111 -> C00118 (x1)
+            tim  C00111 -> C00118 (x1)
             gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x2)
             pgk  C00008 + C00236 -> C00002 + C00197 (x2)
             gpm  C00197 -> C00631 (x2)
             eno  C00631 -> C00001 + C00074 (x2)
             pyk  C00008 + C00074 -> C00002 + C00022 (x2)
             ldh  C00022 + C00004 -> C00003 + C00186 (x2)
+///
+ENTRY       P02-EMP-ETHANOL
+SKIP        FALSE
+NAME        EMP-Ethanol
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    hxk  C00002 + C00031 -> C00008 + C00092 (x1)
+            pgi  C00092 -> C00085 (x1)
+            pfk  C00002 + C00085 -> C00008 + C00354 (x1)
+            fba  C00354 -> C00111 + C00118 (x1)
+            tim  C00111 -> C00118 (x1)
+            gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x2)
+            pgk  C00008 + C00236 -> C00002 + C00197 (x2)
+            gpm  C00197 -> C00631 (x2)
+            eno  C00631 -> C00001 + C00074 (x2)
+            pyk  C00008 + C00074 -> C00002 + C00022 (x2)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
 ///
 ENTRY       P02-EMP-PTS
 SKIP        FALSE
@@ -80,7 +201,7 @@ REACTION    pts  C00074 + C00031 -> C00022 + C00092 (x1)
             pgi  C00092 -> C00085 (x1)
             pfk  C00002 + C00085 -> C00008 + C00354 (x1)
             fba  C00354 -> C00111 + C00118 (x1)
-            tpi  C00111 -> C00118 (x1)
+            tim  C00111 -> C00118 (x1)
             gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x2)
             pgk  C00008 + C00236 -> C00002 + C00197 (x2)
             gpm  C00197 -> C00631 (x2)
@@ -88,9 +209,9 @@ REACTION    pts  C00074 + C00031 -> C00022 + C00092 (x1)
             pyk  C00008 + C00074 -> C00002 + C00022 (x1)
             ldh  C00022 + C00004 -> C00003 + C00186 (x2)
 ///
-ENTRY       P07-PP
+ENTRY       P02-EMP-PTS-ETHANOL
 SKIP        FALSE
-NAME        Oxidative Pentose Phosphate cycle
+NAME        EMP-PTS-Ethanol
 TYPE        MTDF
 PH          7
 I           0.25
@@ -106,69 +227,18 @@ BOUND       C00001  1
             C00005  5e-4
             C00006  5e-5
             C00011  1e-5
-REACTION    zwf    C00092 + C00006 -> C01236 + C00005 (x2)
-            pgl    C00001 + C01236 -> C00345 (x2)
-            gnd    C00345 + C00006 -> C00199 + C00011 + C00005 (x2)
-            rpi    C00199 -> C00117 (x0.666)
-            rpe    C00199 -> C00231 (x1.333)
-            tkt2   C00117 + C00231 -> C05382 + C00118 (x0.666)
-            tal    C05382 + C00118 -> C00279 + C00085 (x0.666)
-            tkt1   C00279 + C00231 -> C00085 + C00118 (x0.666)
-            tpi    C00118 -> C00111 (x0.333)
-            fba1   C00111 + C00118 -> C00354 (x0.333)
-            fbp1   C00354 + C00001 -> C00085 + C00009 (x0.333)
-            pgi    C00085 -> C00092 (x1.666)
-///
-ENTRY       P12-GLYC-NO-P
-SKIP        FALSE
-NAME        Glycolysis, No P Other Than SLP
-TYPE        MTDF
-PH          7
-I           0.25
-T           298.15
-C_RANGE     1e-6 1e-2
-BOUND       C00001  1
-            C00002  5e-3
-            C00008  5e-4
-            C00009  5e-3
-            C00020  1e-4
-            C00003  5e-3
-            C00004  5e-5
-            C00005  5e-4
-            C00006  5e-5
-            C00011  1e-5
-REACTION    gli  C00031 -> C00095 (x1)
-            fra  C00095 -> C00184 + C00577 (x1)
-            tri  C00184 -> C00577 (x1)
-            gdh  C00577 + C00003 + C00009 -> C80066 + C00004 + C00080 (x2)
-            gck  C80066 + C00008 -> C00258 + C00002 (x2)
-            gdhy  C00258 -> C00022 + C00001 (x2)
-            ldh  C00022 + C00004 -> C00003 + C00186 (x2)
-///
-ENTRY       P12-GLYC-NO-P-U
-SKIP        FALSE
-NAME        Glycolysis, No P Other Than SLP Merged SLP
-TYPE        MTDF
-PH          7
-I           0.25
-T           298.15
-C_RANGE     1e-6 1e-2
-BOUND       C00001  1
-            C00002  5e-3
-            C00008  5e-4
-            C00009  5e-3
-            C00020  1e-4
-            C00003  5e-3
-            C00004  5e-5
-            C00005  5e-4
-            C00006  5e-5
-            C00011  1e-5
-REACTION    gli  C00031 -> C00095 (x1)
-            fra  C00095 -> C00184 + C00577 (x1)
-            tri  C00184 -> C00577 (x1)
-            slp  C00577 + C00003 + C00009 + C00008 -> C00004 + C00080 + C00258 + C00002 (x2)
-            gdhy  C00258 -> C00022 + C00001 (x2)
-            ldh  C00022 + C00004 -> C00003 + C00186 (x2)
+REACTION    pts  C00074 + C00031 -> C00022 + C00092 (x1)
+            pgi  C00092 -> C00085 (x1)
+            pfk  C00002 + C00085 -> C00008 + C00354 (x1)
+            fba  C00354 -> C00111 + C00118 (x1)
+            tim  C00111 -> C00118 (x1)
+            gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x2)
+            pgk  C00008 + C00236 -> C00002 + C00197 (x2)
+            gpm  C00197 -> C00631 (x2)
+            eno  C00631 -> C00001 + C00074 (x2)
+            pyk  C00008 + C00074 -> C00002 + C00022 (x1)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
 ///
 ENTRY       P13-GLYC-NO-SLP
 SKIP        FALSE
@@ -191,16 +261,17 @@ BOUND       C00001  1
 REACTION    hxk  C00002 + C00031 -> C00008 + C00092 (x1)
             pgi  C00092 -> C00085 (x1)
             pfk  C00002 + C00085 -> C00008 + C00354 (x1)
-            fba  C00354 -> C00111 + C00118 (x1)            
-            gdhnp  C00118 + C00006 + C00001 -> C00197 + C00005 + C00080  (x2)
+            fba  C00354 -> C00111 + C00118 (x1)
+            tim  C00111 -> C00118 (x1)            
+            gdhnp  C00118 + C00003 + C00001 -> C00197 + C00004 + C00080  (x2)
             pgm  C00197 -> C00631 (x2)
             eno  C00631 -> C00001 + C00074 (x2)
             pyk  C00008 + C00074 -> C00002 + C00022 (x2)
             ldh  C00022 + C00004 -> C00003 + C00186 (x2)
 ///
-ENTRY       P14-NONP-ED
+ENTRY       P13-GLYC-NO-SLP-PTS
 SKIP        FALSE
-NAME        Non-Phosphorylative ED
+NAME        Glycolysis PTS, Skip SLP
 TYPE        MTDF
 PH          7
 I           0.25
@@ -216,17 +287,78 @@ BOUND       C00001  1
             C00005  5e-4
             C00006  5e-5
             C00011  1e-5
-REACTION    glcdh  C00031 + C00003 -> C00198 + C00004 + C00080 (x1)
-            gcnls  C00198 + C00001 -> C00257 (x1) 
-            gndhy  C00257 -> C00204 + C00001 (x1)
-            kdgal  C00204 -> C00577 + C00022 (x1)
-            gdhnp  C00577 + C00001 + C00006 -> C00258 + C00080 + C00005 (x1)
-            glykn  C00258 + C00002 -> C00631 + C00008 (x1)
-            enola  C00631 -> C00001 + C00074 (x1)
-            pyrkn  C00008 + C00074 -> C00002 + C00022 (x1)
+REACTION    pts  C00074 + C00031 -> C00022 + C00092 (x1)
+            pgi  C00092 -> C00085 (x1)
+            pfk  C00002 + C00085 -> C00008 + C00354 (x1)
+            fba  C00354 -> C00111 + C00118 (x1)
+            tim  C00111 -> C00118 (x1)        
+            gdhnp  C00118 + C00003 + C00001 -> C00197 + C00004 + C00080  (x2)
+            pgm  C00197 -> C00631 (x2)
+            eno  C00631 -> C00001 + C00074 (x2)
+            pyk  C00008 + C00074 -> C00002 + C00022 (x1)
             ldh  C00022 + C00004 -> C00003 + C00186 (x2)
 ///
-ENTRY       P15-SEMIP-ED
+ENTRY       P13-GLYC-NO-SLP-ETHANOL
+SKIP        FALSE
+NAME        Glycolysis Ethanol, Skip SLP
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    hxk  C00002 + C00031 -> C00008 + C00092 (x1)
+            pgi  C00092 -> C00085 (x1)
+            pfk  C00002 + C00085 -> C00008 + C00354 (x1)
+            fba  C00354 -> C00111 + C00118 (x1)
+            tim  C00111 -> C00118 (x1)
+            gdhnp  C00118 + C00003 + C00001 -> C00197 + C00004 + C00080  (x2)
+            pgm  C00197 -> C00631 (x2)
+            eno  C00631 -> C00001 + C00074 (x2)
+            pyk  C00008 + C00074 -> C00002 + C00022 (x2)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
+///
+ENTRY       P13-GLYC-NO-SLP-PTS-ETHANOL
+SKIP        FALSE
+NAME        Glycolysis Ethanol PTS, Skip SLP
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    pts  C00074 + C00031 -> C00022 + C00092 (x1)
+            pgi  C00092 -> C00085 (x1)
+            pfk  C00002 + C00085 -> C00008 + C00354 (x1)
+            fba  C00354 -> C00111 + C00118 (x1)
+            tim  C00111 -> C00118 (x1)          
+            gdhnp  C00118 + C00003 + C00001 -> C00197 + C00004 + C00080  (x2)
+            pgm  C00197 -> C00631 (x2)
+            eno  C00631 -> C00001 + C00074 (x2)
+            pyk  C00008 + C00074 -> C00002 + C00022 (x1)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
+///
+ENTRY       P15-SEMIP-ED-ETHANOL
 SKIP        FALSE
 NAME        Semi-Phosphorylative ED
 TYPE        MTDF
@@ -256,8 +388,178 @@ REACTION    glcdh  C00031 + C00003 -> C00198 + C00004 + C00080 (x1)
             pyk  C00008 + C00074 -> C00002 + C00022 (x1)
             ldh  C00022 + C00004 -> C00003 + C00186 (x2)
 ///
-ENTRY       P15-P-KETOLASE
+ENTRY       P15-SEMIP-ED-Ethanol
 SKIP        FALSE
+NAME        Semi-Phosphorylative ED Ethanol
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    glcdh  C00031 + C00003 -> C00198 + C00004 + C00080 (x1)
+            gcnls  C00198 + C00001 -> C00257 (x1) 
+            gndhy  C00257 -> C00204 + C00001 (x1)
+            kdgkn  C00002 + C00204 -> C00008 + C04442 (x1)
+            kdpga  C04442 -> C00118 + C00022 (x1)
+            gapdh  C00003 + C00009 + C00118 -> C00004 + C00080 + C00236 (x1)
+            pgl  C00008 + C00236 -> C00002 + C00197 (x1)
+            gpm  C00197 -> C00631 (x1)
+            eno  C00631 -> C00001 + C00074 (x1)
+            pyk  C00008 + C00074 -> C00002 + C00022 (x1)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
+///
+ENTRY       P14-NONP-ED
+SKIP        FALSE
+NAME        Non-Phosphorylative ED
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    glcdh  C00031 + C00003 -> C00198 + C00004 + C00080 (x1)
+            gcnls  C00198 + C00001 -> C00257 (x1) 
+            gndhy  C00257 -> C00204 + C00001 (x1)
+            kdgal  C00204 -> C00577 + C00022 (x1)
+            gdhnp  C00577 + C00001 + C00006 -> C00258 + C00080 + C00005 (x1)
+            glykn  C00258 + C00002 -> C00631 + C00008 (x1)
+            enola  C00631 -> C00001 + C00074 (x1)
+            pyrkn  C00008 + C00074 -> C00002 + C00022 (x1)
+            ldh  C00022 + C00004 -> C00003 + C00186 (x2)
+///
+ENTRY       P14-NONP-ED-Ethanol
+SKIP        FALSE
+NAME        Non-Phosphorylative ED Ethanol
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    glcdh  C00031 + C00003 -> C00198 + C00004 + C00080 (x1)
+            gcnls  C00198 + C00001 -> C00257 (x1) 
+            gndhy  C00257 -> C00204 + C00001 (x1)
+            kdgal  C00204 -> C00577 + C00022 (x1)
+            gdhnp  C00577 + C00001 + C00006 -> C00258 + C00080 + C00005 (x1)
+            glykn  C00258 + C00002 -> C00631 + C00008 (x1)
+            enola  C00631 -> C00001 + C00074 (x1)
+            pyrkn  C00008 + C00074 -> C00002 + C00022 (x1)
+            pdc  C00022 + C00001 -> C00288 + C00084 (x2)
+            adh  C00084 + C00004 -> C00003 + C00469 (x2)
+///
+ENTRY       P07-PP
+SKIP        TRUE
+NAME        Oxidative Pentose Phosphate cycle
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    zwf    C00092 + C00006 -> C01236 + C00005 (x2)
+            pgl    C00001 + C01236 -> C00345 (x2)
+            gnd    C00345 + C00006 -> C00199 + C00011 + C00005 (x2)
+            rpi    C00199 -> C00117 (x0.666)
+            rpe    C00199 -> C00231 (x1.333)
+            tkt2   C00117 + C00231 -> C05382 + C00118 (x0.666)
+            tal    C05382 + C00118 -> C00279 + C00085 (x0.666)
+            tkt1   C00279 + C00231 -> C00085 + C00118 (x0.666)
+            tim    C00118 -> C00111 (x0.333)
+            fba1   C00111 + C00118 -> C00354 (x0.333)
+            fbp1   C00354 + C00001 -> C00085 + C00009 (x0.333)
+            pgi    C00085 -> C00092 (x1.666)
+///
+ENTRY       P12-GLYC-NO-P
+SKIP        TRUE
+NAME        Glycolysis, No P Other Than SLP
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    gli  C00031 -> C00095 (x1)
+            fra  C00095 -> C00184 + C00577 (x1)
+            tri  C00184 -> C00577 (x1)
+            gdh  C00577 + C00003 + C00009 -> C80066 + C00004 + C00080 (x2)
+            gck  C80066 + C00008 -> C00258 + C00002 (x2)
+            gdhy  C00258 -> C00022 + C00001 (x2)
+            ldh  C00022 + C00004 -> C00003 + C00186 (x2)
+///
+ENTRY       P12-GLYC-NO-P-U
+SKIP        TRUE
+NAME        Glycolysis, No P Other Than SLP Merged SLP
+TYPE        MTDF
+PH          7
+I           0.25
+T           298.15
+C_RANGE     1e-6 1e-2
+BOUND       C00001  1
+            C00002  5e-3
+            C00008  5e-4
+            C00009  5e-3
+            C00020  1e-4
+            C00003  5e-3
+            C00004  5e-5
+            C00005  5e-4
+            C00006  5e-5
+            C00011  1e-5
+REACTION    gli  C00031 -> C00095 (x1)
+            fra  C00095 -> C00184 + C00577 (x1)
+            tri  C00184 -> C00577 (x1)
+            slp  C00577 + C00003 + C00009 + C00008 -> C00004 + C00080 + C00258 + C00002 (x2)
+            gdhy  C00258 -> C00022 + C00001 (x2)
+            ldh  C00022 + C00004 -> C00003 + C00186 (x2)
+///
+ENTRY       P15-P-KETOLASE
+SKIP        TRUE
 NAME        Phosphoketolase Pathway
 TYPE        MTDF
 PH          7
@@ -278,7 +580,7 @@ REACTION    hxk   C00002 + C00031 -> C00008 + C00092 (x1)
             pgi   C00092 -> C00085 (x1)
             fbp1  C00354 + C00001 -> C00085 + C00009 (x1)
             fba   C00111 + C00118 -> C00354 (x1)
-            tpi   C00118 -> C00111 (x1)
+            tim   C00118 -> C00111 (x1)
             tkt1  C00085 + C00118 -> C00279 + C00231 (x1)
             tal   C00279 + C00085 -> C05382 + C00118 (x1)
             tkt2  C05382 + C00118 -> C00117 + C00231 (x1)
