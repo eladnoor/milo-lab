@@ -21,6 +21,12 @@ class ProteinCostOptimizedPathway(optimized_pathway.OptimizedPathway):
         self.kinetic_factors = kwargs.pop('kinetic_factors', None)
         self.thermo_factors = kwargs.pop('thermo_factors', None)        
         self.kinetic_data = kwargs.pop('kinetic_data', None)
+        
+        self.min_protein_cost = None
+        if (self.max_rate_factors is not None and
+            self.stoich_factors is not None):
+            self.min_protein_cost = np.sum(self.max_rate_factors)
+            self.min_protein_cost += np.sum(self.stoich_factors)
 
         optimized_pathway.OptimizedPathway.__init__(self, *args,
                                                     **kwargs)

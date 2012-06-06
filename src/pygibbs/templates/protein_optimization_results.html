@@ -88,7 +88,8 @@
 			<div class="sectionName">{{result.model.name}}</div>
 			<div class="resultValue">{{r.num_optima}} optima, mean: {{r.mean_opt|stringformat:".2g"}} &plusmn; {{r.error|stringformat:".2g"}}</div>
 			{% if result.status.success %}
-				<div class="resultValue">{{result.optimization_type}} = {{result.opt_val|stringformat:".2g"}} {{result.optimization_units}}</div>
+				<div class="resultValue">{{result.optimization_type}} = {{result.opt_val|stringformat:".4g"}} {{result.optimization_units}}</div>
+				<div class="resultValue">Minimum Cost = {{result.min_protein_cost|stringformat:".4g"}} {{result.optimization_units}}</div>
 				{% if result.forward_fraction %}
 				<div class="resultValue">Total Forward Flux Fraction = {{result.forward_fraction|stringformat:".2g"}}</div>
 				{% endif %}

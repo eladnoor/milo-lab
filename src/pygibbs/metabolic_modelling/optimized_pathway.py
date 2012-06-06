@@ -120,12 +120,14 @@ class OptimizedPathway(object):
     def CalcForwardFraction(dg_tag):
         """Computes the thermodynamic efficiency at a particular dG.
         
-        Efficiency = (J+ - J-) / (J- + J+)
+        Efficiency = (J+ - J-) / J+
+        ##Efficiency = (J+ - J-) / (J- + J+)##
         According to the formula of Beard and Qian
         """
         if dg_tag is None:
             return None
-        return np.tanh(-dg_tag / (2*RT))
+        return 1 - np.exp(dg_tag / RT)
+        #return np.tanh(-dg_tag / (2*RT))
 
     def ThermoFeasible(self):
         return (self.dGr_tag < 0).all()
@@ -195,18 +197,19 @@ class OptimizedPathway(object):
         dgtag_profile = np.cumsum([0] + (self.dGr_tag * self.fluxes).flatten().tolist())
         dgbio_profile = np.cumsum([0] + (self.dGr_bio * self.fluxes).flatten().tolist())
         rxn_range = pylab.arange(len(self.reaction_ids) + 1)
-        pylab.plot(rxn_range, dg0_profile, 'k--',
-                   linewidth=3, label='Standard Conditions')
-        pylab.plot(rxn_range, dgbio_profile, 'k:',
+        #pylab.plot(rxn_range, dg0_profile, 'k--',
+        #           linewidth=3, label='Standard Conditions')
+        pylab.plot(rxn_range, dgbio_profile, 'k--',
                    linewidth=3, label='Biological Conditions')
         pylab.plot(rxn_range, dgtag_profile, 'k-',
                    linewidth=3, label='Optimized')
         pylab.xticks(rxn_range[:-1] + 0.5, self.reaction_ids,
                      fontproperties=TICK_FONT)
+        pylab.xlim((0, len(rxn_range) - 1.0))
         pylab.xlabel('Reaction step')
         pylab.ylabel('Cumulative dG (kJ/mol)')
         pylab.legend(loc='upper right', prop=LEGEND_FONT)
-        #pylab.ylim((-160, 10))
+        pylab.ylim((-160, 0))
         #pylab.xlim((0, len(self.reaction_ids)-1))
         pylab.grid(b=True)
         
