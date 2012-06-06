@@ -44,8 +44,8 @@
 			
 			<div class="resultTable">
 				<ul>
-				{% for rxn in result.reaction_objects %}
-					<li>{{ rxn.hypertext_with_names|safe }}</li>
+				{% for rxn, flux in result.reaction_objects %}
+						<li>{{ rxn.hypertext_with_names|safe }} ({{flux}}x)</li>
 				{% endfor %}
 					<li>Net Reaction: {{ result.net_reaction.hypertext_with_names|safe }}</li>
 				</ul>

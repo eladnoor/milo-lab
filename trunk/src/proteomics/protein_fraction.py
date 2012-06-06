@@ -27,7 +27,7 @@ def MakeOpts():
 def Main():
     options, _ = MakeOpts().parse_args(sys.argv)
     assert options.genes_filename and options.counts_filename
-    
+    assert options.output_filename
     
     print 'Reading genes list from', options.genes_filename
     gene_ids = util.ReadProteinIDs(options.genes_filename)
@@ -38,13 +38,21 @@ def Main():
     print 'total count', total
     
     counts = {}
-    for id, name, count in util.ExtractCounts(gene_counts, gene_ids):
+    for gene_id, name, count in util.ExtractCounts(gene_counts, gene_ids):
         counts[name] = counts.get(name, 0) + count
         
     array_counts = pylab.array(counts.values())
     pcts = array_counts * 100 / total
     pct = sum(pcts)
     print 'Category makes up %.2f%% of total protein' % pct
+    
+    print 'Writing output CSV file to', options.output_filename
+    names = sorted(set(gene_ids.values()))
+    f = open(options.output_filename, 'w')
+    w = csv.writer(f)
+    for n in names:
+        w.writerow([n, counts.get(n, 0)])
+    f.close()
     
     fig1 = pylab.figure(0)
     counts_w_names = sorted([(c, n) for n,c in gene_counts.iteritems()],
