@@ -1,3 +1,4 @@
+import numpy as np
 import logging
 from pygibbs.kegg_reaction import Reaction
 from pygibbs.pathologic import Pathologic
@@ -6,6 +7,7 @@ from toolbox.html_writer import HtmlWriter
 import sys
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.stoichiometric_lp import OptimizationMethods
+from pygibbs.thermodynamic_constants import R, default_T
 
 
 def ban_toxic_compounds(pl):
@@ -175,6 +177,33 @@ def example_reductive(thermo):
     r = Reaction.FromFormula("3 C00011 => C00022")
     #r.Balance()
     pl.find_path("reductive", r)
+    
+def example_formate(thermo, co2_conc=1e-5, pH=7):
+    co2_hydration = Reaction.FromFormula("C00011 + C00001 => C00288")
+    co2_hydration_dG0_prime = float(thermo.GetTransfromedKeggReactionEnergies([co2_hydration], pH=pH))
+    carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*default_T))
+    thermo.bounds[11] = (co2_conc, co2_conc)
+    thermo.bounds[288] = (carbonate_conc, carbonate_conc)
+    
+    pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
+                    public_db=SqliteDatabase('../data/public_data.sqlite'),
+                    html_writer=HtmlWriter('../res/pathologic.html'),
+                    thermo=thermo,
+                    max_solutions=None,
+                    max_reactions=15,
+                    maximal_dG=0.0,
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
+                    update_file=None)
+    add_cofactor_reactions(pl, free_ATP_hydrolysis=True)
+    add_redox_reactions(pl, NAD_only=False)
+   
+    pl.add_reaction(Reaction.FromFormula("C06265 => C00011", name="CO2 uptake"))
+    pl.add_reaction(Reaction.FromFormula("C06265 => C00288", name="carbonate uptake"))
+    pl.add_reaction(Reaction.FromFormula("C06265 => C00058", name="formate uptake"))
+
+    r = Reaction.FromFormula("2 C06265 + C00058 => C00022") # at least one formate to pyruvate
+    #r.Balance()
+    pl.find_path("formate", r)
 
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
@@ -183,7 +212,8 @@ def main():
     thermo.SetConditions(I=0.1)
     #example_lower_glycolysis(thermo)
     #example_oxidative(thermo)
-    example_glycolysis(thermo)
+    #example_glycolysis(thermo)
+    example_formate(thermo)
 
 if __name__ == '__main__':
     main()
@@ -196,6 +226,7 @@ if __name__ == '__main__':
 # adp           = C00008
 # pi            = C00009
 # co2           = C00011
+# carbonate     = C00288
 # nad           = C00003
 # nadh          = C00004
 # glucose       = C00031

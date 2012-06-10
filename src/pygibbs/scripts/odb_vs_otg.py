@@ -98,7 +98,7 @@ def analyze(prefix, thermo):
     #pH_vec = np.array([6, 7, 8])
     pH_vec = np.array([7])
     #co2_conc_vec = np.array([1e-5, 1e-3])
-    co2_conc_vec = np.array([1e-5])
+    co2_conc_vec = np.array([1e-5, 1e-3])
     data_mat = []
     
     for pH in pH_vec.flat:
