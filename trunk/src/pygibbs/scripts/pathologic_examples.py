@@ -8,6 +8,7 @@ import sys
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.stoichiometric_lp import OptimizationMethods
 from pygibbs.thermodynamic_constants import R, default_T
+from pygibbs.kegg import Kegg
 
 
 def ban_toxic_compounds(pl):
@@ -178,9 +179,9 @@ def example_reductive(thermo):
     #r.Balance()
     pl.find_path("reductive", r)
     
-def example_formate(thermo, co2_conc=1e-5, pH=7):
+def example_formate(thermo, product_cid=22, co2_conc=1e-5):
     co2_hydration = Reaction.FromFormula("C00011 + C00001 => C00288")
-    co2_hydration_dG0_prime = float(thermo.GetTransfromedKeggReactionEnergies([co2_hydration], pH=pH))
+    co2_hydration_dG0_prime = float(thermo.GetTransfromedKeggReactionEnergies([co2_hydration]))
     carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*default_T))
     thermo.bounds[11] = (co2_conc, co2_conc)
     thermo.bounds[288] = (carbonate_conc, carbonate_conc)
@@ -201,19 +202,22 @@ def example_formate(thermo, co2_conc=1e-5, pH=7):
     pl.add_reaction(Reaction.FromFormula("C06265 => C00288", name="carbonate uptake"))
     pl.add_reaction(Reaction.FromFormula("C06265 => C00058", name="formate uptake"))
 
-    r = Reaction.FromFormula("2 C06265 + C00058 => C00022") # at least one formate to pyruvate
+    r = Reaction.FromFormula("5 C06265 + C00058 => C%05d" % product_cid) # at least one formate to product
     #r.Balance()
-    pl.find_path("formate", r)
+    
+    kegg = Kegg.getInstance()
+    pl.find_path("formate to %s" % kegg.cid2name(product_cid), r)
 
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     estimators = LoadAllEstimators()
     thermo = estimators['UGC']
-    thermo.SetConditions(I=0.1)
+    thermo.SetConditions(pH=7.5, I=0.2)
     #example_lower_glycolysis(thermo)
     #example_oxidative(thermo)
     #example_glycolysis(thermo)
-    example_formate(thermo)
+    #example_formate(thermo, product=22)
+    example_formate(thermo, product_cid=31)
 
 if __name__ == '__main__':
     main()

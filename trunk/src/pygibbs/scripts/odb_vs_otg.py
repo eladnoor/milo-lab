@@ -10,7 +10,8 @@ from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime, default_T
 from pygibbs.kegg_reaction import Reaction
 
 def pareto(kegg_file, html_writer, thermo, pH=None,
-           plot_profile=False, section_prefix="", balance_water=True):
+           plot_profile=False, section_prefix="", balance_water=True,
+           override_bounds={}):
     
     entries = kegg_file.entries()
     plot_data = np.zeros((len(entries), 5)) # ODB, ODFE, min TG, max TG, sum(fluxes)
@@ -37,6 +38,9 @@ def pareto(kegg_file, html_writer, thermo, pH=None,
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions(balance_water=balance_water)
         thermo.bounds = p_data.GetBounds().GetOldStyleBounds(cids)
+        for cid, (lb, ub) in override_bounds.iteritems():
+            thermo.bounds[cid] = (lb, ub)
+        
         fluxes = np.matrix(fluxes)
         dG0_r_prime = thermo.GetTransfromedReactionEnergies(S, cids)
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
@@ -96,18 +100,19 @@ def analyze(prefix, thermo):
     
     #pH_vec = np.arange(5, 9.001, 0.5)
     #pH_vec = np.array([6, 7, 8])
-    pH_vec = np.array([7])
+    pH_vec = np.array([7.5]) # this needs to be fixed so that the txt file will set the pH
     #co2_conc_vec = np.array([1e-5, 1e-3])
     co2_conc_vec = np.array([1e-5, 1e-3])
     data_mat = []
+    override_bounds = {}
     
     for pH in pH_vec.flat:
         co2_hydration_dG0_prime = float(thermo.GetTransfromedKeggReactionEnergies([co2_hydration], pH=pH))
         for co2_conc in co2_conc_vec.flat:
             carbonate_conc = co2_conc * np.exp(-co2_hydration_dG0_prime / (R*default_T))
             #print "[CO2] = %g, [carbonate] = %g, pH = %.1f, I = %.2fM" % (co2_conc, carbonate_conc, pH, I)
-            thermo.bounds[11] = (co2_conc, co2_conc)
-            thermo.bounds[288] = (carbonate_conc, carbonate_conc)
+            override_bounds[11] = (co2_conc, co2_conc)
+            override_bounds[288] = (carbonate_conc, carbonate_conc)
             
             section_prefix = 'pH_%g_CO2_%g' % (pH, co2_conc*1000)
             section_title = 'pH = %g, [CO2] = %g mM' % (pH, co2_conc*1000)
@@ -118,7 +123,8 @@ def analyze(prefix, thermo):
                                   '<a href="#%s_figure">Summary figure</a>' % section_prefix])
 
             data, labels = pareto(kegg_file, html_writer, thermo,
-                pH=pH, section_prefix=section_prefix, balance_water=True)
+                pH=pH, section_prefix=section_prefix, balance_water=True,
+                override_bounds=override_bounds)
             data_mat.append(data)
     
     data_mat = np.array(data_mat)
