@@ -1,7 +1,7 @@
 ENTRY       SERINE
 NAME        SERINE
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -26,7 +26,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 + C00080 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -42,8 +41,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       SERINE_SIMPLE
 NAME        SERINE_SIMPLE
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -68,7 +67,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -82,8 +80,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       RIBULOSE_MPP
 NAME        RIBULOSE_MPP
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -108,7 +106,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -126,8 +123,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       DIHYDROXYACETONE
 NAME        DIHYDROXYACETONE
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -152,7 +149,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -170,8 +166,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       GLYCINE
 NAME        GLYCINE
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -196,7 +192,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -208,8 +203,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       GLYCINE_CONDENSE
 NAME        GLYCINE_CONDENSE
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -234,7 +229,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -244,8 +238,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       FORMOLASE
 NAME        FORMOLASE
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -270,15 +264,14 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    fcl      C00058 + C00002 + C00010 => C00020 + C00013 + C00798
             acdh     C00798 + C00004 + C00080 => C00067 + C00010 + C00003
             fml      3 C00067 => C00184 (x0.3333)
 ///
 ENTRY       ACETY_COA_CONDENSE
 NAME        ACETY_COA_CONDENSE
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -303,7 +296,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -312,8 +304,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       ACETY_COA
 NAME        ACETY_COA
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -338,7 +330,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
             mtc      C00234 => C00445 + C00001
             mtd      C00445 + C00004 => C00143 + C00003
@@ -348,8 +339,8 @@ REACTION    ftl      C00101 + C00058 + C00002 => C00008 + C00009 + C00234
 ///
 ENTRY       RPP
 NAME        RPP
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -374,7 +365,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    tpi    C00118 => C00111 (x2)
             fba1   C00111 + C00118 => C00354 (x1)
             fbp1   C00354 + C00001 => C00085 + C00009 (x1)
@@ -391,8 +381,8 @@ REACTION    tpi    C00118 => C00111 (x2)
 ///
 ENTRY       RTCA
 NAME        RTCA
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -417,7 +407,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    mdh    C00036 + C00005 => C00149 + C00006 (x1)
             fum    C00149 => C00122 + C00001 (x1)
             sdh    C00122 + C00004 => C00042 + C00003 (x1)
@@ -430,8 +419,8 @@ REACTION    mdh    C00036 + C00005 => C00149 + C00006 (x1)
 ///
 ENTRY       DC-4HB
 NAME        DC-4HB
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -456,7 +445,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    por    2 C00138 + C00024 + C00011 => 2 C00139 + C00022 + C00010 (x2)
             pps    C00002 + C00022 + C00001 => C00020 + C00074 + C00009 (x1)
             ppc    C00074 + C00011 => C00009 + C00036 (x1)
@@ -475,8 +463,8 @@ REACTION    por    2 C00138 + C00024 + C00011 => 2 C00139 + C00022 + C00010 (x2)
 ///
 ENTRY       3HP-4HB
 NAME        3HP-4HB
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -501,7 +489,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    acc     C00002 + C00024 + C00011 => C00008 + C00009 + C00083 (x2)
             mms     C00083 + C00005 => C00222 + C00010 + C00006 (x2)
             R90100  C00222 + C00005 => C01013 + C00006 (x2)
@@ -526,8 +513,8 @@ REACTION    acc     C00002 + C00024 + C00011 => C00008 + C00009 + C00083 (x2)
 ///
 ENTRY       3HP
 NAME        3HP
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
@@ -552,7 +539,6 @@ BOUND       C00001  1
             C00342  1e-4    1e-3
             C00876  1e-4    1e-3
             C01080  1e-4    1e-3
-            C00011  1e-5
 REACTION    acc    C00002 + C00024 + C00011 => C00008 + C00009 + C00083 (x2)
             mms    C00083 + C00005 => C00222 + C00010 + C00006 (x2)
             hpd    C00222 + C00005 => C01013 + C00006 (x2)
@@ -573,8 +559,8 @@ REACTION    acc    C00002 + C00024 + C00011 => C00008 + C00009 + C00083 (x2)
 ///
 ENTRY       MOP
 NAME        MOP
-PH          7
-I           0.1
+PH          7.5
+I           0.2
 T           298.15
 C_RANGE     1e-6 1e-2
 BOUND       C00001  1
