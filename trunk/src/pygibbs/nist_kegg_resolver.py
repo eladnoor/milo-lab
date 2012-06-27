@@ -500,10 +500,9 @@ def WriteDataToDB(db):
             db.Insert('nist_equilibrium', [new_row_dict[k] for k in new_titles])
 
     for row in csv.DictReader(open(NIST_ADDITIONS_FILE, 'r')):
-        if row['I'] == '':
-            row['I'] = None
-        if row['pMg'] == '':
-            row['pMg'] = None
+        for key in row.keys():
+            if row[key] == '':
+                row[key] = None
         db.Insert('nist_equilibrium', [row[k] for k in new_titles])
 
     db.Commit()
