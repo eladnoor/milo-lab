@@ -93,7 +93,7 @@ class Reaction(object):
             reaction.direction = '<=>'
         elif self.direction == '=>':
             reaction.direction = '<='
-        elif self.direction == '=>':
+        elif self.direction == '<=':
             reaction.direction = '=>'
         else:
             raise Exception('invalid direction: ' + self.direction)
