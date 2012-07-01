@@ -508,7 +508,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         self.Report(dG0_r_ugc.sum(0), 'UGC - regression fit')
         self.Report(dG0_r_pgc, 'PGC - regression fit')
 
-    def Loo(self):
+    def Loo(self, no_anchoring=True):
         n = self.S.shape[1]
         dG0_r_ugc = np.matrix(np.zeros((3, n))) * np.nan
         dG0_r_pgc = np.matrix(np.zeros((1, n))) * np.nan
@@ -527,6 +527,9 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             no_i = range(0, i) + range(i+1, n)
             obs_S = self.S[:, no_i].copy()
             obs_anchored = self.anchored[0, no_i]
+            if no_anchoring:
+                obs_anchored = obs_anchored * 0;
+            
             obs_b = self.b[:, no_i].copy()
             est_S = self.S[:, i].copy()
             dG0_r_ugc[:, i], parts, dG0_r_pgc[0, i] = self._GetChemicalReactionEnergies(
