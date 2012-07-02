@@ -57,6 +57,9 @@ class Pathologic(object):
             
     def add_reaction(self, reaction, weight=1.0):
         self.kegg_pathologic.add_reaction(reaction, weight)
+
+    def delete_reaction(self, rid):
+        self.kegg_pathologic.delete_reaction(rid)
     
     def add_cofactor_reaction(self, reaction):
         self.kegg_pathologic.add_cofactor_reaction(reaction)

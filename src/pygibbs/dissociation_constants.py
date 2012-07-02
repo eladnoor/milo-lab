@@ -252,7 +252,7 @@ class DissociationConstants(object):
                 cid2nH_nMg[cid] = (0, 0)
         return cid2nH_nMg
 
-    def ReverseTranformNistRows(self, nist_rows, cid2nH_nMg=None):
+    def ReverseTransformNistRows(self, nist_rows, cid2nH_nMg=None):
         all_cids = set()
         for nist_row_data in nist_rows:
             all_cids.update(nist_row_data.GetAllCids())
@@ -303,17 +303,18 @@ class DissociationConstants(object):
         
         return data
     
-    def ReverseTransformNistRow(self, nist_row_data, cid2nH_nMg=None):
+    def ReverseTransformNistRow(self, nist_row_data, cid2nH_nMg=None, suppress_missing_pka_exception=False):
         """
             Given a NistRowData object, returns the reverse Legendre transform
             value for its dG0.
         """
         ddG = self.ReverseTransformReaction(nist_row_data.reaction, 
             nist_row_data.pH, nist_row_data.I, nist_row_data.pMg,
-            nist_row_data.T, cid2nH_nMg=cid2nH_nMg)
+            nist_row_data.T, cid2nH_nMg=cid2nH_nMg,
+            suppress_missing_pka_exception=suppress_missing_pka_exception)
         return nist_row_data.dG0_r - ddG
 
-    def ReverseTransformReaction(self, reaction, pH, I, pMg, T, cid2nH_nMg=None):
+    def ReverseTransformReaction(self, reaction, pH, I, pMg, T, cid2nH_nMg=None, suppress_missing_pka_exception=False):
         """
             Calculates the difference between dG0_prime and dG0
         """
@@ -321,6 +322,8 @@ class DissociationConstants(object):
         for cid, coeff in reaction.iteritems():
             diss_table = self.GetDissociationTable(cid)
             if diss_table is None:
+                if suppress_missing_pka_exception:
+                    continue
                 # probably a compound without an implicit formula
                 raise MissingDissociationConstantError("", cid)
             elif not cid2nH_nMg:

@@ -1,3 +1,4 @@
+import numpy as np
 import re, csv
 from pygibbs.kegg_reaction import Reaction
 from pygibbs.kegg_errors import KeggReactionNotBalancedException
@@ -6,6 +7,7 @@ from pygibbs.kegg import Kegg
 import pybel
 import openbabel
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
+from pygibbs.thermodynamic_constants import J_per_cal
 
 class IrrevParseException(Exception):
     pass
@@ -107,6 +109,7 @@ class Feist():
 
     def __init__(self):
         self.reactions = []
+        self.dG0s = []
         self.bigg2kegg = Feist.Bigg2KEGG()
         for biggID, keggID in Feist._Bigg2KEGG().iteritems():
             if biggID not in self.bigg2kegg or self.bigg2kegg[biggID] == 0:
@@ -159,6 +162,11 @@ class Feist():
                 raise ValueError('unknown directionality tag: ' + directionality)
             
             reaction = Reaction(row['abbreviation'], kegg_sparse, direction=direction)
+            if row['delta G (pH 7)'] == 'Not calculated':
+                dG0 = np.nan
+            else:
+                dG0 = float(row['delta G (pH 7)']) * J_per_cal
+            
             try:
                 reaction.Balance(balance_water=True, exception_if_unknown=False)
                 counters['okay'] += 1
@@ -168,6 +176,7 @@ class Feist():
                 continue
             
             feist.reactions.append(reaction)
+            feist.dG0s.append(dG0)
         
         logging.debug(" ; ".join(["%s : %d" % (key, val)
                                 for (key, val) in counters.iteritems()]))

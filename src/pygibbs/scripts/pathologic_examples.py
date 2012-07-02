@@ -191,13 +191,24 @@ def example_formate(thermo, product_cid=22, co2_conc=1e-5):
                     html_writer=HtmlWriter('../res/pathologic.html'),
                     thermo=thermo,
                     max_solutions=None,
-                    max_reactions=15,
+                    max_reactions=20,
                     maximal_dG=0.0,
                     thermodynamic_method=OptimizationMethods.GLOBAL,
                     update_file=None)
     add_cofactor_reactions(pl, free_ATP_hydrolysis=True)
     add_redox_reactions(pl, NAD_only=False)
    
+    pl.delete_reaction(134) # formate:NADP+ oxidoreductase
+    pl.delete_reaction(519) # Formate:NAD+ oxidoreductase
+    pl.delete_reaction(24) # Rubisco
+    pl.delete_reaction(581) # L-serine:NAD+ oxidoreductase (deaminating)
+    pl.delete_reaction(220) # L-serine ammonia-lyase
+    pl.delete_reaction(13) # glyoxylate carboxy-lyase (dimerizing; tartronate-semialdehyde-forming)
+    pl.delete_reaction(585) # L-Serine:pyruvate aminotransferase
+    pl.delete_reaction(1440) # D-Xylulose-5-phosphate:formaldehyde glycolaldehydetransferase
+    pl.delete_reaction(5338) # 3-hexulose-6-phosphate synthase
+    
+    
     pl.add_reaction(Reaction.FromFormula("C06265 => C00011", name="CO2 uptake"))
     pl.add_reaction(Reaction.FromFormula("C06265 => C00288", name="carbonate uptake"))
     pl.add_reaction(Reaction.FromFormula("C06265 => C00058", name="formate uptake"))
