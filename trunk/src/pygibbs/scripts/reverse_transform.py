@@ -77,7 +77,7 @@ print "ddG0_r = %.1f" % ddG0_r
 
 print '-'*50
 
-data = dissociation.ReverseTranformNistRows([nist_row_data], cid2nH=cid2nH)
+data = dissociation.ReverseTransformNistRows([nist_row_data], cid2nH=cid2nH)
 print "dG'0_r = %.1f" % data['dG0_r_tag'][0, 0]
 print "dG0_r = %.1f" % data['dG0_r'][0, 0]
 print "ddG0_r = %.1f" % data['ddG0_r'][0, 0]

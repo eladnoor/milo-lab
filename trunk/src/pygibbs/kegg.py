@@ -1207,6 +1207,17 @@ class KeggPathologic(object):
             r_reverse.SetNames(["%s_R" % n for n in reaction.names])
             r_reverse.weight = weight
             self.reactions.append(r_reverse)
+            
+    def delete_reaction(self, rid):
+        # Create a new map of RID to reactions, without the banned reactions.
+        temp_reactions = []
+        for r in self.reactions:
+            if r.rid == rid:
+                logging.debug("This reaction has been banned by its RID (R%05d): %s" % (r.rid, r.name))
+            else:
+                temp_reactions.append(r)
+                
+        self.reactions = temp_reactions
 
     def add_cofactor(self, cid):
         self.cofactors.add(cid)

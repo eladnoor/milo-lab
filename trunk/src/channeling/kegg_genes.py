@@ -1,3 +1,4 @@
+import numpy as np
 from SOAPpy import WSDL
 from toolbox.database import SqliteDatabase
 import sys, csv
@@ -22,6 +23,7 @@ class KeggGenes(object):
         self.GENE_ENERGY_TABLE_NAME = 'kegg_gene_energies'
         self.FUNCTIONAL_INTERATCTIONS_TABLE = 'parkinson_functional_interactions'
         self.GENE_PAIRS_TABLE_NAME = 'kegg_gene_pairs'
+        self.COFACTOR_TABLE_NAME = 'kegg_cofactors'
         
         self.db.CreateTable(self.GENE_TABLE_NAME, ['organism', 'gene'], drop_if_exists=False)
         self.db.CreateIndex('gene_idx', self.GENE_TABLE_NAME, 'gene', unique=False)
@@ -42,9 +44,12 @@ class KeggGenes(object):
         self.db.CreateIndex('stoichiometry_equation_idx', self.STOICHIOMETRY_TABLE_NAME, 'equation', unique=False)
         self.db.CreateIndex('stoichiometry_compound_idx', self.STOICHIOMETRY_TABLE_NAME, 'compound', unique=False)
 
+        self.db.CreateTable(self.COFACTOR_TABLE_NAME, ['cid', 'name', 'c_min', 'c_max', 'ref'], drop_if_exists=False)
+        self.db.CreateIndex('cofactor_idx', self.COFACTOR_TABLE_NAME, 'cid', unique=True)
+
         self.db.CreateTable(self.GIBBS_ENERGY_TABLE_NAME, ['equation', 'dG0', 'dGc'], drop_if_exists=False)
         self.db.CreateIndex('gibbs_equation_idx', self.GIBBS_ENERGY_TABLE_NAME, 'equation', unique=True)
-        
+
     def get_kegg_serv(self):
         if self.serv is None:
             self.serv = WSDL.Proxy(self.KEGG_WSDL)
@@ -171,6 +176,17 @@ class KeggGenes(object):
                 self.db.Insert(self.GIBBS_ENERGY_TABLE_NAME, [equation, None, None])
     
         self.db.Commit()
+    
+    def GetCofactors(self):
+        self.db.Execute("DELETE FROM %s" % (self.COFACTOR_TABLE_NAME))
+
+        csv_reader = csv.DictReader(open('../data/thermodynamics/cofactors.csv', 'r'))
+        for rowdict in csv_reader:
+            self.db.Insert(self.COFACTOR_TABLE_NAME,
+                           [int(rowdict['cid']), rowdict['name'],
+                            float(rowdict['c_min'] or np.nan), float(rowdict['c_max'] or np.nan),
+                            rowdict['ref']])
+        self.db.Commit()
         
     def CreateGeneEnergyTable(self):
         self.db.CreateTable(self.GENE_ENERGY_TABLE_NAME,
@@ -182,7 +198,7 @@ class KeggGenes(object):
                             self.GENE_ENERGY_TABLE_NAME, 'gene', unique=False)
 
         query = """
-            INSERT INTO kegg_gene_energies (gene, enzyme, dGc, compound, coefficient)
+            INSERT INTO %s (gene, enzyme, dGc, compound, coefficient)
                 SELECT  gen.gene, enz.enzyme, eng.dGc, sto.compound, sto.coefficient
                 FROM    kegg_genes gen, kegg_enzymes enz, kegg_reactions rxn,
                         kegg_equations eqn, kegg_gibbs_energies eng,
@@ -194,11 +210,11 @@ class KeggGenes(object):
                 AND     eqn.equation = eng.equation
                 AND     eng.dG0 IS NOT NULL
                 AND     eqn.equation = sto.equation
-        """
+        """ % self.GENE_ENERGY_TABLE_NAME
         self.db.Execute(query)
 
         query = """
-            INSERT INTO kegg_gene_energies (gene, enzyme, dGc, compound, coefficient)
+            INSERT INTO %s (gene, enzyme, dGc, compound, coefficient)
                 SELECT  gen.gene, enz.enzyme, -eng.dGc, sto.compound, -sto.coefficient
                 FROM    kegg_genes gen, kegg_enzymes enz, kegg_reactions rxn,
                         kegg_equations eqn, kegg_gibbs_energies eng,
@@ -210,7 +226,7 @@ class KeggGenes(object):
                 AND     eqn.equation = eng.equation
                 AND     eng.dG0 IS NOT NULL
                 AND     eqn.equation = sto.equation
-        """
+        """ % self.GENE_ENERGY_TABLE_NAME
         self.db.Execute(query)
         self.db.Commit()
         
@@ -223,7 +239,7 @@ class KeggGenes(object):
                             self.GENE_PAIRS_TABLE_NAME,
                             'gene1, gene2', unique=False)
         query = """
-            INSERT INTO kegg_gene_pairs (gene1, gene2, enzyme1, enzyme2, compound, coeff1, coeff2, dGc1, dGc2)
+            INSERT INTO %s (gene1, gene2, enzyme1, enzyme2, compound, coeff1, coeff2, dGc1, dGc2)
                 SELECT  kge1.gene, kge2.gene, 
                         kge1.enzyme, kge2.enzyme,
                         kge1.compound, 
@@ -231,28 +247,32 @@ class KeggGenes(object):
                         kge1.dGc, kge2.dGc
                 FROM    kegg_gene_energies kge1, kegg_gene_energies kge2
                 WHERE   kge1.compound = kge2.compound
-                AND     kge1.compound IS NOT 80
-                AND     kge1.compound IS NOT 1
+                AND     kge1.compound NOT IN (SELECT cid FROM %s)
                 AND     kge1.gene != kge2.gene
                 AND     kge1.enzyme != kge2.enzyme
                 AND     kge1.coefficient > 0
                 AND     kge2.coefficient < 0
-        """
+        """ % (self.GENE_PAIRS_TABLE_NAME, self.COFACTOR_TABLE_NAME)
         self.db.Execute(query)
         self.db.Commit()
         
-    def Correlate(self, dGc1_lower, dGc2_upper):
+    def Correlate(self, dGc1_lower, dGc2_upper, reverse=False):
         queries = []
-        
+        if reverse:
+            cond = "(kgp.dGc1 < %d AND kgp.dGc2 > %d)" % (dGc1_lower, dGc2_upper)
+        else:
+            cond = "(kgp.dGc1 > %d AND kgp.dGc2 < %d)" % (dGc1_lower, dGc2_upper)
+
         queries.append("""
-            SELECT  count(*), (pfi.score IS NOT NULL) s, (kgp.dGc1 > %d AND kgp.dGc2 < %d) e
-            FROM    kegg_gene_pairs kgp
-            LEFT OUTER JOIN parkinson_functional_interactions pfi
+            SELECT  count(*), (pfi.score IS NOT NULL) s, %s e
+            FROM    %s kgp
+            LEFT OUTER JOIN %s pfi
             ON      (pfi.gene1 = kgp.gene1 AND pfi.gene2 = kgp.gene2
                      OR
                      pfi.gene1 = kgp.gene2 AND pfi.gene2 = kgp.gene1)
             GROUP BY s, e
-        """ % (dGc1_lower, dGc2_upper))
+        """ % (cond, 
+               self.GENE_PAIRS_TABLE_NAME, self.FUNCTIONAL_INTERATCTIONS_TABLE))
         
         res = [row for row in self.db.Execute(queries[0])]
         
@@ -276,21 +296,26 @@ class KeggGenes(object):
         
         return inter1_energy0 / energy0, inter1_energy1 / energy1, energy1
 
-    def Correlate2(self, dGc1_lower, dGc2_upper):
+    def Correlate2(self, dGc1_lower, dGc2_upper, reverse=False):
         queries = []
+        if reverse:
+            cond = "sum(kgp.dGc1 < %d AND kgp.dGc2 > %d)" % (dGc1_lower, dGc2_upper)
+        else:
+            cond = "sum(kgp.dGc1 > %d AND kgp.dGc2 < %d)" % (dGc1_lower, dGc2_upper)
         
         queries.append("""
             SELECT  p.*, pfi.score
             FROM (
-                  SELECT  kgp.gene1 gene1, kgp.gene2 gene2, sum(kgp.dGc1 > %d AND kgp.dGc2 < %d) nqual, count(*) ntot
-                  FROM    kegg_gene_pairs kgp
+                  SELECT  kgp.gene1 gene1, kgp.gene2 gene2, %s nqual, count(*) ntot
+                  FROM    %s kgp
                   GROUP BY kgp.gene1, kgp.gene2
                  ) p
-            LEFT OUTER JOIN parkinson_functional_interactions pfi
+            LEFT OUTER JOIN %s pfi
             ON      (pfi.gene1 = p.gene1 AND pfi.gene2 = p.gene2
                      OR
                      pfi.gene1 = p.gene2 AND pfi.gene2 = p.gene1)
-        """ % (dGc1_lower, dGc2_upper))
+        """ % (cond,
+               self.GENE_PAIRS_TABLE_NAME, self.FUNCTIONAL_INTERATCTIONS_TABLE))
         
         inter0_energy0 = 0.0
         inter0_energy1 = 0.0
@@ -349,27 +374,34 @@ class KeggGenes(object):
 
 if __name__ == "__main__":
     kegg_gene = KeggGenes()
-    #kegg_gene.LoadFunctionalInteractions()
-    #kegg_gene.GetAllGenes('eco')
-    #kegg_gene.GetAllEnzyme('eco')
-    #kegg_gene.GetAllReactions()
-    #kegg_gene.GetAllEquations()
-    #kegg_gene.GetStoichiometries()
-    
-    #from pygibbs.thermodynamic_estimators import LoadAllEstimators
-    #estimators = LoadAllEstimators()
-    #kegg_gene.GetForamtionEnergies(estimators['UGC'])
-    
-    #kegg_gene.CreateGeneEnergyTable()
-    #kegg_gene.CreateGenePairsTable()
+    if False:
+        kegg_gene.LoadFunctionalInteractions()
+        kegg_gene.GetAllGenes('eco')
+        kegg_gene.GetAllEnzyme('eco')
+        kegg_gene.GetAllReactions()
+        kegg_gene.GetAllEquations()
+        kegg_gene.GetStoichiometries()
+        kegg_gene.GetCofactors()
+        
+        from pygibbs.thermodynamic_estimators import LoadAllEstimators
+        estimators = LoadAllEstimators()
+        kegg_gene.GetForamtionEnergies(estimators['UGC'])
+        
+    kegg_gene.CreateGeneEnergyTable()
+    kegg_gene.CreateGenePairsTable()
     kegg_gene.Correlate2(0, 0)
-    sys.exit(0)
+    #sys.exit(0)
     
     csv_writer = csv.writer(open('../res/channeling.csv', 'w'))
-    csv_writer.writerow(['dGc1 > x', 'dGc2 < y', '# qualify', 'P(unqualify)', 'P(qualify)'])
-    energies1 = [0, 10, 20, 30, 40]
-    energies2 = [0, -10, -20, -30, -40]
+    csv_writer.writerow(['dGc1 <> x', 'dGc2 <> x', '# qualify', 'P(unqualify)', 'P(qualify)'])
+    energies1 = np.arange(-40, 41, 10)
+    energies2 = np.arange(-40, 41, 10)
+    
     for e1, e2 in itertools.product(energies1, energies2):
-        p0, p1, n_qual = kegg_gene.Correlate(e1, e2)
-        csv_writer.writerow([e1, e2, n_qual, p0, p1])
+        p0, p1, n_qual = kegg_gene.Correlate2(e1, e2, reverse=False)
+        csv_writer.writerow([" > %g" % e1, " < %g" % e2, n_qual, p0, p1])
+
+    for e1, e2 in itertools.product(energies1, energies2):
+        p0, p1, n_qual = kegg_gene.Correlate2(e1, e2, reverse=True)
+        csv_writer.writerow([" < %g" % e1, " > %g" % e2, n_qual, p0, p1])
     

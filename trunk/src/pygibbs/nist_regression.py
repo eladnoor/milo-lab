@@ -56,7 +56,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         logging.info("Reverse transforming the NIST data")
         nist_rows = self.nist.SelectRowsFromNist()
         nist_rows_normalized = [row.Clone() for row in nist_rows]               
-        data = self.GetDissociation().ReverseTranformNistRows(nist_rows_normalized)
+        data = self.GetDissociation().ReverseTransformNistRows(nist_rows_normalized)
         stoichiometric_matrix = data['S']
         cids_to_estimate = data['cids_to_estimate']
         
@@ -88,7 +88,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         logging.info("Selected %d NIST rows out of %d" %
                      (len(nist_rows), len(self.nist.data)))
         
-        data = self.GetDissociation().ReverseTranformNistRows(
+        data = self.GetDissociation().ReverseTransformNistRows(
                                 nist_rows, cid2nH_nMg=cid2nH_nMg)
                 
         nist_rows_final = data['nist_rows']
@@ -381,7 +381,7 @@ class NistRegression(PsuedoisomerTableThermodynamics):
         html_writer.write('</p>\n')
 
         # reverse transform the data
-        data = self.GetDissociation().ReverseTranformNistRows(nist_rows)
+        data = self.GetDissociation().ReverseTransformNistRows(nist_rows)
         
         html_writer.write('Reaction: %s</br>\n' % \
                           reaction.to_hypertext(show_cids=False))
