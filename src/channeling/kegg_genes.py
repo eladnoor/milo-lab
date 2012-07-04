@@ -339,6 +339,11 @@ class KeggGenes(object):
         energy1 = inter0_energy1 + inter1_energy1
         total = inter0 + inter1
         
+        print "-" * 50
+        if reverse:
+            print "Checking criterion: first < %d and second > %d" % (dGc1_lower, dGc2_upper)
+        else:
+            print "Checking criterion: first > %d and second < %d" % (dGc1_lower, dGc2_upper)
         print "Total no. of pairs = %d" % total
         print "Total no. of interacting pairs = %d" % inter1
         print "Total no. of qualifying pairs = %d" % energy1
