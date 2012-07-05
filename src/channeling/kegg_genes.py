@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from SOAPpy import WSDL
 from toolbox.database import SqliteDatabase
 import sys, csv
@@ -7,10 +8,12 @@ from pygibbs.kegg_reaction import Reaction
 from pygibbs.kegg_errors import KeggParseException, KeggNonCompoundException,\
     KeggReactionNotBalancedException
 import itertools
+from toolbox.plotting import cdf
 
 class KeggGenes(object):
     
     def __init__(self):
+        self.serv = None
         self.db = SqliteDatabase('channeling/channeling.sqlite', 'w')
         
         self.KEGG_WSDL = 'http://soap.genome.jp/KEGG.wsdl'
@@ -26,29 +29,29 @@ class KeggGenes(object):
         self.COFACTOR_TABLE_NAME = 'kegg_cofactors'
         
         self.db.CreateTable(self.GENE_TABLE_NAME, ['organism', 'gene'], drop_if_exists=False)
-        self.db.CreateIndex('gene_idx', self.GENE_TABLE_NAME, 'gene', unique=False)
+        self.db.CreateIndex('gene_idx', self.GENE_TABLE_NAME, 'gene', unique=False, drop_if_exists=False)
         
         self.db.CreateTable(self.ENZYME_TABLE_NAME, ['organism', 'gene', 'enzyme'], drop_if_exists=False)
-        self.db.CreateIndex('enzyme_gene_idx', self.ENZYME_TABLE_NAME, 'gene', unique=False)
-        self.db.CreateIndex('enzyme_idx', self.ENZYME_TABLE_NAME, 'enzyme', unique=False)
+        self.db.CreateIndex('enzyme_gene_idx', self.ENZYME_TABLE_NAME, 'gene', unique=False, drop_if_exists=False)
+        self.db.CreateIndex('enzyme_idx', self.ENZYME_TABLE_NAME, 'enzyme', unique=False, drop_if_exists=False)
 
         self.db.CreateTable(self.REACTION_TABLE_NAME, ['enzyme', 'reaction'], drop_if_exists=False)
-        self.db.CreateIndex('reaction_enzyme_idx', self.REACTION_TABLE_NAME, 'enzyme', unique=False)
-        self.db.CreateIndex('reaction_idx', self.REACTION_TABLE_NAME, 'reaction', unique=False)
+        self.db.CreateIndex('reaction_enzyme_idx', self.REACTION_TABLE_NAME, 'enzyme', unique=False, drop_if_exists=False)
+        self.db.CreateIndex('reaction_idx', self.REACTION_TABLE_NAME, 'reaction', unique=False, drop_if_exists=False)
         
         self.db.CreateTable(self.EQUATION_TABLE_NAME, ['reaction', 'equation'], drop_if_exists=False)
-        self.db.CreateIndex('equation_reaction_idx', self.EQUATION_TABLE_NAME, 'reaction', unique=False)
-        self.db.CreateIndex('equation_idx', self.EQUATION_TABLE_NAME, 'equation', unique=False)
+        self.db.CreateIndex('equation_reaction_idx', self.EQUATION_TABLE_NAME, 'reaction', unique=False, drop_if_exists=False)
+        self.db.CreateIndex('equation_idx', self.EQUATION_TABLE_NAME, 'equation', unique=False, drop_if_exists=False)
         
         self.db.CreateTable(self.STOICHIOMETRY_TABLE_NAME, ['equation', 'compound', 'coefficient'], drop_if_exists=False)
-        self.db.CreateIndex('stoichiometry_equation_idx', self.STOICHIOMETRY_TABLE_NAME, 'equation', unique=False)
-        self.db.CreateIndex('stoichiometry_compound_idx', self.STOICHIOMETRY_TABLE_NAME, 'compound', unique=False)
+        self.db.CreateIndex('stoichiometry_equation_idx', self.STOICHIOMETRY_TABLE_NAME, 'equation', unique=False, drop_if_exists=False)
+        self.db.CreateIndex('stoichiometry_compound_idx', self.STOICHIOMETRY_TABLE_NAME, 'compound', unique=False, drop_if_exists=False)
 
         self.db.CreateTable(self.COFACTOR_TABLE_NAME, ['cid', 'name', 'c_min', 'c_max', 'ref'], drop_if_exists=False)
-        self.db.CreateIndex('cofactor_idx', self.COFACTOR_TABLE_NAME, 'cid', unique=True)
+        self.db.CreateIndex('cofactor_idx', self.COFACTOR_TABLE_NAME, 'cid', unique=True, drop_if_exists=False)
 
         self.db.CreateTable(self.GIBBS_ENERGY_TABLE_NAME, ['equation', 'dG0', 'dGc'], drop_if_exists=False)
-        self.db.CreateIndex('gibbs_equation_idx', self.GIBBS_ENERGY_TABLE_NAME, 'equation', unique=True)
+        self.db.CreateIndex('gibbs_equation_idx', self.GIBBS_ENERGY_TABLE_NAME, 'equation', unique=True, drop_if_exists=False)
 
     def get_kegg_serv(self):
         if self.serv is None:
@@ -67,7 +70,7 @@ class KeggGenes(object):
             all_genes += new_genes
 
         # clear all entries for this organism before reinserting them into the DB        
-        self.db.Execute("DELETE * FROM %s WHERE organism = '%s'" % 
+        self.db.Execute("DELETE FROM %s WHERE organism = '%s'" % 
                         (self.GENE_TABLE_NAME, organism))
         for gene in all_genes:
             self.db.Insert(self.GENE_TABLE_NAME, [organism, gene])
@@ -259,9 +262,9 @@ class KeggGenes(object):
     def Correlate(self, dGc1_lower, dGc2_upper, reverse=False):
         queries = []
         if reverse:
-            cond = "(kgp.dGc1 < %d AND kgp.dGc2 > %d)" % (dGc1_lower, dGc2_upper)
+            cond = "(cast(kgp.dGc1 as real) < %d AND cast(kgp.dGc2 as real) > %d)" % (dGc1_lower, dGc2_upper)
         else:
-            cond = "(kgp.dGc1 > %d AND kgp.dGc2 < %d)" % (dGc1_lower, dGc2_upper)
+            cond = "(cast(kgp.dGc1 as real) > %d AND cast(kgp.dGc2 as real) < %d)" % (dGc1_lower, dGc2_upper)
 
         queries.append("""
             SELECT  count(*), (pfi.score IS NOT NULL) s, %s e
@@ -299,9 +302,9 @@ class KeggGenes(object):
     def Correlate2(self, dGc1_lower, dGc2_upper, reverse=False):
         queries = []
         if reverse:
-            cond = "sum(kgp.dGc1 < %d AND kgp.dGc2 > %d)" % (dGc1_lower, dGc2_upper)
+            cond = "(cast(kgp.dGc1 as real) < %d AND cast(kgp.dGc2 as real) > %d)" % (dGc1_lower, dGc2_upper)
         else:
-            cond = "sum(kgp.dGc1 > %d AND kgp.dGc2 < %d)" % (dGc1_lower, dGc2_upper)
+            cond = "(cast(kgp.dGc1 as real) > %d AND cast(kgp.dGc2 as real) < %d)" % (dGc1_lower, dGc2_upper)
         
         queries.append("""
             SELECT  p.*, pfi.score
@@ -317,27 +320,19 @@ class KeggGenes(object):
         """ % (cond,
                self.GENE_PAIRS_TABLE_NAME, self.FUNCTIONAL_INTERATCTIONS_TABLE))
         
-        inter0_energy0 = 0.0
-        inter0_energy1 = 0.0
-        inter1_energy0 = 0.0
-        inter1_energy1 = 0.0
-
+        counters = np.zeros((2, 2))
+        
         for row in self.db.Execute(queries[0]):
             gene1, gene2, nqual, ntot, score = row
-            if nqual == 0 and score is None:
-                inter0_energy0 += 1.0
-            elif nqual > 0 and score is None:
-                inter0_energy1 += 1.0
-            elif nqual == 0 and score is not None:
-                inter1_energy0 += 1.0
-            elif nqual > 0 and score is not None:
-                inter1_energy1 += 1.0
+            i = int(score is not None) # is there an PP-interaction
+            j = int(nqual > 0) # is this a qualifying pair (thermodynamically)
+            counters[i, j] += 1.0
 
-        inter0 = inter0_energy0 + inter0_energy1
-        inter1 = inter1_energy0 + inter1_energy1
-        energy0 = inter0_energy0 + inter1_energy0
-        energy1 = inter0_energy1 + inter1_energy1
-        total = inter0 + inter1
+        inter0 = np.sum(counters[0, :])
+        inter1 = np.sum(counters[1, :])
+        qual0 = np.sum(counters[:, 0])
+        qual1 = np.sum(counters[:, 1])
+        total = np.sum(counters.flat)
         
         print "-" * 50
         if reverse:
@@ -345,14 +340,13 @@ class KeggGenes(object):
         else:
             print "Checking criterion: first > %d and second < %d" % (dGc1_lower, dGc2_upper)
         print "Total no. of pairs = %d" % total
-        print "Total no. of interacting pairs = %d" % inter1
-        print "Total no. of qualifying pairs = %d" % energy1
         
-        print "interactions among all pairs (%d out of %d) = %.2f%%" % (inter1, total, 100*(inter1 / total))
-        print "interactions between unqualified pairs (%d out of %d) = %.2f%%" % (inter1_energy0, energy0, 100*(inter1_energy0 / energy0))
-        print "interactions between qualified pairs (%d out of %d) = %.2f%%" % (inter1_energy1, energy1, 100*(inter1_energy1 / energy1))
+        print "interaction rate among all pairs (%d out of %d) = %.2f%%" % (inter1, total, 100*(inter1 / total))
+        print "qualification rate among all pairs (%d out of %d) = %.2f%%" % (qual1, total, 100*(qual1 / total))
+        print "interactions between unqualifying pairs (%d out of %d) = %.2f%%" % (counters[1,0], qual0, 100*(counters[1,0] / qual0))
+        print "interactions between qualifying pairs (%d out of %d) = %.2f%%" % (counters[1,1], qual1, 100*(counters[1,1] / qual1))
         
-        return inter1_energy0 / energy0, inter1_energy1 / energy1, energy1
+        return counters[1,0] / qual0, counters[1,1] / qual1
 
 
     def LoadFunctionalInteractions(self,
@@ -377,6 +371,37 @@ class KeggGenes(object):
         
         self.db.Commit()
 
+    def ScatterPlot(self):
+        query = """
+                SELECT  p.g1, p.g2, pfi.score
+                FROM (
+                      SELECT  kgp.gene1 gene1, kgp.gene2 gene2, cast(kgp.dGc1 as real) g1, cast(kgp.dGc2 as real) g2
+                      FROM    %s kgp
+                     ) p
+                LEFT OUTER JOIN %s pfi
+                ON      (pfi.gene1 = p.gene1 AND pfi.gene2 = p.gene2
+                         OR
+                         pfi.gene1 = p.gene2 AND pfi.gene2 = p.gene1)
+            """ % (self.GENE_PAIRS_TABLE_NAME, self.FUNCTIONAL_INTERATCTIONS_TABLE)
+
+        data = []
+        for row in self.db.Execute(query):
+            g1, g2, score = row
+            data.append([float(g1), float(g2), float(score or 0)])
+        data = np.matrix(data)
+
+        ind1 = list(np.where(data[:, 2] > 0)[0].flat)
+        ind2 = list(np.where(data[:, 2] == 0)[0].flat)
+        #plt.plot(data[ind2, 0], data[ind2, 1], 'r.', markersize=5)
+        #plt.plot(data[ind1, 0], data[ind1, 1], 'g.', markersize=5)
+    
+        fig = plt.figure(figsize=(6,6), dpi=90)    
+        cdf((data[ind2,1] - data[ind2,0]).flat, label="non-interacting", style='r', figure=fig)
+        cdf((data[ind1,1] - data[ind1,0]).flat, label="interacting", style='g', figure=fig)
+        
+        plt.show()
+        
+
 if __name__ == "__main__":
     kegg_gene = KeggGenes()
     if False:
@@ -394,19 +419,22 @@ if __name__ == "__main__":
         
     kegg_gene.CreateGeneEnergyTable()
     kegg_gene.CreateGenePairsTable()
-    kegg_gene.Correlate2(0, 0)
-    #sys.exit(0)
+    #kegg_gene.Correlate2(-40, -40, reverse=False)
+    #kegg_gene.Correlate2(-40, -30, reverse=False)
+    
+    kegg_gene.ScatterPlot()
+    sys.exit(0)
     
     csv_writer = csv.writer(open('../res/channeling.csv', 'w'))
-    csv_writer.writerow(['dGc1 <> x', 'dGc2 <> x', '# qualify', 'P(unqualify)', 'P(qualify)'])
+    csv_writer.writerow(['dGc1 <> x', 'dGc2 <> x', 'P(unqualify)', 'P(qualify)'])
     energies1 = np.arange(-40, 41, 10)
     energies2 = np.arange(-40, 41, 10)
     
     for e1, e2 in itertools.product(energies1, energies2):
-        p0, p1, n_qual = kegg_gene.Correlate2(e1, e2, reverse=False)
-        csv_writer.writerow([" > %g" % e1, " < %g" % e2, n_qual, p0, p1])
+        p0, p1 = kegg_gene.Correlate2(e1, e2, reverse=False)
+        csv_writer.writerow([" > %g" % e1, " < %g" % e2, p0, p1])
 
     for e1, e2 in itertools.product(energies1, energies2):
-        p0, p1, n_qual = kegg_gene.Correlate2(e1, e2, reverse=True)
-        csv_writer.writerow([" < %g" % e1, " > %g" % e2, n_qual, p0, p1])
+        p0, p1 = kegg_gene.Correlate2(e1, e2, reverse=True)
+        csv_writer.writerow([" < %g" % e1, " > %g" % e2, p0, p1])
     

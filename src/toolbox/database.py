@@ -51,9 +51,9 @@ class SQLDatabase(Database):
         if drop_if_exists:
             self.Execute("DROP INDEX IF EXISTS %s" % index_name)
         if unique:
-            self.Execute("CREATE UNIQUE INDEX %s ON %s (%s)" % (index_name, table_name, columns))
+            self.Execute("CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s (%s)" % (index_name, table_name, columns))
         else:
-            self.Execute("CREATE INDEX %s ON %s (%s)" % (index_name, table_name, columns))
+            self.Execute("CREATE INDEX IF NOT EXISTS %s ON %s (%s)" % (index_name, table_name, columns))
             
     def DoesTableExist(self, table_name):
         raise NotImplementedError("DoesTableExist not implemented")
