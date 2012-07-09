@@ -406,9 +406,9 @@ if __name__ == "__main__":
         estimators = LoadAllEstimators()
         kegg_gene.GetForamtionEnergies(estimators['UGC'])
         
-    kegg_gene.LoadCofactors()
-    kegg_gene.CreateGeneEnergyTable()
-    kegg_gene.CreateGenePairsTable()
+        kegg_gene.LoadCofactors()
+        kegg_gene.CreateGeneEnergyTable()
+        kegg_gene.CreateGenePairsTable()
     
     #kegg_gene.Correlate(-40, -40, reverse=False)
     #kegg_gene.Correlate(-40, -30, reverse=False)
