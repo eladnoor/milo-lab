@@ -330,16 +330,22 @@ class KeggGenes(object):
         plt.show()
         
     def PlotCDF(self):
+        special_pairs = {('eco:b3236', 'eco:b0720'):"mdh:gltA", # malate dehydrogenase -> oxaloacetate -> citrate synthase
+                         ('eco:b1263', 'eco:b1264'):"trpD:trpE"} # trpD -> chorismate -> trpE (two components of anthraline synthase)
+        
         query = """
-                SELECT min(dGc2 - dGc1), max(score)
+                SELECT gene1, gene2, min(dGc2 - dGc1), max(score)
                 FROM %s
                 WHERE dGc1 + dGc2 < 0
                 GROUP BY gene1, gene2
                 """ % (self.GENE_PAIRS_TABLE_NAME)
 
         data = []
+        markers = []
         for row in self.db.Execute(query):
-            ddG, score = row
+            gene1, gene2, ddG, score = row
+            if (gene1, gene2) in special_pairs:
+                markers.append((special_pairs[(gene1, gene2)], ddG))
             data.append([ddG, float(score or 0)])
         data = np.matrix(data)
 
@@ -349,7 +355,10 @@ class KeggGenes(object):
         fig = plt.figure(figsize=(6,6), dpi=90)    
         cdf((data[ind2, 0]).flat, label="non-interacting (N = %d)" % len(ind2), style='r', figure=fig)
         cdf((data[ind1, 0]).flat, label="interacting (N = %d)" % len(ind1), style='g', figure=fig)
-        plt.xlim(-200, 200)
+        for label, ddG in markers:
+            plt.plot([ddG, ddG], [0, 1], 'b--', figure=fig)
+            plt.text(ddG, 0.1, label)
+        plt.xlim(-500, 500)
         plt.xlabel(r"$\Delta G'^c$ (2nd) - $\Delta G'^c$ (1st) [kJ/mol]")
         plt.ylabel(r"Cumulative Distribution Function")
         plt.legend(loc="upper left")
@@ -358,7 +367,9 @@ class KeggGenes(object):
 
     def PrintPairs(self):
         query = """
-                SELECT g.gene1, g.reaction1, cast(g.dG1 as int), kg1.desc, c.name, g.gene2, g.reaction2, cast(g.dG2 as int), kg2.desc, cast(g.ddG as int), g.score FROM
+                SELECT g.gene1, g.gene2, c.name, g.reaction1, g.reaction2, 
+                       cast(g.dG1 as int), cast(g.dG2 as int), cast(g.ddG as int),
+                       kg1.desc, kg2.desc, g.score FROM
                 (SELECT gene1, gene2, reaction1, reaction2, compound, max(dGc1) dG1, min(dGc2) dG2, min(dGc2 - dGc1) ddG, max(score) score
                 FROM kegg_gene_pairs
                 WHERE dGc1 + dGc2 < 0
@@ -369,8 +380,10 @@ class KeggGenes(object):
         
         self.html_writer.write('<font size="1">\n')
         self.db.Query2HTML(self.html_writer, query,
-                           ['Gene 1', 'Reaction 1', 'dGc1', 'Desc', 'Common Compound',
-                            'Gene 2', 'Reaction 2', 'dGc2', 'Desc', 'dG2-dG1', 'Score'])
+                           ['Gene 1', 'Gene 2', 'Common Compound',
+                            'Reaction 1', 'Reaction 2',
+                            'dGc1', 'dGc2', 'dG2-dG1', 'Desc 1', 'Desc 2',
+                            'Score'])
         self.html_writer.write('</font>\n')
 
 if __name__ == "__main__":
