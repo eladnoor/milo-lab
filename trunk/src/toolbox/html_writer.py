@@ -19,7 +19,7 @@ class BaseHtmlWriter:
     def relative_to_full_path(self, relpath):
         raise Exception("class not implemented")
 
-    def write(self):
+    def write(self, s):
         raise Exception("class not implemented")
 
     def write_header(self):
@@ -223,7 +223,7 @@ class NullHtmlWriter(BaseHtmlWriter):
         BaseHtmlWriter.__init__(self)
         self.filename = None
     
-    def write(self, str):
+    def write(self, s):
         pass
     
     def relative_to_full_path(self, relpath):
@@ -251,10 +251,10 @@ class HtmlWriter(BaseHtmlWriter):
     def relative_to_full_path(self, relpath):
         return self.filepath + "/" + relpath
 
-    def write(self, str):
+    def write(self, s):
         if (self.file == None):
             raise Exception("cannot write to this HTML since it is already closed")
-        self.file.write(str)
+        self.file.write(s)
         if (self.flush_always):
             self.file.flush()
     
