@@ -337,6 +337,7 @@ class KeggGenes(object):
                 SELECT gene1, gene2, min(dGc2 - dGc1), max(score)
                 FROM %s
                 WHERE dGc1 + dGc2 < 0
+                AND dGc1 > 10
                 GROUP BY gene1, gene2
                 """ % (self.GENE_PAIRS_TABLE_NAME)
 
@@ -373,6 +374,7 @@ class KeggGenes(object):
                 (SELECT gene1, gene2, reaction1, reaction2, compound, max(dGc1) dG1, min(dGc2) dG2, min(dGc2 - dGc1) ddG, max(score) score
                 FROM kegg_gene_pairs
                 WHERE dGc1 + dGc2 < 0
+                AND   dGc1 > 10
                 GROUP BY gene1, gene2, compound
                 ORDER BY ddG) g, kegg_genes kg1, kegg_genes kg2, kegg_compounds c
                 WHERE g.gene1 = kg1.gene AND g.gene2 = kg2.gene AND c.compound = g.compound
@@ -392,7 +394,7 @@ if __name__ == "__main__":
     plt.rcParams['font.size'] = 12
     plt.rcParams['lines.linewidth'] = 2
     
-    kegg_gene = KeggGenes('../res/channleing.html')
+    kegg_gene = KeggGenes('../res/channeling.html')
 
     if False:
         kegg_gene.LoadCofactors()
