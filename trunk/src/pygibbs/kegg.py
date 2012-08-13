@@ -872,14 +872,14 @@ class Kegg(Singleton):
 
     def create_reaction_nodes(self, Gdot, rid):
         node_in = pydot.Node("%s in" % Kegg.rid2string(rid))
-        node_in.set_label("")
+        node_in.set_label(None)
         node_in.set_shape("point")
         node_in.set_tooltip('"-> %s"' % Kegg.rid2string(rid))
         node_in.set_color(self.edge_color)
         Gdot.add_node(node_in)
 
         node_out = pydot.Node("%s out" % Kegg.rid2string(rid))
-        node_out.set_label("")
+        node_out.set_label(None)
         node_out.set_shape("point")
         node_out.set_tooltip('"%s ->"' % Kegg.rid2string(rid))
         node_out.set_color(self.edge_color) # edge connector-point color
@@ -1381,14 +1381,14 @@ class KeggPathologic(object):
 
     def create_reaction_nodes(self, Gdot, reaction, flux=1):
         node_in = self.get_node(Gdot, "R%05d in" % reaction.rid)
-        node_in.set_label("")
+        node_in.set_label(None)
         node_in.set_shape("point")
         node_in.set_tooltip('"-> R%05d"' % reaction.rid)
         node_in.set_color(self.edge_color)
         Gdot.add_node(node_in)
 
         node_out = self.get_node(Gdot, "R%05d out" % reaction.rid)
-        node_out.set_label("")
+        node_out.set_label(None)
         node_out.set_shape("point")
         node_out.set_tooltip('"R%05d ->"' % reaction.rid)
         node_out.set_color(self.edge_color) # edge connector-point color
