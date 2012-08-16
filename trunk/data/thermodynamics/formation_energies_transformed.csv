@@ -29,7 +29,7 @@
 111,"dihydroxyacetonephos",-1095.7,7,0.25,14,298.15,"training","Alberty (2006)",
 469,"ethanol",62.96,7,0.25,14,298.15,"testing","Alberty (2006)","too small"
 849,"ethylacetate",-11.52,7,0.25,14,298.15,"training","Alberty (2006)",
-67,"formaldehyde",-49.1,7,0.25,14,298.15,testing,"Thauer (1977)","too small, calculated using Legendre transform from chemical table"
+67,"formaldehyde",-38.7,7,0.25,14,298.15,testing,"Maden (2000)","too small, calculated using Legendre transform from chemical table"
 58,"formate",-311.04,7,0.25,14,298.15,"testing","Alberty (2006)","too small"
 95,"fructose",-426.32,7,0.25,14,298.15,"training","Alberty (2006)",
 354,"fructose16phos",-2206.78,7,0.25,14,298.15,"training","Alberty (2006)",

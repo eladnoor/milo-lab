@@ -242,7 +242,7 @@ class ParsedKeggFile(dict):
     
     @staticmethod
     def FromKeggAPI(s):
-        """Parses a file from KEGG. The result string from the KEGG SOAP API.
+        """Parses a file from KEGG. The result string from the KEGG API.
         
         For testing.
     

@@ -7,7 +7,6 @@
 "FAD",16,33,0,1352,35,0,-0.219,7,"CRC biochemistry (2010)"
 "FAD(enz)",80059,33,0,80060,35,0,0.459,0,"Alberty (2006)"
 "FMN",61,18,0,1847,20,0,-0.219,7.09,"CRC biochemistry (2010)"
-"cytochrome c",125,0,3,126,0,2,0.3,7,"CRC biochemistry (2010)"
 "thioredoxin",343,12,0,342,14,0,-0.27,7,"CRC biochemistry (2010)"
 "coenzyme F420",876,36,0,1080,38,0,-0.36,7,"Deppenmeier (2008)"
 "methyl viologen",225,14,2,80067,14,1,-0.440,7,"Saeki (1985)"

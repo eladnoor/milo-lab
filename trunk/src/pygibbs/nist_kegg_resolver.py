@@ -387,6 +387,8 @@ def WriteDataToDB(db):
             continue
         if url_id == "T1=95KAM/JUR_626": # value conflicts with two other papers and common sense (it is 10^9, which noone can measure)
             continue
+        if url_id == "T1=02TEW/HAW_1641": # the reaction in NIST is wrong (after looking at the refereneced paper)
+            row_dict['Reaction'] = "3-dehydroquinate(aq) = 3-dehydroshikimate(aq) + H2O(l)"
         
         # NIST mistakedly tagged this under K instead of K' due to PDF rendering errors
         if url_id in ["T1=00BYR/GOL_1519", "T1=06XU/WES_1713",
