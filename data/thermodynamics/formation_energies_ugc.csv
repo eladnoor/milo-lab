@@ -1,7 +1,7 @@
 "cid","name","dG0","dH0","z","nH","nMg","use for","compound_ref","remark"
 13,"pyrophosphate",-1973.86,-2294.87,-3,1,0,"testing","Alberty (2006)","too small"
 58,"Formate",-351,-425.55,-1,1,0,"testing","Alberty (2006)","measured directly"
-67,"Formaldehyde",-130.54,,0,2,0,"testing","Thauer (1977)","measured directly"
+67,"Formaldehyde",-120.12,,0,2,0,"testing","Maden (2000)","measured directly"
 147,"Adenine",313.4,129.5,0,5,0,"testing","Alberty (2006)","measured directly"
 366,"Urate",-356.9,,0,4,0,"testing","Alberty (2006)","measured directly"
 469,"Ethanol",-181.64,-288.3,0,6,0,"testing","Alberty (2006)","measured directly"

@@ -16,14 +16,12 @@ from pygibbs import kegg_errors
 from pygibbs import kegg_parser
 from pygibbs.thermodynamic_errors import MissingCompoundFormationEnergy
 from pygibbs.kegg_reaction import Reaction
-from SOAPpy import WSDL
 import openbabel
 import types
 from pygibbs.kegg_errors import KeggReactionNotBalancedException
+import urllib
     
 class Kegg(Singleton):
-
-    WSDL_URL = 'http://soap.genome.jp/KEGG.wsdl'
     COMPOUND_ADDITIONS_FILE = '../data/kegg/kegg_additions.csv'
 
     def __init__(self, loadFromAPI=False):
@@ -127,40 +125,73 @@ class Kegg(Singleton):
                 inchi_list.append(inchi)
         return inchi_list
     
-    def FromAPI(self):
-        logging.info("Connecting to KEGG using SOAP")
-        serv = WSDL.Proxy(Kegg.WSDL_URL)
-
-        max_id = 100000
-        kegg_step = 100
+    @staticmethod
+    def GetAllEntities():
+        """
+            Read all Reactions, EC numbers, Modules, and Compounds
+            from KEGG using the web REST API
+        """
+        labels = ['rn', 'cpd', 'md', 'ec'] 
         
-        # Read all Compounds
-        for i in xrange(0, max_id, kegg_step):
-            logging.info("Parsing KEGG Compounds C%05d - C%05d" % (i, i+kegg_step))
-            entry_id_list = ' '.join(['cpd:C%05d' % j for j in xrange(i, i+kegg_step)])
-            s = serv.bget(entry_id_list)
-            if s == '':
-                logging.info("No compounds found in this range, stopping")
-                break
-            self._ReadCompoundEntries(s)
+        entity_map = {}
+        for l in labels:
+            s = urllib.urlopen('http://rest.kegg.jp/list/%s/' % l).read()
+            list_of_ids = []
+            for line in s.split('\n'):
+                if not line:
+                    continue
+                try:
+                    list_of_ids.append(re.findall('^%s:([A-Z\d\.\-]+)\t' % l, line)[0])
+                except Exception, e:
+                    raise Exception(str(e) + ': ' + line)
+            entity_map[l] = list_of_ids
+            logging.info('There are %d entities of type %s in KEGG' %
+                         (len(list_of_ids), l))
 
+        return entity_map
+    
+    def FromAPI(self, kegg_step=10):
+        # KEGG's rest API cannot handle more than 10 entities at a time
+        
+        # Read all entities (cpd, rn, md, ec)
+        entity_map = Kegg.GetAllEntities()
+        for l, ids in entity_map.iteritems():
+            for i_start in xrange(0, len(ids), kegg_step):
+                i_end = min(i_start+kegg_step, len(ids))
+                logging.info('Parsing KEGG entities of type %s: %s - %s' %
+                             (l, ids[i_start], ids[i_end-1]))
+                
+                url = 'http://rest.kegg.jp/get/%s:%s' % \
+                      (l, '+'.join(ids[i_start:i_end]))
+                s = urllib.urlopen(url).read()
+                if l == 'rn':
+                    self._ReadReactionEntries(s)
+                elif l == 'ec':
+                    self._ReadEnzymeEntries(s)
+                elif l == 'md':
+                    self._ReadModuleEntries(s)
+                elif l == 'cpd':
+                    self._ReadCompoundEntries(s)
+
+        # make a list of CIDs that should have an explicit structure (i.e. an InChI)
         all_explicit_cids = set()
         for cid in self.cid2compound_map.keys():
             comp = self.cid2compound(cid)
             if comp.formula and 'R' not in comp.formula and 'X' not in comp.formula:
                 all_explicit_cids.add(cid)
         
-        # Read all Compound molecular structures, and save as InChI
         all_explicit_cids = sorted(list(all_explicit_cids))
         
         # Convert MOL files to InChIs and store them in the Compound objects
-        for i in xrange(0, len(all_explicit_cids), kegg_step):
+        for i_start in xrange(0, len(all_explicit_cids), kegg_step):
+            i_end = min(i_start+kegg_step, len(all_explicit_cids))
             # first try to get MOL files in batches of 100
-            sub_compound_ids = all_explicit_cids[i:(i+kegg_step)]
-            entry_id_list = ['cpd:C%05d' % j for j in sub_compound_ids]
-            logging.info("Calculating InChIs for compounds %s - %s" %
-                         (entry_id_list[0], entry_id_list[-1]))
-            s = serv.bget('-f m ' + ' '.join(entry_id_list))
+            logging.info("Parsing KEGG Compounds C%05d - C%05d" %
+                         (all_explicit_cids[i_start], all_explicit_cids[i_end-1]))
+            
+            sub_compound_ids = all_explicit_cids[i_start:i_end]
+            entry_ids = '+'.join(['C%05d' % j for j in all_explicit_cids[i_start:i_end]])
+            s = urllib.urlopen('http://rest.kegg.jp/get/cpd:%s/mol' % entry_ids).read()
             inchi_list = self._ReadMolEntries(s)
             
             if len(inchi_list) == len(sub_compound_ids):
@@ -175,51 +206,15 @@ class Kegg(Singleton):
                 obmol = openbabel.OBMol()
                 for cid in sub_compound_ids:
                     logging.info("Calculating InChIs for compound C%05d" % cid)
-                    s = serv.bget('-f m cpd:C%05d' % cid)
+                    s = urllib.urlopen('http://rest.kegg.jp/get/cpd:C%05d/mol' % cid).read()
                     conv.ReadString(obmol, s)
                     inchi = conv.WriteString(obmol).strip()
                     if inchi != '':
                         comp = self.cid2compound(cid)
                         comp.inchi = inchi
                         self.inchi2cid_map[inchi] = cid
-          
-        # Read all Reactions                      
-        for i in xrange(0, max_id, kegg_step):
-            logging.info("Parsing KEGG Reactions R%05d - R%05d" % (i, i+kegg_step))
-            entry_id_list = ' '.join(['rn:R%05d' % j for j in xrange(i, i+kegg_step)])
-            s = serv.bget(entry_id_list)
-            if s == '':
-                logging.info("No reactions found in this range, stopping")
-                break
-            self._ReadReactionEntries(s)
 
-        # Gather all EC numbers and read the enzyme data
-        all_ec_numbers = set()
-        for reaction in self.rid2reaction_map.values():
-            all_ec_numbers.update(reaction.ec_list)
-
-        if '-.-.-.-' in all_ec_numbers:
-            all_ec_numbers.remove('-.-.-.-')
-
-        all_ec_numbers = sorted(list(all_ec_numbers))
-        for i in xrange(0, len(all_ec_numbers), kegg_step):
-            sub_ec_numbers = all_ec_numbers[i:(i+kegg_step)]
-            entry_id_list = ['ec %s' % j for j in sub_ec_numbers]
-            logging.info("Parsing KEGG Enzymes %s - %s" %
-                         (entry_id_list[0], entry_id_list[-1]))
-            s = serv.bget(' '.join(entry_id_list))
-            self._ReadEnzymeEntries(s)
-        
-        # Read all Modules
-        for i in xrange(0, max_id, kegg_step):
-            logging.info("Parsing KEGG Modules M%05d - M%05d" % (i, i+kegg_step))
-            entry_id_list = ' '.join(['md:M%05d' % j for j in xrange(i, i+kegg_step)])
-            s = serv.bget(entry_id_list)
-            if s == '':
-                logging.info("No modules found in this range, stopping")
-                break
-            self._ReadModuleEntries(s)
-
+        # read the list of co-factors from the local CSV file
         logging.info("Parsing the COFACTOR file")
         cofactor_csv = csv.DictReader(open('../data/thermodynamics/cofactors.csv', 'r'))
         for row in cofactor_csv:
@@ -237,49 +232,20 @@ class Kegg(Singleton):
             self.cofactors2names[cid] = name
             self.cid2bounds[cid] = (min_c, max_c)
     
-    def FetchMissingECs(self, ec_list=None):
-        """Get specific ECs using the API.
-        
-        Args:
-            ec_list: the list of ECs to fetch. If None, fetch all
-                ECs for which there are reactions but no enzymes in the DB.
-        """
-        logging.info("Connecting to KEGG using SOAP")
-        serv = WSDL.Proxy(Kegg.WSDL_URL)
-        
-        if ec_list == None:
-            ecs = set()
-            for reaction in self.rid2reaction_map.values():
-                ecs.update(reaction.ec_list)
-            if '-.-.-.-' in ecs:
-                ecs.remove('-.-.-.-')
-            ec_list = list(ecs)
-        
-        kegg_step = 100
-        wanted_ecs = set(ec_list)
-        all_ecs = set(self.ec2enzyme_map.keys())
-        remaining_ecs = sorted(wanted_ecs.difference(all_ecs))
-        logging.info("Fetching %d Enzymes", len(remaining_ecs))
-        logging.info("Fetching ECs: %s" % ', '.join(remaining_ecs))
-        
-        for i in xrange(0, len(remaining_ecs), kegg_step):
-            sub_ec_numbers = remaining_ecs[i:(i+kegg_step)]
-            entry_id_list = ['ec %s' % j for j in sub_ec_numbers]
-            logging.info("Parsing KEGG Enzymes %s - %s" %
-                         (entry_id_list[0], entry_id_list[-1]))
-            s = serv.bget(' '.join(entry_id_list))
-            self._ReadEnzymeEntries(s)
-            
-    
     def CompleteMissingInchies(self):
-        serv = WSDL.Proxy(Kegg.WSDL_URL)
+        """
+            Selects all compounds that don't have an InChI, but their formula
+            is explicit (i.e. without 'R', '()', or 'X').
+            Then recalculates the InChI for them and stores it in the Compound
+            structure.
+        """
         for row in self.db.Execute("SELECT cid FROM kegg_compound " 
             "WHERE (formula NOT LIKE '%R%' AND formula NOT LIKE '%)%' "  
             "AND formula NOT LIKE '%X%') AND inchi IS NULL"):
             cid = int(row[0])
             comp = self.cid2compound(cid)
             logging.info('Querying MOL for C%05d, formula: %s' % (cid, comp.formula))
-            s = serv.bget('-f m cpd:C%05d' % cid)
+            s = urllib.urlopen('http://rest.kegg.jp/get/cpd:C%05d/mol' % cid).read()
             inchi_list = self._ReadMolEntries(s)
             if inchi_list == [] or inchi_list[0] == None:
                 continue
@@ -435,8 +401,7 @@ class Kegg(Singleton):
         try:
             rid, left_clause, dir_clause, right_clause, remainder = re.findall(rexp, line)[0]
         except Exception, e:
-            print e
-            print line
+            raise Exception(str(e) + ': ' + line)
         
         if dir_clause in ['=>', '->', '<=>', '<->', '=', '-']:
             reaction = Reaction.FromFormula(left_clause + " => " + right_clause)
@@ -1537,9 +1502,13 @@ def export_compound_connectivity():
         csv_file.writerow((cid, len(rid_list)))
     
 if __name__ == '__main__':
-    kegg = Kegg.getInstance(loadFromAPI=False)
-
-    kegg.FetchMissingECs()
-    #kegg.CompleteMissingInchies()
-    kegg.ReadAdditionsFile()
-    kegg.ToDatabase()
+    if False:
+        kegg = Kegg.getInstance(loadFromAPI=True)
+        kegg.ReadAdditionsFile()
+        kegg.ToDatabase()
+    else:
+        kegg = Kegg.getInstance(loadFromAPI=False)
+        kegg.FetchMissingECs()
+        kegg.CompleteMissingInchies()
+        kegg.ReadAdditionsFile()
+        kegg.ToDatabase()

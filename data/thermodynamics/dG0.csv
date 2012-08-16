@@ -566,7 +566,7 @@
 "CC(=O)C",207,"Acetone",-161.17,,0,6,0,"skip","Thauer (1977)",
 "CC=O",84,"Acetaldehyde",-139.9,,0,4,0,"skip","Thauer (1977)",
 "OO",27,"H2O2",-134.097,,,,0,"skip","Thauer (1977)",
-"C=O",67,"Formaldehyde",-130.54,,0,2,0,"skip","Thauer (1977)",
+"C=O",67,"Formaldehyde",-120.12,,0,2,0,"skip","Maden (2000)",
 "c1ccc2c(c1)c(C[C@@H](C(=O)[O-])[NH3+])c[nH]2",78,"L-Tryptophan",-112.6,,0,12,0,"skip","Thauer (1977)",
 "N(=O)(=O)[O-]",244,"Nitrate",-111.34,,-1,0,0,"skip","Thauer (1977)",
 "N",14,"Ammonia",-79.37,,,,0,"skip","Thauer (1977)",
