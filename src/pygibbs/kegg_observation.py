@@ -12,9 +12,15 @@ from pygibbs import thermodynamic_constants
 
 class KeggObservation(object):
     
+    TYPE_FORMATION = 1
+    TYPE_REACTION = 2
+    TYPE_ACID_BASE = 3
+    TYPE_MG = 4
+    TYPE_REDOX = 5
+    
     def __init__(self, obs_id, obs_type, url, anchored, dG0, sparse):
         self.obs_id = obs_id
-        self.obs_type = obs_type # can be 'formation', 'reaction', 'acid-base' or 'Mg'
+        self.obs_type = obs_type
         self.url = url
         self.dG0 = dG0
         self.sparse = sparse
@@ -169,11 +175,11 @@ class KeggObervationCollection(object):
             html_text += 'Stoichiometry = %s</br>\n' % str(sparse)
 
             if self.transformed:
-                self.AddObservation(obs_id=obs_id, obs_type='formation',
+                self.AddObservation(obs_id=obs_id, obs_type=KeggObservation.TYPE_FORMATION,
                     anchored=(label=='testing'), dG0=dG0_prime, sparse=sparse,
                     url=self.kegg.cid2link(cid))
             else:
-                self.AddObservation(obs_id=obs_id, obs_type='formation',
+                self.AddObservation(obs_id=obs_id, obs_type=KeggObservation.TYPE_FORMATION,
                     anchored=(label=='testing'), dG0=dG0, sparse=sparse,
                     url=self.kegg.cid2link(cid))
             html_text += '</font>\n'
@@ -203,7 +209,7 @@ class KeggObervationCollection(object):
                 else:
                     dG0 = nist_row_data.dG0_r # we are using transformed energies
 
-                self.AddObservation(obs_id=obs_id, obs_type='reaction',
+                self.AddObservation(obs_id=obs_id, obs_type=KeggObservation.TYPE_REACTION,
                                     anchored=False, dG0=dG0,
                                     sparse=nist_row_data.reaction.sparse,
                                     url=nist_row_data.url)
@@ -263,7 +269,7 @@ class KeggObervationCollection(object):
                     cid2nH_nMg=self.cid2nH_nMg)
                 dG0 -= ddG0
             
-            self.AddObservation(obs_id=obs_id, obs_type='reaction', url="",
+            self.AddObservation(obs_id=obs_id, obs_type=KeggObservation.TYPE_REDOX, url="",
                                 anchored=anchored, dG0=dG0, sparse=sparse)
             
     def GetStoichiometry(self):
