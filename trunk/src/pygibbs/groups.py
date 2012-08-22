@@ -19,7 +19,7 @@ from pygibbs.groups_data import Group, GroupsData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
-from pygibbs.kegg_observation import KeggObervationCollection
+from pygibbs.kegg_observation import KeggObervationCollection, KeggObservation
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.group_vector import GroupVector
@@ -236,9 +236,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     
                     groupvec = decomposition.AsVector()
                     if nH != groupvec.Hydrogens() or nMg != groupvec.Magnesiums():
-                        raise GroupDecompositionError("C%05d's most abundant pseudoisomer is [nH=%d, nMg=%d], " \
-                            "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
-                            "" % (cid, nH, nMg, groupvec.Hydrogens(), groupvec.Magnesiums()))
+                        self.html_writer.write(
+                            "</br>WARNING: C%05d (%s) - most abundant pseudoisomer is [nH=%d, nMg=%d], " \
+                            "but the decomposition has [nH=%d, nMg=%d]\n" \
+                            % (cid, self.kegg.cid2name(cid), nH, nMg,
+                               groupvec.Hydrogens(), groupvec.Magnesiums()))
 
                     self.cid2groupvec[cid] = groupvec
                 except GroupDecompositionError as e:
@@ -461,7 +463,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         self.html_writer.write('</font>\n')
         self.html_writer.div_end()
 
-    def AnalyzeTrainingSet(self):
+    def AnalyzeTrainingSet(self, skip_formations=True):
         n_obs = self.group_matrix.shape[1]
         rowdicts = []
         fit_results = np.dot(self.group_contributions, self.group_matrix)
@@ -472,10 +474,11 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         else:
             sym = symbol_d_G0
         for i in xrange(n_obs):
-            # skip the cross-validation of the pKa values since group
-            # contribution is not meant to give any real prediction for pKas
-            # except the mean of the class of pKas.
-            if self.obs_types[i] not in ['formation', 'reaction']:
+            if self.obs_types[i] in [KeggObservation.TYPE_ACID_BASE,
+                                     KeggObservation.TYPE_MG,
+                                     KeggObservation.TYPE_REDOX]:
+                continue
+            if skip_formations and self.obs_types[i] == KeggObservation.TYPE_FORMATION:
                 continue
 
             rowdict = {'Observation':self.obs_ids[i]}
