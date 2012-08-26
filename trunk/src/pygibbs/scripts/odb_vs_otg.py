@@ -100,9 +100,9 @@ def analyze(prefix, thermo):
     
     #pH_vec = np.arange(5, 9.001, 0.5)
     #pH_vec = np.array([6, 7, 8])
-    pH_vec = np.array([7.5]) # this needs to be fixed so that the txt file will set the pH
+    pH_vec = np.array([6, 7, 8]) # this needs to be fixed so that the txt file will set the pH
     #co2_conc_vec = np.array([1e-5, 1e-3])
-    co2_conc_vec = np.array([1e-5, 1e-3])
+    co2_conc_vec = np.array([1e-5])
     data_mat = []
     override_bounds = {}
     
