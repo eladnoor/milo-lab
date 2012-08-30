@@ -3,15 +3,24 @@ import matplotlib.pyplot as plt
 import logging
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.pathway import PathwayData
-from toolbox.html_writer import HtmlWriter
+from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from pygibbs.pathway_modelling import KeggPathway, DeltaGNormalization
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime, default_T
 from pygibbs.kegg_reaction import Reaction
+from pygibbs.kegg import Kegg
+import csv
 
 def pareto(kegg_file, html_writer, thermo, pH=None,
            plot_profile=False, section_prefix="", balance_water=True,
            override_bounds={}):
+    """
+        Return values are (data, labels)
+        
+        data - a matrix where the rows are the pathways (entries) and the columns are
+               max Total dG and ODB
+        labels - a list of the names of the pathways
+    """
     
     entries = kegg_file.entries()
     plot_data = np.zeros((len(entries), 5)) # ODB, ODFE, min TG, max TG, sum(fluxes)
@@ -164,6 +173,46 @@ def analyze(prefix, thermo):
     html_writer.embed_matplotlib_figure(pareto_fig, name=prefix + '_1')
     
     html_writer.close()
+    
+def analyze_conc_gradient(prefix, thermo, csv_output_fname, cid=13): # default compound is PPi
+    kegg_file = ParsedKeggFile.FromKeggFile('../data/thermodynamics/%s.txt' % prefix)
+    html_writer = HtmlWriter('../res/%s.html' % prefix)
+    null_html_writer = NullHtmlWriter()
+    if csv_output_fname:
+        csv_output = csv.writer(open(csv_output_fname, 'w'))
+    else:
+        csv_output = None
+
+    pH_vec = np.array([6, 7, 8]) # this needs to be fixed so that the txt file will set the pH
+    conc_vec = 10**(-np.arange(2, 6.0001, 0.05)) # logarithmic scale between 10mM and 1nM
+    override_bounds = {}
+    
+    
+    fig = plt.figure(figsize=(6, 6), dpi=90)
+    legend = []
+    for pH in pH_vec.flat:
+        odb_vec = []
+        for conc in conc_vec.flat:
+            override_bounds[cid] = (conc, conc)
+            logging.info("pH = %g, [C%05d] = %.1e M" % (pH, cid, conc))
+            data, labels = pareto(kegg_file, null_html_writer, thermo,
+                pH=pH, section_prefix="", balance_water=True,
+                override_bounds=override_bounds)
+            odb_vec.append(data[:, 1])
+            csv_output.writerow([pH, conc] + list(data[:, 1].flat))
+        odb_mat = np.matrix(odb_vec) # rows are pathways and columns are concentrations
+        plt.plot(conc_vec, odb_mat, '+-', figure=fig)
+        legend += ['%s, pH = %g' % (l, pH) for l in labels]
+    
+    plt.title("ODB for varying concentrations of C%05d" % cid, figure=fig)
+    plt.xscale('log')
+    plt.xlabel('concentration of %s [M]' % thermo.kegg.cid2name(cid), figure=fig)
+    plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
+    plt.legend(legend)
+    html_writer.write('<h2 id="figure_%s">Summary figure</h1>\n' % prefix)
+    html_writer.embed_matplotlib_figure(fig, name=prefix)
+    
+    html_writer.close()
 
 if __name__ == "__main__":
     plt.rcParams['legend.fontsize'] = 6
@@ -175,9 +224,12 @@ if __name__ == "__main__":
                    ('odb_vs_otg_reductive', 'UGC'),
                    ('odb_vs_otg_RPP', 'UGC')]
 
+    experiments = [('odb_vs_otg_RPP', 'UGC')]
+
     for prefix, thermo_name in experiments:
         thermo = estimators[thermo_name]
-        analyze(prefix, thermo)
+        #analyze(prefix, thermo)
+        analyze_conc_gradient(prefix, thermo, "../res/%s.csv" % prefix, cid=13)
 
     #analyze('../res/pathologic/GA3P => PYR/kegg_pathway.txt',
     #        '../data/thermodynamics/concentration_bounds.csv',
