@@ -175,18 +175,19 @@ def analyze(prefix, thermo):
     html_writer.close()
     
 def analyze_conc_gradient(prefix, thermo, csv_output_fname, cid=13): # default compound is PPi
+    compound_name = thermo.kegg.cid2name(cid)
     kegg_file = ParsedKeggFile.FromKeggFile('../data/thermodynamics/%s.txt' % prefix)
     html_writer = HtmlWriter('../res/%s.html' % prefix)
     null_html_writer = NullHtmlWriter()
     if csv_output_fname:
         csv_output = csv.writer(open(csv_output_fname, 'w'))
+        csv_output.writerow(['pH', 'I', 'T', '[C%05d]' % cid] + kegg_file.entries())
     else:
         csv_output = None
 
-    pH_vec = np.array([6, 7, 8]) # this needs to be fixed so that the txt file will set the pH
-    conc_vec = 10**(-np.arange(2, 6.0001, 0.05)) # logarithmic scale between 10mM and 1nM
+    pH_vec = np.array([7]) # this needs to be fixed so that the txt file will set the pH
+    conc_vec = 10**(-np.arange(2, 6.0001, 0.25)) # logarithmic scale between 10mM and 1nM
     override_bounds = {}
-    
     
     fig = plt.figure(figsize=(6, 6), dpi=90)
     legend = []
@@ -194,19 +195,19 @@ def analyze_conc_gradient(prefix, thermo, csv_output_fname, cid=13): # default c
         odb_vec = []
         for conc in conc_vec.flat:
             override_bounds[cid] = (conc, conc)
-            logging.info("pH = %g, [C%05d] = %.1e M" % (pH, cid, conc))
+            logging.info("pH = %g, [%s] = %.1e M" % (pH, compound_name, conc))
             data, labels = pareto(kegg_file, null_html_writer, thermo,
                 pH=pH, section_prefix="", balance_water=True,
                 override_bounds=override_bounds)
             odb_vec.append(data[:, 1])
-            csv_output.writerow([pH, conc] + list(data[:, 1].flat))
+            csv_output.writerow([pH, thermo.I, thermo.T, conc] + list(data[:, 1].flat))
         odb_mat = np.matrix(odb_vec) # rows are pathways and columns are concentrations
-        plt.plot(conc_vec, odb_mat, '+-', figure=fig)
+        plt.plot(conc_vec, odb_mat, '.-', figure=fig)
         legend += ['%s, pH = %g' % (l, pH) for l in labels]
     
-    plt.title("ODB for varying concentrations of C%05d" % cid, figure=fig)
+    plt.title("ODB vs. [%s] (I = %gM, T = %gK)" % (compound_name, thermo.I, thermo.T), figure=fig)
     plt.xscale('log')
-    plt.xlabel('concentration of %s [M]' % thermo.kegg.cid2name(cid), figure=fig)
+    plt.xlabel('Concentration of %s [M]' % thermo.kegg.cid2name(cid), figure=fig)
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
     plt.legend(legend)
     html_writer.write('<h2 id="figure_%s">Summary figure</h1>\n' % prefix)

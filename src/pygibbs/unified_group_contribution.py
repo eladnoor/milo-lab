@@ -33,7 +33,7 @@ class UnknownReactionEnergyError(Exception):
 
 class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
     
-    def __init__(self, db, html_writer=None, dissociation=None):
+    def __init__(self, db, html_writer=None, dissociation=None, anchor_all=False):
         PsuedoisomerTableThermodynamics.__init__(self, name="Unified Group Contribution")
         self.db = db
         self.html_writer = html_writer or NullHtmlWriter()
@@ -55,7 +55,10 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         self.ERRORS_TABLE_NAME = 'ugc_errors'
         self.CONSERVATIONS_TABLE_NAME = 'ugc_conservations'
         
-        self.FORMATION_ENERGY_FILENAME = '../data/thermodynamics/formation_energies.csv'
+        if anchor_all:
+            self.FORMATION_ENERGY_FILENAME = '../data/thermodynamics/formation_energies_anchor_all.csv'
+        else:
+            self.FORMATION_ENERGY_FILENAME = '../data/thermodynamics/formation_energies.csv'
 
     def GetDissociationConstants(self):
         """
@@ -716,6 +719,10 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     opt_parser = OptionParser()
+    opt_parser.add_option("-a", "--anchor_all_formations", action="store_true",
+                          dest="anchor_all_formations", default=False,
+                          help="A flag for anchoring ALL formation energies "
+                                "instead of only the ones that cannot be decomposed")
     opt_parser.add_option("-g", "--recalc_groups", action="store_true",
                           dest="recalc_groups", default=False,
                           help="A flag for loading the group definitions from the CSV"
@@ -755,7 +762,8 @@ if __name__ == "__main__":
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     html_writer = HtmlWriter('../res/ugc.html')
     
-    ugc = UnifiedGroupContribution(db, html_writer)
+    ugc = UnifiedGroupContribution(db, html_writer,
+                                   anchor_all=options.anchor_all_formations)
     ugc.LoadGroups(FromDatabase=(not options.recalc_groups))
     ugc.LoadObservations(FromDatabase=(not options.recalc_observations))
     ugc.LoadGroupVectors(FromDatabase=(not options.recalc_groupvectors))
