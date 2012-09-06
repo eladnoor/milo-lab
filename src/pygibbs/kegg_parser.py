@@ -5,6 +5,7 @@ import re
 
 from itertools import imap
 import gzip
+from types import StringType
 
 
 def NormalizeNames(name_str):
@@ -182,19 +183,22 @@ class ParsedKeggFile(dict):
         return self.ordered_entries
 
     @staticmethod
-    def FromKeggFile(filename):
+    def FromKeggFile(file):
         """Parses a file from KEGG.
     
         Args:
-            filename: the name of the file to parse.
+            filename: the file handle or name of the file to parse.
         
         Returns:
             A dictionary mapping entry names to fields.
         """
-        if filename[-3:] == '.gz':
-            kegg_file = gzip.open(filename, 'r')
+        if type(file) == StringType:
+            if file[-3:] == '.gz':
+                kegg_file = gzip.open(file)
+            else:
+                kegg_file = open(file, 'r')
         else:
-            kegg_file = open(filename, 'r')
+            kegg_file = file
         return ParsedKeggFile._FromKeggFileHandle(kegg_file)
 
     @staticmethod

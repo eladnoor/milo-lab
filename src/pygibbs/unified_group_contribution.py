@@ -15,7 +15,7 @@ from pygibbs.kegg_reaction import Reaction
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics,\
     AddConcentrationsToReactionEnergies
-from optparse import OptionParser
+from argparse import ArgumentParser
 from toolbox import util
 import logging
 from pygibbs.group_decomposition import GroupDecompositionError, GroupDecomposer
@@ -157,13 +157,15 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                     continue
                 groupvec = decomposition.AsVector()
                 if nH != groupvec.Hydrogens() or nMg != groupvec.Magnesiums():
+                    # in 5/9/2012 Elad changed this to be only a warning, and
+                    # to use the group vector in any case.
                     err_msg = "C%05d's most abundant pseudoisomer is [nH=%d, nMg=%d], " \
-                        "but the decomposition has [nH=%d, nMg=%d]. Skipping..." \
+                        "but the decomposition has [nH=%d, nMg=%d]" \
                         "" % (cid, nH, nMg, groupvec.Hydrogens(), groupvec.Magnesiums())
-                    self.html_writer.write('</br>ERROR: %s\n' % err_msg)
-                    self.cid2error[cid] = err_msg
-                else:
-                    self.cid2groupvec[cid] = groupvec
+                    self.html_writer.write('</br>WARNING: %s\n' % err_msg)
+                    #self.cid2error[cid] = err_msg
+
+                self.cid2groupvec[cid] = groupvec
     
             self.db.CreateTable(self.GROUPVEC_TABLE_NAME,
                 "cid INT, nH INT, nMg INT, groupvec TEXT, err TEXT")
@@ -633,14 +635,13 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             pH, I, pMg, T = self.GetConditions(pH, I, pMg, T)
             dG0_r += AddConcentrationsToReactionEnergies(S, cids, T, conc)
 
-        # test to see if any of the reactions in S violate any conservation laws
+        # find the mapping between the list of all CIDs and the list that the
+        # new S is using
         all_cids = sorted(self.kegg.get_all_cids())
-        S_expanded = np.matrix(np.zeros((len(all_cids), S.shape[1])))
-        for c, cid in enumerate(cids):
-            i = all_cids.index(cid)
-            S_expanded[i, :] = S[c, :]
+        inds = [all_cids.index(cid) for cid in cids] 
 
-        violations = abs(self.P_L_tot * S_expanded).sum(0) > self.epsilon
+        # test to see if any of the reactions in S violate any conservation laws
+        violations = abs(self.P_L_tot[:, inds] * S).sum(0) > self.epsilon
         dG0_r[violations] = np.nan        
         return dG0_r
     
@@ -650,7 +651,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         G, has_groupvec = self._GenerateGroupMatrix(cids)
         
         fp = open('gc_README.txt', 'w')
-        fp.write("gc_S.txt -            the full stoichiometrix matrix (each row is a compound and each column is a reaction)\n")
+        fp.write("gc_S.txt -            the full stoichiometric matrix (each row is a compound and each column is a reaction)\n")
         np.savetxt(fname='gc_S.txt', X=S, fmt="%g", delimiter=',', newline='\n')
 
         fp.write("gc_b.txt -            the vector of measured dG0 (reverse transformed)\n")
@@ -718,67 +719,68 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
         
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
-    opt_parser = OptionParser()
-    opt_parser.add_option("-a", "--anchor_all_formations", action="store_true",
-                          dest="anchor_all_formations", default=False,
-                          help="A flag for anchoring ALL formation energies "
-                                "instead of only the ones that cannot be decomposed")
-    opt_parser.add_option("-g", "--recalc_groups", action="store_true",
-                          dest="recalc_groups", default=False,
-                          help="A flag for loading the group definitions from the CSV"
-                               " instead of the DB")
-    opt_parser.add_option("-o", "--recalc_observations", action="store_true",
-                          dest="recalc_observations", default=False,
-                          help="A flag for loading the dG observations from the CSV"
-                               " instead of the DB")
-    opt_parser.add_option("-v", "--recalc_groupvectors", action="store_true",
-                          dest="recalc_groupvectors", default=False,
-                          help="A flag for recalculating the group vectors"
-                               " instead of loading them from the DB")
-    opt_parser.add_option("-m", "--recalc_matrices", action="store_true",
-                          dest="recalc_matrices", default=False,
-                          help="A flag for recalculating the group matrices"
-                               " instead of loading them from the DB")
-    opt_parser.add_option("-d", "--dump", action="store_true",
-                          dest="dump", default=False,
-                          help="Dump all training data to text files")
-    opt_parser.add_option("-t", "--train", action="store_true",
-                          dest="train", default=False,
-                          help="A flag for running the TRAIN")
-    opt_parser.add_option("-e", "--test", action="store_true",
-                          dest="test", default=False,
-                          help="A flag for running the TEST")
-    opt_parser.add_option("-l", "--leave_one_out", action="store_true",
-                          dest="loo", default=False,
-                          help="A flag for running the Leave One Out analysis")
-    return opt_parser
+    parser = ArgumentParser()
+    parser.add_argument('-a', '--anchor_all_formations',
+                        action='store_false', default=True,
+                        help='A flag for anchoring ALL formation energies '
+                             'instead of only the ones that cannot be decomposed')
+    parser.add_argument('-g', '--recalc_groups',
+                        action='store_false', default=True,
+                        help='A flag for loading the group definitions from the CSV'
+                             ' instead of the DB')
+    parser.add_argument('-o', '--recalc_observations',
+                        action='store_false', default=True,
+                        help='A flag for loading the dG observations from the CSV'
+                             ' instead of the DB')
+    parser.add_argument('-v', '--recalc_groupvectors',
+                        action='store_false', default=True,
+                        help='A flag for recalculating the group vectors'
+                             ' instead of loading them from the DB')
+    parser.add_argument('-m', '--recalc_matrices',
+                        action='store_false', default=True,
+                        help='A flag for recalculating the group matrices'
+                             ' instead of loading them from the DB')
+    parser.add_argument('-t', '--train',
+                        action='store_false', default=True,
+                        help='A flag for running the TRAIN')
+    parser.add_argument('-d', '--dump',
+                        action='store_true', default=False,
+                        help='Dump all training data to text files')
+    parser.add_argument('-e', '--test',
+                        action='store_true', default=False,
+                        help='A flag for running the TEST')
+    parser.add_argument('-l', '--leave_one_out',
+                        action='store_true', default=False,
+                        help='A flag for running the Leave One Out analysis')
+    return parser
     
 if __name__ == "__main__":
     logger = logging.getLogger('')
     logger.setLevel(logging.DEBUG)
 
-    options, _ = MakeOpts().parse_args(sys.argv)
+    parser = MakeOpts()
+    args = parser.parse_args()
     util._mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     html_writer = HtmlWriter('../res/ugc.html')
     
     ugc = UnifiedGroupContribution(db, html_writer,
-                                   anchor_all=options.anchor_all_formations)
-    ugc.LoadGroups(FromDatabase=(not options.recalc_groups))
-    ugc.LoadObservations(FromDatabase=(not options.recalc_observations))
-    ugc.LoadGroupVectors(FromDatabase=(not options.recalc_groupvectors))
-    ugc.LoadData(FromDatabase=(not options.recalc_matrices))
+                                   anchor_all=args.anchor_all_formations)
+    ugc.LoadGroups(FromDatabase=(not args.recalc_groups))
+    ugc.LoadObservations(FromDatabase=(not args.recalc_observations))
+    ugc.LoadGroupVectors(FromDatabase=(not args.recalc_groupvectors))
+    ugc.LoadData(FromDatabase=(not args.recalc_matrices))
     
-    if options.dump:
+    if args.dump:
         ugc.SaveDataToMatfile()
         sys.exit(0)
-    if options.train:
+    if args.train:
         ugc.EstimateKeggCids()
         sys.exit(0)
     else:
         ugc.init()
 
-    if options.test:
+    if args.test:
         r_list = []
 #        r_list += [Reaction.FromFormula("C00002 + C00001 = C00008 + C00009")]
 #        r_list += [Reaction.FromFormula("C00036 + C00024 = C00022 + C00083")]
@@ -811,6 +813,6 @@ if __name__ == "__main__":
             print "dG0' = %.1f, dGc' = %.1f" % \
                 (dG0_prime[0, i], dGc_prime[0, i])
     
-    if options.loo:
+    if args.leave_one_out:
         ugc.Fit()
         ugc.Loo()
