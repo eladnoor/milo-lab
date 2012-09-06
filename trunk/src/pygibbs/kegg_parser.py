@@ -7,6 +7,8 @@ from itertools import imap
 import gzip
 from types import StringType
 
+class KeggParsingException(Exception):
+    pass
 
 def NormalizeNames(name_str):
     """Normalize a KEGG-style list of names."""
@@ -215,26 +217,28 @@ class ParsedKeggFile(dict):
         """
         parsed_file = ParsedKeggFile()
     
-        curr_field = ""
-        field_map = {}
         line_counter = 0
         line = kegg_file.readline()
+        field_map = {}
+        field = None
     
         while line:
-            field = line[0:12].strip()
-            value = line[12:].strip()
-    
-            if field[:3] == "///":
+            if line[0:3] == '///':
                 entry = re.split('\s\s+', field_map['ENTRY'])[0]
                 parsed_file._AddEntry(entry, field_map)
+                field = None
                 field_map = {}
+            elif line[0] in [' ', '\t']:
+                if field == None:
+                    raise KeggParsingException('First line starts with a whitespace (space/tab)')
+                value = line.strip()
+                field_map[field] = field_map[field] + "\t" + value
             else:
-                if field != "":
-                    curr_field = field
-                if curr_field in field_map:
-                    field_map[curr_field] = field_map[curr_field] + "\t" + value
-                else:
-                    field_map[curr_field] = value
+                try:
+                    field, value = line.split(None, 1)
+                except ValueError:
+                    raise KeggParsingException('ERROR: line %d cannot be split: %s' % (line_counter, line))
+                field_map[field] = value
     
             line = kegg_file.readline()
             line_counter += 1
