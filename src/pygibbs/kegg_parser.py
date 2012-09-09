@@ -224,7 +224,7 @@ class ParsedKeggFile(dict):
     
         while line:
             if line[0:3] == '///':
-                entry = re.split('\s\s+', field_map['ENTRY'])[0]
+                entry = re.split('\s\s+', field_map['ENTRY'])[0].strip()
                 parsed_file._AddEntry(entry, field_map)
                 field = None
                 field_map = {}
@@ -243,7 +243,7 @@ class ParsedKeggFile(dict):
             line = kegg_file.readline()
             line_counter += 1
         if 'ENTRY' in field_map:
-            entry = re.split('\s\s+', field_map['ENTRY'])[0]
+            entry = re.split('\s\s+', field_map['ENTRY'])[0].strip()
             parsed_file._AddEntry(entry, field_map)
         kegg_file.close()
         return parsed_file

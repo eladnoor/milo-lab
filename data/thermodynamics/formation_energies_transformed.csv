@@ -45,7 +45,7 @@
 64,"glutamine",-120.36,7,0.25,14,298.15,"training","Alberty (2006)",
 118,"glyceraldehydephos",-1088.04,7,0.25,14,298.15,"training","Alberty (2006)",
 116,"glycerol",-171.35,7,0.25,14,298.15,"training","Alberty (2006)",
-93,"glycerol3phos",-1077.13,7,0.25,14,298.15,"training","Alberty (2006)",
+93,"glycerol3phos",-1077.13,7,0.25,14,298.15,"skip","Alberty (2006)","we believe this value is wrong (see 'Why Alberty is wrong')"
 37,"glycine",-176.08,7,0.25,14,298.15,"training","Alberty (2006)",
 160,"glycolate",-409.46,7,0.25,14,298.15,"training","Alberty (2006)",
 2037,"glycylglycine",-194.07,7,0.25,14,298.15,"training","Alberty (2006)",

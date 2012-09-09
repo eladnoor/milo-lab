@@ -6,7 +6,7 @@ from pygibbs.pathway import PathwayData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
 from pygibbs.pathway_modelling import KeggPathway, DeltaGNormalization
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
-from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime
+from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime 
 from argparse import ArgumentParser
 import csv
 from toolbox import color
@@ -42,7 +42,7 @@ def Pareto(pathway_list, html_writer, thermo, pH=None,
         rowdict['remark'] = 'okay'
 
         if p_data.skip:
-            logging.info("Skipping pathway: %s", entry)
+            logging.info("Skipping pathway: %s", rowdict['entry'])
             rowdict['remark'] = 'skipping'
             continue
         
@@ -56,7 +56,7 @@ def Pareto(pathway_list, html_writer, thermo, pH=None,
         rowdict['pMg'] = thermo.pMg
 
         #html_writer.write('<a name="%s"></a>\n' % entry)
-        html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, entry, entry))
+        html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, rowdict['entry'], rowdict['entry']))
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions(balance_water=balance_water)
         thermo.bounds = p_data.GetBounds().GetOldStyleBounds(cids)
@@ -92,7 +92,7 @@ def Pareto(pathway_list, html_writer, thermo, pH=None,
         rowdict['max total dG'] = max_tg
         rowdict['sum of fluxes'] = np.sum(fluxes)
 
-        logging.info('%20s: ODB = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' % (entry, odb, max_tg))
+        logging.info('%20s: ODB = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' % (rowdict['entry'], odb, max_tg))
         html_writer.write_ul(["pH = %.1f, I = %.2fM, T = %.2f K" % (thermo.pH, thermo.I, thermo.T),
                               "ODB = %.1f [kJ/mol]" % odb,
                               "ODFE = %.1f%%" % odfe,
@@ -114,7 +114,7 @@ def Pareto(pathway_list, html_writer, thermo, pH=None,
 
     return rowdicts
             
-def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None): # default compound is PPi
+def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None):
     compound_names = ','.join([thermo.kegg.cid2name(cid) for cid in cids])
     pathway_list = KeggFile2PathwayList(pathway_file)
     pathway_names = [entry for (entry, _) in pathway_list]
@@ -124,7 +124,7 @@ def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None)
     # run once just to make sure that the pathways are all working:
     logging.info("testing all pathways with default concentrations")
     data = Pareto(pathway_list, html_writer, thermo,
-        pH=pH, section_prefix="", balance_water=True,
+        pH=pH, section_prefix="test", balance_water=True,
         override_bounds={})
     
     null_html_writer = NullHtmlWriter()
@@ -162,6 +162,47 @@ def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None)
     
     html_writer.close()
 
+def analyze_pH_gradient(pathway_file, output_prefix, thermo):
+    pathway_list = KeggFile2PathwayList(pathway_file)
+    pathway_names = [entry for (entry, _) in pathway_list]
+    
+    html_writer = HtmlWriter('%s.html' % output_prefix)
+    
+    # run once just to make sure that the pathways are all working:
+    logging.info("testing all pathways with default pH")
+    data = Pareto(pathway_list, html_writer, thermo,
+        pH=None, section_prefix="test", balance_water=True,
+        override_bounds={})
+    
+    null_html_writer = NullHtmlWriter()
+    csv_output = csv.writer(open('%s.csv' % output_prefix, 'w'))
+    csv_output.writerow(['pH'] + pathway_names)
+
+    pH_vec = np.arange(4, 10, 0.5)
+    odb_mat = []
+    for pH in pH_vec.flat:
+        logging.info("pH = %.1f" % (pH))
+        data = Pareto(pathway_list, null_html_writer, thermo,
+            pH=pH, section_prefix="", balance_water=True)
+        odbs = [d['ODB'] for d in data]
+        odb_mat.append(odbs)
+        csv_output.writerow([data[0]['pH']] + odbs)
+    odb_mat = np.matrix(odb_mat) # rows are pathways and columns are concentrations
+
+    fig = plt.figure(figsize=(6, 6), dpi=90)
+    colormap = color.ColorMap(pathway_names)
+    for i, name in enumerate(pathway_names):
+        plt.plot(pH_vec, odb_mat[:, i], '.-', color=colormap[name], 
+                 figure=fig)
+    plt.title("ODB vs. pH", figure=fig)
+    plt.xlabel('pH', figure=fig)
+    plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
+    plt.legend(pathway_names)
+    html_writer.write('<h2>Summary figure</h1>\n')
+    html_writer.embed_matplotlib_figure(fig, name=output_prefix)
+    
+    html_writer.close()
+
 def MakeArgParser(estimators):
     """Returns an OptionParser object with all the default options."""
     parser = ArgumentParser(description='A script for running ODB analysis for a gradient of concentrations')
@@ -189,6 +230,9 @@ if __name__ == "__main__":
     plt.rcParams['legend.fontsize'] = 6
     thermo = estimators[args.thermodynamics_source]
 
-    analyze_conc_gradient(args.pathway_file, args.output_prefix,
-                          thermo, cids=args.cids, pH=args.pH)
+    if 80 in args.cids:
+        analyze_pH_gradient(args.pathway_file, args.output_prefix, thermo)
+    else:
+        analyze_conc_gradient(args.pathway_file, args.output_prefix, thermo,
+                              cids=args.cids, pH=args.pH)
 
