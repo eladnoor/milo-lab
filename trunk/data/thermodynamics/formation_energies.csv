@@ -25,7 +25,7 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 87,sulfur,0,0,0,0,0,skip,"Element","not clear which compound this is (containing only one atom of sulfur)"
 89,Sucrose,-1564.7,-2199.87,0,22,0,training,"Alberty (2006)",
 92,Glucose-6-phosphate,-1763.94,-2276.44,-2,11,0,training,"Alberty (2006)",
-93,sn-Glycerol-3-phosphate,-1358.96,-1724.59,-2,7,0,training,"Alberty (2006)",
+93,sn-Glycerol-3-phosphate,-1358.96,-1724.59,-2,7,0,skip,"Alberty (2006)","we believe this value is wrong (see 'Why Alberty is wrong')"
 95,D-Fructose,-915.51,-1259.38,0,12,0,training,"Alberty (2006)",
 97,L-cysteine,-338.82,,0,7,0,training,"Alberty (2006)",
 103,D-Glucose-1-phosphate,-1756.87,,-2,11,0,training,"Alberty (2006)",

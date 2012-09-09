@@ -96,6 +96,8 @@
 "ring >c-O",0,-1,0,"c~[O;-1]","All","hydroxyl (participating in an aromatic ring)",
 "ring >C=O",0,0,0,"[CR]=O","All","ketone (participating in a ring)",
 "ring >C-O",2,0,0,"[CR;H1][O;H1]","All","ketone (participating in a ring)",
+"ring >C(-O)-",1,0,0,"[CR;H0][O;H1;+0]","All","tertiary hydroxyl (participating in a ring)",
+"ring >C(-O)-",0,-1,0,"[CR;H0][O;H0;-1]","All","tertiary hydroxyl (participating in a ring)",
 "-COO",0,-1,0,"[C,c,N,n]C(=O)[O-]","1|2|3","carboxylate",
 "-COO",1,0,0,"[C,c,N,n]C(=O)[OH]","1|2|3","carboxylic acid",
 ">C=O",0,0,0,"[C,N,c,n]C(=O)[C,N,c,n]","1|2","ketone",
