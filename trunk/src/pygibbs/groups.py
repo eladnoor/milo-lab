@@ -25,6 +25,7 @@ from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.group_vector import GroupVector
 from optparse import OptionParser
 from toolbox import util
+from argparse import ArgumentParser
 
 class GroupMissingTrainDataError(Exception):
     
@@ -144,13 +145,16 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
         json_file.write(json.dumps(formations, indent=4))
         json_file.close()
         
-    def LoadGroups(self, FromDatabase=False,
-                   FromFile="../data/thermodynamics/groups_species.csv"):
+    def LoadGroups(self,
+                   FromDatabase=False,
+                   FromFile=None):
         if FromDatabase and self.db.DoesTableExist('groups'):
             self.groups_data = GroupsData.FromDatabase(self.db,
                                                        transformed=self.transformed)
             self.group_decomposer = GroupDecomposer(self.groups_data)
         else:
+            if FromFile is None:
+                FromFile = open('../data/thermodynamics/groups_species.csv', 'r')
             self.groups_data = GroupsData.FromGroupsFile(FromFile,
                                                          transformed=self.transformed)
             self.groups_data.ToDatabase(self.db)
@@ -230,7 +234,7 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
                     if mol is None:
                         raise GroupDecompositionError("Does not have structural data")
 
-                    mol.RemoveHydrogens()
+                    #mol.RemoveHydrogens()
                     decomposition = self.group_decomposer.Decompose(mol, 
                                         ignore_protonations=False, strict=True)
                     
@@ -843,62 +847,59 @@ class GroupContribution(PsuedoisomerTableThermodynamics):
 #                                                   MAIN                                                        #
 #################################################################################################################
 def MakeOpts():
-    """Returns an OptionParser object with all the default options."""
-    opt_parser = OptionParser()
-    opt_parser.add_option("-g", "--groups",
-                          dest="groups_species", default=None,
-                          help="Use the provided groups_species definition file")
-    opt_parser.add_option("-b", "--biochemical", action="store_true",
-                          dest="transformed", default=False,
-                          help="Use biochemical (transformed) Group Contributions")
-    opt_parser.add_option("-t", "--train", action="store_true",
-                          dest="train_only", default=False,
-                          help="A flag for running the TRAIN only (without TEST)")
-    opt_parser.add_option("-e", "--test", action="store_true",
-                          dest="test_only", default=False,
-                          help="A flag for running the TEST only (without TRAIN)")
-    opt_parser.add_option("-d", "--from_database", action="store_true",
-                          dest="from_database", default=False,
-                          help="A flag for loading the data from the DB instead of "
-                               "the CSV files (saves time but no debug information)")
-    return opt_parser
+    """Returns an OptionParser object with all the default args."""
+    parser = ArgumentParser()
+    parser.add_argument("-g", "--groups_species", type=file,
+                        default="../data/thermodynamics/groups_species.csv",
+                        help="Use the provided groups_species definition file")
+    parser.add_argument("-b", "--transformed", action="store_true",
+                        default=False,
+                        help="Use biochemical (transformed) Group Contributions")
+    parser.add_argument("-t", "--train_only", action="store_true",
+                        default=False,
+                        help="A flag for running the TRAIN only (without TEST)")
+    parser.add_argument("-e", "--test_only", action="store_true",
+                        default=False,
+                        help="A flag for running the TEST only (without TRAIN)")
+    parser.add_argument("-d", "--from_database", action="store_true",
+                        default=False,
+                        help="A flag for loading the data from the DB instead of "
+                             "the CSV files (saves time but no debug information)")
+    return parser
 
 if __name__ == '__main__':
-    options, _ = MakeOpts().parse_args(sys.argv)
+    parser = MakeOpts()
+    args = parser.parse_args()
     util._mkdir('../res')
     db = SqliteDatabase('../res/gibbs.sqlite', 'w')
     
-    # use the flag -i or --train for train only
-    # use the flag -e or --test for test only
-    if options.transformed:
+    if args.transformed:
         prefix = 'bgc'
     else:
         prefix = 'pgc'
     
-    if options.test_only:
+    if args.test_only:
         html_writer = HtmlWriter('../res/%s_test.html' % prefix)
-    elif options.train_only:
+    elif args.train_only:
         html_writer = HtmlWriter('../res/%s_train.html' % prefix)
     else:
         html_writer = HtmlWriter('../res/%s.html' % prefix)
         
     G = GroupContribution(db=db, html_writer=html_writer,
-                          transformed=options.transformed)
+                          transformed=args.transformed)
     
-    if options.groups_species:
-        G.LoadGroups(FromFile=options.groups_species)
-    else:
-        G.LoadGroups(FromDatabase=options.from_database)
-    G.LoadObservations(options.from_database)
-    G.LoadGroupVectors(options.from_database)
+    G.LoadGroups(FromDatabase=args.from_database,
+                 FromFile=args.groups_species)
+    G.LoadObservations(args.from_database)
+    G.LoadGroupVectors(args.from_database)
     
-    if options.test_only:
+    if args.test_only:
         G.LoadContributionsFromDB()
     else:
         G.Train()
         G.WriteRegressionReport()
         G.AnalyzeTrainingSet()
     
-    if not options.train_only:
+    if not args.train_only:
         G.EstimateKeggCids()
 

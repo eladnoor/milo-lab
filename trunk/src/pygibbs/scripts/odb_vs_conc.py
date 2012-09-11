@@ -12,6 +12,10 @@ import csv
 from toolbox import color
 from collections import defaultdict
 
+def ParseConcentrationRange(conc_range):
+    (start, step, end) = [float(x) for x in conc_range.split(':')]
+    return np.arange(start, end + 1e-10, step)
+
 def KeggFile2PathwayList(pathway_file):
     kegg_file = ParsedKeggFile.FromKeggFile(pathway_file)
     entries = kegg_file.entries()
@@ -114,7 +118,7 @@ def Pareto(pathway_list, html_writer, thermo, pH=None,
 
     return rowdicts
             
-def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None):
+def analyze_conc_gradient(pathway_file, output_prefix, thermo, conc_range, cids=[]):
     compound_names = ','.join([thermo.kegg.cid2name(cid) for cid in cids])
     pathway_list = KeggFile2PathwayList(pathway_file)
     pathway_names = [entry for (entry, _) in pathway_list]
@@ -124,14 +128,14 @@ def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None)
     # run once just to make sure that the pathways are all working:
     logging.info("testing all pathways with default concentrations")
     data = Pareto(pathway_list, html_writer, thermo,
-        pH=pH, section_prefix="test", balance_water=True,
-        override_bounds={})
+                  pH=None, section_prefix="test", balance_water=True,
+                  override_bounds={})
     
     null_html_writer = NullHtmlWriter()
     csv_output = csv.writer(open('%s.csv' % output_prefix, 'w'))
     csv_output.writerow(['pH', '[' + compound_names + ']'] + pathway_names)
 
-    conc_vec = 10**(-np.arange(2, 6.0001, 0.5)) # logarithmic scale between 10mM and 1nM
+    conc_vec = 10**(-ParseConcentrationRange(conc_range)) # logarithmic scale between 10mM and 1nM
     override_bounds = {}
     
     odb_mat = []
@@ -140,8 +144,8 @@ def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None)
             override_bounds[cid] = (conc, conc)
         logging.info("[%s] = %.1e M" % (compound_names, conc))
         data = Pareto(pathway_list, null_html_writer, thermo,
-            pH=pH, section_prefix="", balance_water=True,
-            override_bounds=override_bounds)
+                      pH=None, section_prefix="", balance_water=True,
+                      override_bounds=override_bounds)
         odbs = [d['ODB'] for d in data]
         odb_mat.append(odbs)
         csv_output.writerow([data[0]['pH'], conc] + odbs)
@@ -150,10 +154,11 @@ def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None)
     fig = plt.figure(figsize=(6, 6), dpi=90)
     colormap = color.ColorMap(pathway_names)
     for i, name in enumerate(pathway_names):
-        plt.plot(conc_vec, odb_mat[:, i], '.-', color=colormap[name], 
+        plt.plot(conc_vec, odb_mat[:, i], '-', color=colormap[name], 
                  figure=fig)
     plt.title("ODB vs. [%s]" % (compound_names), figure=fig)
     plt.xscale('log')
+    plt.ylim(0, np.max(odb_mat.flat))
     plt.xlabel('[%s] (in M)' % compound_names, figure=fig)
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
     plt.legend(pathway_names)
@@ -162,7 +167,7 @@ def analyze_conc_gradient(pathway_file, output_prefix, thermo, cids=[], pH=None)
     
     html_writer.close()
 
-def analyze_pH_gradient(pathway_file, output_prefix, thermo):
+def analyze_pH_gradient(pathway_file, output_prefix, thermo, conc_range):
     pathway_list = KeggFile2PathwayList(pathway_file)
     pathway_names = [entry for (entry, _) in pathway_list]
     
@@ -171,19 +176,20 @@ def analyze_pH_gradient(pathway_file, output_prefix, thermo):
     # run once just to make sure that the pathways are all working:
     logging.info("testing all pathways with default pH")
     data = Pareto(pathway_list, html_writer, thermo,
-        pH=None, section_prefix="test", balance_water=True,
-        override_bounds={})
+                  pH=None, section_prefix="test", balance_water=True,
+                  override_bounds={})
     
     null_html_writer = NullHtmlWriter()
     csv_output = csv.writer(open('%s.csv' % output_prefix, 'w'))
     csv_output.writerow(['pH'] + pathway_names)
 
-    pH_vec = np.arange(4, 10, 0.5)
+    pH_vec = ParseConcentrationRange(conc_range)
     odb_mat = []
     for pH in pH_vec.flat:
         logging.info("pH = %.1f" % (pH))
         data = Pareto(pathway_list, null_html_writer, thermo,
-            pH=pH, section_prefix="", balance_water=True)
+                      pH=pH, section_prefix="", balance_water=True,
+                      override_bounds={})
         odbs = [d['ODB'] for d in data]
         odb_mat.append(odbs)
         csv_output.writerow([data[0]['pH']] + odbs)
@@ -192,9 +198,10 @@ def analyze_pH_gradient(pathway_file, output_prefix, thermo):
     fig = plt.figure(figsize=(6, 6), dpi=90)
     colormap = color.ColorMap(pathway_names)
     for i, name in enumerate(pathway_names):
-        plt.plot(pH_vec, odb_mat[:, i], '.-', color=colormap[name], 
+        plt.plot(pH_vec, odb_mat[:, i], '-', color=colormap[name], 
                  figure=fig)
     plt.title("ODB vs. pH", figure=fig)
+    plt.ylim(0, np.max(odb_mat.flat))
     plt.xlabel('pH', figure=fig)
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
     plt.legend(pathway_names)
@@ -206,20 +213,19 @@ def analyze_pH_gradient(pathway_file, output_prefix, thermo):
 def MakeArgParser(estimators):
     """Returns an OptionParser object with all the default options."""
     parser = ArgumentParser(description='A script for running ODB analysis for a gradient of concentrations')
-    parser.add_argument('-c', '--cids', action='append', type=int, required=True,
-                        help='an integer for the accumulator')
     parser.add_argument('-i', '--pathway_file', action='store', type=file, required=True, 
                         help="input pathway description file in KEGG format")
     parser.add_argument('-o', '--output_prefix', action='store', required=False,
                         default='../res/odb_analysis',
                         help='the prefix for the output files (*.html and *.csv)')
+    parser.add_argument('-c', '--cids', action='append', type=int, required=True,
+                        help='an integer for the accumulator')
+    parser.add_argument('-r', '--range', action='store', required=False,
+                        default=None)
     parser.add_argument('-s', '--thermodynamics_source', action='store', required=False,
                         choices=estimators.keys(),
                         default="UGC",
                         help="The thermodynamic data to use")
-    parser.add_argument('-p', '--pH', action="store", type=float,
-                        default=None,
-                        help="The pH (if provided, overrides the ones in the input file)")
     return parser
 
 if __name__ == "__main__":
@@ -231,8 +237,13 @@ if __name__ == "__main__":
     thermo = estimators[args.thermodynamics_source]
 
     if 80 in args.cids:
-        analyze_pH_gradient(args.pathway_file, args.output_prefix, thermo)
+        if args.range is None:
+            args.range = '4:0.5:10'
+        analyze_pH_gradient(args.pathway_file, args.output_prefix, thermo,
+                            conc_range=args.range)
     else:
+        if args.range is None:
+            args.range = '2:0.5:6'
         analyze_conc_gradient(args.pathway_file, args.output_prefix, thermo,
-                              cids=args.cids, pH=args.pH)
+                              conc_range=args.range, cids=args.cids)
 

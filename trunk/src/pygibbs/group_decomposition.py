@@ -238,10 +238,9 @@ class GroupDecomposer(object):
         self.groups_data = groups_data
 
     @staticmethod
-    def FromGroupsFile(filename):
+    def FromGroupsFile(fp):
         """Factory that initializes a GroupDecomposer from a CSV file."""
-        assert filename
-        gd = GroupsData.FromGroupsFile(filename)
+        gd = GroupsData.FromGroupsFile(fp)
         return GroupDecomposer(gd)
     
     @staticmethod
@@ -521,7 +520,8 @@ class GroupDecomposer(object):
 
 def main():
     from pseudoisomers_data import PseudoisomersData
-    decomposer = GroupDecomposer.FromGroupsFile('../data/thermodynamics/groups_species.csv')
+    decomposer = GroupDecomposer.FromGroupsFile(
+        open('../data/thermodynamics/groups_species.csv', 'r'))
     
     if False:
         pdata = PseudoisomersData.FromFile("../data/thermodynamics/dG0.csv")
@@ -535,7 +535,7 @@ def main():
             
             try:
                 mol = ps_isomer.Mol()
-                mol.RemoveHydrogens()
+                #mol.RemoveHydrogens()
                 mol.title = str(ps_isomer)
                 decomposition = decomposer.Decompose(mol, strict=True)
             except GroupDecompositionError as e:

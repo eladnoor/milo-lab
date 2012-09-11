@@ -78,8 +78,8 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                                                        transformed=self.transformed)
             self.group_decomposer = GroupDecomposer(self.groups_data)
         else:
-            fname = "../data/thermodynamics/groups_species.csv"
-            self.groups_data = GroupsData.FromGroupsFile(fname,
+            fp = open("../data/thermodynamics/groups_species.csv", 'r')
+            self.groups_data = GroupsData.FromGroupsFile(fp,
                                                          transformed=self.transformed)
             self.groups_data.ToDatabase(self.db)
             self.group_decomposer = GroupDecomposer(self.groups_data)
@@ -149,7 +149,7 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
                     self.cid2error[cid] = "Does not have structural data"
                     continue
                 try:
-                    mol.RemoveHydrogens()
+                    #mol.RemoveHydrogens()
                     decomposition = self.group_decomposer.Decompose(mol, 
                                         ignore_protonations=False, strict=True)
                 except GroupDecompositionError:

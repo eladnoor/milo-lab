@@ -526,7 +526,7 @@ class ThermodynamicAnalysis(object):
 
 
 def MakeOpts(estimators):
-    """Returns an OptionParser object with all the default options."""
+    """Returns an OptionParser object with all the default args."""
     opt_parser = OptionParser()
     opt_parser.add_option("-k", "--kegg_database_location", 
                           dest="kegg_db_filename",
@@ -565,20 +565,20 @@ if __name__ == "__main__":
     plt.rcParams['figure.dpi'] = 100
 
     estimators = LoadAllEstimators()
-    options, _ = MakeOpts(estimators).parse_args(sys.argv)
-    input_filename = os.path.abspath(options.input_filename)
-    output_filename = os.path.abspath(options.output_filename)
+    args, _ = MakeOpts(estimators).parse_args(sys.argv)
+    input_filename = os.path.abspath(args.input_filename)
+    output_filename = os.path.abspath(args.output_filename)
     if not os.path.exists(input_filename):
         logging.fatal('Input filename %s doesn\'t exist' % input_filename)
         
     print 'Will read pathway definitions from %s' % input_filename
     print 'Will write output to %s' % output_filename
     
-    db_loc = options.db_filename
+    db_loc = args.db_filename
     print 'Reading from DB %s' % db_loc
     db = SqliteDatabase(db_loc)
 
-    thermo = estimators[options.thermodynamics_source]
+    thermo = estimators[args.thermodynamics_source]
     print "Using the thermodynamic estimations of: " + thermo.name
     
     kegg = Kegg.getInstance()

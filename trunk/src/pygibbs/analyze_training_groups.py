@@ -165,7 +165,7 @@ class DecompositionStats(object):
 
 def main():
     gdata = groups_data.GroupsData.FromGroupsFile(
-        '../data/thermodynamics/groups_species.csv')
+        open('../data/thermodynamics/groups_species.csv', 'r'))
     decomposer = group_decomposition.GroupDecomposer(gdata)
     pdata = pseudoisomers_data.PseudoisomersData.FromFile(
         '../data/thermodynamics/dG0.csv')

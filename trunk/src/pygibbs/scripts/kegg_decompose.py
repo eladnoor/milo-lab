@@ -6,8 +6,8 @@ from toolbox.molecule import Molecule
 from pygibbs.groups_data import GroupsData
 from pygibbs.group_vector import GroupVector
 from pygibbs.dissociation_constants import DissociationConstants
-from optparse import OptionParser
-import sys
+import re
+from argparse import ArgumentParser
 
 def GetMostAbundantMol(cid, dissociation):
     mol = dissociation.GetMostAbundantMol(cid, pH=7, I=0.0, pMg=14, T=298.15)
@@ -22,14 +22,14 @@ def GetMolInput(dissociation):
         s_input = raw_input()
         if not s_input:
             return []
-        elif s_input[0] == 'C':
+        elif re.findall('C\d\d\d\d\d', s_input) != []:
             try:
                 cid = int(s_input[1:])
                 mols = [(GetMostAbundantMol(cid, dissociation), 1)]
                 print "Compound:", mols[0][0].ToInChI()
             except ValueError:
                 print 'syntax error: KEGG compound ID is bad (%s), please try again' % s_input
-        elif s_input[0] == 'R':
+        elif re.findall('R\d\d\d\d\d', s_input) != []:
             try:
                 rid = int(s_input[1:])
                 reaction = Kegg.getInstance().rid2reaction(rid)
@@ -53,8 +53,9 @@ def DecomposeInputString(group_decomposer, dissociation, ignore_protonations=Fal
     if len(mols) == 0:
         return False
     if len(mols) == 1:
+        mol = mols[0][0]
         try:
-            decomposition = group_decomposer.Decompose(mols[0][0], ignore_protonations=ignore_protonations, strict=True)
+            decomposition = group_decomposer.Decompose(mol, ignore_protonations=ignore_protonations, strict=True)
             if ignore_protonations:
                 all_groupvecs = decomposition.PseudoisomerVectors()
             else:
@@ -65,7 +66,7 @@ def DecomposeInputString(group_decomposer, dissociation, ignore_protonations=Fal
         except GroupDecompositionError as e:
             print "Cannot decompose compound to groups: " + str(e)
             print e.GetDebugTable()
-        mols[0][0].Draw()
+        mol.Draw()
     else:
         total_gv = GroupVector(group_decomposer.groups_data)
         for mol, coeff in mols:
@@ -83,16 +84,17 @@ def DecomposeInputString(group_decomposer, dissociation, ignore_protonations=Fal
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
-    opt_parser = OptionParser()
-    opt_parser.add_option("-g", "--groups",
-                          dest="groups_species", default="../data/thermodynamics/groups_species.csv",
-                          help="Use the provided groups_species definition file")
-    return opt_parser
+    parser = ArgumentParser()
+    parser.add_argument("-g", "--groups_species", type=file,
+                      default="../data/thermodynamics/groups_species.csv",
+                      help="Use the provided groups_species definition file")
+    return parser
 
 def main():
-    options, _ = MakeOpts().parse_args(sys.argv)
+    parser = MakeOpts()
+    args = parser.parse_args()
     dissociation = DissociationConstants.FromPublicDB()
-    groups_data = GroupsData.FromGroupsFile(options.groups_species, transformed=False)
+    groups_data = GroupsData.FromGroupsFile(args.groups_species, transformed=False)
     group_decomposer = GroupDecomposer(groups_data)
     
     while DecomposeInputString(group_decomposer, dissociation):

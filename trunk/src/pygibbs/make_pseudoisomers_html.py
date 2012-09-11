@@ -11,7 +11,7 @@ def main():
     pdata = pseudoisomers_data.PseudoisomersData.FromFile(
         '../data/thermodynamics/dG0.csv')
     decomposer = group_decomposition.GroupDecomposer.FromGroupsFile(
-        '../data/thermodynamics/groups_species.csv')
+        open('../data/thermodynamics/groups_species.csv', 'r'))
     
     train_pseudoisomers = []
     test_pseudoisomers = []
