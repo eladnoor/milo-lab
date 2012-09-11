@@ -272,47 +272,34 @@ class GroupsData(object):
         return set([int(c) for c in focal_atoms_str.split('|')])
     
     @staticmethod
-    def FromGroupsFile(filename, transformed=False):
+    def FromGroupsFile(fp, transformed=False):
         """Factory that initializes a GroupData from a CSV file."""
-        assert filename
         list_of_groups = []
         
-        logging.info('Reading the list of groups from %s ... ' % filename)
-        group_csv_file = csv.reader(open(filename, 'r'))
-        group_csv_file.next() # Skip the header
-    
+        logging.info('Reading the list of groups from %s' % fp.name)
         gid = 0
-        for row in csv.DictReader(open(filename)):
+        for row in csv.DictReader(fp):
             if row.get('SKIP', False):
                 logging.warning('Skipping group %s', row.get('NAME'))
                 continue
             
-            try:
-                group_name = row['NAME']
-                protons = int(row['PROTONS'])
-                charge = int(row['CHARGE'])
-                mgs = int(row['MAGNESIUMS'])
-                smarts = row['SMARTS']
-                focal_atoms = FocalSet(row['FOCAL_ATOMS'])
-                _remark = row['REMARK']
-                
-                # Check that the smarts are good.
-                if not Molecule.VerifySmarts(smarts):
-                    raise GroupsDataError('Cannot parse SMARTS from line %d: %s' %
-                                          (group_csv_file.line_num, smarts))
-                
-                group = Group(gid, group_name, protons, charge, mgs, str(smarts),
-                              focal_atoms)
-                list_of_groups.append(group)
-            except KeyError, msg:
-                logging.error(msg)
-                raise GroupsDataError('Failed to parse row.')
-            except ValueError, msg:
-                logging.error(msg)
-                raise GroupsDataError('Wrong number of columns (%d) in one of the rows in %s: %s' %
-                                      (len(row), filename, str(row)))
+            group_name = row['NAME']
+            protons = int(row['PROTONS'])
+            charge = int(row['CHARGE'])
+            mgs = int(row['MAGNESIUMS'])
+            smarts = row['SMARTS']
+            focal_atoms = FocalSet(row['FOCAL_ATOMS'])
+            _remark = row['REMARK']
             
+            # Check that the smarts are good.
+            if not Molecule.VerifySmarts(smarts):
+                raise GroupsDataError('Cannot parse SMARTS: %s' % smarts)
+            
+            group = Group(gid, group_name, protons, charge, mgs, str(smarts),
+                          focal_atoms)
+            list_of_groups.append(group)
             gid += 1
+            
         logging.info('Done reading groups data.')
         
         return GroupsData(list_of_groups, transformed)    
@@ -333,7 +320,7 @@ class GroupsData(object):
         
         if not db.DoesTableExist('groups'):
             if filename:
-                groups_data = GroupsData.FromGroupsFile(filename)
+                groups_data = GroupsData.FromGroupsFile(open(filename, 'r'))
                 groups_data.ToDatabase(db)
                 return groups_data
             else:

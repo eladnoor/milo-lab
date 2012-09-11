@@ -52,7 +52,7 @@ class InChI2FormationEnergy(object):
     
     def EstimateInChI(self, inchi):
         mol = Molecule.FromInChI(inchi)
-        mol.RemoveHydrogens()
+        #mol.RemoveHydrogens()
         decomposition = self.group_decomposer.Decompose(mol, 
                             ignore_protonations=False, strict=True)
 

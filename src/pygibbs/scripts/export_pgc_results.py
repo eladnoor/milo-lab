@@ -14,7 +14,7 @@ from pygibbs.thermodynamic_constants import default_pH, default_pMg, default_I,\
 from toolbox.molecule import OpenBabelError
 
 def MakeOpts(estimators):
-    """Returns an OptionParser object with all the default options."""
+    """Returns an OptionParser object with all the default args."""
     opt_parser = OptionParser()
     opt_parser.add_option("-c", "--compounds_out_filename",
                           dest="compounds_out_filename",
@@ -41,16 +41,16 @@ def MakeOpts(estimators):
 
 def main():
     estimators = LoadAllEstimators()
-    options, _ = MakeOpts(estimators).parse_args(sys.argv)
+    args, _ = MakeOpts(estimators).parse_args(sys.argv)
     
     # Make sure we have all the data.
     db = SqliteDatabase('../res/gibbs.sqlite')
     G = GroupContribution(db=db, html_writer=NullHtmlWriter(),
-                          transformed=options.transformed)
+                          transformed=args.transformed)
     G.init()
     
-    print 'Exporting KEGG compounds to %s' % options.compounds_out_filename
-    csv_writer = csv.writer(open(options.compounds_out_filename, 'w'))
+    print 'Exporting KEGG compounds to %s' % args.compounds_out_filename
+    csv_writer = csv.writer(open(args.compounds_out_filename, 'w'))
     csv_writer.writerow(["KEGG ID", "nH", "CHARGE", "nMg", "dG0_f"])
     for cid in sorted(G.get_all_cids()):
         try:
@@ -59,16 +59,16 @@ def main():
         except MissingCompoundFormationEnergy as e:
             csv_writer.writerow(["C%05d" % cid, None, None, None, str(e)])
         
-    print 'Exporting KEGG reactions to %s' % options.reactions_out_filename
-    csv_writer = csv.writer(open(options.reactions_out_filename, 'w'))
+    print 'Exporting KEGG reactions to %s' % args.reactions_out_filename
+    csv_writer = csv.writer(open(args.reactions_out_filename, 'w'))
     csv_writer.writerow(["KEGG ID", "dG'0_r (pH=%.1f, I=%.2f, pMg=%.1f, T=%.1f)" % 
-                         (options.ph, options.i_s, options.pmg, options.temp)])
+                         (args.ph, args.i_s, args.pmg, args.temp)])
     for rid in sorted(G.kegg.get_all_rids()):
         reaction = G.kegg.rid2reaction(rid)
         try:
             reaction.Balance(balance_water=True)
-            dG0_r = reaction.PredictReactionEnergy(G, pH=options.ph,
-                        pMg=options.pmg, I=options.i_s, T=options.temp)
+            dG0_r = reaction.PredictReactionEnergy(G, pH=args.ph,
+                        pMg=args.pmg, I=args.i_s, T=args.temp)
             csv_writer.writerow(["R%05d" % rid, "%.1f" % dG0_r])
         except (KeggParseException,
                 MissingCompoundFormationEnergy, 

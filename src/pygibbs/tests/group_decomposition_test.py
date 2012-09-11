@@ -14,7 +14,7 @@ class GroupsDecompositionTest(unittest.TestCase):
     
     def setUp(self):
         self.groups_decomposer = group_decomposition.GroupDecomposer.FromGroupsFile(
-            '../data/thermodynamics/groups_species.csv')
+            open('../data/thermodynamics/groups_species.csv', 'r'))
     
     def testFindPhosphateChains(self):
         ps = group_decomposition.GroupDecomposer.FindPhosphateChains(PHOSPHATE,
