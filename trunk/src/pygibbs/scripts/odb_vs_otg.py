@@ -8,7 +8,6 @@ from pygibbs.pathway_modelling import KeggPathway, DeltaGNormalization
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime, default_T
 from pygibbs.kegg_reaction import Reaction
-from pygibbs.kegg import Kegg
 import csv
 
 def pareto(kegg_file, html_writer, thermo, pH=None,
@@ -174,7 +173,7 @@ def analyze(prefix, thermo):
     
     html_writer.close()
     
-def analyze_conc_gradient(prefix, thermo, csv_output_fname, cid=13): # default compound is PPi
+def AnalyzeConcentrationGradient(prefix, thermo, csv_output_fname, cid=13): # default compound is PPi
     compound_name = thermo.kegg.cid2name(cid)
     kegg_file = ParsedKeggFile.FromKeggFile('../data/thermodynamics/%s.txt' % prefix)
     html_writer = HtmlWriter('../res/%s.html' % prefix)
@@ -225,14 +224,9 @@ if __name__ == "__main__":
                    ('odb_vs_otg_reductive', 'UGC'),
                    ('odb_vs_otg_RPP', 'UGC')]
 
-    experiments = [('odb_vs_otg_RPP', 'UGC')]
+    experiments = [('odb_fermentative_short', 'UGC')]
 
     for prefix, thermo_name in experiments:
         thermo = estimators[thermo_name]
-        #analyze(prefix, thermo)
-        analyze_conc_gradient(prefix, thermo, "../res/%s.csv" % prefix, cid=13)
+        analyze(prefix, thermo)
 
-    #analyze('../res/pathologic/GA3P => PYR/kegg_pathway.txt',
-    #        '../data/thermodynamics/concentration_bounds.csv',
-    #        '../res/odb_vs_otg_gap2pyr.html',
-    #        estimators)

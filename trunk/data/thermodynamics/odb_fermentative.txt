@@ -1,5 +1,4 @@
 ENTRY       EMP-GLYCOLYSIS
-NAME        EMP-GLYCOLYSIS
 PH          7
 I           0.2
 T           298.15
@@ -41,7 +40,6 @@ REACTION    R01786  C00002 + C00031 -> C00008 + C00092 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)
 ///
 ENTRY       EMP-GLYCOLYSIS-BPG100nm
-NAME        EMP-GLYCOLYSIS-BPG100nm
 PH          7
 I           0.2
 T           298.15
@@ -84,7 +82,6 @@ REACTION    R01786  C00002 + C00031 -> C00008 + C00092 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)
 ///
 ENTRY       EMP-GLYCOLYSIS-BPG10nm
-NAME        EMP-GLYCOLYSIS-BPG10nm
 PH          7
 I           0.2
 T           298.15
@@ -127,7 +124,6 @@ REACTION    R01786  C00002 + C00031 -> C00008 + C00092 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)
 ///
 ENTRY       EMP-GLYCOLYSIS-MIXED-FERMENTATION
-NAME        EMP-GLYCOLYSIS-MIXED-FERMENTATION
 PH          7
 I           0.2
 T           298.15
@@ -173,7 +169,6 @@ REACTION    R01786  C00002 + C00031 -> C00008 + C00092 (x1)
 			adh     C00084 + C00004 -> C00469 + C00003 (x1)
 ///
 ENTRY       EMP-GLYCOLYSIS-HIGHWAY
-NAME        EMP-GLYCOLYSIS-HIGHWAY
 PH          7
 I           0.2
 T           298.15
@@ -214,7 +209,6 @@ REACTION    R01786  C00002 + C00031 -> C00008 + C00092 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)		
 ///
 ENTRY       ED-GLYCOLYSIS
-NAME        ED-GLYCOLYSIS
 PH          7
 I           0.2
 T           298.15
@@ -257,7 +251,6 @@ REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
             ldh     C00022 + C00004 -> C00256 + C00003 (x2)			
 ///
 ENTRY       ED-GLYCOLYSIS-100nm
-NAME        ED-GLYCOLYSIS-100nm
 PH          7
 I           0.2
 T           298.15
@@ -301,7 +294,6 @@ REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
             ldh     C00022 + C00004 -> C00256 + C00003 (x2)		
 ///
 ENTRY       ED-GLYCOLYSIS-10nm
-NAME        ED-GLYCOLYSIS-10nm
 PH          7
 I           0.2
 T           298.15
@@ -345,7 +337,6 @@ REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
             ldh     C00022 + C00004 -> C00256 + C00003 (x2)	
 ///
 ENTRY       ED-GLYCOLYSIS-HIGHWAY
-NAME        ED-GLYCOLYSIS-HIGHWAY
 PH          7
 I           0.2
 T           298.15
@@ -387,7 +378,6 @@ REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
             ldh     C00022 + C00004 -> C00256 + C00003 (x2)			
 ///					
 ENTRY       ED-SEMI-PHOSPHORYLATIVE
-NAME        ED-SEMI-PHOSPHORYLATIVE
 PH          7
 I           0.2
 T           298.15
@@ -428,7 +418,6 @@ REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)
 ///
 ENTRY       ED-SEMI-PHOSPHORYLATIVE-HIGHWAY
-NAME        ED-SEMI-PHOSPHORYLATIVE-HIGHWAY
 PH          7
 I           0.2
 T           298.15
@@ -470,7 +459,6 @@ REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)
 ///
 ENTRY       ED-NON-PHOSPHORYLATIVE
-NAME        ED-NON-PHOSPHORYLATIVE
 PH          7
 I           0.2
 T           298.15
@@ -510,7 +498,6 @@ REACTION    R01520  C00221 + C00003 -> C00198 + C00004 + C00080 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)
 ///
 ENTRY       METHYLGLYOXAL
-NAME        METHYLGLYOXAL
 PH          7
 I           0.2
 T           298.15
@@ -549,7 +536,6 @@ REACTION    R01786  C00002 + C00267 -> C00008 + C00668 (x1)
 			ldh     C00022 + C00004 -> C00256 + C00003 (x2)
 ///			
 ENTRY       PPP-PHOSPHOKETOLASE
-NAME        PPP-PHOSPHOKETOLASE
 PH          7
 I           0.2
 T           298.15
@@ -592,7 +578,6 @@ REACTION    hk      C00002 + C00031 -> C00008 + C00092 (x1)
 			pht     C00008 + C00227 -> C00002 + C00033 (x1)
 ///
 ENTRY       ASCARIS
-NAME        ASCARIS
 PH          7
 I           0.2
 T           298.15

@@ -1,5 +1,4 @@
 ENTRY       ACETY_COA_CONDENSE
-NAME        ACETY_COA_CONDENSE
 PH          7
 I           0.2
 T           298.15
@@ -36,7 +35,6 @@ REACTION    ftl      C00101 + C00058 + C00002 -> C00008 + C00009 + C00234
             por      2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
 ///
 ENTRY       ACETY_COA
-NAME        ACETY_COA
 PH          7
 I           0.2
 T           298.15
@@ -74,7 +72,6 @@ REACTION    ftl      C00101 + C00058 + C00002 -> C00008 + C00009 + C00234
             por      2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
 ///
 ENTRY       RPP
-NAME        RPP
 PH          7
 I           0.2
 T           298.15
@@ -121,7 +118,6 @@ REACTION    tpi    C00118 -> C00111 (x2)
             pyk    C00008 + C00074 -> C00002 + C00022 (x1)
 ///
 ENTRY       RTCA
-NAME        RTCA
 PH          7
 I           0.2
 T           298.15
@@ -161,7 +157,6 @@ REACTION    mdh    C00036 + C00005 -> C00149 + C00006 (x1)
             por    2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x1)
 ///
 ENTRY       DC-4HB
-NAME        DC-4HB
 PH          7
 I           0.2
 T           298.15
@@ -207,7 +202,6 @@ REACTION    por    2 C00138 + C00024 + C00011 -> 2 C00139 + C00022 + C00010 (x2)
             ato    C00010 + C00332 -> 2 C00024 (x1)
 ///
 ENTRY       3HP-4HB
-NAME        3HP-4HB
 PH          7
 I           0.2
 T           298.15
@@ -259,7 +253,6 @@ REACTION    acc     C00002 + C00024 + C00011 -> C00008 + C00009 + C00083 (x2)
             mae     C00149 + C00006 -> C00022 + C00011 + C00005 (x1)
 ///
 ENTRY       3HP
-NAME        3HP
 PH          7
 I           0.2
 T           298.15
@@ -307,7 +300,6 @@ REACTION    acc    C00002 + C00024 + C00011 -> C00008 + C00009 + C00083 (x2)
             mcl3   C01011 -> C00024 + C00022 (x1)
 ///
 ENTRY       MOP
-NAME        MOP
 PH          7
 I           0.2
 T           298.15
