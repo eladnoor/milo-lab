@@ -1,5 +1,4 @@
 ENTRY       TCA
-NAME        TCA
 PH          7
 I           0.2
 T           298.15
@@ -40,7 +39,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             mdh    C00003 + C00149 -> C00004 + C00036 (x1)
 ///
 ENTRY       TCA-OA100nm
-NAME        TCA-OA100nm
 PH          7
 I           0.2
 T           298.15
@@ -82,7 +80,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             mdh    C00003 + C00149 -> C00004 + C00036 (x1)
 ///
 ENTRY       TCA-OA10nm
-NAME        TCA-OA10nm
 PH          7
 I           0.2
 T           298.15
@@ -124,7 +121,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             mdh    C00003 + C00149 -> C00004 + C00036 (x1)
 ///
 ENTRY       TCA-CHANNEL
-NAME        TCA-CHANNEL
 PH          7
 I           0.2
 T           298.15
@@ -164,7 +160,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             mdh:glt C00003 + C00149 + C00001 + C00024 -> C00004 + C00010 + C00158 (x1)
 ///
 ENTRY       TCA-MQO
-NAME        TCA-MQO
 PH          7
 I           0.2
 T           298.15
@@ -205,7 +200,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             mqo    C00399 + C00149 -> C00390 + C00036 (x1)
 ///
 ENTRY       PEP-GLX
-NAME        PEP-GLX
 PH          7
 I           0.2
 T           298.15
@@ -246,7 +240,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x2)
 			pepck  C00002 + C00036 -> C00008 + C00074 + C00011
 ///
 ENTRY       PEP-GLX-MQO
-NAME        PEP-GLX-MQO
 PH          7
 I           0.2
 T           298.15
@@ -287,7 +280,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x2)
 			pepck  C00002 + C00036 -> C00008 + C00074 + C00011			
 ///
 ENTRY       OX-PPP
-NAME        OX-PPP
 PH          7
 I           0.2
 T           298.15
@@ -330,7 +322,6 @@ REACTION    zwf    C00092 + C00006 -> C01236 + C00005 (x3)
             pgi    C00085 -> C00092 (x3)
 ///
 ENTRY       P_fluorescens
-NAME        P_fluorescens
 PH          7
 I           0.2
 T           298.15
@@ -374,7 +365,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             fdh    C00058 + C00003 -> C00011 + C00004 (x1)
 ///
 ENTRY       P_fluorescens-CHANNEL
-NAME        P_fluorescens-CHANNEL
 PH          7
 I           0.2
 T           298.15
@@ -417,7 +407,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             mdh:glt C00003 + C00149 + C00001 + C00024 -> C00004 + C00010 + C00158 (x1)
 ///
 ENTRY       P_fluorescens-MQO
-NAME        P_fluorescens-MQO
 PH          7
 I           0.2
 T           298.15
@@ -461,7 +450,6 @@ REACTION    pyk    C00008 + C00074 -> C00002 + C00022 (x1)
             fdh    C00058 + C00003 -> C00011 + C00004 (x1)
 ///
 ENTRY       LINEAR
-NAME        LINEAR
 PH          7
 I           0.2
 T           298.15
@@ -501,7 +489,6 @@ REACTION    hprA   C00258 + C00003 -> C00168 + C00004 (x1)
             fdh    C00058 + C00003 -> C00011 + C00004 (x1)		  
 ///
 ENTRY       LINEAR-OXIDASE
-NAME        LINEAR-OXIDASE
 PH          7
 I           0.2
 T           298.15
