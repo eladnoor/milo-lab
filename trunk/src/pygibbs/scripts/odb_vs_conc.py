@@ -149,7 +149,7 @@ def AnalyzePareto(pathway_file, output_prefix, thermo):
     html_writer.embed_matplotlib_figure(fig, name=output_prefix)
     html_writer.close()
             
-def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range, cids=[]):
+def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range, cids=[], pH=None):
     compound_names = ','.join([thermo.kegg.cid2name(cid) for cid in cids])
     pathway_list = KeggFile2PathwayList(pathway_file)
     pathway_names = [entry for (entry, _) in pathway_list]
@@ -158,7 +158,7 @@ def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range
     # run once just to make sure that the pathways are all working:
     logging.info("testing all pathways with default concentrations")
     data = GetAllODBs(pathway_list, html_writer, thermo,
-                  pH=None, section_prefix="test", balance_water=True,
+                  pH=pH, section_prefix="test", balance_water=True,
                   override_bounds={})
     
     csv_output = csv.writer(open('%s.csv' % output_prefix, 'w'))
@@ -173,7 +173,7 @@ def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range
             override_bounds[cid] = (conc, conc)
         logging.info("[%s] = %.1e M" % (compound_names, conc))
         data = GetAllODBs(pathway_list, html_writer=None, thermo=thermo,
-                      pH=None, section_prefix="", balance_water=True,
+                      pH=pH, section_prefix="", balance_water=True,
                       override_bounds=override_bounds)
         odbs = [d['ODB'] for d in data]
         odb_mat.append(odbs)
@@ -253,6 +253,9 @@ def MakeArgParser(estimators):
                         choices=estimators.keys(),
                         default="UGC",
                         help="The thermodynamic data to use")
+    parser.add_argument('-p', '--pH', action='store', type=float, required=False,
+                        default=None,
+                        help="Override the pH indicated in the pathway file")
     return parser
 
 if __name__ == "__main__":
@@ -269,10 +272,10 @@ if __name__ == "__main__":
         if args.range is None:
             args.range = '4:0.5:10'
         AnalyzePHGradient(args.pathway_file, args.output_prefix, thermo,
-                            conc_range=args.range)
+                          conc_range=args.range)
     else:
         if args.range is None:
             args.range = '2:0.5:6'
         AnalyzeConcentrationGradient(args.pathway_file, args.output_prefix, thermo,
-                              conc_range=args.range, cids=args.cids)
+                                     conc_range=args.range, cids=args.cids, pH=args.pH)
 

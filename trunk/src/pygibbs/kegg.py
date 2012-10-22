@@ -397,7 +397,7 @@ class Kegg(Singleton):
         return self.ec2enzyme_map.values()
 
     def parse_kegg_reaction_line(self, line):
-        rexp = '([a-zA-Z0-9,]+)\s+([C\s\+\d\.]+)\s+(<?[-=]>?)\s+([C\s\+\d\.]+)(.*)'
+        rexp = '([a-zA-Z0-9,_]+)\s+([C\s\+\d\.]+)\s+(<?[-=]>?)\s+([C\s\+\d\.]+)(.*)'
         try:
             rid, left_clause, dir_clause, right_clause, remainder = re.findall(rexp, line)[0]
         except Exception, e:
