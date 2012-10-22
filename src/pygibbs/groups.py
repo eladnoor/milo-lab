@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import logging, types, json, sys
+import logging, types, json
 from collections import defaultdict
 
 from copy import deepcopy
@@ -23,7 +23,6 @@ from pygibbs.kegg_observation import KeggObervationCollection, KeggObservation
 from pygibbs.dissociation_constants import DissociationConstants
 from pygibbs.thermodynamic_errors import MissingReactionEnergy
 from pygibbs.group_vector import GroupVector
-from optparse import OptionParser
 from toolbox import util
 from argparse import ArgumentParser
 

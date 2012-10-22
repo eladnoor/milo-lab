@@ -224,8 +224,9 @@ class ParsedKeggFile(dict):
     
         while line:
             if line[0:3] == '///':
-                entry = re.split('\s\s+', field_map['ENTRY'])[0].strip()
-                parsed_file._AddEntry(entry, field_map)
+                if field_map:
+                    entry = re.split('\s\s+', field_map['ENTRY'])[0].strip()
+                    parsed_file._AddEntry(entry, field_map)
                 field = None
                 field_map = {}
             elif line[0] in [' ', '\t']:
