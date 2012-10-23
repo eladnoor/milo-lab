@@ -9,6 +9,7 @@ from pygibbs.kegg import Kegg
 from pygibbs.kegg_reaction import Reaction
 import types
 import cvxpy
+from pygibbs import thermodynamic_constants
 
 RT = R * default_T
 
@@ -635,13 +636,17 @@ class KeggPathway(Pathway):
             phys_concentrations[0, self.cids.index(1)] = 1
         
         dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
-        dG_r_prime_c_adj = np.multiply(dG_r_prime_c, np.sign(self.fluxes)) # adjust dG to flux directions
         headers=["reaction", 'formula', 'flux', 
-                 "&Delta;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC] 
+                 thermodynamic_constants.symbol_dr_G0_prime + " [kJ/mol]",
+                 thermodynamic_constants.symbol_dr_Gc_prime + \
+                 " [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC] 
+
         if concentrations is not None:
             dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
-            dG_r_prime_adj = np.multiply(dG_r_prime, np.sign(self.fluxes)) # adjust dG to flux directions
-            headers.append("&Delta;<sub>r</sub>G' [kJ/mol]")
+            headers.append(thermodynamic_constants.symbol_dr_G_prime + " [kJ/mol]")
+            dG_mat = np.hstack([self.dG0_r_prime.T, dG_r_prime_c.T, dG_r_prime.T])
+        else:
+            dG_mat = np.hstack([self.dG0_r_prime.T, dG_r_prime_c.T])
         
         dict_list = []
         for r, rid in enumerate(self.rids):
@@ -655,19 +660,30 @@ class KeggPathway(Pathway):
                 d['reaction'] = self.kegg.rid2string(rid)
             d['flux'] = "%g" % abs(self.fluxes[0, r])
             d['formula'] = self.GetReactionString(r, show_cids=False)
-            d[headers[3]] = dG_r_prime_c_adj[0, r]
-            if concentrations is not None:
-                d[headers[4]] = dG_r_prime_adj[0, r]
-            dict_list.append(d)
 
+            flux_sign = np.sign(self.fluxes[0, r])
+            d[headers[3]] = dG_mat[r, 0] * flux_sign
+            d[headers[4]] = dG_mat[r, 1] * flux_sign
+            if concentrations is not None:
+                d[headers[5]] = dG_mat[r, 2] * flux_sign
+            dict_list.append(d)
+            
         d = {'reaction':'Total',
              'flux':'1',
              'formula':self.GetTotalReactionString(show_cids=False)}
         d[headers[3]] = float(self.dG0_r_prime * self.fluxes.T)
+        d[headers[4]] = float(dG_r_prime_c * self.fluxes.T)
         if concentrations is not None:
-            d[headers[4]] = float(dG_r_prime * self.fluxes.T)
+            d[headers[5]] = float(dG_r_prime * self.fluxes.T)
         dict_list.append(d)
         html_writer.write_table(dict_list, headers=headers, decimal=1)
+        
+        html_writer.insert_toggle(start_here=True, label='Show CSV')
+        for r, rid in enumerate(self.rids):
+            html_writer.write('%g,' % self.fluxes[0, r] + 
+                              ','.join(['%.1f' % x for x in dG_mat[r, :].flat]) + 
+                              '</br>\n')
+        html_writer.div_end()
         
 if __name__ == '__main__':
     S = np.matrix("-1, 0, 0; 1, -1, 0; 0, 1, 1; 0, 0, -1")
