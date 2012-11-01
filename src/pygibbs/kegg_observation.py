@@ -3,12 +3,14 @@ import numpy as np
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import default_pH, default_T,\
-    RedoxCarriers, symbol_dr_G0_prime, symbol_dr_G0, default_pMg
+    RedoxCarriers, symbol_dr_G0_prime, symbol_dr_G0, default_pMg, R
 from pygibbs.nist import Nist
-from pygibbs.dissociation_constants import MissingDissociationConstantError
+from pygibbs.dissociation_constants import MissingDissociationConstantError,\
+    DissociationConstants
 from toolbox.html_writer import NullHtmlWriter
 from pygibbs.kegg_reaction import Reaction
 from pygibbs import thermodynamic_constants
+from toolbox.molecule import Molecule
 
 class KeggObservation(object):
     
@@ -17,6 +19,21 @@ class KeggObservation(object):
     TYPE_ACID_BASE = 3
     TYPE_MG = 4
     TYPE_REDOX = 5
+    
+    ATOM2ELEMENT = {'C': ('Carbon', 1),
+                    'H': ('H2(g)', 0.5),
+                    'O': ('O2(g)', 0.5),
+                    'N': ('N2(g)', 0.5),
+                    'P': ('Phosphorus', 1),
+                    'S': ('Sulfur', 1),
+                    'Cl': ('Cl2(g)', 0.5),
+                    'F': ('F2(g)', 0.5),
+                    'Fe': ('Iron', 1),
+                    'Mn': ('Manganese', 1),
+                    'Mg': ('Magnesium', 1),
+                    'Br': ('Br2(l)', 0.5),
+                    'I': ('I2(s)', 0.5)}
+
     
     def __init__(self, obs_id, obs_type, url, anchored, dG0, sparse):
         self.obs_id = obs_id
@@ -352,3 +369,77 @@ class KeggObervationCollection(object):
                                  'Reaction', self.gibbs_symbol])
         self.html_writer.write('</font>\n')
         self.html_writer.div_end()
+
+    def ConvertFormation2Reaction(self, output_fname):
+        logging.info("Converting all formation energies to reactions")
+        output_csv = csv.writer(open(output_fname, 'w'))
+        
+        # keep the format used for TECRDB
+        output_csv.writerow(('ref', 'ID', 'method', 'eval', 'EC', 'name',
+                             'kegg_reaction', 'reaction',
+                             'dG0\'', 'T', 'I', 'pH', 'pMg'))
+        
+        atom2cid = {}
+        for atom, (name, stoich) in KeggObservation.ATOM2ELEMENT.iteritems():
+            cid, _, _ = self.kegg.name2cid(name, 0)
+            if cid is None:
+                raise Exception("Cannot find the element %s in the KEGG database" % name)
+            atom2cid[atom] = (cid, stoich)
+            #output_csv.writerow(('element',
+            #                     'C%05d' % cid, 'formation', 'A', '',
+            #                     'formation of %s' % self.kegg.cid2name(cid),
+            #                     "C%05d" % cid,
+            #                     name, 0, self.T, self.I, self.pH, self.pMg))
+
+        
+        for label in ['training', 'testing']:
+            ptable = PsuedoisomerTableThermodynamics.FromCsvFile(self.FormationEnergyFileName,
+                                                                 label=label)
+            for cid in ptable.get_all_cids():
+                pmatrix = ptable.cid2PseudoisomerMap(cid).ToMatrix() 
+                if len(pmatrix) != 1:
+                    raise Exception("multiple training species for C%05d" % cid)
+                nH, charge, nMg, dG0 = pmatrix[0]
+                diss_table = dissociation.GetDissociationTable(cid, False)
+                if diss_table is None:
+                    continue
+                diss_table.SetFormationEnergyByNumHydrogens(dG0, nH, nMg)
+                dG0_prime = diss_table.Transform(pH=self.pH, I=self.I, pMg=self.pMg, T=self.T)
+                ref = ptable.cid2SourceString(cid)
+                
+                atom_bag = self.kegg.cid2atom_bag(cid)
+                if not atom_bag:
+                    continue
+                
+                ne = self.kegg.cid2num_electrons(cid)
+                elem_ne = 0
+                sparse = {cid: 1}
+                for elem, count in atom_bag.iteritems():
+                    if elem == 'H':
+                        continue
+                    elem_ne += count * Molecule.GetAtomicNum(elem)
+                    elem_cid, elem_coeff = atom2cid[elem]
+                    sparse.setdefault(elem_cid, 0)
+                    sparse[elem_cid] += -count * elem_coeff
+                
+                # use the H element to balance the electrons in the formation
+                # reactions (we don't need to balance protons since this is 
+                # a biochemical reaction, so H+ are 'free').
+                H_cid, H_coeff = atom2cid['H']
+                sparse[H_cid] = (elem_ne - ne) * H_coeff
+                reaction = Reaction("formation of %s" % self.kegg.cid2name(cid), sparse)
+                
+                output_csv.writerow((ref,
+                                     'C%05d' % cid, 'formation', 'A', '',
+                                     'formation of %s' % self.kegg.cid2name(cid),
+                                     reaction.FullReactionString(),
+                                     reaction.FullReactionString(show_cids=False),
+                                     '%.2f' % dG0_prime, self.T, self.I, self.pH, self.pMg))
+
+
+if __name__ == "__main__":
+    dissociation = DissociationConstants.FromPublicDB()
+    html_writer = NullHtmlWriter()
+    obs_col = KeggObervationCollection(html_writer, dissociation, transformed=True)
+    
+    obs_col.ConvertFormation2Reaction(output_fname='../res/formation_reactions.csv')

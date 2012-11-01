@@ -1508,7 +1508,6 @@ if __name__ == '__main__':
         kegg.ToDatabase()
     else:
         kegg = Kegg.getInstance(loadFromAPI=False)
-        kegg.FetchMissingECs()
         kegg.CompleteMissingInchies()
         kegg.ReadAdditionsFile()
         kegg.ToDatabase()
