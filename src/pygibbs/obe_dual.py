@@ -173,7 +173,9 @@ class Pathway(object):
         lp += (total_g == total_g0 + pulp.lpSum(row)), "Total G"
 
         lp.setObjective(total_g)
-        lp.writeLP("../res/total_g.lp")
+        
+        #lp.writeLP("../res/total_g.lp")
+        
         return lp, total_g
            
     def _MakeOBEProblem(self):
@@ -198,20 +200,20 @@ class Pathway(object):
        
         lp = pulp.LpProblem("OBE", pulp.LpMaximize)
         
-        x = pulp.LpVariable.dicts("x", ["c_%d" % i for i in xrange(self.Nc)],
+        x = pulp.LpVariable.dicts("c", ["%d" % i for i in xrange(self.Nc)],
                                   lowBound=0)
         B = pulp.LpVariable("B")
         
         for j in xrange(A.shape[0]):
-            row = [A[j, i] * x["c_%d" % i] for i in xrange(self.Nc)] + \
+            row = [A[j, i] * x["%d" % i] for i in xrange(self.Nc)] + \
                   [A[j, self.Nc] * B]
             lp += (pulp.lpSum(row) <= b[j, 0]), "energy_%02d" % j
         
         lp.setObjective(B)
         
-        lp.writeLP("../res/obe_primal.lp")
+        #lp.writeLP("../res/obe_primal.lp")
         
-        return lp, ln_conc_lb, ln_conc_ub
+        return lp, x, B, ln_conc_lb
 
     def _MakeOBEProblemDual(self):
         """Create a CVXOPT problem for finding the Maximal Thermodynamic
@@ -235,25 +237,28 @@ class Pathway(object):
        
         lp = pulp.LpProblem("OBE", pulp.LpMinimize)
         
-        y = pulp.LpVariable.dicts("y", 
-                                  ["w_%d" % i for i in xrange(self.Nr)] +
-                                  ["z_%d" % i for i in xrange(self.Nc)],
+        w = pulp.LpVariable.dicts("w", 
+                                  ["%d" % i for i in xrange(self.Nr)],
+                                  lowBound=0)
+
+        z = pulp.LpVariable.dicts("z", 
+                                  ["%d" % i for i in xrange(self.Nc)],
                                   lowBound=0)
         
-        for j in xrange(self.Nc):
-            row =  [A[i, j]         * y["w_%d" % i] for i in xrange(self.Nr)] 
-            row += [A[self.Nr+i, j] * y["z_%d" % i] for i in xrange(self.Nc)]
-            constraint = (pulp.lpSum(row) >= c[j, 0])
-            lp += constraint, "dual_%d" % j
-        lp += (pulp.lpSum([y["w_%d" % i] for i in xrange(self.Nr)]) == 1), "weights"
+        for k in xrange(self.Nc):
+            row = [A[i, k]         * w["%d" % i] for i in xrange(self.Nr)] + \
+                  [A[self.Nr+j, k] * z["%d" % j] for j in xrange(self.Nc)]
+            constraint = (pulp.lpSum(row) >= c[k, 0])
+            lp += constraint, "dual_%02d" % k
+        lp += (pulp.lpSum([w["%d" % i] for i in xrange(self.Nr)]) == 1), "weights"
         
-        obj =  [b[i, 0]         * y["w_%d" % i] for i in xrange(self.Nr)]
-        obj += [b[self.Nr+i, 0] * y["z_%d" % i] for i in xrange(self.Nc)]
+        obj =  [b[i, 0]         * w["%d" % i] for i in xrange(self.Nr)]
+        obj += [b[self.Nr+j, 0] * z["%d" % j] for j in xrange(self.Nc)]
         lp.setObjective(pulp.lpSum(obj))
         
-        lp.writeLP("../res/obe_dual.lp")
+        #lp.writeLP("../res/obe_dual.lp")
         
-        return lp, ln_conc_lb, ln_conc_ub
+        return lp, w, z
     
     def FindOBE(self):
         """Find the OBE (Optimized Bottleneck Energetics).
@@ -266,27 +271,21 @@ class Pathway(object):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal obe).
         """
-        lp_primal, ln_conc_lb, _ = self._MakeOBEProblem()
+        lp_primal, x, B, ln_conc_lb = self._MakeOBEProblem()
         lp_primal.solve(pulp.CPLEX(msg=0))
         if lp_primal.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve OBE primal")
             
-        obe = pulp.value(lp_primal.variablesDict()["B"].varValue)
-        c_sol = np.matrix([lp_primal.variablesDict()["x_c_%i" % i].varValue 
-                           for i in xrange(self.Nc)]).T
+        obe = pulp.value(B)
+        c_sol = np.matrix([pulp.value(x["%d" % j]) for j in xrange(self.Nc)]).T
         conc = np.exp(c_sol + ln_conc_lb)
 
-        lp_dual, _, _ = self._MakeOBEProblemDual()
-        w = np.zeros((self.Nr, 1))
-        z = np.zeros((self.Nc, 1))
+        lp_dual, w, z = self._MakeOBEProblemDual()
         lp_dual.solve(pulp.CPLEX(msg=0))
         if lp_dual.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve OBE dual")
-        for i, variable in enumerate(lp_dual.variables()):
-            if i < self.Nr:
-                w[i, 0] = variable.varValue
-            else:
-                z[i-self.Nr, 0] = variable.varValue
+        reaction_prices = np.matrix([pulp.value(w["%d" % i]) for i in xrange(self.Nr)]).T
+        compound_prices = np.matrix([pulp.value(z["%d" % j]) for j in xrange(self.Nc)]).T
         
         # find the maximum and minimum total Gibbs energy of the pathway,
         # under the constraint that the driving force of each reaction is >= OBE
@@ -294,18 +293,18 @@ class Pathway(object):
         lp_total.solve(pulp.CPLEX(msg=0))
         if lp_total.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve total delta-G problem")
-        min_tot_dg = total_dg.varValue
+        min_tot_dg = pulp.value(total_dg)
 
         lp_total, total_dg = self._GetTotalEnergyProblem(obe - 1e-6, pulp.LpMaximize)
         lp_total.solve(pulp.CPLEX(msg=0))
         if lp_total.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve total delta-G problem")
-        max_tot_dg = total_dg.varValue
+        max_tot_dg = pulp.value(total_dg)
         
         params = {'OBE': obe * R * self.T,
                   'concentrations' : conc,
-                  'reaction prices' : w,
-                  'compound prices' : z,
+                  'reaction prices' : reaction_prices,
+                  'compound prices' : compound_prices,
                   'maximum total dG' : max_tot_dg * R * self.T,
                   'minimum total dG' : min_tot_dg * R * self.T}
         return obe * R * self.T, params
