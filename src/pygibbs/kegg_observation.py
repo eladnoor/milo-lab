@@ -3,7 +3,7 @@ import numpy as np
 from pygibbs.kegg import Kegg
 from pygibbs.thermodynamics import PsuedoisomerTableThermodynamics
 from pygibbs.thermodynamic_constants import default_pH, default_T,\
-    RedoxCarriers, symbol_dr_G0_prime, symbol_dr_G0, default_pMg, R
+    RedoxCarriers, symbol_dr_G0_prime, symbol_dr_G0, default_pMg
 from pygibbs.nist import Nist
 from pygibbs.dissociation_constants import MissingDissociationConstantError,\
     DissociationConstants
@@ -399,7 +399,7 @@ class KeggObervationCollection(object):
                 pmatrix = ptable.cid2PseudoisomerMap(cid).ToMatrix() 
                 if len(pmatrix) != 1:
                     raise Exception("multiple training species for C%05d" % cid)
-                nH, charge, nMg, dG0 = pmatrix[0]
+                nH, _charge, nMg, dG0 = pmatrix[0]
                 diss_table = dissociation.GetDissociationTable(cid, False)
                 if diss_table is None:
                     continue

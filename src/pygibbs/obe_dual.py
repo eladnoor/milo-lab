@@ -9,8 +9,7 @@ from pygibbs.kegg import Kegg
 from pygibbs.kegg_reaction import Reaction
 import types
 import pulp
-
-RT = R * default_T
+import cvxpy
 
 class DeltaGNormalization:
     TIMES_FLUX = 1 # motivation is having the most uniform entropy production
@@ -70,7 +69,8 @@ class Pathway(object):
             assert fluxes.shape[1] == self.Nr
             self.fluxes = fluxes
            
-        self.normalization = DeltaGNormalization.DEFAULT
+        self.bounds = None
+        self.c_range = self.DEFAULT_C_RANGE
 
     def CalculateReactionEnergies(self, dG_f):
         if np.isnan(dG_f).any():
@@ -92,31 +92,31 @@ class Pathway(object):
             dG_r_prime = self.dG0_r_prime.copy()
             for r in xrange(self.Nr):
                 reactants = list(self.S[:, r].nonzero()[0].flat)
-                dG_r_prime[0, r] += RT * log_conc[0, reactants] * self.S[reactants, r]
+                dG_r_prime[0, r] += R * self.T * log_conc[0, reactants] * self.S[reactants, r]
             return dG_r_prime
         else:
-            return self.dG0_r_prime + RT * log_conc * self.S
+            return self.dG0_r_prime + R * self.T * log_conc.T * self.S
 
     def GetPhysiologicalConcentrations(self, bounds=None):
-        conc = np.matrix(np.ones((1, self.Nc))) * self.DEFAULT_PHYSIOLOGICAL_CONC
+        conc = np.matrix(np.ones((self.Nc, 1))) * self.DEFAULT_PHYSIOLOGICAL_CONC
         if bounds:
             for i, bound in enumerate(bounds):
                 lb, ub = bound
                 if lb is not None and ub is not None:
-                    if not (lb < conc[0, i] < ub):
-                        conc[0, i] = np.sqrt(lb * ub)
+                    if not (lb < conc[i, 0] < ub):
+                        conc[i, 0] = np.sqrt(lb * ub)
        
         return conc
 
-    def _MakeLnConcentratonBounds(self, bounds=None, c_range=None):
+    def _MakeLnConcentratonBounds(self):
         """Make bounds on logarithmic concentrations."""
-        _c_range = c_range or self.DEFAULT_C_RANGE
-        c_lower, c_upper = c_range
+        _c_range = self.c_range or self.DEFAULT_C_RANGE
+        c_lower, c_upper = self.c_range
         ln_conc_lb = np.matrix(np.ones((self.Nc, 1)) * np.log(c_lower))
         ln_conc_ub = np.matrix(np.ones((self.Nc, 1)) * np.log(c_upper))
        
-        if bounds:
-            for i, bound in enumerate(bounds):
+        if self.bounds:
+            for i, bound in enumerate(self.bounds):
                 lb, ub = bound
                 log_lb = np.log(lb or c_lower)
                 log_ub = np.log(ub or c_upper)
@@ -130,20 +130,6 @@ class Pathway(object):
                 ln_conc_ub[i, 0] = log_ub
 
         return ln_conc_lb, ln_conc_ub
-           
-    def _MakeDgMids(self, c_mid):
-        """Transform all the dGf values to the given concentration.
-       
-        Args:
-            c_mid: the concentration to transform to.
-       
-        Returns:
-            A list of transformed dG values.
-        """
-        assert self.dG0_f_prime is not None
-
-        to_mid = lambda x: x + RT * np.log(c_mid)
-        return map(to_mid, list(self.dG0_f_prime.flat))
 
     def _MakeDrivingForceConstraints(self, ln_conc_lb, ln_conc_ub):
         """
@@ -154,31 +140,43 @@ class Pathway(object):
        
         A = np.matrix(np.vstack([np.hstack([I_dir * self.S.T, np.ones((self.Nr, 1))]),
                                  np.hstack([np.eye(self.Nc), np.zeros((self.Nc, 1))])]))
-        b = np.matrix(np.vstack([-I_dir*(self.dG0_r_prime.T/RT + self.S.T * ln_conc_lb),
+        b = np.matrix(np.vstack([-I_dir*(self.dG0_r_prime.T/ (R * self.T) +
+                                         self.S.T * ln_conc_lb),
                                  ln_conc_ub - ln_conc_lb]))
         c = np.matrix(np.vstack([np.zeros((self.Nc, 1)),
                                  np.ones((1, 1))]))
        
         return A, b, c
    
-    def _GetTotalReactionEnergy(self, c_range=(1e-6, 1e-2), bounds=None, min_driving_force=0):
-        constraints = []
-       
+    def _GetTotalEnergyProblem(self, min_driving_force=0, objective=pulp.LpMinimize):
+        
         # Define and apply the constraints on the concentrations
-        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds, c_range=c_range)
-       
-        # find the row vector describing the overall stoichiometry
-        S = cvxpy.matrix(self.S)
-        f = cvxpy.matrix(self.fluxes)
-        g0 = cvxpy.matrix(self.dG0_r_prime)
-        g = g0 + RT * ln_conc * S
-        total_g = f * g.T
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds()
 
-        constraints += self._MakeDrivingForceConstraints(ln_conc, min_driving_force)
+        # Create the driving force variable and add the relevant constraints
+        A, b, _c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
        
-        return ln_conc, constraints, total_g
+        lp = pulp.LpProblem("OBE", objective)
+        
+        x = pulp.LpVariable.dicts("x", ["c_%d" % i for i in xrange(self.Nc)],
+                                  lowBound=0)
+        total_g = pulp.LpVariable("g_tot")
+        
+        for j in xrange(A.shape[0]):
+            row = [A[j, i] * x["c_%d" % i] for i in xrange(self.Nc)] + \
+                  [A[j, self.Nc] * min_driving_force]
+            lp += (pulp.lpSum(row) <= b[j, 0]), "energy_%02d" % j
+        
+        total_g0 = float(self.dG0_r_prime * self.fluxes.T)
+        total_reaction = self.S * self.fluxes.T
+        row = [total_reaction[i, 0] * x["c_%d" % i] for i in xrange(self.Nc)]
+        lp += (total_g == total_g0 + pulp.lpSum(row)), "Total G"
+
+        lp.setObjective(total_g)
+        lp.writeLP("../res/total_g.lp")
+        return lp, total_g
            
-    def _MakeOBEProblem(self, c_range=(1e-6, 1e-2), bounds=None):
+    def _MakeOBEProblem(self):
         """Create a CVXOPT problem for finding the Maximal Thermodynamic
         Driving Force (OBE).
        
@@ -193,29 +191,29 @@ class Pathway(object):
             A tuple (dgf_var, motive_force_var, problem_object).
         """
         # Define and apply the constraints on the concentrations
-        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds, c_range=c_range)
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds()
 
         # Create the driving force variable and add the relevant constraints
-        A, b, c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
+        A, b, _c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
        
         lp = pulp.LpProblem("OBE", pulp.LpMaximize)
         
-        x = pulp.LpVariable.dicts("x", ["c_%d" % i for i in xrange(self.Nc)] + ["B"],
+        x = pulp.LpVariable.dicts("x", ["c_%d" % i for i in xrange(self.Nc)],
                                   lowBound=0)
+        B = pulp.LpVariable("B")
         
         for j in xrange(A.shape[0]):
-            row =  [A[j, i] * x["c_%d" % i] for i in xrange(self.Nc)] 
-            row += [A[j, self.Nc] * x["B"]]
-            constraint = (pulp.lpSum(row) <= b[j, 0])
-            lp += constraint, "energy_%d" % j
+            row = [A[j, i] * x["c_%d" % i] for i in xrange(self.Nc)] + \
+                  [A[j, self.Nc] * B]
+            lp += (pulp.lpSum(row) <= b[j, 0]), "energy_%02d" % j
         
-        lp.setObjective(x["B"])
+        lp.setObjective(B)
         
         lp.writeLP("../res/obe_primal.lp")
         
         return lp, ln_conc_lb, ln_conc_ub
 
-    def _MakeOBEProblemDual(self, c_range=(1e-6, 1e-2), bounds=None):
+    def _MakeOBEProblemDual(self):
         """Create a CVXOPT problem for finding the Maximal Thermodynamic
         Driving Force (OBE).
        
@@ -230,7 +228,7 @@ class Pathway(object):
             A tuple (dgf_var, motive_force_var, problem_object).
         """
         # Define and apply the constraints on the concentrations
-        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds, c_range=c_range)
+        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds()
 
         # Create the driving force variable and add the relevant constraints
         A, b, c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
@@ -242,11 +240,12 @@ class Pathway(object):
                                   ["z_%d" % i for i in xrange(self.Nc)],
                                   lowBound=0)
         
-        for j in xrange(A.shape[1]):
+        for j in xrange(self.Nc):
             row =  [A[i, j]         * y["w_%d" % i] for i in xrange(self.Nr)] 
             row += [A[self.Nr+i, j] * y["z_%d" % i] for i in xrange(self.Nc)]
             constraint = (pulp.lpSum(row) >= c[j, 0])
             lp += constraint, "dual_%d" % j
+        lp += (pulp.lpSum([y["w_%d" % i] for i in xrange(self.Nr)]) == 1), "weights"
         
         obj =  [b[i, 0]         * y["w_%d" % i] for i in xrange(self.Nr)]
         obj += [b[self.Nr+i, 0] * y["z_%d" % i] for i in xrange(self.Nc)]
@@ -256,8 +255,7 @@ class Pathway(object):
         
         return lp, ln_conc_lb, ln_conc_ub
     
-    def _FindOBE(self, c_range=(1e-6, 1e-2), bounds=None,
-                  normalization=DeltaGNormalization.DEFAULT):
+    def FindOBE(self):
         """Find the OBE (Optimized Bottleneck Energetics).
        
         Args:
@@ -268,212 +266,55 @@ class Pathway(object):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal obe).
         """
-        lp, ln_conc_lb, ln_conc_ub = self._MakeOBEProblem(c_range, bounds)
-        lp.solve(pulp.GLPK())
-        print "Status:", pulp.LpStatus[lp.status]
-        for variable in lp.variables():
-            print variable.name, "=", variable.varValue
+        lp_primal, ln_conc_lb, _ = self._MakeOBEProblem()
+        lp_primal.solve(pulp.CPLEX(msg=0))
+        if lp_primal.status != pulp.LpStatusOptimal:
+            raise pulp.solvers.PulpSolverError("cannot solve OBE primal")
             
-        c_sol = np.matrix([lp.variablesDict()["x_c_%i" % i].varValue for i in xrange(self.Nc)]).T
+        obe = pulp.value(lp_primal.variablesDict()["B"].varValue)
+        c_sol = np.matrix([lp_primal.variablesDict()["x_c_%i" % i].varValue 
+                           for i in xrange(self.Nc)]).T
         conc = np.exp(c_sol + ln_conc_lb)
 
-        lp, ln_conc_lb, ln_conc_ub = self._MakeOBEProblemDual(c_range, bounds)
-        lp.solve(pulp.GLPK())
-        print "Status:", pulp.LpStatus[lp.status]
-        for variable in lp.variables():
-            print variable.name, "=", variable.varValue
-            
-        return pulp.value(lp.objective) * RT, conc
-
-    def FindOBE_Regularized(self, c_range=(1e-6, 1e-2), bounds=None,
-                             c_mid=1e-3,
-                             min_obe=None,
-                             max_obe=None):
-        """Find the OBE (Optimized Bottleneck Energetics).
-       
-        Uses l2 regularization to minimize the log difference of
-        concentrations from c_mid.
-       
-        Args:
-            c_range: a tuple (min, max) for concentrations (in M).
-            bounds: a list of (lower bound, upper bound) tuples for compound
-                concentrations.
-            c_mid: the defined midpoint concentration.
-            max_obe: the maximum value for the motive force.
-       
-        Returns:
-            A 3 tuple (optimal dGfs, optimal concentrations, optimal obe).
-        """
-        ln_conc, motive_force_lb, constraints = self._MakeOBEProblem(c_range, bounds)
-       
-        # Set the objective and solve.
-        norm2_resid = cvxpy.norm2(ln_conc - np.log(c_mid))
-        if max_obe is not None and min_obe is not None:
-            constraints.append(cvxpy.leq(motive_force_lb, max_obe))
-            constraints.append(cvxpy.geq(motive_force_lb, min_obe))
-            objective = cvxpy.minimize(norm2_resid)
-        elif max_obe is not None:
-            constraints.append(cvxpy.leq(motive_force_lb, max_obe))
-            objective = cvxpy.minimize(norm2_resid)
-        elif min_obe is not None:
-            constraints.append(cvxpy.geq(motive_force_lb, min_obe))
-            objective = cvxpy.minimize(norm2_resid)
-        else:
-            objective = cvxpy.minimize(motive_force_lb + norm2_resid)
-
-        program = cvxpy.program(objective, constraints)
-        program.solve(quiet=True)
-        return ln_conc.value, program.objective.value
-
-    def FindOBE_OptimizeConcentrations(self, c_range=1e-3,
-                                        bounds=None, c_mid=1e-3):
-        """Optimize concentrations at optimal pCr.
-       
-        Runs two rounds of optimization to find "optimal" concentrations
-        at the optimal OBE. First finds the globally optimal OBE.
-        Then minimizes the l2 norm of deviations of log concentrations
-        from c_mid given the optimal OBE.
-
-        Args:
-            c_range: a tuple (min, max) for concentrations (in M).
-            bounds: a list of (lower bound, upper bound) tuples for compound
-                concentrations.
-            c_mid: the median concentration.
- 
-        Returns:
-            A 3 tuple (dGfs, concentrations, OBE value).
-        """
-        _, opt_obe = self._FindOBE(c_range, bounds)
-        return self.FindOBE_Regularized(c_range, bounds, c_mid,
-                                         max_obe=opt_obe)
-
-    def _MakeMinimalFeasbileConcentrationProblem(self, bounds=None, c_range=(1e-6, 1e-2)):
-        # Define and apply the constraints on the concentrations
-        constraints = []
-       
-        # Define and apply the constraints on the concentrations
-        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds, c_range=c_range)
-
-        # find the row vector describing the overall stoichiometry
-        S = cvxpy.matrix(self.S)
-        dg0r_primes = cvxpy.matrix(self.dG0_r_prime)
-       
-        # Make flux-based constraints on reaction free energies.
-        # All reactions must have negative dGr in the direction of the flux.
-        # Reactions with a flux of 0 must be in equilibrium.
-        for i in xrange(self.Nr):
-            # if the dG0 is unknown, this reaction imposes no new constraints
-            if np.isnan(self.dG0_r_prime[0, i]):
-                continue
-           
-            curr_dgr = dg0r_primes[0, i] + RT * ln_conc * S[:, i]
-
-            if self.fluxes[0, i] != 0:
-                constraints.append(cvxpy.leq(curr_dgr * np.sign(self.fluxes[0, i]),
-                                             self.DEFAULT_REACTION_UB))
-                constraints.append(cvxpy.geq(curr_dgr * np.sign(self.fluxes[0, i]),
-                                             self.DEFAULT_REACTION_LB))
+        lp_dual, _, _ = self._MakeOBEProblemDual()
+        w = np.zeros((self.Nr, 1))
+        z = np.zeros((self.Nc, 1))
+        lp_dual.solve(pulp.CPLEX(msg=0))
+        if lp_dual.status != pulp.LpStatusOptimal:
+            raise pulp.solvers.PulpSolverError("cannot solve OBE dual")
+        for i, variable in enumerate(lp_dual.variables()):
+            if i < self.Nr:
+                w[i, 0] = variable.varValue
             else:
-                constraints.append(cvxpy.eq(curr_dgr, 0))
-       
-        # Set the constraints
-        return ln_conc, constraints
+                z[i-self.Nr, 0] = variable.varValue
+        
+        # find the maximum and minimum total Gibbs energy of the pathway,
+        # under the constraint that the driving force of each reaction is >= OBE
+        lp_total, total_dg = self._GetTotalEnergyProblem(obe - 1e-6, pulp.LpMinimize)
+        lp_total.solve(pulp.CPLEX(msg=0))
+        if lp_total.status != pulp.LpStatusOptimal:
+            raise pulp.solvers.PulpSolverError("cannot solve total delta-G problem")
+        min_tot_dg = total_dg.varValue
 
-    def FindMinimalFeasibleConcentration(self, index_to_minimize,
-                                         bounds=None, c_range=(1e-6, 1e-2)):
-        """
-            Compute the smallest ratio between two concentrations which makes the pathway feasible.
-            All other compounds except these two are constrained by 'bounds' or unconstrained at all.
-       
-            Arguments:
-                index_to_minimize - the column index of the compound whose concentration
-                                    is to be minimized
-       
-            Returns:
-                dGs, concentrations, target-concentration
-        """
-        ln_conc, constraints = self._MakeMinimalFeasbileConcentrationProblem(bounds, c_range)
-        objective = cvxpy.minimize(ln_conc[index_to_minimize])
-        program = cvxpy.program(objective, constraints)
-        program.solve(quiet=True)
-        return ln_conc.value, program.objective.value
-
-    def _MakeMinimumFeasbileConcentrationsProblem(self, bounds=None,
-                                                  c_range=(1e-6, 1e-2)):
-        """Creates the CVXOPT problem for finding minimum total concentrations.
-       
-        Returns:
-            Two tuple (ln_concentrations var, problem).
-        """
-        assert self.dG0_f_prime is not None
-       
-        constraints = []
-       
-        # Define and apply the constraints on the concentrations
-        ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds(bounds=bounds, c_range=c_range)
-       
-        # Make the objective and problem.
-        S = cvxpy.matrix(self.S)
-       
-        # Make flux-based constraints on reaction free energies.
-        # All reactions must have negative dGr in the direction of the flux.
-        # Reactions with a flux of 0 must be in equilibrium.
-        dgf_primes = RT * ln_conc + cvxpy.matrix(self.dG0_f_prime)
-        for i in xrange(self.Nr):
-            if self.fluxes[0, i] > 0:
-                constraints.append(cvxpy.leq(S[i, :] * dgf_primes,
-                                             self.DEFAULT_REACTION_UB))
-                constraints.append(cvxpy.geq(S[i, :] * dgf_primes,
-                                             self.DEFAULT_REACTION_LB))
-            elif self.fluxes[0, i] == 0:
-                constraints.append(cvxpy.eq(S[i, :] * dgf_primes,
-                                            0))
-            else:
-                constraints.append(cvxpy.geq(S[i, :] * dgf_primes,
-                                             -self.DEFAULT_REACTION_UB))
-                constraints.append(cvxpy.leq(S[i, :] * dgf_primes,
-                                             -self.DEFAULT_REACTION_LB))
-       
-        return ln_conc, constraints
-
-    def FindMinimumFeasibleConcentrations(self, bounds=None):
-        """Use the power of convex optimization!
-       
-        minimize sum (concentrations)
-       
-        we can do this by using ln(concentration) as variables and leveraging
-        the convexity of exponentials.
-       
-        min sum (exp(ln(concentrations)))
-        """
-        assert self.dG0_f_prime is not None
-       
-        ln_conc, constraints = self._MakeMinimumFeasbileConcentrationsProblem(bounds=bounds)
-        total_conc = cvxpy.sum(cvxpy.exp(ln_conc))
-        program = cvxpy.program(cvxpy.minimize(total_conc), constraints)
-        program.solve(quiet=True)
-        return ln_conc.value, total_conc.value
-
-    def FindKineticOptimum(self, bounds=None):
-        """Use the power of convex optimization!
-       
-        minimize sum (protein cost)
-       
-        we can do this by using ln(concentration) as variables and leveraging
-        the convexity of exponentials.        
-        """
-        assert self.dG0_f_prime is not None
-       
-        ln_conc, constraints = self._MakeMinimumFeasbileConcentrationsProblem()
-        total_inv_conc = cvxpy.sum(cvxpy.exp(-ln_conc))
-        program = cvxpy.program(cvxpy.minimize(total_inv_conc), constraints)
-        program.solve(quiet=True)
-        return ln_conc.value, total_inv_conc.value
+        lp_total, total_dg = self._GetTotalEnergyProblem(obe - 1e-6, pulp.LpMaximize)
+        lp_total.solve(pulp.CPLEX(msg=0))
+        if lp_total.status != pulp.LpStatusOptimal:
+            raise pulp.solvers.PulpSolverError("cannot solve total delta-G problem")
+        max_tot_dg = total_dg.varValue
+        
+        params = {'OBE': obe * R * self.T,
+                  'concentrations' : conc,
+                  'reaction prices' : w,
+                  'compound prices' : z,
+                  'maximum total dG' : max_tot_dg * R * self.T,
+                  'minimum total dG' : min_tot_dg * R * self.T}
+        return obe * R * self.T, params
 
 class KeggPathway(Pathway):
    
     def __init__(self, S, rids, fluxes, cids, formation_energies=None,
-                 reaction_energies=None, cid2bounds=None, c_range=None):
+                 reaction_energies=None, cid2bounds=None, c_range=None,
+                 T=default_T):
         Pathway.__init__(self, S, formation_energies=formation_energies,
                          reaction_energies=reaction_energies, fluxes=fluxes)
         assert len(cids) == self.Nc
@@ -487,6 +328,7 @@ class KeggPathway(Pathway):
             self.bounds = None
         self.cid2bounds = cid2bounds
         self.c_range = c_range
+        self.T = T
         self.kegg = Kegg.getInstance()
 
     def GetConcentrationBounds(self, cid):
@@ -516,19 +358,6 @@ class KeggPathway(Pathway):
         reaction = Reaction("Total", sparse, direction="=>")
         return reaction.to_hypertext(show_cids=show_cids)
 
-    def FindOBE(self, normalization=DeltaGNormalization.DEFAULT):
-        """Find the OBE (Maximal Thermodynamic Driving Force).
-       
-        Args:
-            c_range: a tuple (min, max) for concentrations (in M).
-            bounds: a list of (lower bound, upper bound) tuples for compound
-                concentrations.
-       
-        Returns:
-            A 3 tuple (optimal dGfs, optimal concentrations, optimal obe).
-        """
-        return self._FindOBE(self.c_range, self.bounds, normalization)
-
     def GetTotalReactionEnergy(self, min_driving_force=0, maximize=True):
         """
             Maximizes the total pathway dG' (i.e. minimize energetic cost).
@@ -552,21 +381,6 @@ class KeggPathway(Pathway):
         program.solve(quiet=True)
         return ln_conc.value, program.objective.value
       
-    def FindMinimalFeasibleConcentration(self, cid_to_minimize):
-        """
-            Compute the smallest ratio between two concentrations which makes the pathway feasible.
-            All other compounds except these two are constrained by 'bounds' or unconstrained at all.
-        min_conc
-            Arguments:
-                cid - the CID of the compound whose concentration should be minimized
-       
-            Returns:
-                dGs, concentrations, target-concentration
-        """
-        index = self.cids.index(cid_to_minimize)
-        return Pathway.FindMinimalFeasibleConcentration(self, index,
-                                                    self.bounds, self.c_range)
-
     @staticmethod
     def _EnergyToString(dG):
         if np.isnan(dG):
@@ -642,12 +456,14 @@ class KeggPathway(Pathway):
         plt.axis([x_min, x_max, y_min, y_max], figure=figure)
         return figure
 
-    def WriteResultsToHtmlTables(self, html_writer, concentrations):
-        self.WriteConcentrationsToHtmlTable(html_writer, concentrations)
-        self.WriteProfileToHtmlTables(html_writer, concentrations)
+    def WriteResultsToHtmlTables(self, html_writer, concentrations,
+                                 reaction_shadow_prices, compound_shadow_prices):
+        
+        self.WriteProfileToHtmlTable(html_writer, concentrations, reaction_shadow_prices)
+        self.WriteConcentrationsToHtmlTable(html_writer, concentrations, compound_shadow_prices)
 
-    def WriteConcentrationsToHtmlTable(self, html_writer, concentrations=None):
-        #html_writer.write('<b>Compound Concentrations</b></br>\n')
+    def WriteConcentrationsToHtmlTable(self, html_writer, concentrations,
+                                       compound_shadow_prices):
         dict_list = []
         for c, cid in enumerate(self.cids):
             d = {}
@@ -655,35 +471,27 @@ class KeggPathway(Pathway):
             d['Compound Name'] = self.kegg.cid2name(cid)
             lb, ub = self.GetConcentrationBounds(cid)
             d['Concentration LB [M]'] = '%.2e' % lb
-            if concentrations is not None:
-                d['Concentration [M]'] = '%.2e' % concentrations[0, c]
+            d['Concentration [M]'] = '%.2e' % concentrations[c, 0]
             d['Concentration UB [M]'] = '%.2e' % ub
+            d['shadow price'] = '%.3g' % compound_shadow_prices[c, 0]
             dict_list.append(d)
-        if concentrations is not None:
-            headers = ['KEGG CID', 'Compound Name', 'Concentration LB [M]',
-                         'Concentration [M]', 'Concentration UB [M]']
-        else:
-            headers = ['KEGG CID', 'Compound Name', 'Concentration LB [M]',
-                       'Concentration UB [M]']
+        headers = ['KEGG CID', 'Compound Name', 'Concentration LB [M]',
+                   'Concentration [M]', 'Concentration UB [M]', 'shadow price']
        
         html_writer.write_table(dict_list, headers=headers)
    
-    def WriteProfileToHtmlTable(self, html_writer, concentrations=None):
-        #html_writer.write('<b>Biochemical Reaction Energies</b></br>\n')
-        phys_concentrations = np.ones((1, len(self.cids))) * self.DEFAULT_PHYSIOLOGICAL_CONC
-        if 1 in self.cids:
-            # C00001 (water) is an exception, its concentration is always set to 1
-            phys_concentrations[0, self.cids.index(1)] = 1
-       
+    def WriteProfileToHtmlTable(self, html_writer, concentrations,
+                                reaction_shadow_prices):
+
+        phys_concentrations = self.GetPhysiologicalConcentrations(self.bounds)
         dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
         dG_r_prime_c_adj = np.multiply(dG_r_prime_c, np.sign(self.fluxes)) # adjust dG to flux directions
+        dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
+        dG_r_prime_adj = np.multiply(dG_r_prime, np.sign(self.fluxes)) # adjust dG to flux directions
         headers=["reaction", 'formula', 'flux',
-                 "&Delta;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC]
-        if concentrations is not None:
-            dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
-            dG_r_prime_adj = np.multiply(dG_r_prime, np.sign(self.fluxes)) # adjust dG to flux directions
-            headers.append("&Delta;<sub>r</sub>G' [kJ/mol]")
-       
+                 "&Delta;<sub>r</sub>G'<sup>c</sup> [kJ/mol] (%g M)" % self.DEFAULT_PHYSIOLOGICAL_CONC,
+                 "&Delta;<sub>r</sub>G' [kJ/mol]", "shadow price"]
+
         dict_list = []
         for r, rid in enumerate(self.rids):
             d = {}
@@ -697,25 +505,32 @@ class KeggPathway(Pathway):
             d['flux'] = "%g" % abs(self.fluxes[0, r])
             d['formula'] = self.GetReactionString(r, show_cids=False)
             d[headers[3]] = dG_r_prime_c_adj[0, r]
-            if concentrations is not None:
-                d[headers[4]] = dG_r_prime_adj[0, r]
+            d[headers[4]] = dG_r_prime_adj[0, r]
+            d[headers[5]] = '%.3g' % reaction_shadow_prices[r, 0]
+                
             dict_list.append(d)
 
         d = {'reaction':'Total',
              'flux':'1',
-             'formula':self.GetTotalReactionString(show_cids=False)}
-        d[headers[3]] = float(self.dG0_r_prime * self.fluxes.T)
-        if concentrations is not None:
-            d[headers[4]] = float(dG_r_prime * self.fluxes.T)
+             'formula':self.GetTotalReactionString(show_cids=False),
+             headers[3]: float(self.dG0_r_prime * self.fluxes.T),
+             headers[4]: float(dG_r_prime * self.fluxes.T),
+             headers[5]: '%.3g' % np.sum(reaction_shadow_prices[:, 0])}
         dict_list.append(d)
+        
         html_writer.write_table(dict_list, headers=headers, decimal=1)
        
 if __name__ == '__main__':
-    S = np.matrix("-1, 0, 0; 1, -1, 0; 0, 1, 1; 0, 0, -1")
-    dGs = np.matrix([[0, 15, -30, -14]])
-    fluxes = np.matrix([[1, 1, -1]])
-    rids = [1, 2, 3]
-    cids = [1, 2, 3, 4]
+    dGs = np.matrix([[0, -50, -30, -100]])
+    n = dGs.shape[1]
+    S = np.matrix(np.vstack([-np.eye(n-1), np.zeros((1, n-1))]) + np.vstack([np.zeros((1, n-1)), np.eye(n-1)]))
+    print 'S = %s' % str(S)
+    fluxes = np.matrix(np.ones((1, n-1)))
+    rids = range(n-1)
+    cids = range(n)
+    
+    G_min = (dGs + 2.5*np.log(1e-6))*S
+    print 'G_min = %s' % str(G_min)
     #keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
     #dGf, concentrations, protein_cost = keggpath.FindKineticOptimum()
     #print 'protein cost: %g protein units' % protein_cost
@@ -723,7 +538,13 @@ if __name__ == '__main__':
     #print 'sum(concs): ', sum(concentrations), 'M'
    
     keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
-    obe, conc = keggpath.FindOBE()
+    obe, params = keggpath.FindOBE()
     print 'OBE: %g' % obe
-    print conc
-    #print 'concentrations:', concentrations
+    print 'reaction shadow prices: ' + ', '.join(['%g' % i for i in params['reaction prices'].flat])
+    print 'compound shadow prices: ' + ', '.join(['%g' % i for i in params['compound prices'].flat])
+    print 'concentrations: ' + ', '.join(['%.2e' % i for i in params['concentrations'].flat])
+    print 'minimal total dG: %.1f' % params['minimum total dG']
+    print 'maximal total dG: %.1f' % params['maximum total dG']
+    
+    G_opt = (dGs + R * keggpath.T * np.log(params['concentrations'].T))*S
+    print 'G_opt = %s' % str(G_opt)

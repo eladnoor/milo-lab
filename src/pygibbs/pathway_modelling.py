@@ -132,20 +132,6 @@ class Pathway(object):
         
         return [cvxpy.geq(ln_conc, cvxpy.matrix(ln_conc_lb)) + \
                 cvxpy.leq(ln_conc, cvxpy.matrix(ln_conc_ub))]
-            
-    def _MakeDgMids(self, c_mid):
-        """Transform all the dGf values to the given concentration.
-        
-        Args:
-            c_mid: the concentration to transform to.
-        
-        Returns:
-            A list of transformed dG values.
-        """
-        assert self.dG0_f_prime is not None
-
-        to_mid = lambda x: x + RT * np.log(c_mid)
-        return map(to_mid, list(self.dG0_f_prime.flat))
 
     def _MakeDrivingForceConstraints(self, ln_conc, driving_force_lb=0):
         """

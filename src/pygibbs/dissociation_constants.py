@@ -267,8 +267,7 @@ class DissociationConstants(object):
         data['pMg'] = []
         data['T'] = []
         data['S'] = np.zeros((len(all_cids), 0)) # stoichiometric matrix
-        data['nist_rows'] = [] # The NIST rows that were used in S (since some might
-                               # be dropped in the process, e.g. missing pKa)
+        data['nist_rows'] = [] # The NIST rows that were used in S (since some might be dropped in the process, e.g. missing pKa)
         
         for nist_row_data in nist_rows:
             # check that all participating compounds have a known pKa

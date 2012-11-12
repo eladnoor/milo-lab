@@ -1,4 +1,28 @@
 cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
+23,Fe,0,0,0,0,0,testing,"Element",
+34,Mn,0,0,0,0,0,testing,"Element",
+80,H+,0,0,1,1,0,testing,"Element",
+87,S,0,0,0,0,0,testing,"Element",
+6265,C,0,0,0,0,0,testing,"Element",
+90000,H2(g),0,0,0,2,0,testing,"Element",
+90001,N2(g),0,0,0,0,0,testing,"Element",
+90002,O2(g),0,0,0,0,0,testing,"Element",
+90003,F2(g),0,0,0,0,0,testing,"Element",
+90004,Cl2(g),0,0,0,0,0,testing,"Element",
+90005,P,0,0,0,0,0,testing,"Element",
+90006,Mg,0,0,0,0,0,testing,"Element",
+1,H2O,-237.19,-285.83,0,2,0,testing,"Alberty (2006)","too small"
+7,O2(aq),16.4,-11.7,0,0,0,testing,"Alberty (2006)","too small"
+11,CO2(aq),-386.02,,0,0,0,testing,"Alberty (2006)","too small"
+80070,CO2(g),-394.36,-393.50,0,0,0,testing,"Alberty (2006)","gas"
+288,CO2(tot),-586.77,-691.99,-1,1,0,testing,"Alberty (2006)","too small"
+27,H2O2(aq),-134.03,-191.17,0,2,0,testing,"Alberty (2006)","too small"
+282,H2(aq),17.6,-4.2,0,2,0,testing,"Alberty (2006)","too small"
+237,CO(aq),-119.9,-120.96,0,0,0,testing,"Alberty (2006)","too small"
+80071,CO(g),-137.17,-110.53,0,0,0,testing,"Alberty (2006)","gas"
+697,N2(aq),18.7,-10.54,0,0,0,testing,"Alberty (2006)","too small"
+887,N2O(aq),104.2,82.05,0,0,0,testing,"Alberty (2006)","too small"
+1438,Methane(aq),-34.33,-89.04,0,4,0,testing,"Alberty (2006)","too small"
 2,ATP,-2811.48,-3612.91,-3,13,0,training,"Alberty (2006)",
 8,ADP,-1947.1,-2620.94,-2,13,0,training,"Alberty (2006)",
 20,AMP,-1040.45,-1635.37,-2,12,0,training,"Alberty (2006)",
@@ -22,7 +46,6 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 82,L-Tyrosine,-370.7,,0,11,0,training,"Alberty (2006)",
 84,Acetaldehyde,-139,-212.23,0,4,0,training,"Alberty (2006)",
 85,D-Fructose-6-phosphate,-1760.8,-2265.17,-2,11,0,training,"Alberty (2006)",
-87,sulfur,0,0,0,0,0,skip,"Element","not clear which compound this is (containing only one atom of sulfur)"
 89,Sucrose,-1564.7,-2199.87,0,22,0,training,"Alberty (2006)",
 92,Glucose-6-phosphate,-1763.94,-2276.44,-2,11,0,training,"Alberty (2006)",
 93,sn-Glycerol-3-phosphate,-1358.96,-1724.59,-2,7,0,skip,"Alberty (2006)","we believe this value is wrong (see 'Why Alberty is wrong')"
@@ -121,19 +144,12 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 6142,n-Butanol,-171.84,,0,10,0,training,"Alberty (2006)",
 14818,Fe+2,-78.87,,+2,0,0,testing,"Thauer (1977)","inorganic"
 14819,Fe+3,-4.6,,+3,0,0,testing,"Thauer (1977)","inorganic"
-1,H2O,-237.19,-285.83,0,2,0,testing,"Alberty (2006)","too small"
-7,O2(aq),16.4,-11.7,0,0,0,testing,"Alberty (2006)","too small"
 9,Orthophosphate,-1096.1,-1299,-2,1,0,testing,"Alberty (2006)","too small"
-11,CO2(aq),-386.02,,0,0,0,testing,"Alberty (2006)","too small"
 13,pyrophosphate,-1973.86,-2294.87,-3,1,0,testing,"Alberty (2006)","too small"
 14,ammonia,-79.31,-132.51,1,4,0,testing,"Alberty (2006)","too small"
-23,iron,0,0,0,0,0,testing,"Element",
-27,H2O2(aq),-134.03,-191.17,0,2,0,testing,"Alberty (2006)","too small"
-34,Manganese,0,0,0,0,0,testing,"Element",
 58,Formate,-351,-425.55,-1,1,0,testing,"Alberty (2006)","too small"
 59,Sulfate,-744.53,-909.27,-2,0,0,testing,"Alberty (2006)","too small"
 67,Formaldehyde,-120.12,,0,2,0,testing,"Maden (2000)","too small"
-80,H+,0,0,1,1,0,testing,"Element",
 86,Urea,-202.8,-317.65,0,4,0,testing,"Alberty (2006)","too small"
 88,Nitrite,-32.2,-104.6,-1,0,0,testing,"Alberty (2006)","too small"
 94,Sulfite,-527.78,-626.22,-1,1,0,testing,"Alberty (2006)","too small"
@@ -142,21 +158,15 @@ cid,name,dG0,dH0,z,nH,nMg,"use for",compound_ref,remark
 132,Methanol,-175.31,-245.93,0,4,0,testing,"Alberty (2006)","too small"
 138,Ferredoxin(red),38.07,,0,0,0,skip,"Alberty (2006)",Ferredoxin(ox)=0
 139,Ferredoxin(ox),0,,1,0,0,skip,"Alberty (2006)",Ferredoxin(ox)=0
-237,CO(aq),-119.9,-120.96,0,0,0,testing,"Alberty (2006)","too small"
 244,nitrate,-108.74,-205,-1,0,0,testing,"Alberty (2006)","too small"
-282,H2(aq),17.6,-4.2,0,2,0,testing,"Alberty (2006)","too small"
 283,Sulfide,12.08,-17.6,-1,1,0,testing,"Alberty (2006)","too small"
-288,CO2(tot),-586.77,-691.99,-1,1,0,testing,"Alberty (2006)","too small"
 305,Mg,-455.3,-467,2,0,0,testing,"Alberty (2006)","too small"
 366,Urate,-356.9,,0,4,0,testing,"Alberty (2006)","too small"
 469,Ethanol,-181.64,-288.3,0,6,0,testing,"Alberty (2006)","too small"
 543,Dimethylamine,-3.3,,1,8,0,testing,"Thauer (1977)","too small"
 565,Trimethylamine,37.2,,1,10,0,testing,"Thauer (1977)","too small"
-697,N2(aq),18.7,-10.54,0,0,0,testing,"Alberty (2006)","too small"
-887,N2O(aq),104.2,82.05,0,0,0,testing,"Alberty (2006)","too small"
 1342,ammonium,-79.31,-132.51,1,4,0,testing,"Alberty (2006)","too small"
 1417,Cyanate,-97.4,,-1,0,0,testing,"Alberty (2006)","too weird (resonance between C=N and C#N)"
-1438,Methane(aq),-34.33,-89.04,0,4,0,testing,"Alberty (2006)","too small"
 5361,Hydrazine,128.03,,0,4,0,testing,"Thauer (1977)","too small"
 9306,"Sulfur dioxide",-300.708,,0,0,0,testing,"Thauer (1977)","too small"
 80002,"monochlorobenzene",102.3,,0,5,0,testing,"Dolfing (1992)","CAS 68411-45-0"
