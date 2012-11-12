@@ -4,7 +4,7 @@ import logging
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.pathway import PathwayData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
-from pygibbs.pathway_modelling import KeggPathway, DeltaGNormalization
+from pygibbs.obe_dual import KeggPathway
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime 
 from argparse import ArgumentParser
@@ -85,15 +85,17 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
             rowdict['remark'] = 'NaN reaction energy'
             continue
 
-        #keggpath.normalization = DeltaGNormalization.TIMES_FLUX
-        keggpath.normalization = DeltaGNormalization.SIGN_FLUX
-
-        _ln_conc, obe = keggpath.FindMtdf()
+        obe, params = keggpath.FindOBE()
         odfe = 100 * np.tanh(obe / (2*R*thermo.T))
 
-        _ln_conc, min_tg = keggpath.GetTotalReactionEnergy(obe, maximize=False) # min TG - minimal Total dG
-        ln_conc, max_tg = keggpath.GetTotalReactionEnergy(obe, maximize=True) # max TG - maximal Total dG
-        concentrations = np.exp(ln_conc)
+        #_ln_conc, min_tg = keggpath.GetTotalReactionEnergy(obe, maximize=False) # min TG - minimal Total dG
+        #ln_conc, max_tg = keggpath.GetTotalReactionEnergy(obe, maximize=True) # max TG - maximal Total dG
+        #concentrations = np.exp(ln_conc)
+        concentrations = params['concentrations']
+        min_tg = params['minimum total dG']
+        max_tg = params['maximum total dG']
+        reaction_shadow_prices = params['reaction prices']
+        compound_shadow_prices = params['compound prices']
         
         rowdict['OBE'] = obe
         rowdict['FFE'] = odfe
@@ -107,9 +109,9 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
                               "flux-force efficiency = %.1f%%" % odfe,
                               "Min Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, min_tg),
                               "Max Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, max_tg)])
-        keggpath.WriteProfileToHtmlTable(html_writer, concentrations)
-        keggpath.WriteConcentrationsToHtmlTable(html_writer, concentrations)
-
+        keggpath.WriteResultsToHtmlTables(html_writer, concentrations,
+                                         reaction_shadow_prices, compound_shadow_prices)
+        
     html_writer.write('<h2 id="%s_summary">Summary table</h1>\n' % section_prefix)
     dict_list = [{'Name':'<a href="#%s_%s">%s</a>' % (section_prefix, d['entry'], d['entry']),
                   'OBE [kJ/mol]':'%.1f' % d['OBE'],
