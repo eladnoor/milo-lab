@@ -4,7 +4,7 @@ import logging
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.pathway import PathwayData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
-from pygibbs.pathway_modelling import KeggPathway, DeltaGNormalization
+from pygibbs.pathway_modelling import KeggPathway
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime, default_T
 from pygibbs.kegg_reaction import Reaction
@@ -60,9 +60,6 @@ def pareto(kegg_file, html_writer, thermo, pH=None,
             keggpath.WriteProfileToHtmlTable(html_writer)
             keggpath.WriteConcentrationsToHtmlTable(html_writer)
             continue
-
-        #keggpath.normalization = DeltaGNormalization.TIMES_FLUX
-        keggpath.normalization = DeltaGNormalization.SIGN_FLUX
 
         _ln_conc, odb = keggpath.FindMtdf()
         odfe = 100 * np.tanh(odb / (2*R*thermo.T))
