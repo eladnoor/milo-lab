@@ -9,14 +9,6 @@ from pygibbs.kegg import Kegg
 from pygibbs.kegg_reaction import Reaction
 import types
 import pulp
-import cvxpy
-
-class DeltaGNormalization:
-    TIMES_FLUX = 1 # motivation is having the most uniform entropy production
-    DIVIDE_BY_FLUX = 2 # motivation is requiring more force in reaction that have more flux
-    SIGN_FLUX = 3 # motivation is putting limits on the allowed backward/forward fluxes
-   
-    DEFAULT = SIGN_FLUX
 
 class Pathway(object):
     """Container for doing pathway-level thermodynamic analysis."""
@@ -133,16 +125,20 @@ class Pathway(object):
 
     def _MakeDrivingForceConstraints(self, ln_conc_lb, ln_conc_ub):
         """
-            driving_force_lb can either be a cvxpy variable use later in the optimization
-            or a scalar, which sets it as a constraint. By default the lower bound is 0.
+            Generates the A matrix and b & c vectors that can be used in a 
+            standard form linear problem:
+                max          c'x
+                subject to   Ax >= b
+                             x >= 0
         """
         I_dir = np.matrix(np.diag([np.sign(x) for x in self.fluxes.flat]))
        
-        A = np.matrix(np.vstack([np.hstack([I_dir * self.S.T, np.ones((self.Nr, 1))]),
-                                 np.hstack([np.eye(self.Nc), np.zeros((self.Nc, 1))])]))
-        b = np.matrix(np.vstack([-I_dir*(self.dG0_r_prime.T/ (R * self.T) +
-                                         self.S.T * ln_conc_lb),
-                                 ln_conc_ub - ln_conc_lb]))
+        A = np.matrix(np.vstack([np.hstack([I_dir * self.S.T, np.ones((self.Nr, 1)) ]),
+                                 np.hstack([np.eye(self.Nc),  np.zeros((self.Nc, 1))]),
+                                 np.hstack([-np.eye(self.Nc), np.zeros((self.Nc, 1))])]))
+        b = np.matrix(np.vstack([-I_dir * self.dG0_r_prime.T / (R * self.T),
+                                 ln_conc_ub,
+                                 -ln_conc_lb]))
         c = np.matrix(np.vstack([np.zeros((self.Nc, 1)),
                                  np.ones((1, 1))]))
        
@@ -158,18 +154,19 @@ class Pathway(object):
        
         lp = pulp.LpProblem("OBE", objective)
         
-        x = pulp.LpVariable.dicts("x", ["c_%d" % i for i in xrange(self.Nc)],
-                                  lowBound=0)
+        # ln-concentration variables
+        l = pulp.LpVariable.dicts("l", ["%d" % i for i in xrange(self.Nc)])
+        x = [l["%d" % i] for i in xrange(self.Nc)] + [min_driving_force]
+        
         total_g = pulp.LpVariable("g_tot")
         
         for j in xrange(A.shape[0]):
-            row = [A[j, i] * x["c_%d" % i] for i in xrange(self.Nc)] + \
-                  [A[j, self.Nc] * min_driving_force]
+            row = [A[j, i] * x[i] for i in xrange(A.shape[1])]
             lp += (pulp.lpSum(row) <= b[j, 0]), "energy_%02d" % j
         
         total_g0 = float(self.dG0_r_prime * self.fluxes.T)
         total_reaction = self.S * self.fluxes.T
-        row = [total_reaction[i, 0] * x["c_%d" % i] for i in xrange(self.Nc)]
+        row = [total_reaction[i, 0] * x[i] for i in xrange(self.Nc)]
         lp += (total_g == total_g0 + pulp.lpSum(row)), "Total G"
 
         lp.setObjective(total_g)
@@ -196,24 +193,25 @@ class Pathway(object):
         ln_conc_lb, ln_conc_ub = self._MakeLnConcentratonBounds()
 
         # Create the driving force variable and add the relevant constraints
-        A, b, _c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
+        A, b, c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
        
         lp = pulp.LpProblem("OBE", pulp.LpMaximize)
         
-        x = pulp.LpVariable.dicts("c", ["%d" % i for i in xrange(self.Nc)],
-                                  lowBound=0)
+        # ln-concentration variables
+        l = pulp.LpVariable.dicts("l", ["%d" % i for i in xrange(self.Nc)])
         B = pulp.LpVariable("B")
+        x = [l["%d" % i] for i in xrange(self.Nc)] + [B]
         
         for j in xrange(A.shape[0]):
-            row = [A[j, i] * x["%d" % i] for i in xrange(self.Nc)] + \
-                  [A[j, self.Nc] * B]
+            row = [A[j, i] * x[i] for i in xrange(A.shape[1])]
             lp += (pulp.lpSum(row) <= b[j, 0]), "energy_%02d" % j
         
-        lp.setObjective(B)
+        objective = pulp.lpSum([c[i] * x[i] for i in xrange(A.shape[1])])
+        lp.setObjective(objective)
         
-        #lp.writeLP("../res/obe_primal.lp")
+        lp.writeLP("../res/obe_primal.lp")
         
-        return lp, x, B, ln_conc_lb
+        return lp, x, ln_conc_lb
 
     def _MakeOBEProblemDual(self):
         """Create a CVXOPT problem for finding the Maximal Thermodynamic
@@ -244,21 +242,25 @@ class Pathway(object):
         z = pulp.LpVariable.dicts("z", 
                                   ["%d" % i for i in xrange(self.Nc)],
                                   lowBound=0)
+
+        u = pulp.LpVariable.dicts("u", 
+                                  ["%d" % i for i in xrange(self.Nc)],
+                                  lowBound=0)
         
-        for k in xrange(self.Nc):
-            row = [A[i, k]         * w["%d" % i] for i in xrange(self.Nr)] + \
-                  [A[self.Nr+j, k] * z["%d" % j] for j in xrange(self.Nc)]
-            constraint = (pulp.lpSum(row) >= c[k, 0])
-            lp += constraint, "dual_%02d" % k
-        lp += (pulp.lpSum([w["%d" % i] for i in xrange(self.Nr)]) == 1), "weights"
+        y = [w["%d" % i] for i in xrange(self.Nr)] + \
+            [z["%d" % i] for i in xrange(self.Nc)] + \
+            [u["%d" % i] for i in xrange(self.Nc)]
         
-        obj =  [b[i, 0]         * w["%d" % i] for i in xrange(self.Nr)]
-        obj += [b[self.Nr+j, 0] * z["%d" % j] for j in xrange(self.Nc)]
-        lp.setObjective(pulp.lpSum(obj))
+        for i in xrange(A.shape[1]):
+            row = [A[j, i] * y[j] for j in xrange(A.shape[0])]
+            lp += (pulp.lpSum(row) == c[i, 0]), "dual_%02d" % i
+
+        objective = pulp.lpSum([b[i] * y[i] for i in xrange(A.shape[0])])
+        lp.setObjective(objective)
         
-        #lp.writeLP("../res/obe_dual.lp")
+        lp.writeLP("../res/obe_dual.lp")
         
-        return lp, w, z
+        return lp, w, z, u
     
     def FindOBE(self):
         """Find the OBE (Optimized Bottleneck Energetics).
@@ -271,21 +273,21 @@ class Pathway(object):
         Returns:
             A 3 tuple (optimal dGfs, optimal concentrations, optimal obe).
         """
-        lp_primal, x, B, ln_conc_lb = self._MakeOBEProblem()
+        lp_primal, x, ln_conc_lb = self._MakeOBEProblem()
         lp_primal.solve(pulp.CPLEX(msg=0))
         if lp_primal.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve OBE primal")
             
-        obe = pulp.value(B)
-        c_sol = np.matrix([pulp.value(x["%d" % j]) for j in xrange(self.Nc)]).T
-        conc = np.exp(c_sol + ln_conc_lb)
+        obe = pulp.value(x[-1])
+        conc = np.matrix([np.exp(pulp.value(x[j])) for j in xrange(self.Nc)]).T
 
-        lp_dual, w, z = self._MakeOBEProblemDual()
+        lp_dual, w, z, u = self._MakeOBEProblemDual()
         lp_dual.solve(pulp.CPLEX(msg=0))
         if lp_dual.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve OBE dual")
         reaction_prices = np.matrix([pulp.value(w["%d" % i]) for i in xrange(self.Nr)]).T
-        compound_prices = np.matrix([pulp.value(z["%d" % j]) for j in xrange(self.Nc)]).T
+        compound_prices = np.matrix([pulp.value(z["%d" % j]) for j in xrange(self.Nc)]).T - \
+                          np.matrix([pulp.value(u["%d" % j]) for j in xrange(self.Nc)]).T
         
         # find the maximum and minimum total Gibbs energy of the pathway,
         # under the constraint that the driving force of each reaction is >= OBE
@@ -357,29 +359,6 @@ class KeggPathway(Pathway):
         reaction = Reaction("Total", sparse, direction="=>")
         return reaction.to_hypertext(show_cids=show_cids)
 
-    def GetTotalReactionEnergy(self, min_driving_force=0, maximize=True):
-        """
-            Maximizes the total pathway dG' (i.e. minimize energetic cost).
-            Arguments:
-                min_driving_force - the lower limit on each reaction's driving force
-                                    (it is common to provide the optimize driving force
-                                    in order to find the concentrations that minimize the
-                                    cost, without affecting the OBE).
-                maximize          - if True then finds the maximal total dG.
-                                    if False then finds the minimal total dG.
-        """
-        ln_conc, constraints, total_g = self._GetTotalReactionEnergy(
-                                self.c_range, self.bounds, min_driving_force)
-       
-        if maximize:
-            objective = cvxpy.maximize(total_g)
-        else:
-            objective = cvxpy.minimize(total_g)
-       
-        program = cvxpy.program(objective, constraints)
-        program.solve(quiet=True)
-        return ln_conc.value, program.objective.value
-      
     @staticmethod
     def _EnergyToString(dG):
         if np.isnan(dG):
@@ -528,8 +507,7 @@ if __name__ == '__main__':
     rids = range(n-1)
     cids = range(n)
     
-    G_min = (dGs + 2.5*np.log(1e-6))*S
-    print 'G_min = %s' % str(G_min)
+    print 'G0 = %s' % str(dGs * S)
     #keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
     #dGf, concentrations, protein_cost = keggpath.FindKineticOptimum()
     #print 'protein cost: %g protein units' % protein_cost

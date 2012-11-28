@@ -45,23 +45,26 @@ def LoadAllEstimators():
         estimators['BGC'].init()
         estimators['BGC'].name = 'our method (BGC)'
 
-    estimators['PGC'] = GroupContribution(db=db_gibbs, transformed=False)
-    estimators['PGC'].init()
-    estimators['PGC'].name = 'our method (PGC)'
+    if db.DoesTableExist('pgc_pseudoisomers'):
+        estimators['PGC'] = GroupContribution(db=db_gibbs, transformed=False)
+        estimators['PGC'].init()
+        estimators['PGC'].name = 'our method (PGC)'
+
     
     estimators['UGC'] = UnifiedGroupContribution(db=db_gibbs)
     estimators['UGC'].init()
     estimators['UGC'].name = 'our method (UGC)'
 
-    estimators['merged'] = BinaryThermodynamics(estimators['alberty'],
-                                                estimators['PGC'])
     
     estimators['C1'] = ReactionThermodynamics.FromCsv(
         '../data/thermodynamics/c1_reaction_thermodynamics.csv',
         estimators['alberty'])
-    
-    estimators['merged_C1'] = BinaryThermodynamics(estimators['C1'],
-                                                   estimators['PGC'])
+
+    if 'PGC' in estimators:    
+        estimators['merged'] = BinaryThermodynamics(estimators['alberty'],
+                                                    estimators['PGC'])
+        estimators['merged_C1'] = BinaryThermodynamics(estimators['C1'],
+                                                       estimators['PGC'])
 
     for thermo in estimators.values():
         thermo.load_bounds('../data/thermodynamics/concentration_bounds.csv')
