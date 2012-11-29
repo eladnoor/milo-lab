@@ -124,14 +124,14 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
 
     return rowdicts
 
-def AnalyzePareto(pathway_file, output_prefix, thermo):
+def AnalyzePareto(pathway_file, output_prefix, thermo, pH=None):
     pathway_list = KeggFile2PathwayList(pathway_file)
     pathway_names = [entry for (entry, _) in pathway_list]
     html_writer = HtmlWriter('%s.html' % output_prefix)
 
     logging.info("running OBE analysis for all pathways")
     data = GetAllOBEs(pathway_list, html_writer, thermo,
-                  pH=None, section_prefix="pareto", balance_water=True,
+                  pH=pH, section_prefix="pareto", balance_water=True,
                   override_bounds={})
 
     obes = [d['OBE'] for d in data]
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     thermo = estimators[args.thermodynamics_source]
 
     if not args.cids:
-        AnalyzePareto(args.pathway_file, args.output_prefix, thermo)  
+        AnalyzePareto(args.pathway_file, args.output_prefix, thermo, pH=args.pH)  
     elif 80 in args.cids:
         if args.range is None:
             args.range = '4:0.5:10'

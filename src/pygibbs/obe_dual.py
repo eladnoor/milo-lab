@@ -209,7 +209,7 @@ class Pathway(object):
         objective = pulp.lpSum([c[i] * x[i] for i in xrange(A.shape[1])])
         lp.setObjective(objective)
         
-        lp.writeLP("../res/obe_primal.lp")
+        #lp.writeLP("../res/obe_primal.lp")
         
         return lp, x, ln_conc_lb
 
@@ -258,7 +258,7 @@ class Pathway(object):
         objective = pulp.lpSum([b[i] * y[i] for i in xrange(A.shape[0])])
         lp.setObjective(objective)
         
-        lp.writeLP("../res/obe_dual.lp")
+        #lp.writeLP("../res/obe_dual.lp")
         
         return lp, w, z, u
     
