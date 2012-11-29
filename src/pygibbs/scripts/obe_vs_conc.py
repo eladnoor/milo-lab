@@ -9,8 +9,10 @@ from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime 
 from argparse import ArgumentParser
 import csv
-from toolbox import color
+from toolbox import color, util
 from collections import defaultdict
+import tarfile
+import os
 
 def ParseConcentrationRange(conc_range):
     (start, step, end) = [float(x) for x in conc_range.split(':')]
@@ -68,6 +70,8 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
         html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, rowdict['entry'], rowdict['entry']))
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions(balance_water=balance_water)
+        rowdict['rids'] = rids
+        
         thermo.bounds = p_data.GetBounds().GetOldStyleBounds(cids)
         for cid, (lb, ub) in override_bounds.iteritems():
             thermo.bounds[cid] = (lb, ub)
@@ -88,29 +92,24 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
         obe, params = keggpath.FindOBE()
         odfe = 100 * np.tanh(obe / (2*R*thermo.T))
 
-        #_ln_conc, min_tg = keggpath.GetTotalReactionEnergy(obe, maximize=False) # min TG - minimal Total dG
-        #ln_conc, max_tg = keggpath.GetTotalReactionEnergy(obe, maximize=True) # max TG - maximal Total dG
-        #concentrations = np.exp(ln_conc)
-        concentrations = params['concentrations']
-        min_tg = params['minimum total dG']
-        max_tg = params['maximum total dG']
-        reaction_shadow_prices = params['reaction prices']
-        compound_shadow_prices = params['compound prices']
-        
         rowdict['OBE'] = obe
         rowdict['FFE'] = odfe
-        rowdict['min total dG'] = min_tg
-        rowdict['max total dG'] = max_tg
         rowdict['sum of fluxes'] = np.sum(fluxes)
+        rowdict['concentrations'] = params['concentrations']
+        rowdict['reaction prices'] = params['reaction prices']
+        rowdict['compound prices'] = params['compound prices']
+        rowdict['min total dG'] = params['minimum total dG']
+        rowdict['max total dG'] = params['maximum total dG']
 
-        logging.info('%20s: OBE = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' % (rowdict['entry'], obe, max_tg))
+        logging.info('%20s: OBE = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' %
+                     (rowdict['entry'], obe, rowdict['max total dG']))
         html_writer.write_ul(["pH = %.1f, I = %.2fM, T = %.2f K" % (thermo.pH, thermo.I, thermo.T),
                               "OBE = %.1f [kJ/mol]" % obe,
                               "flux-force efficiency = %.1f%%" % odfe,
-                              "Min Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, min_tg),
-                              "Max Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, max_tg)])
-        keggpath.WriteResultsToHtmlTables(html_writer, concentrations,
-                                         reaction_shadow_prices, compound_shadow_prices)
+                              "Min Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, rowdict['min total dG']),
+                              "Max Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, rowdict['max total dG'])])
+        keggpath.WriteResultsToHtmlTables(html_writer, rowdict['concentrations'],
+            rowdict['reaction prices'], rowdict['compound prices'])
         
     html_writer.write('<h2 id="%s_summary">Summary table</h1>\n' % section_prefix)
     dict_list = [{'Name':'<a href="#%s_%s">%s</a>' % (section_prefix, d['entry'], d['entry']),
@@ -210,6 +209,13 @@ def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
     
     csv_output = csv.writer(open('%s.csv' % output_prefix, 'w'))
     csv_output.writerow(['pH'] + pathway_names)
+    
+    util._mkdir(output_prefix)
+    shadow_csvs = {}
+    for d in data:
+        path = '%s/%s.csv' % (output_prefix, d['entry'])
+        shadow_csvs[d['entry']] = csv.writer(open(path, 'w'))
+        shadow_csvs[d['entry']].writerow(['pH'] + d['rids'])
 
     pH_vec = ParseConcentrationRange(conc_range)
     obe_mat = []
@@ -221,6 +227,11 @@ def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
         obes = [d['OBE'] for d in data]
         obe_mat.append(obes)
         csv_output.writerow([data[0]['pH']] + obes)
+        
+        for d in data:
+            prices = list(d['reaction prices'].flat)
+            shadow_csvs[d['entry']].writerow([pH] + prices)
+            
     obe_mat = np.matrix(obe_mat) # rows are pathways and columns are concentrations
 
     fig = plt.figure(figsize=(6, 6), dpi=90)
