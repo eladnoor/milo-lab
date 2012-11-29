@@ -1,6 +1,4 @@
-import logging
 import numpy as np
-import sys
 
 class LinearRegression(object):
     
