@@ -458,10 +458,15 @@ class KeggPathway(Pathway):
        
         html_writer.write_table(dict_list, headers=headers)
    
-    def WriteProfileToHtmlTable(self, html_writer, concentrations,
-                                reaction_shadow_prices):
+    def WriteProfileToHtmlTable(self, html_writer, concentrations=None,
+                                reaction_shadow_prices=None):
 
         phys_concentrations = self.GetPhysiologicalConcentrations(self.bounds)
+        if concentrations is None:
+            concentrations = phys_concentrations
+        if reaction_shadow_prices is None:
+            reaction_shadow_prices = np.zeros((len(self.rids), 1))
+
         dG_r_prime_c = self.CalculateReactionEnergiesUsingConcentrations(phys_concentrations)
         dG_r_prime_c_adj = np.multiply(dG_r_prime_c, np.sign(self.fluxes)) # adjust dG to flux directions
         dG_r_prime = self.CalculateReactionEnergiesUsingConcentrations(concentrations)
