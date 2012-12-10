@@ -1,0 +1,25 @@
+"carbon source","formula","maximum growth rate measured","stderr of maximum growth rate measuerd","maximum growth rate predicted by MOMENT","maximum growth rate predicted by FBAwMC"
+"2-Oxoglutarate","C5H4O5",0.24,0.04,0.45,0.638
+"L-Alanine","C3H7NO2",0.24,0.03,0.432,0.627
+"Galactose","C6H12O6",0.24,0.02,0.489,0.633
+"Acetate","C2H3O2",0.29,0.02,0.3,0.549
+"Mannose","C6H12O6",0.35,0.03,0.487,0.646
+"Guanosine","C10H13N5O5",0.37,0.03,0.589,0.685
+"D-Glucosamine","C6H14NO5",0.4,0.03,0.497,0.662
+"Pyruvate","C3H3O3",0.41,0.03,0.477,0.621
+"Ribose","C5H10O5",0.41,0.01,0.407,0.611
+"L-Lactate","C3H5O3",0.41,0.03,0.424,0.591
+"Glycerol","C3H8O3",0.47,0.03,0.509,0.647
+"Fumarate","C4H2O4",0.47,0.03,0.46,0.622
+"Sorbitol","C6H14O6",0.48,0.03,0.479,0.647
+"Trehalose","C12H22O11",0.48,0.04,0.509,0.651
+"Succinate","C4H4O4",0.5,0.02,0.446,0.62
+"Xylose","C5H10O5",0.51,0.03,0.495,0.63
+"Maltose","C12H22O11",0.52,0.02,0.494,0.647
+"Fructose","C6H12O6",0.54,0.04,0.497,0.648
+"L-Malate","C4H4O5",0.55,0.03,0.467,0.607
+"N-Acetyl-beta-D-glucosamine","C8H15NO6",0.61,0.03,0.518,0.666
+"Mannitol","C6H14O6",0.61,0.03,0.461,0.637
+"Glucose","C6H12O6",0.66,0.05,0.506,0.646
+"D-Gluconate","C6H11O7",0.68,0.03,0.513,0.639
+"Glucose 6-phosphate","C6H11O9P",0.78,0.04,0.567,0.654

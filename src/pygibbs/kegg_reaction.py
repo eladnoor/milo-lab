@@ -68,9 +68,11 @@ class Reaction(object):
         if type(names) == types.ListType:
             self.names = names
             self.name = names[0]
-        elif type(names) == types.StringType:
+        elif type(names) in types.StringTypes:
             self.names = [names]
             self.name = names
+        else:
+            raise ValueError("Reaction name must be string or list of strings")
 
     def clone(self):
         reaction = Reaction(self.names, dict(self.sparse))

@@ -1,0 +1,223 @@
+ref,ID,method,eval,EC,name,kegg_reaction,reaction,dG0',T,I,pH,pMg
+Alberty (2006),C00002,formation,A,,formation of ATP,10 C06265 + 8 C90000 + 2.5 C90001 + 6.5 C90002 + 3 C90007 <=> C00002,10 Carbon + 8 H2(g) + 2.5 N2(g) + 6.5 O2(g) + 3 Phosphorus <=> ATP,-2293.18,298.15,0,7.0,14
+Alberty (2006),C00008,formation,A,,formation of ADP,10 C06265 + 7.5 C90000 + 2.5 C90001 + 5 C90002 + 2 C90007 <=> C00008,10 Carbon + 7.5 H2(g) + 2.5 N2(g) + 5 O2(g) + 2 Phosphorus <=> ADP,-1428.79,298.15,0,7.0,14
+Alberty (2006),C00020,formation,A,,formation of AMP,10 C06265 + 7 C90000 + 2.5 C90001 + 3.5 C90002 + C90007 <=> C00020,10 Carbon + 7 H2(g) + 2.5 N2(g) + 3.5 O2(g) + Phosphorus <=> AMP,-561.67,298.15,0,7.0,14
+Alberty (2006),C00022,formation,A,,formation of Pyruvate,3 C06265 + 2 C90000 + 1.5 C90002 <=> C00022,3 Carbon + 2 H2(g) + 1.5 O2(g) <=> Pyruvate,-352.47,298.15,0,7.0,14
+Alberty (2006),C00025,formation,A,,formation of L-Glutamate,5 C06265 + 4.5 C90000 + 0.5 C90001 + 2 C90002 <=> C00025,5 Carbon + 4.5 H2(g) + 0.5 N2(g) + 2 O2(g) <=> L-Glutamate,-378.00,298.15,0,7.0,14
+Alberty (2006),C00026,formation,A,,formation of 2-Oxoglutarate,5 C06265 + 3 C90000 + 2.5 C90002 <=> C00026,5 Carbon + 3 H2(g) + 2.5 O2(g) <=> 2-Oxoglutarate,-633.67,298.15,0,7.0,14
+Alberty (2006),C00031,formation,A,,formation of D-Glucose,6 C06265 + 6 C90000 + 3 C90002 <=> C00031,6 Carbon + 6 H2(g) + 3 O2(g) <=> D-Glucose,-436.68,298.15,0,7.0,14
+Alberty (2006),C00033,formation,A,,formation of Acetate,2 C06265 + 2 C90000 + C90002 <=> C00033,2 Carbon + 2 H2(g) + O2(g) <=> Acetate,-249.51,298.15,0,7.0,14
+Alberty (2006),C00036,formation,A,,formation of Oxaloacetate,4 C06265 + 2 C90000 + 2.5 C90002 <=> C00036,4 Carbon + 2 H2(g) + 2.5 O2(g) <=> Oxaloacetate,-713.42,298.15,0,7.0,14
+Alberty (2006),C00037,formation,A,,formation of Glycine,2 C06265 + 2.5 C90000 + 0.5 C90001 + C90002 <=> C00037,2 Carbon + 2.5 H2(g) + 0.5 N2(g) + O2(g) <=> Glycine,-180.25,298.15,0,7.0,14
+Alberty (2006),C00041,formation,A,,formation of L-Alanine,3 C06265 + 3.5 C90000 + 0.5 C90001 + C90002 <=> C00041,3 Carbon + 3.5 H2(g) + 0.5 N2(g) + O2(g) <=> L-Alanine,-91.47,298.15,0,7.0,14
+Alberty (2006),C00042,formation,A,,formation of Succinate,4 C06265 + 3 C90000 + 2 C90002 <=> C00042,4 Carbon + 3 H2(g) + 2 O2(g) <=> Succinate,-530.82,298.15,0,7.0,14
+Alberty (2006),C00048,formation,A,,formation of Glyoxylate,2 C06265 + C90000 + 1.5 C90002 <=> C00048,2 Carbon + H2(g) + 1.5 O2(g) <=> Glyoxylate,-428.67,298.15,0,7.0,14
+Alberty (2006),C00049,formation,A,,formation of L-Aspartate,4 C06265 + 3.5 C90000 + 0.5 C90001 + 2 C90002 <=> C00049,4 Carbon + 3.5 H2(g) + 0.5 N2(g) + 2 O2(g) <=> L-Aspartate,-456.31,298.15,0,7.0,14
+Alberty (2006),C00064,formation,A,,formation of L-Glutamine,5 C06265 + 5 C90000 + C90001 + 1.5 C90002 <=> C00064,5 Carbon + 5 H2(g) + N2(g) + 1.5 O2(g) <=> L-Glutamine,-128.69,298.15,0,7.0,14
+Alberty (2006),C00065,formation,A,,formation of L-Serine,3 C06265 + 3.5 C90000 + 0.5 C90001 + 1.5 C90002 <=> C00065,3 Carbon + 3.5 H2(g) + 0.5 N2(g) + 1.5 O2(g) <=> L-Serine,-231.36,298.15,0,7.0,14
+Alberty (2006),C00074,formation,A,,formation of Phosphoenolpyruvate,3 C06265 + 2.5 C90000 + 3 C90002 + C90007 <=> C00074,3 Carbon + 2.5 H2(g) + 3 O2(g) + Phosphorus <=> Phosphoenolpyruvate,-1184.03,298.15,0,7.0,14
+Alberty (2006),C00078,formation,A,,formation of L-Tryptophan,11 C06265 + 6 C90000 + C90001 + C90002 <=> C00078,11 Carbon + 6 H2(g) + N2(g) + O2(g) <=> L-Tryptophan,364.51,298.15,0,7.0,14
+Alberty (2006),C00079,formation,A,,formation of L-Phenylalanine,9 C06265 + 5.5 C90000 + 0.5 C90001 + C90002 <=> C00079,9 Carbon + 5.5 H2(g) + 0.5 N2(g) + O2(g) <=> L-Phenylalanine,232.17,298.15,0,7.0,14
+Alberty (2006),C00082,formation,A,,formation of L-Tyrosine,9 C06265 + 5.5 C90000 + 0.5 C90001 + 1.5 C90002 <=> C00082,9 Carbon + 5.5 H2(g) + 0.5 N2(g) + 1.5 O2(g) <=> L-Tyrosine,68.56,298.15,0,7.0,14
+Alberty (2006),C00084,formation,A,,formation of Acetaldehyde,2 C06265 + 2 C90000 + 0.5 C90002 <=> C00084,2 Carbon + 2 H2(g) + 0.5 O2(g) <=> Acetaldehyde,20.74,298.15,0,7.0,14
+Alberty (2006),C00085,formation,A,,formation of D-Fructose 6-phosphate,6 C06265 + 6.5 C90000 + 4.5 C90002 + C90007 <=> C00085,6 Carbon + 6.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Fructose 6-phosphate,-1321.93,298.15,0,7.0,14
+Alberty (2006),C00089,formation,A,,formation of Sucrose,12 C06265 + 11 C90000 + 5.5 C90002 <=> C00089,12 Carbon + 11 H2(g) + 5.5 O2(g) <=> Sucrose,-686.14,298.15,0,7.0,14
+Alberty (2006),C00092,formation,A,,formation of D-Glucose 6-phosphate,6 C06265 + 6.5 C90000 + 4.5 C90002 + C90007 <=> C00092,6 Carbon + 6.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Glucose 6-phosphate,-1325.06,298.15,0,7.0,14
+Alberty (2006),C00095,formation,A,,formation of D-Fructose,6 C06265 + 6 C90000 + 3 C90002 <=> C00095,6 Carbon + 6 H2(g) + 3 O2(g) <=> D-Fructose,-436.30,298.15,0,7.0,14
+Alberty (2006),C00097,formation,A,,formation of L-Cysteine,C00087 + 3 C06265 + 3.5 C90000 + 0.5 C90001 + C90002 <=> C00097,Sulfur + 3 Carbon + 3.5 H2(g) + 0.5 N2(g) + O2(g) <=> L-Cysteine,-59.30,298.15,0,7.0,14
+Alberty (2006),C00103,formation,A,,formation of D-Glucose 1-phosphate,6 C06265 + 6.5 C90000 + 4.5 C90002 + C90007 <=> C00103,6 Carbon + 6.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Glucose 1-phosphate,-1317.97,298.15,0,7.0,14
+Alberty (2006),C00111,formation,A,,formation of Glycerone phosphate,3 C06265 + 3.5 C90000 + 3 C90002 + C90007 <=> C00111,3 Carbon + 3.5 H2(g) + 3 O2(g) + Phosphorus <=> Glycerone phosphate,-1096.97,298.15,0,7.0,14
+Alberty (2006),C00116,formation,A,,formation of Glycerol,3 C06265 + 4 C90000 + 1.5 C90002 <=> C00116,3 Carbon + 4 H2(g) + 1.5 O2(g) <=> Glycerol,-178.00,298.15,0,7.0,14
+Alberty (2006),C00117,formation,A,,formation of D-Ribose 5-phosphate,5 C06265 + 5.5 C90000 + 4 C90002 + C90007 <=> C00117,5 Carbon + 5.5 H2(g) + 4 O2(g) + Phosphorus <=> D-Ribose 5-phosphate,-1236.77,298.15,0,7.0,14
+Alberty (2006),C00118,formation,A,,formation of D-Glyceraldehyde 3-phosphate,3 C06265 + 3.5 C90000 + 3 C90002 + C90007 <=> C00118,3 Carbon + 3.5 H2(g) + 3 O2(g) + Phosphorus <=> D-Glyceraldehyde 3-phosphate,-1089.51,298.15,0,7.0,14
+Alberty (2006),C00119,formation,A,,formation of 5-Phospho-alpha-D-ribose 1-diphosphate,5 C06265 + 6.5 C90000 + 7 C90002 + 3 C90007 <=> C00119,5 Carbon + 6.5 H2(g) + 7 O2(g) + 3 Phosphorus <=> 5-Phospho-alpha-D-ribose 1-diphosphate,-2966.88,298.15,0,7.0,14
+Alberty (2006),C00121,formation,A,,formation of D-Ribose,5 C06265 + 5 C90000 + 2.5 C90002 <=> C00121,5 Carbon + 5 H2(g) + 2.5 O2(g) <=> D-Ribose,-339.44,298.15,0,7.0,14
+Alberty (2006),C00122,formation,A,,formation of Fumarate,4 C06265 + 2 C90000 + 2 C90002 <=> C00122,4 Carbon + 2 H2(g) + 2 O2(g) <=> Fumarate,-522.01,298.15,0,7.0,14
+Alberty (2006),C00123,formation,A,,formation of L-Leucine,6 C06265 + 6.5 C90000 + 0.5 C90001 + C90002 <=> C00123,6 Carbon + 6.5 H2(g) + 0.5 N2(g) + O2(g) <=> L-Leucine,166.89,298.15,0,7.0,14
+Alberty (2006),C00124,formation,A,,formation of D-Galactose,6 C06265 + 6 C90000 + 3 C90002 <=> C00124,6 Carbon + 6 H2(g) + 3 O2(g) <=> D-Galactose,-429.71,298.15,0,7.0,14
+Alberty (2006),C00147,formation,A,,formation of Adenine,5 C06265 + 2.5 C90000 + 2.5 C90001 <=> C00147,5 Carbon + 2.5 H2(g) + 2.5 N2(g) <=> Adenine,513.02,298.15,0,7.0,14
+Alberty (2006),C00149,formation,A,,formation of (S)-Malate,4 C06265 + 3 C90000 + 2.5 C90002 <=> C00149,4 Carbon + 3 H2(g) + 2.5 O2(g) <=> (S)-Malate,-682.95,298.15,0,7.0,14
+Alberty (2006),C00152,formation,A,,formation of L-Asparagine,4 C06265 + 4 C90000 + C90001 + 1.5 C90002 <=> C00152,4 Carbon + 4 H2(g) + N2(g) + 1.5 O2(g) <=> L-Asparagine,-206.54,298.15,0,7.0,14
+Alberty (2006),C00158,formation,A,,formation of Citrate,6 C06265 + 4 C90000 + 3.5 C90002 <=> C00158,6 Carbon + 4 H2(g) + 3.5 O2(g) <=> Citrate,-963.08,298.15,0,7.0,14
+Alberty (2006),C00159,formation,A,,formation of D-Mannose,6 C06265 + 6 C90000 + 3 C90002 <=> C00159,6 Carbon + 6 H2(g) + 3 O2(g) <=> D-Mannose,-430.78,298.15,0,7.0,14
+Alberty (2006),C00160,formation,A,,formation of Glycolate,2 C06265 + 2 C90000 + 1.5 C90002 <=> C00160,2 Carbon + 2 H2(g) + 1.5 O2(g) <=> Glycolate,-411.15,298.15,0,7.0,14
+Alberty (2006),C00164,formation,A,,formation of Acetoacetate,4 C06265 + 3 C90000 + 1.5 C90002 <=> C00164,4 Carbon + 3 H2(g) + 1.5 O2(g) <=> Acetoacetate,-282.82,298.15,0,7.0,14
+Alberty (2006),C00181,formation,A,,formation of D-Xylose,5 C06265 + 5 C90000 + 2.5 C90002 <=> C00181,5 Carbon + 5 H2(g) + 2.5 O2(g) <=> D-Xylose,-351.14,298.15,0,7.0,14
+Alberty (2006),C00183,formation,A,,formation of L-Valine,5 C06265 + 5.5 C90000 + 0.5 C90001 + C90002 <=> C00183,5 Carbon + 5.5 H2(g) + 0.5 N2(g) + O2(g) <=> L-Valine,80.62,298.15,0,7.0,14
+Alberty (2006),C00184,formation,A,,formation of Glycerone,3 C06265 + 3 C90000 + 1.5 C90002 <=> C00184,3 Carbon + 3 H2(g) + 1.5 O2(g) <=> Glycerone,-211.39,298.15,0,7.0,14
+Alberty (2006),C00186,formation,A,,formation of (S)-Lactate,3 C06265 + 3 C90000 + 1.5 C90002 <=> C00186,3 Carbon + 3 H2(g) + 1.5 O2(g) <=> (S)-Lactate,-317.05,298.15,0,7.0,14
+Alberty (2006),C00188,formation,A,,formation of L-Threonine,4 C06265 + 4.5 C90000 + 0.5 C90001 + 1.5 C90002 <=> C00188,4 Carbon + 4.5 H2(g) + 0.5 N2(g) + 1.5 O2(g) <=> L-Threonine,-169.50,298.15,0,7.0,14
+Alberty (2006),C00197,formation,A,,formation of 3-Phospho-D-glycerate,3 C06265 + 3.5 C90000 + 3.5 C90002 + C90007 <=> C00197,3 Carbon + 3.5 H2(g) + 3.5 O2(g) + Phosphorus <=> 3-Phospho-D-glycerate,-1343.46,298.15,0,7.0,14
+Alberty (2006),C00198,formation,A,,"formation of D-Glucono-1,5-lactone",6 C06265 + 5 C90000 + 3 C90002 <=> C00198,"6 Carbon + 5 H2(g) + 3 O2(g) <=> D-Glucono-1,5-lactone",-504.15,298.15,0,7.0,14
+Alberty (2006),C00199,formation,A,,formation of D-Ribulose 5-phosphate,5 C06265 + 5.5 C90000 + 4 C90002 + C90007 <=> C00199,5 Carbon + 5.5 H2(g) + 4 O2(g) + Phosphorus <=> D-Ribulose 5-phosphate,-1236.59,298.15,0,7.0,14
+Alberty (2006),C00207,formation,A,,formation of Acetone,3 C06265 + 3 C90000 + 0.5 C90002 <=> C00207,3 Carbon + 3 H2(g) + 0.5 O2(g) <=> Acetone,79.91,298.15,0,7.0,14
+Alberty (2006),C00208,formation,A,,formation of Maltose,12 C06265 + 11 C90000 + 5.5 C90002 <=> C00208,12 Carbon + 11 H2(g) + 5.5 O2(g) <=> Maltose,-696.13,298.15,0,7.0,14
+Alberty (2006),C00209,formation,A,,formation of Oxalate,2 C06265 + C90000 + 2 C90002 <=> C00209,2 Carbon + H2(g) + 2 O2(g) <=> Oxalate,-673.90,298.15,0,7.0,14
+Alberty (2006),C00212,formation,A,,formation of Adenosine,10 C06265 + 6.5 C90000 + 2.5 C90001 + 2 C90002 <=> C00212,10 Carbon + 6.5 H2(g) + 2.5 N2(g) + 2 O2(g) <=> Adenosine,324.62,298.15,0,7.0,14
+Alberty (2006),C00216,formation,A,,formation of D-Arabinose,5 C06265 + 5 C90000 + 2.5 C90002 <=> C00216,5 Carbon + 5 H2(g) + 2.5 O2(g) <=> D-Arabinose,-342.88,298.15,0,7.0,14
+Alberty (2006),C00218,formation,A,,formation of Methylamine,C06265 + 2.5 C90000 + 0.5 C90001 <=> C00218,Carbon + 2.5 H2(g) + 0.5 N2(g) <=> Methylamine,199.75,298.15,0,7.0,14
+Alberty (2006),C00224,formation,A,,formation of Adenylyl sulfate,C00087 + 10 C06265 + 7 C90000 + 2.5 C90001 + 5 C90002 + C90007 <=> C00224,Sulfur + 10 Carbon + 7 H2(g) + 2.5 N2(g) + 5 O2(g) + Phosphorus <=> Adenylyl sulfate,-1062.80,298.15,0,7.0,14
+Alberty (2006),C00227,formation,A,,formation of Acetyl phosphate,2 C06265 + 2.5 C90000 + 2.5 C90002 + C90007 <=> C00227,2 Carbon + 2.5 H2(g) + 2.5 O2(g) + Phosphorus <=> Acetyl phosphate,-1100.02,298.15,0,7.0,14
+Alberty (2006),C00233,formation,A,,formation of 4-Methyl-2-oxopentanoate,6 C06265 + 5 C90000 + 1.5 C90002 <=> C00233,6 Carbon + 5 H2(g) + 1.5 O2(g) <=> 4-Methyl-2-oxopentanoate,-85.73,298.15,0,7.0,14
+Alberty (2006),C00236,formation,A,,formation of 3-Phospho-D-glyceroyl phosphate,3 C06265 + 4 C90000 + 5 C90002 + 2 C90007 <=> C00236,3 Carbon + 4 H2(g) + 5 O2(g) + 2 Phosphorus <=> 3-Phospho-D-glyceroyl phosphate,-2197.38,298.15,0,7.0,14
+Alberty (2006),C00243,formation,A,,formation of Lactose,12 C06265 + 11 C90000 + 5.5 C90002 <=> C00243,12 Carbon + 11 H2(g) + 5.5 O2(g) <=> Lactose,-688.77,298.15,0,7.0,14
+Alberty (2006),C00246,formation,A,,formation of Butanoic acid,4 C06265 + 4 C90000 + C90002 <=> C00246,4 Carbon + 4 H2(g) + O2(g) <=> Butanoic acid,-73.11,298.15,0,7.0,14
+Alberty (2006),C00247,formation,A,,formation of L-Sorbose,6 C06265 + 6 C90000 + 3 C90002 <=> C00247,6 Carbon + 6 H2(g) + 3 O2(g) <=> L-Sorbose,-432.74,298.15,0,7.0,14
+Alberty (2006),C00249,formation,A,,formation of Hexadecanoic acid,16 C06265 + 16 C90000 + C90002 <=> C00249,16 Carbon + 16 H2(g) + O2(g) <=> Hexadecanoic acid,978.55,298.15,0,7.0,14
+Alberty (2006),C00252,formation,A,,formation of Isomaltose,12 C06265 + 11 C90000 + 5.5 C90002 <=> C00252,12 Carbon + 11 H2(g) + 5.5 O2(g) <=> Isomaltose,-709.15,298.15,0,7.0,14
+Thauer (1977),C00257,formation,A,,formation of D-Gluconic acid,6 C06265 + 6 C90000 + 3.5 C90002 <=> C00257,6 Carbon + 6 H2(g) + 3.5 O2(g) <=> D-Gluconic acid,-689.02,298.15,0,7.0,14
+Alberty (2006),C00258,formation,A,,formation of D-Glycerate,3 C06265 + 3 C90000 + 2 C90002 <=> C00258,3 Carbon + 3 H2(g) + 2 O2(g) <=> D-Glycerate,-461.34,298.15,0,7.0,14
+Alberty (2006),C00262,formation,A,,formation of Hypoxanthine,5 C06265 + 2 C90000 + 2 C90001 + 0.5 C90002 <=> C00262,5 Carbon + 2 H2(g) + 2 N2(g) + 0.5 O2(g) <=> Hypoxanthine,249.16,298.15,0,7.0,14
+Alberty (2006),C00275,formation,A,,formation of D-Mannose 6-phosphate,6 C06265 + 6.5 C90000 + 4.5 C90002 + C90007 <=> C00275,6 Carbon + 6.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Mannose 6-phosphate,-1320.99,298.15,0,7.0,14
+Alberty (2006),C00294,formation,A,,formation of Inosine,10 C06265 + 6 C90000 + 2 C90001 + 2.5 C90002 <=> C00294,10 Carbon + 6 H2(g) + 2 N2(g) + 2.5 O2(g) <=> Inosine,70.04,298.15,0,7.0,14
+Alberty (2006),C00300,formation,A,,formation of Creatine,4 C06265 + 4.5 C90000 + 1.5 C90001 + C90002 <=> C00300,4 Carbon + 4.5 H2(g) + 1.5 N2(g) + O2(g) <=> Creatine,100.21,298.15,0,7.0,14
+Alberty (2006),C00309,formation,A,,formation of D-Ribulose,5 C06265 + 5 C90000 + 2.5 C90002 <=> C00309,5 Carbon + 5 H2(g) + 2.5 O2(g) <=> D-Ribulose,-336.60,298.15,0,7.0,14
+Alberty (2006),C00310,formation,A,,formation of D-Xylulose,5 C06265 + 5 C90000 + 2.5 C90002 <=> C00310,5 Carbon + 5 H2(g) + 2.5 O2(g) <=> D-Xylulose,-346.81,298.15,0,7.0,14
+Alberty (2006),C00311,formation,A,,formation of Isocitrate,6 C06265 + 4 C90000 + 3.5 C90002 <=> C00311,6 Carbon + 4 H2(g) + 3.5 O2(g) <=> Isocitrate,-956.43,298.15,0,7.0,14
+Alberty (2006),C00354,formation,A,,"formation of D-Fructose 1,6-bisphosphate",6 C06265 + 7 C90000 + 6 C90002 + 2 C90007 <=> C00354,"6 Carbon + 7 H2(g) + 6 O2(g) + 2 Phosphorus <=> D-Fructose 1,6-bisphosphate",-2202.81,298.15,0,7.0,14
+Alberty (2006),C00379,formation,A,,formation of Xylitol,5 C06265 + 6 C90000 + 2.5 C90002 <=> C00379,5 Carbon + 6 H2(g) + 2.5 O2(g) <=> Xylitol,-304.87,298.15,0,7.0,14
+Alberty (2006),C00392,formation,A,,formation of Mannitol,6 C06265 + 7 C90000 + 3 C90002 <=> C00392,6 Carbon + 7 H2(g) + 3 O2(g) <=> Mannitol,-383.53,298.15,0,7.0,14
+Alberty (2006),C00407,formation,A,,formation of L-Isoleucine,6 C06265 + 6.5 C90000 + 0.5 C90001 + C90002 <=> C00407,6 Carbon + 6.5 H2(g) + 0.5 N2(g) + O2(g) <=> L-Isoleucine,175.24,298.15,0,7.0,14
+Alberty (2006),C00417,formation,A,,formation of cis-Aconitate,6 C06265 + 3 C90000 + 3 C90002 <=> C00417,6 Carbon + 3 H2(g) + 3 O2(g) <=> cis-Aconitate,-797.41,298.15,0,7.0,14
+Alberty (2006),C00463,formation,A,,formation of Indole,8 C06265 + 3.5 C90000 + 0.5 C90001 <=> C00463,8 Carbon + 3.5 H2(g) + 0.5 N2(g) <=> Indole,503.34,298.15,0,7.0,14
+Alberty (2006),C00476,formation,A,,formation of D-Lyxose,5 C06265 + 5 C90000 + 2.5 C90002 <=> C00476,5 Carbon + 5 H2(g) + 2.5 O2(g) <=> D-Lyxose,-349.79,298.15,0,7.0,14
+Alberty (2006),C00491,formation,A,,formation of L-Cystine,2 C00087 + 6 C06265 + 6 C90000 + C90001 + 2 C90002 <=> C00491,2 Sulfur + 6 Carbon + 6 H2(g) + N2(g) + 2 O2(g) <=> L-Cystine,-187.34,298.15,0,7.0,14
+Alberty (2006),C00575,formation,A,,"formation of 3',5'-Cyclic AMP",10 C06265 + 6 C90000 + 2.5 C90001 + 3 C90002 + C90007 <=> C00575,"10 Carbon + 6 H2(g) + 2.5 N2(g) + 3 O2(g) + Phosphorus <=> 3',5'-Cyclic AMP",-351.61,298.15,0,7.0,14
+Alberty (2006),C00577,formation,A,,formation of D-Glyceraldehyde,3 C06265 + 3 C90000 + 1.5 C90002 <=> C00577,3 Carbon + 3 H2(g) + 1.5 O2(g) <=> D-Glyceraldehyde,-200.41,298.15,0,7.0,14
+Alberty (2006),C00620,formation,A,,formation of alpha-D-Ribose 1-phosphate,5 C06265 + 5.5 C90000 + 4 C90002 + C90007 <=> C00620,5 Carbon + 5.5 H2(g) + 4 O2(g) + Phosphorus <=> alpha-D-Ribose 1-phosphate,-1228.67,298.15,0,7.0,14
+Alberty (2006),C00631,formation,A,,formation of 2-Phospho-D-glycerate,3 C06265 + 3.5 C90000 + 3.5 C90002 + C90007 <=> C00631,3 Carbon + 3.5 H2(g) + 3.5 O2(g) + Phosphorus <=> 2-Phospho-D-glycerate,-1336.88,298.15,0,7.0,14
+Alberty (2006),C00636,formation,A,,formation of D-Mannose 1-phosphate,6 C06265 + 6.5 C90000 + 4.5 C90002 + C90007 <=> C00636,6 Carbon + 6.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Mannose 1-phosphate,-1315.66,298.15,0,7.0,14
+Alberty (2006),C00644,formation,A,,formation of D-Mannitol 1-phosphate,6 C06265 + 7.5 C90000 + 4.5 C90002 + C90007 <=> C00644,6 Carbon + 7.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Mannitol 1-phosphate,-1275.14,298.15,0,7.0,14
+Alberty (2006),C00673,formation,A,,formation of 2-Deoxy-D-ribose 5-phosphate,5 C06265 + 5.5 C90000 + 3.5 C90002 + C90007 <=> C00673,5 Carbon + 5.5 H2(g) + 3.5 O2(g) + Phosphorus <=> 2-Deoxy-D-ribose 5-phosphate,-1088.92,298.15,0,7.0,14
+Alberty (2006),C00791,formation,A,,formation of Creatinine,4 C06265 + 3.5 C90000 + 1.5 C90001 + 0.5 C90002 <=> C00791,4 Carbon + 3.5 H2(g) + 1.5 N2(g) + 0.5 O2(g) <=> Creatinine,256.40,298.15,0,7.0,14
+Alberty (2006),C00794,formation,A,,formation of D-Sorbitol,6 C06265 + 7 C90000 + 3 C90002 <=> C00794,6 Carbon + 7 H2(g) + 3 O2(g) <=> D-Sorbitol,-387.28,298.15,0,7.0,14
+Alberty (2006),C00849,formation,A,,formation of Ethyl acetate,4 C06265 + 4 C90000 + C90002 <=> C00849,4 Carbon + 4 H2(g) + O2(g) <=> Ethyl acetate,-18.17,298.15,0,7.0,14
+Alberty (2006),C01005,formation,A,,formation of O-Phospho-L-serine,3 C06265 + 4 C90000 + 0.5 C90001 + 3 C90002 + C90007 <=> C01005,3 Carbon + 4 H2(g) + 0.5 N2(g) + 3 O2(g) + Phosphorus <=> O-Phospho-L-serine,-1121.83,298.15,0,7.0,14
+Alberty (2006),C01013,formation,A,,formation of 3-Hydroxypropanoate,3 C06265 + 3 C90000 + 1.5 C90002 <=> C01013,3 Carbon + 3 H2(g) + 1.5 O2(g) <=> 3-Hydroxypropanoate,-318.73,298.15,0,7.0,14
+Alberty (2006),C01083,formation,A,,"formation of alpha,alpha-Trehalose",12 C06265 + 11 C90000 + 5.5 C90002 <=> C01083,"12 Carbon + 11 H2(g) + 5.5 O2(g) <=> alpha,alpha-Trehalose",-704.20,298.15,0,7.0,14
+Alberty (2006),C01096,formation,A,,formation of Sorbitol 6-phosphate,6 C06265 + 7.5 C90000 + 4.5 C90002 + C90007 <=> C01096,6 Carbon + 7.5 H2(g) + 4.5 O2(g) + Phosphorus <=> Sorbitol 6-phosphate,-1274.66,298.15,0,7.0,14
+Alberty (2006),C01112,formation,A,,formation of D-Arabinose 5-phosphate,5 C06265 + 5.5 C90000 + 4 C90002 + C90007 <=> C01112,5 Carbon + 5.5 H2(g) + 4 O2(g) + Phosphorus <=> D-Arabinose 5-phosphate,-1239.64,298.15,0,7.0,14
+Alberty (2006),C01113,formation,A,,formation of D-Galactose 6-phosphate,6 C06265 + 6.5 C90000 + 4.5 C90002 + C90007 <=> C01113,6 Carbon + 6.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Galactose 6-phosphate,-1317.93,298.15,0,7.0,14
+Alberty (2006),C01127,formation,A,,formation of 4-Hydroxy-2-oxoglutarate,5 C06265 + 3 C90000 + 3 C90002 <=> C01127,5 Carbon + 3 H2(g) + 3 O2(g) <=> 4-Hydroxy-2-oxoglutarate,-812.04,298.15,0,7.0,14
+Alberty (2006),C01236,formation,A,,"formation of D-Glucono-1,5-lactone 6-phosphate",6 C06265 + 5.5 C90000 + 4.5 C90002 + C90007 <=> C01236,"6 Carbon + 5.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Glucono-1,5-lactone 6-phosphate",-1387.15,298.15,0,7.0,14
+Alberty (2006),C01384,formation,A,,formation of Maleic acid,4 C06265 + 2 C90000 + 2 C90002 <=> C01384,4 Carbon + 2 H2(g) + 2 O2(g) <=> Maleic acid,-512.41,298.15,0,7.0,14
+Alberty (2006),C01412,formation,A,,formation of Butanal,4 C06265 + 4 C90000 + 0.5 C90002 <=> C01412,4 Carbon + 4 H2(g) + 0.5 O2(g) <=> Butanal,189.61,298.15,0,7.0,14
+Alberty (2006),C01507,formation,A,,formation of L-Iditol,6 C06265 + 7 C90000 + 3 C90002 <=> C01507,6 Carbon + 7 H2(g) + 3 O2(g) <=> L-Iditol,-385.65,298.15,0,7.0,14
+Alberty (2006),C01845,formation,A,,formation of Propan-2-ol,3 C06265 + 4 C90000 + 0.5 C90002 <=> C01845,3 Carbon + 4 H2(g) + 0.5 O2(g) <=> Propan-2-ol,134.25,298.15,0,7.0,14
+Alberty (2006),C02037,formation,A,,formation of Glycylglycine,4 C06265 + 4 C90000 + C90001 + 1.5 C90002 <=> C02037,4 Carbon + 4 H2(g) + N2(g) + 1.5 O2(g) <=> Glycylglycine,-200.90,298.15,0,7.0,14
+Alberty (2006),C02226,formation,A,,formation of 2-Methylmaleate,5 C06265 + 3 C90000 + 2 C90002 <=> C02226,5 Carbon + 3 H2(g) + 2 O2(g) <=> 2-Methylmaleate,-441.11,298.15,0,7.0,14
+Alberty (2006),C02612,formation,A,,formation of (R)-2-Methylmalate,5 C06265 + 4 C90000 + 2.5 C90002 <=> C02612,5 Carbon + 4 H2(g) + 2.5 O2(g) <=> (R)-2-Methylmalate,-604.34,298.15,0,7.0,14
+Alberty (2006),C03196,formation,A,,formation of (S)-2-Hydroxyglutarate,5 C06265 + 4 C90000 + 2.5 C90002 <=> C03196,5 Carbon + 4 H2(g) + 2.5 O2(g) <=> (S)-2-Hydroxyglutarate,-600.58,298.15,0,7.0,14
+Alberty (2006),C03232,formation,A,,formation of 3-Phosphonooxypyruvate,3 C06265 + 2.5 C90000 + 3.5 C90002 + C90007 <=> C03232,3 Carbon + 2.5 H2(g) + 3.5 O2(g) + Phosphorus <=> 3-Phosphonooxypyruvate,-1369.17,298.15,0,7.0,14
+Alberty (2006),C03383,formation,A,,"formation of D-Galactono-1,4-lactone",6 C06265 + 5 C90000 + 3 C90002 <=> C03383,"6 Carbon + 5 H2(g) + 3 O2(g) <=> D-Galactono-1,4-lactone",-505.99,298.15,0,7.0,14
+Alberty (2006),C03384,formation,A,,formation of D-Galactose 1-phosphate,6 C06265 + 6.5 C90000 + 4.5 C90002 + C90007 <=> C03384,6 Carbon + 6.5 H2(g) + 4.5 O2(g) + Phosphorus <=> D-Galactose 1-phosphate,-1317.69,298.15,0,7.0,14
+Alberty (2006),C05572,formation,A,,formation of 4-Oxoglutaramate,5 C06265 + 3.5 C90000 + 0.5 C90001 + 2 C90002 <=> C05572,5 Carbon + 3.5 H2(g) + 0.5 N2(g) + 2 O2(g) <=> 4-Oxoglutaramate,-356.27,298.15,0,7.0,14
+Alberty (2006),C05979,formation,A,,formation of Propane-1-ol,3 C06265 + 4 C90000 + 0.5 C90002 <=> C05979,3 Carbon + 4 H2(g) + 0.5 O2(g) <=> Propane-1-ol,143.67,298.15,0,7.0,14
+Thauer (1977),C05984,formation,A,,formation of 2-Hydroxybutanoic acid,4 C06265 + 4 C90000 + 1.5 C90002 <=> C05984,4 Carbon + 4 H2(g) + 1.5 O2(g) <=> 2-Hydroxybutanoic acid,-226.76,298.15,0,7.0,14
+Alberty (2006),C06142,formation,A,,formation of 1-Butanol,4 C06265 + 5 C90000 + 0.5 C90002 <=> C06142,4 Carbon + 5 H2(g) + 0.5 O2(g) <=> 1-Butanol,227.51,298.15,0,7.0,14
+Alberty (2006),C00001,formation,A,,formation of H2O,C90000 + 0.5 C90002 <=> C00001,H2(g) + 0.5 O2(g) <=> H2O,-157.32,298.15,0,7.0,14
+Alberty (2006),C00007,formation,A,,formation of Oxygen,C90002 <=> C00007,O2(g) <=> Oxygen,16.40,298.15,0,7.0,14
+Alberty (2006),C00009,formation,A,,formation of Orthophosphate,1.5 C90000 + 2 C90002 + C90007 <=> C00009,1.5 H2(g) + 2 O2(g) + Phosphorus <=> Orthophosphate,-1057.74,298.15,0,7.0,14
+Alberty (2006),C00011,formation,A,,formation of CO2,C06265 + C90002 <=> C00011,Carbon + O2(g) <=> CO2,-386.02,298.15,0,7.0,14
+Alberty (2006),C00013,formation,A,,formation of Diphosphate,2 C90000 + 3.5 C90002 + 2 C90007 <=> C00013,2 H2(g) + 3.5 O2(g) + 2 Phosphorus <=> Diphosphate,-1935.48,298.15,0,7.0,14
+Alberty (2006),C00014,formation,A,,formation of NH3,1.5 C90000 + 0.5 C90001 <=> C00014,1.5 H2(g) + 0.5 N2(g) <=> NH3,80.39,298.15,0,7.0,14
+Element,C00023,formation,A,,formation of Iron, <=> , <=> ,0.00,298.15,0,7.0,14
+Alberty (2006),C00027,formation,A,,formation of Hydrogen peroxide,C90000 + C90002 <=> C00027,H2(g) + O2(g) <=> Hydrogen peroxide,-54.16,298.15,0,7.0,14
+Element,C00034,formation,A,,formation of Manganese, <=> , <=> ,0.00,298.15,0,7.0,14
+Alberty (2006),C00058,formation,A,,formation of Formate,C06265 + C90000 + C90002 <=> C00058,Carbon + H2(g) + O2(g) <=> Formate,-311.07,298.15,0,7.0,14
+Alberty (2006),C00059,formation,A,,formation of Sulfate,C00087 + C90000 + 2 C90002 <=> C00059,Sulfur + H2(g) + 2 O2(g) <=> Sulfate,-744.53,298.15,0,7.0,14
+Maden (2000),C00067,formation,A,,formation of Formaldehyde,C06265 + C90000 + 0.5 C90002 <=> C00067,Carbon + H2(g) + 0.5 O2(g) <=> Formaldehyde,-40.25,298.15,0,7.0,14
+Element,C00080,formation,A,,formation of H+, <=> C00080, <=> H+,39.93,298.15,0,7.0,14
+Alberty (2006),C00086,formation,A,,formation of Urea,C06265 + 2 C90000 + C90001 + 0.5 C90002 <=> C00086,Carbon + 2 H2(g) + N2(g) + 0.5 O2(g) <=> Urea,-43.06,298.15,0,7.0,14
+Element,C00087,formation,A,,formation of Sulfur,C90000 <=> ,H2(g) <=> ,-39.73,298.15,0,7.0,14
+Alberty (2006),C00088,formation,A,,formation of Nitrite,0.5 C90000 + 0.5 C90001 + C90002 <=> C00088,0.5 H2(g) + 0.5 N2(g) + O2(g) <=> Nitrite,-32.20,298.15,0,7.0,14
+Alberty (2006),C00094,formation,A,,formation of Sulfite,C00087 + C90000 + 1.5 C90002 <=> C00094,Sulfur + H2(g) + 1.5 O2(g) <=> Sulfite,-487.87,298.15,0,7.0,14
+Alberty (2006),C00132,formation,A,,formation of Methanol,C06265 + 2 C90000 + 0.5 C90002 <=> C00132,Carbon + 2 H2(g) + 0.5 O2(g) <=> Methanol,-15.57,298.15,0,7.0,14
+Alberty (2006),C00237,formation,A,,formation of CO,C06265 + 0.5 C90002 <=> C00237,Carbon + 0.5 O2(g) <=> CO,-119.91,298.15,0,7.0,14
+Alberty (2006),C00244,formation,A,,formation of Nitrate,0.5 C90000 + 0.5 C90001 + 1.5 C90002 <=> C00244,0.5 H2(g) + 0.5 N2(g) + 1.5 O2(g) <=> Nitrate,-108.74,298.15,0,7.0,14
+Alberty (2006),C00282,formation,A,,formation of Hydrogen,C90000 <=> C00282,H2(g) <=> Hydrogen,97.47,298.15,0,7.0,14
+Alberty (2006),C00283,formation,A,,formation of Hydrogen sulfide,C00087 + C90000 <=> C00283,Sulfur + H2(g) <=> Hydrogen sulfide,51.08,298.15,0,7.0,14
+Alberty (2006),C00288,formation,A,,formation of HCO3-,C06265 + C90000 + 1.5 C90002 <=> C00288,Carbon + H2(g) + 1.5 O2(g) <=> HCO3-,-547.10,298.15,0,7.0,14
+Alberty (2006),C00305,formation,A,,formation of Magnesium cation,C90008 <=> C00305 + C90000,Magnesium <=> Magnesium cation + H2(g),-455.30,298.15,0,7.0,14
+Alberty (2006),C00366,formation,A,,formation of Urate,5 C06265 + 2 C90000 + 2 C90001 + 1.5 C90002 <=> C00366,5 Carbon + 2 H2(g) + 2 N2(g) + 1.5 O2(g) <=> Urate,-197.71,298.15,0,7.0,14
+Alberty (2006),C00469,formation,A,,formation of Ethanol,2 C06265 + 3 C90000 + 0.5 C90002 <=> C00469,2 Carbon + 3 H2(g) + 0.5 O2(g) <=> Ethanol,57.97,298.15,0,7.0,14
+Thauer (1977),C00543,formation,A,,formation of Dimethylamine,2 C06265 + 3.5 C90000 + 0.5 C90001 <=> C00543,2 Carbon + 3.5 H2(g) + 0.5 N2(g) <=> Dimethylamine,316.18,298.15,0,7.0,14
+Thauer (1977),C00565,formation,A,,formation of Trimethylamine,3 C06265 + 4.5 C90000 + 0.5 C90001 <=> C00565,3 Carbon + 4.5 H2(g) + 0.5 N2(g) <=> Trimethylamine,436.54,298.15,0,7.0,14
+Alberty (2006),C00697,formation,A,,formation of Nitrogen,C90001 <=> C00697,N2(g) <=> Nitrogen,18.70,298.15,0,7.0,14
+Alberty (2006),C00887,formation,A,,formation of Nitrous oxide,C90001 + 0.5 C90002 <=> C00887,N2(g) + 0.5 O2(g) <=> Nitrous oxide,104.20,298.15,0,7.0,14
+Wagman (1982),C01326,formation,A,,formation of Hydrogen cyanide,C06265 + 0.5 C90000 + 0.5 C90001 <=> C01326,Carbon + 0.5 H2(g) + 0.5 N2(g) <=> Hydrogen cyanide,159.53,298.15,0,7.0,14
+Alberty (2006),C01342,formation,A,,formation of NH4+,1.5 C90000 + 0.5 C90001 <=> C01342,1.5 H2(g) + 0.5 N2(g) <=> NH4+,80.39,298.15,0,7.0,14
+Alberty (2006),C01417,formation,A,,formation of Cyanate,C06265 + 0.5 C90000 + 0.5 C90001 + 0.5 C90002 <=> C01417,Carbon + 0.5 H2(g) + 0.5 N2(g) + 0.5 O2(g) <=> Cyanate,-97.40,298.15,0,7.0,14
+Alberty (2006),C01438,formation,A,,formation of Methane,C06265 + 2 C90000 <=> C01438,Carbon + 2 H2(g) <=> Methane,125.41,298.15,0,7.0,14
+Wagman (1982),C01755,formation,A,,formation of Thiocyanate,C00087 + C06265 + 0.5 C90000 + 0.5 C90001 <=> C01755,Sulfur + Carbon + 0.5 H2(g) + 0.5 N2(g) <=> Thiocyanate,92.60,298.15,0,7.0,14
+Dolfing (1994),C02271,formation,A,,formation of Dichloromethane,C06265 + C90000 + C90004 <=> C02271,Carbon + H2(g) + Cl2(g) <=> Dichloromethane,13.76,298.15,0,7.0,14
+Dolfing (1992),C02357,formation,A,,formation of 2-Chlorobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90004 <=> C02357,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 Cl2(g) <=> 2-Chlorobenzoate,-78.16,298.15,0,7.0,14
+Dolfing (1992),C02359,formation,A,,formation of 2-Fluorobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90003 <=> C02359,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 F2(g) <=> 2-Fluorobenzoate,-238.96,298.15,0,7.0,14
+Dolfing (1992),C02364,formation,A,,formation of 3-Fluorobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90003 <=> C02364,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 F2(g) <=> 3-Fluorobenzoate,-233.46,298.15,0,7.0,14
+Dolfing (1992),C02370,formation,A,,formation of 4-Chlorobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90004 <=> C02370,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 Cl2(g) <=> 4-Chlorobenzoate,-79.76,298.15,0,7.0,14
+Dolfing (1992),C02371,formation,A,,formation of 4-Fluorobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90003 <=> C02371,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 F2(g) <=> 4-Fluorobenzoate,-228.47,298.15,0,7.0,14
+Thauer (1977),C05361,formation,A,,formation of Hydrazine,2 C90000 + C90001 <=> C05361,2 H2(g) + N2(g) <=> Hydrazine,287.71,298.15,0,7.0,14
+Dolfing (1994),C06547,formation,A,,formation of Ethylene,2 C06265 + 2 C90000 <=> C06547,2 Carbon + 2 H2(g) <=> Ethylene,241.17,298.15,0,7.0,14
+Dolfing (1992),C06670,formation,A,,"formation of 2,4-Dichlorobenzoate",7 C06265 + 2 C90000 + C90002 + C90004 <=> C06670,"7 Carbon + 2 H2(g) + O2(g) + Cl2(g) <=> 2,4-Dichlorobenzoate",-156.60,298.15,0,7.0,14
+Dolfing (1994),C06752,formation,A,,"formation of 1,2-Dichloroethane",2 C06265 + 2 C90000 + C90004 <=> C06752,"2 Carbon + 2 H2(g) + Cl2(g) <=> 1,2-Dichloroethane",86.81,298.15,0,7.0,14
+Dolfing (1994),C06789,formation,A,,formation of Tetrachloroethene,2 C06265 + 2 C90004 <=> C06789,2 Carbon + 2 Cl2(g) <=> Tetrachloroethene,27.59,298.15,0,7.0,14
+Dolfing (1994),C06790,formation,A,,formation of Trichloroethene,2 C06265 + 0.5 C90000 + 1.5 C90004 <=> C06790,2 Carbon + 0.5 H2(g) + 1.5 Cl2(g) <=> Trichloroethene,65.34,298.15,0,7.0,14
+Dolfing (1994),C06791,formation,A,,"formation of trans-1,2-Dichloroethene",2 C06265 + C90000 + C90004 <=> C06791,"2 Carbon + H2(g) + Cl2(g) <=> trans-1,2-Dichloroethene",111.93,298.15,0,7.0,14
+Dolfing (1994),C06792,formation,A,,"formation of cis-1,2-Dichloroethene",2 C06265 + C90000 + C90004 <=> C06792,"2 Carbon + H2(g) + Cl2(g) <=> cis-1,2-Dichloroethene",107.67,298.15,0,7.0,14
+Dolfing (1994),C06793,formation,A,,formation of Vinyl chloride,2 C06265 + 1.5 C90000 + 0.5 C90004 <=> C06793,2 Carbon + 1.5 H2(g) + 0.5 Cl2(g) <=> Vinyl chloride,179.45,298.15,0,7.0,14
+Dolfing (1994),C07561,formation,A,,formation of Carbon tetrachloride,C06265 + 2 C90004 <=> C07561,Carbon + 2 Cl2(g) <=> Carbon tetrachloride,-45.10,298.15,0,7.0,14
+Thauer (1977),C09306,formation,A,,formation of Sulfur dioxide,C00087 + C90002 <=> C09306,Sulfur + O2(g) <=> Sulfur dioxide,-300.71,298.15,0,7.0,14
+Dolfing (1994),C13827,formation,A,,formation of Chloroform,C06265 + 0.5 C90000 + 1.5 C90004 <=> C13827,Carbon + 0.5 H2(g) + 1.5 Cl2(g) <=> Chloroform,-26.57,298.15,0,7.0,14
+Dolfing (1994),C14039,formation,A,,"formation of 1,1-Dichloroethylene",2 C06265 + C90000 + C90004 <=> C14039,"2 Carbon + H2(g) + Cl2(g) <=> 1,1-Dichloroethylene",112.10,298.15,0,7.0,14
+Dolfing (1994),C14400,formation,A,,"formation of 1,2,3-Trichloropropane",3 C06265 + 2.5 C90000 + 1.5 C90004 <=> C14400,"3 Carbon + 2.5 H2(g) + 1.5 Cl2(g) <=> 1,2,3-Trichloropropane",99.14,298.15,0,7.0,14
+Dolfing (1994),C14705,formation,A,,"formation of 1,1,1,2-Tetrachloroethane",2 C06265 + C90000 + 2 C90004 <=> C14705,"2 Carbon + H2(g) + 2 Cl2(g) <=> 1,1,1,2-Tetrachloroethane",2.12,298.15,0,7.0,14
+Thauer (1977),C14818,formation,A,,formation of Fe2+,C00023 <=> C14818 + C90000,Iron <=> Fe2+ + H2(g),-78.87,298.15,0,7.0,14
+Thauer (1977),C14819,formation,A,,formation of Fe3+,C00023 <=> C14819 + 1.5 C90000,Iron <=> Fe3+ + 1.5 H2(g),-4.60,298.15,0,7.0,14
+Dolfing (1994),C18246,formation,A,,"formation of 1,1,1-Trichloroethane",2 C06265 + 1.5 C90000 + 1.5 C90004 <=> C18246,"2 Carbon + 1.5 H2(g) + 1.5 Cl2(g) <=> 1,1,1-Trichloroethane",50.76,298.15,0,7.0,14
+Dolfing (1994),C18247,formation,A,,"formation of 1,1-Dichloroethane",2 C06265 + 2 C90000 + C90004 <=> C18247,"2 Carbon + 2 H2(g) + Cl2(g) <=> 1,1-Dichloroethane",91.05,298.15,0,7.0,14
+Dolfing (1994),C18248,formation,A,,formation of Chloroethane,2 C06265 + 2.5 C90000 + 0.5 C90004 <=> C18248,2 Carbon + 2.5 H2(g) + 0.5 Cl2(g) <=> Chloroethane,162.84,298.15,0,7.0,14
+Dolfing (1994),C19034,formation,A,,"formation of 1,2-Dichloropropane",3 C06265 + 3 C90000 + C90004 <=> C19034,"3 Carbon + 3 H2(g) + Cl2(g) <=> 1,2-Dichloropropane",159.73,298.15,0,7.0,14
+Dolfing (1994),C19248,formation,A,,formation of Hexachloroethane,2 C06265 + 3 C90004 <=> C19248,2 Carbon + 3 Cl2(g) <=> Hexachloroethane,-49.62,298.15,0,7.0,14
+Dolfing (1994),C19496,formation,A,,formation of Pentachloroethane,2 C06265 + 0.5 C90000 + 2.5 C90004 <=> C19496,2 Carbon + 0.5 H2(g) + 2.5 Cl2(g) <=> Pentachloroethane,-28.33,298.15,0,7.0,14
+Dolfing (1994),C19536,formation,A,,"formation of 1,1,2-Trichloroethane",2 C06265 + 1.5 C90000 + 1.5 C90004 <=> C19536,"2 Carbon + 1.5 H2(g) + 1.5 Cl2(g) <=> 1,1,2-Trichloroethane",42.16,298.15,0,7.0,14
+Dolfing (1992),C80002,formation,A,,formation of Monochlorobenzene,6 C06265 + 2.5 C90000 + 0.5 C90004 <=> C80002,6 Carbon + 2.5 H2(g) + 0.5 Cl2(g) <=> Monochlorobenzene,301.97,298.15,0,7.0,14
+Dolfing (1992),C80003,formation,A,,"formation of 1,2-Dichlorobenzene",6 C06265 + 2 C90000 + C90004 <=> C80003,"6 Carbon + 2 H2(g) + Cl2(g) <=> 1,2-Dichlorobenzene",244.04,298.15,0,7.0,14
+Dolfing (1992),C80004,formation,A,,"formation of 1,3-Dichlorobenzene",6 C06265 + 2 C90000 + C90004 <=> C80004,"6 Carbon + 2 H2(g) + Cl2(g) <=> 1,3-Dichlorobenzene",241.54,298.15,0,7.0,14
+Dolfing (1992),C80005,formation,A,,"formation of 1,4-Dichlorobenzene",6 C06265 + 2 C90000 + C90004 <=> C80005,"6 Carbon + 2 H2(g) + Cl2(g) <=> 1,4-Dichlorobenzene",238.04,298.15,0,7.0,14
+Dolfing (1992),C80006,formation,A,,"formation of 1,2,3-Trichlorobenzene",6 C06265 + 1.5 C90000 + 1.5 C90004 <=> C80006,"6 Carbon + 1.5 H2(g) + 1.5 Cl2(g) <=> 1,2,3-Trichlorobenzene",191.50,298.15,0,7.0,14
+Dolfing (1992),C80007,formation,A,,"formation of 1,2,4-Trichlorobenzene",6 C06265 + 1.5 C90000 + 1.5 C90004 <=> C80007,"6 Carbon + 1.5 H2(g) + 1.5 Cl2(g) <=> 1,2,4-Trichlorobenzene",180.30,298.15,0,7.0,14
+Dolfing (1992),C80008,formation,A,,"formation of 1,3,5-Trichlorobenzene",6 C06265 + 1.5 C90000 + 1.5 C90004 <=> C80008,"6 Carbon + 1.5 H2(g) + 1.5 Cl2(g) <=> 1,3,5-Trichlorobenzene",176.60,298.15,0,7.0,14
+Dolfing (1992),C80009,formation,A,,"formation of 1,2,3,4-Tetrachlorobenzene",6 C06265 + C90000 + 2 C90004 <=> C80009,"6 Carbon + H2(g) + 2 Cl2(g) <=> 1,2,3,4-Tetrachlorobenzene",135.67,298.15,0,7.0,14
+Dolfing (1992),C80010,formation,A,,"formation of 1,2,3,5-Tetrachlorobenzene",6 C06265 + C90000 + 2 C90004 <=> C80010,"6 Carbon + H2(g) + 2 Cl2(g) <=> 1,2,3,5-Tetrachlorobenzene",129.07,298.15,0,7.0,14
+Dolfing (1992),C80011,formation,A,,"formation of 1,2,4,5-Tetrachlorobenzene",6 C06265 + C90000 + 2 C90004 <=> C80011,"6 Carbon + H2(g) + 2 Cl2(g) <=> 1,2,4,5-Tetrachlorobenzene",133.37,298.15,0,7.0,14
+Dolfing (1992),C80012,formation,A,,formation of Pentachlorobenzene,6 C06265 + 0.5 C90000 + 2.5 C90004 <=> C80012,6 Carbon + 0.5 H2(g) + 2.5 Cl2(g) <=> Pentachlorobenzene,85.63,298.15,0,7.0,14
+Dolfing (1992),C80013,formation,A,,formation of Hexachlorobenzene,6 C06265 + 3 C90004 <=> C80013,6 Carbon + 3 Cl2(g) <=> Hexachlorobenzene,46.00,298.15,0,7.0,14
+Dolfing (1992),C80014,formation,A,,formation of 3-Chlorobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90004 <=> C80014,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 Cl2(g) <=> 3-Chlorobenzoate,-86.26,298.15,0,7.0,14
+Dolfing (1992),C80015,formation,A,,"formation of 2,3-Dichlorobenzoate",7 C06265 + 2 C90000 + C90002 + C90004 <=> C80015,"7 Carbon + 2 H2(g) + O2(g) + Cl2(g) <=> 2,3-Dichlorobenzoate",-149.90,298.15,0,7.0,14
+Dolfing (1992),C80016,formation,A,,"formation of 2,5-Dichlorobenzoate",7 C06265 + 2 C90000 + C90002 + C90004 <=> C80016,"7 Carbon + 2 H2(g) + O2(g) + Cl2(g) <=> 2,5-Dichlorobenzoate",-158.90,298.15,0,7.0,14
+Dolfing (1992),C80017,formation,A,,"formation of 2,6-Dichlorobenzoate",7 C06265 + 2 C90000 + C90002 + C90004 <=> C80017,"7 Carbon + 2 H2(g) + O2(g) + Cl2(g) <=> 2,6-Dichlorobenzoate",-142.80,298.15,0,7.0,14
+Dolfing (1992),C80018,formation,A,,"formation of 3,4-Dichlorobenzoate",7 C06265 + 2 C90000 + C90002 + C90004 <=> C80018,"7 Carbon + 2 H2(g) + O2(g) + Cl2(g) <=> 3,4-Dichlorobenzoate",-144.40,298.15,0,7.0,14
+Dolfing (1992),C80019,formation,A,,"formation of 3,5-Dichlorobenzoate",7 C06265 + 2 C90000 + C90002 + C90004 <=> C80019,"7 Carbon + 2 H2(g) + O2(g) + Cl2(g) <=> 3,5-Dichlorobenzoate",-153.70,298.15,0,7.0,14
+Dolfing (1992),C80020,formation,A,,"formation of 2,3,5-Trichlorobenzoate",7 C06265 + 1.5 C90000 + C90002 + 1.5 C90004 <=> C80020,"7 Carbon + 1.5 H2(g) + O2(g) + 1.5 Cl2(g) <=> 2,3,5-Trichlorobenzoate",-213.53,298.15,0,7.0,14
+Dolfing (1992),C80021,formation,A,,"formation of 3,4,5-Trichlorobenzoate",7 C06265 + 1.5 C90000 + C90002 + 1.5 C90004 <=> C80021,"7 Carbon + 1.5 H2(g) + O2(g) + 1.5 Cl2(g) <=> 3,4,5-Trichlorobenzoate",-201.73,298.15,0,7.0,14
+Dolfing (1992),C80022,formation,A,,formation of 2-Bromobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90005 <=> C80022,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 Br2(l) <=> 2-Bromobenzoate,-49.76,298.15,0,7.0,14
+Dolfing (1992),C80023,formation,A,,formation of 3-Bromobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90005 <=> C80023,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 Br2(l) <=> 3-Bromobenzoate,-43.26,298.15,0,7.0,14
+Dolfing (1992),C80024,formation,A,,formation of 4-Bromobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90005 <=> C80024,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 Br2(l) <=> 4-Bromobenzoate,-36.56,298.15,0,7.0,14
+Dolfing (1992),C80025,formation,A,,formation of 2-Iodobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90006 <=> C80025,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 I2(s) <=> 2-Iodobenzoate,13.24,298.15,0,7.0,14
+Dolfing (1992),C80026,formation,A,,formation of 3-Iodobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90006 <=> C80026,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 I2(s) <=> 3-Iodobenzoate,15.64,298.15,0,7.0,14
+Dolfing (1992),C80027,formation,A,,formation of 4-Iodobenzoate,7 C06265 + 2.5 C90000 + C90002 + 0.5 C90006 <=> C80027,7 Carbon + 2.5 H2(g) + O2(g) + 0.5 I2(s) <=> 4-Iodobenzoate,18.44,298.15,0,7.0,14
+Dolfing (1992),C80028,formation,A,,formation of 2-Amino-5-chlorobenzoate,7 C06265 + 3 C90000 + 0.5 C90001 + C90002 + 0.5 C90004 <=> C80028,7 Carbon + 3 H2(g) + 0.5 N2(g) + O2(g) + 0.5 Cl2(g) <=> 2-Amino-5-chlorobenzoate,-15.84,298.15,0,7.0,14
+Dolfing (1992),C80029,formation,A,,formation of 2-Hydroxy-5-chlorobenzoate,7 C06265 + 2.5 C90000 + 1.5 C90002 + 0.5 C90004 <=> C80029,7 Carbon + 2.5 H2(g) + 1.5 O2(g) + 0.5 Cl2(g) <=> 2-Hydroxy-5-chlorobenzoate,-249.16,298.15,0,7.0,14
+Dolfing (1992),C80030,formation,A,,formation of 2-Methyl-5-chlorobenzoate,8 C06265 + 3.5 C90000 + C90002 + 0.5 C90004 <=> C80030,8 Carbon + 3.5 H2(g) + O2(g) + 0.5 Cl2(g) <=> 2-Methyl-5-chlorobenzoate,2.51,298.15,0,7.0,14
+Dolfing (1994),C80043,formation,A,,formation of Chloromethane,C06265 + 1.5 C90000 + 0.5 C90004 <=> C80043,Carbon + 1.5 H2(g) + 0.5 Cl2(g) <=> Chloromethane,67.09,298.15,0,7.0,14
+Dolfing (1994),C80045,formation,A,,formation of Ethane,2 C06265 + 3 C90000 <=> C80045,2 Carbon + 3 H2(g) <=> Ethane,222.18,298.15,0,7.0,14
+Dolfing (1994),C80046,formation,A,,"formation of 1,1,2,2-Tetrachloroethane",2 C06265 + C90000 + 2 C90004 <=> C80046,"2 Carbon + H2(g) + 2 Cl2(g) <=> 1,1,2,2-Tetrachloroethane",-9.05,298.15,0,7.0,14
+Dolfing (1994),C80047,formation,A,,formation of Propane,3 C06265 + 4 C90000 <=> C80047,3 Carbon + 4 H2(g) <=> Propane,312.16,298.15,0,7.0,14
+Dolfing (1994),C80048,formation,A,,formation of 1-Chloropropane,3 C06265 + 3.5 C90000 + 0.5 C90004 <=> C80048,3 Carbon + 3.5 H2(g) + 0.5 Cl2(g) <=> 1-Chloropropane,234.81,298.15,0,7.0,14
+Dolfing (1994),C80049,formation,A,,"formation of 1,3-Dichloropropane",3 C06265 + 3 C90000 + C90004 <=> C80049,"3 Carbon + 3 H2(g) + Cl2(g) <=> 1,3-Dichloropropane",159.23,298.15,0,7.0,14
+Dolfing (1994),C80050,formation,A,,formation of Butane,4 C06265 + 5 C90000 <=> C80050,4 Carbon + 5 H2(g) <=> Butane,399.14,298.15,0,7.0,14
+Dolfing (1994),C80051,formation,A,,formation of 1-Chlorobutane,4 C06265 + 4.5 C90000 + 0.5 C90004 <=> C80051,4 Carbon + 4.5 H2(g) + 0.5 Cl2(g) <=> 1-Chlorobutane,327.60,298.15,0,7.0,14
+Dolfing (1994),C80052,formation,A,,formation of 2-Chlorobutane,4 C06265 + 4.5 C90000 + 0.5 C90004 <=> C80052,4 Carbon + 4.5 H2(g) + 0.5 Cl2(g) <=> 2-Chlorobutane,313.85,298.15,0,7.0,14
+Dolfing (1994),C80053,formation,A,,formation of Pentane,5 C06265 + 6 C90000 <=> C80053,5 Carbon + 6 H2(g) <=> Pentane,488.46,298.15,0,7.0,14
+Dolfing (1994),C80054,formation,A,,formation of 1-Chloropentane,5 C06265 + 5.5 C90000 + 0.5 C90004 <=> C80054,5 Carbon + 5.5 H2(g) + 0.5 Cl2(g) <=> 1-Chloropentane,409.72,298.15,0,7.0,14
+Wagman (1982),C80055,formation,A,,formation of CH3NHp,3 C06265 + 4.5 C90000 + 0.5 C90001 + 0.5 C90002 <=> C80055,3 Carbon + 4.5 H2(g) + 0.5 N2(g) + 0.5 O2(g) <=> CH3NHp,436.75,298.15,0,7.0,14
