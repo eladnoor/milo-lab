@@ -295,8 +295,8 @@ class Kegg(Singleton):
         for row_dict in self.db.DictReader('kegg_compound'):
             compound = kegg_compound.Compound.FromDBRow(row_dict)
             self.cid2compound_map[compound.cid] = compound
-            if compound.name:
-                self.name2cid_map[compound.name] = compound.cid
+            for name in compound.all_names:
+                self.name2cid_map[name] = compound.cid
             if compound.inchi:
                 self.inchi2cid_map[compound.inchi] = compound.cid
         
