@@ -60,30 +60,52 @@ def main():
         r = GetFullOxidationReaction(cid)
         r.Balance(balance_water=False, balance_hydrogens=True, exception_if_unknown=True)
         dG0 = r.PredictReactionEnergy(thermo)
+        s_tot = sum([abs(x) for x in r.sparse.values()])
         if np.isfinite(dG0):
-            data.append((kegg.cid2name(cid), gr, dG0, atom_bag['C'], mw))
+            data.append((kegg.cid2name(cid), gr, dG0, atom_bag['C'], mw, s_tot))
     
-    fig = plt.figure(figsize=(20, 7), dpi=90)
-    plt.subplot(1,3,1)
-    plt.plot([x[2] for x in data], [x[1] for x in data], '.', figure=fig)
-    for x in data:
-        plt.text(x[2], x[1], x[0], fontsize=8, figure=fig)
-    plt.xlabel('Oxidation energy [kJ/mol (C.S.)]')
-    plt.ylabel('Growth rate [1/hr]')
+    plots = []
+    plots.append({'x':[-x[2] for x in data],
+                  'y':[x[1] for x in data],
+                  'labels':[x[0] for x in data],
+                  'xlabel':r'Oxidation -$\Delta_r G''^\circ$ [kJ/mol]',
+                  'ylabel':r'Growth rate [1/hr]',
+                  })
 
-    plt.subplot(1,3,2)
-    plt.plot([x[2]/x[3] for x in data], [x[1] for x in data], '.', figure=fig)
-    for x in data:
-        plt.text(x[2]/x[3], x[1], x[0], fontsize=8, figure=fig)
-    plt.xlabel('Oxidation energy [kJ/mol of C (C.S.)]')
-    plt.ylabel('Growth rate [1/hr]')
+    plots.append({'x':[-x[2]/x[3] for x in data],
+                  'y':[x[1] for x in data],
+                  'labels':[x[0] for x in data],
+                  'xlabel':r'Oxidation -$\Delta_r G''^\circ$ [kJ/mol (C.S.)]',
+                  'ylabel':r'Growth rate [1/hr]',
+                  })
 
-    plt.subplot(1,3,3)
-    plt.plot([x[2]/x[4] for x in data], [x[1] for x in data], '.', figure=fig)
-    for x in data:
-        plt.text(x[2]/x[4], x[1], x[0], fontsize=8, figure=fig)
-    plt.xlabel('Oxidation energy [kJ/gr (C.S.)]')
-    plt.ylabel('Growth rate [1/hr]')
+    plots.append({'x':[-x[2]/x[4] for x in data],
+                  'y':[x[1] for x in data],
+                  'labels':[x[0] for x in data],
+                  'xlabel':r'Oxidation -$\Delta_r G''^\circ$ [kJ/gr]',
+                  'ylabel':r'Growth rate [1/hr]',
+                  })
+
+    plots.append({'x':[x[5] for x in data],
+                  'y':[x[1] for x in data],
+                  'labels':[x[0] for x in data],
+                  'xlabel':r'$\Sigma_i |s_i|$',
+                  'ylabel':r'Growth rate [1/hr]',
+                  })
+
+    
+    fig = plt.figure(figsize=(12, 12), dpi=50)
+
+    for i, d in enumerate(plots):
+        plt.subplot(2,2,i+1)
+        plt.plot(d['x'], d['y'], '.', figure=fig)
+        for j in xrange(len(d['x'])):
+            plt.text(d['x'][j], d['y'][j], d['labels'][j], fontsize=8, figure=fig)
+        plt.xlabel(d['xlabel'])
+        plt.ylabel(d['ylabel'])
+        r = np.corrcoef(d['x'], d['y'])
+        plt.title(r'$r$ = %.2f' % r[0,1])
+
     
     fig.savefig('../res/growth_rate_vs_thermo.svg')
     
