@@ -105,7 +105,6 @@ def main():
         plt.ylabel(d['ylabel'])
         r = np.corrcoef(d['x'], d['y'])
         plt.title(r'$r$ = %.2f' % r[0,1])
-
     
     fig.savefig('../res/growth_rate_vs_thermo.svg')
     

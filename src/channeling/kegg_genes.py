@@ -37,7 +37,12 @@ class KeggGenes(object):
 
         f = urllib.urlopen('http://rest.kegg.jp/list/cpd/')
         for row in f.read().split('\n'):
-            compound, all_names = row.split('\t')
+            if row.strip() == '':
+                continue
+            if row.find('\t') != -1:
+                compound, all_names = row.split('\t', 1)
+            else:
+                raise ValueError('Bad compound name: ' + row)
             name = all_names.split(';')[0]
             self.db.Insert(self.COMPOUND_TABLE_NAME, [compound, name, all_names])
         self.db.Commit()
@@ -51,6 +56,8 @@ class KeggGenes(object):
 
         f = urllib.urlopen('http://rest.kegg.jp/list/%s/' % organism)
         for row in f.read().split('\n'):
+            if row.strip() == '':
+                continue
             gene, desc = row.split('\t')
             self.db.Insert(self.GENE_TABLE_NAME, [organism, gene, desc])
         self.db.Commit()
@@ -65,6 +72,8 @@ class KeggGenes(object):
 
         f = urllib.urlopen('http://rest.kegg.jp/link/rn/%s' % organism)
         for row in f.read().split('\n'):
+            if row.strip() == '':
+                continue
             gene, reaction = row.split('\t')
             self.db.Insert(self.GENE_REACTION_TABLE_NAME, [organism, gene, reaction])
         self.db.Commit()        
@@ -381,11 +390,12 @@ class KeggGenes(object):
                 """
         
         self.html_writer.write('<font size="1">\n')
-        self.db.Query2HTML(self.html_writer, query,
-                           ['Gene 1', 'Gene 2', 'Common Compound',
-                            'Reaction 1', 'Reaction 2',
-                            'dGc1', 'dGc2', 'dG2-dG1', 'Desc 1', 'Desc 2',
-                            'Score'])
+        column_names = ['Gene 1', 'Gene 2', 'Common Compound',
+                        'Reaction 1', 'Reaction 2',
+                        'dGc1', 'dGc2', 'dG2-dG1', 'Desc 1', 'Desc 2',
+                        'Score']
+        self.db.Query2HTML(self.html_writer, query, column_names)
+        self.db.Query2CSV('../res/channeling_tabel.csv', query, column_names)
         self.html_writer.write('</font>\n')
 
 if __name__ == "__main__":
@@ -396,7 +406,7 @@ if __name__ == "__main__":
     
     kegg_gene = KeggGenes('../res/channeling.html')
 
-    if False:
+    if True:
         kegg_gene.LoadCofactors()
         kegg_gene.LoadFunctionalInteractions()
         kegg_gene.GetAllCompounds()
@@ -416,7 +426,7 @@ if __name__ == "__main__":
     #kegg_gene.Correlate(-40, -30, reverse=False)
     kegg_gene.PlotCDF()
     kegg_gene.PrintPairs()
-    sys.exit(0)
+    #sys.exit(0)
     
     csv_writer = csv.writer(open('../res/channeling.csv', 'w'))
     csv_writer.writerow(['dGc1 <> x', 'dGc2 <> x', 'P(unqualify)', 'P(qualify)'])
