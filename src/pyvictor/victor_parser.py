@@ -4,7 +4,7 @@
 from xlrd import open_workbook
 import numpy as np
 import matplotlib.pyplot as plt
-import types, os, re, time
+import types, re, time
 from time import strptime, strftime
 from tkFileDialog import askopenfilename      
 
@@ -17,11 +17,11 @@ class VictorParser():
         
         self.reading_label_map = {'Absorbance @ 600 (1.0s) (A)': 'OD600'}
     
-    def parse_excel(self, fname):
-        if (not os.path.exists(fname)):
-            raise Exception("Cannot locate the Excel file: " + fname)
-        wd = open_workbook(fname)
+    def parse_excel(self, fp):
+        wd = open_workbook(file_contents=fp.read())
         
+        # Get the date and time of the experiment from the Excel sheet
+        # called "Protocol".
         protocol_sheet = wd.sheet_by_index(2)
         
         self.measurement_time = None
@@ -39,6 +39,7 @@ class VictorParser():
         if self.measurement_time is None:
             raise Exception("cannot get measurement date in XLS file: " + fname)
         
+        # Get the values of all the measurements from the "List" Excel sheet
         sheet = wd.sheet_by_index(0)
         titles = sheet.row_values(0) # [Plate, Repeat, Well, Type] + [Time, Measurement] * n
         self.measurement_names = []
@@ -57,7 +58,7 @@ class VictorParser():
             
         for r in range(1, sheet.nrows):
             row = sheet.row_values(r)
-            unused_plate, unused_repeat, well, type = row[0:4]
+            _plate, _repeat, well, _type = row[0:4]
             
             well_row = ord(well[0]) - ord('A')
             well_col = int(well[1:]) - 1
@@ -189,7 +190,7 @@ class VictorParser():
 
     def write_to_database(self, db, exp_id, plate_id=0):
         for m_name in sorted(self.plate.keys()):
-            for (row, col) in sorted(self.plate[m_name].keys()):
+            for row, col in sorted(self.plate[m_name].keys()):
                 for t, v in self.plate[m_name][(row, col)]:
                     time_in_sec = time.mktime(self.measurement_time) + 3600.0*t
                     db_row = [exp_id, plate_id, m_name, row, col, time_in_sec, v]
@@ -199,7 +200,7 @@ class VictorParser():
 def callback():
     askopenfilename() 
         
-if (__name__ == "__main__"):
+if __name__ == "__main__":
     vp = VictorParser()
     fname = askopenfilename(filetypes=[("excel", "*.xls"), ("All files", "*")])
     vp.parse_excel(fname)

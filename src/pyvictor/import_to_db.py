@@ -1,39 +1,42 @@
-from optparse import OptionParser
+from argparse import ArgumentParser
 import sys, os
-from toolbox.database import MySQLDatabase
+from toolbox.database import MySQLDatabase, SqliteDatabase
 import time
 from pyvictor.victor_parser import VictorParser
 
+# all Victor experiments have only one plate, so their ID is 0
+PLATE_ID = 0
+
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
-    opt_parser = OptionParser(usage="usage: %prog [options]")
-    opt_parser.add_option("-o", "--host",
-                          dest="host",
-                          default="hldbv02",
-                          help="The hostname for the MySQL database (default=%default)")
-    opt_parser.add_option("-e", "--exp_id",
-                          dest="exp_id",
-                          default=None,
-                          help="The ID for the imported experiment data, "
-                          "default is to use the measurement date.")
-    opt_parser.add_option("-p", "--plate_id",
-                          dest="plate_id", default=0, type='int',
-                          help="The ID of the read plate (should always be 0)")
-    opt_parser.add_option("-d", "--xls_dir",
-                          dest="xls_dir", default='/media/vicky_elad/',
-                          help="The path to the directory containing Victor XLS results")
-    opt_parser.add_option("-i", "--xls_file",
-                          dest="xls_file", default=None,
-                          help="The path to the XLS file containing Victor results")
-    return opt_parser
+    parser = ArgumentParser()
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='debug mode, store results in dummy DB')
+    parser.add_argument('-e', '--exp_id', default=None,
+                        help='Override the experiment ID '
+                             '(default is to use the measurement date-time)')
+    parser.add_argument('xls_file',
+                        help='The path to the XLS file containing Victor results')
+    return parser
 
 def GetTimeString():
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
-def get_latest_file(path):
+def GetLatestFile(path):
     filelist = [f for f in os.listdir(path) if f[-4:] == '.xls']
     filelist = filter(lambda x: not os.path.isdir(path + x), filelist)
     return max(filelist, key=lambda x: os.stat(path + x).st_mtime)
+
+def CreateDummyDB():
+    db = SqliteDatabase('/tmp/victor_dummy.sqlite', 'w')
+    db.CreateTable('tecan_readings', 'exp_id TEXT, plate_id TEXT, '
+                   'measurement_name TEXT, row INT, col INT, time_in_sec INT, '
+                   'value REAL', drop_if_exists=False)
+    db.CreateTable('tecan_experiments', 'exp_id TEXT, desc TEXT',
+                   drop_if_exists=False)
+    db.CreateTable('tecan_plates', 'exp_id TEXT, plate_id TEXT, '
+                   'field1 TEXT, field2 INT, field3 INT', drop_if_exists=False)
+    return db
 
 def main():
     """
@@ -41,11 +44,13 @@ def main():
         The Experiment ID is determined by the time-stamp of the first measurement.
     """
     
-    opt_parser = MakeOpts()
-    options, _ = opt_parser.parse_args()
+    options = MakeOpts().parse_args()
 
-    db = MySQLDatabase(host=options.host, user='ronm', port=3306,
-                       passwd='a1a1a1', db='tecan')
+    if options.debug:
+        db = CreateDummyDB()
+    else:
+        db = MySQLDatabase(host='hldbv02', user='ronm', port=3306,
+                           passwd='a1a1a1', db='tecan')
 
     if options.xls_file is not None:
         xls_filename = options.xls_file
@@ -53,7 +58,7 @@ def main():
         if not os.path.exists(options.xls_dir):
             print "Directory not found: " + options.xls_dir
             sys.exit(-1)
-        xls_filename = options.xls_dir + get_latest_file(options.xls_dir)
+        xls_filename = options.xls_dir + GetLatestFile(options.xls_dir)
         
     if not os.path.exists(xls_filename):
         print "File not found: " + xls_filename
@@ -61,7 +66,7 @@ def main():
     
     print "Importing from file: " + xls_filename
     vp = VictorParser()
-    vp.parse_excel(xls_filename)
+    vp.parse_excel(open(xls_filename, 'r'))
     
     exp_id = options.exp_id or vp.get_time_string()   
     print "Experiment ID: " + exp_id
@@ -76,10 +81,14 @@ def main():
     
     desc = "Imported from Victor on " + GetTimeString()
     db.Insert('tecan_experiments', [exp_id, desc])
-    db.Insert('tecan_plates', [exp_id, options.plate_id, "", None, None])
+    db.Insert('tecan_plates', [exp_id, PLATE_ID, "", None, None])
     vp.write_to_database(db, exp_id)
     db.Commit()
-    print "Done, go check out the results at http://eladpc1/RoboSite/Exp/%s/0" % exp_id
+    
+    if options.debug:
+        print "Done, go check out the results at %s" % db.filename
+    else:
+        print "Done, go check out the results at http://eladpc1/RoboSite/Exp/%s/0" % exp_id
     
 if __name__ == '__main__':
     main()
