@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 import sys, os
-from toolbox.database import MySQLDatabase, SqliteDatabase
+from database import MySQLDatabase, SqliteDatabase
 import time
-from pyvictor.victor_parser import VictorParser
+from victor_parser import VictorParser
 
 # all Victor experiments have only one plate, so their ID is 0
 PLATE_ID = 0
@@ -38,6 +38,26 @@ def CreateDummyDB():
                    'field1 TEXT, field2 INT, field3 INT', drop_if_exists=False)
     return db
 
+def ImportFileToDatabase(fp, db, exp_id=None):
+    vp = VictorParser()
+    vp.parse_excel(fp)
+    
+    exp_id = exp_id or vp.get_time_string()   
+    print "Experiment ID: " + exp_id
+
+    # delete any previous data regarding this exp_id
+    db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
+    db.Execute("DELETE FROM tecan_experiments WHERE exp_id='%s'" % exp_id)
+    db.Execute("DELETE FROM tecan_plates WHERE exp_id='%s'" % exp_id)
+    
+    desc = "Imported from Victor on " + GetTimeString()
+    db.Insert('tecan_experiments', [exp_id, desc])
+    db.Insert('tecan_plates', [exp_id, PLATE_ID, "", None, None])
+    vp.write_to_database(db, exp_id)
+    db.Commit()
+    
+    return exp_id
+    
 def main():
     """
         Imports an XLS file of Victor exported results.
@@ -65,26 +85,8 @@ def main():
         sys.exit(-1)
     
     print "Importing from file: " + xls_filename
-    vp = VictorParser()
-    vp.parse_excel(open(xls_filename, 'r'))
-    
-    exp_id = options.exp_id or vp.get_time_string()   
-    print "Experiment ID: " + exp_id
-
-    if raw_input('Ready to import Victor results? [y/n] ') != 'y':
-        sys.exit(0)
-    
-    # delete any previous data regarding this exp_id
-    db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
-    db.Execute("DELETE FROM tecan_experiments WHERE exp_id='%s'" % exp_id)
-    db.Execute("DELETE FROM tecan_plates WHERE exp_id='%s'" % exp_id)
-    
-    desc = "Imported from Victor on " + GetTimeString()
-    db.Insert('tecan_experiments', [exp_id, desc])
-    db.Insert('tecan_plates', [exp_id, PLATE_ID, "", None, None])
-    vp.write_to_database(db, exp_id)
-    db.Commit()
-    
+    fp = open(xls_filename, 'r')
+    exp_id = ImportFileToDatabase(fp, db, options.exp_id)
     if options.debug:
         print "Done, go check out the results at %s" % db.filename
     else:
