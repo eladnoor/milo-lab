@@ -1,0 +1,25 @@
+,origindex,Carbon sources name,Formula,Maximum growth rate measured ,Maximum growth rate predicted by MOMENT,Maximum growth rate predicted by FBAwMC,,rounded_SUMEXval:,measured growthrate
+EX_akg(e),4,Oxoglutarate,'C5H4O5',0.24 ±0.04,0.450,0.638,"alpha-Ketoglutaric acid,<br>2-Ketoglutaric acid,<br>Oxoglutaric acid,<br>2-Oxoglutarate",65.669,0.24
+EX_glc(e),18,Glucose,'C6H12O6',0.66 ±0.05,0.506,0.646,"Glucose,<br>Dextrose,<br>alpha-D-Glucose,<br>Grape sugar,<br>D-Glucose",278.828,0.66
+EX_ala_L(e),5,L-Alanine,'C3H7NO2',0.24 ±0.03,0.432,0.627,"ALA,<br>L-alpha-Alanine,<br>L-2-Aminopropionic acid,<br>L-Alanine",70.129,0.24
+EX_succ(e),17,Succinate,'C4H4O4',0.5 ±0.02,0.446,0.620,"Ethylenesuccinic acid,<br>Butanedionic acid,<br>Succinic acid,<br>Succinate",18.821,0.5
+EX_g6p(e),20,Glucose 6-Phosphate,'C6H11O9P',0.78 ±0.04,0.567,0.654,"glucose-6-phosphate,<br>D-glucose-6-phosphate,<br>alpha-D-glucose-6-phosphate,<br>D-Glucose6-phosphate,<br>alpha-D-Glucose 6-phosphate,<br>Robison ester,<br>Glucose 6-phosphate,<br>D-Glucose 6-phosphate",280.619,0.78
+EX_fru(e),7,Fructose,'C6H12O6',0.54 ±0.04,0.497,0.648,"arabino-Hexulose,<br>Fructose,<br>beta-Levulose,<br>beta-D-arabino-Hexulose,<br>beta-Fruit sugar,<br>beta-D-Fructose,<br>D-arabino-Hexulose,<br>Fruit sugar,<br>Levulose,<br>D-Fructose",278.828,0.54
+EX_glyc(e),3,Glycerol,'C3H8O3',0.47 ±0.03,0.509,0.647,"GLYC,<br>1,2,3-Propanetriol,<br>1,2,3-Trihydroxypropane,<br>Glycerin,<br>Glycerol",127.832,0.47
+EX_rib_D(e),10,Ribose,'C5H10O5',0.41 ±0.01,0.407,0.611,D-Ribose,225.347,0.41
+EX_fum(e),9,Fumarate,'C4H2O4',0.47 ±0.03,0.460,0.622,"trans-Butenedioic acid,<br>Fumaric acid,<br>Fumarate",13.42,0.47
+EX_gal(e),11,Galactose,'C6H12O6',0.24 ±0.02,0.489,0.633,"GALC,<br>D-Galactose",278.231,0.24
+EX_acgam(e),2,N-acetylglucosamine,'C8H15NO6',0.61 ±0.03,0.518,0.666,"GlcNAc,<br>2-Acetamido-2-deoxy-D-glucose,<br>N-Acetylchitosamine,<br>N-Acetyl-D-glucosamine",279.403,0.61
+EX_mal_L(e),16,L-Malate,'C4H4O5',0.55 ±0.03,0.467,0.607,"2-Hydroxybutanedioic acid,<br>Malic acid,<br>Malate,<br>MALA,<br>L-2-Hydroxybutanedioic acid,<br>L-Malic acid,<br>L-Apple acid,<br>L-Malate,<br>(S)-Malate",66.702,0.55
+EX_man(e),23,Mannose,'C6H12O6',0.35 ±0.03,0.487,0.646,"alpha-D-Mannose,<br>MANN,<br>Carubinose,<br>Seminose,<br>Mannose,<br>D-Mannose",278.828,0.35
+EX_xyl_D(e),24,Xylose,'C5H10O5',0.51 ±0.03,0.495,0.630,"Xylose,<br>Wood sugar,<br>D-Xylose",227.137,0.51
+EX_lac_L(e),12,L-Lactate,'C3H5O3',0.41 ±0.03,0.424,0.591,"LCTT,<br>L-Lactic acid,<br>L-Lactate,<br>(S)-Lactate",47.62,0.41
+EX_malt(e),19,Maltose,'C12H22O11',0.52 ±0.02,0.494,0.647,"1-alpha-D-Glucopyranosyl-4-alpha-D-glucopyranose,<br>Malt sugar,<br>Maltose",535.393,0.52
+EX_glcn(e),13,Gluconate,'C6H11O7',0.68 ±0.03,0.513,0.639,"GLCN,<br>D-gluco-Hexonic acid,<br>D-Gluconate,<br>D-Gluconic acid",260.527,0.68
+EX_gsn(e),8,Guanosine,'C10H13N5O5',0.37 ±0.03,0.589,0.685,Guanosine,218.182,0.37
+EX_mnl(e),21,Mannitol,'C6H14O6',0.61 ±0.03,0.461,0.637,"MNTL,<br>D-Mannitol,<br>Mannitol",277.933,0.61
+EX_sbt_D(e),14,Sorbitol,'C6H14O6',0.48 ±0.03,0.479,0.647,"Sorbitol,<br>L-Gulitol,<br>D-Glucitol,<br>D-Sorbitol",277.933,0.48
+EX_tre(e),22,Trehalose,'C12H22O11',0.48 ±0.04,0.509,0.651,"TRHL,<br>Trehalose,<br>alpha,alpha&#39;-Trehalose,<br>alpha,alpha-Trehalose",535.393,0.48
+EX_ac(e),1,Acetate,'C2H3O2',0.29 ±0.02,0.300,0.549,"ACET,<br>Glacial acetic acid,<br>Ethanoic acid,<br>Acetic acid,<br>Acetate",-0.748,0.29
+EX_pyr(e),6,Pyruvate,'C3H3O3',0.41 ±0.03,0.477,0.621,"Pyroracemic acid,<br>2-Oxopropanoic acid,<br>2-Oxopropanoate,<br>Pyruvic acid,<br>Pyruvate",39.857,0.41
+EX_gam(e),15,Glucosamine,'C6H14NO5',0.4 ±0.03,0.497,0.662,0,0,0.4
