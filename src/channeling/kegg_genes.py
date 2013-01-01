@@ -382,8 +382,8 @@ class KeggGenes(object):
                        kg1.desc, kg2.desc, g.score FROM
                 (SELECT gene1, gene2, reaction1, reaction2, compound, max(dGc1) dG1, min(dGc2) dG2, min(dGc2 - dGc1) ddG, max(score) score
                 FROM kegg_gene_pairs
-                WHERE dGc1 + dGc2 < 0
-                AND   dGc1 > 10
+                WHERE dGc1 + dGc2 < 1000000
+                AND   dGc1 > -1000000
                 GROUP BY gene1, gene2, compound
                 ORDER BY ddG) g, kegg_genes kg1, kegg_genes kg2, kegg_compounds c
                 WHERE g.gene1 = kg1.gene AND g.gene2 = kg2.gene AND c.compound = g.compound
@@ -398,6 +398,25 @@ class KeggGenes(object):
         self.db.Query2CSV('../res/channeling_tabel.csv', query, column_names)
         self.html_writer.write('</font>\n')
 
+    def PrintAllPairs(self):
+        query = """
+                SELECT g.gene1, g.gene2, c.name, g.reaction1, g.reaction2, 
+                       g.dG1, g.dG2 FROM
+                (SELECT gene1, gene2, reaction1, reaction2, compound, max(dGc1) dG1, min(dGc2) dG2
+                FROM kegg_gene_pairs
+                GROUP BY gene1, gene2, compound
+                ORDER BY gene1, gene2, reaction1, reaction2, compound) g, kegg_genes kg1, kegg_genes kg2, kegg_compounds c
+                WHERE g.gene1 = kg1.gene AND g.gene2 = kg2.gene AND c.compound = g.compound
+                """
+        
+        self.html_writer.write('<font size="1">\n')
+        column_names = ['Gene 1', 'Gene 2', 'Common Compound',
+                        'Reaction 1', 'Reaction 2',
+                        'dGc1', 'dGc2']
+        self.db.Query2HTML(self.html_writer, query, column_names)
+        self.db.Query2CSV('../res/channeling_tabel.csv', query, column_names)
+        self.html_writer.write('</font>\n')
+
 if __name__ == "__main__":
     plt.rcParams['legend.fontsize'] = 10
     plt.rcParams['font.family'] = 'sans-serif'
@@ -406,7 +425,7 @@ if __name__ == "__main__":
     
     kegg_gene = KeggGenes('../res/channeling.html')
 
-    if True:
+    if False:
         kegg_gene.LoadCofactors()
         kegg_gene.LoadFunctionalInteractions()
         kegg_gene.GetAllCompounds()
@@ -426,7 +445,7 @@ if __name__ == "__main__":
     #kegg_gene.Correlate(-40, -30, reverse=False)
     kegg_gene.PlotCDF()
     kegg_gene.PrintPairs()
-    #sys.exit(0)
+    sys.exit(0)
     
     csv_writer = csv.writer(open('../res/channeling.csv', 'w'))
     csv_writer.writerow(['dGc1 <> x', 'dGc2 <> x', 'P(unqualify)', 'P(qualify)'])
