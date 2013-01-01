@@ -1,22 +1,27 @@
 import numpy as np
+from scipy.stats import pearsonr, spearmanr
 import csv
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.kegg import Kegg 
 from pygibbs.kegg_reaction import Reaction
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
-def GetGrowthRateData():
+def LoadGrowthData():
     kegg = Kegg.getInstance()
     path = '../data/growth/growth_rates_adadi_2012.csv'
-    growth_rate_dict = {}
+    data = []
     for row in csv.DictReader(open(path, 'r')):
-        growth_rate = float(row['maximum growth rate measured'])
         carbon_source = row['carbon source']
         cid, _, _ = kegg.name2cid(carbon_source)
         if cid is None:
             raise Exception("Cannot map compound name to KEGG ID: " + carbon_source)
-        growth_rate_dict[cid] = growth_rate
-    return growth_rate_dict
+
+        data.append({'carbon_source': carbon_source,
+                     'cid': cid,
+                     'growth_rate': float(row['maximum growth rate measured']),
+                     'sumex': float(row['SUMEX'])})
+    return data
 
 def GetFullOxidationReaction(cid):
     kegg = Kegg.getInstance()
@@ -45,69 +50,106 @@ def GetFullOxidationReaction(cid):
     
     return r
 
-def main():
-    kegg = Kegg.getInstance()
-    estimators = LoadAllEstimators()
-    thermo = estimators['UGC']
-    gr_dict = GetGrowthRateData()
+def CorrPlot(x, y, labels, xlabel, ylabel, figure):
+    plt.plot(x, y, '.', figure=figure)
+    for j in xrange(len(x)):
+        plt.text(x[j], y[j], labels[j], fontsize=8, figure=figure)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    (r_pearson, p_pearson) = pearsonr(x, y)
+    (r_spearman, p_spearman) = spearmanr(x, y)
+    plt.title(r'$r_{Pearson}$ = %.2f (p = %.3f), $r_{Spearman}$ = %.2f (p = %.3f)' %
+              (r_pearson, p_pearson, r_spearman, p_spearman),
+              fontsize=10)
 
-    data = []
-    for cid, gr in gr_dict.iteritems():
-        mol = kegg.cid2mol(cid)
-        mw = mol.GetExactMass()
-        atom_bag, _ = mol.GetAtomBagAndCharge()
-         
-        r = GetFullOxidationReaction(cid)
-        r.Balance(balance_water=False, balance_hydrogens=True, exception_if_unknown=True)
-        dG0 = r.PredictReactionEnergy(thermo)
-        s_tot = sum([abs(x) for x in r.sparse.values()])
-        if np.isfinite(dG0):
-            data.append((kegg.cid2name(cid), gr, dG0, atom_bag['C'], mw, s_tot))
-    
+def PlotEnergy(data, y_title, y_label, pdf):
+    data_with_dG0 = [d for d in data if np.isfinite(d['dG0'])]
+
     plots = []
-    plots.append({'x':[-x[2] for x in data],
-                  'y':[x[1] for x in data],
-                  'labels':[x[0] for x in data],
+    plots.append({'x':[-d['dG0'] for d in data_with_dG0],
+                  'y':[d[y_title] for d in data_with_dG0],
+                  'labels':[d['carbon_source'] for d in data_with_dG0],
                   'xlabel':r'Oxidation -$\Delta_r G''^\circ$ [kJ/mol]',
-                  'ylabel':r'Growth rate [1/hr]',
+                  'ylabel':y_label,
                   })
 
-    plots.append({'x':[-x[2]/x[3] for x in data],
-                  'y':[x[1] for x in data],
-                  'labels':[x[0] for x in data],
+    plots.append({'x':[-d['dG0']/d['numC'] for d in data_with_dG0],
+                  'y':[d[y_title] for d in data_with_dG0],
+                  'labels':[d['carbon_source'] for d in data_with_dG0],
                   'xlabel':r'Oxidation -$\Delta_r G''^\circ$ [kJ/mol (C.S.)]',
-                  'ylabel':r'Growth rate [1/hr]',
+                  'ylabel':y_label,
                   })
 
-    plots.append({'x':[-x[2]/x[4] for x in data],
-                  'y':[x[1] for x in data],
-                  'labels':[x[0] for x in data],
+    plots.append({'x':[-d['dG0']/d['mw'] for d in data_with_dG0],
+                  'y':[d[y_title] for d in data_with_dG0],
+                  'labels':[d['carbon_source'] for d in data_with_dG0],
                   'xlabel':r'Oxidation -$\Delta_r G''^\circ$ [kJ/gr]',
-                  'ylabel':r'Growth rate [1/hr]',
+                  'ylabel':y_label,
                   })
 
-    plots.append({'x':[x[5] for x in data],
-                  'y':[x[1] for x in data],
-                  'labels':[x[0] for x in data],
+    plots.append({'x':[d['total S'] for d in data],
+                  'y':[d[y_title] for d in data],
+                  'labels':[d['carbon_source'] for d in data],
                   'xlabel':r'$\Sigma_i |s_i|$',
-                  'ylabel':r'Growth rate [1/hr]',
+                  'ylabel':y_label,
                   })
-
     
     fig = plt.figure(figsize=(12, 12), dpi=50)
 
     for i, d in enumerate(plots):
         plt.subplot(2,2,i+1)
-        plt.plot(d['x'], d['y'], '.', figure=fig)
-        for j in xrange(len(d['x'])):
-            plt.text(d['x'][j], d['y'][j], d['labels'][j], fontsize=8, figure=fig)
-        plt.xlabel(d['xlabel'])
-        plt.ylabel(d['ylabel'])
-        r = np.corrcoef(d['x'], d['y'])
-        plt.title(r'$r$ = %.2f' % r[0,1])
+        CorrPlot(d['x'], d['y'], d['labels'],
+                 d['xlabel'], d['ylabel'], figure=fig)
     
-    fig.savefig('../res/growth_rate_vs_thermo.svg')
+    fig.tight_layout()
     
+    pdf.savefig(fig)
+    
+def main():
+    kegg = Kegg.getInstance()
+    estimators = LoadAllEstimators()
+    thermo = estimators['UGC']
+    data = LoadGrowthData()
+    
+    pdf = PdfPages('../res/growth_rates.pdf')
+
+    for d in data:
+        mol = kegg.cid2mol(d['cid'])
+        d['mw'] = mol.GetExactMass()
+        atom_bag, _ = mol.GetAtomBagAndCharge()
+        d['numC'] = atom_bag['C']
+         
+        r = GetFullOxidationReaction(d['cid'])
+        r.Balance(balance_water=False, balance_hydrogens=True, exception_if_unknown=True)
+        print r.FullReactionString(show_cids=False)
+        d['dG0'] = r.PredictReactionEnergy(thermo)
+        d['total S'] = sum([abs(x) for x in r.sparse.values()])
+    
+    PlotEnergy(data, 'growth_rate', 'Specific Growth Rate [1/hr]', pdf)
+    
+    fig = plt.figure(figsize=(12,6))
+    plt.subplot(1,2,1)
+    CorrPlot([d['sumex'] for d in data],
+             [d['growth_rate'] for d in data],
+             [d['carbon_source'] for d in data],
+             'SUMEX score',
+             'Specific Growth Rate [1/h]',
+             figure=fig)
+    data_with_dG0 = [d for d in data if np.isfinite(d['dG0'])]
+    plt.subplot(1,2,2)
+    CorrPlot([-d['dG0'] for d in data_with_dG0],
+             [d['growth_rate'] for d in data_with_dG0],
+             [d['carbon_source'] for d in data_with_dG0],
+             r'Oxidation $-\Delta_r G^\circ$ [kJ/mol]',
+             'Specific Growth Rate [1/h]',
+             figure=fig)
+    fig.tight_layout()
+    pdf.savefig(fig)
+
+    PlotEnergy(data, 'sumex', 'SUMEX score', pdf)
+
+    pdf.close()
     
 if __name__ == "__main__":
     main()
+    
