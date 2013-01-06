@@ -1,9 +1,9 @@
 import time, calendar, csv
-from xml.etree.ElementTree import ElementTree
 import tarfile
 import pylab
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
+from xml.dom.minidom import parse
 
 COLORS = ['g',
           'r',
@@ -62,38 +62,40 @@ def GetPlateFiles(tar_fname, number_of_plates=None):
     return PL    
 
 def ParseReaderFile(fname):
-    xml_reader = ElementTree()
-    xml_reader.parse(fname)
-    reading_label = None
-    time_in_sec = None
-    well = (0, 0)
-    measurement = None
+    dom = parse(fname)
+    serial_number = dom.getElementsByTagName('SerialNumber')[0].firstChild.data
     plate_values = {}
-    for e in xml_reader.getiterator():
-        if e.tag == 'Section':
-            reading_label = e.attrib['Name']
-            TIME = e.attrib['Time_Start']
-            TIME = TIME[:19]
-            TS = time.strptime(TIME, fmt)
-            time_in_sec = calendar.timegm(TS)
-            plate_values[reading_label] = {}
-            plate_values[reading_label][time_in_sec] = {}
-        elif e.tag == 'Well':
-            W = e.attrib['Pos']
+    
+    for e in dom.getElementsByTagName('Section'):
+        reading_label = e.getAttribute('Name')
+        TIME = e.getAttribute('Time_Start')
+        TIME = TIME[:19]
+        TS = time.strptime(TIME, fmt)
+        time_in_sec = calendar.timegm(TS)
+        plate_values[reading_label] = {}
+        plate_values[reading_label][time_in_sec] = {}
+        data_dom = e.getElementsByTagName('Data')[0]
+        for well_dom in data_dom.getElementsByTagName('Well'):
+            W = well_dom.getAttribute('Pos')
             well_row = ord(W[0]) - ord('A')
             well_col = int(W[1:]) - 1
             well = (well_row, well_col)
-        elif e.tag == 'Multiple':
-            if e.attrib['MRW_Position'] == 'Mean':
-                measurement = e.text
-                plate_values[reading_label][time_in_sec][well] = float(measurement)
-        elif e.tag == 'Single':
-            measurement = e.text
-            if measurement == "OVER":
-                plate_values[reading_label][time_in_sec][well] = None
-            else:
-                plate_values[reading_label][time_in_sec][well] = float(measurement)
-    return plate_values
+            if well_dom.getAttribute('Type') == 'Single':
+                meas_dom = well_dom.getElementsByTagName('Single')[0]
+                measurement = meas_dom.firstChild.data
+                if measurement == "OVER":
+                    plate_values[reading_label][time_in_sec][well] = None
+                else:
+                    plate_values[reading_label][time_in_sec][well] = float(measurement)
+            elif well_dom.getAttribute('Type') == 'Multiple':
+                meas_dom = well_dom.getElementsByTagName('Multiple')[0]
+                if meas_dom.getAttribute('MRW_Position') == 'Mean':
+                    measurement = meas_dom.firstChild.data
+                    plate_values[reading_label][time_in_sec][well] = float(measurement)
+            
+            print reading_label, time_in_sec, well, plate_values[reading_label][time_in_sec][well]
+    
+    return serial_number, plate_values
 
 def CollectData(tar_fname, number_of_plates=None):
     PL = GetPlateFiles(tar_fname, number_of_plates)
@@ -102,7 +104,7 @@ def CollectData(tar_fname, number_of_plates=None):
     for plate_id in PL:
         MES[plate_id] = None
         for f in PL[plate_id]:
-            plate_values = ParseReaderFile(f)
+            serial_number, plate_values = ParseReaderFile(f)
             if MES[plate_id] == None:
                 MES[plate_id] = plate_values
             else:
