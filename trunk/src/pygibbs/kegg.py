@@ -20,6 +20,7 @@ import openbabel
 import types
 from pygibbs.kegg_errors import KeggReactionNotBalancedException
 import urllib
+from toolbox.molecule import OpenBabelError
     
 class Kegg(Singleton):
     COMPOUND_ADDITIONS_FILE = '../data/kegg/kegg_additions.csv'
@@ -650,6 +651,21 @@ class Kegg(Singleton):
 
     def get_all_rids(self):
         return sorted(self.rid2reaction_map.keys())
+    
+    def get_all_balanced_reactions(self):
+        kegg_reaction_list = []
+        for rid in sorted(self.get_all_rids()):
+            reaction = self.rid2reaction(rid)
+            r = Reaction("R%05d" % rid, reaction.sparse, 
+                         rid=rid, direction=reaction.direction)
+            try:
+                r.Balance(balance_water=True, exception_if_unknown=True)
+                kegg_reaction_list.append(r)
+            except kegg_errors.KeggReactionNotBalancedException:
+                logging.warning("R%05d is not balanced" % rid)
+            except OpenBabelError as e:
+                logging.warning(str(e))
+        return kegg_reaction_list
     
     def inchi2cid(self, inchi):
         return self.inchi2cid_map.get(inchi, None)

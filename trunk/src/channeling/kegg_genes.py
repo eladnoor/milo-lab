@@ -435,7 +435,8 @@ if __name__ == "__main__":
         kegg_gene.GetStoichiometries()
         
         estimators = LoadAllEstimators()
-        kegg_gene.GetForamtionEnergies(estimators['UGC'])
+        thermo = estimators['UGC']
+        kegg_gene.GetForamtionEnergies(thermo)
         
         kegg_gene.LoadCofactors()
         kegg_gene.CreateGeneEnergyTable()
