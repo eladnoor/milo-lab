@@ -16,6 +16,8 @@ from toolbox.linear_regression import LinearRegression
 from toolbox.database import SqliteDatabase
 import types
 from pygibbs.kegg_reaction import Reaction
+from pygibbs import kegg_errors
+from toolbox.molecule import OpenBabelError
 
 
 def GetReactionEnergiesFromFormationEnergies(S, dG0_f):
@@ -185,7 +187,7 @@ class Thermodynamics(object):
                    'reference', 'anchor']
         html_writer.write_table(rowdicts, headers, decimal=1)
     
-    def write_chemical_data_to_csv(self, csv_fname):
+    def WriteChemicalFormationEnergiesToCsv(self, csv_fname):
         kegg = Kegg.getInstance()
         writer = csv.writer(open(csv_fname, 'w'))
         writer.writerow(['name', 'cid', 'nH', 'z', 'nMg', 'dG0'])
@@ -198,7 +200,7 @@ class Thermodynamics(object):
             except MissingCompoundFormationEnergy as e:
                 logging.warning(str(e))
 
-    def write_biochemical_data_to_csv(self, csv_fname):
+    def WriteBiochemicalFormationEnergiesToCsv(self, csv_fname):
         kegg = Kegg.getInstance()
         pH, I, pMg, T = self.GetConditions()
         writer = csv.writer(open(csv_fname, 'w'))
@@ -209,6 +211,18 @@ class Thermodynamics(object):
             name = kegg.cid2name(cid)
             writer.writerow([name, "C%05d" % cid, pH, I, pMg, T,
                              '%.1f' % dG0_prime[0, i]])
+            
+    def WriteBiochemicalReactionEnergiesToCsv(self, csv_fname):
+        kegg = Kegg.getInstance()
+        pH, I, pMg, T = self.GetConditions()
+        
+        kegg_reactions = kegg.get_all_balanced_reactions()
+        writer = csv.writer(open(csv_fname, 'w'))
+        writer.writerow(['rid', 'formula', 'pH', 'I', 'pMg', 'T', 'dG0'])
+                
+        dG0_r = self.GetTransfromedKeggReactionEnergies(kegg_reactions)
+        for i, reaction in enumerate(kegg_reactions):
+            writer.writerow([reaction.name, reaction.FullReactionString(), pH, I, pMg, T, '%.1f' % float(dG0_r[0, i])])
 
     def GetJSONDictionary(self):
         """Returns a JSON formatted thermodynamic data."""
@@ -257,13 +271,6 @@ class Thermodynamics(object):
             pmap = other.cid2PseudoisomerMap(cid)
             self.SetPseudoisomerMap(cid, pmap)
 
-    def write_transformed_data_to_csv(self, csv_fname):
-        writer = csv.writer(open(csv_fname, 'w'))
-        writer.writerow(['cid', 'pH', 'pMg', 'I', 'T', 'dG0_tag'])
-        for cid in self.get_all_cids():
-            dG0_tag = self.cid2dG0_tag(cid)
-            writer.writerow([cid, self.pH, self.pMg, self.I, self.T, dG0_tag])
-            
     def ToDatabase(self, db, table_name, error_table_name=None):
         kegg = Kegg.getInstance()
         db.CreateTable(table_name, "cid INT, nH INT, z INT, nMg INT, "
