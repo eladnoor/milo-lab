@@ -375,6 +375,19 @@ class KeggGenes(object):
 
         self.html_writer.embed_matplotlib_figure(fig, width=400, height=400, name='channeling_cdf')
 
+    def PrintEnergies(self):
+        query = """
+                SELECT e.reaction, e.equation, g.dG0, g.dGc 
+                FROM   kegg_equations e, kegg_gibbs_energies g 
+                WHERE  e.equation = g.equation
+                """
+
+        self.html_writer.write('<font size="1">\n')
+        column_names = ['KEGG Reaction', 'Formula', 'dG0', 'dGc']
+        self.db.Query2HTML(self.html_writer, query, column_names)
+        self.db.Query2CSV('../res/channeling_energy_tabel.csv', query, column_names)
+        self.html_writer.write('</font>\n')
+
     def PrintPairs(self):
         query = """
                 SELECT g.gene1, g.gene2, c.name, g.reaction1, g.reaction2, 
@@ -395,7 +408,7 @@ class KeggGenes(object):
                         'dGc1', 'dGc2', 'dG2-dG1', 'Desc 1', 'Desc 2',
                         'Score']
         self.db.Query2HTML(self.html_writer, query, column_names)
-        self.db.Query2CSV('../res/channeling_tabel.csv', query, column_names)
+        self.db.Query2CSV('../res/channeling_pairs_table.csv', query, column_names)
         self.html_writer.write('</font>\n')
 
     def PrintAllPairs(self):
@@ -414,7 +427,7 @@ class KeggGenes(object):
                         'Reaction 1', 'Reaction 2',
                         'dGc1', 'dGc2']
         self.db.Query2HTML(self.html_writer, query, column_names)
-        self.db.Query2CSV('../res/channeling_tabel.csv', query, column_names)
+        self.db.Query2CSV('../res/channeling_all_pairs_table.csv', query, column_names)
         self.html_writer.write('</font>\n')
 
 if __name__ == "__main__":
@@ -446,6 +459,7 @@ if __name__ == "__main__":
     #kegg_gene.Correlate(-40, -30, reverse=False)
     kegg_gene.PlotCDF()
     kegg_gene.PrintPairs()
+    kegg_gene.PrintEnergies()
     sys.exit(0)
     
     csv_writer = csv.writer(open('../res/channeling.csv', 'w'))
