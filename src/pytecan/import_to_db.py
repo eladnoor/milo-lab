@@ -7,13 +7,18 @@ import time
 
 def CreateDummyDB():
     db = SqliteDatabase('/tmp/victor_dummy.sqlite', 'w')
-    db.CreateTable('tecan_readings', 'exp_id TEXT, plate_id TEXT, '
-                   'measurement_name TEXT, row INT, col INT, time_in_sec INT, '
-                   'value REAL', drop_if_exists=False)
-    db.CreateTable('tecan_experiments', 'exp_id TEXT, desc TEXT',
+    db.CreateTable('tecan_readings',
+                   'exp_id TEXT, plate TEXT, reading_label TEXT, row INT, col INT, time INT, measurement REAL',
                    drop_if_exists=False)
-    db.CreateTable('tecan_plates', 'exp_id TEXT, plate_id TEXT, '
-                   'field1 TEXT, field2 INT, field3 INT', drop_if_exists=False)
+    db.CreateTable('tecan_labels',
+                   'exp_id TEXT, plate INT, row INT, col INT, label TEXT',
+                   drop_if_exists=False)
+    db.CreateTable('tecan_plates',
+                   'exp_id TEXT, plate INT, description TEXT, owner TEXT, project TEXT',
+                   drop_if_exists=False)
+    db.CreateTable('tecan_experiments',
+                   'exp_id TEXT, serial_number TEXT, desciption TEXT',
+                   drop_if_exists=False)
     return db
 
 def MakeOpts():
@@ -74,7 +79,7 @@ def main():
             sys.exit(-1)
         
         print "Importing from file: " + options.tar_filename
-        MES = CollectData(options.tar_filename)
+        serial_number, MES = CollectData(options.tar_filename)
 
         exp_id = options.exp_id or GetExpDate(MES)        
         print "Experiment ID: " + exp_id
@@ -82,33 +87,41 @@ def main():
         # delete any previous data regarding this exp_id
         db.Execute("DELETE FROM tecan_readings WHERE exp_id='%s'" % exp_id)
         db.Execute("DELETE FROM tecan_experiments WHERE exp_id='%s'" % exp_id)
-        db.Insert('tecan_experiments', [exp_id, options.plate_id, 
-                                        "Imported from TAR file on " + 
-                                        GetTimeString()])
+
+        description = "Imported from TAR file on " + GetTimeString()
+        db.Insert('tecan_experiments', [exp_id, serial_number, description])
         WriteToDatabase(MES, db, exp_id)
-    elif options.xml_dir or options.xml_filename:
-        if options.plate_id is None:
-            print "Plate ID not supplied, but is mandatory when importing an XML"
-            sys.exit(-1)
+        db.Commit()
+        print "Done!"
+        sys.exit(0)
+        
+    if (options.xml_dir or options.xml_filename) and (options.plate_id is None):
+        print "Plate ID not supplied, but is mandatory when importing an XML"
+        sys.exit(-1)
+            
     if options.xml_dir:
         if not os.path.exists(options.xml_dir):
             print "Directory not found: " + options.xml_dir
             sys.exit(-1)
         options.xml_filename = options.xml_dir + get_latest_file(options.xml_dir)
+
+    if options.xml_filename:
         if not os.path.exists(options.xml_filename):
             print "File not found: " + options.xml_filename
             sys.exit(-1)
         
         print "Importing from file: " + options.xml_filename
-        MES = CollectDataFromSingleFile(options.xml_filename, options.plate_id)
-        print MES
-        exp_id = GetCurrentExperimentID(db)
+        serial_number, MES = CollectDataFromSingleFile(options.xml_filename, options.plate_id)
+
+        exp_id = options.exp_id or GetCurrentExperimentID(db)
         print "Experiment ID: " + exp_id
         
         WriteToDatabase(MES, db, exp_id)
+        db.Commit()
+        print "Done!"
+        sys.exit(0)
    
-    db.Commit()
-    print "Done!"
+    print "WARNING: no files provided"
     
 if __name__ == '__main__':
     main()

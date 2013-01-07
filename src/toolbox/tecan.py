@@ -93,28 +93,38 @@ def ParseReaderFile(fname):
                     measurement = meas_dom.firstChild.data
                     plate_values[reading_label][time_in_sec][well] = float(measurement)
             
-            print reading_label, time_in_sec, well, plate_values[reading_label][time_in_sec][well]
-    
     return serial_number, plate_values
 
 def CollectData(tar_fname, number_of_plates=None):
     PL = GetPlateFiles(tar_fname, number_of_plates)
     MES = {}
     
+    serial_numbers = set()
+    
     for plate_id in PL:
         MES[plate_id] = None
         for f in PL[plate_id]:
             serial_number, plate_values = ParseReaderFile(f)
+            serial_numbers.add(serial_number)
             if MES[plate_id] == None:
                 MES[plate_id] = plate_values
             else:
                 for reading_label, label_values in plate_values.iteritems():
                     for time_in_sec, time_values in label_values.iteritems():
                         MES[plate_id][reading_label][time_in_sec] = time_values
-    return MES
+                        
+    if len(serial_numbers) > 0:
+        if len(serial_numbers) > 1:
+            sys.stderr('WARNING: not all serial numbers are the same in the provided XML files')
+        serial_number = serial_numbers.pop()
+    else:
+        sys.stderr('WARNING: there are no serial numbers in the provided XML files')
+        serial_number = ''
+    return serial_number, MES
 
 def CollectDataFromSingleFile(xml_fname, plate_id):
-    return {plate_id: ParseReaderFile(xml_fname)}
+    serial_number, plate_values = ParseReaderFile(xml_fname)
+    return serial_number, {plate_id: plate_values}
 
 def WriteCSV(MES, f):
     """
