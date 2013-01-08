@@ -11,8 +11,6 @@ from argparse import ArgumentParser
 import csv
 from toolbox import color, util
 from collections import defaultdict
-import tarfile
-import os
 
 def ParseConcentrationRange(conc_range):
     (start, step, end) = [float(x) for x in conc_range.split(':')]
