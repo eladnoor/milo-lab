@@ -63,10 +63,15 @@ def GetPlateFiles(tar_fname, number_of_plates=None):
 
 def ParseReaderFile(fname):
     dom = parse(fname)
-    serial_number = dom.getElementsByTagName('SerialNumber')[0].firstChild.data
+    header_dom = dom.getElementsByTagName('Header')[0]
+    script_dom = dom.getElementsByTagName('Script')[0]
+    section_doms = dom.getElementsByTagName('Section')
+    plate_values = ParseReaderMeasurementSections(section_doms)
+    return header_dom, script_dom, plate_values
+
+def ParseReaderMeasurementSections(section_doms):
     plate_values = {}
-    
-    for e in dom.getElementsByTagName('Section'):
+    for e in section_doms:
         reading_label = e.getAttribute('Name')
         TIME = e.getAttribute('Time_Start')
         TIME = TIME[:19]
@@ -93,38 +98,44 @@ def ParseReaderFile(fname):
                     measurement = meas_dom.firstChild.data
                     plate_values[reading_label][time_in_sec][well] = float(measurement)
             
-    return serial_number, plate_values
+    return plate_values
 
-def CollectData(tar_fname, number_of_plates=None):
-    PL = GetPlateFiles(tar_fname, number_of_plates)
-    MES = {}
-    
-    serial_numbers = set()
-    
-    for plate_id in PL:
-        MES[plate_id] = None
-        for f in PL[plate_id]:
-            serial_number, plate_values = ParseReaderFile(f)
-            serial_numbers.add(serial_number)
-            if MES[plate_id] == None:
-                MES[plate_id] = plate_values
-            else:
-                for reading_label, label_values in plate_values.iteritems():
-                    for time_in_sec, time_values in label_values.iteritems():
-                        MES[plate_id][reading_label][time_in_sec] = time_values
-                        
-    if len(serial_numbers) > 0:
-        if len(serial_numbers) > 1:
-            sys.stderr('WARNING: not all serial numbers are the same in the provided XML files')
-        serial_number = serial_numbers.pop()
-    else:
-        sys.stderr('WARNING: there are no serial numbers in the provided XML files')
-        serial_number = ''
-    return serial_number, MES
+# Legacy code (parsing a TAR of XML files from the reader is not used anymore)
+#
+#def CollectData(tar_fname, number_of_plates=None):
+#    PL = GetPlateFiles(tar_fname, number_of_plates)
+#    MES = {}
+#    
+#    serial_numbers = set()
+#    
+#    for plate_id in PL:
+#        MES[plate_id] = None
+#        for f in PL[plate_id]:
+#            serial_number, _header_dom, _script_dom, plate_values = ParseReaderFile(f)
+#            serial_numbers.add(serial_number)
+#            if MES[plate_id] == None:
+#                MES[plate_id] = plate_values
+#            else:
+#                for reading_label, label_values in plate_values.iteritems():
+#                    for time_in_sec, time_values in label_values.iteritems():
+#                        MES[plate_id][reading_label][time_in_sec] = time_values
+#                        
+#    if len(serial_numbers) > 0:
+#        if len(serial_numbers) > 1:
+#            sys.stderr('WARNING: not all serial numbers are the same in the provided XML files')
+#        serial_number = serial_numbers.pop()
+#    else:
+#        sys.stderr('WARNING: there are no serial numbers in the provided XML files')
+#        serial_number = ''
+#    return serial_number, MES
+#
 
-def CollectDataFromSingleFile(xml_fname, plate_id):
-    serial_number, plate_values = ParseReaderFile(xml_fname)
-    return serial_number, {plate_id: plate_values}
+def CollectDataFromSingleFile(xml_fname):
+    header_dom, script_dom, plate_values = ParseReaderFile(xml_fname)
+    return header_dom, script_dom, {plate_id: plate_values}
+
+def GetSerialNumber(header_dom):
+    return header_dom.getElementsByTagName('SerialNumber')[0].firstChild.data
 
 def WriteCSV(MES, f):
     """
