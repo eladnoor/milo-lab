@@ -54,28 +54,31 @@ def MakeOpts():
 def GetTimeString():
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
-def get_latest_file(path):
-    filelist = os.listdir(path)
-    filelist = filter(lambda x: not os.path.isdir(path + x), filelist)
-    return max(filelist, key=lambda x: os.stat(path + x).st_mtime)
+def GetLatestFile(path):
+    filelist = [os.path.join(path, x) for x in os.listdir(path)]
+    filelist = filter(lambda x: not os.path.isdir(x), filelist)
+    return max(filelist, key=lambda x: os.stat(x).st_mtime)
 
 def GetExperimentID(options, db, header_dom, script_dom):
+    if options.exp_id is not None:
+        return options.exp_id
+    
+    serial_number = tecan.GetSerialNumber(header_dom)
     if options.generate_exp_id:
         exp_id = GetTimeString()
-        serial_number = tecan.GetSerialNumber(header_dom)
         db.Insert('tecan_experiments', [exp_id, serial_number, "Automatically generated"])
         db.Insert('tecan_scripts', [exp_id, script_dom.toxml()])
         print "Generating Experiment ID: " + exp_id
         return exp_id
     
     if options.last_exp_id:
-        exp_id = tecan.GetCurrentExperimentID(db)
+        exp_id = tecan.GetCurrentExperimentID(db, serial_number)
         if exp_id is None:
             raise Exception("There are no experiments in the database yet, "
                             "use the --generate_exp_id flag")
         return exp_id
     
-    return options.exp_id
+    raise Exception("internal error: none of the exp_id flags has been used")
 
 def main():
     options = MakeOpts().parse_args()
@@ -90,7 +93,7 @@ def main():
         if not os.path.exists(options.xml_dir):
             print "Directory not found: " + options.xml_dir
             sys.exit(-1)
-        xml_fname = options.xml_dir + get_latest_file(options.xml_dir)
+        xml_fname = GetLatestFile(options.xml_dir)
     else:
         xml_fname = options.xml_filename
 
