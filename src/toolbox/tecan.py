@@ -165,8 +165,11 @@ def GetExpInitTime(MES):
     else:
         raise ValueError("The experiment has no data, cannot find the init time")
                     
-def GetCurrentExperimentID(db):
-    for row in db.Execute("SELECT max(exp_id) e FROM tecan_experiments"):
+def GetCurrentExperimentID(db, serial_number=None):
+    query = "SELECT max(exp_id) e FROM tecan_experiments"
+    if serial_number is not None:
+        query += " WHERE serial_number = \"%s\"" % serial_number
+    for row in db.Execute(query):
         return row[0]
     raise ValueError("Database Error: no experiments present in tecan_experiments table")
             
