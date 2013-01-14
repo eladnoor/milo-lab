@@ -32,11 +32,9 @@ def MakeOpts():
     parser.add_argument('-d', '--debug', action='store_true', default=False,
                         help='debug mode, store results in dummy DB')
     
-    exp_id_group = parser.add_mutually_exclusive_group(required=True)
+    exp_id_group = parser.add_mutually_exclusive_group(required=False)
     exp_id_group.add_argument("-g", "--generate_exp_id", default=False, action="store_true",
                               help="Generate a new Experiment ID and add it to the database")
-    exp_id_group.add_argument("-l", "--last_exp_id", default=False, action="store_true",
-                              help="Use the latest Experiment ID that appears in the database")
     exp_id_group.add_argument("-e", "--exp_id", default=None,
                               help="Set the experiment ID explicitly")
     
@@ -71,15 +69,12 @@ def GetExperimentID(options, db, header_dom, script_dom):
         print "Generating Experiment ID: " + exp_id
         return exp_id
     
-    if options.last_exp_id:
-        exp_id = tecan.GetCurrentExperimentID(db, serial_number)
-        if exp_id is None:
-            raise Exception("There are no experiments in the database yet, "
-                            "use the --generate_exp_id flag")
-        return exp_id
+    exp_id = tecan.GetCurrentExperimentID(db, serial_number)
+    if exp_id is None:
+        raise Exception("There are no experiments in the database yet, "
+                        "use the --generate_exp_id flag")
+    return exp_id
     
-    raise Exception("internal error: none of the exp_id flags has been used")
-
 def main():
     options = MakeOpts().parse_args()
 
