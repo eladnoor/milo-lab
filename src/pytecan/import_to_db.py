@@ -32,11 +32,8 @@ def MakeOpts():
     parser.add_argument('-d', '--debug', action='store_true', default=False,
                         help='debug mode, store results in dummy DB')
     
-    exp_id_group = parser.add_mutually_exclusive_group(required=False)
-    exp_id_group.add_argument("-g", "--generate_exp_id", default=False, action="store_true",
-                              help="Generate a new Experiment ID and add it to the database")
-    exp_id_group.add_argument("-e", "--exp_id", default=None,
-                              help="Set the experiment ID explicitly")
+    parser.add_argument("-e", "--exp_id", default=None, required=False,
+                        help="Set the experiment ID explicitly")
     
     xml_group = parser.add_mutually_exclusive_group(required=True)
     xml_group.add_argument("-x", "--xml_filename", default=None,
@@ -44,8 +41,11 @@ def MakeOpts():
     xml_group.add_argument("-a", "--xml_dir", default=None,
                            help="The directory from which to import the latest XML results file")
     
-    parser.add_argument("-p", "--plate_id", default=None, type=int, required=True,
-                        help="The ID of the read plate (necessary when using -x)")
+    parser.add_argument("-i", "--iteration", default=None, type=int, required=True,
+                        help="The iteration number in the robot script")
+
+    parser.add_argument("-p", "--num_plates", default=None, type=int, required=True,
+                        help="The number of plates in the experiment")
     
     return parser
 
@@ -60,19 +60,18 @@ def GetLatestFile(path):
 def GetExperimentID(options, db, header_dom, script_dom):
     if options.exp_id is not None:
         return options.exp_id
-    
+
     serial_number = tecan.GetSerialNumber(header_dom)
-    if options.generate_exp_id:
+    if options.iteration == 0:
         exp_id = GetTimeString()
         db.Insert('tecan_experiments', [exp_id, serial_number, "Automatically generated"])
         db.Insert('tecan_scripts', [exp_id, script_dom.toxml()])
         print "Generating Experiment ID: " + exp_id
         return exp_id
-    
+
     exp_id = tecan.GetCurrentExperimentID(db, serial_number)
     if exp_id is None:
-        raise Exception("There are no experiments in the database yet, "
-                        "use the --generate_exp_id flag")
+        raise Exception("There are no experiments in the database yet")
     return exp_id
     
 def main():
@@ -98,11 +97,14 @@ def main():
     
     print "Importing from file: " + xml_fname
     header_dom, script_dom, plate_values = tecan.ParseReaderFile(xml_fname)
-    MES = {options.plate_id: plate_values}
 
     exp_id = GetExperimentID(options, db, header_dom, script_dom)
     print "Experiment ID: " + exp_id
     
+    plate_id = options.iteration % options.num_plates
+    print "Plate ID: %d" % plate_id 
+    
+    MES = {plate_id: plate_values}
     tecan.WriteToDatabase(MES, db, exp_id)
     db.Commit()
     print "Done!"
