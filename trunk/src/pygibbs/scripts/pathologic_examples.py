@@ -54,23 +54,23 @@ def add_cofactor_reactions(pl, free_ATP_hydrolysis=True):
         # all Adenosine phosphorylations
         pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00008", name='ATP to ADP'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00020", name='ATP to AMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> C00020", name='ATP to AMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> C00020", name='ADP to AMP'))
     
         pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00206", name='dATP to dADP'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00360", name='dATP to dAMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00206 <=> C00360", name='dATP to dAMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00206 <=> C00360", name='dADP to dAMP'))
     
         pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00104", name='ITP to IDP'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00130", name='ITP to IMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00104 <=> C00130", name='ITP to IMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00104 <=> C00130", name='IDP to IMP'))
     
         pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00035", name='GTP to GDP'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00144", name='GTP to GMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00035 <=> C00144", name='GTP to GMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00035 <=> C00144", name='GDP to GMP'))
     
         pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00112", name='CTP to CDP'))
         pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00055", name='CTP to CMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00112 <=> C00055", name='CTP to CMP'))
+        pl.add_cofactor_reaction(Reaction.FromFormula("C00112 <=> C00055", name='CDP to CMP'))
 
 def add_redox_reactions(pl, NAD_only=False):
     # all electron transfer reactions
