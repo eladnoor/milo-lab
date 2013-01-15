@@ -8,7 +8,7 @@ import os, sys
 dn = os.path.dirname(os.path.realpath(__file__))
 # Append current directory to the python path
 sys.path.append(os.path.join(dn, 'victor'))
-from import_to_db import ImportFileToDatabase
+from victor_parser import VictorParser
 from database import MySQLDatabase, SqliteDatabase
 
 print 'Content-Type: text/html'     # HTML is following
@@ -27,9 +27,8 @@ if fileitem.filename:
     # strip leading path from file name to avoid 
     # directory traversal attacks
     fn = os.path.basename(fileitem.filename)
-    db = MySQLDatabase(host='hldbv02', user='ronm', port=3306,
-                       passwd='a1a1a1', db='tecan')
-    exp_id = ImportFileToDB(fileitem.file, db)
+    db = MySQLDatabase(host='hldbv02', user='ronm', port=3306, passwd='a1a1a1', db='tecan')
+    exp_id = VictorParser.ImportFileToDB(fileitem.file, db)
     href = '/RoboSite/Exp/%s/0' % exp_id
     print '<h2>Success!</h2>'
     print 'The file %s was uploaded to the database </br>' % fn
