@@ -1,9 +1,22 @@
 #!/usr/bin/python
 
-import cgi, os
+import cgi
 import cgitb; cgitb.enable()
-from victor_uploader import ImportFileToDatabase, CreateDummyDB
 
+import os, sys
+# Store current working directory
+dn = os.path.dirname(os.path.realpath(__file__))
+# Append current directory to the python path
+sys.path.append(os.path.join(dn, 'victor'))
+from import_to_db import ImportFileToDatabase
+from database import MySQLDatabase, SqliteDatabase
+
+print 'Content-Type: text/html'     # HTML is following
+print                               # blank line, end of headers
+print '<title>Victor results uploader</title>'
+print '<html><body><center>'
+print '<h1>Welcome to the Victor Results Uploader</h1>'
+print '<a href="http://en.wikipedia.org/wiki/Victor_Hugo"><img src="/600full-victor-hugo.gif"></a></br></br></br>'
 form = cgi.FieldStorage()
 
 # Get filename here.
@@ -14,18 +27,16 @@ if fileitem.filename:
     # strip leading path from file name to avoid 
     # directory traversal attacks
     fn = os.path.basename(fileitem.filename)
-    db = CreateDummyDB()
-    exp_id = ImportFileToDatabase(fileitem.file, db)
-    message = 'The file "' + fn + '" was uploaded successfully'
-   
+    db = MySQLDatabase(host='hldbv02', user='ronm', port=3306,
+                       passwd='a1a1a1', db='tecan')
+    exp_id = ImportFileToDB(fileitem.file, db)
+    href = '/RoboSite/Exp/%s/0' % exp_id
+    print '<h2>Success!</h2>'
+    print 'The file %s was uploaded to the database </br>' % fn
+    print 'The ID for this experiment is <a href="%s">%s</a> </br>' % (href, exp_id)
 else:
-    message = 'No file was uploaded'
-   
-print """\
-Content-Type: text/html\n
-<html>
-<body>
-   <p>%s</p>
-</body>
-</html>
-""" % (message,)
+    print '<h2>Error</h2>'
+    print 'No file was uploaded</br>'
+    print '<script type="text/javascript"></script><a href="javascript:history.back(-1)">Go Back</a>'
+
+print '</center></body></html>'
