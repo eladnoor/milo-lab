@@ -8,12 +8,16 @@ import re
 from django.db import models
 from gibbs import constants
 from gibbs import formula_parser
-import indigo
-import indigo_renderer
 import openbabel
 #from django.core.files.base import ContentFile
 import base64
 import json
+
+try:
+    import indigo
+    import indigo_renderer
+except ImportError:
+    indigo = None
 
 class CommonName(models.Model):
     """A common name of a compound."""
@@ -317,6 +321,10 @@ class Compound(models.Model):
         _obConversion.ReadString(obmol, str(self.inchi))
         smiles = _obConversion.WriteString(obmol)
 
+        if not indigo:
+            # the web server is not supposed to be running this function
+            logging.error('Indigo is not installed, cannot draw structures.')
+
         _indigo = indigo.Indigo()
         _renderer = indigo_renderer.IndigoRenderer(_indigo)
         _indigo.setOption('render-output-format', output_format)
@@ -327,7 +335,7 @@ class Compound(models.Model):
         _indigo.setOption('render-coloring', True)
         _indigo.setOption('render-bond-length', 50.0)
         _indigo.setOption('render-label-mode', 'hetero')
-    
+
         try:
             indigo_mol = _indigo.loadMolecule(smiles)
             indigo_mol.aromatize()
@@ -337,7 +345,7 @@ class Compound(models.Model):
             self.thumbnail = base64.encodestring(data)
         except indigo.IndigoException as e:
             logging.warning("Cannot draw structure of %s: %s" % (self.kegg_id,
-                                                                 str(e)))
+                                                                         str(e)))
 
     def GetAtomBag(self):
         """Returns a dictionary of atoms and their counts for this compound."""
