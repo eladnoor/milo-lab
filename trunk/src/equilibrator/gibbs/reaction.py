@@ -1007,6 +1007,8 @@ class Reaction(object):
     extra_electrons = property(ExtraElectrons)
     missing_electrons = property(MissingElectrons)
     filtered_reactants = property(lambda s: s._FilterHydrogen(s.substrates + s.products))
+    filtered_substrates = property(lambda s: s._FilterHydrogen(s.substrates))
+    filtered_products = property(lambda s: s._FilterHydrogen(s.products))
     all_compounds = property(AllCompoundsWithTransformedEnergies)
     dg0 = property(DeltaG0)
     dg0_tag = property(DeltaG0Tag)
