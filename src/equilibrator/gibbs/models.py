@@ -8,7 +8,6 @@ import re
 from django.db import models
 from gibbs import constants
 from gibbs import formula_parser
-import openbabel
 #from django.core.files.base import ContentFile
 import base64
 import json
@@ -16,8 +15,11 @@ import json
 try:
     import indigo
     import indigo_renderer
+    import openbabel
 except ImportError:
     indigo = None
+    indigo_renderer = None
+    openbabel = None
 
 class CommonName(models.Model):
     """A common name of a compound."""
@@ -311,6 +313,10 @@ class Compound(models.Model):
         return sg.DeltaG(pH, pMg, ionic_strength)
 
     def WriteStructureThumbnail(self, output_format='png'):
+        if not indigo or not indigo_renderer or not openbabel:
+            # the web server is not supposed to be running this function
+            logging.error('Indigo/Openbabel are not installed, cannot draw structures.')
+
         if self.inchi is None:
             return
 
@@ -320,10 +326,6 @@ class Compound(models.Model):
         obmol = openbabel.OBMol()
         _obConversion.ReadString(obmol, str(self.inchi))
         smiles = _obConversion.WriteString(obmol)
-
-        if not indigo:
-            # the web server is not supposed to be running this function
-            logging.error('Indigo is not installed, cannot draw structures.')
 
         _indigo = indigo.Indigo()
         _renderer = indigo_renderer.IndigoRenderer(_indigo)
