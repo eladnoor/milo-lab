@@ -13,16 +13,19 @@
 	</head>
 	<body>
 		<div class="centerize">
-			<img src="/media/images/equilibrator_logo_small.png" />
+			<a href="/"><img src="/media/images/equilibrator_logo_small.png" /></a>
 			
 			<div class="refsList">
-				<ol>
 				{% for source in sources %}
 				  {% if source.citation %}
-					<li><a name="{{source.name|slugify}}">{{source.citation}}</a></li>
+					<p>
+					&bull;&nbsp;&nbsp;<a name="{{source.name|slugify}}">{{source.citation}}</a>
+                    {% if source.link %}
+                      <a href="{{source.link}}"><img src="/media/images/document.png" /></a>
+                    {% endif %}
+                    </p>
 				  {% endif %}
 				{% endfor %}
-				</ol>			
 			</div>
 			
 		</div>
