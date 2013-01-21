@@ -56,8 +56,14 @@ class ValueSource(models.Model):
     # A citation name for the source. May be null.
     citation = models.CharField(max_length=4096, null=True)
     
+    # The year of publication
+    year = models.IntegerField()
+    
     # The pubmed ID of the source if available.
     pubmed_id = models.CharField(max_length=128, null=True)
+
+    # The DOI of the source if available.
+    doi = models.CharField(max_length=128, null=True)
     
     # A link explaining the source.
     link = models.URLField(null=True)
