@@ -56,15 +56,13 @@
         "ref": "Noor E, Bar-Even A, Flamholz A, Lubling Y, Davidi D, and Milo R (2012) An integrated open framework for thermodynamics of reactions that combines accuracy and coverage. Bioinformatics. 28: 2037–2044",
         "year": 2012,
         "name": "Group Contribution",
-        "doi": "",
-        "url": ""
+        "doi": "10.1093/bioinformatics/bts317",
+        "url": "http://bioinformatics.oxfordjournals.org/content/28/15/2037.long"
     },
     {
         "ref": "Noor E, Haraldsdottir HS, Milo R, and Fleming RMT (2013) Consistent Estimation of Gibbs Energy using Component Contributions (unpublished)",
         "year": 2013,
-        "name": "Unified Group Contribution",
-        "doi": "10.1093/bioinformatics/bts317",
-        "url": "http://bioinformatics.oxfordjournals.org/content/28/15/2037.long"
+        "name": "Unified Group Contribution"
     }
     
 ]
