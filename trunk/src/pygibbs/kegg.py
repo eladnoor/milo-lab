@@ -990,9 +990,8 @@ class Kegg(Singleton):
         html_writer.write("</ul></li>\n")
         
 class KeggPathologic(object):
-    def __init__(self): # CO2, HCO3-
-        from toolbox.molecule import OpenBabelError
-
+    
+    def __init__(self):
         self.edge_color = "cadetblue"
         self.edge_fontcolor = "indigo"
         self.edge_ex_in_fontcolor = "lightcyan"
@@ -1003,11 +1002,6 @@ class KeggPathologic(object):
         self.node_fillcolor = "dodgerblue"
         self.font = "verdana"
 
-        # cid2uid is a used for two purposes. One is to have canonical IDs for compounds
-        # according to their INCHI labels (i.e. if two CIDs have the same INCHI, all occurences of the second
-        # one will be changed to the first appearing CID). If a CID is not in the INCHI file, but is used
-        # by one of the reactions, it might cause the reaction to be skipped. If compound formulas are to be
-        # added using "database_updates.txt", the SETC line should appear at the top.
         self.reactions = []
         self.cofactor_reaction_list = []
         self.cofactors = set()
