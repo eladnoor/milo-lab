@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-
 import json
 import logging
-import sys, traceback
 
 from util import django_utils
 import gzip
@@ -125,7 +122,7 @@ def AddPmapToCompound(pmap, compound):
         compound.species_groups.add(sg)
 
 
-def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
+def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE, draw_thumbnails=True):
     parsed_json = json.load(gzip.open(kegg_json_filename, 'r'))
     
     for cd in parsed_json:
@@ -162,7 +159,8 @@ def LoadKeggCompounds(kegg_json_filename=COMPOUND_FILE):
             
             if num_electrons is not None:
                 c.num_electrons = int(num_electrons)
-            c.WriteStructureThumbnail()
+            if draw_thumbnails:
+                c.WriteStructureThumbnail()
             
             c.save()
 
@@ -290,9 +288,9 @@ def CheckData(filenames=(COMPOUND_FILE,
         json.load(gzip.open(json_fname, 'r'))
 
 
-def LoadAllKeggData():
+def LoadAllKeggData(draw_thumbnails=True):
     LoadKeggGCNullspace()
-    LoadKeggCompounds()
+    LoadKeggCompounds(draw_thumbnails=draw_thumbnails)
     LoadKeggReactions()
     LoadKeggEnzymes()
 

@@ -28,7 +28,7 @@
 
         <p>
         Measured thermodynamic data is drawn from the work of Robert Alberty (<a href="/data_refs">references here</a>).
-        We use our own implementation of the group-contribution approximation method to provide formation energies
+        We use our own implementation of the component-contribution approximation method to provide formation energies
         when measurements are not available. Because these data rely on different assumptions, mixing formation
         energies from different sources can lead to errors. As such, we offer data on compounds and reactions
         from the various sources in separate files.
@@ -46,13 +46,13 @@
     
         <table class="downloadTable">
         	<tr>
-        		<th>pH</th><th>Alberty Data</th><th>Group Contribution Data</th>
+        		<th>pH</th><th>Component Contribution Data</th><th>Alberty Data</th>
         	</tr>
         	{% for ph in ph_values %}
         	<tr>
         		<td>{{ph}}</td>
+                <td><a href="{{MEDIA_URL}}downloads/kegg_compounds_UGC_ph{{ph}}.csv.gz">Download</a></td>
         		<td><a href="{{MEDIA_URL}}downloads/kegg_compounds_alberty_ph{{ph}}.csv.gz">Download</a></td>
-        		<td><a href="{{MEDIA_URL}}downloads/kegg_compounds_PGC_ph{{ph}}.csv.gz">Download</a></td>
         	</tr>
         	{% endfor %}
           <tr>
@@ -68,13 +68,13 @@
         
         <table class="downloadTable">
         	<tr>
-        		<th>pH</th><th>Alberty Data</th><th>Group Contribution Data</th>
+        		<th>pH</th><th>Component Contribution Data</th><th>Alberty Data</th>
         	</tr>
         	{% for ph in ph_values %}
         	<tr>
         		<td>{{ph}}</td>
+                <td><a href="{{MEDIA_URL}}downloads/kegg_reactions_UGC_ph{{ph}}.csv.gz">Download</a></td>
         		<td><a href="{{MEDIA_URL}}downloads/kegg_reactions_alberty_ph{{ph}}.csv.gz">Download</a></td>
-        		<td><a href="{{MEDIA_URL}}downloads/kegg_reactions_PGC_ph{{ph}}.csv.gz">Download</a></td>
         	</tr>
         	{% endfor %}
           <tr>
@@ -88,7 +88,7 @@
         The standard Gibbs energies of formation of the various protonation states (pseudoisomers) of 
         biochemical compounds in the KEGG database are available for download in two CSV files, one for
         the Alberty Data (<a href="{{MEDIA_URL}}downloads/kegg_pseudoisomers_alberty.csv.gz">download here</a>) and
-        the other for the Group Contribution Data (<a href="{{MEDIA_URL}}downloads/kegg_pseudoisomers_PGC.csv.gz">download here</a>).
+        the other for the Component Contribution Data (<a href="{{MEDIA_URL}}downloads/kegg_pseudoisomers_UGC.csv.gz">download here</a>).
         Each row in the CSV file corresponds to one pseudoisomer of one compound. The columns' order is:
         KEGG compound ID, compound name, chemical formation energy (in kJ/mol), number of hydrogen atoms,
         net charge, number of magnesium ions, note. 

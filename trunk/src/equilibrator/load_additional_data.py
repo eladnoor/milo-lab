@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import json
 import logging
 
@@ -14,9 +12,9 @@ DEFAULT_COMPOUND_DATA_FILENAME = 'data/additional_compound_data.json.gz'
 
 
 def GetOrCreateNames(names_list):
-    """Find all the names in the database.
-    
-    Create them if they are not present.
+    """
+        Find all the names in the database.
+        Create them if they are not present.
     """
     return [models.CommonName.GetOrCreate(n)
             for n in names_list]

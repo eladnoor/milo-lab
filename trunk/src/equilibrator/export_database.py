@@ -20,7 +20,7 @@ def export_database():
     
     export_json()
     
-    for priority, name in [(1, 'PGC'), (2, 'alberty')]:
+    for priority, name in [(1, 'UGC'), (2, 'alberty')]:
 
         export_compounds(priority=priority, name=name,
                          ionic_strength=constants.DEFAULT_IONIC_STRENGTH,
@@ -33,7 +33,7 @@ def export_database():
                          pH_list=constants.PH_RANGE_VALUES)
 
 def export_json():
-    logging.info("Writing compound data to JSON")
+    logging.info("Writing compound data to JSON file: %s" % JSON_FNAME)
     rowdicts = []
     for c in models.Compound.objects.all():
         d = {'name': str(c.name), 
@@ -46,10 +46,11 @@ def export_json():
     json.dump(rowdicts, gzip.open(JSON_FNAME, 'w'), sort_keys=True, indent=4)
 
 def export_reactions(priority, name, ionic_strength, pMg, pH_list):
-    logging.info("Writing transformed reaction energies for %s" % name)
     csv_reaction_dict = {}
     for pH in pH_list:
         reaction_fname = REACTION_PREFIX + '_%s_ph%.1f.csv.gz' % (name, pH)
+        logging.info("Writing transformed reaction energies for %s at pH %g to: %s"
+                     % (name, pH, reaction_fname))
         csv_reaction_dict[pH] = csv.writer(gzip.open(reaction_fname, 'w'))
         csv_reaction_dict[pH].writerow(["!MiriamID::urn:miriam:kegg.reaction",
                                         "!dG0_tag (kJ/mol)", "!pH",
@@ -63,8 +64,9 @@ def export_reactions(priority, name, ionic_strength, pMg, pH_list):
                 csv_reaction_dict[pH].writerow(row)
                 
 def export_compounds(priority, name, ionic_strength, pMg, pH_list):
-    logging.info("Writing transformed formation energies for %s" % name)
     pseudoisomer_fname = PSEUDOISOMER_PREFIX + '_%s.csv.gz' % name
+    logging.info("Writing chemical formation energies for %s to: %s" %
+                 (name, pseudoisomer_fname))
     csv_pseudoisomers = csv.writer(gzip.open(pseudoisomer_fname, 'w'))
     csv_pseudoisomers.writerow(["!MiriamID::urn:miriam:kegg.compound",
                                 "!Name", "!dG0 (kJ/mol)",
@@ -73,6 +75,8 @@ def export_compounds(priority, name, ionic_strength, pMg, pH_list):
     csv_compound_dict = {}
     for pH in pH_list:
         compound_fname = COMPOUND_PREFIX + '_%s_ph%.1f.csv.gz' % (name, pH)
+        logging.info("Writing transformed formation energies for %s at pH %g to: %s" %
+                     (name, pH, compound_fname))
         csv_compound_dict[pH] = csv.writer(gzip.open(compound_fname, 'w'))
         csv_compound_dict[pH].writerow(["!MiriamID::urn:miriam:kegg.compound",
                                         "!Name", "!dG0_tag (kJ/mol)",
