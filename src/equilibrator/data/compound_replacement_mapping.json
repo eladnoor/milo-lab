@@ -1,9 +1,0 @@
-[
-    {   
-    	"FROM ID": "C00011",
-    	"FROM NAME": "CO2",
-    	"TO ID": "C00288",
-    	"TO NAME": "Bicarbonate"
-    	"REASON": "CO2 can't be differentiated from bicarbonate in aqueous environment."
-    }
-]

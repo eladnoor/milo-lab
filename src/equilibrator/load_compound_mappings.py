@@ -1,19 +1,20 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 import json
 import logging
 
 from util import django_utils
+import gzip
 
 django_utils.SetupDjango()
 
 from gibbs import models
 
+DEFAULT_COMPOUND_MAPPING_FILENAME = 'data/compound_replacement_mapping.json.gz'
 
-def LoadEquivalentCompounds(
-    replacements_json_filename='data/compound_replacement_mapping.json'):
+def LoadEquivalentCompounds(json_filename=DEFAULT_COMPOUND_MAPPING_FILENAME):
     """Loads mappings between compounds."""
-    parsed_json = json.load(open(replacements_json_filename))
+    parsed_json = json.load(gzip.open(json_filename))
     
     for mapping in parsed_json:
         from_kegg_id = mapping['FROM ID']
