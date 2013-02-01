@@ -647,13 +647,20 @@ class Reaction(object):
 
     @staticmethod
     def _ReplaceCompound(side, from_id, to_id):
+        """
+            Replace a compound in the reaction with another compound according
+            to their IDs.
+            The stoichiometric coefficient and concentration are copied from
+            the old compound to the new one.
+        """
         index = Reaction._FindCompoundIndex(side, from_id)
         if index is None:
             return
-        
-        coeff = side[index].coeff
-        c_w_coeff = CompoundWithCoeff.FromId(coeff, to_id)
-        side[index] = c_w_coeff
+        from_c_w_c = side[index]
+        coeff = from_c_w_c.coeff
+        conc = from_c_w_c.concentration
+        to_c_w_c = CompoundWithCoeff.FromId(coeff, to_id, concentration=conc)
+        side[index] = to_c_w_c
 
     @staticmethod
     def _AddCompound(side, id, how_many):
