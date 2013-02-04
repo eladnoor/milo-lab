@@ -557,6 +557,21 @@ class Reaction(object):
             return True
         return self._FindCompoundIndex(self.products, co2_id) is not None
     
+    def ContainsVolatile(self):
+        """Checks if at least one of the reactants is volatile
+        
+        Returns:
+            True if there is a volatile reactant
+        """
+        # gases by order in KEGG: O2, NH3, CO, HCO3, H2, N2   
+        volatile_ids = ['C00007','C00014','C00237','C00282','C00288','C00697']
+        for v_id in volatile_ids:
+            if self._FindCompoundIndex(self.substrates, v_id) is not None:
+                return True
+            if self._FindCompoundIndex(self.products, v_id) is not None:
+                return True
+        return False
+    
     def IsReactantFormulaMissing(self):
         try:
             self._GetAtomDiff()
@@ -1003,6 +1018,7 @@ class Reaction(object):
         return True
     
     contains_co2 = property(ContainsCO2)
+    contains_volatile = property(ContainsVolatile)
     is_conserving = property(CheckConservationLaws)
     is_reactant_formula_missing = property(IsReactantFormulaMissing)
     is_balanced = property(IsBalanced)

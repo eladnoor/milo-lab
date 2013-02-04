@@ -15,6 +15,7 @@
 					<li><a href="#compoundSearch">How do I search for a compound or enzyme?</a></li>
 					<li><a href="#rxnSearch">How do I search for a reaction?</a></li>
 					<li><a href="#stdConditions">What are "standard conditions?"</a></li>
+					<li><a href="#gases">How do you deal with gases like O<sub>2</sub> and H<sub>2</sub>? How can I set for standard conditions in reactions involving a gas?</a></li>
 					<li><a href="#dgr">What are &Delta;<sub>r</sub>G&deg;, &Delta;<sub>r</sub>G'&deg; and &Delta;<sub>r</sub>G'?</a></li>
 					<li><a href="#dgf">What are &Delta;<sub>f</sub>G&deg; and &Delta;<sub>f</sub>G'&deg;?</a></li>
 					<li><a href="#notAvailable">Why is &Delta;G "not available?"</a></li>
@@ -84,6 +85,35 @@
 				If their concentrations are different, it will affect the &Delta;<sub>r</sub>G'.</p>
 				</div>
 			</div>
+
+            <div class="faqEntry" id="gases">
+                <div class="faqQuestion">How do you deal with gases like O<sub>2</sub> and H<sub>2</sub>?
+                How can I set for standard conditions in reactions involving a gas?</div>
+                
+                <div class="faqAnswer">
+                <p>For gases the standard condition is defined as 1 atmosphere partial pressure.
+                In eQuilibrator because we deal with aqueous reactions we only use soluble
+                concentrations (i.e. 1M). Thus one should be careful in using reactions involving gases.
+                If one knows the soluble concentration of the gas of interest it should be
+                specified by choosing "custom" concentrations. For example, the solubility of
+                O<sub>2</sub> in water with the normal atmospheric content of about 20% is approximately 200&mu;M
+                (value varies with temperature).</p><p>
+                If you are interested in getting the standard conditions that relate to the 1
+                atmosphere partial pressure condition you have to specify the corresponding
+                soluble concentration that can be derived through <a href="http://en.wikipedia.org/wiki/Henry's_law">Henry's law</a>.
+                The following table contains a few useful examples:</br>
+                <center><table border="1">
+                <tr><td><h3>gas</h3></td><td><h3>mM/atm<sup>&dagger;</sup></h3></td></tr>
+                <tr><td>O<sub>2</sub></td><td>1.3</td></tr>
+                <tr><td>H<sub>2</sub></td><td>0.78</td></tr>
+                <tr><td>N<sub>2</sub></td><td>0.61</td></tr>
+                <tr><td>CO<sub>2</sub></td><td>34</td></tr>
+                <tr><td>CO</td><td>0.95</td></tr>
+                </table></center>
+                <sup>&dagger;</sup>all values are at 25 &deg;C.
+                </p>
+                </div>
+            </div>
 
 			<div class="faqEntry" id="dgr">
 				<div class="faqQuestion">What are &Delta;<sub>r</sub>G&deg;, &Delta;<sub>r</sub>G'&deg; and &Delta;<sub>r</sub>G'?</div>
@@ -179,9 +209,9 @@
 				
 				<div class="faqAnswer">
 				<p>eQuilibrator uses the "Alberty method" for biochemical thermodynamics.
-				In the Alberty method, H+ is defined to have 0 free energy [1-2].
-				Instead of correcting for H+ concentration, a pH correction accounts for the abundance of H+.
-				You can use the pH "slider" to see the effect of H+ concentration on your reaction. 
+				In the Alberty method, H<sup>+</sup> is defined to have 0 free energy [1-2].
+				Instead of correcting for H<sup>+</sup> concentration, a pH correction accounts for the abundance of H<sup>+</sup>.
+				You can use the pH "slider" to see the effect of H<sup>+</sup> concentration on your reaction. 
 				</p>
 				</div>
 			</div>
@@ -238,18 +268,6 @@
 	        </div>
 	      </div>
 	      
-	      <div class="faqEntry" id="gasphase">
-            <div class="faqQuestion">Does equilibrator handle gas phase?</div>
-            
-            <div class="faqAnswer">
-            <p>
-            The standard conditions of all metabolites (reactants) in eQuilibrator are always in solution (at 1M),
-            even for those that have a gas phase like CO2(g). Please use <a href="http://en.wikipedia.org/wiki/Henry%27s_law">
-            Henry's law</a> to convert between partial pressure and molar concentration.
-            </p>
-            </div>
-          </div>
-
 	      <div class="faqEntry" id="halfReactions">
 	        <div class="faqQuestion">What do you mean "electrons are not balanced?" What about half-reactions?</div>
 	        
@@ -258,7 +276,7 @@
 	        There are no free electrons in solution. As such, reactions entered in eQuilibrator must be
 	        redox balanced. That is, the products must contain the same number of electrons as the reactants.
 	        eQuilibrator checks the redox balance of reactions when you search for them and provides
-	        automatic balancing using the electron donor/acceptor NAD+/NADH. If you wish to use another
+	        automatic balancing using the electron donor/acceptor NAD<sup>+</sup>/NADH. If you wish to use another
 	        donor/acceptor pair, you can do so manually. You can adjust the concentrations of the donor
 	        and acceptor in order to adjust the reduction potential of your chosen redox carrier.
 	        </p>
