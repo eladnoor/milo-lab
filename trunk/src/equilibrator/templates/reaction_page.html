@@ -25,12 +25,11 @@
 	{% if reaction.all_compounds and reaction.is_conserving %}
 	<table class="compoundInfo">
 		<tr>
-			<th colspan="3">Compound Formation Energies</td>		
+			<th colspan="2">Compound Formation Energies</td>		
 		</tr>
 		<tr>
 			<td>Compound</td>
-			<td><a href="/faq#dgf">&Delta;<sub>f</sub>G'&deg;</a></td>
-			<td>Source</td>
+			<td><a href="/faq#dgf">&Delta;<sub>f</sub>G'&deg;</a> [kJ / mol]</td>
 		</tr>
 		{% for compound in reaction.all_compounds %}
 		<tr>
@@ -39,11 +38,6 @@
 			{% if compound.transformed_energy != None %}
 			{{ compound.transformed_energy|floatformat:1 }}
 			{% else %}&mdash;
-			{% endif %}
-			</td>
-			<td>
-			{% if compound.compound.dg_source != None %}
-			<a href="/data_refs" title="Reference list">{{ compound.compound.dg_source }}</a>
 			{% endif %}
 			</td>
 		</tr>
