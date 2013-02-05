@@ -21,25 +21,20 @@ kegg = Kegg.getInstance()
 cids = kegg.get_all_cids()
 print 'Found %d cids!'%len(cids)
 
-smiles = open('smiles.txt','a')
-
-if len(argv) < 2:
-    i = 0
-else:
-    i = int(argv[1])
+smiles = open('smiles.txt', 'w')
 
 conv = OBConversion()
 if not conv.SetInAndOutFormats('inchi','smi'):
     raise 'Problem with openbabel'
 
-for j,cid in enumerate(cids[i:]):
+for cid in cids:
     try:
         inchi = kegg.cid2inchi(cid)
         mol = OBMol()
-        if not conv.ReadString(mol,inchi):
-            print cid
-        smiles.write(conv.WriteString(mol))
+        if not conv.ReadString(mol, inchi):
+            raise Exception
+        smiles.write(conv.WriteString(mol).strip() + '\n')
     except:
-        print cid
+        print "C%05d cannot be converted to smiles" % cid
     
 smiles.close()

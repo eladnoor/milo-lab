@@ -7,7 +7,7 @@ formatter = logging.Formatter('%(asctime)s %(filename)s %(lineno)s %(levelname)s
 
 stdout_handler = logging.StreamHandler(sys.stdout)
 stderr_handler = logging.StreamHandler(sys.stderr)
-file_handler = logging.FileHandler('../log/logger_%f.log'%time())
+file_handler = logging.FileHandler('/tmp/pygibbs_%f.log'%time())
 stdout_handler.setFormatter(formatter)
 stderr_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
