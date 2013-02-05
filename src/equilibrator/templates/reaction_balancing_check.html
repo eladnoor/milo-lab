@@ -27,7 +27,12 @@
                     {% else %}
                         {% if reaction.contains_volatile %}
                             <div class="warning">
-                            Did you mean to use compounds in gas phase?
+                            Did you mean
+                            {% for compound in reaction.volatile_reactants %}
+                            {{ compound.name }}<sub>(g)</sub> instead of {{ compound.name }}<sub>(aq)</sub>
+                            {% if not forloop.last %} or {% endif %}
+                            {% endfor %}
+                            ?
                             <a href="/faq#gases">Learn more &raquo;</a>
                             </div>
                         {% endif %}
