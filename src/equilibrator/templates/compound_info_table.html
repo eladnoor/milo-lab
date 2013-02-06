@@ -10,7 +10,7 @@
 		<td width="150px">Common names</td>
 		<td>
 			{% for name in compound.all_common_names %}
-			<div class="commonName">{{ name }}</div>
+			{{ name }}{% if not forloop.last %}; {% endif %}
 			{% endfor %}
 		</td>
 	</tr>
