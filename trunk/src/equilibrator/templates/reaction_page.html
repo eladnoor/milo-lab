@@ -23,11 +23,11 @@
 	</form>
 
 	{% if reaction.all_compounds and reaction.is_conserving %}
-	<table class="compoundInfo">
+	<table class="reactionInfo">
 		<tr>
 			<th colspan="2">Compound Formation Energies</td>		
 		</tr>
-		<tr>
+		<tr class="speciesHeader">
 			<td>Compound</td>
 			<td><a href="/faq#dgf">&Delta;<sub>f</sub>G'&deg;</a> [kJ / mol]</td>
 		</tr>
