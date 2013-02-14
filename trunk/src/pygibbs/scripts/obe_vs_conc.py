@@ -145,7 +145,7 @@ def AnalyzePareto(pathway_file, output_prefix, thermo, pH=None):
     plt.xlabel(r'- Average $\Delta_r G$ [kJ/mol]')
     plt.ylabel(r'Optimized Distributed Bottleneck [kJ/mol]')
     html_writer.write('<h2>Pareto figure</h1>\n')
-    html_writer.embed_matplotlib_figure(fig, name=output_prefix)
+    html_writer.embed_matplotlib_figure(fig)
     html_writer.close()
             
 def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range, cids=[], pH=None):
