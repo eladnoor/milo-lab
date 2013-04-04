@@ -36,6 +36,16 @@ def Tip(filename):
     f.write("\nW;") 
     #print "W;"
     f.close()
+    
+def UserPrompt(msg,filename):
+    """
+    Append a UserPrompt evoke command to the worklist file
+    text will be displayed to evoware user while executing this worklist command
+    """
+    f = open(wl,'a')
+    f.write('\nB;UserPrompt(%s,0,-1);' % (msg))
+    print '%s' % command
+    f.close()  
 
 
 
@@ -121,7 +131,9 @@ def main():
         meas = data[row, col]
         print col, row, meas
         if meas > options.threshold:
-            print "dilute cell (%d, %d) into cell (%d, %d)" % (row, col, row+1, col)
+            msg = "OD = %d --> dilute cell (%d, %d) into cell (%d, %d)" % (meas, row, col, row+1, col)
+            print msg
+            UserPrompt(msg,filename)
             Comm(A,LABWARE,row,col,VOL,LIQ,filename)
             Comm(D,LABWARE,row+1,col,VOL,LIQ,filename)
             #labware,volume and liquid_class would be hard coded for now ...
