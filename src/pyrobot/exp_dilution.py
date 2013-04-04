@@ -4,6 +4,41 @@ import sys
 from database import MySQLDatabase
 import numpy as np
 
+def SetFile(filename):
+    """
+    Creates a worklist file and writes the first init command (tip size to be used in the fllowing commands)
+    """
+    f = open(filename, 'w')
+    f.write('S;1')
+    f.close()
+    return 1
+    
+def Comm(x,labware,row,col,vol,liq,filename):
+    """
+    Append a command into the worklist file
+    Params --> x='A' for aspiarte or x='D' for dispense (char)
+               labware = labware position tag on the robot table (string)
+               row , col = well cordintates --> converted into 1..96 well position via (col-1)*8+row (int)
+               vol = volume in ul  (int)
+               liq = liquid class (string)
+    """
+    f = open(wl,'a')
+    pos = (col-1)*8+row
+    f.write("\n%s;%s;;;%s;;%s;%s;;;" % (x,labware,pos,vol,liq))
+    #print "%s;%s;;;%s;;%s;%s;;;" % (comm,loc,pos,vol,liq)
+    f.close()
+    
+def Tip(filename):
+    """
+    Append a change tup command to worklist file
+    """
+    f = open(wl,'a')
+    f.write("\nW;") 
+    #print "W;"
+    f.close()
+
+
+
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     parser = ArgumentParser()
@@ -61,6 +96,13 @@ def write_dilution_rows(db, exp_id, plate, dilution_rows):
 
 def main():
     options = MakeOpts().parse_args()
+    LABWARE = 'LABWARE' 
+    VOL = 15
+    LIQ = 'LIQUID_CLASS'
+    
+    filename = options.worklist
+    # We should also state which directory where the evoware could find the worklist file
+    SetFile(filename)
 
     db = MySQLDatabase(host=options.host, user='ronm', port=3306,
                        passwd='a1a1a1', db='tecan')
@@ -80,6 +122,10 @@ def main():
         print col, row, meas
         if meas > options.threshold:
             print "dilute cell (%d, %d) into cell (%d, %d)" % (row, col, row+1, col)
+            Comm(A,LABWARE,row,col,VOL,LIQ,filename)
+            Comm(D,LABWARE,row+1,col,VOL,LIQ,filename)
+            #labware,volume and liquid_class would be hard coded for now ...
+            Tip(filename)
             dilution_rows[col] += 1
     
     write_dilution_rows(db, exp_id, plate, dilution_rows)
