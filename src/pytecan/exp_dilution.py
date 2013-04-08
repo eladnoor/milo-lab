@@ -1,8 +1,7 @@
-from argparse import ArgumentParser
-import tecan
 import sys
-from database import MySQLDatabase
 import numpy as np
+from argparse import ArgumentParser
+from toolbox.database import MySQLDatabase
 
 def Header():
     """
@@ -10,20 +9,14 @@ def Header():
     """
     header = [] 
     header += ['S;1']
-    header +=  ['Vector("Liconic","69","1",0,1,0,1,0,0);']
-    header +=  ['Vector("Grid40","40","3",0,1,2,0,0,0);']
-    
-    return '\n'.join(header)
+    return header
     
 def Footer():
     """
     Creates a worklist file and writes the first init command (tip size to be used in the fllowing commands)
     """
     footer = []
-    footer += ['Vector("Grid40","40","3",0,0,0,1,0,0);']
-    footer +=  ['Vector("Liconic","69","1",0,1,2,0,0,0);']
-     
-    return '\n'.join(footer)
+    return footer
 
     
 def Comm(x,labware,row,col,vol,liq):
@@ -55,32 +48,47 @@ def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     parser = ArgumentParser()
 
-    parser.add_argument("-o", "--host", dest="host", default="hldbv02",
-                        help="The hostname for the MySQL database")
+    parser.add_argument('worklist', nargs=1,
+                        help='the path to the worklist that will be written')
+    parser.add_argument('-o', '--host', dest='host', default='hldbv02',
+                        help='the hostname for the MySQL database')
     parser.add_argument('-d', '--debug', action='store_true', default=False,
                         help='debug mode, store results in dummy DB')
-    parser.add_argument('-w', '--worklist', dest='worklist',
-                        help='the path to the worklist that will be written')
     parser.add_argument('-t', '--threshold', dest='threshold', default=0.2, type=float,
                         help='the OD threshold for dilution')
     parser.add_argument('-v', '--volume', dest='vol', default=15, type=int,
                         help='volume for diluation in ul')
+    parser.add_argument('-p', '--plate_num', dest='plate_num', type=int, default=0,
+                        help='plate number if experiments contains multiple plates')
+    parser.add_argument('-l', '--liquid_class', dest='liquid_class', default='TurbidoClass',
+                        help='liquid class to be used in pipetation')
+    parser.add_argument('-r', '--reading_label', dest='reading_label', default='OD600',
+                        help='the label of the measurements used for turbidity tracking')
     return parser
 
-def get_last_plate(db):
+def GetLastPlate(db, plate_num, reading_label):
     max_time = None
-    for res in db.Execute('SELECT exp_id, plate, time FROM tecan_readings WHERE reading_label="OD600" ORDER BY time DESC LIMIT 1'):
-        exp_id, plate, max_time = res
+    for res in db.Execute('SELECT exp_id, time FROM tecan_readings WHERE reading_label="%s" AND plate=%d ORDER BY time DESC LIMIT 1'
+                          % (reading_label, plate_num)):
+        exp_id, max_time = res
         break
     
     if max_time is None:
         print "Error in database"
         sys.exit(-1)
 
-    print "Exp ID: %s, Plate: %d, Time: %d" % (exp_id, plate, max_time)
-    return exp_id, plate, max_time
+    print "Exp ID: %s, Plate: %d, Time: %d" % (exp_id, plate_num, max_time)
+    return exp_id, max_time
 
-def get_dilution_rows(db, exp_id, plate, time):
+def GetMeasuredData(db, exp_id, time, plate, reading_label):
+    data = np.zeros((8, 12))
+    for res in db.Execute('SELECT row, col, measurement FROM tecan_readings WHERE exp_id="%s" AND plate=%d AND time=%d AND reading_label="%s"'
+                          % (exp_id, plate, time, reading_label)):
+        row, col, measurement = res
+        data[row, col] = measurement
+    return data
+        
+def GetDilutionRows(db, exp_id, plate, time):
     """
         returns a vector (length 12) of the current rows that should be
         checked for dilution. If they don't exist returns zeros.
@@ -103,7 +111,7 @@ def get_dilution_rows(db, exp_id, plate, time):
         dilution_rows[col] = row
     return dilution_rows
 
-def increment_row(db, exp_id, plate, col, row, time):
+def IncrementRow(db, exp_id, plate, col, row, time):
     db.Execute('INSERT INTO exp_dilution_columns(exp_id, plate, col, row, time)  VALUES ("%s", %d, %d, %d, %d)' %
                (exp_id, plate, col, row, time))
 
@@ -111,24 +119,19 @@ def main():
 
     options = MakeOpts().parse_args()
     VOL = options.vol
-    LABWARE = 'LABWARE' 
-    LIQ = 'LIQUID_CLASS'
+    LABWARE = 'GRID40SITE3' 
+    LIQ = options.liquid_class
     
     # We should also state which directory where the evoware could find the worklist file
 
     db = MySQLDatabase(host=options.host, user='ronm', port=3306,
                        passwd='a1a1a1', db='tecan')
     
-    exp_id, plate, max_time = get_last_plate(db)
-    dilution_rows = get_dilution_rows(db, exp_id, plate, max_time)
-    
+    exp_id, max_time = GetLastPlate(db, options.plate_num, options.reading_label)
+    data = GetMeasuredData(db, exp_id, max_time, options.plate_num, options.reading_label)
+    dilution_rows = GetDilutionRows(db, exp_id, options.plate_num, max_time)
     print "dilution_rows: ", dilution_rows
     
-    data = np.zeros((8, 12))
-    for res in db.Execute('SELECT row, col, measurement FROM tecan_readings WHERE time=%d AND reading_label="OD600"' % max_time):
-        row, col, measurement = res
-        data[row, col] = measurement
-
     worklist = []
     for col, row in enumerate(dilution_rows):
         meas = data[row, col]
@@ -141,17 +144,19 @@ def main():
             worklist += [Comm('D',LABWARE,row+1,col,VOL,LIQ)]
             #labware,volume and liquid_class would be hard coded for now ...
             worklist += [Tip()]
-            increment_row(db, exp_id, plate, col, row+1, max_time)
-        
-    if len(worklist) > 0:
-        worklist = [Header()] + worklist + [Footer()]
-
-    f = open(options.worklist, 'w')
+            IncrementRow(db, exp_id, options.plate_num, col, row+1, max_time)
+    
+    db.Commit()
+    
+    if len(worklist) == 0:
+        sys.exit(0)
+    
+    worklist = Header() + worklist + Footer()
+    f = open(options.worklist[0], 'w')
     f.write('\n'.join(worklist))
     f.close()
-    db.Commit()
     print "Done!"
-    sys.exit(0)
+    sys.exit(1)
    
 if __name__ == '__main__':
     main()
