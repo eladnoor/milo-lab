@@ -219,6 +219,25 @@ def example_formate(thermo, product_cid=22, co2_conc=1e-5):
     kegg = Kegg.getInstance()
     pl.find_path("formate to %s" % kegg.cid2name(product_cid), r)
 
+def example_rpi_bypass(thermo):
+    pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
+                    public_db=SqliteDatabase('../data/public_data.sqlite'),
+                    html_writer=HtmlWriter('../res/pathologic.html'),
+                    thermo=thermo,
+                    max_solutions=None,
+                    max_reactions=10,
+                    maximal_dG=0.0,
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
+                    update_file=None)
+    add_cofactor_reactions(pl)
+    #add_redox_reactions(pl)
+    pl.delete_reaction(1056) # ribose-phosphate isomerase
+    pl.delete_reaction(1081) # ribose isomerase
+
+    r = Reaction.FromFormula("C00117 => C01182")
+    #r.Balance()
+    pl.find_path("rpi_bypass", r)
+
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     estimators = LoadAllEstimators()
@@ -228,7 +247,8 @@ def main():
     #example_oxidative(thermo)
     #example_glycolysis(thermo)
     #example_formate(thermo, product=22)
-    example_formate(thermo, product_cid=31)
+    #example_formate(thermo, product_cid=31)
+    example_rpi_bypass(thermo)
 
 if __name__ == '__main__':
     main()

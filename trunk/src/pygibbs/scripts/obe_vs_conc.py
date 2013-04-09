@@ -191,7 +191,7 @@ def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
     plt.legend(pathway_names)
     html_writer.write('<h2>Summary figure</h1>\n')
-    html_writer.embed_matplotlib_figure(fig, name=output_prefix)
+    html_writer.embed_matplotlib_figure(fig)
     html_writer.close()
 
 def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
@@ -243,7 +243,7 @@ def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
     plt.legend(pathway_names)
     html_writer.write('<h2>Summary figure</h1>\n')
-    html_writer.embed_matplotlib_figure(fig, name=output_prefix)
+    html_writer.embed_matplotlib_figure(fig)
     
     html_writer.close()
 
