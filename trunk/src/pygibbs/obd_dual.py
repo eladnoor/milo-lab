@@ -84,7 +84,7 @@ class Pathway(object):
             dG_r_prime = self.dG0_r_prime.copy()
             for r in xrange(self.Nr):
                 reactants = list(self.S[:, r].nonzero()[0].flat)
-                dG_r_prime[0, r] += R * self.T * log_conc[0, reactants] * self.S[reactants, r]
+                dG_r_prime[0, r] += R * self.T * log_conc[reactants, 0].T * self.S[reactants, r]
             return dG_r_prime
         else:
             return self.dG0_r_prime + R * self.T * log_conc.T * self.S
@@ -152,7 +152,7 @@ class Pathway(object):
         # Create the driving force variable and add the relevant constraints
         A, b, _c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
        
-        lp = pulp.LpProblem("OBE", objective)
+        lp = pulp.LpProblem("OBD", objective)
         
         # ln-concentration variables
         l = pulp.LpVariable.dicts("l", ["%d" % i for i in xrange(self.Nc)])
@@ -175,9 +175,9 @@ class Pathway(object):
         
         return lp, total_g
            
-    def _MakeOBEProblem(self):
+    def _MakeOBDProblem(self):
         """Create a CVXOPT problem for finding the Maximal Thermodynamic
-        Driving Force (OBE).
+        Driving Force (OBD).
        
         Does not set the objective function... leaves that to the caller.
        
@@ -195,7 +195,7 @@ class Pathway(object):
         # Create the driving force variable and add the relevant constraints
         A, b, c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
        
-        lp = pulp.LpProblem("OBE", pulp.LpMaximize)
+        lp = pulp.LpProblem("OBD", pulp.LpMaximize)
         
         # ln-concentration variables
         l = pulp.LpVariable.dicts("l", ["%d" % i for i in xrange(self.Nc)])
@@ -209,13 +209,13 @@ class Pathway(object):
         objective = pulp.lpSum([c[i] * x[i] for i in xrange(A.shape[1])])
         lp.setObjective(objective)
         
-        #lp.writeLP("../res/obe_primal.lp")
+        #lp.writeLP("../res/obd_primal.lp")
         
         return lp, x, ln_conc_lb
 
-    def _MakeOBEProblemDual(self):
+    def _MakeOBDProblemDual(self):
         """Create a CVXOPT problem for finding the Maximal Thermodynamic
-        Driving Force (OBE).
+        Driving Force (OBD).
        
         Does not set the objective function... leaves that to the caller.
        
@@ -233,7 +233,7 @@ class Pathway(object):
         # Create the driving force variable and add the relevant constraints
         A, b, c = self._MakeDrivingForceConstraints(ln_conc_lb, ln_conc_ub)
        
-        lp = pulp.LpProblem("OBE", pulp.LpMinimize)
+        lp = pulp.LpProblem("OBD", pulp.LpMinimize)
         
         w = pulp.LpVariable.dicts("w", 
                                   ["%d" % i for i in xrange(self.Nr)],
@@ -258,12 +258,12 @@ class Pathway(object):
         objective = pulp.lpSum([b[i] * y[i] for i in xrange(A.shape[0])])
         lp.setObjective(objective)
         
-        #lp.writeLP("../res/obe_dual.lp")
+        #lp.writeLP("../res/obd_dual.lp")
         
         return lp, w, z, u
     
-    def FindOBE(self):
-        """Find the OBE (Optimized Bottleneck Energetics).
+    def FindOBD(self):
+        """Find the OBD (Optimized Bottleneck Energetics).
        
         Args:
             c_range: a tuple (min, max) for concentrations (in M).
@@ -271,45 +271,45 @@ class Pathway(object):
                 concentrations.
        
         Returns:
-            A 3 tuple (optimal dGfs, optimal concentrations, optimal obe).
+            A 3 tuple (optimal dGfs, optimal concentrations, optimal obd).
         """
-        lp_primal, x, ln_conc_lb = self._MakeOBEProblem()
+        lp_primal, x, _ = self._MakeOBDProblem()
         lp_primal.solve(pulp.CPLEX(msg=0))
         if lp_primal.status != pulp.LpStatusOptimal:
-            raise pulp.solvers.PulpSolverError("cannot solve OBE primal")
+            raise pulp.solvers.PulpSolverError("cannot solve OBD primal")
             
-        obe = pulp.value(x[-1])
+        obd = pulp.value(x[-1])
         conc = np.matrix([np.exp(pulp.value(x[j])) for j in xrange(self.Nc)]).T
 
-        lp_dual, w, z, u = self._MakeOBEProblemDual()
+        lp_dual, w, z, u = self._MakeOBDProblemDual()
         lp_dual.solve(pulp.CPLEX(msg=0))
         if lp_dual.status != pulp.LpStatusOptimal:
-            raise pulp.solvers.PulpSolverError("cannot solve OBE dual")
+            raise pulp.solvers.PulpSolverError("cannot solve OBD dual")
         reaction_prices = np.matrix([pulp.value(w["%d" % i]) for i in xrange(self.Nr)]).T
         compound_prices = np.matrix([pulp.value(z["%d" % j]) for j in xrange(self.Nc)]).T - \
                           np.matrix([pulp.value(u["%d" % j]) for j in xrange(self.Nc)]).T
         
         # find the maximum and minimum total Gibbs energy of the pathway,
-        # under the constraint that the driving force of each reaction is >= OBE
-        lp_total, total_dg = self._GetTotalEnergyProblem(obe - 1e-6, pulp.LpMinimize)
+        # under the constraint that the driving force of each reaction is >= OBD
+        lp_total, total_dg = self._GetTotalEnergyProblem(obd - 1e-6, pulp.LpMinimize)
         lp_total.solve(pulp.CPLEX(msg=0))
         if lp_total.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve total delta-G problem")
         min_tot_dg = pulp.value(total_dg)
 
-        lp_total, total_dg = self._GetTotalEnergyProblem(obe - 1e-6, pulp.LpMaximize)
+        lp_total, total_dg = self._GetTotalEnergyProblem(obd - 1e-6, pulp.LpMaximize)
         lp_total.solve(pulp.CPLEX(msg=0))
         if lp_total.status != pulp.LpStatusOptimal:
             raise pulp.solvers.PulpSolverError("cannot solve total delta-G problem")
         max_tot_dg = pulp.value(total_dg)
         
-        params = {'OBE': obe * R * self.T,
+        params = {'OBD': obd * R * self.T,
                   'concentrations' : conc,
                   'reaction prices' : reaction_prices,
                   'compound prices' : compound_prices,
                   'maximum total dG' : max_tot_dg * R * self.T,
                   'minimum total dG' : min_tot_dg * R * self.T}
-        return obe * R * self.T, params
+        return obd * R * self.T, params
 
 class KeggPathway(Pathway):
    
@@ -440,8 +440,14 @@ class KeggPathway(Pathway):
         self.WriteProfileToHtmlTable(html_writer, concentrations, reaction_shadow_prices)
         self.WriteConcentrationsToHtmlTable(html_writer, concentrations, compound_shadow_prices)
 
-    def WriteConcentrationsToHtmlTable(self, html_writer, concentrations,
-                                       compound_shadow_prices):
+    def WriteConcentrationsToHtmlTable(self, html_writer, concentrations=None,
+                                       compound_shadow_prices=None):
+        phys_concentrations = self.GetPhysiologicalConcentrations(self.bounds)
+        if concentrations is None:
+            concentrations = phys_concentrations
+        if compound_shadow_prices is None:
+            compound_shadow_prices = np.zeros((len(self.cids), 1))
+
         dict_list = []
         for c, cid in enumerate(self.cids):
             d = {}
@@ -520,8 +526,8 @@ if __name__ == '__main__':
     #print 'sum(concs): ', sum(concentrations), 'M'
    
     keggpath = KeggPathway(S, rids, fluxes, cids, dGs, c_range=(1e-6, 1e-3))
-    obe, params = keggpath.FindOBE()
-    print 'OBE: %g' % obe
+    obd, params = keggpath.FindOBD()
+    print 'OBD: %g' % obd
     print 'reaction shadow prices: ' + ', '.join(['%g' % i for i in params['reaction prices'].flat])
     print 'compound shadow prices: ' + ', '.join(['%g' % i for i in params['compound prices'].flat])
     print 'concentrations: ' + ', '.join(['%.2e' % i for i in params['concentrations'].flat])
