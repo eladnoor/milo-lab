@@ -61,20 +61,20 @@ def pareto(kegg_file, html_writer, thermo, pH=None,
             keggpath.WriteConcentrationsToHtmlTable(html_writer)
             continue
 
-        _ln_conc, odb = keggpath.FindMtdf()
-        odfe = 100 * np.tanh(odb / (2*R*thermo.T))
+        _ln_conc, obd = keggpath.FindMtdf()
+        odfe = 100 * np.tanh(obd / (2*R*thermo.T))
 
-        _ln_conc, min_tg = keggpath.GetTotalReactionEnergy(odb, maximize=False) # min TG - maximal Total dG
-        ln_conc, max_tg = keggpath.GetTotalReactionEnergy(odb, maximize=True) # max TG - maximal Total dG
+        _ln_conc, min_tg = keggpath.GetTotalReactionEnergy(obd, maximize=False) # min TG - maximal Total dG
+        ln_conc, max_tg = keggpath.GetTotalReactionEnergy(obd, maximize=True) # max TG - maximal Total dG
         concentrations = np.exp(ln_conc)
         
         good_entries.append(i)
         remarks.append('okay')
-        plot_data[i, :] = [odb, odfe, min_tg, max_tg, np.sum(fluxes)]
+        plot_data[i, :] = [obd, odfe, min_tg, max_tg, np.sum(fluxes)]
 
-        logging.info('%20s: ODB = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' % (entry, odb, max_tg))
+        logging.info('%20s: ODB = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' % (entry, obd, max_tg))
         html_writer.write_ul(["pH = %.1f, I = %.2fM, T = %.2f K" % (thermo.pH, thermo.I, thermo.T),
-                              "ODB = %.1f [kJ/mol]" % odb,
+                              "ODB = %.1f [kJ/mol]" % obd,
                               "ODFE = %.1f%%" % odfe,
                               "Min Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, min_tg),
                               "Max Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, max_tg)])
@@ -188,17 +188,17 @@ def AnalyzeConcentrationGradient(prefix, thermo, csv_output_fname, cid=13): # de
     fig = plt.figure(figsize=(6, 6), dpi=90)
     legend = []
     for pH in pH_vec.flat:
-        odb_vec = []
+        obd_vec = []
         for conc in conc_vec.flat:
             override_bounds[cid] = (conc, conc)
             logging.info("pH = %g, [%s] = %.1e M" % (pH, compound_name, conc))
             data, labels = pareto(kegg_file, null_html_writer, thermo,
                 pH=pH, section_prefix="", balance_water=True,
                 override_bounds=override_bounds)
-            odb_vec.append(data[:, 1])
+            obd_vec.append(data[:, 1])
             csv_output.writerow([pH, thermo.I, thermo.T, conc] + list(data[:, 1].flat))
-        odb_mat = np.matrix(odb_vec) # rows are pathways and columns are concentrations
-        plt.plot(conc_vec, odb_mat, '.-', figure=fig)
+        obd_mat = np.matrix(obd_vec) # rows are pathways and columns are concentrations
+        plt.plot(conc_vec, obd_mat, '.-', figure=fig)
         legend += ['%s, pH = %g' % (l, pH) for l in labels]
     
     plt.title("ODB vs. [%s] (I = %gM, T = %gK)" % (compound_name, thermo.I, thermo.T), figure=fig)
@@ -215,13 +215,13 @@ if __name__ == "__main__":
     plt.rcParams['legend.fontsize'] = 6
     estimators = LoadAllEstimators()
     
-    experiments = [('odb_vs_otg_CCR', 'UGC'),
-                   ('odb_vs_otg_formate', 'UGC'),
-                   ('odb_vs_otg_oxidative', 'UGC'),
-                   ('odb_vs_otg_reductive', 'UGC'),
-                   ('odb_vs_otg_RPP', 'UGC')]
+    experiments = [('obd_vs_otg_CCR', 'UGC'),
+                   ('obd_vs_otg_formate', 'UGC'),
+                   ('obd_vs_otg_oxidative', 'UGC'),
+                   ('obd_vs_otg_reductive', 'UGC'),
+                   ('obd_vs_otg_RPP', 'UGC')]
 
-    experiments = [('odb_fermentative_short', 'UGC')]
+    experiments = [('obd_fermentative_short', 'UGC')]
 
     for prefix, thermo_name in experiments:
         thermo = estimators[thermo_name]

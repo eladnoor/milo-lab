@@ -4,7 +4,7 @@ import logging
 from pygibbs.kegg_parser import ParsedKeggFile
 from pygibbs.pathway import PathwayData
 from toolbox.html_writer import HtmlWriter, NullHtmlWriter
-from pygibbs.obe_dual import KeggPathway
+from pygibbs.obd_dual import KeggPathway
 from pygibbs.thermodynamic_estimators import LoadAllEstimators
 from pygibbs.thermodynamic_constants import R, symbol_dr_G_prime 
 from argparse import ArgumentParser
@@ -25,7 +25,7 @@ def KeggFile2PathwayList(pathway_file):
         pathway_list.append((entry, p_data))
     return pathway_list
 
-def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
+def GetAllOBDs(pathway_list, html_writer, thermo, pH=None,
                plot_profile=False, section_prefix="", balance_water=True,
                override_bounds={}):
     """
@@ -33,7 +33,7 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
         
             entry         - the name of the pathway
             remark        - typically the exception message if something went wrong
-            OBE           - optimized distributed bottleneck (in kJ/mol)
+            OBD           - optimized distributed bottleneck (in kJ/mol)
             FFE           - flux-force efficiency (between -1 and 1)
             min total dG  - in kJ/mol
             max total dG  - in kJ/mol
@@ -83,14 +83,14 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
             html_writer.write('NaN reaction energy')
             keggpath.WriteProfileToHtmlTable(html_writer)
             keggpath.WriteConcentrationsToHtmlTable(html_writer)
-            logging.info('%20s: OBE = NaN, maxTG = NaN' % (entry))
+            logging.info('%20s: OBD = NaN, maxTG = NaN' % (entry))
             rowdict['remark'] = 'NaN reaction energy'
             continue
 
-        obe, params = keggpath.FindOBE()
-        odfe = 100 * np.tanh(obe / (2*R*thermo.T))
+        obd, params = keggpath.FindOBD()
+        odfe = 100 * np.tanh(obd / (2*R*thermo.T))
 
-        rowdict['OBE'] = obe
+        rowdict['OBD'] = obd
         rowdict['FFE'] = odfe
         rowdict['sum of fluxes'] = np.sum(fluxes)
         rowdict['concentrations'] = params['concentrations']
@@ -99,10 +99,10 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
         rowdict['min total dG'] = params['minimum total dG']
         rowdict['max total dG'] = params['maximum total dG']
 
-        logging.info('%20s: OBE = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' %
-                     (rowdict['entry'], obe, rowdict['max total dG']))
+        logging.info('%20s: OBD = %.1f [kJ/mol], maxTG = %.1f [kJ/mol]' %
+                     (rowdict['entry'], obd, rowdict['max total dG']))
         html_writer.write_ul(["pH = %.1f, I = %.2fM, T = %.2f K" % (thermo.pH, thermo.I, thermo.T),
-                              "OBE = %.1f [kJ/mol]" % obe,
+                              "OBD = %.1f [kJ/mol]" % obd,
                               "flux-force efficiency = %.1f%%" % odfe,
                               "Min Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, rowdict['min total dG']),
                               "Max Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, rowdict['max total dG'])])
@@ -111,14 +111,14 @@ def GetAllOBEs(pathway_list, html_writer, thermo, pH=None,
         
     html_writer.write('<h2 id="%s_summary">Summary table</h1>\n' % section_prefix)
     dict_list = [{'Name':'<a href="#%s_%s">%s</a>' % (section_prefix, d['entry'], d['entry']),
-                  'OBE [kJ/mol]':'%.1f' % d['OBE'],
+                  'OBD [kJ/mol]':'%.1f' % d['OBD'],
                   'flux-force eff.':'%.1f%%' % d['FFE'],
                   'Total dG\' [kJ/mol]':'%6.1f - %6.1f' % (d['min total dG'], d['max total dG']),
                   'sum(flux)':'%g' % d['sum of fluxes'],
                   'remark': d['remark']}
                  for d in rowdicts]
     html_writer.write_table(dict_list,
-        headers=['Name', 'OBE [kJ/mol]', 'flux-force eff.', 'Total dG\' [kJ/mol]', 'sum(flux)', 'remark'])
+        headers=['Name', 'OBD [kJ/mol]', 'flux-force eff.', 'Total dG\' [kJ/mol]', 'sum(flux)', 'remark'])
 
     return rowdicts
 
@@ -127,19 +127,26 @@ def AnalyzePareto(pathway_file, output_prefix, thermo, pH=None):
     pathway_names = [entry for (entry, _) in pathway_list]
     html_writer = HtmlWriter('%s.html' % output_prefix)
 
-    logging.info("running OBE analysis for all pathways")
-    data = GetAllOBEs(pathway_list, html_writer, thermo,
+    logging.info("running OBD analysis for all pathways")
+    data = GetAllOBDs(pathway_list, html_writer, thermo,
                   pH=pH, section_prefix="pareto", balance_water=True,
                   override_bounds={})
 
-    obes = [d['OBE'] for d in data]
-    minus_avg_tg = [-d['max total dG']/d['sum of fluxes'] for d in data]
+    obds = []
+    minus_avg_tg = []
+    for i, d in enumerate(data):
+        obds.append(d['OBD'])
+        if d['sum of fluxes']:
+            minus_avg_tg.append(-d['max total dG']/d['sum of fluxes'])
+        else:
+            minus_avg_tg.append(0)
+            
     fig = plt.figure(figsize=(6, 6), dpi=90)
-    plt.plot(minus_avg_tg, obes, 'o', figure=fig)
+    plt.plot(minus_avg_tg, obds, 'o', figure=fig)
     plt.plot([0, max(minus_avg_tg)], [0, max(minus_avg_tg)], '--g')
     for i, name in enumerate(pathway_names):
-        plt.text(minus_avg_tg[i], obes[i], name)
-    plt.title('OBE vs. Average $\Delta_r G$')
+        plt.text(minus_avg_tg[i], obds[i], name)
+    plt.title('OBD vs. Average $\Delta_r G$')
     plt.ylim(ymin=0)
     plt.xlim(xmin=0)
     plt.xlabel(r'- Average $\Delta_r G$ [kJ/mol]')
@@ -156,7 +163,7 @@ def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range
     
     # run once just to make sure that the pathways are all working:
     logging.info("testing all pathways with default concentrations")
-    data = GetAllOBEs(pathway_list, html_writer, thermo,
+    data = GetAllOBDs(pathway_list, html_writer, thermo,
                   pH=pH, section_prefix="test", balance_water=True,
                   override_bounds={})
     
@@ -166,25 +173,25 @@ def AnalyzeConcentrationGradient(pathway_file, output_prefix, thermo, conc_range
     conc_vec = 10**(-ParseConcentrationRange(conc_range)) # logarithmic scale between 10mM and 1nM
     override_bounds = {}
     
-    obe_mat = []
+    obd_mat = []
     for conc in conc_vec.flat:
         for cid in cids:
             override_bounds[cid] = (conc, conc)
         logging.info("[%s] = %.1e M" % (compound_names, conc))
-        data = GetAllOBEs(pathway_list, html_writer=None, thermo=thermo,
+        data = GetAllOBDs(pathway_list, html_writer=None, thermo=thermo,
                       pH=pH, section_prefix="", balance_water=True,
                       override_bounds=override_bounds)
-        obes = [d['OBE'] for d in data]
-        obe_mat.append(obes)
-        csv_output.writerow([data[0]['pH'], conc] + obes)
-    obe_mat = np.matrix(obe_mat) # rows are pathways and columns are concentrations
+        obds = [d['OBD'] for d in data]
+        obd_mat.append(obds)
+        csv_output.writerow([data[0]['pH'], conc] + obds)
+    obd_mat = np.matrix(obd_mat) # rows are pathways and columns are concentrations
 
     fig = plt.figure(figsize=(6, 6), dpi=90)
     colormap = color.ColorMap(pathway_names)
     for i, name in enumerate(pathway_names):
-        plt.plot(conc_vec, obe_mat[:, i], '-', color=colormap[name], 
+        plt.plot(conc_vec, obd_mat[:, i], '-', color=colormap[name], 
                  figure=fig)
-    plt.title("OBE vs. [%s]" % (compound_names), figure=fig)
+    plt.title("OBD vs. [%s]" % (compound_names), figure=fig)
     plt.xscale('log')
     plt.ylim(ymin=0)
     plt.xlabel('[%s] (in M)' % compound_names, figure=fig)
@@ -201,7 +208,7 @@ def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
     
     # run once just to make sure that the pathways are all working:
     logging.info("testing all pathways with default pH")
-    data = GetAllOBEs(pathway_list, html_writer, thermo,
+    data = GetAllOBDs(pathway_list, html_writer, thermo,
                   pH=None, section_prefix="test", balance_water=True,
                   override_bounds={})
     
@@ -216,29 +223,30 @@ def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
         shadow_csvs[d['entry']].writerow(['pH'] + d['rids'])
 
     pH_vec = ParseConcentrationRange(conc_range)
-    obe_mat = []
+    obd_mat = []
     for pH in pH_vec.flat:
         logging.info("pH = %.1f" % (pH))
-        data = GetAllOBEs(pathway_list, html_writer=None, thermo=thermo,
+        data = GetAllOBDs(pathway_list, html_writer=None, thermo=thermo,
                       pH=pH, section_prefix="", balance_water=True,
                       override_bounds={})
-        obes = [d['OBE'] for d in data]
-        obe_mat.append(obes)
-        csv_output.writerow([data[0]['pH']] + obes)
+        obds = [d['OBD'] for d in data]
+        obd_mat.append(obds)
+        csv_output.writerow([data[0]['pH']] + obds)
         
         for d in data:
-            prices = list(d['reaction prices'].flat)
-            shadow_csvs[d['entry']].writerow([pH] + prices)
+            if type(d['reaction prices']) == np.ndarray:
+                prices = list(d['reaction prices'].flat)
+                shadow_csvs[d['entry']].writerow([pH] + prices)
             
-    obe_mat = np.matrix(obe_mat) # rows are pathways and columns are concentrations
+    obd_mat = np.matrix(obd_mat) # rows are pathways and columns are concentrations
 
     fig = plt.figure(figsize=(6, 6), dpi=90)
     colormap = color.ColorMap(pathway_names)
     for i, name in enumerate(pathway_names):
-        plt.plot(pH_vec, obe_mat[:, i], '-', color=colormap[name], 
+        plt.plot(pH_vec, obd_mat[:, i], '-', color=colormap[name], 
                  figure=fig)
-    plt.title("OBE vs. pH", figure=fig)
-    plt.ylim(0, np.max(obe_mat.flat))
+    plt.title("OBD vs. pH", figure=fig)
+    plt.ylim(0, np.max(obd_mat.flat))
     plt.xlabel('pH', figure=fig)
     plt.ylabel('Optimized Distributed Bottleneck [kJ/mol]', figure=fig)
     plt.legend(pathway_names)
@@ -249,11 +257,11 @@ def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
 
 def MakeArgParser(estimators):
     """Returns an OptionParser object with all the default options."""
-    parser = ArgumentParser(description='A script for running OBE analysis for a gradient of concentrations')
+    parser = ArgumentParser(description='A script for running OBD analysis for a gradient of concentrations')
     parser.add_argument('-i', '--pathway_file', action='store', type=file, required=True, 
                         help="input pathway description file in KEGG format")
     parser.add_argument('-o', '--output_prefix', action='store', required=False,
-                        default='../res/obe_analysis',
+                        default='../res/obd_analysis',
                         help='the prefix for the output files (*.html and *.csv)')
     parser.add_argument('-c', '--cids', action='append', type=int, required=False,
                         default=None,
