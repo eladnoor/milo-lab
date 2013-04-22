@@ -13,8 +13,10 @@ $query = "SELECT exp_id, plate, description, owner, project
           ORDER BY exp_id DESC, plate";
 $result = mysqli_query($con, $query);
 
+$default_exp_id = date("Y-m-d H:i:s");
+
 echo "<p><form name=\"input\" action=\"merge.php\" method=\"get\">";
-echo "Merged exp_id: <input type=\"text\" name=\"merged_exp_id\">";
+echo "Merged exp_id: <input type=\"text\" size=\"30\" name=\"merged_exp_id\" value=\"$default_exp_id\">";
 echo "<input type=\"submit\" value=\"Submit\"></p>";
 
 echo "<table border='1'>\n";
