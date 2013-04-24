@@ -11,6 +11,7 @@ from argparse import ArgumentParser
 import csv
 from toolbox import color, util
 from collections import defaultdict
+import types
 
 def ParseConcentrationRange(conc_range):
     (start, step, end) = [float(x) for x in conc_range.split(':')]
@@ -234,7 +235,7 @@ def AnalyzePHGradient(pathway_file, output_prefix, thermo, conc_range):
         csv_output.writerow([data[0]['pH']] + obds)
         
         for d in data:
-            if type(d['reaction prices']) == np.ndarray:
+            if type(d['reaction prices']) != types.FloatType:
                 prices = list(d['reaction prices'].flat)
                 shadow_csvs[d['entry']].writerow([pH] + prices)
             
