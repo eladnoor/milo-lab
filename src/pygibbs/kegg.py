@@ -1515,7 +1515,13 @@ def export_compound_connectivity():
         csv_file.writerow((cid, len(rid_list)))
     
 if __name__ == '__main__':
-    if False:
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description='Downloads data from KEGG and stores it a in local DB')
+    parser.add_argument('-i', '--init', action='store_true', required=False,
+                        default=False)
+    args = parser.parse_args()
+    
+    if args.init:
         kegg = Kegg.getInstance(loadFromAPI=True)
         kegg.ReadAdditionsFile()
         kegg.ToDatabase()
