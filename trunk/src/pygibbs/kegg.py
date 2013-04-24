@@ -131,32 +131,35 @@ class Kegg(Singleton):
         """
             Read all Reactions, EC numbers, Modules, and Compounds
             from KEGG using the web REST API
+            Returns:
+                list of pairs, each containing the entity label and a list of 
+                all the associated IDs.
         """
         labels = ['rn', 'cpd', 'md', 'ec'] 
         
-        entity_map = {}
+        ids_list = []
         for l in labels:
             s = urllib.urlopen('http://rest.kegg.jp/list/%s/' % l).read()
-            list_of_ids = []
+            ids = []
             for line in s.split('\n'):
                 if not line:
                     continue
                 try:
-                    list_of_ids.append(re.findall('^%s:([A-Z\d\.\-]+)\t' % l, line)[0])
+                    ids.append(re.findall('^%s:([A-Z\d\.\-]+)\t' % l, line)[0])
                 except Exception, e:
                     raise Exception(str(e) + ': ' + line)
-            entity_map[l] = list_of_ids
+            ids_list.append(ids)
             logging.info('There are %d entities of type %s in KEGG' %
-                         (len(list_of_ids), l))
+                         (len(ids), l))
 
-        return entity_map
+        return zip(labels, ids_list)
     
     def FromAPI(self, kegg_step=10):
         # KEGG's rest API cannot handle more than 10 entities at a time
         
         # Read all entities (cpd, rn, md, ec)
-        entity_map = Kegg.GetAllEntities()
-        for l, ids in entity_map.iteritems():
+        entity_id_list = Kegg.GetAllEntities()
+        for l, ids in entity_id_list:
             for i_start in xrange(0, len(ids), kegg_step):
                 i_end = min(i_start+kegg_step, len(ids))
                 logging.info('Parsing KEGG entities of type %s: %s - %s' %
