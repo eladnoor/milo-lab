@@ -11,6 +11,7 @@ from argparse import ArgumentParser
 import csv
 from toolbox import color, util
 from collections import defaultdict
+from xlwt import Workbook
 import types
 
 def ParseConcentrationRange(conc_range):
@@ -69,16 +70,22 @@ def GetAllOBDs(pathway_list, html_writer, thermo, pH=None,
         html_writer.write('<h3 id="%s_%s">%s</h2>\n' % (section_prefix, rowdict['entry'], rowdict['entry']))
 
         S, rids, fluxes, cids = p_data.get_explicit_reactions(balance_water=balance_water)
+        fluxes = np.matrix(fluxes)
         rowdict['rids'] = rids
-        
+        rowdict['cids'] = cids
+        rowdict['fluxes'] = fluxes
+
         thermo.bounds = p_data.GetBounds().GetOldStyleBounds(cids)
         for cid, (lb, ub) in override_bounds.iteritems():
             thermo.bounds[cid] = (lb, ub)
         
-        fluxes = np.matrix(fluxes)
         dG0_r_prime = thermo.GetTransfromedReactionEnergies(S, cids)
+        rowdict['dG0_r_prime'] = dG0_r_prime
+        
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
                                cid2bounds=thermo.bounds, c_range=thermo.c_range)
+        rowdict['formulas'] = [keggpath.GetReactionString(r, show_cids=False, hypertext=False)
+                               for r in xrange(len(rids))]
 
         if np.any(np.isnan(dG0_r_prime)):
             html_writer.write('NaN reaction energy')
@@ -107,6 +114,7 @@ def GetAllOBDs(pathway_list, html_writer, thermo, pH=None,
                               "flux-force efficiency = %.1f%%" % odfe,
                               "Min Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, rowdict['min total dG']),
                               "Max Total %s = %.1f [kJ/mol]" % (symbol_dr_G_prime, rowdict['max total dG'])])
+        rowdict['dG_r_prime'] = keggpath.CalculateReactionEnergiesUsingConcentrations(rowdict['concentrations'])
         keggpath.WriteResultsToHtmlTables(html_writer, rowdict['concentrations'],
             rowdict['reaction prices'], rowdict['compound prices'])
         
@@ -127,11 +135,28 @@ def AnalyzePareto(pathway_file, output_prefix, thermo, pH=None):
     pathway_list = KeggFile2PathwayList(pathway_file)
     pathway_names = [entry for (entry, _) in pathway_list]
     html_writer = HtmlWriter('%s.html' % output_prefix)
+    xls_workbook = Workbook()
 
     logging.info("running OBD analysis for all pathways")
     data = GetAllOBDs(pathway_list, html_writer, thermo,
                   pH=pH, section_prefix="pareto", balance_water=True,
                   override_bounds={})
+    
+    for d in data:
+        sheet = xls_workbook.add_sheet(d['entry'])
+        sheet.write(0, 0, "reaction")
+        sheet.write(0, 1, "formula")
+        sheet.write(0, 2, "flux")
+        sheet.write(0, 3, "delta_r G'")
+        sheet.write(0, 4, "shadow price")
+        for r, rid in enumerate(d['rids']):
+            sheet.write(r+1, 0, rid)
+            sheet.write(r+1, 1, d['formulas'][r])
+            sheet.write(r+1, 2, d['fluxes'][0, r])
+            sheet.write(r+1, 3, d['dG_r_prime'][0, r])
+            sheet.write(r+1, 4, d['reaction prices'][r, 0])
+    
+    xls_workbook.save('%s.xls' % output_prefix)
 
     obds = []
     minus_avg_tg = []
