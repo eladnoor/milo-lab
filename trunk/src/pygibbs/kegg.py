@@ -321,11 +321,15 @@ class Kegg(Singleton):
                 self.ec2enzyme_map[enzyme.ec] = enzyme
             
         for row_dict in self.db.DictReader('kegg_module'):
-            self.mid2name_map[row_dict['mid']] = row_dict['name']
+            mid = int(row_dict['mid'])
+            self.mid2name_map[mid] = row_dict['name']
             
         for row in self.db.Execute('SELECT mid, position, rid, flux FROM kegg_mid2rid '
                               'ORDER BY mid,position'):
             mid, _position, rid, flux = row
+            mid = int(mid)
+            rid = int(rid)
+            flux = float(flux)
             self.mid2rid_map.setdefault(mid, []).append((rid, flux))
         
         for row_dict in self.db.DictReader('kegg_cofactors'):
@@ -544,6 +548,12 @@ class Kegg(Singleton):
         
         return S, rids, fluxes, cids
     
+    def get_module_name(self, mid):
+        if mid not in self.mid2rid_map:
+            raise kegg_errors.KeggMissingModuleException(
+                "M%05d does not exist in KEGG" % mid)
+        return self.mid2name_map[mid]
+
     def get_module(self, mid):               
         if mid not in self.mid2rid_map:
             raise kegg_errors.KeggMissingModuleException(
@@ -669,6 +679,9 @@ class Kegg(Singleton):
             except OpenBabelError as e:
                 logging.warning(str(e))
         return kegg_reaction_list
+
+    def get_all_mids(self):
+        return sorted(self.mid2name_map.keys())
     
     def inchi2cid(self, inchi):
         return self.inchi2cid_map.get(inchi, None)

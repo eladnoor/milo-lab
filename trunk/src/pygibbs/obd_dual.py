@@ -57,9 +57,12 @@ class Pathway(object):
 
         if fluxes is None:
             self.fluxes = np.matrix(np.ones((1, self.Nr)))
+        elif type(fluxes) == types.ListType:
+            self.fluxes = np.matrix(fluxes)
         else:
-            assert fluxes.shape[1] == self.Nr
             self.fluxes = fluxes
+
+        assert self.fluxes.shape[1] == self.Nr
            
         self.bounds = None
         self.c_range = self.DEFAULT_C_RANGE

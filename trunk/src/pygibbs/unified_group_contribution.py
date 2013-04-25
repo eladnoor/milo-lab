@@ -620,6 +620,9 @@ class UnifiedGroupContribution(PsuedoisomerTableThermodynamics):
             self.P_L_tot = np.matrix(np.zeros((len(conservation_rows), len(all_cids))))
             for i, (msg, sparse) in enumerate(conservation_rows):
                 for cid, coeff in sparse.iteritems():
+                    if cid not in cid_dict:
+                        raise Exception("ERROR: C%05d is not found in KEGG but appears in our database"
+                                        % cid)
                     self.P_L_tot[i, cid_dict[cid]] = float(coeff)
         else:
             self.LoadGroups(True)
