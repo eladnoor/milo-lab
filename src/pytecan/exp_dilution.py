@@ -58,8 +58,10 @@ def MakeOpts():
                         help='the OD threshold for dilution')
     parser.add_argument('-v', '--volume', dest='vol', default=15, type=int,
                         help='volume for diluation in ul')
-    parser.add_argument('-p', '--plate_num', dest='plate_num', type=int, default=0,
-                        help='plate number if experiments contains multiple plates')
+    parser.add_argument("-p", "--num_plates", default=None, type=int, required=True,
+                        help="The number of plates in the experiment")
+    parser.add_argument("-i", "--iteration", default=None, type=int, required=True,
+                        help="The iteration number in the robot script")
     parser.add_argument('-l', '--liquid_class', dest='liquid_class', default='TurbidoClass',
                         help='liquid class to be used in pipetation')
     parser.add_argument('-r', '--reading_label', dest='reading_label', default='OD600',
@@ -127,9 +129,11 @@ def main():
     db = MySQLDatabase(host=options.host, user='ronm', port=3306,
                        passwd='a1a1a1', db='tecan')
     
-    exp_id, max_time = GetLastPlate(db, options.plate_num, options.reading_label)
-    data = GetMeasuredData(db, exp_id, max_time, options.plate_num, options.reading_label)
-    dilution_rows = GetDilutionRows(db, exp_id, options.plate_num, max_time)
+    plate_id = options.iteration % options.num_plates
+
+    exp_id, max_time = GetLastPlate(db, plate_id, options.reading_label)
+    data = GetMeasuredData(db, exp_id, max_time, plate_id, options.reading_label)
+    dilution_rows = GetDilutionRows(db, exp_id, plate_id, max_time)
     print "dilution_rows: ", dilution_rows
     
     worklist = []
@@ -144,7 +148,7 @@ def main():
             worklist += [Comm('D',LABWARE,row+1,col,VOL,LIQ)]
             #labware,volume and liquid_class would be hard coded for now ...
             worklist += [Tip()]
-            IncrementRow(db, exp_id, options.plate_num, col, row+1, max_time)
+            IncrementRow(db, exp_id, plate_id, col, row+1, max_time)
     
     db.Commit()
     
