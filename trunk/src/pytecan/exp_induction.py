@@ -69,7 +69,7 @@ def MakeOpts():
                         help='liquid class to be used in pipetation')
     parser.add_argument('-r', '--reading_label', dest='reading_label', default='OD600',
                         help='the label of the measurements used for turbidity tracking')
-    parser.add_argument('-c', '--column_range', dest='column_range', default=12,
+    parser.add_argument('-c', '--column_range', dest='column_range', default=12, type=int, 
                         help='the last column into which to inject')
     return parser
 
@@ -104,6 +104,7 @@ def GetWellsToInject(db, exp_id, time, plate, reading_label, threshold):
 def main():
 
     options = MakeOpts().parse_args()
+    
     VOL = options.vol
     LABWARE_FROM = 'EpnStand'
     LABWARE_TO = 'GRID40SITE3'
