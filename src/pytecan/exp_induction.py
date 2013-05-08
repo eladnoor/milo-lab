@@ -101,6 +101,10 @@ def GetWellsToInject(db, exp_id, time, plate, reading_label, threshold):
         wells_to_inject.append((col, row))
     return wells_to_inject
         
+def StoreInDB(db, exp_id, plate, col, row, time):
+    db.Execute('INSERT INTO exp_dilution_columns(exp_id, plate, col, row, time)  VALUES ("%s", %d, %d, %d, %d)' %
+               (exp_id, plate, col, row, time))
+        
 def main():
 
     options = MakeOpts().parse_args()
@@ -128,6 +132,7 @@ def main():
             worklist += [Comm('A',LABWARE_FROM,0,0,VOL,LIQ)]
             worklist += [Comm('D',LABWARE_TO,row,col,VOL,LIQ)]
             worklist += [Tip()]
+            StoreInDB(db, exp_id, plate_id, col, row, max_time)
     
     if len(worklist) == 0:
         sys.exit(0)
