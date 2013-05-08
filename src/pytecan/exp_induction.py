@@ -102,7 +102,7 @@ def GetWellsToInject(db, exp_id, time, plate, reading_label, threshold):
     return wells_to_inject
         
 def StoreInDB(db, exp_id, plate, col, row, time):
-    db.Execute('INSERT INTO exp_dilution_columns(exp_id, plate, col, row, time)  VALUES ("%s", %d, %d, %d, %d)' %
+    db.Execute('INSERT INTO exp_induction_log(exp_id, plate, col, row, time)  VALUES ("%s", %d, %d, %d, %d)' %
                (exp_id, plate, col, row, time))
         
 def main():
