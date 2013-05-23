@@ -20,8 +20,6 @@ def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     parser = ArgumentParser()
 
-    parser.add_argument('worklist', nargs=1,
-                        help='the path to the worklist that will be written')
     parser.add_argument('-o', '--host', dest='host', default='hldbv02',
                         help='the hostname for the MySQL database')
     parser.add_argument('-d', '--debug', action='store_true', default=False,
