@@ -17,7 +17,6 @@ def Footer():
     """
     footer = []
     return footer
-
     
 def Comm(x,labware,row,col,vol,liq):
     """
@@ -66,6 +65,8 @@ def MakeOpts():
                         help='liquid class to be used in pipetation')
     parser.add_argument('-r', '--reading_label', dest='reading_label', default='OD600',
                         help='the label of the measurements used for turbidity tracking')
+    parser.add_argument('-s', '--split_rows', dest='row_split', default=1, type=int,
+                        help='by how much to split the plate''s rows to have more repetitions')
     return parser
 
 def GetLastPlate(db, plate_num, reading_label):
@@ -90,7 +91,7 @@ def GetMeasuredData(db, exp_id, time, plate, reading_label):
         data[row, col] = measurement
     return data
         
-def GetDilutionRows(db, exp_id, plate, time):
+def GetDilutionRows(db, exp_id, plate, time, row_split):
     """
         returns a vector (length 12) of the current rows that should be
         checked for dilution. If they don't exist returns zeros.
@@ -98,19 +99,20 @@ def GetDilutionRows(db, exp_id, plate, time):
 
     res = db.Execute('SELECT COUNT(*) FROM exp_dilution_columns WHERE exp_id="%s" AND plate=%d'%  (exp_id, plate))
     if res[0][0] == 0:
-        for col in xrange(12):
-            db.Execute('INSERT INTO exp_dilution_columns(exp_id, plate, col, row, time) VALUES ("%s", %d, %d, 0, %d)' %
-                       (exp_id, plate, col, time))
+        for i in xrange(row_split):
+            for col in xrange(12):
+                db.Execute('INSERT INTO exp_dilution_columns(exp_id, plate, col, row, time) VALUES ("%s", %d, %d, %d, %d)' %
+                           (exp_id, plate, col, i * (8/row_split), time))
 
-    dilution_rows = [0] * 12
+    dilution_rows = np.zeros((row_split, 12))
    
     # if the exp_id doesn't exist this loop will not be skipped and the result
     # will be only 0s
     print 'SELECT col, row FROM exp_dilution_columns WHERE exp_id="%s" AND plate=%d' % (exp_id, plate)
-    for res in db.Execute('SELECT col, max(row) FROM exp_dilution_columns WHERE exp_id="%s" AND plate=%d GROUP BY col'
-                          % (exp_id, plate)):
-        col, row = res
-        dilution_rows[col] = row
+    for res in db.Execute('SELECT col, floot(row / %d) split, max(row) FROM exp_dilution_columns WHERE exp_id="%s" AND plate=%d GROUP BY col, split'
+                          % (8/row_split, exp_id, plate)):
+        col, split, row = res
+        dilution_rows[split, col] = row
     return dilution_rows
 
 def IncrementRow(db, exp_id, plate, col, row, time):
@@ -133,22 +135,24 @@ def main():
 
     exp_id, max_time = GetLastPlate(db, plate_id, options.reading_label)
     data = GetMeasuredData(db, exp_id, max_time, plate_id, options.reading_label)
-    dilution_rows = GetDilutionRows(db, exp_id, plate_id, max_time)
-    print "dilution_rows: ", dilution_rows
+    dilution_rows = GetDilutionRows(db, exp_id, plate_id, max_time, options.row_split)
+    print "dilution_rows:\n", dilution_rows
     
     worklist = []
-    for col, row in enumerate(dilution_rows):
-        meas = data[row, col]
-        print col, row, meas
-        if (meas > options.threshold) and (row < 7):
-            msg = "OD = %f --> dilute cell %s%d into cell %s%d" % (meas, chr(ord('A') + row), col+1, chr(ord('A') + row + 1), col+1)
-            print msg
-            worklist += [UserPrompt(msg)]
-            worklist += [Comm('A',LABWARE,row,col,VOL,LIQ)]
-            worklist += [Comm('D',LABWARE,row+1,col,VOL,LIQ)]
-            #labware,volume and liquid_class would be hard coded for now ...
-            worklist += [Tip()]
-            IncrementRow(db, exp_id, plate_id, col, row+1, max_time)
+    for split in xrange(dilution_rows.shape[0]):
+        for col in xrange(dilution_rows.shape[1]):
+            row = dilution_rows[split, col]
+            meas = data[row, col]
+            print col, row, meas
+            if (meas > options.threshold) and ( (row+1) % (8/options.row_split) != 0 ):
+                msg = "OD = %f --> dilute cell %s%d into cell %s%d" % (meas, chr(ord('A') + row), col+1, chr(ord('A') + row + 1), col+1)
+                print msg
+                worklist += [UserPrompt(msg)]
+                worklist += [Comm('A',LABWARE,row,col,VOL,LIQ)]
+                worklist += [Comm('D',LABWARE,row+1,col,VOL,LIQ)]
+                #labware,volume and liquid_class would be hard coded for now ...
+                worklist += [Tip()]
+                IncrementRow(db, exp_id, plate_id, col, row+1, max_time)
     
     db.Commit()
     
