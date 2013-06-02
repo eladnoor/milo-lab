@@ -109,7 +109,7 @@ def GetDilutionRows(db, exp_id, plate, time, row_split):
     # if the exp_id doesn't exist this loop will not be skipped and the result
     # will be only 0s
     print 'SELECT col, row FROM exp_dilution_columns WHERE exp_id="%s" AND plate=%d' % (exp_id, plate)
-    for res in db.Execute('SELECT col, floot(row / %d) split, max(row) FROM exp_dilution_columns WHERE exp_id="%s" AND plate=%d GROUP BY col, split'
+    for res in db.Execute('SELECT col, floor(row / %d) split, max(row) FROM exp_dilution_columns WHERE exp_id="%s" AND plate=%d GROUP BY col, split'
                           % (8/row_split, exp_id, plate)):
         col, split, row = res
         dilution_rows[split, col] = row
