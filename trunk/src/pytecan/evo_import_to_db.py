@@ -41,7 +41,7 @@ def MakeOpts():
     
     parser.add_argument("-p", "--plate", default=None, type=int, required=True,
                         help="The plate number (usually between 1-10) in the robot script")
-    parser.add_argument('csv_fname', nargs=1,
+    parser.add_argument('exp_id_csv', nargs=1,
                         help='the name of the CVS file where the exp_ids are')
 
     return parser
@@ -97,12 +97,11 @@ def main():
     print "Importing from file: " + xml_fname
     header_dom, script_dom, plate_values = tecan.ParseReaderFile(xml_fname)
 
-    exp_id_dict = read_exp_id_csv(options)
+    exp_id_dict, plate_id = read_exp_id_csv(options.exp_id_csv[0])
     
     if options.plate not in exp_id_dict:
         error('The measured plate (%d) does not have an exp_id in the CSV file' % options.plate)
 
-    plate_id = 0 # always use 0 as the plate ID, since there should be only one plate per exp_id
     exp_id = exp_id_dict[options.plate]
     MES = {plate_id: plate_values}
     tecan.WriteToDatabase(MES, db, exp_id)

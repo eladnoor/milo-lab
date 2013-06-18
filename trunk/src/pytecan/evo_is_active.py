@@ -5,7 +5,7 @@ def MakeOpts():
     """Returns an OptionParser object with all the default options."""
     parser = ArgumentParser()
 
-    parser.add_argument('csv_fname', nargs=1,
+    parser.add_argument('exp_id_csv', nargs=1,
                         help='the name of the CVS file where the exp_ids are')
     parser.add_argument("-p", "--plate", default=None, type=int, required=True,
                         help="The plate number (usually between 1-10) in the robot script")
@@ -16,12 +16,12 @@ def error(s):
     print s
     sys.exit(-1)
     
-def read_exp_id_csv(options):
-    if not os.path.exists(options.csv_fname[0]):
-        error("cannot find the CVS file with the experiment names: " + options.csv_fname)
+def read_exp_id_csv(exp_id_csv):
+    if not os.path.exists(exp_id_csv):
+        error("cannot find the CVS file with the experiment names: " + exp_id_csv)
 
     exp_id_dict = {}
-    for d in csv.DictReader(open(options.csv_fname[0], 'r')):
+    for d in csv.DictReader(open(exp_id_csv, 'r')):
         try:
             exp_id = d['exp_id']
         except KeyError:
@@ -38,12 +38,12 @@ def read_exp_id_csv(options):
             error('The plate number %d appears twice in the CSV file' % plate)
         if exp_id != "":
             exp_id_dict[plate] = exp_id
-    return exp_id_dict
+    return exp_id_dict, 0
 
 def main():
     options = MakeOpts().parse_args()
     
-    exp_id_dict = read_exp_id_csv(options)
+    exp_id_dict, plate_id = read_exp_id_csv(options.exp_id_csv[0])
             
     if len(set(exp_id_dict.values())) < len(exp_id_dict.values()):
         error('One of the exp_ids appears twice in the CSV file')
