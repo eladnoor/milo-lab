@@ -121,8 +121,8 @@ def GetPathSteps(db, exp_id, plate, time, path_dict):
     res = db.Execute('SELECT COUNT(*) FROM evo_path_trajectory WHERE exp_id="%s" AND plate=%d'%  (exp_id, plate))
     if res[0][0] == 0:
         for path_label in path_dict.keys():
-            db.Execute('INSERT INTO evo_path_trajectory(exp_id, plate, path_label, path_step, time) VALUES ("%s", %d, "%s", %d, %d)' %
-                       (exp_id, plate, path_label, 0, time))
+            db.Execute('INSERT INTO evo_path_trajectory(exp_id, plate, path_label, path_step, time, row_from, col_from, row_to, col_to)' + 
+                       'VALUES ("%s", %d, "%s", %d, %d, %d, %d, %d, %d)' % (exp_id, plate, path_label, 0, time, None, None, 0, 0))
 
     path_step_dict = {}
    
@@ -135,8 +135,9 @@ def GetPathSteps(db, exp_id, plate, time, path_dict):
         path_step_dict[path_label] = path_step
     return path_step_dict
 
-def IncrementRow(db, exp_id, plate, path_label, path_step, time):
-    query = 'INSERT INTO evo_path_trajectory(exp_id, plate, path_label, path_step, time)  VALUES ("%s", %d, "%s", %d, %d)' % (exp_id, plate, path_label, path_step, time)
+def IncrementRow(db, exp_id, plate, path_label, path_step, time, row, col, next_row, next_col):
+    query = 'INSERT INTO evo_path_trajectory(exp_id, plate, path_label, path_step, time, row_from, col_from, row_to, col_to)' + \
+            'VALUES ("%s", %d, "%s", %d, %d, %d, %d, %d, %d)' % (exp_id, plate, path_label, path_step, time, row, col, next_row, next_col)
     print query
     db.Execute(query)
 
@@ -183,7 +184,7 @@ def main():
             worklist += [Comm('D',LABWARE,next_row,next_col,VOL,LIQ)]
             #labware,volume and liquid_class would be hard coded for now ...
             worklist += [Tip()]
-            IncrementRow(db, exp_id, plate_id, path_label, path_step+1, max_time)
+            IncrementRow(db, exp_id, plate_id, path_label, path_step+1, max_time, row, col, next_row, next_col)
     
     db.Commit()
     
@@ -199,3 +200,7 @@ def main():
    
 if __name__ == '__main__':
     main()
+#    """SELECT e.path_label, t.row, t.col, max(t.measurement) w FROM evo_path_trajectory e, tecan_readings t
+#        WHERE e.exp_id=t.exp_id AND t.exp_id="%s" AND e.plate=t.plate AND plate=%d AND
+#              e.row_from=t.row AND e.col_from=t.col AND e.time < t.time
+#     GROUP BY e.path_label, t.row, t.col""" % (exp_id, plate)
