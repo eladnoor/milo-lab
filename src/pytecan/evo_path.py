@@ -200,7 +200,8 @@ def main():
    
 if __name__ == '__main__':
     main()
-#    """SELECT e.path_label, t.row, t.col, max(t.measurement) w FROM evo_path_trajectory e, tecan_readings t
-#        WHERE e.exp_id=t.exp_id AND t.exp_id="%s" AND e.plate=t.plate AND plate=%d AND
+#    """SELECT e.path_label, e.path_step, t.row, t.col, max(t.measurement) w FROM evo_path_trajectory e, tecan_readings t
+#        WHERE e.exp_id=t.exp_id AND t.exp_id="%s" AND e.plate=t.plate AND plate=%d AND t.reading_label="%s"
 #              e.row_from=t.row AND e.col_from=t.col AND e.time < t.time
-#     GROUP BY e.path_label, t.row, t.col""" % (exp_id, plate)
+#     GROUP BY e.path_label, e.path_step, t.row, t.col
+#     ORDER BY e.path_label, e.path_step """ % (exp_id, plate, reading_label)
