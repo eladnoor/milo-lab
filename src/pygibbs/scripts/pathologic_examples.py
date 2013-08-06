@@ -15,7 +15,6 @@ def ban_toxic_compounds(pl):
     """Bans compounds known to be toxic"""
     pl.ban_compound(546)  # Methylglyoxal
     
-    
 def add_carbon_counts(pl):
     """Add reactions counting carbons in various
        plausible fermentation products.
@@ -44,33 +43,38 @@ def add_carbon_counts(pl):
         pl.add_cofactor_reaction(rxn)
     """
         
-
-def add_cofactor_reactions(pl, free_ATP_hydrolysis=True):
+def add_cofactor_reactions(pl):
     pl.add_cofactor_reaction(Reaction.FromFormula("C00001 <=> null", name='Free H2O'))
     pl.add_cofactor_reaction(Reaction.FromFormula("C00009 <=> null", name='Free Pi'))
     pl.add_cofactor_reaction(Reaction.FromFormula("C00013 <=> null", name='Free PPi'))
 
-    if free_ATP_hydrolysis:
-        # all Adenosine phosphorylations
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00008", name='ATP to ADP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00002 <=> C00020", name='ATP to AMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00008 <=> C00020", name='ADP to AMP'))
-    
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00206", name='dATP to dADP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00131 <=> C00360", name='dATP to dAMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00206 <=> C00360", name='dADP to dAMP'))
-    
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00104", name='ITP to IDP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00081 <=> C00130", name='ITP to IMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00104 <=> C00130", name='IDP to IMP'))
-    
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00035", name='GTP to GDP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00044 <=> C00144", name='GTP to GMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00035 <=> C00144", name='GDP to GMP'))
-    
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00112", name='CTP to CDP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00063 <=> C00055", name='CTP to CMP'))
-        pl.add_cofactor_reaction(Reaction.FromFormula("C00112 <=> C00055", name='CDP to CMP'))
+def add_XTP_reactions(pl, direction='<=>'):
+    """
+        Adds phosphorylated nucleotide reactions, which ignore thermodynamics
+        and phosphate balance constraints.
+        The direction arguments can be set to allow them only in one direction.
+        For example, a useful scenario would be to force a pathway
+        not to consume ATP without constraining it for zero ATP production.
+    """
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00002 %s C00008" % direction, name='ATP to ADP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00002 %s C00020" % direction, name='ATP to AMP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00008 %s C00020" % direction, name='ADP to AMP'))
+
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00131 %s C00206" % direction, name='dATP to dADP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00131 %s C00360" % direction, name='dATP to dAMP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00206 %s C00360" % direction, name='dADP to dAMP'))
+
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00081 %s C00104" % direction, name='ITP to IDP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00081 %s C00130" % direction, name='ITP to IMP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00104 %s C00130" % direction, name='IDP to IMP'))
+
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00044 %s C00035" % direction, name='GTP to GDP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00044 %s C00144" % direction, name='GTP to GMP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00035 %s C00144" % direction, name='GDP to GMP'))
+
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00063 %s C00112" % direction, name='CTP to CDP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00063 %s C00055" % direction, name='CTP to CMP'))
+    pl.add_cofactor_reaction(Reaction.FromFormula("C00112 %s C00055" % direction, name='CDP to CMP'))
 
 def add_redox_reactions(pl, NAD_only=False):
     # all electron transfer reactions
@@ -238,6 +242,85 @@ def example_rpi_bypass(thermo):
     #r.Balance()
     pl.find_path("rpi_bypass", r)
 
+def example_three_acetate(thermo):
+    pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
+                    public_db=SqliteDatabase('../data/public_data.sqlite'),
+                    html_writer=HtmlWriter('../res/pathologic.html'),
+                    thermo=thermo,
+                    max_solutions=None,
+                    max_reactions=20,
+                    maximal_dG=0.0,
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
+                    update_file=None)
+    add_cofactor_reactions(pl)
+    #add_redox_reactions(pl)
+    pl.delete_reaction(761) # F6P + Pi = E4P + acetyl-P
+    pl.delete_reaction(1621) # X5P + Pi = GA3P + acetyl-P
+
+    r = Reaction.FromFormula("C00031 => 3 C00033")
+    #r.Balance()
+    pl.find_path("three_acetate", r)
+    
+def example_three_pyruvate(thermo):
+    pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
+                    public_db=SqliteDatabase('../data/public_data.sqlite'),
+                    html_writer=HtmlWriter('../res/pathologic.html'),
+                    thermo=thermo,
+                    max_solutions=None,
+                    max_reactions=20,
+                    maximal_dG=0.0,
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
+                    update_file=None)
+    #add_cofactor_reactions(pl)
+    #add_XTP_reactions(pl, '=>')
+    #add_redox_reactions(pl)
+    #pl.delete_reaction(761) # F6P + Pi = E4P + acetyl-P
+    #pl.delete_reaction(1621) # X5P + Pi = GA3P + acetyl-P
+
+    r = Reaction.FromFormula("C00031 + 3 C00011 + 3 C00004 => 3 C00022 + 3 C00001 + 3 C00003")
+    #r.Balance()
+    pl.find_path("three_pyr", r)    
+
+def example_more_than_two_pyruvate(thermo):
+    pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
+                    public_db=SqliteDatabase('../data/public_data.sqlite'),
+                    html_writer=HtmlWriter('../res/pathologic.html'),
+                    thermo=thermo,
+                    max_solutions=None,
+                    max_reactions=20,
+                    maximal_dG=0.0,
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
+                    update_file=None)
+    #add_cofactor_reactions(pl)
+    #add_XTP_reactions(pl, '=>')
+    #add_redox_reactions(pl)
+    #pl.delete_reaction(761) # F6P + Pi = E4P + acetyl-P
+    #pl.delete_reaction(1621) # X5P + Pi = GA3P + acetyl-P
+
+    r = Reaction.FromFormula("3 C00031 + 3 C00011 + C00003 => 7 C00022 + 3 C00001 + C00004")
+    r.Balance()
+    pl.find_path("more_than_two_pyr", r)
+
+def example_glucose_to_ethanol_and_formate(thermo):
+    pl = Pathologic(db=SqliteDatabase('../res/gibbs.sqlite', 'r'),
+                    public_db=SqliteDatabase('../data/public_data.sqlite'),
+                    html_writer=HtmlWriter('../res/pathologic.html'),
+                    thermo=thermo,
+                    max_solutions=None,
+                    max_reactions=15,
+                    maximal_dG=0.0,
+                    thermodynamic_method=OptimizationMethods.GLOBAL,
+                    update_file=None)
+    #add_cofactor_reactions(pl)
+    #add_XTP_reactions(pl, '=>')
+    #add_redox_reactions(pl)
+    #pl.delete_reaction(761) # F6P + Pi = E4P + acetyl-P
+    #pl.delete_reaction(1621) # X5P + Pi = GA3P + acetyl-P
+
+    r = Reaction.FromFormula("2 C00031 + 3 C00001 => 6 C00058 + 3 C00469")
+    r.Balance()
+    pl.find_path("glucose_to_ethanol_and_formate", r)
+        
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
     estimators = LoadAllEstimators()
@@ -248,7 +331,11 @@ def main():
     #example_glycolysis(thermo)
     #example_formate(thermo, product=22)
     #example_formate(thermo, product_cid=31)
-    example_rpi_bypass(thermo)
+    #example_rpi_bypass(thermo)
+    #example_three_acetate(thermo)
+    #example_three_pyruvate(thermo)
+    #example_more_than_two_pyruvate(thermo)
+    example_glucose_to_ethanol_and_formate(thermo)
 
 if __name__ == '__main__':
     main()
