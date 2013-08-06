@@ -84,7 +84,7 @@ def GetAllOBDs(pathway_list, html_writer, thermo, pH=None,
         
         keggpath = KeggPathway(S, rids, fluxes, cids, reaction_energies=dG0_r_prime,
                                cid2bounds=thermo.bounds, c_range=thermo.c_range)
-        rowdict['formulas'] = [keggpath.GetReactionString(r, show_cids=False, hypertext=False)
+        rowdict['formulas'] = [keggpath.GetReactionString(r, show_cids=False)
                                for r in xrange(len(rids))]
 
         if np.any(np.isnan(dG0_r_prime)):

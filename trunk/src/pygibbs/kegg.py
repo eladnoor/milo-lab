@@ -25,7 +25,9 @@ from toolbox.molecule import OpenBabelError
 class Kegg(Singleton):
     COMPOUND_ADDITIONS_FILE = '../data/kegg/kegg_additions.csv'
 
-    def __init__(self, loadFromAPI=False):
+    def __init__(self,
+                 loadFromAPI=False,
+                 sqlite_path='../data/public_data.sqlite'):
         # default colors for pydot (used to plot modules)
         self.edge_color = "cadetblue"
         self.edge_fontcolor = "indigo"
@@ -47,7 +49,7 @@ class Kegg(Singleton):
         self.cofactors2names = {}
         self.cid2bounds = {}
 
-        self.db = SqliteDatabase('../data/public_data.sqlite')
+        self.db = SqliteDatabase(sqlite_path)
         
         if loadFromAPI:
             self.FromAPI()
