@@ -43,7 +43,7 @@ def UserPrompt(msg):
     Append a UserPrompt evoke command to the worklist file
     text will be displayed to evoware user while executing this worklist command
     """
-    return 'B;UserPrompt("%s",1,-5);' % (msg)
+    return 'B;UserPrompt("%s",0,10);' % (msg)
 
 def MakeOpts():
     """Returns an OptionParser object with all the default options."""
@@ -151,7 +151,11 @@ def main():
     path_dict = ReadPathCsv(options)
     
     VOL = options.vol
+    MEDIA_VOL = 150-VOL #volune of fresh media in designated well
+    
     LABWARE = 'GRID40SITE3' 
+    EPNSTAND = 'EpnStand'
+    
     LIQ = options.liquid_class
     
     # We should also state which directory where the evoware could find the worklist file
@@ -177,9 +181,11 @@ def main():
         print path_label, path_step, col, row, meas
         if (meas > options.threshold) and (path_step < len(path_dict[path_label])-1):
             next_row, next_col = path_dict[path_label][path_step+1]
-            msg = "OD = %f --> dilute cell %s%d into cell %s%d" % (meas, chr(ord('A') + row), col+1, chr(ord('A') + next_row), next_col+1)
+            msg = "Current plate is : %d ) %s __ OD = %f --> dilute cell %s%d into cell %s%d" % (options.plate, exp_id, meas, chr(ord('A') + row), col+1, chr(ord('A') + next_row), next_col+1)
             print msg
             worklist += [UserPrompt(msg)]
+            worklist += [Comm('A',EPNSTAND,0,0,MEDIA_VOL,LIQ)]
+            worklist += [Comm('D',LABWARE,next_row,next_col,MEDIA_VOL,LIQ)]
             worklist += [Comm('A',LABWARE,row,col,VOL,LIQ)]
             worklist += [Comm('D',LABWARE,next_row,next_col,VOL,LIQ)]
             #labware,volume and liquid_class would be hard coded for now ...
