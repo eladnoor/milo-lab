@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-import toolbox.tecan as tecan
+import pyrobot.tecan as tecan
 import sys, os
 from toolbox.database import MySQLDatabase, SqliteDatabase
 import time
