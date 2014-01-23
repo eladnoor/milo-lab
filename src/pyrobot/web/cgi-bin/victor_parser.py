@@ -20,13 +20,12 @@ class VictorParser():
     
     @staticmethod
     def GetInfiniteSheetName(wd):
-        worksheets = wd.sheet_names()
-        for worksheet_name in worksheets:
-            worksheet = wd.sheet_by_name(worksheet_name)
-            cell_value = worksheet.cell_value(0, 0) # Check A,1 cell for "Device: infinite 200Pro" stamp
+        for worksheet_name in wd.sheet_names():
+            # Check A2 cell for "Device: infinite 200Pro" stamp
+            cell_value = wd.sheet_by_name(worksheet_name).cell_value(1, 0)
             if re.search('infinite', cell_value):
                 return worksheet_name
-        return None 
+        return None
     
     def ParseExcel(self, fp):
         wd = open_workbook(file_contents=fp.read())
