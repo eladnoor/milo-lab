@@ -23,7 +23,7 @@ class VictorParser():
         for worksheet_name in wd.sheet_names():
             # Check A2 cell for "Device: infinite 200Pro" stamp
             cell_value = wd.sheet_by_name(worksheet_name).cell_value(1, 0)
-            if re.search('infinite', cell_value):
+            if re.search('infinite', str(cell_value)):
                 return worksheet_name
         return None
     
@@ -70,9 +70,15 @@ class VictorParser():
             if self.measurement_time is None:
                 raise Exception("cannot get Start Time in XLS file")
                                 
-            if first_data_row is None or first_data_col is None or mode is None: 
-                raise Exception("cannot find mode, first data row, or col in XLS file")
+            if mode is None:
+                raise Exception("cannot find mode in XLS file")
+
+            if first_data_row is None:
+                raise Exception("cannot first data row in XLS file")
             
+            if first_data_col is None: 
+                raise Exception("cannot first data col in XLS file")
+                
             m_name = self.reading_label_map[mode]
             self.plate = {m_name : {}}
             

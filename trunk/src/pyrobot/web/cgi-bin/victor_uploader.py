@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from argparse import ArgumentParser
 import time, sys, os
 from database import MySQLDatabase, SqliteDatabase
